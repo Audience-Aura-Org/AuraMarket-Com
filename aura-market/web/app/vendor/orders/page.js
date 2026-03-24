@@ -143,8 +143,10 @@ export default function VendorOrdersPage() {
                   <tbody className="divide-y divide-[var(--glass-border)]/50">
                     {filtered.map(order => {
                       const status = STATUS_CONFIG[order.order_status || 'placed'] || STATUS_CONFIG.placed;
+                      const isOpen = openDetails === order._id;
                       return (
-                        <tr key={order._id} className="hover:bg-[var(--accent)]/5 transition-all group/row border-transparent hover:border-[var(--glass-border)]">
+                        <React.Fragment key={order._id}>
+                        <tr className="hover:bg-[var(--accent)]/5 transition-all group/row border-transparent hover:border-[var(--glass-border)]">
                            <td className="px-8 py-5">
                               <div className="flex items-center gap-3">
                                  <div className={`size-3 rounded-full ${status.bg} border-2 ${status.border} shadow-lg relative flex items-center justify-center`}>
@@ -176,11 +178,44 @@ export default function VendorOrdersPage() {
                               </span>
                            </td>
                            <td className="px-8 py-5 text-right whitespace-nowrap">
-                              <button onClick={() => setOpenDetails(openDetails === order._id ? null : order._id)} className={`px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[8px] lg:text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 ${openDetails === order._id ? 'bg-[var(--accent)] text-white shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 shadow-sm'}`}>
+                              <button onClick={() => setOpenDetails(isOpen ? null : order._id)} className={`px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[8px] lg:text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 ${isOpen ? 'bg-[var(--accent)] text-white shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 shadow-sm'}`}>
                                 Node Details
                               </button>
                            </td>
                         </tr>
+                        {isOpen && (
+                          <tr className="bg-[var(--bg-primary)]/40">
+                            <td colSpan={5} className="px-6 py-5 border-t border-[var(--glass-border)]">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <div className="rounded-2xl border border-[var(--glass-border)] p-4">
+                                  <p className="text-[8px] uppercase tracking-widest text-[var(--text-secondary)] opacity-60 mb-2">Customer</p>
+                                  <p className="text-sm font-black text-[var(--text-primary)]">{order.customer_id?.name || 'Customer'}</p>
+                                  <p className="text-[10px] text-[var(--text-secondary)]">{order.customer_id?.email || 'No email'}</p>
+                                  <p className="text-[10px] text-[var(--text-secondary)]">{order.customer_id?.phone || 'No phone'}</p>
+                                  <p className="text-[10px] mt-2 text-[var(--text-secondary)] uppercase tracking-widest">Address</p>
+                                  <p className="text-[10px] text-[var(--text-primary)]">
+                                    {[order.shipping_address?.street, order.shipping_address?.quartier, order.shipping_address?.city].filter(Boolean).join(', ') || 'No address'}
+                                  </p>
+                                </div>
+                                <div className="rounded-2xl border border-[var(--glass-border)] p-4 lg:col-span-2">
+                                  <p className="text-[8px] uppercase tracking-widest text-[var(--text-secondary)] opacity-60 mb-2">Items</p>
+                                  <div className="space-y-2">
+                                    {(order.products || []).map((item, idx) => (
+                                      <div key={idx} className="flex items-center justify-between rounded-xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] px-3 py-2">
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-black text-[var(--text-primary)] truncate uppercase">{item.name}</p>
+                                          <p className="text-[9px] text-[var(--text-secondary)] uppercase tracking-widest">qty {item.quantity}</p>
+                                        </div>
+                                        <p className="text-xs font-black text-[var(--text-primary)]">{(item.price * item.quantity).toLocaleString()} XAF</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       )
                     })}
                     {filtered.length === 0 && (

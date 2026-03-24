@@ -31,10 +31,13 @@ const PAYMENT_STATUS = {
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
+  const [logisticsFirms, setLogisticsFirms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [expanded, setExpanded] = useState(null);
+  const [savingOrderId, setSavingOrderId] = useState(null);
+  const [orderEdits, setOrderEdits] = useState({});
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -50,6 +53,46 @@ export default function AdminOrdersPage() {
   }, [activeTab]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  useEffect(() => {
+    const fetchLogistics = async () => {
+      try {
+        const res = await api.get('/admin/logistics/firms');
+        if (res.data.success) setLogisticsFirms(res.data.data.firms || []);
+      } catch (err) {
+        console.error('Failed to fetch logistics firms:', err);
+      }
+    };
+    fetchLogistics();
+  }, []);
+
+  const setOrderEditField = (orderId, key, value) => {
+    setOrderEdits((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...(prev[orderId] || {}),
+        [key]: value,
+      },
+    }));
+  };
+
+  const saveOrderControl = async (order) => {
+    const patch = orderEdits[order._id];
+    if (!patch) return;
+    setSavingOrderId(order._id);
+    try {
+      const res = await api.patch(`/admin/orders/${order._id}`, patch);
+      if (res.data.success) {
+        setOrders((prev) =>
+          prev.map((o) => (o._id === order._id ? { ...o, ...res.data.data.order } : o))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to update order:', err);
+    } finally {
+      setSavingOrderId(null);
+    }
+  };
 
   const filtered = orders.filter(o => {
     const q = search.toLowerCase();
@@ -248,6 +291,46 @@ export default function AdminOrdersPage() {
                                       <p className={`text-[10px] font-black uppercase ${it.color || 'text-[var(--text-primary)]'}`}>{it.val || '—'}</p>
                                    </div>
                                  ))}
+                              </div>
+
+                              <div className="space-y-2">
+                                <p className="text-[8px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Admin Control</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                  <select
+                                    value={orderEdits[order._id]?.order_status ?? order.order_status}
+                                    onChange={(e) => setOrderEditField(order._id, 'order_status', e.target.value)}
+                                    className="w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+                                  >
+                                    {Object.keys(STATUS_CONFIG).map((s) => (
+                                      <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    value={orderEdits[order._id]?.shipping_method ?? order.shipping_method}
+                                    onChange={(e) => setOrderEditField(order._id, 'shipping_method', e.target.value)}
+                                    className="w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+                                  >
+                                    <option value="vendor_managed">Vendor Managed</option>
+                                    <option value="logistics_partner">Logistics Partner</option>
+                                  </select>
+                                  <select
+                                    value={orderEdits[order._id]?.logistics_company_id ?? order.logistics_company_id ?? ''}
+                                    onChange={(e) => setOrderEditField(order._id, 'logistics_company_id', e.target.value || null)}
+                                    className="w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+                                  >
+                                    <option value="">No Logistics Firm</option>
+                                    {logisticsFirms.map((f) => (
+                                      <option key={f._id} value={f._id}>{f.company_name}</option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={() => saveOrderControl(order)}
+                                    disabled={savingOrderId === order._id}
+                                    className="rounded-xl bg-[var(--accent)] text-white px-3 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                                  >
+                                    {savingOrderId === order._id ? 'Saving...' : 'Save Changes'}
+                                  </button>
+                                </div>
                               </div>
                            </div>
                         </div>

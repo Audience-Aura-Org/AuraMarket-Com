@@ -22,6 +22,7 @@ const {
   getSettings,
   updateSettings,
   getAllOrders,
+  updateOrderAdmin,
   getPendingVendors,
   getPendingProducts,
   reviewProduct,
@@ -98,6 +99,7 @@ router.patch('/products/:id/review', reviewProduct);
 
 // All Orders (admin view)
 router.get('/orders', getAllOrders);
+router.patch('/orders/:id', updateOrderAdmin);
 
 // User & Entity Management
 router.get('/users', getAllUsers);

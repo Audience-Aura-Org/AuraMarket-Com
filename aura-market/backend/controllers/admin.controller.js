@@ -20,6 +20,7 @@ const Report = require('../models/Report.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const Transaction = require('../models/Transaction.model');
 const { sendNotification } = require('../utils/notifier');
+const logisticsService = require('../services/logistics.service');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/admin/homepage
@@ -345,6 +346,59 @@ const getAllOrders = async (req, res, next) => {
       total,
       data: { orders },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   PATCH /api/admin/orders/:id
+// @desc    Admin: full order control (status/payment/logistics)
+// @access  Private (Role: admin)
+// ─────────────────────────────────────────────
+const updateOrderAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { order_status, payment_status, shipping_method, logistics_company_id } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+    if (order_status) order.order_status = order_status;
+    if (payment_status) order.payment_status = payment_status;
+    if (shipping_method) order.shipping_method = shipping_method;
+    if (typeof logistics_company_id !== 'undefined') {
+      order.logistics_company_id = logistics_company_id || null;
+    }
+
+    await order.save();
+
+    // Keep shipment assignment in sync when admin updates logistics routing
+    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+      let shipment = await Shipment.findOne({ order_id: order._id });
+      if (!shipment) {
+        const quartier = order.shipping_address?.quartier;
+        if (quartier) {
+          const created = await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id);
+          shipment = created?.[0];
+        }
+      } else {
+        shipment.logistics_id = order.logistics_company_id;
+        await shipment.save();
+      }
+
+      const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
+      if (logisticsFirm) {
+        await sendNotification(req.app, logisticsFirm.user_id, {
+          title: 'Shipment Assignment Updated',
+          message: `Admin updated routing for order #${order._id.toString().slice(-6).toUpperCase()}.`,
+          type: 'system_alert',
+          metadata: { order_id: order._id, shipment_id: shipment?._id || null }
+        });
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Order updated.', data: { order } });
   } catch (error) {
     next(error);
   }
@@ -694,6 +748,7 @@ module.exports = {
   getSettings,
   updateSettings,
   getAllOrders,
+  updateOrderAdmin,
   getPendingVendors,
   getPendingProducts,
   reviewProduct,

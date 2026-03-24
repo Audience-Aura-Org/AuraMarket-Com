@@ -8,8 +8,11 @@ const Transaction = require('../models/Transaction.model');
 const Order = require('../models/Order.model');
 const Escrow = require('../models/Escrow.model');
 const Vendor = require('../models/Vendor.model');
+const LogisticsCompany = require('../models/LogisticsCompany.model');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+const logisticsService = require('../services/logistics.service');
+const { sendNotification } = require('../utils/notifier');
 
 // Helper to generate a unique transaction reference
 const generateTxRef = () => `AURA-TX-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -248,7 +251,22 @@ const payOrderWithWallet = async (req, res, next) => {
     order.order_status = 'processing'; 
     await order.save({ session });
 
-    // (If Escrow was configured, we wouldn't route it directly here vs Escrow module).
+    // Auto-create shipment tickets when logistics delivery is selected
+    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+      const quartier = order.shipping_address?.quartier;
+      if (quartier) {
+        await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
+        const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id).session(session);
+        if (logisticsFirm) {
+          await sendNotification(req.app, logisticsFirm.user_id, {
+            title: 'New Shipment Assigned',
+            message: `You have a new shipment for order #${order._id.toString().slice(-6).toUpperCase()}.`,
+            type: 'system_alert',
+            metadata: { order_id: order._id }
+          });
+        }
+      }
+    }
 
     await session.commitTransaction();
     session.endSession();
