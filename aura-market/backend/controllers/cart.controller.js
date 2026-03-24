@@ -143,4 +143,25 @@ const removeFromCart = async (req, res, next) => {
   }
 };
 
-module.exports = { addToCart, getCart, updateCartQty, removeFromCart };
+const clearCart = async (req, res, next) => {
+  try {
+    const cart = await Cart.findOneAndUpdate(
+      { user_id: req.user._id },
+      { $set: { items: [] } },
+      { new: true, upsert: true }
+    ).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
+
+    res.status(200).json({ success: true, data: { cart } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  addToCart,
+  getCart,
+  updateCartQty,
+  updateCartQuantity: updateCartQty,
+  removeFromCart,
+  clearCart,
+};
