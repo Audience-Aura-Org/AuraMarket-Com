@@ -29,6 +29,9 @@ export default function ShipmentList({ shipments = [], onSelectShipment }) {
               <tr key={s._id} className="hover:bg-[var(--accent)]/5">
                 <td className="px-5 py-4">
                   <p className="text-xs font-black uppercase tracking-tight">{s.tracking_code}</p>
+                  <p className="text-[10px] font-black uppercase opacity-60">
+                    Order: #{(s.order_id?._id || s.order_id || "").toString().slice(-8).toUpperCase()}
+                  </p>
                   <p className="text-[10px] font-bold opacity-50">{new Date(s.createdAt).toLocaleString()}</p>
                 </td>
                 <td className="px-5 py-4">

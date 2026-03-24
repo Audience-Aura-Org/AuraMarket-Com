@@ -73,6 +73,9 @@ export default function LogisticsTrackingPage() {
                 <div key={s._id} className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] px-3 py-2">
                   <div>
                     <p className="text-xs font-black">{s.tracking_code}</p>
+                    <p className="text-[10px] font-black text-[var(--accent)] uppercase">
+                      Order #{(s.order_id?._id || s.order_id || "").toString().slice(-8).toUpperCase()}
+                    </p>
                     <p className="text-[10px] font-bold opacity-60">
                       {s.delivery_address?.quartier || s.delivery_address?.city || "Unknown destination"}
                     </p>

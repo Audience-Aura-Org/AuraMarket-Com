@@ -270,6 +270,9 @@ export default function LogisticsDashboard() {
                       </div>
                       <div>
                         <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{s.tracking_code}</p>
+                        <p className="text-[8px] font-black text-[var(--accent)] uppercase tracking-widest opacity-80">
+                          Order #{(s.order_id?._id || s.order_id || '').toString().slice(-8).toUpperCase()}
+                        </p>
                         <p className="text-[9px] text-[var(--text-secondary)] mt-1 flex items-center gap-2 font-bold uppercase tracking-widest opacity-60">
                           {s.pickup_address?.quartier || s.pickup_address?.city || 'Pickup'} <span className="material-symbols-outlined text-xs text-indigo-500">trending_flat</span> {s.delivery_address?.quartier || s.delivery_address?.city || 'Delivery'}
                         </p>

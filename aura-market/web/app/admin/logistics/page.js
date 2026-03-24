@@ -161,6 +161,9 @@ export default function AdminLogistics() {
                                 </div>
                                 <div className="min-w-0">
                                    <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] uppercase tracking-tight font-mono truncate">{s.tracking_code}</p>
+                                   <p className="text-[8px] lg:text-[9px] font-black text-[var(--accent)] uppercase tracking-widest opacity-80 truncate">
+                                     Order #{(s.order_id?._id || s.order_id || '').toString().slice(-8).toUpperCase()}
+                                   </p>
                                    <p className="text-[8px] lg:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 flex items-center gap-1 truncate"><MapPin className="size-2 text-[var(--accent)]" /> {s.delivery_address?.quartier || s.delivery_address?.city || 'Unspecified'}</p>
                                 </div>
                              </div>
