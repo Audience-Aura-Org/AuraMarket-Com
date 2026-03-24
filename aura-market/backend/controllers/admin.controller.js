@@ -761,5 +761,7 @@ module.exports = {
   getAdminShipments,
   getAdminLogisticsFirms,
   toggleLogisticsVerified,
+  updateLogisticsFirm,
+  addLogisticZone,
   getAdvancedAnalytics,
 };

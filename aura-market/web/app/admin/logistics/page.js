@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Truck, Building2, MapPin, Package, 
-  CheckCircle2, AlertTriangle, RefreshCw, Eye, Search, ChevronDown
+  CheckCircle2, AlertTriangle, RefreshCw, Eye, Search, ChevronDown, DollarSign, Scale
 } from 'lucide-react';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
@@ -18,7 +18,7 @@ export default function AdminLogistics() {
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Shipments');
-  const [newZone, setNewZone] = useState({ name: '', type: 'region', parent: '' });
+  const [newZone, setNewZone] = useState({ name: '', type: 'region', parent_id: '' });
   const [selectedFirm, setSelectedFirm] = useState(null);
   const [priceEditor, setPriceEditor] = useState({ quartier: '', price: '' });
 
@@ -133,7 +133,7 @@ export default function AdminLogistics() {
                              </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5 min-w-0">
-                             <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] truncate max-w-[120px] lg:max-w-[150px] uppercase">{s.logistics_company_id?.company_name || 'Carrier Pending'}</p>
+                             <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] truncate max-w-[120px] lg:max-w-[150px] uppercase">{s.logistics_id?.company_name || s.logistics_company_id?.company_name || 'Carrier Pending'}</p>
                              <p className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-black uppercase tracking-widest opacity-30 truncate">From: {s.vendor_id?.store_name || s.vendor_id?.name}</p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
@@ -216,7 +216,7 @@ export default function AdminLogistics() {
                         <tr key={z._id} className="hover:bg-[var(--accent)]/5 transition-colors group">
                            <td className="px-6 lg:px-8 py-4 lg:py-5 text-xs lg:text-sm font-black uppercase tracking-tight font-mono">{z.name}</td>
                            <td className="px-4 lg:px-6 py-4 lg:py-5"><span className="px-2 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[7px] lg:text-[8px] font-bold uppercase border border-[var(--glass-border)]/20">{z.type}</span></td>
-                           <td className="px-4 lg:px-6 py-4 lg:py-5 text-[10px] lg:text-xs font-bold text-[var(--text-secondary)] uppercase tracking-tight">{z.parent?.name || 'ROOT'}</td>
+                           <td className="px-4 lg:px-6 py-4 lg:py-5 text-[10px] lg:text-xs font-bold text-[var(--text-secondary)] uppercase tracking-tight">{z.parent_id?.name || 'ROOT'}</td>
                            <td className="px-4 lg:px-6 py-4 lg:py-5 text-[8px] lg:text-[10px] font-black uppercase text-emerald-500 tracking-widest flex items-center gap-1.5">
                               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse" />
                               Active Node
@@ -253,11 +253,16 @@ export default function AdminLogistics() {
                <form className="space-y-4 lg:space-y-5 relative z-10" onSubmit={async (e) => {
                   e.preventDefault();
                   try {
-                     const res = await api.post('/admin/logistics/zones', newZone);
+                     const payload = {
+                        name: newZone.name,
+                        type: newZone.type,
+                        parent_id: newZone.type === 'quartier' ? newZone.parent_id || null : null,
+                     };
+                     const res = await api.post('/admin/logistics/zones', payload);
                      if (res.data.success) {
                         toast.success("Geographic node deployed.");
                         fetchLogistics();
-                        setNewZone({ name: '', type: 'region', parent: '' });
+                        setNewZone({ name: '', type: 'region', parent_id: '' });
                      }
                   } catch { toast.error("Deployment failed."); }
                }}>
@@ -275,7 +280,7 @@ export default function AdminLogistics() {
                         <label className="text-[8px] lg:text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] ml-1">Topology Type</label>
                         <select 
                            value={newZone.type}
-                           onChange={e => setNewZone({...newZone, type: e.target.value, parent: ''})}
+                           onChange={e => setNewZone({...newZone, type: e.target.value, parent_id: ''})}
                            className="w-full p-3.5 lg:p-4 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-xs font-bold outline-none cursor-pointer focus:border-[var(--accent)] transition-all uppercase tracking-tight"
                         >
                            <option value="region">Region / City</option>
@@ -286,8 +291,8 @@ export default function AdminLogistics() {
                         <div className="space-y-2">
                            <label className="text-[8px] lg:text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] ml-1">Parent Cluster</label>
                            <select 
-                              value={newZone.parent}
-                              onChange={e => setNewZone({...newZone, parent: e.target.value})}
+                              value={newZone.parent_id}
+                              onChange={e => setNewZone({...newZone, parent_id: e.target.value})}
                               className="w-full p-3.5 lg:p-4 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-xs font-bold outline-none cursor-pointer focus:border-[var(--accent)] transition-all uppercase tracking-tight"
                            >
                               <option value="">Select Region</option>

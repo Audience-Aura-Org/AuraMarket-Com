@@ -149,6 +149,24 @@ const createOrder = async (req, res, next) => {
 
     const order = await Order.create(orderData, { session });
 
+    // For test flows: create shipment immediately when using pay on delivery.
+    if (
+      shipping_method === 'logistics_partner' &&
+      logistics_company_id &&
+      payment_method === 'pay_on_delivery'
+    ) {
+      await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
+      const logisticsComp = await LogisticsCompany.findById(logistics_company_id).session(session);
+      if (logisticsComp) {
+        await sendNotification(req.app, logisticsComp.user_id, {
+          title: 'New Shipment Assigned',
+          message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
+          type: 'system_alert',
+          metadata: { order_id: order[0]._id }
+        });
+      }
+    }
+
     await session.commitTransaction();
     session.endSession();
 
@@ -584,6 +602,25 @@ const createOrdersFromCart = async (req, res, next) => {
       }], { session });
 
       createdOrders.push(order[0]._id);
+
+      // For test flows: create shipment now when pay_on_delivery is selected.
+      if (
+        (payment_method || 'wallet') === 'pay_on_delivery' &&
+        shipping_method === 'logistics_partner' &&
+        logistics_company_id &&
+        delivery_quartier
+      ) {
+        await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
+        const logisticsComp = await LogisticsCompany.findById(logistics_company_id).session(session);
+        if (logisticsComp) {
+          await sendNotification(req.app, logisticsComp.user_id, {
+            title: 'New Shipment Assigned',
+            message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
+            type: 'system_alert',
+            metadata: { order_id: order[0]._id }
+          });
+        }
+      }
     }
 
     // Clear cart

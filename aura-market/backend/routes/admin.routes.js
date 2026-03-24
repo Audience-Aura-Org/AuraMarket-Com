@@ -34,6 +34,8 @@ const {
   getAdminShipments,
   getAdminLogisticsFirms,
   toggleLogisticsVerified,
+  updateLogisticsFirm,
+  addLogisticZone,
   getAdvancedAnalytics,
   getAllProducts
 } = require('../controllers/admin.controller');
@@ -72,6 +74,8 @@ router.patch('/kyc/:id/review', reviewKYC);
 router.get('/logistics/shipments', getAdminShipments);
 router.get('/logistics/firms', getAdminLogisticsFirms);
 router.patch('/logistics/firms/:id/verify', toggleLogisticsVerified);
+router.patch('/logistics/firms/:id', updateLogisticsFirm);
+router.post('/logistics/zones', addLogisticZone);
 
 
 // Advanced Analytics

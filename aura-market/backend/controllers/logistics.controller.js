@@ -16,6 +16,8 @@ const mongoose = require('mongoose');
 const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('../services/logistics.service');
 
+const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
+
 // ─────────────────────────────────────────────
 // @route   POST /api/logistics/onboard
 // @desc    Register a user account as a Logistics Firm
@@ -139,6 +141,30 @@ const modifyShipmentStatus = async (req, res, next) => {
       const allDelivered = otherShipments.every(s => s.status === 'delivered');
       if (allDelivered) {
         order.order_status = 'delivered';
+
+        // Test option: pay vendor when delivery is confirmed.
+        if (order.payment_method === 'pay_on_delivery' && order.payment_status === 'pending') {
+          const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
+          if (vendorAccount) {
+            const vendorUser = await User.findById(vendorAccount.user_id).session(session);
+            if (vendorUser) {
+              vendorUser.wallet_balance += order.total_amount;
+              await vendorUser.save({ session });
+
+              await Transaction.create([{
+                user_id: vendorUser._id,
+                type: 'payout',
+                amount: order.total_amount,
+                reference: generateTxRef(),
+                status: 'completed',
+                description: `Payment on delivery settled (Order #${order._id.toString().slice(-6).toUpperCase()})`,
+                order_id: order._id,
+              }], { session });
+
+              order.payment_status = 'paid';
+            }
+          }
+        }
 
         // Auto-release escrow when logistics confirms final delivery.
         if (order.payment_method === 'escrow' && order.payment_status === 'paid') {

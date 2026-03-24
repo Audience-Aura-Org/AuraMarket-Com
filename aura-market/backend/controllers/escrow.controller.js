@@ -11,6 +11,9 @@ const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
+const LogisticsCompany = require('../models/LogisticsCompany.model');
+const logisticsService = require('../services/logistics.service');
+const { sendNotification } = require('../utils/notifier');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 
@@ -78,6 +81,23 @@ const holdFunds = async (req, res, next) => {
     order.payment_status = 'paid'; // The system got the money
     order.order_status = 'processing'; // Vendor can begin shipping
     await order.save({ session });
+
+    // If logistics partner is selected, create shipment assignment immediately after escrow hold.
+    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+      const quartier = order.shipping_address?.quartier;
+      if (quartier) {
+        await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
+        const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id).session(session);
+        if (logisticsFirm) {
+          await sendNotification(req.app, logisticsFirm.user_id, {
+            title: 'New Shipment Assigned',
+            message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+            type: 'system_alert',
+            metadata: { order_id: order._id }
+          });
+        }
+      }
+    }
 
     // 6. Update Vendor sales tracking automatically (Real-time volume)
     if (vendorAccount) {
