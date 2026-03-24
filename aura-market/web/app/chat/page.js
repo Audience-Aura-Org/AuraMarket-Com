@@ -7,7 +7,7 @@ import {
   Send, Image as ImageIcon, Smile, 
   CheckCheck, ArrowLeft, Phone, Video,
   ShieldCheck, Loader2, User, Package,
-  ExternalLink, X
+  ExternalLink, X, LayoutGrid
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -352,6 +352,14 @@ function ChatContent() {
     );
   }, [inbox, searchQuery]);
 
+  const dashboardHref = user?.role === 'admin'
+    ? '/admin/dashboard'
+    : user?.role === 'vendor'
+      ? '/vendor/dashboard'
+      : user?.role === 'logistics'
+        ? '/logistics/dashboard'
+        : '/discovery';
+
   return (
     <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
       {/* Sidebar List */}
@@ -364,7 +372,16 @@ function ChatContent() {
                Secure Chat
             </p>
           </div>
-          <button className="size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--text-primary)] transition-all shadow-sm"><MoreVertical className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push(dashboardHref)}
+              className="h-10 px-3 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] flex items-center justify-center gap-1.5 hover:text-[var(--text-primary)] transition-all shadow-sm"
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Dashboard</span>
+            </button>
+            <button className="size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--text-primary)] transition-all shadow-sm"><MoreVertical className="w-5 h-5" /></button>
+          </div>
         </div>
         
             <div className="p-4">
