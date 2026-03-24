@@ -220,7 +220,7 @@ export default function VendorProductsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-5"><span className="text-[10px] font-black px-3 py-1 rounded-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-[var(--text-secondary)] uppercase tracking-widest">{product.category || '—'}</span></td>
-                          <td className="px-6 py-5 text-sm font-black text-[var(--text-primary)]">${product.price?.toLocaleString()}</td>
+                          <td className="px-6 py-5 text-sm font-black text-[var(--text-primary)]">{product.price?.toLocaleString()} XAF</td>
                           <td className="px-6 py-5"><span className={`text-sm font-black ${isLowStock ? 'text-red-600' : 'text-emerald-600'}`}>{product.stock}</span>{isLowStock && <span className="ml-2 text-[10px] text-red-600 font-black uppercase tracking-widest">LOW</span>}</td>
                           <td className="px-6 py-5">
                             <div className="flex flex-col gap-1 text-[10px] font-bold text-[var(--text-secondary)]">

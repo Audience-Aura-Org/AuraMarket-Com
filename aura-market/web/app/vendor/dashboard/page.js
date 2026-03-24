@@ -250,7 +250,7 @@ export default function VendorDashboard() {
                         #{order._id?.slice(-5) || i} • {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : '—'}
                       </p>
                     </div>
-                    <p className="text-sm font-bold text-[var(--text-primary)]">${order.total_price || '—'}</p>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{order.total_price ? `${Number(order.total_price).toLocaleString()} XAF` : '—'}</p>
                   </div>
                 ))}
                 {orders.length === 0 && (
@@ -306,7 +306,7 @@ export default function VendorDashboard() {
                             {status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm font-bold text-[var(--text-primary)]">${order.total_price || '—'}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-[var(--text-primary)]">{order.total_price ? `${Number(order.total_price).toLocaleString()} XAF` : '—'}</td>
                         <td className="px-6 py-4 text-right">
                           <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                             <span className="material-symbols-outlined">more_horiz</span>

@@ -87,7 +87,7 @@ export default function FloatingCart() {
                       <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-0.5">QTY: {item.quantity}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                       <p className="text-sm font-black text-[var(--accent)]">${(item.product?.price * item.quantity).toLocaleString()}</p>
+                       <p className="text-sm font-black text-[var(--accent)]">{(item.product?.price * item.quantity).toLocaleString()} XAF</p>
                     </div>
                  </div>
                ))}
@@ -97,7 +97,7 @@ export default function FloatingCart() {
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 pt-2 border-t border-[var(--glass-border)] w-[288px] mt-auto">
                <div className="flex justify-between items-center mb-3 pr-2">
                  <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Estimated Total</span>
-                 <span className="font-black text-lg text-[var(--text-primary)]">${totalPrice.toLocaleString()}</span>
+                 <span className="font-black text-lg text-[var(--text-primary)]">{totalPrice.toLocaleString()} XAF</span>
                </div>
                <div className="pr-2">
                  <Link href="/cart" className="w-full py-3 bg-[var(--accent)] text-white rounded-xl text-[10px] font-black tracking-widest uppercase flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all shadow-lg shadow-[var(--accent)]/30 active:scale-95">
@@ -120,7 +120,7 @@ export default function FloatingCart() {
              </div>
              <div>
                <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] leading-none mb-1">Subtotal</p>
-               <p className="font-black text-sm text-[var(--text-primary)] leading-none">${totalPrice.toLocaleString()}</p>
+               <p className="font-black text-sm text-[var(--text-primary)] leading-none">{totalPrice.toLocaleString()} XAF</p>
              </div>
            </div>
            

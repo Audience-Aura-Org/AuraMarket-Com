@@ -170,7 +170,7 @@ export default function CartSidebar() {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-black text-[var(--text-primary)] truncate leading-snug uppercase tracking-wider">{it.name}</p>
-                <p className="text-[11px] font-black text-[var(--accent)] mt-0.5">${(it.price * it.quantity).toLocaleString()}</p>
+                <p className="text-[11px] font-black text-[var(--accent)] mt-0.5">{(it.price * it.quantity).toLocaleString()} XAF</p>
               </div>
 
               {/* Controls */}
@@ -204,7 +204,7 @@ export default function CartSidebar() {
           {/* Subtotal */}
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Subtotal</span>
-            <span className="text-base font-black text-[var(--text-primary)]">${subtotal.toLocaleString()}</span>
+            <span className="text-base font-black text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
           </div>
 
           {/* Buttons */}

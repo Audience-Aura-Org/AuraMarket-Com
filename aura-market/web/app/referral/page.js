@@ -70,7 +70,7 @@ export default function RewardsPage() {
             <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
               <RewardCard icon={Tag} title="15% Off Total" points="500" action="Redeem" color="bg-[var(--accent)] text-white" />
               <RewardCard icon={Truck} title="Free Express" points="250" action="Redeem" color="bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]" />
-              <RewardCard icon={Gift} title="$50 Voucher" points="5000" action="Locked" color="bg-[var(--bg-secondary)] text-[var(--text-secondary)]/40" disabled />
+              <RewardCard icon={Gift} title="50,000 XAF Voucher" points="5000" action="Locked" color="bg-[var(--bg-secondary)] text-[var(--text-secondary)]/40" disabled />
             </div>
           </section>
 
@@ -83,7 +83,7 @@ export default function RewardsPage() {
               <div className="space-y-4">
                 <h3 className="text-4xl font-black tracking-tight uppercase">Expansion Protocol</h3>
                 <p className="text-lg font-medium text-[var(--text-secondary)] px-8 leading-relaxed opacity-70">
-                  Secure $20 for your network and receive $20 credit upon their first synchronization.
+                  Secure 20,000 XAF for your network and receive 20,000 XAF credit upon their first synchronization.
                 </p>
               </div>
               <div className="w-full flex items-center gap-4 mt-8">
