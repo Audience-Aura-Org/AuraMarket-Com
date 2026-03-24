@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Compass, ShoppingBag, User,
-  MessageCircle,
-  Zap, Shield, Sparkles
+  Compass, ShoppingBag, User, House, Store, Truck, ShieldCheck,
+  MessageCircle, LogIn
 } from "lucide-react";
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -20,22 +19,31 @@ export default function BottomNav() {
   }, []);
 
   const isChatPage = pathname?.startsWith('/chat');
+  const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register');
 
-  if (!mounted || isChatPage) return null;
+  if (!mounted || isChatPage || isAuthPage) return null;
 
   const menu = [
     { label: "Discover", href: "/discovery", icon: Compass },
-    { label: "Home", href: "/", icon: Sparkles },
+    { label: "Home", href: "/", icon: House },
     { label: "Cart", href: "/cart", icon: ShoppingBag },
     { label: "Messages", href: "/chat", icon: MessageCircle },
-    { label: "Profile", href: "/profile", icon: User },
   ];
 
-  // Role based overrides for the center icon
+  // Role-based center destination/icon
   if (user?.role === 'vendor') {
-    menu[1] = { label: "Dashboard", href: "/vendor/dashboard", icon: Zap };
+    menu[1] = { label: "Store", href: "/vendor/dashboard", icon: Store };
   } else if (user?.role === 'admin') {
-    menu[1] = { label: "Admin", href: "/admin/dashboard", icon: Shield };
+    menu[1] = { label: "Admin", href: "/admin/dashboard", icon: ShieldCheck };
+  } else if (user?.role === 'logistics') {
+    menu[1] = { label: "Delivery", href: "/logistics/dashboard", icon: Truck };
+  }
+
+  // Right-most item changes based on auth state
+  if (user?._id) {
+    menu.push({ label: "Profile", href: "/profile", icon: User });
+  } else {
+    menu.push({ label: "Login", href: "/login", icon: LogIn });
   }
 
   return (
@@ -64,7 +72,7 @@ export default function BottomNav() {
                     <div className="absolute -top-1 -right-1 size-1.5 bg-[var(--accent)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent)]"></div>
                   )}
                 </div>
-                <span className={`mt-0.5 text-[10px] font-black tracking-wide uppercase leading-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                <span className={`mt-0.5 text-[10px] font-semibold tracking-tight leading-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                   {item.label}
                 </span>
               </Link>
