@@ -166,7 +166,7 @@ export default function CartPage() {
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
                     <div className="flex justify-between items-start mb-1 gap-2">
-                       <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
+                       <h3 className="text-sm sm:text-lg font-black text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
                        <div className="flex gap-2">
                          <Link href={`/messages?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm" title="Message vendor">
                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
@@ -180,7 +180,7 @@ export default function CartPage() {
                   </div>
                   
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] font-mono">${item.price.toLocaleString()}</span>
+                    <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
                     <div className="flex items-center gap-3 bg-[var(--bg-secondary)] p-1.5 px-3 rounded-xl border border-[var(--glass-border)] shadow-inner">
                       <button onClick={() => updateCartQty(item.id, -1)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4" /></button>
                       <span className="font-black text-base w-5 text-center">{item.quantity}</span>
@@ -246,22 +246,22 @@ export default function CartPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
                   <span>Subtotal</span>
-                  <span className="text-[var(--text-primary)] font-mono font-bold">${subtotal.toLocaleString()}</span>
+                  <span className="text-[var(--text-primary)] font-mono font-bold">{subtotal.toLocaleString()} XAF</span>
                 </div>
                 <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
                   <span>Logistics</span>
-                  <span className="text-[var(--text-primary)] font-mono font-bold">${delivery.toLocaleString()}</span>
+                  <span className="text-[var(--text-primary)] font-mono font-bold">{delivery.toLocaleString()} XAF</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-wide uppercase">
                     <span>Aura Discount</span>
-                    <span className="font-mono font-bold">- ${discount.toLocaleString()}</span>
+                    <span className="font-mono font-bold">- {discount.toLocaleString()} XAF</span>
                   </div>
                 )}
                 <div className="h-px bg-[var(--glass-border)] my-6" />
                 <div className="flex justify-between items-baseline">
                    <span className="text-xs font-black text-[var(--text-secondary)] tracking-[0.2em] uppercase">Total</span>
-                   <span className="text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">${total.toLocaleString()}</span>
+                   <span className="text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">{total.toLocaleString()} XAF</span>
                 </div>
               </div>
 
