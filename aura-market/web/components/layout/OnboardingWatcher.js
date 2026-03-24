@@ -10,7 +10,28 @@ export default function OnboardingWatcher() {
   const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    // 1. If not authenticated, we don't care about onboarding
+    const protectedPrefixes = [
+      '/vendor',
+      '/admin',
+      '/logistics',
+      '/messages',
+      '/chat',
+      '/cart',
+      '/checkout',
+      '/orders',
+      '/profile',
+      '/wallet',
+      '/notifications',
+      '/settings',
+    ];
+
+    // 0. Global auth guard for protected pages
+    if ((!isAuthenticated || !user) && protectedPrefixes.some((p) => pathname.startsWith(p))) {
+      router.replace('/login');
+      return;
+    }
+
+    // 1. If not authenticated, onboarding logic stops here
     if (!isAuthenticated || !user) return;
 
     // 1.5. Admin and Logistics roles bypass onboarding completely
