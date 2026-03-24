@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { ShoppingCart, Search, User as UserIcon, LayoutGrid, Sparkles, Moon, Sun, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle } from 'lucide-react';
 import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
@@ -103,9 +103,11 @@ export default function TopNav() {
         {/* Logo Section */}
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
           <Link href="/" className="flex items-center gap-2 md:gap-3 group">
-            <div className="size-8 md:size-10 bg-[var(--accent)] rounded-full flex items-center justify-center text-white shadow-lg shadow-[var(--accent)]/30 group-hover:scale-110 transition-transform">
-              <Sparkles className="size-4 md:size-5" />
-            </div>
+            <img
+              src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'}
+              alt="Aura Market"
+              className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
             <h1 className="text-lg md:text-xl font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
               Aura<span className="text-[var(--accent)]">Market</span>
             </h1>
