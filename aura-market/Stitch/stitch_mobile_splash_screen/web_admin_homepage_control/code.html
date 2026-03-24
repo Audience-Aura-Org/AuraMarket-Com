@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Homepage Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#120812",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(242, 13, 242, 0.1) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(242, 13, 242, 0.05) 100%);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex font-display">
+<!-- Sidebar Navigation -->
+<aside class="w-72 h-screen sticky top-0 border-r border-primary/10 bg-background-dark/50 flex flex-col p-6 gap-8">
+<div class="flex items-center gap-3 px-2">
+<div class="size-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(242,13,242,0.4)]">
+<span class="material-symbols-outlined text-2xl">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight">Aura Market</h1>
+<p class="text-xs text-primary/70 font-medium">Super Admin</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 flex-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20" href="#">
+<span class="material-symbols-outlined">auto_fix_high</span>
+<span class="font-medium">Homepage Editor</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-medium">Products</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-medium">Orders</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="font-medium">Analytics</span>
+</a>
+<div class="mt-auto">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium">Settings</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto">
+<!-- Header -->
+<header class="h-20 border-b border-primary/10 glass flex items-center justify-between px-8 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<h2 class="text-lg font-semibold">Storefront Control</h2>
+<span class="px-3 py-1 bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-widest rounded-full border border-primary/30">Live Editing</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">search</span>
+<input class="bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 w-64" placeholder="Search components..." type="text"/>
+</div>
+<div class="flex gap-3">
+<button class="size-10 rounded-full glass flex items-center justify-center hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-slate-400">notifications</span>
+</button>
+<div class="size-10 rounded-full bg-gradient-to-tr from-primary to-purple-400 p-0.5">
+<div class="w-full h-full rounded-full bg-background-dark flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Admin user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnykDlHrhPZJnHNyX_cCTzW9wPiPuEOuurSIY9lzC33rVUYfcDClSYUcwz-GK1-ZxQ-ZO_H_YLePCUj1gse7kLEteuqzbrXEYbFVHICZt_wy1M1vHC9Pa7gZ200nLtiYvQ57M2rmbwtf9Ceu7qQkn0XNVdaIrc6-TlGRMiqHTKhY5dUWrN-D3NVnHCia7g-a-h7UOlPud9K_3WN43oKeiB7clXBxc032xXpGmAmdGLYbTUxzek8uNVBLBn7RN1eeP0_I0neKWK2L4"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<div class="p-8 max-w-7xl mx-auto space-y-10">
+<!-- Hero Title -->
+<div class="flex flex-wrap items-end justify-between gap-6">
+<div class="space-y-1">
+<h1 class="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">Storefront Management</h1>
+<p class="text-slate-400">Craft a unique shopping experience for your visitors.</p>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-3 glass hover:bg-white/10 rounded-xl font-medium transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-xl">visibility</span> Preview Site
+                    </button>
+<button class="px-8 py-3 bg-primary hover:bg-primary/90 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+<span class="material-symbols-outlined">publish</span> Publish Changes
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Left Column: Controls -->
+<div class="col-span-12 lg:col-span-7 space-y-8">
+<!-- Banners Section -->
+<section class="liquid-glass rounded-xl p-6 space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">view_carousel</span> Homepage Banners
+                            </h3>
+<button class="text-primary font-semibold text-sm hover:underline">+ Add Banner</button>
+</div>
+<div class="grid gap-4">
+<!-- Banner Item 1 -->
+<div class="glass border border-white/5 rounded-xl p-4 flex gap-4 items-center">
+<div class="w-24 h-16 rounded-lg bg-white/10 overflow-hidden shrink-0 border border-white/10">
+<div class="w-full h-full bg-gradient-to-br from-primary/20 to-purple-500/20" data-alt="Banner placeholder preview 1"></div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold truncate text-sm">Summer Collection 2024</h4>
+<p class="text-xs text-slate-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">event</span> Scheduled: June 1 - Aug 31
+                                    </p>
+</div>
+<div class="flex gap-2">
+<button class="size-8 rounded-lg glass flex items-center justify-center text-slate-400 hover:text-white"><span class="material-symbols-outlined text-lg">edit</span></button>
+<button class="size-8 rounded-lg glass flex items-center justify-center text-slate-400 hover:text-red-400"><span class="material-symbols-outlined text-lg">delete</span></button>
+</div>
+</div>
+<!-- Banner Item 2 -->
+<div class="glass border border-white/5 rounded-xl p-4 flex gap-4 items-center">
+<div class="w-24 h-16 rounded-lg bg-white/10 overflow-hidden shrink-0 border border-white/10">
+<div class="w-full h-full bg-gradient-to-br from-blue-500/20 to-primary/20" data-alt="Banner placeholder preview 2"></div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold truncate text-sm">Minimalist Tech Gear</h4>
+<p class="text-xs text-green-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">circle</span> Active Now
+                                    </p>
+</div>
+<div class="flex gap-2">
+<button class="size-8 rounded-lg glass flex items-center justify-center text-slate-400 hover:text-white"><span class="material-symbols-outlined text-lg">edit</span></button>
+<button class="size-8 rounded-lg glass flex items-center justify-center text-slate-400 hover:text-red-400"><span class="material-symbols-outlined text-lg">delete</span></button>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Products Reordering -->
+<section class="liquid-glass rounded-xl p-6 space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">drag_indicator</span> Featured Products
+                            </h3>
+<button class="px-4 py-2 glass text-xs font-bold rounded-full">Reorder All</button>
+</div>
+<div class="space-y-3">
+<!-- Product Row 1 -->
+<div class="glass hover:border-primary/40 transition-all rounded-xl p-3 flex items-center gap-4 cursor-move">
+<span class="material-symbols-outlined text-slate-600">drag_handle</span>
+<div class="size-12 rounded-lg bg-white/5 border border-white/10 overflow-hidden shrink-0">
+<div class="w-full h-full bg-slate-800" data-alt="Product thumbnail minimalist watch"></div>
+</div>
+<div class="flex-1">
+<h5 class="text-sm font-semibold">Minimalist Quartz Watch</h5>
+<span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Accessories</span>
+</div>
+<div class="text-right pr-2">
+<p class="text-sm font-bold">$129.00</p>
+</div>
+</div>
+<!-- Product Row 2 -->
+<div class="glass hover:border-primary/40 transition-all rounded-xl p-3 flex items-center gap-4 cursor-move">
+<span class="material-symbols-outlined text-slate-600">drag_handle</span>
+<div class="size-12 rounded-lg bg-white/5 border border-white/10 overflow-hidden shrink-0">
+<div class="w-full h-full bg-slate-800" data-alt="Product thumbnail premium earbuds"></div>
+</div>
+<div class="flex-1">
+<h5 class="text-sm font-semibold">Aura Buds Pro</h5>
+<span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Electronics</span>
+</div>
+<div class="text-right pr-2">
+<p class="text-sm font-bold">$199.00</p>
+</div>
+</div>
+<!-- Product Row 3 -->
+<div class="glass hover:border-primary/40 transition-all rounded-xl p-3 flex items-center gap-4 cursor-move">
+<span class="material-symbols-outlined text-slate-600">drag_handle</span>
+<div class="size-12 rounded-lg bg-white/5 border border-white/10 overflow-hidden shrink-0">
+<div class="w-full h-full bg-slate-800" data-alt="Product thumbnail leather tote"></div>
+</div>
+<div class="flex-1">
+<h5 class="text-sm font-semibold">Genuine Leather Tote</h5>
+<span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Fashion</span>
+</div>
+<div class="text-right pr-2">
+<p class="text-sm font-bold">$85.00</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Live Preview -->
+<div class="col-span-12 lg:col-span-5">
+<div class="sticky top-28 space-y-6">
+<div class="flex items-center justify-between px-2">
+<h3 class="text-sm font-bold uppercase tracking-[0.2em] text-primary/80">Device Preview</h3>
+<div class="flex gap-1 p-1 bg-white/5 rounded-lg border border-white/10">
+<button class="p-1.5 rounded-md bg-primary text-white flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">desktop_windows</span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-white/10 text-slate-500 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">tablet_mac</span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-white/10 text-slate-500 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">phone_iphone</span>
+</button>
+</div>
+</div>
+<!-- Mock Browser Preview -->
+<div class="bg-[#1a0c1a] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative group">
+<!-- Browser Chrome -->
+<div class="h-8 bg-white/5 flex items-center px-4 gap-2 border-b border-white/5">
+<div class="flex gap-1.5">
+<div class="size-2 rounded-full bg-red-500/50"></div>
+<div class="size-2 rounded-full bg-yellow-500/50"></div>
+<div class="size-2 rounded-full bg-green-500/50"></div>
+</div>
+<div class="flex-1 mx-4 bg-black/30 rounded py-0.5 text-[8px] text-center text-slate-500 truncate">
+                                    auramarket.store/home
+                                </div>
+</div>
+<!-- Mockup Content -->
+<div class="aspect-[4/5] overflow-y-auto overflow-x-hidden relative">
+<!-- Banner Mockup -->
+<div class="h-48 w-full bg-gradient-to-tr from-purple-900 via-primary/20 to-black p-6 flex flex-col justify-center gap-2">
+<div class="w-12 h-1 bg-primary rounded-full"></div>
+<h4 class="text-xl font-bold leading-tight">Modern Tech<br/>For Everyday</h4>
+<button class="bg-white text-black text-[10px] font-bold px-3 py-1.5 rounded w-fit">Shop Now</button>
+</div>
+<!-- Categories Mockup -->
+<div class="p-6 space-y-4">
+<div class="flex justify-between items-center">
+<div class="h-3 w-20 bg-white/10 rounded"></div>
+<div class="h-2 w-8 bg-white/5 rounded"></div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="aspect-square bg-white/5 rounded-xl border border-white/5 p-3 flex flex-col gap-2">
+<div class="flex-1 bg-white/5 rounded-lg"></div>
+<div class="h-2 w-3/4 bg-white/20 rounded"></div>
+<div class="h-2 w-1/2 bg-white/10 rounded"></div>
+</div>
+<div class="aspect-square bg-white/5 rounded-xl border border-white/5 p-3 flex flex-col gap-2">
+<div class="flex-1 bg-white/5 rounded-lg"></div>
+<div class="h-2 w-3/4 bg-white/20 rounded"></div>
+<div class="h-2 w-1/2 bg-white/10 rounded"></div>
+</div>
+</div>
+</div>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-[2px]">
+<button class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-xs shadow-xl">Open Preview Window</button>
+</div>
+</div>
+</div>
+<!-- Schedule Info Card -->
+<div class="glass p-5 rounded-2xl border-l-4 border-l-primary space-y-3">
+<h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Next Scheduled Change</h4>
+<div class="flex items-start gap-3">
+<div class="size-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">schedule_send</span>
+</div>
+<div>
+<p class="text-sm font-bold">Holiday Season Launch</p>
+<p class="text-xs text-slate-500">Starts in 12 days: Dec 1, 00:00 AM</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

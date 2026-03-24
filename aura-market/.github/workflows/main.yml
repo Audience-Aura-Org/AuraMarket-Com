@@ -1,0 +1,51 @@
+name: Aura Market CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+
+    - name: Install dependencies (Backend)
+      run: |
+        cd backend
+        npm install
+
+    - name: Run Tests (Backend)
+      run: |
+        cd backend
+        npm test
+      env:
+        NODE_ENV: test
+        JWT_SECRET: test_secret
+        MONGODB_URI: mongodb://localhost:27017/aura_test
+
+    - name: Install dependencies (Frontend)
+      run: |
+        cd web
+        npm install
+
+    - name: Build Frontend
+      run: |
+        cd web
+        npm run build
+      env:
+        NEXT_PUBLIC_API_URL: https://api.auramarket.com/api/v1

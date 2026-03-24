@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#f20df2",
+              "background-light": "#f8f5f8",
+              "background-dark": "#221022",
+            },
+            fontFamily: {
+              "display": ["Poppins", "Plus Jakarta Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .profile-gradient {
+            background: radial-gradient(circle at 50% 0%, rgba(242, 13, 242, 0.15) 0%, transparent 70%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col profile-gradient overflow-x-hidden pb-24">
+<div class="flex items-center p-6 justify-between">
+<div class="flex size-10 items-center justify-center rounded-full glass-card">
+<span class="material-symbols-outlined text-slate-100">arrow_back</span>
+</div>
+<h2 class="text-slate-100 text-lg font-bold leading-tight tracking-tight">Profile</h2>
+<div class="flex size-10 items-center justify-center rounded-full glass-card">
+<span class="material-symbols-outlined text-slate-100">settings</span>
+</div>
+</div>
+<div class="flex p-6 @container">
+<div class="flex w-full flex-col gap-6 items-center">
+<div class="relative">
+<div class="absolute -inset-1 bg-primary rounded-full blur opacity-30"></div>
+<div class="relative bg-center bg-no-repeat aspect-square bg-cover rounded-full border-2 border-primary/50 p-1">
+<div class="h-32 w-32 rounded-full bg-cover bg-center" data-alt="Portrait of a smiling young woman with neon lighting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA5j_WojmMIhruuofugnv6bjuZC0MagJgmaxFS-bPOk33MJukdQr0HObkbkNV3j87OBi7YHhka3N7gx_xdrhjXyNRXwfqzSzG5NNirj9qAFVRjgzbAAn0PE3GwpRb-7Gbk9pF73eT72k3KTcbv_bkf1JX9l6clpG0hO-E3m6MEU0WhcscMBJApDjQu-UwtUuyfGzFWP0vfQRXig0j35n-RQuZyrqy2lp-hI7SvEVRyndHhAVM97gbI6vPoFnQmiYNwfD3_1embzv_s");'></div>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center">
+<p class="text-slate-100 text-2xl font-bold tracking-tight">Alex Aura</p>
+<p class="text-primary/80 text-sm font-medium">alex.aura@auramarket.io</p>
+</div>
+</div>
+</div>
+<div class="px-6 space-y-4">
+<div class="flex items-center justify-between glass-card p-5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div>
+<p class="text-slate-100 text-base font-semibold">Account Info</p>
+<p class="text-slate-400 text-xs">Name, email, and personal details</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-500">chevron_right</span>
+</div>
+<div class="flex items-center justify-between glass-card p-5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="text-slate-100 text-base font-semibold">Saved Addresses</p>
+<p class="text-slate-400 text-xs">Manage delivery locations</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-500">chevron_right</span>
+</div>
+<div class="flex items-center justify-between glass-card p-5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">shield_lock</span>
+</div>
+<div>
+<p class="text-slate-100 text-base font-semibold">Security Settings</p>
+<p class="text-slate-400 text-xs">Password and 2FA authentication</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-500">chevron_right</span>
+</div>
+<div class="flex items-center justify-between glass-card p-5 rounded-xl cursor-pointer hover:bg-red-500/10 border-red-500/20 group transition-all mt-8">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-red-500/20 flex items-center justify-center text-red-500">
+<span class="material-symbols-outlined">logout</span>
+</div>
+<div>
+<p class="text-red-500 text-base font-semibold group-hover:text-red-400">Logout</p>
+<p class="text-slate-400 text-xs">Sign out of your account</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-500">chevron_right</span>
+</div>
+</div>
+<div class="fixed bottom-0 left-0 right-0 z-50">
+<div class="flex gap-2 border-t border-white/10 bg-background-dark/80 backdrop-blur-xl px-4 pb-6 pt-3">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<p class="text-[10px] font-medium leading-normal">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">search</span>
+<p class="text-[10px] font-medium leading-normal">Search</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">shopping_bag</span>
+<p class="text-[10px] font-medium leading-normal">Orders</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill-1">person</span>
+<p class="text-[10px] font-bold leading-normal">Profile</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market | Order History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;900&amp;family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-panel {
+            background: rgba(34, 22, 16, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(236, 91, 19, 0.1);
+        }
+        .liquid-bg {
+            background: linear-gradient(135deg, #f8f6f6 0%, #ffece4 50%, #f8f6f6 100%);
+            background-size: 200% 200%;
+        }
+        .dark .liquid-bg {
+            background: linear-gradient(135deg, #221610 0%, #3d2216 50%, #221610 100%);
+            background-size: 200% 200%;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen liquid-bg">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 glass-panel border-b border-slate-200/20 dark:border-primary/10 px-6 lg:px-20 py-4">
+<div class="max-w-[1200px] mx-auto flex items-center justify-between gap-4">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-8 flex items-center justify-center bg-primary rounded-lg text-white">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<h2 class="text-xl font-bold leading-tight tracking-tight dark:text-white">Aura Market</h2>
+</div>
+<label class="hidden md:flex flex-col min-w-64 !h-11">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full glass-panel overflow-hidden">
+<div class="text-slate-500 dark:text-slate-400 flex items-center justify-center pl-4">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 border-none bg-transparent focus:outline-0 focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 px-4 text-sm font-normal" placeholder="Search products..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-slate-700 dark:text-slate-200 text-sm font-semibold hover:text-primary transition-colors" href="#">Shop</a>
+<a class="text-primary text-sm font-semibold" href="#">Orders</a>
+<a class="text-slate-700 dark:text-slate-200 text-sm font-semibold hover:text-primary transition-colors" href="#">Cart</a>
+</nav>
+<div class="flex gap-3">
+<button class="flex items-center justify-center rounded-xl size-10 glass-panel text-slate-700 dark:text-white hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-xl size-10 bg-primary text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-[1200px] mx-auto px-6 py-10">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div class="flex flex-col gap-2">
+<h1 class="text-4xl lg:text-5xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">Order History</h1>
+<p class="text-slate-600 dark:text-slate-400 text-lg">Track, manage, and review your premium purchases</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 rounded-xl font-bold text-sm shadow-sm border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined text-lg">download</span>
+                            Export CSV
+                        </button>
+</div>
+</div>
+<!-- Search and Filters Section -->
+<div class="flex flex-col gap-6 mb-8">
+<div class="w-full">
+<label class="flex flex-col h-14 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-2xl h-full glass-panel overflow-hidden shadow-sm">
+<div class="text-primary flex items-center justify-center pl-5">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 border-none bg-transparent focus:outline-0 focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 px-4 text-base font-normal" placeholder="Search orders by ID, product name, or tracking number..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl bg-primary px-6 text-white text-sm font-semibold">
+                            All Orders
+                        </button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl glass-panel px-6 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-primary/5 transition-colors">
+                            Processing
+                            <span class="material-symbols-outlined text-lg">keyboard_arrow_down</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl glass-panel px-6 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-primary/5 transition-colors">
+                            Shipped
+                            <span class="material-symbols-outlined text-lg">keyboard_arrow_down</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl glass-panel px-6 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-primary/5 transition-colors">
+                            Delivered
+                            <span class="material-symbols-outlined text-lg">keyboard_arrow_down</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-xl glass-panel px-6 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-primary/5 transition-colors">
+                            Cancelled
+                            <span class="material-symbols-outlined text-lg">keyboard_arrow_down</span>
+</button>
+</div>
+</div>
+<!-- Premium Table Design -->
+<div class="glass-panel rounded-2xl overflow-hidden shadow-xl border border-white/40 dark:border-primary/5">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-primary/5 dark:bg-primary/10">
+<th class="px-6 py-5 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider">Order ID</th>
+<th class="px-6 py-5 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider">Date</th>
+<th class="px-6 py-5 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider">Status</th>
+<th class="px-6 py-5 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider">Total Amount</th>
+<th class="px-6 py-5 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-200/20 dark:divide-primary/5">
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-semibold">#AM-9823</td>
+<td class="px-6 py-6 text-slate-600 dark:text-slate-400">Oct 24, 2023</td>
+<td class="px-6 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                                            Delivered
+                                        </span>
+</td>
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-bold">$1,240.50</td>
+<td class="px-6 py-6 text-right">
+<button class="text-primary font-bold text-sm hover:underline flex items-center gap-1 justify-end ml-auto">
+                                            View Details
+                                            <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-semibold">#AM-9741</td>
+<td class="px-6 py-6 text-slate-600 dark:text-slate-400">Oct 18, 2023</td>
+<td class="px-6 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold border border-blue-500/20">
+                                            Shipped
+                                        </span>
+</td>
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-bold">$890.00</td>
+<td class="px-6 py-6 text-right">
+<button class="text-primary font-bold text-sm hover:underline flex items-center gap-1 justify-end ml-auto">
+                                            Track Order
+                                            <span class="material-symbols-outlined text-sm">local_shipping</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-semibold">#AM-9602</td>
+<td class="px-6 py-6 text-slate-600 dark:text-slate-400">Oct 05, 2023</td>
+<td class="px-6 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                                            Delivered
+                                        </span>
+</td>
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-bold">$2,100.20</td>
+<td class="px-6 py-6 text-right">
+<button class="text-primary font-bold text-sm hover:underline flex items-center gap-1 justify-end ml-auto">
+                                            View Details
+                                            <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-semibold">#AM-9588</td>
+<td class="px-6 py-6 text-slate-600 dark:text-slate-400">Sep 28, 2023</td>
+<td class="px-6 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-500/10 text-slate-500 dark:text-slate-400 text-xs font-bold border border-slate-500/20">
+                                            Cancelled
+                                        </span>
+</td>
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-bold">$450.00</td>
+<td class="px-6 py-6 text-right">
+<button class="text-primary font-bold text-sm hover:underline flex items-center gap-1 justify-end ml-auto">
+                                            Reorder
+                                            <span class="material-symbols-outlined text-sm">refresh</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-primary/5 transition-colors">
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-semibold">#AM-9412</td>
+<td class="px-6 py-6 text-slate-600 dark:text-slate-400">Sep 15, 2023</td>
+<td class="px-6 py-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                                            Processing
+                                        </span>
+</td>
+<td class="px-6 py-6 text-slate-900 dark:text-slate-100 font-bold">$1,560.75</td>
+<td class="px-6 py-6 text-right">
+<button class="text-primary font-bold text-sm hover:underline flex items-center gap-1 justify-end ml-auto">
+                                            View Details
+                                            <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="px-6 py-6 border-t border-slate-200/20 dark:border-primary/5 flex items-center justify-between">
+<p class="text-slate-500 dark:text-slate-400 text-sm">Showing 1 to 5 of 24 orders</p>
+<div class="flex gap-2">
+<button class="size-10 flex items-center justify-center rounded-xl glass-panel text-slate-500 dark:text-slate-400 hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="size-10 flex items-center justify-center rounded-xl bg-primary text-white font-bold">1</button>
+<button class="size-10 flex items-center justify-center rounded-xl glass-panel text-slate-500 dark:text-slate-400 hover:bg-primary/10 transition-colors font-bold">2</button>
+<button class="size-10 flex items-center justify-center rounded-xl glass-panel text-slate-500 dark:text-slate-400 hover:bg-primary/10 transition-colors font-bold">3</button>
+<button class="size-10 flex items-center justify-center rounded-xl glass-panel text-slate-500 dark:text-slate-400 hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Featured Section -->
+<div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="glass-panel p-8 rounded-3xl flex flex-col items-center text-center gap-4">
+<div class="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">verified</span>
+</div>
+<h3 class="text-xl font-bold dark:text-white">Lifetime Warranty</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm">All products purchased from Aura Market come with our premium glass-protection warranty.</p>
+</div>
+<div class="glass-panel p-8 rounded-3xl flex flex-col items-center text-center gap-4">
+<div class="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">headset_mic</span>
+</div>
+<h3 class="text-xl font-bold dark:text-white">Concierge Support</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm">Our elite team is available 24/7 to assist with your orders and special requests.</p>
+</div>
+<div class="glass-panel p-8 rounded-3xl flex flex-col items-center text-center gap-4">
+<div class="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">loyalty</span>
+</div>
+<h3 class="text-xl font-bold dark:text-white">Aura Points</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm">Earn 10 points for every $1 spent. Redeem points for exclusive early-access drops.</p>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="mt-auto border-t border-slate-200/20 dark:border-primary/10 py-12 px-6">
+<div class="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-3 text-primary/60 grayscale opacity-70">
+<span class="material-symbols-outlined">auto_awesome</span>
+<h2 class="text-lg font-bold">Aura Market</h2>
+</div>
+<div class="flex gap-8">
+<a class="text-slate-500 hover:text-primary text-sm font-medium transition-colors" href="#">Privacy Policy</a>
+<a class="text-slate-500 hover:text-primary text-sm font-medium transition-colors" href="#">Terms of Service</a>
+<a class="text-slate-500 hover:text-primary text-sm font-medium transition-colors" href="#">Help Center</a>
+</div>
+<p class="text-slate-500 text-sm">© 2024 Aura Market. All rights reserved.</p>
+</div>
+</footer>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,6 @@
+aura-market/**/node_modules/
+aura-market/**/.next/
+aura-market/**/dist/
+aura-market/**/build/
+aura-market/**/.expo/
+aura-market/.git_disabled/
