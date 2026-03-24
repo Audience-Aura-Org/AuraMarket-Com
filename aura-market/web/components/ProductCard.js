@@ -134,7 +134,7 @@ export default function ProductCard({ product }) {
       <div className="p-4 flex flex-col flex-1 gap-3">
         <div className="space-y-3">
           <Link href={`/products/${productId}`} className="block">
-            <h3 className="text-sm font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
+            <h3 className="text-xs sm:text-sm font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
               {name}
             </h3>
           </Link>
