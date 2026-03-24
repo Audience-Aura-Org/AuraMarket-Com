@@ -348,7 +348,7 @@ function ChatContent() {
       <aside className={`w-full md:w-[320px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
             <div className="flex flex-col">
-            <h1 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
+            <h1 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
             <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5 opacity-80 flex items-center gap-1.5">
                <span className={`size-1.5 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
                Secure Chat
@@ -370,38 +370,50 @@ function ChatContent() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pb-4 px-3 space-y-2 no-scrollbar">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-64 gap-4 opacity-40">
-              <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
-              <p className="text-xs font-semibold text-[var(--text-secondary)]">Loading messages...</p>
+        <div className="flex-1 min-h-0 px-3 pb-3">
+          <div className="h-full bg-[var(--bg-primary)]/40 rounded-[32px] border border-[var(--glass-border)] flex flex-col overflow-hidden backdrop-blur-xl">
+            <div className="px-4 py-3 border-b border-[var(--glass-border)] flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Synchronized Conversations</span>
+              <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
             </div>
-          ) : filteredInbox.length === 0 ? (
-            <div className="py-20 text-center px-10">
-              <MessageCircle className="w-12 h-12 text-[var(--text-secondary)]/20 mx-auto mb-4" />
-              <p className="text-sm text-[var(--text-secondary)] opacity-70">No messages yet. Start a conversation to begin.</p>
-            </div>
-          ) : (
-            filteredInbox.map((chat) => (
-              <button 
-                  key={chat.partner._id} 
-                  onClick={() => setActiveChat(chat.partner)}
-                  className={`w-full p-3 rounded-2xl flex gap-3 transition-all relative group hover:bg-[var(--bg-secondary)] ${activeChat?._id === chat.partner._id ? 'bg-[var(--bg-secondary)]' : 'bg-transparent'}`}
-                >
-                <div className="relative flex-shrink-0">
-                  <div className="size-12 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-lg border border-[var(--glass-border)]">
-                     {chat.partner.avatar ? <img src={chat.partner.avatar} className="w-full h-full object-cover rounded-full" alt="Avatar" /> : chat.partner.name[0]}
-                  </div>
-                  <div className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 no-scrollbar">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center h-64 gap-4 opacity-40">
+                  <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
+                  <p className="text-xs font-semibold text-[var(--text-secondary)]">Loading messages...</p>
                 </div>
-                  <div className="flex-1 text-left min-w-0 flex flex-col justify-center">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="font-semibold text-sm text-[var(--text-primary)] truncate pr-2 group-hover:text-[var(--accent)] transition-colors">{chat.partner.name}</h3>
-                    <span className="text-xs text-[var(--text-secondary)] opacity-60 whitespace-nowrap">
-                      {new Date(chat.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              ) : filteredInbox.length === 0 ? (
+                <div className="py-16 text-center px-8 opacity-40">
+                  <MessageCircle className="w-10 h-10 text-[var(--text-secondary)]/30 mx-auto mb-3" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] leading-loose">
+                    No active connections.
+                    <br />
+                    Start a conversation.
+                  </p>
+                </div>
+              ) : (
+                filteredInbox.map((chat) => (
+              <button
+                  key={chat.partner._id}
+                  onClick={() => setActiveChat(chat.partner)}
+                  className={`w-full p-4 rounded-2xl border flex items-center gap-4 transition-all relative group overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 ${activeChat?._id === chat.partner._id ? 'bg-[var(--bg-primary)] border-[var(--accent)]/40' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40'}`}
+                >
+                <div className="relative shrink-0">
+                  <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-base border border-[var(--glass-border)]">
+                     {chat.partner.avatar ? <img src={chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" /> : chat.partner.name[0]}
+                  </div>
+                  <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
+                </div>
+                  <div className="flex-1 text-left min-w-0">
+                  <div className="flex justify-between items-start mb-0.5">
+                    <h3 className="font-bold !text-[9px] text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
+                      {chat.partner.name}
+                    </h3>
+                    <span className="!text-[8px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
+                      {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                     </span>
                   </div>
-                    <p className={`text-sm truncate ${!chat.read_status ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)]'}`}>
+                    <p className={`!text-[10px] font-bold uppercase tracking-widest truncate whitespace-nowrap mt-1 ${!chat.read_status ? 'text-[var(--text-primary)] opacity-90' : 'text-[var(--text-secondary)] opacity-40'}`}>
                     {chat.snippet || 'No messages yet'}
                   </p>
                 </div>
@@ -409,8 +421,10 @@ function ChatContent() {
                   <div className="absolute top-1/2 right-6 -translate-y-1/2 size-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
               </button>
-            ))
-          )}
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -426,10 +440,10 @@ function ChatContent() {
                   {activeChat.avatar ? <img src={activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name[0]}
                 </div>
                 <div>
-                  <h2 className="text-[13px] sm:text-base font-semibold text-[var(--text-primary)] leading-none mb-1 truncate max-w-[150px] xs:max-w-[190px] sm:max-w-none">{activeChat.name}</h2>
+                  <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.name}</h2>
                   <div className="flex items-center gap-1">
                     <div className="size-1.5 rounded-full bg-emerald-500" />
-                    <p className="text-xs text-[var(--text-secondary)]">Online</p>
+                    <p className="!text-[10px] text-[var(--text-secondary)]">Online</p>
                   </div>
                 </div>
               </div>
@@ -475,7 +489,7 @@ function ChatContent() {
                         </div>
                       )}
                       
-                      <div className={`max-w-[80%] md:max-w-[70%] px-4 py-2.5 rounded-2xl text-sm relative group ${
+                      <div className={`max-w-[80%] md:max-w-[70%] px-4 py-2.5 rounded-2xl text-[10px] relative group ${
                         isMe 
                         ? 'bg-[var(--accent)] text-white' 
                         : 'bg-[var(--bg-secondary)] text-[var(--text-primary)]'
