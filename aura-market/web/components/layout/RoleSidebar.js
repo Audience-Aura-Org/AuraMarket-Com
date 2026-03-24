@@ -91,25 +91,25 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
     <>
       {/* Backdrop for Mobile */}
       <div 
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[180] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
       {/* Sidebar Aside */}
-      <aside className={`fixed lg:static inset-y-0 left-0 w-[86vw] max-w-72 lg:w-72 bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[100] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 w-[88vw] max-w-72 lg:w-72 bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[200] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo Area */}
         <div className="p-5 flex items-center justify-between border-b border-[var(--glass-border)] opacity-90">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-8 w-auto flex items-center justify-center">
+            <div className="h-6 w-auto flex items-center justify-center shrink-0">
                <img 
                  src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'} 
                  alt="Aura Market" 
-                 className="h-6 w-auto object-contain"
+                 className="h-4 w-auto object-contain"
                />
             </div>
             <div className="flex flex-col min-w-0">
-               <h1 className="text-sm font-black tracking-tighter text-[var(--text-primary)] leading-none uppercase truncate">Aura <span className="text-[var(--accent)]">Market</span></h1>
-               <p className="text-[8px] font-black tracking-[0.22em] uppercase opacity-40 mt-1 truncate" style={{ color: config.accent }}>{config.label}</p>
+               <h1 className="text-[10px] font-black tracking-tight text-[var(--text-primary)] leading-none uppercase whitespace-nowrap overflow-hidden text-ellipsis">Aura <span className="text-[var(--accent)]">Market</span></h1>
+               <p className="text-[7px] font-black tracking-[0.08em] uppercase opacity-50 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>
           {/* Mobile Close Button */}

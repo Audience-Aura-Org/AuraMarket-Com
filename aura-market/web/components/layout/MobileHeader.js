@@ -7,7 +7,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   const { theme } = useTheme();
 
   return (
-    <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-[80] transition-colors duration-500">
+    <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-[190] transition-colors duration-500">
       <div className="flex items-center gap-3">
         <button 
           onClick={toggleSidebar}
