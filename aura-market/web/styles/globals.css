@@ -71,6 +71,13 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 15px;
   }
 
+  /* Prevent iOS keyboard focus zoom on inputs */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
   h1 {
     font-size: clamp(1.45rem, 6vw, 2rem);
     line-height: 1.08;
