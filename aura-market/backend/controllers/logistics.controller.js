@@ -1,0 +1,262 @@
+/**
+ * controllers/logistics.controller.js
+ * Aura Market — Logistics Module Controller
+ */
+
+const LogisticsCompany = require('../models/LogisticsCompany.model');
+const Shipment = require('../models/Shipment.model');
+const Order = require('../models/Order.model');
+const Vendor = require('../models/Vendor.model');
+const LogisticZone = require('../models/LogisticZone.model');
+const mongoose = require('mongoose');
+const { sendNotification } = require('../utils/notifier');
+const logisticsService = require('../services/logistics.service');
+
+// ─────────────────────────────────────────────
+// @route   POST /api/logistics/onboard
+// @desc    Register a user account as a Logistics Firm
+// ─────────────────────────────────────────────
+const onboardLogistics = async (req, res, next) => {
+  try {
+    const { company_name, contact_email, contact_phone, service_regions, vehicle_types } = req.body;
+
+    const existingFirm = await LogisticsCompany.findOne({ user_id: req.user._id });
+    if (existingFirm) {
+      return res.status(400).json({ success: false, message: 'Logistics profile already exists.' });
+    }
+
+    const company = await LogisticsCompany.create({
+      user_id: req.user._id,
+      company_name,
+      contact_email,
+      contact_phone,
+      service_regions,
+      vehicle_types,
+    });
+
+    res.status(201).json({ success: true, message: 'Awaiting Admin verification.', data: { company } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics/compatible-firms
+// @desc    Search for firms compatible with cart vendors and delivery quartier
+// ─────────────────────────────────────────────
+const getSearchCompatibleFirms = async (req, res, next) => {
+  try {
+    const { quartier, vendor_ids } = req.query;
+    if (!quartier || !vendor_ids) {
+      return res.status(400).json({ success: false, message: 'Quartier and vendor_ids required.' });
+    }
+
+    const vendors = Array.isArray(vendor_ids) ? vendor_ids : vendor_ids.split(',');
+    const firms = await logisticsService.getCompatibleFirms(quartier, vendors);
+
+    res.status(200).json({ success: true, count: firms.length, data: { firms } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics/shipments/firm
+// @desc    Logistics Firm pulls their assigned tickets
+// ─────────────────────────────────────────────
+const getFirmShipments = async (req, res, next) => {
+  try {
+    const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
+    if (!firm) return res.status(403).json({ success: false, message: 'Unregistered Firm profile.' });
+
+    const shipments = await Shipment.find({ logistics_id: firm._id })
+      .populate('order_id', 'total_amount products tracking_number createdAt')
+      .populate('vendor_id', 'store_name phone')
+      .sort('-createdAt');
+
+    res.status(200).json({ success: true, count: shipments.length, data: { shipments } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   PATCH /api/logistics/shipments/:id/status
+// @desc    Logistics updates status (Requires proof for delivered/failed)
+// ─────────────────────────────────────────────
+const modifyShipmentStatus = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { status, note, proof_image, failure_reason, receiver_name } = req.body;
+    const { id } = req.params;
+
+    const firm = await LogisticsCompany.findOne({ user_id: req.user._id }).session(session);
+    const shipment = await Shipment.findById(id).session(session);
+
+    if (!shipment) throw new Error('Shipment not found.');
+    if (req.user.role !== 'admin' && shipment.logistics_id.toString() !== firm?._id.toString()) {
+      throw new Error('Access denied.');
+    }
+
+    // Validation for Delivered status
+    if (status === 'delivered') {
+      if (!proof_image && !note) throw new Error('Proof of delivery (image or note) is required.');
+      shipment.proof_of_delivery = {
+        image_url: proof_image,
+        note: note,
+        receiver_name: receiver_name,
+        timestamp: new Date()
+      };
+    }
+
+    // Validation for Failed status
+    if (status === 'failed') {
+      if (!failure_reason) throw new Error('Reason for failure is required.');
+      shipment.failure_reason = failure_reason;
+    }
+
+    shipment.status = status;
+    shipment.shipment_logs.push({
+      status,
+      updated_by: req.user._id,
+      timestamp: new Date(),
+      note: note || ''
+    });
+
+    await shipment.save({ session });
+
+    // Sync Order Status if necessary
+    const order = await Order.findById(shipment.order_id).session(session);
+    if (status === 'delivered') {
+      // Check if ALL shipments for this order are delivered
+      const otherShipments = await Shipment.find({ order_id: order._id, _id: { $ne: shipment._id } }).session(session);
+      const allDelivered = otherShipments.every(s => s.status === 'delivered');
+      if (allDelivered) {
+        order.order_status = 'delivered';
+        await order.save({ session });
+      }
+    } else if (status === 'picked_up' || status === 'in_transit' || status === 'out_for_delivery') {
+      order.order_status = 'shipped';
+      await order.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({ success: true, message: 'Status updated.', data: { shipment } });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics/shipments/vendor
+// @desc    Vendors pulls their specific shipment tickets
+// ─────────────────────────────────────────────
+const getVendorShipments = async (req, res, next) => {
+  try {
+    const vendor = await Vendor.findOne({ user_id: req.user._id });
+    if (!vendor) return res.status(403).json({ success: false, message: 'Unregistered Vendor profile.' });
+
+    const shipments = await Shipment.find({ vendor_id: vendor._id })
+      .populate('order_id', 'total_amount products tracking_number createdAt')
+      .populate('logistics_company_id', 'company_name contact_phone')
+      .sort('-createdAt');
+
+    res.status(200).json({ success: true, count: shipments.length, data: { shipments } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics
+// @desc    Get all active/verified logistics firms
+// ─────────────────────────────────────────────
+const getPublicLogisticsFirms = async (req, res, next) => {
+  try {
+    const firms = await LogisticsCompany.find({ is_verified: true })
+      .select('company_name contact_email contact_phone service_regions vehicle_types');
+    res.status(200).json({ success: true, count: firms.length, data: { firms } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics/zones
+// @desc    Get all logistic zones (Regions & Quartiers)
+// ─────────────────────────────────────────────
+const getZones = async (req, res, next) => {
+  try {
+    const zones = await LogisticZone.find({ is_active: true }).populate('parent_id', 'name').sort('name');
+    res.status(200).json({ success: true, data: { zones } });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics/profile
+// @desc    Get current logistics firm profile & pricing
+// ─────────────────────────────────────────────
+const getProfile = async (req, res, next) => {
+  try {
+    const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
+    if (!firm) return res.status(404).json({ success: false, message: 'Logistics profile not found.' });
+    res.status(200).json({ success: true, data: { firm } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   PATCH /api/logistics/pricing
+// @desc    Update route pricing & pickup regions
+// ─────────────────────────────────────────────
+const updatePricing = async (req, res, next) => {
+  try {
+    const { quartier_prices, supported_pickup_regions } = req.body;
+    
+    // Sanitize the pricing matrix to remove existing IDs if any, preventing conflict
+    const sanitizedPrices = (quartier_prices || []).map(p => ({
+      quartier: p.quartier,
+      price: Number(p.price)
+    }));
+
+    const firm = await LogisticsCompany.findOneAndUpdate(
+      { user_id: req.user._id },
+      { 
+        quartier_prices: sanitizedPrices, 
+        supported_pickup_regions: supported_pickup_regions || [] 
+      },
+      { new: true, runValidators: true }
+    );
+
+
+    if (!firm) return res.status(404).json({ success: false, message: 'Logistics profile not found.' });
+
+    res.status(200).json({ success: true, message: 'Pricing matrix updated successfully.', data: { firm } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  onboardLogistics,
+  getFirmShipments,
+  getVendorShipments,
+  modifyShipmentStatus,
+  getSearchCompatibleFirms,
+  getPublicLogisticsFirms,
+  getZones,
+  getProfile,
+  updatePricing
+};
+
+

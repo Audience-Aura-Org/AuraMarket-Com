@@ -1,0 +1,1093 @@
+"use client";
+
+import { useState, useEffect, useCallback } from 'react';
+import {
+  ArrowLeft, User, Bell, Shield, Lock, Power, ChevronRight,
+  Store, ShieldAlert, Palette, Database, BarChart3,
+  Mail, MapPin, Camera, ExternalLink, RefreshCw,
+  Truck, LayoutGrid, ShieldCheck, ShoppingBag,
+  Users, Heart
+} from 'lucide-react';
+
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useAuthStore } from '@/hooks/useAuth';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '@/services/api';
+import { uploadService } from '@/services/upload';
+
+const TABS = [
+  { id: 'general', label: 'General', icon: User, roles: ['customer', 'vendor', 'admin', 'logistics'] },
+  { id: 'orders', label: 'Orders', icon: ShoppingBag, roles: ['customer', 'vendor'] },
+  { id: 'security', label: 'Security', icon: Shield, roles: ['customer', 'vendor', 'admin', 'logistics'] },
+  { id: 'network', label: 'Network', icon: Users, roles: ['customer', 'vendor'] },
+  { id: 'audience', label: 'Audience', icon: Heart, roles: ['vendor'] },
+
+  { id: 'store', label: 'Storefront', icon: Store, roles: ['vendor'] },
+  { id: 'fleet', label: 'Fleet Management', icon: Truck, roles: ['logistics'] },
+  { id: 'governance', label: 'Governance', icon: ShieldAlert, roles: ['admin'] },
+  { id: 'kyc', label: 'Verification', icon: Shield, roles: ['customer', 'vendor'] },
+  { id: 'notifications', label: 'Signals', icon: Bell, roles: ['customer', 'vendor', 'admin', 'logistics'] },
+  { id: 'advanced', label: 'Advanced', icon: Database, roles: ['admin'] },
+];
+
+export default function AccountPageClient() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, logout, updateUser } = useAuthStore();
+  const [activeTab, setActiveTab] = useState('general');
+  const canUseBanner = ['vendor', 'logistics'].includes(user?.role);
+
+  useEffect(() => {
+    const tabUrl = searchParams.get('tab');
+    if (tabUrl && TABS.some((t) => t.id === tabUrl)) setActiveTab(tabUrl);
+  }, [searchParams]);
+
+  const [loading, setLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  const [profileBranding, setProfileBranding] = useState({ logo: '', banner: '' });
+  const [brandingStatus, setBrandingStatus] = useState('');
+  const [brandingUploading, setBrandingUploading] = useState(null); // 'logo' | 'banner' | 'kyc' | null
+
+  const [storeData, setStoreData] = useState({
+    store_name: '',
+    description: '',
+    logo: '',
+    banner: ''
+  });
+
+  const [userData, setUserData] = useState({ name: '', phone: '' });
+  const [kycData, setKycData] = useState({ full_name: '', id_type: 'national_id', id_number: '', file_url: '' });
+  const [kycStatus, setKycStatus] = useState(null);
+  const [kycLoading, setKycLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  const [followedVendors, setFollowedVendors] = useState([]);
+  const [networkLoading, setNetworkLoading] = useState(false);
+
+  const [audience, setAudience] = useState([]);
+  const [audienceLoading, setAudienceLoading] = useState(false);
+
+  const fetchOrders = useCallback(async () => {
+     if (!user) return;
+     setOrdersLoading(true);
+     try {
+       const endpoint = user?.role === 'vendor' ? '/orders/vendor-orders' : '/orders/my-orders';
+       const res = await api.get(endpoint);
+       if (res.data.success) {
+          setOrders(res.data.data.orders || []);
+       }
+     } catch (err) {
+       console.error("Orders fetch failed", err);
+     } finally {
+       setOrdersLoading(false);
+     }
+  }, [user]);
+
+
+  useEffect(() => {
+    if (activeTab === 'orders') fetchOrders();
+    if (activeTab === 'network') fetchNetwork();
+    if (activeTab === 'audience') fetchAudience();
+  }, [activeTab, fetchOrders]);
+
+  const fetchNetwork = async () => {
+    setNetworkLoading(true);
+    try {
+      const res = await api.get('/users/followed-vendors');
+      if (res.data.success) setFollowedVendors(res.data.data.follows || []);
+    } catch (err) { console.error(err); }
+    finally { setNetworkLoading(false); }
+  };
+
+  const fetchAudience = async () => {
+    setAudienceLoading(true);
+    try {
+      // First get vendor profile to get ID
+      const vRes = await api.get('/vendors/me');
+      if (vRes.data.success) {
+        const aRes = await api.get(`/vendors/${vRes.data.data.vendor._id}/followers`);
+        if (aRes.data.success) setAudience(aRes.data.data.followers || []);
+      }
+    } catch (err) { console.error(err); }
+    finally { setAudienceLoading(false); }
+  };
+
+
+  useEffect(() => {
+    if (!user) return;
+    const existing = user.branding || {};
+    setProfileBranding({
+      logo: existing.logo || user.avatar || '',
+      banner: existing.banner || ''
+    });
+    setUserData({
+      name: user.name || '',
+      phone: user.phone || ''
+    });
+    if (user.kyc) {
+      setKycStatus(user.kyc.status);
+      setKycData(d => ({ ...d, ...user.kyc }));
+    }
+  }, [user]);
+
+  const handleUpdateProfile = async () => {
+    setProfileSaving(true);
+    setBrandingStatus('Updating personal records...');
+    try {
+      const res = await api.patch('/users/me', userData);
+      if (res.data?.success && res.data?.data?.user) {
+        updateUser(res.data.data.user);
+        setBrandingStatus('Profile updated.');
+      }
+    } catch (err) {
+      console.error(err);
+      setBrandingStatus('Profile update failed.');
+    } finally {
+      setProfileSaving(false);
+      setTimeout(() => setBrandingStatus(''), 2500);
+    }
+  };
+
+  const fetchVendorProfile = useCallback(async () => {
+    try {
+      const res = await api.get('/vendors/me');
+      if (res.data.success) {
+        const v = res.data.data.vendor;
+        setStoreData({
+          store_name: v.store_name || '',
+          description: v.description || '',
+          logo: v.store?.logo || '',
+          banner: v.store?.banner || ''
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch vendor profile", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'vendor') fetchVendorProfile();
+  }, [user, fetchVendorProfile]);
+
+  const handleUpdateStore = async () => {
+    setLoading(true);
+    setSaveStatus('Saving changes...');
+    try {
+      await api.patch('/vendors/profile', {
+        store_name: storeData.store_name,
+        description: storeData.description
+      });
+      if (storeData.logo || storeData.banner) {
+        await api.patch('/vendors/store', { logo: storeData.logo, banner: storeData.banner });
+      }
+      setSaveStatus('Updates committed successfully.');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (err) {
+      console.error("Update failed", err);
+      setSaveStatus('Sync failed. Check terminal.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateBranding = async () => {
+    setBrandingStatus('Saving branding...');
+    try {
+      const brandingPayload = canUseBanner
+        ? { logo: profileBranding.logo, banner: profileBranding.banner }
+        : { logo: profileBranding.logo };
+      
+      const res = await api.patch('/users/me', {
+        branding: brandingPayload
+      });
+
+      if (user?.role === 'vendor') {
+        // Also update the store visuals for consistency
+        await api.patch('/vendors/store', { 
+          logo: profileBranding.logo, 
+          banner: profileBranding.banner 
+        });
+      }
+
+      if (res.data?.success && res.data?.data?.user) updateUser(res.data.data.user);
+      setBrandingStatus('Branding updated platforms-wide.');
+      setTimeout(() => setBrandingStatus(''), 2500);
+    } catch (err) {
+      console.error('Branding update failed', err);
+      setBrandingStatus('Branding update failed.');
+      setTimeout(() => setBrandingStatus(''), 2500);
+    }
+  };
+
+  const handleBrandingFileUpload = async (field, file) => {
+    if (!file) return;
+    setBrandingUploading(field);
+    setBrandingStatus(`Uploading ${field}...`);
+    try {
+      const res = await uploadService.uploadSingle(file);
+      if (res?.success && res?.data?.url) {
+        if (field === 'kyc') {
+          setKycData((p) => ({ ...p, file_url: res.data.url }));
+          setBrandingStatus(`KYC document uploaded. Submit to apply.`);
+        } else {
+          setProfileBranding((p) => ({ ...p, [field]: res.data.url }));
+          setBrandingStatus(`${field} uploaded. Save to apply.`);
+        }
+      } else {
+        setBrandingStatus('Upload failed.');
+      }
+      setTimeout(() => setBrandingStatus(''), 2500);
+    } catch (err) {
+      console.error('Branding upload failed', err);
+      setBrandingStatus('Upload failed.');
+      setTimeout(() => setBrandingStatus(''), 2500);
+    } finally {
+      setBrandingUploading(null);
+    }
+  };
+
+  const handleKYCSubmit = async () => {
+    setKycLoading(true);
+    setBrandingStatus('Submitting KYC data...');
+    try {
+      const res = await api.post('/users/kyc', kycData);
+      if (res.data?.success) {
+        updateUser(res.data.data.user);
+        setKycStatus(res.data.data.user.kyc.status);
+        setBrandingStatus('KYC data submitted successfully. Awaiting review.');
+      } else {
+        setBrandingStatus('KYC submission failed.');
+      }
+    } catch (err) {
+      console.error('KYC submission failed', err);
+      setBrandingStatus('KYC submission failed.');
+    } finally {
+      setKycLoading(false);
+      setTimeout(() => setBrandingStatus(''), 2500);
+    }
+  };
+
+  const filteredTabs = TABS.filter((t) => t.roles.includes(user?.role || 'customer'));
+
+  return (
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-700">
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(circle_at_0%_0%,var(--accent)_0%,transparent_30%),radial-gradient(circle_at_100%_100%,_#3b82f6_0%,transparent_30%)] opacity-[0.02]" />
+
+      <div className="flex flex-col lg:flex-row min-h-screen max-w-[1600px] mx-auto overflow-hidden">
+        <div className="w-full lg:w-80 lg:border-r border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 z-40 lg:h-screen lg:flex lg:flex-col shrink-0">
+          <div className="px-6 py-8 md:px-10 flex items-center justify-between lg:block">
+            <div className="flex items-center gap-4 mb-0 lg:mb-12">
+              <button onClick={() => router.back()} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--accent)] transition-all">
+                <ArrowLeft className="size-5" />
+              </button>
+              <div className="flex flex-col">
+                <h1 className="text-xl md:text-2xl font-black tracking-tight uppercase leading-none">Account</h1>
+                <span className="text-[9px] font-black tracking-[0.2em] text-[var(--accent)] uppercase mt-1 opacity-60">Control Panel</span>
+              </div>
+            </div>
+
+            <Link 
+              href={`/${user?.role}/dashboard`}
+              className="hidden lg:flex items-center gap-3 px-6 py-4 mb-6 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all"
+            >
+              <LayoutGrid className="size-4" />
+              Return to Dashboard
+            </Link>
+
+            <div className="hidden lg:flex items-center gap-4 mb-10 p-4 rounded-3xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
+               <div className="size-12 rounded-2xl bg-[var(--bg-primary)] overflow-hidden border border-[var(--glass-border)] flex items-center justify-center">
+                  {profileBranding.logo ? (
+                    <img src={profileBranding.logo} className="size-full object-cover" alt="Node" />
+                  ) : (
+                    <User className="size-6 text-[var(--accent)]" />
+                  )}
+               </div>
+               <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black tracking-widest uppercase truncate">{user?.name}</p>
+                  <p className="text-[8px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 truncate">{user?.role}</p>
+               </div>
+            </div>
+
+            <div className="flex items-center gap-2 lg:hidden">
+              <div className="size-10 rounded-xl overflow-hidden border border-[var(--glass-border)] mr-2">
+                 <img src={profileBranding.logo || user?.avatar} className="size-full object-cover" alt="" />
+              </div>
+              <button onClick={() => logout()} className="size-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                <Power className="size-5" />
+              </button>
+            </div>
+
+            <nav className="hidden lg:flex flex-col gap-2">
+              {filteredTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`
+                      group flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300
+                      ${activeTab === tab.id
+                        ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
+                        : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}
+                    `}
+                  >
+                    <div className="flex items-center gap-4">
+                      <Icon className={`size-5 transition-transform group-hover:scale-110 ${activeTab === tab.id ? 'text-white' : 'text-[var(--accent)]'}`} />
+                      <span className="text-[11px] font-black tracking-[0.2em] uppercase">{tab.label}</span>
+                    </div>
+                    {activeTab === tab.id && (
+                      <motion.div layoutId="activeInd" className="size-1.5 rounded-full bg-white" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="lg:hidden flex items-center overflow-x-auto px-6 pb-4 no-scrollbar gap-2 -mt-2">
+            {filteredTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`whitespace-nowrap px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-[var(--accent)] text-white shadow-md'
+                    : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="hidden lg:mt-auto lg:p-10 lg:block">
+            <button
+              onClick={() => { logout(); router.push('/login'); }}
+              className="w-full flex items-center justify-between p-6 rounded-[32px] bg-rose-500/5 border border-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <Power className="size-5" />
+                <span className="text-[10px] font-black tracking-widest uppercase">Terminate Session</span>
+              </div>
+              <ChevronRight className="size-4 opacity-40 group-hover:translate-x-1 transition-all" />
+            </button>
+          </div>
+        </div>
+
+        <main className="flex-1 px-6 py-8 md:px-12 md:py-16 lg:px-20 lg:py-24 overflow-y-auto no-scrollbar">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="max-w-4xl mx-auto space-y-12"
+            >
+              {activeTab === 'general' && (
+                <div className="space-y-12">
+                  <header className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">General Matrix</h2>
+                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Universal identity and interface parameters for your Aura profile.</p>
+                  </header>
+
+                  <div className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-[40px] p-8 md:p-12 relative overflow-hidden glass-panel group shadow-2xl">
+                    <div className="absolute top-0 right-0 size-96 bg-[var(--accent)]/5 rounded-full blur-[100px]" />
+                    
+                    {/* Header: Identity & Roles */}
+                    <div className="flex flex-col md:flex-row items-center gap-10 relative z-10 mb-12">
+                      <div className="relative group">
+                        <div className="size-32 md:size-40 rounded-full border-[6px] border-[var(--accent)]/20 p-2 shadow-inner group-hover:border-[var(--accent)] transition-all duration-500">
+                          <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center text-5xl font-black text-[var(--accent)] overflow-hidden">
+                            {profileBranding.logo ? <img src={profileBranding.logo} className="size-full object-cover" alt="" /> : user?.name?.[0]?.toUpperCase()}
+                          </div>
+                        </div>
+                        <label className="absolute bottom-2 right-2 size-12 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] border-4 border-[var(--bg-secondary)] flex items-center justify-center hover:scale-110 transition-transform shadow-xl cursor-pointer">
+                          <Camera className="size-5" />
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
+                        </label>
+                      </div>
+
+                      <div className="flex-1 space-y-4 text-center md:text-left">
+                        <div className="space-y-1">
+                          <h3 className="text-4xl font-black tracking-tight">
+                            {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Authorized User'}
+                          </h3>
+                          <p className="text-[var(--text-secondary)] font-medium flex items-center justify-center md:justify-start gap-2">
+                            <Mail className="size-4 opacity-40" /> {user?.email}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                          <span className="px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-black tracking-widest uppercase border border-[var(--accent)]/20">
+                            {user?.role === 'vendor' ? 'Nexus Vendor' : user?.role === 'admin' ? 'Root Administrator' : user?.role === 'logistics' ? 'Logistics Node' : 'Node User'}
+                          </span>
+                          <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black tracking-widest uppercase border border-emerald-500/20">
+                            Active Session
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Branding Suite Integrated */}
+                    <div className="border-t border-[var(--glass-border)]/50 pt-10 space-y-8 relative z-10">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-[10px] font-black tracking-[0.3em] uppercase text-[var(--text-secondary)]">Platform Branding</h4>
+                        {brandingStatus && <span className="text-[9px] font-black text-[var(--accent)] uppercase animate-pulse">{brandingStatus}</span>}
+                      </div>
+
+                      <div className={`grid grid-cols-1 ${canUseBanner ? 'md:grid-cols-2' : ''} gap-8`}>
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between px-2">
+                               <span className="text-[8px] font-black tracking-widest uppercase opacity-40">Identity Logo</span>
+                               {brandingUploading === 'logo' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
+                            </div>
+                            <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
+                               {profileBranding.logo ? (
+                                 <img src={profileBranding.logo} className="size-full object-cover" alt="logo" />
+                               ) : (
+                                 <Store className="size-8 opacity-10" />
+                               )}
+                               <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/b:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                                  <Camera className="text-white size-8" />
+                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
+                               </label>
+                            </div>
+                         </div>
+
+                         {canUseBanner && (
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between px-2">
+                               <span className="text-[8px] font-black tracking-widest uppercase opacity-40">Immersion Banner</span>
+                               {brandingUploading === 'banner' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
+                            </div>
+                            <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
+                               {profileBranding.banner ? (
+                                 <img src={profileBranding.banner} className="size-full object-cover" alt="banner" />
+                               ) : (
+                                 <ExternalLink className="size-8 opacity-10" />
+                               )}
+                               <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/b:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                                  <ExternalLink className="text-white size-8" />
+                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('banner', e.target.files?.[0])} />
+                               </label>
+                            </div>
+                         </div>
+                         )}
+                      </div>
+
+                      <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1">
+                           <InputModule 
+                              label="Branding Key (Logo URL)" 
+                              value={profileBranding.logo} 
+                              onChange={(v) => setProfileBranding(p => ({...p, logo: v}))} 
+                              icon={Camera} 
+                              placeholder="https://..." 
+                           />
+                        </div>
+                        {canUseBanner && (
+                        <div className="flex-1">
+                           <InputModule 
+                              label="Immersion Link (Banner URL)" 
+                              value={profileBranding.banner} 
+                              onChange={(v) => setProfileBranding(p => ({...p, banner: v}))} 
+                              icon={ExternalLink} 
+                              placeholder="https://..." 
+                           />
+                        </div>
+                        )}
+                      </div>
+
+                      <div className="pt-4 flex items-center justify-between">
+                         <p className="text-[9px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 max-w-xs">
+                            {user?.role === 'vendor' ? 'Changes synchronize with your digital storefront node.' : 'Branding reflects across all platform interaction vectors.'}
+                         </p>
+                         <button
+                            onClick={handleUpdateBranding}
+                            className="bg-[var(--accent)] text-white px-10 py-4 rounded-2xl font-black text-[10px] tracking-widest uppercase shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all"
+                         >
+                            Deploy Branding Update
+                         </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <SectionBox title="Personal Records">
+                    <div className="space-y-6 pt-2">
+                      <InputModule 
+                        label="Official Designation" 
+                        value={userData.name} 
+                        onChange={(v) => setUserData({ ...userData, name: v })} 
+                        icon={User} 
+                        placeholder="Human Name" 
+                      />
+                      <InputRow label="Auth Node (Email)" value={user?.email} disable />
+                      <InputRow label="Platform Role" value={user?.role?.toUpperCase()} disable />
+                      
+                      <div className="pt-4 flex justify-end">
+                        <button
+                          onClick={handleUpdateProfile}
+                          disabled={profileSaving}
+                          className="px-8 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase hover:bg-[var(--accent)] hover:text-white transition-all"
+                        >
+                          {profileSaving ? 'Saving...' : 'Synchronize Records'}
+                        </button>
+                      </div>
+                    </div>
+                  </SectionBox>
+
+                  <SectionBox title="Interface Preferences">
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-6">
+                        <div className="size-12 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center">
+                          <Palette className="size-5 text-[var(--accent)]" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-[11px] font-black tracking-widest uppercase block">Dynamic Shadows</span>
+                          <p className="text-[10px] text-[var(--text-secondary)] font-bold opacity-60">Enable depth effects across all panels</p>
+                        </div>
+                      </div>
+                      <Toggle active />
+                    </div>
+                  </SectionBox>
+                </div>
+              )}
+
+
+              {activeTab === 'orders' && (
+                <div className="space-y-12">
+                   <header className="space-y-4 flex flex-col md:flex-row md:items-end justify-between">
+                     <div>
+                       <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)] uppercase">Order <span className="text-[var(--accent)]">Matrix</span></h2>
+                       <p className="text-[var(--text-secondary)] font-medium max-w-lg mt-2">Historical and active transaction records synchronized with the platform.</p>
+                     </div>
+                     <button onClick={fetchOrders} className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--accent)] transition-all">
+                        <RefreshCw className={`size-5 ${ordersLoading ? 'animate-spin' : ''}`} />
+                     </button>
+                   </header>
+
+                   <div className="space-y-4">
+                      {orders.length === 0 ? (
+                        <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-xl text-center space-y-6">
+                            <ShoppingBag className="size-16 opacity-10" />
+                            <p className="text-sm font-black uppercase tracking-widest opacity-40">No Order Records Synchronized</p>
+                        </div>
+                      ) : (
+                        orders.map((o) => (
+                           <Link href={`/orders/${o._id}`} key={o._id} className="block p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 hover:shadow-2xl transition-all group overflow-hidden relative">
+                              <div className="absolute top-0 right-0 size-24 bg-[var(--accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--accent)]/10 transition-all" />
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                                 <div className="flex items-center gap-6">
+                                    <div className="size-16 rounded-[28px] bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center relative shadow-inner overflow-hidden">
+                                       <img src={o.products?.[0]?.image || '/placeholder.png'} className="size-full object-cover" alt="" />
+                                    </div>
+                                    <div>
+                                       <h4 className="text-lg font-black uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors line-clamp-1">{o.products?.[0]?.name || 'Encrypted Order'}</h4>
+                                       <div className="flex items-center gap-3 mt-1.5 grayscale group-hover:grayscale-0 transition-all opacity-40 group-hover:opacity-100">
+                                          <span className="text-[10px] font-black uppercase tracking-widest">{new Date(o.createdAt).toLocaleDateString()}</span>
+                                          <div className="size-1 rounded-full bg-[var(--accent)]" />
+                                          <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)]">{o.order_status}</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-center justify-between md:justify-end gap-10 border-t md:border-t-0 border-[var(--glass-border)] pt-6 md:pt-0">
+                                    <div className="text-right">
+                                       <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mb-1">Vault Value</p>
+                                       <p className="text-2xl font-black font-mono text-[var(--text-primary)]">{(o.total_amount).toLocaleString()} <span className="text-xs">XAF</span></p>
+                                    </div>
+                                    <div className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
+                                       <ChevronRight className="size-5" />
+                                    </div>
+                                 </div>
+                              </div>
+                           </Link>
+                        ))
+                      )}
+                   </div>
+                </div>
+              )}
+
+              {activeTab === 'security' && (
+
+                <div className="space-y-12">
+                  <header className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Security Citadel</h2>
+                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Manage encrypted access, key pairing, and biometric links.</p>
+                  </header>
+
+                  <SectionBox title="Core Access Control">
+                    <ActionButton icon={Lock} label="Rotate Access Key" desc="Change your security passphrase regularly." />
+                    <ActionButton icon={RefreshCw} label="Secure Session Clearing" desc="Logout from all other active node devices." />
+                  </SectionBox>
+                </div>
+              )}
+
+              {activeTab === 'store' && user?.role === 'vendor' && (
+                <div className="space-y-12">
+                  <header className="space-y-4 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-4">
+                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Command Center</h2>
+                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Customize your organization&apos;s digital storefront presence.</p>
+                    </div>
+                    {saveStatus && (
+                      <span className="px-6 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest uppercase border border-[var(--accent)] animate-pulse">
+                        {saveStatus}
+                      </span>
+                    )}
+                  </header>
+
+                  <SectionBox title="Strategic Alignment">
+                    <div className="space-y-8 py-4">
+                      <InputModule label="Organization Name" value={storeData.store_name} onChange={(v) => setStoreData({ ...storeData, store_name: v })} icon={Store} placeholder="CyberDyne Systems Inc." />
+                      <InputModule label="Mission Manifesto" value={storeData.description} onChange={(v) => setStoreData({ ...storeData, description: v })} icon={BarChart3} placeholder="Our primary directive is to revolutionize..." area />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Store Logo Upload</span>
+                            <label className="h-10 px-5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase cursor-pointer hover:border-[var(--accent)]/30 transition-all flex items-center gap-2">
+                              <Camera className="size-4 text-[var(--accent)]" />
+                              Select File
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setSaveStatus('Uploading logo...');
+                                  try {
+                                    const res = await uploadService.uploadSingle(file);
+                                    if (res?.success && res?.data?.url) {
+                                      setStoreData((s) => ({ ...s, logo: res.data.url }));
+                                      setSaveStatus('Logo uploaded.');
+                                    } else {
+                                      setSaveStatus('Logo upload failed.');
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                    setSaveStatus('Logo upload failed.');
+                                  } finally {
+                                    setTimeout(() => setSaveStatus(''), 2500);
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <div className="h-20 rounded-[24px] bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] overflow-hidden flex items-center justify-center">
+                            {storeData.logo ? (
+                              <img src={storeData.logo} alt="Store logo preview" className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] font-black tracking-widest uppercase opacity-40">No logo</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Store Banner Upload</span>
+                            <label className="h-10 px-5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase cursor-pointer hover:border-[var(--accent)]/30 transition-all flex items-center gap-2">
+                              <ExternalLink className="size-4 text-[var(--accent)]" />
+                              Select File
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setSaveStatus('Uploading banner...');
+                                  try {
+                                    const res = await uploadService.uploadSingle(file);
+                                    if (res?.success && res?.data?.url) {
+                                      setStoreData((s) => ({ ...s, banner: res.data.url }));
+                                      setSaveStatus('Banner uploaded.');
+                                    } else {
+                                      setSaveStatus('Banner upload failed.');
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                    setSaveStatus('Banner upload failed.');
+                                  } finally {
+                                    setTimeout(() => setSaveStatus(''), 2500);
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <div className="h-20 rounded-[24px] bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] overflow-hidden flex items-center justify-center">
+                            {storeData.banner ? (
+                              <img src={storeData.banner} alt="Store banner preview" className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] font-black tracking-widest uppercase opacity-40">No banner</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <InputModule label="Store Logo URL" value={storeData.logo} onChange={(v) => setStoreData({ ...storeData, logo: v })} icon={Camera} placeholder="https://.../logo.png" />
+                      <InputModule label="Store Banner URL" value={storeData.banner} onChange={(v) => setStoreData({ ...storeData, banner: v })} icon={ExternalLink} placeholder="https://.../banner.jpg" />
+                    </div>
+                  </SectionBox>
+
+                  <button
+                    onClick={handleUpdateStore}
+                    disabled={loading}
+                    className="w-full py-8 md:py-10 bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.4em] rounded-[32px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[var(--accent)]/30 uppercase flex items-center justify-center gap-4 disabled:opacity-50"
+                  >
+                    {loading ? <RefreshCw className="size-5 animate-spin" /> : <RefreshCw className="size-5" />}
+                    {loading ? 'Committing Synchronisation...' : 'Finalize Store Profile'}
+                  </button>
+                </div>
+              )}
+
+              {activeTab === 'fleet' && user?.role === 'logistics' && (
+                <div className="space-y-12">
+                  <header className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Fleet Management</h2>
+                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Configure your operational capacity and dispatch parameters.</p>
+                  </header>
+                  <SectionBox title="Operational Reach">
+                    <ActionButton icon={MapPin} label="Service Regions" desc="Define cities where your fleet is active." />
+                    <ActionButton icon={Truck} label="Vehicle Manifest" desc="Specify available vehicle types (Bikes, Vans, Trucks)." />
+                   </SectionBox>
+                 </div>
+               )}
+ 
+               {activeTab === 'kyc' && (
+                 <div className="space-y-12">
+                   <header className="space-y-4">
+                     <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Identity Node</h2>
+                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Verify your identity to unlock advanced vendor features and higher transaction limits.</p>
+                   </header>
+  
+                   <div className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-[40px] p-8 md:p-12 glass-panel shadow-2xl relative overflow-hidden">
+                     <div className="absolute top-0 right-0 size-64 bg-emerald-500/5 rounded-full blur-[100px]" />
+                     
+                     <div className="flex items-center justify-between mb-10 pb-10 border-b border-[var(--glass-border)]/50">
+                       <div className="flex items-center gap-6">
+                         <div className={`size-16 rounded-[24px] flex items-center justify-center border shadow-inner ${
+                           kycStatus === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                           kycStatus === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                           kycStatus === 'rejected' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                           'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)]'
+                         }`}>
+                           <Shield className="size-8" />
+                         </div>
+                         <div>
+                           <h3 className="text-xl font-black tracking-tight uppercase">Verification Status</h3>
+                           <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${
+                             kycStatus === 'approved' ? 'text-emerald-500' :
+                             kycStatus === 'pending' ? 'text-amber-500' :
+                             kycStatus === 'rejected' ? 'text-rose-500' : 'text-[var(--text-secondary)]'
+                           }`}>
+                             {kycStatus ? kycStatus.toUpperCase() : 'NOT SUBMITTED'}
+                           </p>
+                         </div>
+                       </div>
+                       
+                       {kycStatus === 'approved' && (
+                         <div className="px-6 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[10px] font-black tracking-widest uppercase">
+                           Global Node Verified
+                         </div>
+                       )}
+                     </div>
+  
+                     {kycStatus === 'approved' ? (
+                       <div className="py-10 text-center space-y-4">
+                         <p className="text-sm font-bold text-[var(--text-secondary)]">Your identity has been fully verified by the Aura Protocol.</p>
+                         <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest">Enhanced node privileges activated</p>
+                       </div>
+                     ) : (
+                       <div className="space-y-8">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <InputModule 
+                             label="Full Legal Name" 
+                             value={kycData.full_name} 
+                             onChange={(v) => setKycData({...kycData, full_name: v})} 
+                             icon={User} 
+                             placeholder="Ex: John Doe" 
+                           />
+                           <div className="space-y-4">
+                             <div className="flex items-center gap-3 ml-4">
+                               <Shield className="size-4 text-[var(--accent)] opacity-40" />
+                               <span className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">ID Document Type</span>
+                             </div>
+                             <select 
+                               value={kycData.id_type}
+                               onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
+                               className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-full px-8 py-5 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none shadow-inner text-[var(--text-primary)]"
+                             >
+                               <option value="national_id">National ID Card</option>
+                               <option value="passport">Biometric Passport</option>
+                               <option value="drivers_license">Driver's License</option>
+                             </select>
+                           </div>
+                         </div>
+  
+                         <InputModule 
+                           label="Document ID Number" 
+                           value={kycData.id_number} 
+                           onChange={(v) => setKycData({...kycData, id_number: v})} 
+                           icon={Lock} 
+                           placeholder="Ex: 2024-X99" 
+                         />
+  
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between px-2">
+                               <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Upload Scan (Front)</span>
+                               {brandingUploading === 'kyc' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
+                            </div>
+                            <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
+                               {kycData.file_url ? (
+                                 <>
+                                   <img src={kycData.file_url} className="absolute inset-0 size-full object-contain p-4" alt="ID scan" />
+                                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <p className="text-white text-[10px] font-black uppercase tracking-widest">Replace Document</p>
+                                   </div>
+                                 </>
+                               ) : (
+                                 <>
+                                   <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
+                                   <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60">PDF, PNG or JPG max 5MB</p>
+                                 </>
+                               )}
+                               <input 
+                                 type="file" 
+                                 className="absolute inset-0 opacity-0 cursor-pointer" 
+                                 onChange={(e) => handleBrandingFileUpload('kyc', e.target.files?.[0])} 
+                               />
+                            </div>
+                         </div>
+  
+                         <button
+                           onClick={handleKYCSubmit}
+                           disabled={kycLoading || kycStatus === 'pending'}
+                           className={`w-full py-6 rounded-[32px] font-black text-[12px] tracking-[0.3em] uppercase transition-all shadow-2xl ${
+                             kycStatus === 'pending' ? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' :
+                             'bg-[var(--accent)] text-white shadow-[var(--accent)]/30 hover:scale-[1.02]'
+                           }`}
+                         >
+                           {kycLoading ? 'Encrypting Request...' : kycStatus === 'pending' ? 'Under Governance Review' : 'Initialize Identity Verification'}
+                         </button>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
+  
+               {activeTab === 'notifications' && (
+                <div className="space-y-12">
+                  <header className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Signals & Intel</h2>
+                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Configure how the platform communicates critical updates to your node.</p>
+                  </header>
+                  <SectionBox title="Notification Channels">
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-4">
+                        <Mail className="size-5 text-[var(--accent)]" />
+                        <span className="text-[11px] font-black uppercase tracking-widest">Email Protocols</span>
+                      </div>
+                      <Toggle active />
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-4">
+                        <Bell className="size-5 text-[var(--accent)]" />
+                        <span className="text-[11px] font-black uppercase tracking-widest">Push Signals</span>
+                      </div>
+                      <Toggle active />
+                    </div>
+                    <Link href="/notifications" className="block p-8 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-center group transition-all hover:bg-[var(--accent)] hover:text-white mt-10 shadow-xl">
+                       <p className="text-[10px] font-black uppercase tracking-[0.4em]">Initialize Full Frequency Scan</p>
+                    </Link>
+                  </SectionBox>
+                </div>
+              )}
+
+              {activeTab === 'network' && (
+                 <div className="space-y-12">
+                    <header className="space-y-4">
+                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Network</span></h2>
+                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Active connections to marketplaces and independent vendor nodes.</p>
+                    </header>
+
+                    {networkLoading ? (
+                      <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
+                         <RefreshCw className="size-16 animate-spin mb-4" />
+                         <p className="text-[10px] font-black uppercase tracking-widest">Resolving Followed Nodes...</p>
+                      </div>
+                    ) : followedVendors.length === 0 ? (
+                       <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
+                           <Users className="size-16 opacity-10" />
+                           <p className="text-sm font-black uppercase tracking-widest opacity-40">No connected vendor nodes detected</p>
+                       </div>
+                    ) : (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {followedVendors.map(f => (
+                             <Link key={f._id} href={`/stores/${f.vendor_id?._id}`} className="group p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 transition-all flex items-center gap-6 shadow-xl">
+                                <div className="size-20 rounded-[28px] overflow-hidden border border-[var(--glass-border)] group-hover:border-[var(--accent)]/50 transition-all shadow-inner shrink-0 bg-[var(--bg-primary)]">
+                                   <img src={f.vendor_id?.user_id?.branding?.logo || f.vendor_id?.user_id?.avatar} className="size-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                   <div className="flex items-center gap-3">
+                                      <h4 className="text-lg font-black uppercase tracking-tight truncate group-hover:text-[var(--accent)] transition-colors">{f.vendor_id?.store_name}</h4>
+                                      {f.vendor_id?.verified && <ShieldCheck className="size-4 text-emerald-500 shrink-0" />}
+                                   </div>
+                                   <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mt-1">{(f.vendor_id?.follower_count || 0).toLocaleString()} Subscribers</p>
+                                </div>
+                             </Link>
+                          ))}
+                       </div>
+                    )}
+                 </div>
+              )}
+
+              {activeTab === 'audience' && (
+                 <div className="space-y-12">
+                    <header className="space-y-4">
+                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Audience</span></h2>
+                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Independent user nodes synchronized with your marketplace frequency.</p>
+                    </header>
+
+                    {audienceLoading ? (
+                      <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
+                         <RefreshCw className="size-16 animate-spin mb-4" />
+                         <p className="text-[10px] font-black uppercase tracking-widest">Scanning Audience Signal...</p>
+                      </div>
+                    ) : audience.length === 0 ? (
+                       <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
+                           <Heart className="size-16 opacity-10" />
+                           <p className="text-sm font-black uppercase tracking-widest opacity-40">No active subscribers in this frequency</p>
+                       </div>
+                    ) : (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-32">
+                          {audience.map(a => (
+                             <div key={a._id} className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex items-center gap-6 shadow-xl">
+                                <div className="size-16 rounded-[24px] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0">
+                                   <img src={a.user_id?.branding?.logo || a.user_id?.avatar} className="size-full object-cover" alt="" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                   <h4 className="text-base font-black uppercase tracking-tight truncate">{a.user_id?.name}</h4>
+                                   <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mt-1">Status: Active Monitor</p>
+                                </div>
+                                <span className="text-[8px] font-black uppercase tracking-widest opacity-20">{new Date(a.createdAt).toLocaleDateString()}</span>
+                             </div>
+                          ))}
+                       </div>
+                    )}
+                 </div>
+              )}
+
+              {activeTab === 'governance' && user?.role === 'admin' && (
+                <div className="space-y-12">
+                  <header className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Protocol Governance</h2>
+                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Advanced administrative controls for platform stability and regulation.</p>
+                  </header>
+                  <SectionBox title="Administrative Override">
+                    <ActionButton icon={ShieldAlert} label="System Lockdown" desc="Temporarily suspend all non-essential platform services." />
+                    <ActionButton icon={User} label="Node Verification" desc="Manually review and approve pending vendor applications." />
+                  </SectionBox>
+                </div>
+              )}
+
+              {activeTab === 'advanced' && user?.role === 'admin' && (
+                <div className="space-y-12">
+                  <header className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Root Systems</h2>
+                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Low-level data manipulation and infrastructure parameters.</p>
+                  </header>
+                  <SectionBox title="Database Sync">
+                    <ActionButton icon={Database} label="Flush Cache" desc="Clear all temporary platform optimization data." />
+                    <ActionButton icon={BarChart3} label="Audit Logs" desc="View complete interaction history for this node." />
+                  </SectionBox>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function SectionBox({ title, children }) {
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center gap-6 px-4">
+        <h3 className="text-[10px] font-black tracking-[0.4em] uppercase text-[var(--text-secondary)] opacity-50">{title}</h3>
+        <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+      </div>
+      <div className="glass-panel rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-8 md:p-10 space-y-6">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function InputModule({ label, value, onChange, icon: Icon, placeholder, area = false, disable = false }) {
+  return (
+    <div className="space-y-3 px-2">
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="size-4 text-[var(--accent)] opacity-40" />}
+        <label className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">{label}</label>
+      </div>
+      {area ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disable}
+          rows={4}
+          className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-[32px] px-8 py-6 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all resize-none shadow-inner text-[var(--text-primary)]"
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disable}
+          className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-full px-8 py-5 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all shadow-inner text-[var(--text-primary)]"
+        />
+      )}
+    </div>
+  );
+}
+
+function InputRow({ label, value, disable }) {
+  return (
+    <div className="flex items-center justify-between p-6 rounded-3xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
+      <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">{label}</span>
+      <span className={`text-xs font-black uppercase ${disable ? 'opacity-40' : ''}`}>{value}</span>
+    </div>
+  );
+}
+
+function Toggle({ active }) {
+  return (
+    <div className={`w-14 h-8 rounded-full p-1.5 transition-all duration-500 cursor-pointer ${active ? 'bg-[var(--accent)] shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--glass-border)]'}`}>
+      <div className={`h-full aspect-square rounded-full bg-white transition-all duration-500 transform ${active ? 'translate-x-6' : ''}`} />
+    </div>
+  );
+}
+
+function ActionButton({ icon: Icon, label, desc }) {
+  return (
+    <button className="w-full flex items-center justify-between p-6 rounded-3xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all text-left">
+      <div className="flex items-center gap-6">
+        <div className="size-12 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-white/10 group-hover:border-white/20">
+          <Icon className="size-5 text-[var(--accent)] group-hover:text-white" />
+        </div>
+        <div>
+          <p className="text-[11px] font-black tracking-widest uppercase">{label}</p>
+          <p className="text-[10px] font-bold opacity-50 group-hover:opacity-100">{desc}</p>
+        </div>
+      </div>
+      <ChevronRight className="size-4 opacity-20 group-hover:opacity-100 transition-all" />
+    </button>
+  );
+}

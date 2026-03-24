@@ -1,0 +1,84 @@
+import axios from 'axios';
+
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor to attach JWT token to requests
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    let token = null;
+
+    // 1. Try to get token from localStorage directly to avoid circular dependency with the store
+    try {
+      const stored = localStorage.getItem('aura-auth-storage');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        token = parsed?.state?.token;
+      }
+    } catch (e) {
+      console.error('[API Interceptor] Failed to parse auth storage:', e);
+    }
+
+    // 2. Fallback to legacy key
+    if (!token) {
+      token = localStorage.getItem('aura_token');
+    }
+    
+    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// -----------------------------
+// Response retry interceptor
+// -----------------------------
+const shouldRetry = (error) => {
+  if (!error || !error.config) return false;
+  const status = error.response?.status;
+  // Retry on 429 (rate limit) or network errors
+  return status === 429 || !error.response;
+};
+
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const config = error.config;
+    if (!config) return Promise.reject(error);
+
+    config.__retryCount = config.__retryCount || 0;
+    const MAX_RETRIES = 4;
+
+    if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
+      if (error.response) {
+        console.warn(`[API] ${error.response.status} Error at ${config.url}: ${error.response.data?.message || 'Check network tab'}`);
+      } else {
+        console.warn(`[API Network/Unknown Error] at ${config.url}: ${error.message}`);
+      }
+      return Promise.reject(error);
+    }
+
+    config.__retryCount += 1;
+
+    // Exponential backoff with jitter: base 500ms
+    const baseDelay = 500;
+    const backoff = baseDelay * Math.pow(2, config.__retryCount - 1);
+    const jitter = Math.floor(Math.random() * 300);
+    const delay = backoff + jitter;
+
+    console.warn(`[API] Retry ${config.__retryCount}/${MAX_RETRIES} after ${delay}ms for ${config.url}`);
+    await sleep(delay);
+    return api(config);
+  }
+);
+
+export default api;
+

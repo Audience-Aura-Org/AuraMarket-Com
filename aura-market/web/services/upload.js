@@ -1,0 +1,35 @@
+import api from './api';
+
+/**
+ * uploadService
+ * Handles multi-part/form-data requests for image uploads.
+ */
+export const uploadService = {
+  // Upload a single file
+  uploadSingle: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const res = await api.post('/upload/single', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
+
+  // Upload multiple files (up to 5)
+  uploadMultiple: async (files) => {
+    const formData = new FormData();
+    Array.from(files).forEach((file) => {
+      formData.append('images', file);
+    });
+
+    const res = await api.post('/upload/multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  }
+};
