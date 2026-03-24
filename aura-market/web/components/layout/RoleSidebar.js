@@ -29,6 +29,7 @@ const ADMIN_NAV = [
   { icon: 'gavel', label: 'Disputes', href: '/admin/disputes' },
   { icon: 'account_balance', label: 'Escrow', href: '/admin/escrow' },
   { icon: 'local_shipping', label: 'Shipment Node', href: '/admin/logistics' },
+  { icon: 'payments', label: 'Logistics Earnings', href: '/admin/logistics/earnings' },
   { icon: 'monitoring', label: 'Analytics', href: '/admin/analytics' },
   { icon: 'category', label: 'Categories', href: '/admin/categories' },
   { icon: 'star', label: 'Reviews', href: '/admin/reviews' },

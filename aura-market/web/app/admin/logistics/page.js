@@ -21,6 +21,14 @@ export default function AdminLogistics() {
   const [newZone, setNewZone] = useState({ name: '', type: 'region', parent_id: '' });
   const [selectedFirm, setSelectedFirm] = useState(null);
   const [priceEditor, setPriceEditor] = useState({ quartier: '', price: '' });
+  const [selectedShipment, setSelectedShipment] = useState(null);
+  const [shipmentEdit, setShipmentEdit] = useState({
+    status: 'pending',
+    logistics_id: '',
+    price: '',
+    tracking_code: '',
+    note: '',
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -41,6 +49,31 @@ export default function AdminLogistics() {
       toast.error('Logistics monitoring failed to sync');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openShipmentEditor = (shipment) => {
+    setSelectedShipment(shipment);
+    setShipmentEdit({
+      status: shipment.status || 'pending',
+      logistics_id: shipment.logistics_id?._id || '',
+      price: shipment.price || 0,
+      tracking_code: shipment.tracking_code || '',
+      note: '',
+    });
+  };
+
+  const saveShipmentEdit = async () => {
+    if (!selectedShipment?._id) return;
+    try {
+      const res = await api.patch(`/admin/logistics/shipments/${selectedShipment._id}`, shipmentEdit);
+      if (res.data?.success) {
+        toast.success('Shipment package updated.');
+        setSelectedShipment(null);
+        fetchLogistics();
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update shipment');
     }
   };
 
@@ -150,7 +183,7 @@ export default function AdminLogistics() {
                              </span>
                           </td>
                           <td className="px-6 lg:px-8 py-4 lg:py-5 text-right whitespace-nowrap">
-                             <button className="p-2 lg:p-2.5 rounded-lg border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all opacity-40 hover:opacity-100 shadow-sm active:scale-95">
+                             <button onClick={() => openShipmentEditor(s)} className="p-2 lg:p-2.5 rounded-lg border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all opacity-40 hover:opacity-100 shadow-sm active:scale-95">
                                 <Eye className="size-3.5 lg:size-4" />
                              </button>
                           </td>
@@ -407,6 +440,39 @@ export default function AdminLogistics() {
                    </div>
                 </div>
              </div>
+          </div>
+        </div>
+      )}
+
+      {selectedShipment && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedShipment(null)} />
+          <div className="relative z-10 w-full max-w-2xl rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 lg:p-8">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-sm lg:text-base font-black uppercase tracking-widest">Edit Shipment Package</h3>
+              <button onClick={() => setSelectedShipment(null)} className="px-3 py-1 rounded-lg border border-[var(--glass-border)] text-[10px] font-black uppercase">Close</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input value={shipmentEdit.tracking_code} onChange={(e) => setShipmentEdit((s) => ({ ...s, tracking_code: e.target.value }))} placeholder="Tracking code" className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black" />
+              <input type="number" value={shipmentEdit.price} onChange={(e) => setShipmentEdit((s) => ({ ...s, price: e.target.value }))} placeholder="Shipping price" className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black" />
+              <select value={shipmentEdit.status} onChange={(e) => setShipmentEdit((s) => ({ ...s, status: e.target.value }))} className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black uppercase">
+                <option value="pending">Pending</option>
+                <option value="assigned">Assigned</option>
+                <option value="picked_up">Picked Up</option>
+                <option value="in_transit">In Transit</option>
+                <option value="out_for_delivery">Out For Delivery</option>
+                <option value="delivered">Delivered</option>
+                <option value="failed">Failed</option>
+              </select>
+              <select value={shipmentEdit.logistics_id} onChange={(e) => setShipmentEdit((s) => ({ ...s, logistics_id: e.target.value }))} className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black">
+                <option value="">Select logistics firm</option>
+                {firms.map((f) => (
+                  <option key={f._id} value={f._id}>{f.company_name}</option>
+                ))}
+              </select>
+            </div>
+            <textarea rows={3} value={shipmentEdit.note} onChange={(e) => setShipmentEdit((s) => ({ ...s, note: e.target.value }))} placeholder="Admin note" className="mt-3 w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black" />
+            <button onClick={saveShipmentEdit} className="mt-4 w-full rounded-xl bg-[var(--accent)] text-white px-4 py-3 text-[10px] font-black uppercase tracking-widest">Save Shipment</button>
           </div>
         </div>
       )}

@@ -617,6 +617,73 @@ const getAdminShipments = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────
+// @route   PATCH /api/admin/logistics/shipments/:id
+// @desc    Admin: fully edit shipment package details
+// @access  Private (Role: admin)
+// ─────────────────────────────────────────────
+const updateAdminShipment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      status,
+      logistics_id,
+      price,
+      tracking_code,
+      pickup_address,
+      delivery_address,
+      note,
+      failure_reason,
+      receiver_name,
+      proof_image,
+    } = req.body;
+
+    const shipment = await Shipment.findById(id);
+    if (!shipment) {
+      return res.status(404).json({ success: false, message: 'Shipment not found.' });
+    }
+
+    if (typeof logistics_id !== 'undefined') shipment.logistics_id = logistics_id || shipment.logistics_id;
+    if (typeof price !== 'undefined') shipment.price = Number(price) || 0;
+    if (typeof tracking_code !== 'undefined' && tracking_code) shipment.tracking_code = tracking_code;
+    if (pickup_address && typeof pickup_address === 'object') {
+      shipment.pickup_address = { ...shipment.pickup_address, ...pickup_address };
+    }
+    if (delivery_address && typeof delivery_address === 'object') {
+      shipment.delivery_address = { ...shipment.delivery_address, ...delivery_address };
+    }
+    if (status) {
+      shipment.status = status;
+      shipment.shipment_logs.push({
+        status,
+        updated_by: req.user._id,
+        note: note || 'Updated by admin',
+        timestamp: new Date(),
+      });
+      if (status === 'failed' && failure_reason) shipment.failure_reason = failure_reason;
+      if (status === 'delivered') {
+        shipment.proof_of_delivery = {
+          image_url: proof_image || shipment.proof_of_delivery?.image_url || '',
+          note: note || shipment.proof_of_delivery?.note || '',
+          receiver_name: receiver_name || shipment.proof_of_delivery?.receiver_name || '',
+          timestamp: new Date(),
+        };
+      }
+    }
+
+    await shipment.save();
+
+    const hydrated = await Shipment.findById(shipment._id)
+      .populate('order_id', 'total_amount tracking_number createdAt')
+      .populate('vendor_id', 'store_name')
+      .populate('logistics_id', 'company_name contact_phone');
+
+    res.status(200).json({ success: true, message: 'Shipment updated.', data: { shipment: hydrated } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
 // @route   GET /api/admin/logistics/firms
 // @desc    Admin: Manage logistics partner registration and verification
 // @access  Private (Role: admin)
@@ -628,6 +695,54 @@ const getAdminLogisticsFirms = async (req, res, next) => {
       .sort('-createdAt');
 
     res.status(200).json({ success: true, count: firms.length, data: { firms } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/admin/logistics/earnings
+// @desc    Admin: earnings totals per vendor and logistics partner
+// @access  Private (Role: admin)
+// ─────────────────────────────────────────────
+const getLogisticsEarningsReport = async (req, res, next) => {
+  try {
+    const vendorTotals = await Order.aggregate([
+      { $match: { payment_status: { $in: ['paid', 'pending'] }, order_status: { $ne: 'cancelled' } } },
+      {
+        $group: {
+          _id: '$vendor_id',
+          total_orders: { $sum: 1 },
+          gross_sales: { $sum: '$total_amount' },
+        },
+      },
+      { $sort: { gross_sales: -1 } },
+    ]);
+
+    const logisticsTotals = await Shipment.aggregate([
+      {
+        $group: {
+          _id: '$logistics_id',
+          total_shipments: { $sum: 1 },
+          total_shipping_value: { $sum: '$price' },
+        },
+      },
+      { $sort: { total_shipping_value: -1 } },
+    ]);
+
+    const hydratedVendors = await Vendor.populate(vendorTotals, { path: '_id', select: 'store_name user_id' });
+    await User.populate(hydratedVendors, { path: '_id.user_id', select: 'name email' });
+
+    const hydratedLogistics = await LogisticsCompany.populate(logisticsTotals, { path: '_id', select: 'company_name user_id' });
+    await User.populate(hydratedLogistics, { path: '_id.user_id', select: 'name email' });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        vendors: hydratedVendors,
+        logistics_partners: hydratedLogistics,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -760,7 +875,9 @@ module.exports = {
   updateUserAdmin,
   updateVendorStatus,
   getAdminShipments,
+  updateAdminShipment,
   getAdminLogisticsFirms,
+  getLogisticsEarningsReport,
   toggleLogisticsVerified,
   updateLogisticsFirm,
   addLogisticZone,

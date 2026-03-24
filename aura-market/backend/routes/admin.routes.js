@@ -32,7 +32,9 @@ const {
   getAllVendors,
   updateVendorStatus,
   getAdminShipments,
+  updateAdminShipment,
   getAdminLogisticsFirms,
+  getLogisticsEarningsReport,
   toggleLogisticsVerified,
   updateLogisticsFirm,
   addLogisticZone,
@@ -72,7 +74,9 @@ router.patch('/kyc/:id/review', reviewKYC);
 
 // Logistics Monitoring
 router.get('/logistics/shipments', getAdminShipments);
+router.patch('/logistics/shipments/:id', updateAdminShipment);
 router.get('/logistics/firms', getAdminLogisticsFirms);
+router.get('/logistics/earnings', getLogisticsEarningsReport);
 router.patch('/logistics/firms/:id/verify', toggleLogisticsVerified);
 router.patch('/logistics/firms/:id', updateLogisticsFirm);
 router.post('/logistics/zones', addLogisticZone);
