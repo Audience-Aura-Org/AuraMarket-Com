@@ -96,10 +96,10 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
       />
 
       {/* Sidebar Aside */}
-      <aside className={`fixed lg:static inset-y-0 left-0 w-72 bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[100] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 w-[86vw] max-w-72 lg:w-72 bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[100] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo Area */}
         <div className="p-5 flex items-center justify-between border-b border-[var(--glass-border)] opacity-90">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="h-8 w-auto flex items-center justify-center">
                <img 
                  src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'} 
@@ -107,13 +107,13 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                  className="h-6 w-auto object-contain"
                />
             </div>
-            <div className="flex flex-col">
-               <h1 className="text-sm font-black tracking-tighter text-[var(--text-primary)] leading-none uppercase">Aura <span className="text-[var(--accent)]">Market</span></h1>
-               <p className="text-[8px] font-black tracking-[0.3em] uppercase opacity-40 mt-1" style={{ color: config.accent }}>{config.label}</p>
+            <div className="flex flex-col min-w-0">
+               <h1 className="text-sm font-black tracking-tighter text-[var(--text-primary)] leading-none uppercase truncate">Aura <span className="text-[var(--accent)]">Market</span></h1>
+               <p className="text-[8px] font-black tracking-[0.22em] uppercase opacity-40 mt-1 truncate" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>
           {/* Mobile Close Button */}
-          <button onClick={onClose} className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
+          <button onClick={onClose} className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors shrink-0">
             <span className="material-symbols-outlined">close_fullscreen</span>
           </button>
         </div>
@@ -147,7 +147,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                 >
                   {item.icon}
                 </span>
-                <span className={`font-medium transition-colors ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                <span className={`font-medium text-sm transition-colors truncate ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                   {item.label}
                 </span>
               </Link>

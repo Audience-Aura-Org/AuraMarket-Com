@@ -7,7 +7,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   const { theme } = useTheme();
 
   return (
-    <header className="lg:hidden h-16 flex items-center justify-between px-6 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-[80] transition-colors duration-500">
+    <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-[80] transition-colors duration-500">
       <div className="flex items-center gap-3">
         <button 
           onClick={toggleSidebar}
@@ -15,21 +15,19 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         >
           {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
            <img 
              src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'} 
              alt="Aura" 
-             className="h-5 w-auto"
+             className="h-4.5 w-auto shrink-0"
            />
-           <h1 className="text-xs font-black tracking-tighter text-[var(--text-primary)] uppercase leading-none">
+           <h1 className="text-[11px] font-black tracking-tight text-[var(--text-primary)] uppercase leading-none truncate">
              Aura <span className="text-[var(--accent)]">Market</span>
            </h1>
         </div>
       </div>
-      
-      <div className="size-8 rounded-lg bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 border border-[var(--accent)]/20 flex items-center justify-center font-black text-[10px] text-[var(--accent)]">
-        A
-      </div>
+
+      <div className="size-7 rounded-lg bg-gradient-to-tr from-[var(--accent)]/15 to-indigo-600/10 border border-[var(--accent)]/15 flex items-center justify-center font-black text-[10px] text-[var(--accent)] shrink-0">A</div>
     </header>
   );
 }
