@@ -8,6 +8,28 @@ const api = axios.create({
   },
 });
 
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+
+const normalizeAssetUrls = (value) => {
+  if (typeof value === 'string') {
+    return value.replace(/^http:\/\/localhost:5000/i, API_ORIGIN);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(normalizeAssetUrls);
+  }
+
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [key, v] of Object.entries(value)) {
+      out[key] = normalizeAssetUrls(v);
+    }
+    return out;
+  }
+
+  return value;
+};
+
 // Interceptor to attach JWT token to requests
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
@@ -49,7 +71,12 @@ const shouldRetry = (error) => {
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    if (res?.data) {
+      res.data = normalizeAssetUrls(res.data);
+    }
+    return res;
+  },
   async (error) => {
     const config = error.config;
     if (!config) return Promise.reject(error);
