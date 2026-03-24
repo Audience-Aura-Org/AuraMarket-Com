@@ -10,6 +10,8 @@ export default function VendorDashboard() {
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [pendingEscrow, setPendingEscrow] = useState(0);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -59,11 +61,13 @@ export default function VendorDashboard() {
           return;
         }
 
-        // Fetch products and orders in parallel
-        console.log('[VendorDashboard] Fetching products and orders...');
-        const [productsRes, ordersRes] = await Promise.all([
+        // Fetch products, orders and finance data in parallel
+        console.log('[VendorDashboard] Fetching products, orders and wallet...');
+        const [productsRes, ordersRes, walletRes, vendorProfileRes] = await Promise.all([
           api.get('/vendor/products'),
           api.get('/vendor/orders'),
+          api.get('/wallet'),
+          api.get('/vendor/me'),
         ]);
 
         if (isMounted) {
@@ -77,6 +81,13 @@ export default function VendorDashboard() {
             console.log('[VendorDashboard] Setting orders:', ordrs.length);
             setOrders(ordrs);
           }
+          if (walletRes.data.success) {
+            setWalletBalance(walletRes.data.data.balance || 0);
+            setPendingEscrow(walletRes.data.data.pending_escrow || 0);
+          }
+          if (vendorProfileRes.data.success) {
+            setPendingEscrow(vendorProfileRes.data.data.escrow_balance || 0);
+          }
         }
       } catch (err) {
         console.error('[VendorDashboard] Error:', err.response?.status, err.response?.data?.message || err.message);
@@ -87,17 +98,25 @@ export default function VendorDashboard() {
     };
 
     fetchData();
+    const timer = setInterval(fetchData, 15000);
 
     return () => {
       isMounted = false;
+      clearInterval(timer);
     };
   }, [token, mounted]);
 
+  const paidOrders = orders.filter((o) => o.payment_status === 'paid');
+  const completedOrders = orders.filter((o) => ['delivered', 'completed'].includes(o.order_status));
+  const openOrders = orders.filter((o) => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status));
+  const totalSales = paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+  const recentPaid = paidOrders.slice(0, 5).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+
   const stats = [
-    { label: 'Total Sales', value: '4.2M XAF', icon: 'payments', color: 'emerald', pct: '+14.2%' },
-    { label: 'Active Orders', value: String(orders.length || 0), icon: 'shopping_bag', color: 'primary', pct: '+8.5%' },
-    { label: 'Asset Nodes', value: String(products.length || 0), icon: 'category', color: 'blue', pct: '+3.1%' },
-    { label: 'Liquidity Vault', value: 'XAF 8,210', icon: 'account_balance_wallet', color: 'purple', pct: null },
+    { label: 'Total Sales', value: `${totalSales.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedOrders.length} done` },
+    { label: 'Open Orders', value: String(openOrders.length || 0), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total` },
+    { label: 'Products', value: String(products.length || 0), icon: 'category', color: 'blue', pct: `${products.filter((p) => Number(p.stock || 0) > 0).length} in stock` },
+    { label: 'Available', value: `${walletBalance.toLocaleString()} XAF`, icon: 'account_balance_wallet', color: 'purple', pct: null },
   ];
 
   const colorMap = {
@@ -110,24 +129,24 @@ export default function VendorDashboard() {
   if (!mounted) return null;
 
   return (
-    <div className="relative min-h-full bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
+    <div className="relative min-h-full bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500 overflow-x-hidden">
         {/* Background blobs */}
         <div className="absolute top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
-        <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
-          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
-            <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Merchant <span className="text-[var(--accent)]">Command Center</span></h2>
+        <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)]/80 backdrop-blur-2xl gap-2 min-w-0">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
+            <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
             <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-            <p className="hidden md:block text-[var(--text-secondary)] text-[10px] font-black tracking-[0.22em] uppercase opacity-60">Status: <span className="text-[var(--text-primary)]">Authorized</span></p>
+            <p className="hidden md:block text-[var(--text-secondary)] text-[10px] font-black tracking-[0.18em] uppercase opacity-60">Status: <span className="text-[var(--text-primary)]">Active</span></p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="relative hidden lg:flex items-center group">
               <span className="material-symbols-outlined absolute left-4 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
               <input 
                 className="glass-panel border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-widest uppercase" 
-                placeholder="Scan Network Data..." 
+                placeholder="Search..." 
                 type="text" 
               />
             </div>
@@ -142,8 +161,8 @@ export default function VendorDashboard() {
             </div>
             <div className="flex items-center gap-3 sm:gap-4 pl-3 sm:pl-4 border-l border-[var(--glass-border)]/30">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{user?.name || 'Grand Merchant'}</p>
-                <p className="text-[10px] text-[var(--accent)] font-black tracking-widest uppercase opacity-80">Store Sovereign</p>
+                <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
+                <p className="text-[10px] text-[var(--accent)] font-black tracking-widest uppercase opacity-80">Store Owner</p>
               </div>
               <div className="size-9 sm:size-10 rounded-xl border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-black text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
@@ -152,7 +171,7 @@ export default function VendorDashboard() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar relative z-10">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-6 no-scrollbar relative z-10">
           {error && (
             <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">
               <div className="flex items-center justify-between">
@@ -193,13 +212,31 @@ export default function VendorDashboard() {
                     </div>
                   ) : (
                     <div className="mt-4 flex gap-2">
-                      <button className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[8px] font-black py-2 rounded-lg shadow-lg shadow-[var(--accent)]/20 transition-all uppercase tracking-widest active:scale-95">Liquidate</button>
-                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[8px] font-black py-2 rounded-lg transition-all text-center border border-[var(--glass-border)] uppercase tracking-widest active:scale-95 flex items-center justify-center">Ledger</Link>
+                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[8px] font-black py-2 rounded-lg shadow-lg shadow-[var(--accent)]/20 transition-all uppercase tracking-widest active:scale-95 text-center">Withdraw</Link>
+                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[8px] font-black py-2 rounded-lg transition-all text-center border border-[var(--glass-border)] uppercase tracking-widest active:scale-95 flex items-center justify-center">Wallet</Link>
                     </div>
                   )}
                 </div>
               );
             })}
+          </div>
+
+          <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+            <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)] mb-2">Finance</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-xl border border-[var(--glass-border)] p-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Available</p>
+                <p className="font-black text-[var(--text-primary)]">{walletBalance.toLocaleString()} XAF</p>
+              </div>
+              <div className="rounded-xl border border-[var(--glass-border)] p-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">In Escrow</p>
+                <p className="font-black text-[var(--text-primary)]">{pendingEscrow.toLocaleString()} XAF</p>
+              </div>
+              <div className="rounded-xl border border-[var(--glass-border)] p-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Recent Paid</p>
+                <p className="font-black text-[var(--text-primary)]">{recentPaid.toLocaleString()} XAF</p>
+              </div>
+            </div>
           </div>
 
           {/* Middle: Chart + Orders */}

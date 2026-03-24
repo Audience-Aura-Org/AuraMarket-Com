@@ -7,6 +7,10 @@ const LogisticsCompany = require('../models/LogisticsCompany.model');
 const Shipment = require('../models/Shipment.model');
 const Order = require('../models/Order.model');
 const Vendor = require('../models/Vendor.model');
+const Escrow = require('../models/Escrow.model');
+const User = require('../models/User.model');
+const Transaction = require('../models/Transaction.model');
+const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticZone = require('../models/LogisticZone.model');
 const mongoose = require('mongoose');
 const { sendNotification } = require('../utils/notifier');
@@ -135,6 +139,44 @@ const modifyShipmentStatus = async (req, res, next) => {
       const allDelivered = otherShipments.every(s => s.status === 'delivered');
       if (allDelivered) {
         order.order_status = 'delivered';
+
+        // Auto-release escrow when logistics confirms final delivery.
+        if (order.payment_method === 'escrow' && order.payment_status === 'paid') {
+          const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
+          if (escrow && escrow.status === 'held') {
+            const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
+            if (!vendorAccount) throw new Error('Vendor account not found for escrow release.');
+
+            const vendorUser = await User.findById(vendorAccount.user_id).session(session);
+            if (!vendorUser) throw new Error('Vendor wallet owner not found.');
+
+            const settings = await PlatformSettings.getSettings();
+            const platformFee = (escrow.amount * settings.commission_rate) / 100;
+            const vendorPayout = escrow.amount - platformFee;
+
+            vendorUser.wallet_balance += vendorPayout;
+            await vendorUser.save({ session });
+
+            settings.platform_wallet_balance += platformFee;
+            await settings.save({ session });
+
+            await Transaction.findOneAndUpdate(
+              { order_id: order._id, user_id: vendorUser._id, type: 'payout', status: 'pending' },
+              {
+                status: 'completed',
+                description: `Escrow auto-released after delivery (Order #${order._id.toString().slice(-6).toUpperCase()})`,
+              },
+              { session }
+            );
+
+            escrow.status = 'released';
+            escrow.release_date = new Date();
+            await escrow.save({ session });
+
+            order.order_status = 'completed';
+          }
+        }
+
         await order.save({ session });
       }
     } else if (status === 'picked_up' || status === 'in_transit' || status === 'out_for_delivery') {

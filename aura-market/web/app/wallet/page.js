@@ -52,7 +52,16 @@ export default function VendorWalletPage() {
     }
   };
 
-  useEffect(() => { fetchWallet(); }, []);
+  useEffect(() => {
+    fetchWallet();
+    const timer = setInterval(fetchWallet, 15000);
+    const onFocus = () => fetchWallet();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
 
   const handleDeposit = async () => {
     if (!amount || Number(amount) <= 0) return showToast('Enter a valid amount.', 'error');
