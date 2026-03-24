@@ -26,7 +26,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-3 group">
               <div className="h-8 w-auto flex items-center justify-center transition-all group-hover:scale-110">
                  <img 
-                   src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'} 
+                    src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'} 
                    alt="Aura Market" 
                    className="h-6 w-auto object-contain"
                  />
