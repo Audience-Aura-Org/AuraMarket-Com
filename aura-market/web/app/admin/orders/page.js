@@ -283,6 +283,7 @@ export default function AdminOrdersPage() {
                                  {[
                                    { label: 'Payment', val: order.payment_method },
                                    { label: 'Shipping', val: order.shipping_method },
+                                   { label: 'Logistics', val: order.logistics_company_id?.company_name || 'Not Assigned' },
                                    { label: 'Date', val: new Date(order.createdAt).toLocaleDateString() },
                                    { label: 'Status', val: payment.label, color: payment.color }
                                  ].map(it => (
@@ -314,7 +315,7 @@ export default function AdminOrdersPage() {
                                     <option value="logistics_partner">Logistics Partner</option>
                                   </select>
                                   <select
-                                    value={orderEdits[order._id]?.logistics_company_id ?? order.logistics_company_id ?? ''}
+                                    value={orderEdits[order._id]?.logistics_company_id ?? order.logistics_company_id?._id ?? order.logistics_company_id ?? ''}
                                     onChange={(e) => setOrderEditField(order._id, 'logistics_company_id', e.target.value || null)}
                                     className="w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-[10px] font-black uppercase tracking-widest"
                                   >

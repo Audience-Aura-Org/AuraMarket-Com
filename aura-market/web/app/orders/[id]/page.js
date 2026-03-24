@@ -280,7 +280,7 @@ export default function OrderDetailPage() {
                                  }`}>
                                     {shp.status.replace(/_/g, ' ')}
                                  </span>
-                                 <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase opacity-40">Carrier: {shp.logistics_company_id?.company_name || 'Node Assigned'}</p>
+                                 <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase opacity-40">Carrier: {shp.logistics_id?.company_name || shp.logistics_company_id?.company_name || 'Node Assigned'}</p>
                               </div>
                            </div>
                            

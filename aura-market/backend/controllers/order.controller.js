@@ -12,6 +12,7 @@ const Vendor = require('../models/Vendor.model');
 const RefundRequest = require('../models/RefundRequest.model');
 const Escrow = require('../models/Escrow.model');
 const User = require('../models/User.model');
+const Shipment = require('../models/Shipment.model');
 const mongoose = require('mongoose');
 const { sendNotification } = require('../utils/notifier');
 const { generateInvoice } = require('../utils/invoiceGenerator');
@@ -330,7 +331,7 @@ const getOrderById = async (req, res, next) => {
     }
 
     const shipments = await Shipment.find({ order_id: order._id })
-      .populate('logistics_company_id', 'company_name contact_phone')
+      .populate('logistics_id', 'company_name contact_phone')
       .populate('vendor_id', 'store_name');
 
     res.status(200).json({ success: true, data: { order, shipments } });

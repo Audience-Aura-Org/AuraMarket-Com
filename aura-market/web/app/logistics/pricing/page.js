@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Truck, Package, CheckCircle as CheckIcon, AlertCircle, MapPin as MapPinIcon, Globe, Search as SearchIcon, Plus, Trash2, Save as SaveIcon, Loader2, ArrowLeft } from 'lucide-react';
+import { CheckCircle as CheckIcon, MapPin as MapPinIcon, Search as SearchIcon, Plus, Trash2, Save as SaveIcon, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
@@ -18,14 +18,12 @@ export default function LogisticsPricingPage() {
   const [zones, setZones] = useState([]);
   const [profile, setProfile] = useState({
     quartier_prices: [],
-    supported_pickup_regions: []
   });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedQuartiers, setSelectedQuartiers] = useState([]);
   const [newPrice, setNewPrice] = useState('');
-  const [newPickupRegion, setNewPickupRegion] = useState('');
   const [tableSelections, setTableSelections] = useState([]);
   const [bulkUpdatePrice, setBulkUpdatePrice] = useState('');
 
@@ -45,7 +43,6 @@ export default function LogisticsPricingPage() {
       if (profileRes.data.success) {
          setProfile({
             quartier_prices: profileRes.data.data.firm.quartier_prices || [],
-            supported_pickup_regions: profileRes.data.data.firm.supported_pickup_regions || []
          });
       }
     } catch (err) {
@@ -96,22 +93,10 @@ export default function LogisticsPricingPage() {
     setBulkUpdatePrice('');
   };
 
-  const handleAddPickupRegion = () => {
-    if (!newPickupRegion || profile.supported_pickup_regions.includes(newPickupRegion)) return;
-    setProfile({ ...profile, supported_pickup_regions: [...profile.supported_pickup_regions, newPickupRegion] });
-    setNewPickupRegion('');
-  };
-
-  const handleRemovePickupRegion = (index) => {
-    const updated = [...profile.supported_pickup_regions];
-    updated.splice(index, 1);
-    setProfile({ ...profile, supported_pickup_regions: updated });
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.patch('/logistics/pricing', profile);
+      await api.patch('/logistics/pricing', { quartier_prices: profile.quartier_prices });
       toast.success("Pricing matrix synchronized.");
     } catch (err) {
       toast.error("Protocol failure.");
@@ -137,28 +122,6 @@ export default function LogisticsPricingPage() {
       </header>
 
       <div className="p-4 lg:p-10 space-y-8 lg:space-y-12 pb-32">
-          <section className="space-y-4 lg:space-y-6">
-             <div className="flex items-center gap-3 lg:gap-4">
-                <div className="size-10 lg:size-12 rounded-xl lg:rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center border border-indigo-500/20 shadow-sm"><Globe className="size-5 lg:size-6" /></div>
-                <h3 className="text-lg lg:text-2xl font-black tracking-tighter uppercase leading-none">Pickup Coverage</h3>
-             </div>
-             <div className="glass-panel p-4 lg:p-8 rounded-[24px] lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex flex-wrap gap-2 lg:gap-4">
-                {profile.supported_pickup_regions.map((reg, idx) => (
-                  <div key={idx} className="px-3 py-2 lg:px-5 lg:py-3 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center gap-2 lg:gap-4 group">
-                     <span className="text-[8px] lg:text-[10px] font-black uppercase tracking-widest">{reg}</span>
-                     <button onClick={() => handleRemovePickupRegion(idx)} className="size-5 lg:size-6 rounded-lg hover:bg-rose-500 hover:text-white flex items-center justify-center opacity-30 lg:opacity-30 group-hover:opacity-100 transition-all"><Trash2 className="size-3" /></button>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2 lg:gap-3">
-                   <select value={newPickupRegion} onChange={e => setNewPickupRegion(e.target.value)} className="px-3 py-2 lg:px-6 lg:py-3 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--accent)]/30 outline-none text-[8px] lg:text-[10px] font-black uppercase tracking-widest">
-                      <option value="">Add City...</option>
-                      {zones.filter(z => z.type === 'region').map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                   </select>
-                   <button onClick={handleAddPickupRegion} className="size-8 lg:size-10 rounded-xl lg:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"><Plus className="size-4 lg:size-5" /></button>
-                </div>
-             </div>
-          </section>
-
           <section className="space-y-4 lg:space-y-6">
              <div className="flex items-center gap-3 lg:gap-4">
                 <div className="size-10 lg:size-12 rounded-xl lg:rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center border border-purple-500/20 shadow-sm"><MapPinIcon className="size-5 lg:size-6" /></div>

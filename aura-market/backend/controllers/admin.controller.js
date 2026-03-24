@@ -328,6 +328,7 @@ const getAllOrders = async (req, res, next) => {
 
     const orders = await Order.find(query)
       .populate('customer_id', 'name email phone avatar')
+      .populate('logistics_company_id', 'company_name contact_phone')
       .populate({
         path: 'vendor_id',
         select: 'store_name user_id',
