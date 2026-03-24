@@ -77,8 +77,16 @@ export default function TopNav() {
     if (pathname?.startsWith('/chat')) setUnreadCount(0);
   }, [pathname]);
 
-  // Hide on auth, admin, vendor, logistics pages
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics') || pathname === '/login' || pathname === '/register') return null;
+  // Hide on auth, admin, vendor, logistics, and full-screen chat pages
+  if (
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/vendor') ||
+    pathname?.startsWith('/logistics') ||
+    pathname?.startsWith('/chat') ||
+    pathname?.startsWith('/messages') ||
+    pathname === '/login' ||
+    pathname === '/register'
+  ) return null;
 
   const handleSearch = (e) => {
     if (e.key === 'Enter') {

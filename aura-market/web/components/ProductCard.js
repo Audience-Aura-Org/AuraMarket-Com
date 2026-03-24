@@ -12,7 +12,7 @@ import api from '@/services/api';
 export default function ProductCard({ product }) {
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
   const productId = _id || id;
-  const vendorUserId = vendor_id?.user_id || vendor_id?._id;
+  const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
   
   // Handle both string and object image formats
   const rawImage = images && images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80';
@@ -177,7 +177,7 @@ export default function ProductCard({ product }) {
           
           <div className="flex items-center gap-1.5">
             {user?._id !== vendorUserId && (
-              <Link href={`/chat?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
+              <Link href={`/messages?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
                 <MessageSquare className="size-4" />
               </Link>
             )}
