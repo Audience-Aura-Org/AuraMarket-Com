@@ -7,9 +7,12 @@ import { useAuthStore } from '@/hooks/useAuth';
 export default function OnboardingWatcher() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    // Wait for persisted auth state to hydrate before redirecting.
+    if (!hasHydrated) return;
+
     const protectedPrefixes = [
       '/vendor',
       '/admin',
@@ -56,7 +59,7 @@ export default function OnboardingWatcher() {
     if (!user.onboarded) {
       router.push('/onboarding');
     }
-  }, [user, isAuthenticated, pathname, router]);
+  }, [user, isAuthenticated, hasHydrated, pathname, router]);
 
   return null;
 }

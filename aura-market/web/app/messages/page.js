@@ -7,13 +7,14 @@ import { useAuthStore } from '@/hooks/useAuth';
 
 export default function MessagesPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!user) router.replace('/login');
-  }, [user, router]);
+  }, [user, hasHydrated, router]);
 
-  if (!user) return null;
+  if (!hasHydrated || !user) return null;
 
   return (
     <Suspense fallback={<div>Loading...</div>}>

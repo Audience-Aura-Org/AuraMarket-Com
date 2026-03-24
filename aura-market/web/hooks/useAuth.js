@@ -12,8 +12,10 @@ export const useAuthStore = create(
       user: null,
       token: null,
       isAuthenticated: false,
+      hasHydrated: false,
       loading: false,
       error: null,
+      setHasHydrated: (value) => set({ hasHydrated: value }),
 
       // Login functionality
       login: async (credentials) => {
@@ -96,6 +98,9 @@ export const useAuthStore = create(
     }),
     {
       name: 'aura-auth-storage', // persists to localStorage automatically
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated?.(true);
+      },
     }
   )
 );

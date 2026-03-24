@@ -279,6 +279,14 @@ function ChatContent() {
 
     setSending(true);
     const text = newMessage.trim();
+    const currentProductRef = draftProduct
+      ? {
+          _id: draftProduct._id,
+          name: draftProduct.name,
+          price: draftProduct.price,
+          images: draftProduct.images,
+        }
+      : null;
     const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const optimisticMsg = {
       _id: tempId,
@@ -287,6 +295,7 @@ function ChatContent() {
       text,
       createdAt: new Date().toISOString(),
       pending: true,
+      product_reference: currentProductRef,
     };
 
     // Append optimistic message immediately
