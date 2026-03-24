@@ -1,6 +1,14 @@
-const { authenticator } = require('otplib');
 const qrcode = require('qrcode');
 const User = require('../models/User.model');
+
+let otplibAuthenticator;
+const getAuthenticator = async () => {
+  if (!otplibAuthenticator) {
+    const otplib = await import('otplib');
+    otplibAuthenticator = otplib.authenticator;
+  }
+  return otplibAuthenticator;
+};
 
 /**
  * controllers/security.controller.js
@@ -17,6 +25,7 @@ const generate2FA = async (req, res, next) => {
     const user = await User.findById(req.user._id);
 
     // Generate a new secret
+    const authenticator = await getAuthenticator();
     const secret = authenticator.generateSecret();
     
     // Save temporary secret to user (not enabled yet)
@@ -57,6 +66,7 @@ const enable2FA = async (req, res, next) => {
     const user = await User.findById(req.user._id).select('+two_factor_secret');
 
     // Verify the token against the saved secret
+    const authenticator = await getAuthenticator();
     const isValid = authenticator.check(token, user.two_factor_secret);
 
     if (!isValid) {
@@ -91,6 +101,7 @@ const disable2FA = async (req, res, next) => {
     const user = await User.findById(req.user._id).select('+two_factor_secret');
 
     // Verify one last time before disabling
+    const authenticator = await getAuthenticator();
     const isValid = authenticator.check(token, user.two_factor_secret);
 
     if (!isValid) {

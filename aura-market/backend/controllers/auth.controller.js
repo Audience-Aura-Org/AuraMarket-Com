@@ -8,9 +8,17 @@
  */
 
 const jwt = require('jsonwebtoken');
-const { authenticator } = require('otplib');
 const User = require('../models/User.model');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
+
+let otplibAuthenticator;
+const getAuthenticator = async () => {
+  if (!otplibAuthenticator) {
+    const otplib = await import('otplib');
+    otplibAuthenticator = otplib.authenticator;
+  }
+  return otplibAuthenticator;
+};
 
 // ─────────────────────────────────────────────
 // Helper: Sign a JWT for a given user ID
@@ -174,6 +182,7 @@ const verify2FALogin = async (req, res, next) => {
       });
     }
 
+    const authenticator = await getAuthenticator();
     const isValid = authenticator.check(token, user.two_factor_secret);
 
     if (!isValid) {
