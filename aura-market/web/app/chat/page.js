@@ -343,9 +343,9 @@ function ChatContent() {
   }, [inbox, searchQuery]);
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden">
+    <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
       {/* Sidebar List */}
-      <aside className={`w-full md:w-[320px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
+      <aside className={`w-full md:w-[320px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
             <div className="flex flex-col">
             <h1 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
@@ -415,7 +415,7 @@ function ChatContent() {
       </aside>
 
       {/* Main Chat Area */}
-      <main className={`flex-1 flex flex-col bg-[var(--bg-primary)] transition-colors relative h-full ${activeChat ? 'flex' : 'hidden md:flex items-center justify-center'}`}>
+      <main className={`flex-1 flex flex-col min-h-0 bg-[var(--bg-primary)] transition-colors relative h-full ${activeChat ? 'flex' : 'hidden md:flex items-center justify-center'}`}>
         
         {activeChat ? (
           <>
@@ -443,7 +443,7 @@ function ChatContent() {
               </div>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 md:p-6 space-y-3 flex flex-col no-scrollbar relative z-10">
+            <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 md:p-6 space-y-3 flex flex-col no-scrollbar relative z-10">
               {messages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 gap-3 mt-10">
                   <div className="size-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-2">
@@ -495,7 +495,7 @@ function ChatContent() {
               )}
             </div>
 
-            <div className="px-4 py-3 bg-[var(--bg-primary)] border-t border-[var(--glass-border)] z-30 relative">
+            <div className="px-3 py-2 bg-[var(--bg-primary)] border-t border-[var(--glass-border)] z-30 relative pb-[max(8px,env(safe-area-inset-bottom))]">
               {draftProduct && (
                 <div className="absolute bottom-[100%] left-1/2 -translate-x-1/2 mb-4 bg-[var(--bg-secondary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-[1.5rem] p-3 flex gap-4 shadow-2xl animate-fade-in-up w-[90%] max-w-sm items-center">
                   <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[var(--glass-border)] bg-[var(--bg-primary)]">
@@ -513,9 +513,9 @@ function ChatContent() {
                   </button>
                 </div>
               )}
-              <form onSubmit={handleSendMessage} className="bg-[var(--bg-secondary)] px-2 py-1.5 rounded-full flex items-center gap-2 w-full max-w-4xl mx-auto">
-                <button type="button" className="size-10 shrink-0 rounded-full hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-colors flex items-center justify-center"><ImageIcon className="w-5 h-5" /></button>
-                <div className="h-5 w-px bg-[var(--glass-border)]" />
+              <form onSubmit={handleSendMessage} className="bg-[var(--bg-secondary)] px-2 py-1.5 rounded-full flex items-center gap-1.5 w-full max-w-4xl mx-auto min-w-0">
+                <button type="button" className="hidden sm:flex size-10 shrink-0 rounded-full hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-colors items-center justify-center"><ImageIcon className="w-5 h-5" /></button>
+                <div className="hidden sm:block h-5 w-px bg-[var(--glass-border)]" />
                 <input 
                   type="text" 
                   value={newMessage}
@@ -523,10 +523,10 @@ function ChatContent() {
                   placeholder="Type a message..." 
                   className="flex-1 bg-transparent border-none outline-none px-2 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:opacity-70 min-w-0"
                 />
-                <button type="button" className="size-10 shrink-0 rounded-full hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-colors flex items-center justify-center"><Smile className="w-5 h-5" /></button>
+                <button type="button" className="hidden sm:flex size-10 shrink-0 rounded-full hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-colors items-center justify-center"><Smile className="w-5 h-5" /></button>
                 <button 
                   disabled={!newMessage.trim() || sending}
-                  className="size-10 shrink-0 rounded-full bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors flex items-center justify-center disabled:opacity-40"
+                  className="size-9 sm:size-10 shrink-0 rounded-full bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors flex items-center justify-center disabled:opacity-40"
                 >
                   {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4 -ml-0.5" />}
                 </button>
