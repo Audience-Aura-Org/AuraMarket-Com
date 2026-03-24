@@ -343,12 +343,12 @@ function ChatContent() {
   }, [inbox, searchQuery]);
 
   return (
-    <div className="bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden h-[100dvh]">
+    <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden">
       {/* Sidebar List */}
       <aside className={`w-full md:w-[320px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
             <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
+            <h1 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
             <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5 opacity-80 flex items-center gap-1.5">
                <span className={`size-1.5 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
                Secure Chat
@@ -419,14 +419,14 @@ function ChatContent() {
         
         {activeChat ? (
           <>
-            <div className="p-4 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
+            <div className="px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
               <div className="flex items-center gap-4">
                 <button onClick={() => setActiveChat(null)} className="md:hidden size-9 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)]"><ArrowLeft className="w-5 h-5" /></button>
                 <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-base border border-[var(--glass-border)]">
                   {activeChat.avatar ? <img src={activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name[0]}
                 </div>
                 <div>
-                  <h2 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] leading-none mb-1 truncate max-w-[160px] sm:max-w-none">{activeChat.name}</h2>
+                  <h2 className="text-[13px] sm:text-base font-semibold text-[var(--text-primary)] leading-none mb-1 truncate max-w-[150px] xs:max-w-[190px] sm:max-w-none">{activeChat.name}</h2>
                   <div className="flex items-center gap-1">
                     <div className="size-1.5 rounded-full bg-emerald-500" />
                     <p className="text-xs text-[var(--text-secondary)]">Online</p>
@@ -443,7 +443,7 @@ function ChatContent() {
               </div>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col no-scrollbar relative z-10">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 md:p-6 space-y-3 flex flex-col no-scrollbar relative z-10">
               {messages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 gap-3 mt-10">
                   <div className="size-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-2">
@@ -495,7 +495,7 @@ function ChatContent() {
               )}
             </div>
 
-            <div className="p-4 bg-[var(--bg-primary)] border-t border-[var(--glass-border)] z-30 relative">
+            <div className="px-4 py-3 bg-[var(--bg-primary)] border-t border-[var(--glass-border)] z-30 relative">
               {draftProduct && (
                 <div className="absolute bottom-[100%] left-1/2 -translate-x-1/2 mb-4 bg-[var(--bg-secondary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-[1.5rem] p-3 flex gap-4 shadow-2xl animate-fade-in-up w-[90%] max-w-sm items-center">
                   <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[var(--glass-border)] bg-[var(--bg-primary)]">

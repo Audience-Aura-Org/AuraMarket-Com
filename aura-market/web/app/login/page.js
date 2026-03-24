@@ -56,9 +56,11 @@ export default function LoginPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 lg:px-12 py-6">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="size-10 bg-[var(--accent)] rounded-full flex items-center justify-center text-white shadow-lg shadow-[var(--accent)]/30 group-hover:scale-110 transition-transform">
-            <Sparkles className="size-5" />
-          </div>
+          <img
+            src="/logo-black.png"
+            alt="Aura Market"
+            className="h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+          />
           <h1 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">
             Aura<span className="text-[var(--accent)]">Market</span>
           </h1>
