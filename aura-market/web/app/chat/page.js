@@ -343,10 +343,10 @@ function ChatContent() {
   }, [inbox, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden h-screen">
+    <div className="bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden h-[100dvh]">
       {/* Sidebar List */}
       <aside className={`w-full md:w-[320px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
-        <div className="p-6 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
+        <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
             <div className="flex flex-col">
             <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
             <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5 opacity-80 flex items-center gap-1.5">
@@ -357,7 +357,7 @@ function ChatContent() {
           <button className="size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--text-primary)] transition-all shadow-sm"><MoreVertical className="w-5 h-5" /></button>
         </div>
         
-            <div className="p-6">
+            <div className="p-4">
           <div className="relative group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 group-focus-within:text-[var(--accent)] transition-colors" />
             <input 

@@ -10,8 +10,16 @@ export default function Footer() {
   const { theme } = useTheme();
   const currentYear = new Date().getFullYear();
 
-  // Hide on auth, admin, vendor, logistics pages
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics') || pathname === '/login' || pathname === '/register') return null;
+  // Hide on auth, admin, vendor, logistics, and full-screen chat pages
+  if (
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/vendor') ||
+    pathname?.startsWith('/logistics') ||
+    pathname?.startsWith('/chat') ||
+    pathname?.startsWith('/messages') ||
+    pathname === '/login' ||
+    pathname === '/register'
+  ) return null;
 
   return (
     <footer className="relative bg-[var(--bg-primary)] border-t border-[var(--glass-border)] pt-20 pb-10 overflow-hidden">
