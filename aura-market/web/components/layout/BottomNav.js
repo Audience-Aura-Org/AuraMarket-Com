@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Compass, ShoppingBag, User, House, Store, Truck, ShieldCheck,
-  MessageCircle, LogIn
+  LayoutGrid, LogIn
 } from "lucide-react";
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -27,7 +27,7 @@ export default function BottomNav() {
     { label: "Discover", href: "/discovery", icon: Compass },
     { label: "Home", href: "/", icon: House },
     { label: "Cart", href: "/cart", icon: ShoppingBag },
-    { label: "Messages", href: "/chat", icon: MessageCircle },
+    { label: "Shop", href: "/shop", icon: LayoutGrid },
   ];
 
   // Role-based center destination/icon
