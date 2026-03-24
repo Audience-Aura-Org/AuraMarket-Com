@@ -29,6 +29,19 @@ export default function HubContent() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    try {
+      const cachedInbox = sessionStorage.getItem('aura_hub_inbox');
+      const cachedFeed = sessionStorage.getItem('aura_hub_feed');
+      if (cachedInbox) {
+        setInbox(JSON.parse(cachedInbox));
+        setLoadingInbox(false);
+      }
+      if (cachedFeed) {
+        setFeed(JSON.parse(cachedFeed));
+        setLoadingFeed(false);
+      }
+    } catch (_) {}
+
     const fetchInbox = async () => {
       try {
         const res = await api.get('/users/followed-vendors');
@@ -49,6 +62,7 @@ export default function HubContent() {
               };
            }).filter(Boolean) || [];
            setInbox(mappedNodes);
+           try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(mappedNodes)); } catch (_) {}
         }
       } catch (err) {
         console.error('Inbox failure:', err);
@@ -60,7 +74,11 @@ export default function HubContent() {
     const fetchFeed = async () => {
       try {
         const res = await api.get('/products/hub');
-        if (res.data.success) setFeed(res.data.data.products);
+        if (res.data.success) {
+          const nextFeed = res.data.data.products || [];
+          setFeed(nextFeed);
+          try { sessionStorage.setItem('aura_hub_feed', JSON.stringify(nextFeed)); } catch (_) {}
+        }
       } catch (err) {
         console.error('Feed failure:', err);
       } finally {

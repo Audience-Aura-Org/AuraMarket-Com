@@ -50,6 +50,7 @@ function ShopContent() {
 
   // Debounce ref to avoid multiple overlapping fetches
   const fetchTimeout = useRef(null);
+  const productCacheRef = useRef(new Map());
 
   // Memoize the fetcher to stabilize the dependency graph
   const fetchProducts = useCallback(async () => {
@@ -57,20 +58,32 @@ function ShopContent() {
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
     fetchTimeout.current = setTimeout(async () => {
+      const params = {};
+      if (activeCategoryName && activeCategoryName !== 'All') params.category = activeCategoryName;
+      if (activePrice) {
+        const range = PRICE_RANGES.find(p => p.id === activePrice);
+        params.minPrice = range.min;
+        params.maxPrice = range.max;
+      }
+      if (search) params.search = search;
+      if (sortBy) params.sort = sortBy;
+
+      const queryKey = JSON.stringify(params);
+      const cached = productCacheRef.current.get(queryKey);
+      if (cached) {
+        setProducts(cached);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        const params = {};
-        if (activeCategoryName && activeCategoryName !== 'All') params.category = activeCategoryName;
-        if (activePrice) {
-          const range = PRICE_RANGES.find(p => p.id === activePrice);
-          params.minPrice = range.min;
-          params.maxPrice = range.max;
-        }
-        if (search) params.search = search;
-        if (sortBy) params.sort = sortBy;
-        
         const res = await api.get('/products', { params });
-        if (res.data.success) setProducts(res.data.data.products || []);
+        if (res.data.success) {
+          const nextProducts = res.data.data.products || [];
+          setProducts(nextProducts);
+          productCacheRef.current.set(queryKey, nextProducts);
+        }
       } catch (err) {
         console.error('Shop fetch error:', err);
       } finally {

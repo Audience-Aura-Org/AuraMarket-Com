@@ -426,7 +426,7 @@ function ChatContent() {
                   {activeChat.avatar ? <img src={activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name[0]}
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-[var(--text-primary)] leading-none mb-1">{activeChat.name}</h2>
+                  <h2 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] leading-none mb-1 truncate max-w-[160px] sm:max-w-none">{activeChat.name}</h2>
                   <div className="flex items-center gap-1">
                     <div className="size-1.5 rounded-full bg-emerald-500" />
                     <p className="text-xs text-[var(--text-secondary)]">Online</p>
