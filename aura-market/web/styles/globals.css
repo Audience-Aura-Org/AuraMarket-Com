@@ -65,6 +65,51 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
+/* Global mobile density pass: tighter text + spacing */
+@media (max-width: 640px) {
+  html {
+    font-size: 15px;
+  }
+
+  h1 {
+    font-size: clamp(1.45rem, 6vw, 2rem);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    font-size: clamp(1.2rem, 5.2vw, 1.6rem);
+    line-height: 1.12;
+  }
+
+  h3 {
+    font-size: clamp(1.05rem, 4.4vw, 1.25rem);
+    line-height: 1.18;
+  }
+
+  h4, h5, h6 {
+    line-height: 1.2;
+  }
+
+  p {
+    line-height: 1.45;
+  }
+
+  /* Prevent tiny uppercase CTA labels from wrapping to 2 lines on phones */
+  button,
+  a {
+    word-break: normal;
+  }
+
+  button[class*='uppercase'][class*='text-[10px]'],
+  a[class*='uppercase'][class*='text-[10px]'],
+  button[class*='uppercase'][class*='text-[9px]'],
+  a[class*='uppercase'][class*='text-[9px]'] {
+    white-space: nowrap;
+    letter-spacing: 0.12em;
+  }
+}
+
 /* Mobile Typography & Spacing Scale */
 @layer utilities {
   .text-fluid-xs { font-size: clamp(0.6rem, 2vw, 0.75rem); }
