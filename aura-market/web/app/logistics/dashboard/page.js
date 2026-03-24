@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Truck, Package, CheckCircle, AlertCircle, Bell, Building, Globe, MapPin, Smartphone, Mail, Loader2 } from 'lucide-react';
+import { Truck, Package, CheckCircle, AlertCircle, Bell, Building, Globe, MapPin, Smartphone, Mail, Loader2, ArrowUpRight } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -271,7 +271,7 @@ export default function LogisticsDashboard() {
                       <div>
                         <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{s.tracking_code}</p>
                         <p className="text-[9px] text-[var(--text-secondary)] mt-1 flex items-center gap-2 font-bold uppercase tracking-widest opacity-60">
-                          {s.pickup_address?.split(',')[0]} <span className="material-symbols-outlined text-xs text-indigo-500">trending_flat</span> {s.delivery_address?.quartier || s.delivery_address?.city}
+                          {s.pickup_address?.quartier || s.pickup_address?.city || 'Pickup'} <span className="material-symbols-outlined text-xs text-indigo-500">trending_flat</span> {s.delivery_address?.quartier || s.delivery_address?.city || 'Delivery'}
                         </p>
                       </div>
                     </div>
@@ -299,16 +299,16 @@ export default function LogisticsDashboard() {
                 <h3 className="text-xl font-black text-[var(--text-primary)] mb-10 tracking-tight uppercase">Control Hub</h3>
                 <div className="space-y-4">
                   {[
-                    { label: 'Ingest Scan', icon: 'qr_code_scanner', color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
-                    { label: 'Flow Matrix', icon: 'add_road', color: 'text-purple-600', bg: 'bg-purple-500/10' },
-                    { label: 'Asset Search', icon: 'travel_explore', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+                    { label: 'Shipment Manifests', href: '/logistics/manifests', icon: 'qr_code_scanner', color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
+                    { label: 'Live Tracking', href: '/logistics/tracking', icon: 'add_road', color: 'text-purple-600', bg: 'bg-purple-500/10' },
+                    { label: 'Relay Nodes', href: '/logistics/nodes', icon: 'travel_explore', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
                   ].map((action) => (
-                    <button key={action.label} className="w-full p-5 rounded-3xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-left flex items-center gap-5 hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-all group shadow-sm">
+                    <Link key={action.label} href={action.href} className="w-full p-5 rounded-3xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-left flex items-center gap-5 hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-all group shadow-sm">
                       <div className={`size-12 rounded-2xl ${action.bg} ${action.color} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform`}>
                         <span className="material-symbols-outlined text-2xl">{action.icon}</span>
                       </div>
                       <span className="font-black text-[10px] tracking-[0.2em] text-[var(--text-primary)] uppercase">{action.label}</span>
-                    </button>
+                    </Link>
                   ))}
                 </div>
               </div>
