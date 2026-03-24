@@ -1,20 +1,24 @@
 /**
  * controllers/logistics.controller.js
  * Aura Market — Logistics Module Controller
+ * Full email notification on shipment creation and every status change.
  */
 
-const LogisticsCompany = require('../models/LogisticsCompany.model');
-const Shipment = require('../models/Shipment.model');
-const Order = require('../models/Order.model');
-const Vendor = require('../models/Vendor.model');
-const Escrow = require('../models/Escrow.model');
-const User = require('../models/User.model');
-const Transaction = require('../models/Transaction.model');
-const PlatformSettings = require('../models/PlatformSettings.model');
-const LogisticZone = require('../models/LogisticZone.model');
-const mongoose = require('mongoose');
+const LogisticsCompany  = require('../models/LogisticsCompany.model');
+const Shipment          = require('../models/Shipment.model');
+const Order             = require('../models/Order.model');
+const Vendor            = require('../models/Vendor.model');
+const Escrow            = require('../models/Escrow.model');
+const User              = require('../models/User.model');
+const Transaction       = require('../models/Transaction.model');
+const PlatformSettings  = require('../models/PlatformSettings.model');
+const LogisticZone      = require('../models/LogisticZone.model');
+const mongoose          = require('mongoose');
+
 const { sendNotification } = require('../utils/notifier');
-const logisticsService = require('../services/logistics.service');
+const { sendEmail }        = require('../utils/emailService');
+const logisticsService     = require('../services/logistics.service');
+const templates            = require('../utils/emailTemplates');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -58,7 +62,7 @@ const getSearchCompatibleFirms = async (req, res, next) => {
     }
 
     const vendors = Array.isArray(vendor_ids) ? vendor_ids : vendor_ids.split(',');
-    const firms = await logisticsService.getCompatibleFirms(quartier, vendors);
+    const firms   = await logisticsService.getCompatibleFirms(quartier, vendors);
 
     res.status(200).json({ success: true, count: firms.length, data: { firms } });
   } catch (error) {
@@ -98,7 +102,7 @@ const modifyShipmentStatus = async (req, res, next) => {
     const { status, note, proof_image, failure_reason, receiver_name } = req.body;
     const { id } = req.params;
 
-    const firm = await LogisticsCompany.findOne({ user_id: req.user._id }).session(session);
+    const firm     = await LogisticsCompany.findOne({ user_id: req.user._id }).session(session);
     const shipment = await Shipment.findById(id).session(session);
 
     if (!shipment) throw new Error('Shipment not found.');
@@ -110,10 +114,10 @@ const modifyShipmentStatus = async (req, res, next) => {
     if (status === 'delivered') {
       if (!proof_image && !note) throw new Error('Proof of delivery (image or note) is required.');
       shipment.proof_of_delivery = {
-        image_url: proof_image,
-        note: note,
+        image_url:     proof_image,
+        note:          note,
         receiver_name: receiver_name,
-        timestamp: new Date()
+        timestamp:     new Date()
       };
     }
 
@@ -127,22 +131,27 @@ const modifyShipmentStatus = async (req, res, next) => {
     shipment.shipment_logs.push({
       status,
       updated_by: req.user._id,
-      timestamp: new Date(),
-      note: note || ''
+      timestamp:  new Date(),
+      note:       note || ''
     });
 
     await shipment.save({ session });
 
-    // Sync Order Status if necessary
+    // ── Sync Order Status ──────────────────────────────────────────────
     const order = await Order.findById(shipment.order_id).session(session);
+    let orderCompleted = false;
+
     if (status === 'delivered') {
-      // Check if ALL shipments for this order are delivered
-      const otherShipments = await Shipment.find({ order_id: order._id, _id: { $ne: shipment._id } }).session(session);
+      const otherShipments = await Shipment.find({
+        order_id: order._id,
+        _id: { $ne: shipment._id }
+      }).session(session);
+
       const allDelivered = otherShipments.every(s => s.status === 'delivered');
       if (allDelivered) {
         order.order_status = 'delivered';
 
-        // Test option: pay vendor when delivery is confirmed.
+        // Pay vendor on delivery (COD)
         if (order.payment_method === 'pay_on_delivery' && order.payment_status === 'pending') {
           const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
           if (vendorAccount) {
@@ -152,13 +161,13 @@ const modifyShipmentStatus = async (req, res, next) => {
               await vendorUser.save({ session });
 
               await Transaction.create([{
-                user_id: vendorUser._id,
-                type: 'payout',
-                amount: order.total_amount,
-                reference: generateTxRef(),
-                status: 'completed',
+                user_id:     vendorUser._id,
+                type:        'payout',
+                amount:      order.total_amount,
+                reference:   generateTxRef(),
+                status:      'completed',
                 description: `Payment on delivery settled (Order #${order._id.toString().slice(-6).toUpperCase()})`,
-                order_id: order._id,
+                order_id:    order._id,
               }], { session });
 
               order.payment_status = 'paid';
@@ -166,7 +175,7 @@ const modifyShipmentStatus = async (req, res, next) => {
           }
         }
 
-        // Auto-release escrow when logistics confirms final delivery.
+        // Auto-release escrow
         if (order.payment_method === 'escrow' && order.payment_status === 'paid') {
           const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
           if (escrow && escrow.status === 'held') {
@@ -176,7 +185,7 @@ const modifyShipmentStatus = async (req, res, next) => {
             const vendorUser = await User.findById(vendorAccount.user_id).session(session);
             if (!vendorUser) throw new Error('Vendor wallet owner not found.');
 
-            const settings = await PlatformSettings.getSettings();
+            const settings    = await PlatformSettings.getSettings();
             const platformFee = (escrow.amount * settings.commission_rate) / 100;
             const vendorPayout = escrow.amount - platformFee;
 
@@ -189,17 +198,18 @@ const modifyShipmentStatus = async (req, res, next) => {
             await Transaction.findOneAndUpdate(
               { order_id: order._id, user_id: vendorUser._id, type: 'payout', status: 'pending' },
               {
-                status: 'completed',
+                status:      'completed',
                 description: `Escrow auto-released after delivery (Order #${order._id.toString().slice(-6).toUpperCase()})`,
               },
               { session }
             );
 
-            escrow.status = 'released';
+            escrow.status       = 'released';
             escrow.release_date = new Date();
             await escrow.save({ session });
 
             order.order_status = 'completed';
+            orderCompleted = true;
           }
         }
 
@@ -212,6 +222,56 @@ const modifyShipmentStatus = async (req, res, next) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // ── Post-commit notifications & emails ────────────────────────────
+    const customer = await User.findById(order.customer_id).select('name email');
+    const vendor   = await Vendor.findById(order.vendor_id).populate('user_id', 'name email store_name');
+
+    // Email/notify customer about shipment status change
+    if (customer) {
+      const statusTpl = templates.shipmentStatusChanged({
+        shipment,
+        order,
+        recipient: customer,
+        status,
+      });
+      await sendNotification(req.app, order.customer_id, {
+        title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
+        message:       statusTpl.text,
+        type:          'order_update',
+        metadata:      { shipment_id: shipment._id, order_id: order._id },
+        emailTemplate: statusTpl,
+      });
+    }
+
+    // If vendor is a separate entity, also notify them
+    if (vendor?.user_id?._id) {
+      const vendorStatusTpl = templates.shipmentStatusChanged({
+        shipment,
+        order,
+        recipient: vendor.user_id,
+        status,
+      });
+      await sendNotification(req.app, vendor.user_id._id, {
+        title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
+        message:       vendorStatusTpl.text,
+        type:          'order_update',
+        metadata:      { shipment_id: shipment._id, order_id: order._id },
+        emailTemplate: vendorStatusTpl,
+      });
+    }
+
+    // If escrow released → notify vendor payment
+    if (orderCompleted && vendor?.user_id?._id) {
+      const completedTpl = templates.orderCompleted({ order, vendor });
+      await sendNotification(req.app, vendor.user_id._id, {
+        title:         'Order Completed — Payment Released',
+        message:       `Payment for Order #${order._id.toString().slice(-6).toUpperCase()} has been released to your wallet.`,
+        type:          'payment',
+        metadata:      { order_id: order._id },
+        emailTemplate: completedTpl,
+      });
+    }
 
     res.status(200).json({ success: true, message: 'Status updated.', data: { shipment } });
   } catch (error) {
@@ -263,7 +323,6 @@ const getZones = async (req, res, next) => {
   try {
     const zones = await LogisticZone.find({ is_active: true }).populate('parent_id', 'name').sort('name');
     res.status(200).json({ success: true, data: { zones } });
-
   } catch (error) {
     next(error);
   }
@@ -291,21 +350,19 @@ const updatePricing = async (req, res, next) => {
   try {
     const { quartier_prices, supported_pickup_regions } = req.body;
     
-    // Sanitize the pricing matrix to remove existing IDs if any, preventing conflict
     const sanitizedPrices = (quartier_prices || []).map(p => ({
       quartier: p.quartier,
-      price: Number(p.price)
+      price:    Number(p.price)
     }));
 
     const firm = await LogisticsCompany.findOneAndUpdate(
       { user_id: req.user._id },
       { 
-        quartier_prices: sanitizedPrices, 
-        supported_pickup_regions: supported_pickup_regions || [] 
+        quartier_prices:           sanitizedPrices, 
+        supported_pickup_regions:  supported_pickup_regions || [] 
       },
       { new: true, runValidators: true }
     );
-
 
     if (!firm) return res.status(404).json({ success: false, message: 'Logistics profile not found.' });
 
@@ -326,5 +383,3 @@ module.exports = {
   getProfile,
   updatePricing
 };
-
-

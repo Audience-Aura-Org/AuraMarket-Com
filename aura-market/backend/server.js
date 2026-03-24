@@ -43,6 +43,10 @@ const setLocale = require('./middleware/locale.middleware');
 // ─────────────────────────────────────────────
 connectDB();
 
+// Verify Titan SMTP connection at startup
+const { verifyConnection } = require('./utils/emailService');
+verifyConnection();
+
 // ─────────────────────────────────────────────
 // 6. Initialize Express app, HTTP server, & WebSockets
 // ─────────────────────────────────────────────

@@ -5,45 +5,45 @@ import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "@/context/ThemeContext";
+import { useNotifications } from '@/hooks/useNotifications';
 
 const VENDOR_NAV = [
-  { icon: 'dashboard', label: 'Dashboard', href: '/vendor/dashboard' },
-  { icon: 'inventory_2', label: 'Products', href: '/vendor/products' },
-  { icon: 'shopping_cart', label: 'Orders', href: '/vendor/orders' },
-  { icon: 'star_rate', label: 'Client Ratings', href: '/vendor/ratings' },
-  { icon: 'gavel', label: 'Disputes', href: '/vendor/disputes' },
-  { icon: 'chat', label: 'Messages', href: '/messages' },
-  { icon: 'account_balance_wallet', label: 'Wallet', href: '/wallet' },
-  { icon: 'analytics', label: 'Analytics', href: '/vendor/analytics' },
+  { icon: 'dashboard',                label: 'Dashboard',        href: '/vendor/dashboard' },
+  { icon: 'inventory_2',              label: 'Products',         href: '/vendor/products' },
+  { icon: 'shopping_cart',            label: 'Orders',           href: '/vendor/orders',    badge: 'orders' },
+  { icon: 'star_rate',                label: 'Client Ratings',   href: '/vendor/ratings' },
+  { icon: 'gavel',                    label: 'Disputes',         href: '/vendor/disputes' },
+  { icon: 'chat',                     label: 'Messages',         href: '/messages',         badge: 'messages' },
+  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
+  { icon: 'analytics',                label: 'Analytics',        href: '/vendor/analytics' },
 ];
 
 const ADMIN_NAV = [
-  { icon: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
-  { icon: 'person', label: 'Users', href: '/admin/users' },
-  { icon: 'store', label: 'Vendors', href: '/admin/vendors' },
-  { icon: 'inventory', label: 'Products', href: '/admin/products' },
-  { icon: 'receipt_long', label: 'Orders', href: '/admin/orders' },
-  { icon: 'chat', label: 'Messages', href: '/messages' },
-  { icon: 'forum', label: 'System Comms', href: '/admin/messages' },
-  { icon: 'how_to_reg', label: 'Vendor KYC', href: '/admin/approvals' },
-  { icon: 'gavel', label: 'Disputes', href: '/admin/disputes' },
-  { icon: 'account_balance', label: 'Escrow', href: '/admin/escrow' },
-  { icon: 'local_shipping', label: 'Shipment Node', href: '/admin/logistics' },
-  { icon: 'payments', label: 'Logistics Earnings', href: '/admin/logistics/earnings' },
-  { icon: 'monitoring', label: 'Analytics', href: '/admin/analytics' },
-  { icon: 'category', label: 'Categories', href: '/admin/categories' },
-  { icon: 'star', label: 'Reviews', href: '/admin/reviews' },
-  { icon: 'web', label: 'CMS / Hero', href: '/admin/homepage' },
+  { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
+  { icon: 'person',         label: 'Users',            href: '/admin/users' },
+  { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
+  { icon: 'inventory',      label: 'Products',         href: '/admin/products' },
+  { icon: 'receipt_long',   label: 'Orders',           href: '/admin/orders',      badge: 'orders' },
+  { icon: 'chat',           label: 'Messages',         href: '/messages',          badge: 'messages' },
+  { icon: 'forum',          label: 'System Comms',     href: '/admin/messages' },
+  { icon: 'how_to_reg',     label: 'Vendor KYC',       href: '/admin/approvals' },
+  { icon: 'gavel',          label: 'Disputes',         href: '/admin/disputes' },
+  { icon: 'account_balance',label: 'Escrow',           href: '/admin/escrow' },
+  { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
+  { icon: 'payments',       label: 'Logistics Earnings',href: '/admin/logistics/earnings' },
+  { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },
+  { icon: 'category',       label: 'Categories',       href: '/admin/categories' },
+  { icon: 'star',           label: 'Reviews',          href: '/admin/reviews' },
+  { icon: 'web',            label: 'CMS / Hero',       href: '/admin/homepage' },
 ];
 
 const LOGISTICS_NAV = [
-  { icon: 'dashboard_customize', label: 'Dashboard', href: '/logistics/dashboard' },
-  { icon: 'list_alt', label: 'Manifests', href: '/logistics/manifests' },
-  { icon: 'payments', label: 'Route Pricing', href: '/logistics/pricing' },
-  { icon: 'location_on', label: 'Live Tracking', href: '/logistics/tracking' },
-
-  { icon: 'chat', label: 'Messages', href: '/messages' },
-  { icon: 'hub', label: 'Relay Nodes', href: '/logistics/nodes' },
+  { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
+  { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
+  { icon: 'payments',            label: 'Route Pricing',href: '/logistics/pricing' },
+  { icon: 'location_on',         label: 'Live Tracking',href: '/logistics/tracking' },
+  { icon: 'chat',                label: 'Messages',     href: '/messages',            badge: 'messages' },
+  { icon: 'hub',                 label: 'Relay Nodes',  href: '/logistics/nodes' },
 ];
 
 const ROLE_CONFIG = {
@@ -83,9 +83,19 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   const router = useRouter();
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.vendor;
 
+  // ── Live unread counts from the centralised hook ──
+  const { unreadCount, unreadMessages } = useNotifications();
+
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  // Returns the badge count for a nav item (or 0)
+  const getBadge = (item) => {
+    if (item.badge === 'messages') return unreadMessages;
+    if (item.badge === 'orders')   return unreadCount;        // new order/logistics notifications
+    return 0;
   };
 
   return (
@@ -119,10 +129,31 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
           </button>
         </div>
 
+        {/* Notification Bell row — always visible at top of sidebar */}
+        <div className="px-4 py-3 border-b border-[var(--glass-border)] flex items-center gap-3">
+          <Link
+            href="/notifications"
+            onClick={() => { if (window.innerWidth < 1024) onClose(); }}
+            className="flex-1 flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent)]/5 transition-all group"
+          >
+            <span className="material-symbols-outlined text-xl text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors">notifications</span>
+            <span className="font-medium text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Notifications</span>
+            {unreadCount > 0 && (
+              <span
+                className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse"
+                style={{ background: config.accent }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
+        </div>
+
         {/* Nav */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
           {config.nav.map(item => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+            const badge = getBadge(item);
             return (
               <Link
                 key={item.href}
@@ -148,13 +179,21 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                 >
                   {item.icon}
                 </span>
-                <span className={`font-medium text-sm transition-colors truncate ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                <span className={`font-medium text-sm transition-colors truncate flex-1 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                   {item.label}
                 </span>
+                {/* Badge */}
+                {badge > 0 && (
+                  <span
+                    className="min-w-[20px] h-5 px-1.5 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
+                    style={{ background: item.badge === 'messages' ? '#ef4444' : config.accent }}
+                  >
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
               </Link>
             );
-          })}
-          {/* ... existing Nav footer items ... */}
+          })}{/* Preferences */}
           <div className="pt-8 pb-2 px-4">
             <p className="text-[10px] tracking-widest text-[var(--text-secondary)] font-bold">Preferences</p>
           </div>

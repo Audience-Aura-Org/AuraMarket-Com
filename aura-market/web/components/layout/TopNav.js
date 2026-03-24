@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
+import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle, Bell } from 'lucide-react';
 import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
@@ -20,62 +21,39 @@ export default function TopNav() {
   const { theme, toggleTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
+
+  // ── Centralised notification + chat unread counts ─────────────────────────
+  const { unreadCount: notifCount, unreadMessages } = useNotifications();
 
   // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
     if (!user?._id) return;
-    const fetchCounts = () => {
+    const fetchCart = () => {
       api.get('/cart').then(res => {
         if (res.data?.success) {
           const items = res.data.data.cart?.items || [];
           setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
         }
       }).catch(() => {});
-      
-      api.get('/chat').then(res => {
-        if (res.data?.success) {
-          const count = res.data.data.activeChats.filter(c => c.read_status === false).length;
-          setUnreadCount(count);
-        }
-      }).catch(() => {});
     };
 
-    fetchCounts();
-    
-    // Listen for events that change counts
+    fetchCart();
+
     const handleUpdate = (e) => {
       if (e.detail?.cart) {
         const items = e.detail.cart.items || [];
         setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
       } else {
-        fetchCounts();
+        fetchCart();
       }
     };
     window.addEventListener('cart-updated', handleUpdate);
-    
-    // Socket listeners for unread count
-    const handleMsg = () => {
-      if (!window.location.pathname.startsWith('/chat')) {
-        setUnreadCount(prev => prev + 1);
-      }
-    };
-    
-    socketService.on('receive_message', handleMsg);
-    socketService.on('messages_read', handleUpdate);
 
     return () => {
       window.removeEventListener('cart-updated', handleUpdate);
-      socketService.off('receive_message', handleMsg);
-      socketService.off('messages_read', handleUpdate);
     };
   }, [user?._id]);
-
-  // Clear unread badge when viewing chat
-  useEffect(() => {
-    if (pathname?.startsWith('/chat')) setUnreadCount(0);
-  }, [pathname]);
 
   // Hide on auth, admin, vendor, logistics, and full-screen chat pages
   if (
@@ -151,16 +129,40 @@ export default function TopNav() {
           >
             {theme === 'light' ? <Moon className="size-5" /> : <Sun className="size-5" />}
           </button>
+
+          {/* ── Notifications Bell ── */}
+          {user && (
+            <Link
+              href="/notifications"
+              id="nav-notification-bell"
+              className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
+              title="Notifications"
+            >
+              <Bell className="size-5" />
+              {notifCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
+                  {notifCount > 99 ? '99+' : notifCount}
+                </span>
+              )}
+            </Link>
+          )}
           
-          <Link href="/chat" className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
+          {/* ── Messages / Chat ── */}
+          <Link
+            href="/chat"
+            id="nav-chat-icon"
+            className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
+            title="Messages"
+          >
             <MessageCircle className="size-5" />
-            {unreadCount > 0 && (
+            {unreadMessages > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
-                {unreadCount > 99 ? '99+' : unreadCount}
+                {unreadMessages > 99 ? '99+' : unreadMessages}
               </span>
             )}
           </Link>
 
+          {/* ── Cart ── */}
           <div className="relative group/cart">
             <Link href="/cart" className="relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
               <ShoppingCart className="size-5" />
@@ -219,4 +221,3 @@ export default function TopNav() {
     </header>
   );
 }
-

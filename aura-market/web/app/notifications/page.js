@@ -4,19 +4,23 @@ import { useState, useEffect } from 'react';
 import { 
   Bell, Package, CreditCard, MessageCircle, 
   Trash2, ArrowLeft, MoreHorizontal, CheckCheck,
-  Sparkles, Store
+  Sparkles, Store, Truck
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export const dynamic = 'force-dynamic';
 
 const ICON_MAP = {
-  order:   { Icon: Package,       color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
-  wallet:  { Icon: CreditCard,    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  chat:    { Icon: MessageCircle, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
-  system:  { Icon: Sparkles,      color: 'text-amber-500',   bg: 'bg-amber-500/10' },
-  vendor_update: { Icon: Store,    color: 'text-sky-500',     bg: 'bg-sky-500/10' },
+  order:        { Icon: Package,        color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
+  order_update: { Icon: Package,        color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
+  payment:      { Icon: CreditCard,     color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  chat:         { Icon: MessageCircle,  color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
+  system:       { Icon: Sparkles,       color: 'text-amber-500',   bg: 'bg-amber-500/10' },
+  system_alert: { Icon: Sparkles,       color: 'text-amber-500',   bg: 'bg-amber-500/10' },
+  vendor_update:{ Icon: Store,          color: 'text-sky-500',     bg: 'bg-sky-500/10' },
+  logistics:    { Icon: Truck,          color: 'text-purple-500',  bg: 'bg-purple-500/10' },
 };
 
 function timeAgo(iso) {
@@ -31,6 +35,7 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { markAllRead: clearBadge } = useNotifications();
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -38,16 +43,16 @@ export default function NotificationsPage() {
         const res = await api.get('/notifications');
         if (res.data.success) {
           setNotifications(res.data.data.notifications || []);
-        } else {
-          setNotifications(MOCK);
         }
       } catch {
-        setNotifications(MOCK);
+        setNotifications([]);
       } finally {
         setLoading(false);
       }
     };
     fetchNotifications();
+    // Clear the badge on the notification/bell icons immediately
+    clearBadge();
   }, []);
 
   const markRead = async (id) => {
@@ -55,10 +60,14 @@ export default function NotificationsPage() {
       await api.patch(`/notifications/${id}/read`);
     } catch { /* silent */ }
     setNotifications(prev => prev.map(n => n._id === id ? { ...n, is_read: true } : n));
+    // Optionally refresh badge count if we mark a single one as read
   };
 
   const markAllRead = async () => {
-    try { await api.patch('/notifications/read-all'); } catch { /* silent */ }
+    try { 
+      await api.patch('/notifications/read-all'); 
+      clearBadge(); // Clear the global badge too
+    } catch { /* silent */ }
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
