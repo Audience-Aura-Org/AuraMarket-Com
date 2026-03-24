@@ -188,7 +188,7 @@ function ChatContent() {
         
         // 1. Vendor Profile if needed
         if (vendorId) {
-          const existing = chats.find(c => c.partner._id === vendorId);
+          const existing = chats.find(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString());
           if (existing) {
              setActiveChat(existing.partner);
           } else {
@@ -322,7 +322,8 @@ function ChatContent() {
 
         if (draftProduct || searchParams.get('productId')) {
           setDraftProduct(null);
-          router.replace('/chat');
+          const currentVendorId = (searchParams.get('vendorId') || activeChat?._id || '').toString();
+          router.replace(currentVendorId ? `/messages?vendorId=${currentVendorId}` : '/messages');
         }
       } else {
         // mark optimistic as failed
@@ -520,7 +521,11 @@ function ChatContent() {
                      <p className="text-sm font-bold text-[var(--text-primary)] truncate leading-tight">{draftProduct.name}</p>
                   </div>
                   <button 
-                     onClick={() => { setDraftProduct(null); router.replace(`/chat?vendorId=${searchParams.get('vendorId') || activeChat?._id}`); }} 
+                     onClick={() => {
+                       setDraftProduct(null);
+                       const currentVendorId = (searchParams.get('vendorId') || activeChat?._id || '').toString();
+                       router.replace(currentVendorId ? `/messages?vendorId=${currentVendorId}` : '/messages');
+                     }} 
                      className="size-8 flex items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/10 border border-[var(--glass-border)] transition-colors shadow-sm"
                   >
                      <X className="w-3.5 h-3.5" />

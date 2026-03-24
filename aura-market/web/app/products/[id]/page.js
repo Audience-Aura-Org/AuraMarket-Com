@@ -134,9 +134,9 @@ export default function ProductDetailsPage() {
 
   const handleMessageVendor = () => {
     if (!user) { router.push('/login'); return; }
-    const vendorUserId = product.vendor_id?.user_id || product.vendor_id?._id;
+    const vendorUserId = product.vendor_id?.user_id?._id || product.vendor_id?.user_id || product.vendor_id?._id;
     if (!vendorUserId) { showToast('Vendor not available.', 'error'); return; }
-    router.push(`/chat?vendorId=${vendorUserId}&productId=${id}`);
+    router.push(`/messages?vendorId=${vendorUserId}&productId=${id}`);
   };
 
   const handleMouseMove = (e) => {
@@ -366,19 +366,19 @@ export default function ProductDetailsPage() {
 
               <div className={`space-y-6 ${mode === 'premium' ? 'p-6 rounded-[2.5rem] glass-panel bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-xl' : ''}`}>
                  
-                 <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex items-center justify-between px-4 h-16 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl w-full sm:w-36 shadow-sm">
+                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <div className="flex items-center justify-between px-3 sm:px-4 h-12 sm:h-16 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl sm:rounded-2xl w-full sm:w-36 shadow-sm">
                        <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4"/></button>
-                       <span className="font-black text-lg">{quantity}</span>
+                       <span className="font-black text-base sm:text-lg">{quantity}</span>
                        <button onClick={() => setQuantity(quantity + 1)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Plus className="w-4 h-4"/></button>
                     </div>
                     
                     <button 
                       onClick={handleAddToCart}
                       disabled={addingToCart || product.stock === 0}
-                      className="flex-1 h-16 flex items-center justify-center gap-3 bg-[var(--accent)] text-white font-black uppercase tracking-[0.2em] text-[11px] rounded-2xl hover:bg-[var(--accent)]/90 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                      className="flex-1 h-12 sm:h-16 flex items-center justify-center gap-2 sm:gap-3 bg-[var(--accent)] text-white font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-[10px] sm:text-[11px] rounded-xl sm:rounded-2xl hover:bg-[var(--accent)]/90 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                     >
-                      {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
+                      {addingToCart ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />}
                       {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                     </button>
                  </div>
@@ -386,7 +386,7 @@ export default function ProductDetailsPage() {
                   <button
                     onClick={handleBuyNow}
                     disabled={buyingNow || product.stock === 0}
-                    className="w-full h-16 flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-[11px] rounded-2xl transition-all active:scale-95 border border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-transparent hover:text-[var(--text-primary)] disabled:opacity-50"
+                    className="w-full h-12 sm:h-16 flex items-center justify-center gap-2 sm:gap-3 font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-[10px] sm:text-[11px] rounded-xl sm:rounded-2xl transition-all active:scale-95 border border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-transparent hover:text-[var(--text-primary)] disabled:opacity-50"
                   >
                     {buyingNow ? 'Processing...' : 'Buy Now'}
                   </button>

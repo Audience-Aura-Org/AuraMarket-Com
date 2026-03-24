@@ -139,9 +139,9 @@ function ShopContent() {
               }
             }}
             placeholder="Search for products..."
-            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg py-2 md:py-2.5 pl-4 pr-12 text-sm focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-bold"
+            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg py-2 md:py-2.5 pl-3.5 pr-14 text-[10px] sm:text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-semibold"
           />
-          <button onClick={fetchProducts} className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent)]/80 transition-all">
+          <button onClick={fetchProducts} className="absolute right-1 top-1 h-[calc(100%-8px)] px-3 sm:px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent)]/80 transition-all">
             <Search className="size-4" />
           </button>
         </div>
