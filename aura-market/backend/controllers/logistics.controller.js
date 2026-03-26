@@ -210,6 +210,20 @@ const modifyShipmentStatus = async (req, res, next) => {
       await order.save({ session });
     }
 
+    // ─────────────────────────────────────────────
+    // Send status update to customer
+    // ─────────────────────────────────────────────
+    await sendNotification(req.app, order.user_id, {
+      title: 'Package Update',
+      message: `Your package status from ${firm?.company_name || 'Logistic Partner'} has been updated to: ${status.replace(/_/g, ' ')}.`,
+      type: 'order_status',
+      metadata: { order_id: order._id, link: '/orders' },
+      sendEmail: true,
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
+      orderDetails: order,
+      role: 'customer'
+    });
+
     await session.commitTransaction();
     session.endSession();
 

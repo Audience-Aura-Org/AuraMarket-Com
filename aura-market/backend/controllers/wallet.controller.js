@@ -264,7 +264,9 @@ const payOrderWithWallet = async (req, res, next) => {
             type: 'system_alert',
             metadata: { order_id: order._id, link: '/logistics/dashboard' },
             sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+            orderDetails: order,
+            role: 'logistics'
           });
         }
       }
