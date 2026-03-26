@@ -608,8 +608,11 @@ const createOrdersFromCart = async (req, res, next) => {
       delivery_description
     } = req.body;
 
+    // Determine effective shipping method
+    const effective_shipping_method = logistics_company_id ? 'logistics_partner' : (shipping_method || 'vendor_managed');
+
     // Validate global logistics compatibility if using partner
-    if (shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
+    if (effective_shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
         const vendorIds = Object.keys(itemsByVendor);
         const firms = await logisticsService.getCompatibleFirms(delivery_quartier, vendorIds);
         const isCompatible = firms.some(f => f._id.toString() === logistics_company_id);
@@ -650,9 +653,9 @@ const createOrdersFromCart = async (req, res, next) => {
         subtotal,
         shipping_fee: vendor_shipping_fee,
         total_amount: subtotal + vendor_shipping_fee,
-        payment_method: payment_method || 'wallet',
-        shipping_method: shipping_method || 'vendor_managed',
-        logistics_company_id: logistics_company_id || null,
+        payment_method: payment_method,
+        shipping_method: shipping_method,
+        logistics_company_id: logistics_company_id,
         shipping_address: {
             ...(shipping_address || {}),
             quartier: delivery_quartier || shipping_address?.quartier,
@@ -670,7 +673,7 @@ const createOrdersFromCart = async (req, res, next) => {
       // Create shipment now when logistics partner is selected (Supports POD and Wallet)
       if (
         ['pay_on_delivery', 'wallet'].includes(payment_method || 'wallet') &&
-        shipping_method === 'logistics_partner' &&
+        effective_shipping_method === 'logistics_partner' &&
         logistics_company_id &&
         delivery_quartier
       ) {

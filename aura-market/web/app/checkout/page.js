@@ -202,6 +202,7 @@ function CheckoutContent() {
             },
             escrow_enabled: formData.escrowEnabled,
             payment_method: isPayOnDelivery ? 'pay_on_delivery' : 'wallet',
+            shipping_method: formData.logistics_company_id ? 'logistics_partner' : 'vendor_managed',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
          });
