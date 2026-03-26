@@ -554,7 +554,8 @@ export default function OnboardingPage() {
       </div>
 
       {/* Persistent Controls */}
-      <div className="fixed bottom-0 left-0 w-full p-8 md:p-12 z-50 pointer-events-none">
+      {/* Persistent Controls - Elevated on mobile to clear bottom nav */}
+      <div className="fixed bottom-24 lg:bottom-0 left-0 w-full p-8 md:p-12 z-50 pointer-events-none transition-all">
          <div className="max-w-4xl mx-auto flex items-center justify-between pointer-events-auto">
             <button 
               onClick={prevStep}

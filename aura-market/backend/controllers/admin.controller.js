@@ -19,8 +19,45 @@ const KYC = require('../models/KYC.model');
 const Report = require('../models/Report.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const Transaction = require('../models/Transaction.model');
+const EmailLog = require('../models/EmailLog.model');
 const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('../services/logistics.service');
+
+// ─────────────────────────────────────────────
+// @route   GET /api/admin/notifications/email-logs
+// @desc    Admin: get all email logs for audit and debugging
+// @access  Private (Role: admin)
+// ─────────────────────────────────────────────
+const getEmailLogs = async (req, res, next) => {
+  try {
+    const { status, search, page = 1, limit = 50 } = req.query;
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+    if (search) {
+      query.$or = [
+        { recipient_email: new RegExp(search, 'i') },
+        { subject: new RegExp(search, 'i') }
+      ];
+    }
+
+    const emailLogs = await EmailLog.find(query)
+      .populate('recipient_user_id', 'name email role')
+      .sort('-timestamp')
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await EmailLog.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      count: emailLogs.length,
+      total,
+      data: { emailLogs }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // ─────────────────────────────────────────────
 // @route   GET /api/admin/homepage
@@ -882,4 +919,5 @@ module.exports = {
   updateLogisticsFirm,
   addLogisticZone,
   getAdvancedAnalytics,
+  getEmailLogs,
 };

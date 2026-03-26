@@ -39,6 +39,7 @@ const {
   updateLogisticsFirm,
   addLogisticZone,
   getAdvancedAnalytics,
+  getEmailLogs,
   getAllProducts
 } = require('../controllers/admin.controller');
 
@@ -99,6 +100,9 @@ router.patch('/reports/:id/resolve', resolveReport);
 // Platform Settings
 router.get('/settings', getSettings);
 router.patch('/settings', updateSettings);
+
+// Email Monitoring
+router.get('/notifications/email-logs', getEmailLogs);
 
 // Queue Moderation
 router.get('/vendors/pending', getPendingVendors);

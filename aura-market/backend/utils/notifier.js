@@ -144,21 +144,53 @@ const sendNotification = async (app, recipientId, data) => {
       // 1. EMAIL DISPATCH
       if (sendEmail && EMAIL_USER) {
         try {
+          const EmailLog = require('../models/EmailLog.model');
           const user = await User.findById(recipientId).select('email name');
           const targetEmail = overrideEmail || user?.email;
+          
           if (targetEmail) {
             console.log(`📧 Dispatching signal to: ${targetEmail}`);
-            const info = await transporter.sendMail({
-              from: `"Aura Market" <${EMAIL_USER}>`,
-              to: targetEmail,
-              subject: title,
-              text: message,
-              html: buildOrderEmailHtml(title, message, orderDetails, role, emailLink)
-            });
-            console.log(`✅ Dispatch successful. ID: ${info.messageId}`);
+            try {
+              const info = await transporter.sendMail({
+                from: `"Aura Market" <${EMAIL_USER}>`,
+                to: targetEmail,
+                subject: title,
+                text: message,
+                html: buildOrderEmailHtml(title, message, orderDetails, role, emailLink)
+              });
+
+              // Log successful sending
+              await EmailLog.create({
+                recipient_email: targetEmail,
+                recipient_user_id: recipientId,
+                subject: title || 'Aura Signal',
+                message_preview: message ? message.substring(0, 100) : '',
+                role: role || 'user',
+                status: 'sent',
+                message_id: info.messageId,
+                timestamp: new Date()
+              });
+
+              console.log(`✅ Dispatch successful. ID: ${info.messageId}`);
+            } catch (smtpErr) {
+               console.error('📧 SMTP Error Trace:', smtpErr.message);
+               // Log failure
+               await EmailLog.create({
+                recipient_email: targetEmail,
+                recipient_user_id: recipientId,
+                subject: title || 'Aura Signal',
+                message_preview: message ? message.substring(0, 100) : '',
+                role: role || 'user',
+                status: 'failed',
+                error: smtpErr.message,
+                timestamp: new Date()
+              });
+            }
+          } else {
+            console.warn(`⚠️  Email dispatch skipped: No email coordinate found for user ${recipientId}`);
           }
         } catch (e) {
-          console.error('📧 Email background error:', e.message);
+          console.error('📧 Email background thread error:', e.message);
         }
       }
 

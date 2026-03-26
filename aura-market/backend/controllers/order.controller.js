@@ -512,7 +512,6 @@ const approveRefund = async (req, res, next) => {
       { session }
     );
 
-    // Process Escrow Refund (if payment was in escrow)
     const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
     if (escrow && escrow.status === 'held') {
       // Return money to user wallet
@@ -668,9 +667,9 @@ const createOrdersFromCart = async (req, res, next) => {
 
       createdOrders.push(order[0]._id);
 
-      // For test flows: create shipment now when pay_on_delivery is selected.
+      // Create shipment now when logistics partner is selected (Supports POD and Wallet)
       if (
-        (payment_method || 'wallet') === 'pay_on_delivery' &&
+        ['pay_on_delivery', 'wallet'].includes(payment_method || 'wallet') &&
         shipping_method === 'logistics_partner' &&
         logistics_company_id &&
         delivery_quartier
@@ -688,6 +687,7 @@ const createOrdersFromCart = async (req, res, next) => {
               type: 'system_alert',
               metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
               sendEmail: true,
+              overrideEmail: logisticsComp.contact_email, // Direct signal to corporate node
               emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
               orderDetails: orderWithVendor,
               role: 'logistics'
