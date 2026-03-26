@@ -19,6 +19,7 @@ const { generateInvoice } = require('../utils/invoiceGenerator');
 const Coupon = require('../models/Coupon.model');
 const logisticsService = require('../services/logistics.service');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
+const Cart = require('../models/Cart.model');
 
 // ─────────────────────────────────────────────
 // @route   POST /api/orders
@@ -169,6 +170,34 @@ const createOrder = async (req, res, next) => {
         });
       }
     }
+
+    // 5. Prune from Cart if it exists (Buy Now scenario)
+    const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
+    if (cart) {
+      const boughtIds = products.map(p => p.product_id.toString());
+      cart.items = cart.items.filter(item => !boughtIds.includes(item.product.toString()));
+      await cart.save({ session });
+    }
+
+    // 6. Notify Vendor (Order Received)
+    await sendNotification(req.app, vendor.user_id, {
+      title: 'New Order Received',
+      message: `You have received a new order (#${order[0]._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
+      type: 'order_status',
+      metadata: { order_id: order[0]._id, link: '/vendor/orders' },
+      sendEmail: true,
+      emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`
+    });
+
+    // 7. Notify Customer (Confirmation)
+    await sendNotification(req.app, req.user._id, {
+      title: 'Order Confirmed',
+      message: `Your order #${order[0]._id.toString().slice(-6).toUpperCase()} has been successfully processed and recorded.`,
+      type: 'order_status',
+      metadata: { order_id: order[0]._id, link: '/orders' },
+      sendEmail: true,
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+    });
 
     await session.commitTransaction();
     session.endSession();
@@ -649,6 +678,32 @@ const createOrdersFromCart = async (req, res, next) => {
     // Clear cart
     cart.items = [];
     await cart.save({ session });
+
+    // Notify Vendors & Customer for each order created
+    for (const orderId of createdOrders) {
+      const o = await Order.findById(orderId).session(session);
+      const v = await Vendor.findById(o.vendor_id);
+      
+      // Notify Vendor
+      await sendNotification(req.app, v.user_id, {
+        title: 'New Order Received',
+        message: `New bulk order segment (#${o._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
+        type: 'order_status',
+        metadata: { order_id: o._id, link: '/vendor/orders' },
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`
+      });
+
+      // Notify Customer
+      await sendNotification(req.app, req.user._id, {
+        title: 'Order Segment Placed',
+        message: `Your order segment #${o._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
+        type: 'order_status',
+        metadata: { order_id: o._id, link: '/orders' },
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+      });
+    }
 
     await session.commitTransaction();
     session.endSession();
