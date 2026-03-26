@@ -26,7 +26,7 @@ const EmailLogSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'vendor', 'logistics', 'admin'],
+    enum: ['user', 'customer', 'vendor', 'logistics', 'admin'],
     default: 'user'
   },
   status: {
