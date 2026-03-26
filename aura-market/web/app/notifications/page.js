@@ -1,30 +1,33 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Bell, Package, CreditCard, MessageCircle, 
   Trash2, ArrowLeft, MoreHorizontal, CheckCheck,
-  Sparkles, Store
+  Sparkles, Store, Truck
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { notificationService } from '@/services/notifications';
 
 export const dynamic = 'force-dynamic';
 
+// Mapped to the backend enum: order_status|payment_received|wallet_update|chat_alert|system_alert|vendor_update
 const ICON_MAP = {
-  order:   { Icon: Package,       color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
-  wallet:  { Icon: CreditCard,    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  chat:    { Icon: MessageCircle, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
-  system:  { Icon: Sparkles,      color: 'text-amber-500',   bg: 'bg-amber-500/10' },
-  vendor_update: { Icon: Store,    color: 'text-sky-500',     bg: 'bg-sky-500/10' },
+  order_status:      { Icon: Package,       color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
+  payment_received:  { Icon: CreditCard,    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  wallet_update:     { Icon: CreditCard,    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  chat_alert:        { Icon: MessageCircle, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
+  system_alert:      { Icon: Sparkles,      color: 'text-amber-500',   bg: 'bg-amber-500/10' },
+  vendor_update:     { Icon: Store,         color: 'text-sky-500',     bg: 'bg-sky-500/10' },
 };
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000;
-  if (diff < 60) return 'Immediate';
-  if (diff < 3600) return `${Math.floor(diff/60)} cycles ago`;
-  if (diff < 86400) return `${Math.floor(diff/3600)} orbits ago`;
-  return `${Math.floor(diff/86400)} solar days ago`;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
 }
 
 export default function NotificationsPage() {
@@ -32,28 +35,34 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await api.get('/notifications');
-        if (res.data.success) {
-          setNotifications(res.data.data.notifications || []);
-        } else {
-          setNotifications(MOCK);
-        }
-      } catch {
-        setNotifications(MOCK);
-      } finally {
-        setLoading(false);
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await api.get('/notifications');
+      if (res.data.success) {
+        setNotifications(res.data.data.notifications || []);
       }
-    };
-    fetchNotifications();
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchNotifications();
+
+    // Subscribe to real-time pushes — prepend new notification at top
+    const unsubscribe = notificationService.onPush((notif) => {
+      setNotifications(prev => [notif, ...prev]);
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [fetchNotifications]);
+
   const markRead = async (id) => {
-    try {
-      await api.patch(`/notifications/${id}/read`);
-    } catch { /* silent */ }
+    try { await api.patch(`/notifications/${id}/read`); } catch { /* silent */ }
     setNotifications(prev => prev.map(n => n._id === id ? { ...n, is_read: true } : n));
   };
 
@@ -62,6 +71,7 @@ export default function NotificationsPage() {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
+  // Delete via API now that the route exists
   const deleteNotif = async (id) => {
     try { await api.delete(`/notifications/${id}`); } catch { /* silent */ }
     setNotifications(prev => prev.filter(n => n._id !== id));
@@ -108,12 +118,15 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-6">
             {notifications.map((n) => {
-              const typeKey = n.type in ICON_MAP ? n.type : 'system';
+              const typeKey = n.type in ICON_MAP ? n.type : 'system_alert';
               const { Icon, color, bg } = ICON_MAP[typeKey];
               return (
                 <div
                   key={n._id}
-                  onClick={() => !n.is_read && markRead(n._id)}
+                  onClick={() => {
+                    if (!n.is_read) markRead(n._id);
+                    if (n.metadata?.link) router.push(n.metadata.link);
+                  }}
                   className={`p-8 rounded-[40px] border transition-all duration-500 flex gap-8 relative group cursor-pointer glass-panel ${
                     !n.is_read 
                     ? 'bg-[var(--bg-primary)] shadow-2xl shadow-[var(--accent)]/5 border-[var(--accent)]/20' 
@@ -141,12 +154,12 @@ export default function NotificationsPage() {
                       <span className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase opacity-30">
                         {timeAgo(n.createdAt)}
                       </span>
-                      {n.type === 'order' && (
+                      {n.type === 'order_status' && (
                         <button 
                           onClick={e => { e.stopPropagation(); router.push('/orders'); }}
                           className="text-[10px] font-black text-[var(--accent)] tracking-[0.2em] uppercase hover:underline"
                         >
-                          Protocol Tracking
+                          View Orders
                         </button>
                       )}
                     </div>
@@ -181,5 +194,3 @@ export default function NotificationsPage() {
     </div>
   );
 }
-
-
