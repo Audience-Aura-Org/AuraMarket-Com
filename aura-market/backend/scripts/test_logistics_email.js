@@ -10,14 +10,13 @@ async function testLogisticsNotification() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to DB');
 
-    // 1. Find a logistics user
-    const logistics = await LogisticsCompany.findOne().populate('user_id');
-    if (!logistics || !logistics.user_id) {
-      console.error('No logistics user found in DB.');
-      process.exit(1);
-    }
+    // 1. Target specific test email
+    const testRecipient = 'zeroxerxes8@gmail.com';
+    console.log(`Testing for: ${testRecipient}`);
 
-    console.log(`Testing for: ${logistics.user_id.email} (${logistics.company_name})`);
+    // Find any logistics user just to satisfy DB query if needed (not strictly used if we override)
+    const logistics = await LogisticsCompany.findOne().populate('user_id');
+    const recipientId = logistics?.user_id?._id || new mongoose.Types.ObjectId();
 
     // 2. Create MOCK Order-like object
     const mockOrder = {
@@ -44,8 +43,10 @@ async function testLogisticsNotification() {
       }
     };
 
-    // 3. Send Notification
-    await sendNotification({}, logistics.user_id._id, {
+    // 3. Send Notification (mocking Express app for get() call)
+    const mockApp = { get: () => null };
+
+    await sendNotification(mockApp, recipientId, {
       title: 'TEST: New Shipment Assigned',
       message: `You have new delivery work for Order #${mockOrder._id.toString().slice(-6).toUpperCase()}.`,
       type: 'system_alert',
@@ -53,7 +54,8 @@ async function testLogisticsNotification() {
       sendEmail: true,
       emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
       orderDetails: mockOrder,
-      role: 'logistics'
+      role: 'logistics',
+      overrideEmail: testRecipient
     });
 
     console.log('Test notification sent successfully!');

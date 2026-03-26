@@ -128,7 +128,7 @@ const buildOrderEmailHtml = (title, message, order = null, role = 'user', link =
 
 const sendNotification = async (app, recipientId, data) => {
   try {
-    const { title, message, type, metadata, sendEmail = false, emailLink = null, orderDetails = null, role = 'user' } = data;
+    const { title, message, type, metadata, sendEmail = false, emailLink = null, orderDetails = null, role = 'user', overrideEmail = null } = data;
 
     const notification = await Notification.create({
       recipient: recipientId, title, message, type, metadata
@@ -140,14 +140,17 @@ const sendNotification = async (app, recipientId, data) => {
     if (sendEmail && EMAIL_USER) {
       try {
         const user = await User.findById(recipientId).select('email name');
-        if (user?.email) {
-          await transporter.sendMail({
+        const targetEmail = overrideEmail || user?.email;
+        if (targetEmail) {
+          console.log(`📧 Dispatching signal to: ${targetEmail}`);
+          const info = await transporter.sendMail({
             from: `"Aura Market" <${EMAIL_USER}>`,
-            to: user.email,
+            to: targetEmail,
             subject: title,
             text: message,
             html: buildOrderEmailHtml(title, message, orderDetails, role, emailLink)
           });
+          console.log(`✅ Dispatch successful. ID: ${info.messageId}`);
         }
       } catch (e) { console.error('📧 Email error:', e.message); }
     }
