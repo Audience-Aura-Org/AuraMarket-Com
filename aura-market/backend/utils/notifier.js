@@ -5,7 +5,6 @@ const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = require('../config/en
 
 /**
  * utils/notifier.js
- * Centralized utility for sending persistent, real-time, and email notifications.
  */
 
 const transporter = nodemailer.createTransport({
@@ -17,106 +16,115 @@ const transporter = nodemailer.createTransport({
     pass: EMAIL_PASS
   },
   tls: {
-    rejectUnauthorized: false  // Required for Titan SMTP
+    rejectUnauthorized: false
   }
 });
 
-// Verify transport on startup (non-blocking)
 transporter.verify((err) => {
-  if (err) {
-    console.warn('⚠️  SMTP transport verification failed:', err.message);
-  } else {
-    console.log('✅ SMTP transport ready — connected to', EMAIL_HOST);
-  }
+  if (err) console.warn('⚠️ SMTP failed:', err.message);
+  else console.log('✅ SMTP ready');
 });
 
 /**
- * Build a clean, branded HTML email body
+ * Build a structured, role-specific HTML order email
  */
-const buildEmailHtml = (title, message, link = null) => `
+const buildOrderEmailHtml = (title, message, order = null, role = 'user', link = null) => {
+  let detailsHtml = '';
+
+  if (order) {
+    const items = (order.products || []).map(p => `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #222;">
+          <p style="margin:0;font-size:13px;font-weight:700;color:#fff;">${p.name}</p>
+          <p style="margin:4px 0 0;font-size:11px;color:#555;">QTY: ${p.quantity} · ${p.price.toLocaleString()} XAF</p>
+        </td>
+        <td style="padding:12px 0;border-bottom:1px solid #222;text-align:right;">
+          <p style="margin:0;font-size:13px;font-weight:700;color:#a855f7;font-family:monospace;">${(p.price * p.quantity).toLocaleString()}</p>
+        </td>
+      </tr>
+    `).join('');
+
+    const shipping = order.shipping_address || {};
+    const deliveryNode = `
+      <div style="background:#0d0d0d;border:1px solid #222;border-radius:16px;padding:24px;margin-top:32px;">
+        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:2px;">Target Coordinates</p>
+        <p style="margin:0;font-size:13px;font-weight:700;color:#fff;">${shipping.name || 'Recipient'}</p>
+        <p style="margin:4px 0;font-size:12px;color:#888;">${shipping.quartier || ''}${shipping.street ? ', ' + shipping.street : ''}</p>
+        <p style="margin:0;font-size:11px;font-weight:900;color:#a855f7;">${shipping.phone || ''}</p>
+      </div>
+    `;
+
+    detailsHtml = `
+      <div style="margin-top:32px;border-top:2px solid #222;padding-top:32px;">
+        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:2px;">Protocol Manifest</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">${items}</table>
+        
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;">
+          <tr>
+            <td style="font-size:13px;font-weight:900;color:#fff;text-transform:uppercase;">Grand Total</td>
+            <td style="font-size:18px;font-weight:900;color:#fff;text-align:right;font-family:monospace;">${(order.total_amount || 0).toLocaleString()} <span style="font-size:10px;color:#555;">XAF</span></td>
+          </tr>
+        </table>
+
+        ${(role === 'vendor' || role === 'logistics') ? deliveryNode : ''}
+      </div>
+    `;
+  }
+
+  return `
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0a0a0a;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:system-ui,-apple-system,sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#0a0a0a;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:600px;background:#111;border-radius:32px;border:1px solid #222;overflow:hidden;">
+        <!-- Header -->
+        <tr><td style="padding:40px;text-align:center;border-bottom:1px solid #222;">
+          <h1 style="margin:0;font-size:24px;font-weight:900;color:#fff;letter-spacing:-1px;">Aura<span style="color:#a855f7;">Market</span></h1>
+          <div style="display:inline-block;margin-top:12px;padding:6px 12px;background:#a855f7/10;border:1px solid #a855f7/20;border-radius:100px;">
+            <p style="margin:0;font-size:9px;font-weight:900;color:#a855f7;text-transform:uppercase;letter-spacing:2px;">Secure Protocol Verified</p>
+          </div>
+        </td></tr>
+        <!-- Content -->
+        <tr><td style="padding:40px;">
+          <h2 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.2;">${title}</h2>
+          <p style="margin:0;font-size:15px;color:#888;line-height:1.6;">${message}</p>
           
-          <!-- Header -->
-          <tr>
-            <td style="background:#111;border-radius:24px 24px 0 0;padding:32px 40px;text-align:center;border-bottom:1px solid #222;">
-              <h1 style="margin:0;font-size:22px;font-weight:900;letter-spacing:-0.5px;color:#fff;">
-                Aura<span style="color:#a855f7;">Market</span>
-              </h1>
-              <p style="margin:6px 0 0;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:3px;">Notification</p>
-            </td>
-          </tr>
+          ${detailsHtml}
 
-          <!-- Body -->
-          <tr>
-            <td style="background:#111;padding:40px;border-bottom:1px solid #222;">
-              <h2 style="margin:0 0 16px;font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;">${title}</h2>
-              <p style="margin:0 0 32px;font-size:14px;color:#888;line-height:1.7;">${message}</p>
-              ${link ? `
-              <table cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="background:#a855f7;border-radius:12px;padding:0;">
-                    <a href="${link}" style="display:inline-block;padding:14px 28px;font-size:11px;font-weight:800;color:#fff;text-decoration:none;text-transform:uppercase;letter-spacing:2px;">View Details</a>
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="background:#0d0d0d;border-radius:0 0 24px 24px;padding:24px 40px;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#444;line-height:1.6;">
-                You received this because you have an account at <strong style="color:#666;">AuraMarket</strong>.<br>
-                &copy; ${new Date().getFullYear()} Audience Aura · <a href="mailto:info@audienceaura.org" style="color:#a855f7;text-decoration:none;">info@audienceaura.org</a>
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
+          ${link ? `
+          <div style="margin-top:40px;text-align:center;">
+            <a href="${link}" style="display:inline-block;padding:18px 36px;background:#fff;color:#000;text-decoration:none;border-radius:18px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;box-shadow:0 10px 20px rgba(0,0,0,0.4);">Access Manifest</a>
+          </div>
+          ` : ''}
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:32px 40px;background:#0d0d0d;text-align:center;border-top:1px solid #1a1a1a;">
+          <p style="margin:0;font-size:11px;color:#444;line-height:1.8;">
+            Transaction Hash: [${Math.random().toString(36).slice(2, 10).toUpperCase()}]<br>
+            © ${new Date().getFullYear()} Audience Aura — Decentralized Commerce
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
   </table>
 </body>
 </html>
-`;
+  `;
+};
 
-/**
- * sendNotification
- * @param {Object} app  - Express app instance (for io access)
- * @param {String} recipientId - MongoDB User ObjectId
- * @param {Object} data - { title, message, type, metadata, sendEmail }
- */
 const sendNotification = async (app, recipientId, data) => {
   try {
-    const { title, message, type, metadata, sendEmail = false, emailLink = null } = data;
+    const { title, message, type, metadata, sendEmail = false, emailLink = null, orderDetails = null, role = 'user' } = data;
 
-    // 1. Persist to DB
     const notification = await Notification.create({
-      recipient: recipientId,
-      title,
-      message,
-      type,
-      metadata
+      recipient: recipientId, title, message, type, metadata
     });
 
-    // 2. Emit via Socket.IO if user is online
     const io = app.get('io');
-    if (io) {
-      io.to(recipientId.toString()).emit('notification', notification);
-    }
+    if (io) io.to(recipientId.toString()).emit('notification', notification);
 
-    // 3. Send Email if requested and SMTP is configured
     if (sendEmail && EMAIL_USER) {
       try {
         const user = await User.findById(recipientId).select('email name');
@@ -126,42 +134,21 @@ const sendNotification = async (app, recipientId, data) => {
             to: user.email,
             subject: title,
             text: message,
-            html: buildEmailHtml(title, message, emailLink)
+            html: buildOrderEmailHtml(title, message, orderDetails, role, emailLink)
           });
-          console.log(`📧 Email sent to ${user.email}: ${title}`);
         }
-      } catch (emailErr) {
-        // Log email error but don't crash the notification flow
-        console.error('📧 Email send failed (non-fatal):', emailErr.message);
-      }
+      } catch (e) { console.error('📧 Email error:', e.message); }
     }
-
     return notification;
-  } catch (error) {
-    console.error('Notification Dispatch Error:', error);
-  }
+  } catch (err) { console.error('Dispatch error:', err); }
 };
 
-/**
- * notifyFollowers
- * Sends a notification to all followers of a vendor.
- */
 const notifyFollowers = async (app, vendorId, data) => {
   try {
     const Follow = require('../models/Follow.model');
     const followers = await Follow.find({ vendor_id: vendorId });
-    
-    if (followers.length === 0) return;
-
-    const promises = followers.map(f => sendNotification(app, f.user_id, {
-      ...data,
-      type: 'vendor_update'
-    }));
-
-    await Promise.all(promises);
-  } catch (error) {
-    console.error('Mass Notification Error:', error);
-  }
+    await Promise.all(followers.map(f => sendNotification(app, f.user_id, { ...data, type: 'vendor_update' })));
+  } catch (err) { console.error('Follower notify error:', err); }
 };
 
 module.exports = { sendNotification, notifyFollowers };

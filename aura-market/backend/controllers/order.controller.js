@@ -161,14 +161,16 @@ const createOrder = async (req, res, next) => {
       await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
       const logisticsComp = await LogisticsCompany.findById(logistics_company_id).session(session);
       if (logisticsComp) {
-        await sendNotification(req.app, logisticsComp.user_id, {
-          title: 'New Shipment Assigned',
-          message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
-          type: 'system_alert',
-          metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
-          sendEmail: true,
-          emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
-        });
+          await sendNotification(req.app, logisticsComp.user_id, {
+            title: 'New Shipment Assigned',
+            message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
+            type: 'system_alert',
+            metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
+            sendEmail: true,
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+            orderDetails: order[0],
+            role: 'logistics'
+          });
       }
     }
 
@@ -187,7 +189,9 @@ const createOrder = async (req, res, next) => {
       type: 'order_status',
       metadata: { order_id: order[0]._id, link: '/vendor/orders' },
       sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`
+      emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
+      orderDetails: order[0],
+      role: 'vendor'
     });
 
     // 7. Notify Customer (Confirmation)
@@ -197,7 +201,9 @@ const createOrder = async (req, res, next) => {
       type: 'order_status',
       metadata: { order_id: order[0]._id, link: '/orders' },
       sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
+      orderDetails: order[0],
+      role: 'customer'
     });
 
     await session.commitTransaction();
@@ -658,14 +664,16 @@ const createOrdersFromCart = async (req, res, next) => {
         await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
         const logisticsComp = await LogisticsCompany.findById(logistics_company_id).session(session);
         if (logisticsComp) {
-          await sendNotification(req.app, logisticsComp.user_id, {
-            title: 'New Shipment Assigned',
-            message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
-            type: 'system_alert',
-            metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
-            sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
-          });
+            await sendNotification(req.app, logisticsComp.user_id, {
+              title: 'New Shipment Assigned',
+              message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
+              type: 'system_alert',
+              metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
+              sendEmail: true,
+              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+              orderDetails: order[0],
+              role: 'logistics'
+            });
         }
       }
     }
@@ -686,7 +694,9 @@ const createOrdersFromCart = async (req, res, next) => {
         type: 'order_status',
         metadata: { order_id: o._id, link: '/vendor/orders' },
         sendEmail: true,
-        emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`
+        emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
+        orderDetails: o,
+        role: 'vendor'
       });
 
       // Notify Customer
@@ -696,7 +706,9 @@ const createOrdersFromCart = async (req, res, next) => {
         type: 'order_status',
         metadata: { order_id: o._id, link: '/orders' },
         sendEmail: true,
-        emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+        emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
+        orderDetails: o,
+        role: 'customer'
       });
     }
 
