@@ -20,6 +20,7 @@ const Coupon = require('../models/Coupon.model');
 const logisticsService = require('../services/logistics.service');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const Cart = require('../models/Cart.model');
+const Transaction = require('../models/Transaction.model');
 
 // ─────────────────────────────────────────────
 // @route   POST /api/orders
@@ -555,12 +556,6 @@ const getInvoice = async (req, res, next) => {
     next(error);
   }
 };
-
-const Cart = require('../models/Cart.model');
-const Transaction = require('../models/Transaction.model');
-
-// ... existing code ...
-
 const createOrdersFromCart = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
