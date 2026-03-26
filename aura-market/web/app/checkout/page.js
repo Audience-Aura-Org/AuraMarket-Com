@@ -12,6 +12,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -228,7 +229,9 @@ function CheckoutContent() {
       } else {
         toast.success(formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
       }
-      router.push(`/orders`);
+      
+      // NEW: Show Success State instead of immediate redirect
+      setStep(3); // Success step
       
     } catch (err) {
       const msg = err?.response?.data?.message || 'Handshake failed. Protocol rejected the transaction.';
@@ -292,23 +295,25 @@ function CheckoutContent() {
           <div className="lg:col-span-8 space-y-12">
             <div className="flex items-center gap-4 mb-4">
                {[
-                 { id: 1, label: 'Fulfillment' },
-                 { id: 2, label: 'Confirmation' }
-               ].map((s) => (
-                 <button 
-                  key={s.id}
-                  onClick={() => s.id < step && setStep(s.id)}
-                  className={`flex-1 h-2 rounded-full transition-all duration-700 relative group overflow-hidden ${step >= s.id ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
-                 >
-                    {step === s.id && <div className="absolute inset-x-0 h-full bg-white/30 animate-pulse" />}
-                    <span className={`absolute top-4 left-0 text-[8px] font-black uppercase tracking-widest transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
-                      {s.label}
-                    </span>
-                 </button>
-               ))}
+                  { id: 1, label: 'Fulfillment' },
+                  { id: 2, label: 'Confirmation' },
+                  { id: 3, label: 'Success' }
+                ].map((s) => (
+                  <button 
+                   key={s.id}
+                   onClick={() => s.id < step && setStep(s.id)}
+                   className={`flex-1 h-2 rounded-full transition-all duration-700 relative group overflow-hidden ${step >= s.id ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
+                  >
+                     {step === s.id && <div className="absolute inset-x-0 h-full bg-white/30 animate-pulse" />}
+                     <span className={`absolute top-4 left-0 text-[8px] font-black uppercase tracking-widest transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
+                       {s.label}
+                     </span>
+                  </button>
+                ))}
             </div>
 
             <div className="pt-8">
+              {/* Existing Step 1 & 2 content ... */}
               {step === 1 && (
                 <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <div className="space-y-10">
@@ -631,6 +636,60 @@ function CheckoutContent() {
                  >
                    {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
                  </button>
+               )}
+
+               {step === 3 && (
+                <section className="animate-in fade-in zoom-in-95 duration-1000">
+                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
+                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
+                        <CheckCircle2 className="size-16 animate-bounce" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Handshake <span className="text-[var(--accent)]">Complete</span></h2>
+                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been stabilized and assigned to the logistics network.</p>
+                    </div>
+
+                    <div className="glass-panel p-8 rounded-[40px] border border-[var(--accent)]/30 bg-[var(--accent)]/5 group cursor-pointer transition-all hover:bg-[var(--accent)]/10"
+                      onClick={async () => {
+                         const sub = await subscribeToPush();
+                         if (sub) toast.success("Aura Signal Established.");
+                      }}
+                    >
+                      <div className="flex items-center gap-6 text-left">
+                        <div className="size-16 rounded-3xl bg-black flex items-center justify-center text-[var(--accent)]">
+                          <Smartphone className="size-8" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] mb-1">PWA Connectivity</h4>
+                          <p className="text-sm font-black uppercase tracking-tight">Enable Real-Time Dispatch Alerts</p>
+                          <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">Get native push notifications for shipment tracking and escrow releases.</p>
+                        </div>
+                        <div className="size-10 rounded-full border border-[var(--accent)] flex items-center justify-center text-[var(--accent)] group-hover:scale-110 transition-transform">
+                          <Plus className="size-5" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link 
+                        href="/orders"
+                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
+                      >
+                         <Package className="size-4" /> Go to My Orders
+                      </Link>
+                      <Link 
+                        href="/discovery"
+                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                      >
+                         Continue Exploring <ArrowRight className="size-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </section>
                )}
             </div>
           </div>
