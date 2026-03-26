@@ -82,32 +82,27 @@ const holdFunds = async (req, res, next) => {
     order.order_status = 'processing'; // Vendor can begin shipping
     await order.save({ session });
 
-    // If logistics partner is selected, create shipment assignment immediately after escrow hold.
-    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
-      const quartier = order.shipping_address?.quartier;
-      if (quartier) {
-        await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
-        const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id).session(session);
-        if (logisticsFirm) {
-          await sendNotification(req.app, logisticsFirm.user_id, {
-            title: 'New Shipment Assigned',
-            message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
-            type: 'system_alert',
-            metadata: { order_id: order._id }
-          });
-        }
-      }
-    }
-
-    // 6. Update Vendor sales tracking automatically (Real-time volume)
-    if (vendorAccount) {
-      vendorAccount.total_sales += 1;
-      vendorAccount.total_revenue += order.total_amount;
-      await vendorAccount.save({ session });
-    }
-
     await session.commitTransaction();
     session.endSession();
+
+    // BACKGROUND DISPATCH (Post-Transaction)
+    const quartier = order.shipping_address?.quartier;
+    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id && quartier) {
+      const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
+      if (logisticsFirm) {
+        sendNotification(req.app, logisticsFirm.user_id, {
+          title: 'New Shipment Assigned',
+          message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+          type: 'system_alert',
+          metadata: { order_id: order._id },
+          sendEmail: true,
+          overrideEmail: logisticsFirm.contact_email,
+          emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+          orderDetails: order.toObject(), // Simplified for now
+          role: 'logistics'
+        });
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -164,10 +159,10 @@ const releaseFunds = async (req, res, next) => {
     // 3. Mark the Vendor's pending payout as Completed
     await Transaction.findOneAndUpdate(
       { order_id: order._id, user_id: vendorUser._id, type: 'payout', status: 'pending' },
-      { 
-        status: 'completed', 
-        amount: vendorPayout, 
-        description: `Escrow Released (Fee ${settings.commission_rate}% deducted).` 
+      {
+        status: 'completed',
+        amount: vendorPayout,
+        description: `Escrow Released (Fee ${settings.commission_rate}% deducted).`
       },
       { session, new: true }
     );
@@ -194,11 +189,40 @@ const releaseFunds = async (req, res, next) => {
     order.order_status = 'completed';
     await order.save({ session });
 
-    // 6. Order fulfillment complete
-    await order.save({ session });
-
     await session.commitTransaction();
     session.endSession();
+
+    // BACKGROUND DISPATCH: Notify parties about completion
+    const vendor = await Vendor.findById(order.vendor_id);
+    const orderWithVendor = order.toObject();
+    orderWithVendor.vendor_id = vendor;
+
+    // Notify Logistics Partner
+    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+      const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
+      if (logisticsFirm) {
+        sendNotification(req.app, logisticsFirm.user_id, {
+          title: 'Order Completed & Settled',
+          message: `The lifecycle for Order #${order._id.toString().slice(-6).toUpperCase()} is now complete. Funds have been released.`,
+          type: 'system_alert',
+          sendEmail: true,
+          overrideEmail: logisticsFirm.contact_email,
+          metadata: { order_id: order._id },
+          orderDetails: orderWithVendor,
+          role: 'logistics'
+        });
+      }
+    }
+
+    // Notify Customer
+    sendNotification(req.app, order.customer_id, {
+      title: 'Order Finalized',
+      message: `Your order #${order._id.toString().slice(-6).toUpperCase()} has been completed. Thank you for shopping!`,
+      type: 'order_status',
+      sendEmail: true,
+      orderDetails: orderWithVendor,
+      role: 'customer'
+    });
 
     res.status(200).json({
       success: true,

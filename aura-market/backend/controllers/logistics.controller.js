@@ -98,11 +98,11 @@ const modifyShipmentStatus = async (req, res, next) => {
     const { status, note, proof_image, failure_reason, receiver_name } = req.body;
     const { id } = req.params;
 
-    const firm = await LogisticsCompany.findOne({ user_id: req.user._id }).session(session);
     const shipment = await Shipment.findById(id).session(session);
-
     if (!shipment) throw new Error('Shipment not found.');
-    if (req.user.role !== 'admin' && shipment.logistics_id.toString() !== firm?._id.toString()) {
+
+    const firm = await LogisticsCompany.findById(shipment.logistics_id).session(session);
+    if (req.user.role !== 'admin' && firm?.user_id.toString() !== req.user._id.toString()) {
       throw new Error('Access denied.');
     }
 
@@ -213,7 +213,7 @@ const modifyShipmentStatus = async (req, res, next) => {
     // ─────────────────────────────────────────────
     // Send status update to customer
     // ─────────────────────────────────────────────
-    await sendNotification(req.app, order.user_id, {
+    await sendNotification(req.app, order.customer_id, {
       title: 'Package Update',
       message: `Your package status from ${firm?.company_name || 'Logistic Partner'} has been updated to: ${status.replace(/_/g, ' ')}.`,
       type: 'order_status',
@@ -223,6 +223,21 @@ const modifyShipmentStatus = async (req, res, next) => {
       orderDetails: order,
       role: 'customer'
     });
+
+    // If order is completed (via auto-release logic above), notify the logistics partner
+    if (order.order_status === 'completed' || order.order_status === 'delivered') {
+      await sendNotification(req.app, firm.user_id, {
+        title: 'Shipment Successfully Closed',
+        message: `Shipment for Order #${order._id.toString().slice(-6).toUpperCase()} is confirmed delivered and settled.`,
+        type: 'system_alert',
+        metadata: { order_id: order._id, shipment_id: shipment._id },
+        sendEmail: true,
+        overrideEmail: firm.contact_email,
+        emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+        orderDetails: order.toObject(),
+        role: 'logistics'
+      });
+    }
 
     await session.commitTransaction();
     session.endSession();
@@ -304,7 +319,7 @@ const getProfile = async (req, res, next) => {
 const updatePricing = async (req, res, next) => {
   try {
     const { quartier_prices, supported_pickup_regions } = req.body;
-    
+
     // Sanitize the pricing matrix to remove existing IDs if any, preventing conflict
     const sanitizedPrices = (quartier_prices || []).map(p => ({
       quartier: p.quartier,
@@ -313,9 +328,9 @@ const updatePricing = async (req, res, next) => {
 
     const firm = await LogisticsCompany.findOneAndUpdate(
       { user_id: req.user._id },
-      { 
-        quartier_prices: sanitizedPrices, 
-        supported_pickup_regions: supported_pickup_regions || [] 
+      {
+        quartier_prices: sanitizedPrices,
+        supported_pickup_regions: supported_pickup_regions || []
       },
       { new: true, runValidators: true }
     );
@@ -340,5 +355,3 @@ module.exports = {
   getProfile,
   updatePricing
 };
-
-

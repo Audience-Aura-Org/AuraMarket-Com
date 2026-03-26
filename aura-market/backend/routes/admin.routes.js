@@ -31,7 +31,7 @@ const {
   updateUserAdmin,
   getAllVendors,
   updateVendorStatus,
-  getAdminShipments,
+  fetchAdminShipments,
   updateAdminShipment,
   getAdminLogisticsFirms,
   getLogisticsEarningsReport,
@@ -74,7 +74,7 @@ router.get('/kyc/pending', getPendingKYC);
 router.patch('/kyc/:id/review', reviewKYC);
 
 // Logistics Monitoring
-router.get('/logistics/shipments', getAdminShipments);
+router.get('/logistics/shipments', fetchAdminShipments);
 router.patch('/logistics/shipments/:id', updateAdminShipment);
 router.get('/logistics/firms', getAdminLogisticsFirms);
 router.get('/logistics/earnings', getLogisticsEarningsReport);
