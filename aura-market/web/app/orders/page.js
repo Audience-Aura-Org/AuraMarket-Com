@@ -123,14 +123,14 @@ export default function OrdersPage() {
 
                 {/* Left: Product Images Group */}
                 <div className="flex -space-x-8">
-                   {order.products.slice(0, 3).map((p, i) => (
+                   {(order.products || []).slice(0, 3).map((p, i) => (
                      <div key={i} className="size-16 md:size-20 rounded-2xl overflow-hidden border-2 border-[var(--bg-primary)] shadow-xl relative group-hover:translate-y-[-4px] transition-transform duration-500" style={{ zIndex: 10 - i }}>
                         <img src={p.image || '/placeholder.png'} className="size-full object-cover" alt="" />
                      </div>
                    ))}
-                   {order.products.length > 3 && (
+                   {(order.products || []).length > 3 && (
                      <div className="size-16 md:size-20 rounded-2xl bg-[var(--bg-secondary)] border-2 border-[var(--bg-primary)] flex items-center justify-center text-[9px] font-black tracking-widest text-[var(--text-secondary)] shadow-xl" style={{ zIndex: 0 }}>
-                        +{order.products.length - 3}
+                        +{(order.products || []).length - 3}
                      </div>
                    )}
                 </div>
@@ -149,7 +149,7 @@ export default function OrdersPage() {
                    </div>
                    <div>
                       <h4 className="text-base font-black truncate max-w-[300px] uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors">
-                        {order.products[0]?.name} {order.products.length > 1 ? `& ${order.products.length - 1} more` : ''}
+                        {(order.products || [])[0]?.name || 'N/A'} {(order.products || []).length > 1 ? `& ${(order.products || []).length - 1} more` : ''}
                       </h4>
                        <div className="mt-1">
                          {order.vendor_id && (
@@ -178,7 +178,7 @@ export default function OrdersPage() {
                 <div className="flex items-center md:flex-col md:items-end justify-between gap-4 py-4 md:py-0 border-t md:border-t-0 md:border-l border-[var(--glass-border)] md:pl-10">
                    <div className="md:text-right">
                       <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-40 mb-1">Total Value</p>
-                      <p className="text-xl font-black font-mono text-[var(--accent)]">{(order.total_amount).toLocaleString()} XAF</p>
+                      <p className="text-xl font-black font-mono text-[var(--accent)]">{(order.total_amount || 0).toLocaleString()} XAF</p>
                    </div>
                    <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
                       <ChevronRight className="size-5" />

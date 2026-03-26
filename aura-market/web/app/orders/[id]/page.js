@@ -190,11 +190,11 @@ export default function OrderDetailPage() {
               <div className="space-y-6 px-1">
                  <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black uppercase tracking-tighter">Asset Manifest</h3>
-                    <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">{order.products.length} Vector Elements</p>
+                    <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">{(order.products || []).length} Vector Elements</p>
                  </div>
                  
                  <div className="grid gap-4">
-                    {order.products.map((item, idx) => (
+                    {(order.products || []).map((item, idx) => (
                       <div key={idx} className="p-5 rounded-[32px] bg-[var(--bg-primary)]/80 border border-[var(--glass-border)] flex items-center gap-6 group hover:border-[var(--accent)]/40 transition-all backdrop-blur-sm">
                          <div className="size-20 rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex-shrink-0 relative group-hover:scale-105 transition-transform duration-500 shadow-sm">
                             <img src={item.image || '/placeholder.png'} className="size-full object-cover" alt="" />
@@ -202,7 +202,7 @@ export default function OrderDetailPage() {
                          </div>
                          <div className="flex-1 min-w-0">
                             <h4 className="text-base font-black truncate max-w-[400px] uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors">{item.name}</h4>
-                            <p className="text-[10px] font-black text-[var(--accent)] opacity-60 font-mono mt-1">{item.price.toLocaleString()} XAF <span className="text-[var(--text-secondary)] text-[8px] opacity-40 mx-2">|</span> ID: {item.product_id?._id?.slice(-8).toUpperCase() || 'NODE-GENERAL'}</p>
+                            <p className="text-[10px] font-black text-[var(--accent)] opacity-60 font-mono mt-1">{(item.price || 0).toLocaleString()} XAF <span className="text-[var(--text-secondary)] text-[8px] opacity-40 mx-2">|</span> ID: {item.product_id?._id?.slice(-8).toUpperCase() || 'NODE-GENERAL'}</p>
                          </div>
                          <div className="flex items-center gap-2">
                            {order.order_status === 'completed' && (
@@ -344,11 +344,11 @@ export default function OrderDetailPage() {
                  <div className="space-y-6 border-b border-[var(--glass-border)] pb-8 mb-8">
                     <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
                        <span>Subtotal</span>
-                       <span className="text-[var(--text-primary)] font-mono">{(order.subtotal).toLocaleString()} XAF</span>
+                       <span className="text-[var(--text-primary)] font-mono">{((order.subtotal) || 0).toLocaleString()} XAF</span>
                     </div>
                     <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
                        <span>Fulfillment Fee</span>
-                       <span className="text-[var(--text-primary)] font-mono">{(order.shipping_fee).toLocaleString()} XAF</span>
+                       <span className="text-[var(--text-primary)] font-mono">{((order.shipping_fee) || 0).toLocaleString()} XAF</span>
                     </div>
                     {order.discount > 0 && (
                        <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-emerald-500 uppercase">
@@ -362,7 +362,7 @@ export default function OrderDetailPage() {
                     <div>
                        <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-[0.4em] mb-1 opacity-40">Settlement Total</p>
                        <p className="text-4xl font-black text-[var(--text-primary)] tracking-tighter leading-none font-mono">
-                          {order.total_amount.toLocaleString()} 
+                          {(order.total_amount || 0).toLocaleString()} 
                        </p>
                     </div>
                     <p className="text-xs font-black text-[var(--text-primary)] uppercase opacity-30 mb-0.5">XAF</p>
