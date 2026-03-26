@@ -154,6 +154,44 @@ const sendNotification = async (app, recipientId, data) => {
         }
       } catch (e) { console.error('📧 Email error:', e.message); }
     }
+
+    // ─────────────────────────────────────────────
+    // NEW: PWA WEB PUSH
+    // ─────────────────────────────────────────────
+    try {
+      const PushSubscription = require('../models/PushSubscription.model');
+      const webPush = require('web-push');
+
+      const VAPID_PUB = process.env.VAPID_PUBLIC_KEY || "BMiW0FBPikPVXuG3v_llaQ3lgb1MfPiM_CEcKXafkGvc3KShUCR3OQkjXepzdMzaDzVxW-C8f8kBbLcTZLX9TiM";
+      const VAPID_PRIV = process.env.VAPID_PRIVATE_KEY || "bXwkKXDq6MGPtrtmBY175VsfuDHIjkXtxEvBsbAC2NM";
+
+      webPush.setVapidDetails(
+        'mailto:info@audienceaura.org',
+        VAPID_PUB,
+        VAPID_PRIV
+      );
+
+      const pwaSubscriptions = await PushSubscription.find({ user_id: recipientId });
+      
+      const payload = JSON.stringify({
+        title: title,
+        body: message,
+        icon: '/logo-white.png',
+        badge: '/apple-touch-icon.png',
+        data: { url: emailLink || '/discovery' }
+      });
+
+      pwaSubscriptions.forEach(sub => {
+        webPush.sendNotification(sub.subscription, payload)
+          .catch(e => {
+            if (e.statusCode === 410 || e.statusCode === 404) {
+              // Cleanup expired subscription
+              PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
+            }
+          });
+      });
+    } catch (e) { console.error('PWA Push error:', e.message); }
+
     return notification;
   } catch (err) { console.error('Dispatch error:', err); }
 };
