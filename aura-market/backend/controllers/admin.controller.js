@@ -496,12 +496,32 @@ const updateUserAdmin = async (req, res, next) => {
     const { name, email, role, verification_status, password } = req.body;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    // Track old email to check if it changed
+    let emailChanged = false;
+    if (email && email !== user.email) {
+      emailChanged = true;
+      user.email = email;
+    }
+
     if (name) user.name = name;
-    if (email) user.email = email;
     if (role) user.role = role;
     if (verification_status) user.verification_status = verification_status;
-    if (password) user.password = password;
+    if (password) user.password = password; // Hashing middleware attached to `User.save()`
+
     await user.save();
+
+    // Cascading updates: sync associated business profiles so notifications match the new user settings
+    if (emailChanged) {
+      if (user.role === 'logistics' || role === 'logistics') {
+        const logisticsComp = await LogisticsCompany.findOne({ user_id: user._id });
+        if (logisticsComp) {
+          logisticsComp.contact_email = email;
+          await logisticsComp.save();
+        }
+      }
+    }
+
     res.status(200).json({ success: true, data: { user } });
   } catch (error) {
     next(error);
