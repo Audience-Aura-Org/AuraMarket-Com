@@ -676,6 +676,16 @@ const createOrdersFromCart = async (req, res, next) => {
       }], { session });
 
       createdOrders.push(order[0]._id);
+
+      // Create shipment immediately for non-escrow instant/deferred payments (e.g. POD, Wallet)
+      if (
+        ['pay_on_delivery', 'wallet'].includes(payment_method || 'wallet') &&
+        effective_shipping_method === 'logistics_partner' &&
+        logistics_company_id &&
+        delivery_quartier
+      ) {
+        await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
+      }
     } // End of itemsByVendor loop
 
     // Clear cart
