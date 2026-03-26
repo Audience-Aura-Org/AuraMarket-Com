@@ -161,6 +161,10 @@ const createOrder = async (req, res, next) => {
       await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
       const logisticsComp = await LogisticsCompany.findById(logistics_company_id).session(session);
       if (logisticsComp) {
+          // Attach vendor for pickup info in email
+          const orderWithVendor = order[0].toObject();
+          orderWithVendor.vendor_id = vendor;
+
           await sendNotification(req.app, logisticsComp.user_id, {
             title: 'New Shipment Assigned',
             message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
@@ -168,7 +172,7 @@ const createOrder = async (req, res, next) => {
             metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
             sendEmail: true,
             emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
-            orderDetails: order[0],
+            orderDetails: orderWithVendor,
             role: 'logistics'
           });
       }
@@ -183,6 +187,9 @@ const createOrder = async (req, res, next) => {
     }
 
     // 6. Notify Vendor (Order Received)
+    const orderWithVendor = order[0].toObject();
+    orderWithVendor.vendor_id = vendor;
+
     await sendNotification(req.app, vendor.user_id, {
       title: 'New Order Received',
       message: `You have received a new order (#${order[0]._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
@@ -190,7 +197,7 @@ const createOrder = async (req, res, next) => {
       metadata: { order_id: order[0]._id, link: '/vendor/orders' },
       sendEmail: true,
       emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
-      orderDetails: order[0],
+      orderDetails: orderWithVendor,
       role: 'vendor'
     });
 
@@ -202,7 +209,7 @@ const createOrder = async (req, res, next) => {
       metadata: { order_id: order[0]._id, link: '/orders' },
       sendEmail: true,
       emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
-      orderDetails: order[0],
+      orderDetails: orderWithVendor,
       role: 'customer'
     });
 
@@ -285,13 +292,20 @@ const payDirectly = async (req, res, next) => {
         
         // Notify Logistics Company
         const logisticsComp = await LogisticsCompany.findById(order.logistics_company_id).session(session);
+        // Attach vendor for pickup info in email
+        const orderWithVendor = order.toObject();
+        const v = await Vendor.findById(order.vendor_id).session(session);
+        orderWithVendor.vendor_id = v;
+
         await sendNotification(req.app, logisticsComp.user_id, {
             title: 'New Shipment Assigned',
             message: `You have been assigned new shipments for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
             type: 'system_alert',
             metadata: { order_id: order._id, link: '/logistics/dashboard' },
             sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+            orderDetails: orderWithVendor,
+            role: 'logistics'
         });
     }
 
@@ -664,6 +678,10 @@ const createOrdersFromCart = async (req, res, next) => {
         await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
         const logisticsComp = await LogisticsCompany.findById(logistics_company_id).session(session);
         if (logisticsComp) {
+            // Attach vendor for pickup info in email
+            const orderWithVendor = order[0].toObject();
+            orderWithVendor.vendor_id = vendor;
+
             await sendNotification(req.app, logisticsComp.user_id, {
               title: 'New Shipment Assigned',
               message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
@@ -671,7 +689,7 @@ const createOrdersFromCart = async (req, res, next) => {
               metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
               sendEmail: true,
               emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
-              orderDetails: order[0],
+              orderDetails: orderWithVendor,
               role: 'logistics'
             });
         }
@@ -688,6 +706,9 @@ const createOrdersFromCart = async (req, res, next) => {
       const v = await Vendor.findById(o.vendor_id);
       
       // Notify Vendor
+      const oWithVendor = o.toObject();
+      oWithVendor.vendor_id = v;
+
       await sendNotification(req.app, v.user_id, {
         title: 'New Order Received',
         message: `New bulk order segment (#${o._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
@@ -695,7 +716,7 @@ const createOrdersFromCart = async (req, res, next) => {
         metadata: { order_id: o._id, link: '/vendor/orders' },
         sendEmail: true,
         emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
-        orderDetails: o,
+        orderDetails: oWithVendor,
         role: 'vendor'
       });
 
@@ -707,7 +728,7 @@ const createOrdersFromCart = async (req, res, next) => {
         metadata: { order_id: o._id, link: '/orders' },
         sendEmail: true,
         emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
-        orderDetails: o,
+        orderDetails: oWithVendor,
         role: 'customer'
       });
     }

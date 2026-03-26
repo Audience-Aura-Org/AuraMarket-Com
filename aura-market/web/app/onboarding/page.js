@@ -449,44 +449,50 @@ export default function OnboardingPage() {
                  className="max-w-md mx-auto space-y-8"
                >
                   <div className="space-y-4">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4">Operational Sector (City)</label>
-                     <div className="relative">
-                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
-                        <select 
-                           value={location.city}
-                           onChange={e => setLocation(prev => ({ ...prev, city: e.target.value, quartier: '' }))}
-                           className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10"
-                        >
-                           <option value="">Select City Node</option>
-                           {zones.filter(z => z.type === 'region').map(z => (
-                              <option key={z._id} value={z.name}>{z.name}</option>
-                           ))}
-                        </select>
-                     </div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4">
+                        {isVendor ? 'Fulfillment Origin (City)' : 'Operational Sector (City)'}
+                      </label>
+                      <div className="relative">
+                         <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
+                         <select 
+                            value={location.city}
+                            onChange={e => setLocation(prev => ({ ...prev, city: e.target.value, quartier: '' }))}
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10"
+                         >
+                            <option value="">Select City Node</option>
+                            {zones.filter(z => z.type === 'region').map(z => (
+                               <option key={z._id} value={z.name}>{z.name}</option>
+                            ))}
+                         </select>
+                      </div>
 
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">Local Quartier (Zone)</label>
-                     <div className="relative">
-                        <Globe className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
-                        <select 
-                           value={location.quartier}
-                           onChange={e => setLocation(prev => ({ ...prev, quartier: e.target.value }))}
-                           disabled={!location.city}
-                           className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10 disabled:opacity-50"
-                        >
-                           <option value="">Select Quartier Signal</option>
-                           {zones.filter(z => z.type === 'quartier' && z.parent_id?.name === location.city).map(z => (
-                              <option key={z._id} value={z.name}>{z.name}</option>
-                           ))}
-                        </select>
-                     </div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">
+                        {isVendor ? 'Pickup Zone (Quartier)' : 'Local Quartier (Zone)'}
+                      </label>
+                      <div className="relative">
+                         <Globe className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
+                         <select 
+                            value={location.quartier}
+                            onChange={e => setLocation(prev => ({ ...prev, quartier: e.target.value }))}
+                            disabled={!location.city}
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10 disabled:opacity-50"
+                         >
+                            <option value="">Select Quartier Signal</option>
+                            {zones.filter(z => z.type === 'quartier' && z.parent_id?.name === location.city).map(z => (
+                               <option key={z._id} value={z.name}>{z.name}</option>
+                            ))}
+                         </select>
+                      </div>
 
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">Address Description (Optional)</label>
-                     <textarea 
-                        placeholder="Additional routing metadata (Door #, Landmark)..."
-                        value={location.address_description}
-                        onChange={e => setLocation(prev => ({ ...prev, address_description: e.target.value }))}
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 text-sm font-bold focus:ring-4 focus:ring-[var(--accent)]/10 outline-none h-32 resize-none"
-                     />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">
+                        {isVendor ? 'Fulfillment Handshake Info (Pickup Location)' : 'Address Description (Optional)'}
+                      </label>
+                      <textarea 
+                         placeholder={isVendor ? "Exact point for logistics to pick up your goods (e.g. Next to Total Station, Green Gate #4)..." : "Additional routing metadata (Door #, Landmark)..."}
+                         value={location.address_description}
+                         onChange={e => setLocation(prev => ({ ...prev, address_description: e.target.value }))}
+                         className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 text-sm font-bold focus:ring-4 focus:ring-[var(--accent)]/10 outline-none h-32 resize-none"
+                      />
                   </div>
                </motion.div>
             )}

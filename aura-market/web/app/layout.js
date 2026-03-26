@@ -12,7 +12,21 @@ const poppins = Poppins({
 export const metadata = {
   title: 'Aura Market | Premium Multi-Vendor Platform',
   description: "Aura Market — the world's leading marketplace for premium digital and physical assets wrapped in a stunning liquid-glass interface.",
-  icons: { icon: '/favicon.ico' },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    title: 'Aura Market',
+    statusBarStyle: 'black-translucent',
+    capable: true,
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export const viewport = {
@@ -20,6 +34,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
+  themeColor: '#0a0a0a',
 };
 
 export default function RootLayout({ children }) {

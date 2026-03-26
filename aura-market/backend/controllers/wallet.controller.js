@@ -258,6 +258,11 @@ const payOrderWithWallet = async (req, res, next) => {
         await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
         const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id).session(session);
         if (logisticsFirm) {
+          // Attach vendor for pickup info in email
+          const orderWithVendor = order.toObject();
+          const v = await Vendor.findById(order.vendor_id).session(session);
+          orderWithVendor.vendor_id = v;
+
           await sendNotification(req.app, logisticsFirm.user_id, {
             title: 'New Shipment Assigned',
             message: `You have a new shipment for order #${order._id.toString().slice(-6).toUpperCase()}.`,
@@ -265,7 +270,7 @@ const payOrderWithWallet = async (req, res, next) => {
             metadata: { order_id: order._id, link: '/logistics/dashboard' },
             sendEmail: true,
             emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
-            orderDetails: order,
+            orderDetails: orderWithVendor,
             role: 'logistics'
           });
         }

@@ -45,9 +45,21 @@ const buildOrderEmailHtml = (title, message, order = null, role = 'user', link =
     `).join('');
 
     const shipping = order.shipping_address || {};
+    const vendorNode = order.vendor_id || {};
+    const pickup = vendorNode.pickup_address || {};
+
+    const pickupNode = `
+      <div style="background:#0d0d0d;border:1px solid #a855f7/30;border-radius:16px;padding:24px;margin-top:32px;">
+        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#a855f7;text-transform:uppercase;letter-spacing:2px;">Pickup Coordinates (Store)</p>
+        <p style="margin:0;font-size:13px;font-weight:700;color:#fff;">${vendorNode.store_name || 'Vendor Node'}</p>
+        <p style="margin:4px 0;font-size:12px;color:#888;">${pickup.street || ''}${pickup.quartier ? ', ' + pickup.quartier : ''}${pickup.city ? ', ' + pickup.city : ''}</p>
+        <p style="margin:0;font-size:11px;font-weight:900;color:#fff;">${vendorNode.phone || ''}</p>
+      </div>
+    `;
+
     const deliveryNode = `
-      <div style="background:#0d0d0d;border:1px solid #222;border-radius:16px;padding:24px;margin-top:32px;">
-        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:2px;">Target Coordinates</p>
+      <div style="background:#0d0d0d;border:1px solid #222;border-radius:16px;padding:24px;margin-top:16px;">
+        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:2px;">Target Coordinates (Customer)</p>
         <p style="margin:0;font-size:13px;font-weight:700;color:#fff;">${shipping.name || 'Recipient'}</p>
         <p style="margin:4px 0;font-size:12px;color:#888;">${shipping.quartier || ''}${shipping.street ? ', ' + shipping.street : ''}</p>
         <p style="margin:0;font-size:11px;font-weight:900;color:#a855f7;">${shipping.phone || ''}</p>
@@ -66,7 +78,7 @@ const buildOrderEmailHtml = (title, message, order = null, role = 'user', link =
           </tr>
         </table>
 
-        ${(role === 'vendor' || role === 'logistics') ? deliveryNode : ''}
+        ${(role === 'vendor' || role === 'logistics') ? pickupNode + deliveryNode : ''}
       </div>
     `;
   }
