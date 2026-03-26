@@ -163,7 +163,9 @@ const createOrder = async (req, res, next) => {
           title: 'New Shipment Assigned',
           message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
           type: 'system_alert',
-          metadata: { order_id: order[0]._id }
+          metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
+          sendEmail: true,
+          emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
         });
       }
     }
@@ -251,7 +253,9 @@ const payDirectly = async (req, res, next) => {
             title: 'New Shipment Assigned',
             message: `You have been assigned new shipments for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
             type: 'system_alert',
-            metadata: { order_id: order._id }
+            metadata: { order_id: order._id, link: '/logistics/dashboard' },
+            sendEmail: true,
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
         });
     }
 
@@ -366,6 +370,16 @@ const updateOrderStatus = async (req, res, next) => {
 
     await order.save();
 
+    // Notify Customer about status change
+    await sendNotification(req.app, order.customer_id, {
+      title: `Order Status: ${order_status?.toUpperCase() || 'UPDATED'}`,
+      message: `Your Order #${order._id.toString().slice(-6).toUpperCase()} is now ${order_status || 'updated'}.${tracking_number ? ' Tracking: ' + tracking_number : ''}`,
+      type: 'order_status',
+      metadata: { order_id: order._id, link: '/orders' },
+      sendEmail: true,
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+    });
+
     res.status(200).json({ success: true, message: 'Order status updated.', data: { order } });
   } catch (error) {
     next(error);
@@ -408,7 +422,10 @@ const requestRefund = async (req, res, next) => {
     await sendNotification(req.app, vendor.user_id, {
       title: 'Refund Requested',
       message: `A refund has been requested for Order #${order._id.toString().slice(-6)}.`,
-      type: 'system_alert'
+      type: 'system_alert',
+      metadata: { order_id: order._id, link: '/vendor/orders' },
+      sendEmail: true,
+      emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`
     });
 
     res.status(200).json({ success: true, message: 'Refund request submitted.', data: { order } });
@@ -468,7 +485,10 @@ const approveRefund = async (req, res, next) => {
     await sendNotification(req.app, order.customer_id, {
       title: 'Refund Approved',
       message: `Your refund for Order #${order._id.toString().slice(-6)} has been approved and funds returned to your wallet.`,
-      type: 'system_alert'
+      type: 'wallet_update',
+      metadata: { order_id: order._id, link: '/orders' },
+      sendEmail: true,
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders`
     });
 
     res.status(200).json({ success: true, message: 'Refund approved and funds returned.', data: { order } });
@@ -618,7 +638,9 @@ const createOrdersFromCart = async (req, res, next) => {
             title: 'New Shipment Assigned',
             message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
             type: 'system_alert',
-            metadata: { order_id: order[0]._id }
+            metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
+            sendEmail: true,
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
           });
         }
       }

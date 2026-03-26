@@ -262,7 +262,9 @@ const payOrderWithWallet = async (req, res, next) => {
             title: 'New Shipment Assigned',
             message: `You have a new shipment for order #${order._id.toString().slice(-6).toUpperCase()}.`,
             type: 'system_alert',
-            metadata: { order_id: order._id }
+            metadata: { order_id: order._id, link: '/logistics/dashboard' },
+            sendEmail: true,
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`
           });
         }
       }
