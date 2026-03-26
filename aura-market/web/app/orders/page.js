@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Package, ChevronRight, Search, 
   Filter, Clock, CheckCircle2, 
@@ -14,6 +15,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 export const dynamic = 'force-dynamic';
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -113,10 +115,10 @@ export default function OrdersPage() {
         ) : (
           <div className="grid gap-6">
             {filteredOrders.map((order) => (
-              <Link 
-                href={`/orders/${order._id}`} 
+              <div 
+                onClick={() => router.push(`/orders/${order._id}`)}
                 key={order._id}
-                className="group p-6 rounded-[36px] bg-[var(--bg-primary)]/80 border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:shadow-2xl hover:shadow-[var(--accent)]/5 transition-all duration-500 backdrop-blur-md flex flex-col md:flex-row md:items-center gap-8 relative overflow-hidden"
+                className="group p-6 rounded-[36px] bg-[var(--bg-primary)]/80 border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:shadow-2xl hover:shadow-[var(--accent)]/5 transition-all duration-500 backdrop-blur-md flex flex-col md:flex-row md:items-center gap-8 relative overflow-hidden cursor-pointer"
               >
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 size-24 bg-[var(--accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--accent)]/10 transition-all" />
@@ -184,7 +186,7 @@ export default function OrdersPage() {
                       <ChevronRight className="size-5" />
                    </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
