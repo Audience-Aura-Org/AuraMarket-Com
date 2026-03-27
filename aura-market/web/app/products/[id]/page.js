@@ -90,26 +90,28 @@ export default function ProductDetailsPage() {
     
     setAddingToCart(true);
     trackCart(product);
-    cartStore.startMutation();
+    
+    // 🔥 OPTIMISTIC BROADCAST (Instant UI response)
+    cartStore.addItem(product, quantity);
+
+    // Global feedback event
+    if (typeof window !== 'undefined') {
+       window.dispatchEvent(new CustomEvent('cart-item-added', { 
+         detail: { 
+           name: product.name, 
+           image: (product.images?.[0]?.url || product.images?.[0]) 
+         } 
+       }));
+    }
 
     try {
       const response = await api.post('/cart', { product_id: id, quantity });
       
-      // Global feedback event
-      if (typeof window !== 'undefined') {
-         window.dispatchEvent(new CustomEvent('cart-item-added', { 
-           detail: { 
-             name: product.name, 
-             image: (product.images?.[0]?.url || product.images?.[0]) 
-           } 
-         }));
-      }
-      
-      cartStore.endMutation();
+      // Update with server truth quietly
       cartStore.setCart(response.data.data.cart);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to add to cart', 'error');
-      cartStore.endMutation();
+      cartStore.refresh();
     } finally {
       setAddingToCart(false);
     }

@@ -171,6 +171,33 @@ export const cartStore = {
     notify();
   },
 
+  /**
+   * Optimistically add an item to the local cart state.
+   * This provides the 'Liquid' feel before the server responds.
+   */
+  addItem(product, quantity = 1) {
+    const newItem = {
+      id: product._id || product.id,
+      productId: product._id || product.id,
+      name: product.name,
+      price: product.price,
+      quantity,
+      image: product.images?.[0]?.url || product.images?.[0] || '',
+      vendor_name: product.vendor_id?.store_name || 'Vendor',
+      vendor_id: product.vendor_id?._id || product.vendor_id || null,
+    };
+
+    // If item exists, increment quantity, else append
+    const existingIndex = _items.findIndex(it => it.id === newItem.id);
+    if (existingIndex !== -1) {
+      _items[existingIndex].quantity += quantity;
+    } else {
+      _items.push(newItem);
+    }
+    
+    notify();
+  },
+
   isPending() {
     return _pendingOps > 0;
   },
