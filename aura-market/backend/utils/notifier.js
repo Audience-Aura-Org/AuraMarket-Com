@@ -14,7 +14,6 @@ const webPush = require('web-push');
  * utils/notifier.js
  */
 
-// If explicit EMAIL_SECURE is provided, use it. Otherwise fallback to port check.
 const isSecure = EMAIL_SECURE !== undefined ? EMAIL_SECURE : (parseInt(EMAIL_PORT) === 465);
 
 const transporter = nodemailer.createTransport({
@@ -26,17 +25,23 @@ const transporter = nodemailer.createTransport({
     pass: EMAIL_PASS
   },
   tls: {
-    // Explicitly allow TLS for Titan/Hostinger if needed, but rejectUnauthorized false is safe.
     rejectUnauthorized: false
-  }
+  },
+  // ── ENABLE DETAILED LOGGING FOR RENDER ──────────
+  debug: true,
+  logger: true,
+  connectionTimeout: 10000, // 10s
+  greetingTimeout: 10000,
 });
 
 transporter.verify((err) => {
   if (err) {
-    console.warn(`⚠️  SMTP Connection Failed [${EMAIL_HOST}:${EMAIL_PORT}]:`, err.message);
-    if (err.code === 'ECONNREFUSED') console.warn('👉 Tip: Check if Render/Hosting allows outgoing connections on this port.');
+    console.warn(`⚠️  [SMTP] Handshake Failed [${EMAIL_HOST}:${EMAIL_PORT}]:`, err.message);
+    if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED') {
+      console.warn('👉 DIAGNOSIS: Network Block. Render cannot reach Titan on this port. Try switching to port 465 or contact Render support.');
+    }
   } else {
-    console.log(`✅ SMTP Ready: Handshake established with ${EMAIL_HOST}:${EMAIL_PORT} (Secure: ${isSecure})`);
+    console.log(`✅ [SMTP] Matrix Link Established: Handshake SUCCESS with ${EMAIL_HOST}:${EMAIL_PORT} (Secure: ${isSecure})`);
   }
 });
 
