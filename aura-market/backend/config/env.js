@@ -36,7 +36,7 @@ module.exports = {
   WEB_CLIENT_URL: process.env.WEB_CLIENT_URL || 'http://localhost:3000',
   PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY,
   EMAIL_HOST: process.env.EMAIL_HOST,
-  EMAIL_PORT: process.env.EMAIL_PORT || 587,
+  EMAIL_PORT: parseInt(process.env.EMAIL_PORT, 10) || 587,
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
   EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',

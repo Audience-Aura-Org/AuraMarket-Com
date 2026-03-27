@@ -1,29 +1,43 @@
 const Notification = require('../models/Notification.model');
 const User = require('../models/User.model');
 const nodemailer = require('nodemailer');
-const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_SECURE } = require('../config/env');
+const { 
+  EMAIL_HOST, 
+  EMAIL_PORT, 
+  EMAIL_USER, 
+  EMAIL_PASS,
+  EMAIL_SECURE 
+} = require('../config/env');
 const webPush = require('web-push');
 
 /**
  * utils/notifier.js
  */
 
+// If explicit EMAIL_SECURE is provided, use it. Otherwise fallback to port check.
+const isSecure = EMAIL_SECURE !== undefined ? EMAIL_SECURE : (parseInt(EMAIL_PORT) === 465);
+
 const transporter = nodemailer.createTransport({
   host: EMAIL_HOST,
   port: EMAIL_PORT,
-  secure: EMAIL_SECURE !== undefined ? EMAIL_SECURE : (Number(EMAIL_PORT) === 465),
+  secure: isSecure,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
   },
   tls: {
+    // Explicitly allow TLS for Titan/Hostinger if needed, but rejectUnauthorized false is safe.
     rejectUnauthorized: false
   }
 });
 
 transporter.verify((err) => {
-  if (err) console.warn('⚠️ SMTP failed:', err.message);
-  else console.log('✅ SMTP ready');
+  if (err) {
+    console.warn(`⚠️  SMTP Connection Failed [${EMAIL_HOST}:${EMAIL_PORT}]:`, err.message);
+    if (err.code === 'ECONNREFUSED') console.warn('👉 Tip: Check if Render/Hosting allows outgoing connections on this port.');
+  } else {
+    console.log(`✅ SMTP Ready: Handshake established with ${EMAIL_HOST}:${EMAIL_PORT} (Secure: ${isSecure})`);
+  }
 });
 
 // ── Initialize VAPID once at module load time (not per notification) ──────────
@@ -303,4 +317,4 @@ const notifyFollowers = async (app, vendorId, data) => {
   } catch (err) { console.error('Follower notify error:', err); }
 };
 
-module.exports = { sendNotification, notifyFollowers, transporter };
+module.exports = { sendNotification, notifyFollowers };
