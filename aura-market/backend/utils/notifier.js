@@ -14,34 +14,37 @@ const webPush = require('web-push');
  * utils/notifier.js
  */
 
-const isSecure = EMAIL_SECURE !== undefined ? EMAIL_SECURE : (parseInt(EMAIL_PORT) === 465);
+// If explicit EMAIL_SECURE is provided, use it. Otherwise fallback to port check.
+const isSecure = (EMAIL_SECURE === true || EMAIL_SECURE === 'true') ? true : (parseInt(EMAIL_PORT) === 465);
 
 const transporter = nodemailer.createTransport({
   host: EMAIL_HOST,
   port: EMAIL_PORT,
   secure: isSecure,
+  name: 'auramarket.com', // Explicitly identify the server to avoid Titan rejection
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
   },
   tls: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    minVersion: 'TLSv1.2'
   },
   // ── ENABLE DETAILED LOGGING FOR RENDER ──────────
   debug: true,
   logger: true,
-  connectionTimeout: 10000, // 10s
-  greetingTimeout: 10000,
+  connectionTimeout: 15000, // Increased to 15s for STARTTLS handshake
+  greetingTimeout: 15000,
 });
 
 transporter.verify((err) => {
   if (err) {
-    console.warn(`⚠️  [SMTP] Handshake Failed [${EMAIL_HOST}:${EMAIL_PORT}]:`, err.message);
-    if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED') {
-      console.warn('👉 DIAGNOSIS: Network Block. Render cannot reach Titan on this port. Try switching to port 465 or contact Render support.');
+    console.warn(`⚠️  [SMTP] Link Broken [${EMAIL_HOST}:${EMAIL_PORT}]:`, err.message);
+    if (err.code === 'ETIMEDOUT') {
+      console.warn('👉 DIAGNOSIS: Firewall Block. If you are on port 465, switch your Render Env to Port 587 and EMAIL_SECURE=false.');
     }
   } else {
-    console.log(`✅ [SMTP] Matrix Link Established: Handshake SUCCESS with ${EMAIL_HOST}:${EMAIL_PORT} (Secure: ${isSecure})`);
+    console.log(`✅ [SMTP] Frequency Established: SUCCESS with ${EMAIL_HOST}:${EMAIL_PORT} (Secure: ${isSecure})`);
   }
 });
 
