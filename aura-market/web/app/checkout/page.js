@@ -24,19 +24,13 @@ function CheckoutContent() {
   const { user } = useAuthStore();
   
   const [step, setStep] = useState(1);
-
-  // Scroll to top on step change for mobile UX
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [step]);
-
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     address: '',
     city: '',
-    paymentMethod: 'escrow',
+    paymentMethod: 'wallet',
     escrowEnabled: true,
     logistics_company_id: null,
     quartier: ''
@@ -165,26 +159,28 @@ function CheckoutContent() {
       api.get('/cart')
         .then(res => {
           if (res.data.success && res.data.data.cart?.items) {
-              setCartItems(res.data.data.cart.items.map(i => ({
-                 id: i._id || (i.product?._id || i.product),
-                 productId: i.product?._id || i.product,
-                 name: i.product?.name || 'Protocol Asset',
-                 price: Number(i.product?.price || 0),
-                 quantity: i.quantity || 1,
-                 image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
-                 vendor_name: i.product?.vendor_id?.store_name || 'Generic Provider',
-              })));
+             const items = res.data.data.cart.items.map(i => ({
+                product_id: i.product?._id || i.product,
+                vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id,
+                vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
+                name: i.product?.name,
+                price: i.product?.price,
+                quantity: i.quantity,
+                image: i.product?.images?.[0]?.url || i.product?.images?.[0]
+             }));
+
+             setCartItems(items);
           }
         })
         .catch(() => {});
     }
   }, [orderId]);
 
-  const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
-
   const handlePlaceOrder = async () => {
     const subtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
     const totalAmount = subtotal + deliveryFee;
+
+    const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
 
     if (!isPayOnDelivery && walletBalance < totalAmount) {
         toast.error("Insufficient wallet liquidity. Please deposit funds.");
@@ -193,8 +189,6 @@ function CheckoutContent() {
 
     setLoading(true);
     setError(null);
-    const toastId = toast.loading("Secure Protocol Initializing...");
-
     try {
       let finalOrderIds = orderId ? [orderId] : [];
       
@@ -208,7 +202,7 @@ function CheckoutContent() {
                phone: formData.phone
             },
             escrow_enabled: formData.escrowEnabled,
-            payment_method: isPayOnDelivery ? 'pay_on_delivery' : (formData.escrowEnabled ? 'escrow' : 'wallet'),
+            payment_method: isPayOnDelivery ? 'pay_on_delivery' : 'wallet',
             shipping_method: formData.logistics_company_id ? 'logistics_partner' : 'vendor_managed',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
@@ -232,20 +226,22 @@ function CheckoutContent() {
         }
       }
 
-      const successMsg = isPayOnDelivery 
-        ? "Order placed. Payment settled on delivery." 
-        : formData.escrowEnabled 
-          ? "Funds secured in Escrow Vault." 
-          : "Direct payment completed.";
-
-      toast.success(successMsg, { id: toastId, duration: 4000 });
+      if (isPayOnDelivery) {
+        toast.success("Order placed. Payment will be settled on delivery.");
+      } else {
+        toast.success(formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
+      }
+      
+      // Clear cart immediately across all components
       cartStore.clearCart();
-      setStep(3);
+      
+      // Show Success State instead of immediate redirect
+      setStep(3); // Success step
       
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Handshake failed. Please try again.';
+      const msg = err?.response?.data?.message || 'Handshake failed. Protocol rejected the transaction.';
       setError(msg);
-      toast.error(msg, { id: toastId, duration: 6000 });
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -322,76 +318,8 @@ function CheckoutContent() {
             </div>
 
             <div className="pt-8">
-              {step === 3 ? (
-                <section className="animate-in fade-in zoom-in-95 duration-1000 py-12">
-                   <div className="max-w-3xl mx-auto text-center space-y-12">
-                     <div className="relative inline-block">
-                       <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
-                       <div className="size-32 md:size-40 rounded-[48px] md:rounded-[56px] bg-black text-white flex items-center justify-center shadow-3xl relative mx-auto">
-                         <CheckCircle2 className="size-16 md:size-20 animate-bounce" />
-                       </div>
-                     </div>
-                     
-                     <div className="space-y-4">
-                       <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase mb-4">Handshake <span className="text-[var(--accent)]">Complete</span></h2>
-                       <p className="text-sm md:text-base font-medium text-[var(--text-secondary)] max-w-xl mx-auto">Your order has been stabilized and assigned to the logistics network. Aura Nodes are now orchestrating fulfillment.</p>
-                     </div>
-
-                     <div className="glass-panel p-8 rounded-[40px] border border-[var(--accent)]/30 bg-[var(--accent)]/5 group cursor-pointer transition-all hover:bg-[var(--accent)]/10 text-left"
-                       onClick={async () => {
-                          const sub = await subscribeToPush();
-                          if (sub) toast.success("Aura Signal Established.");
-                       }}
-                     >
-                       <div className="flex items-center gap-6">
-                         <div className="size-16 rounded-3xl bg-black flex items-center justify-center text-[var(--accent)] shrink-0 shadow-lg">
-                           <Smartphone className="size-8" />
-                         </div>
-                         <div className="flex-1">
-                           <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] mb-1">PWA Connectivity</h4>
-                           <p className="text-base font-black uppercase tracking-tight">Enable Real-Time Dispatch Alerts</p>
-                           <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">Get native push notifications for shipment tracking and escrow releases.</p>
-                         </div>
-                         <div className="size-12 rounded-full border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] group-hover:scale-110 group-hover:bg-[var(--accent)] group-hover:text-white transition-all shrink-0">
-                           <Plus className="size-5" />
-                         </div>
-                       </div>
-                     </div>
-
-                     <div className="flex flex-col md:row items-center justify-center gap-4 pt-6">
-                       <Link 
-                         href="/orders"
-                         className="w-full md:w-auto px-12 h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
-                       >
-                          <Package className="size-4" /> Go to My Orders
-                       </Link>
-                       <Link 
-                         href="/discovery"
-                         className="w-full md:w-auto px-12 h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[11px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
-                       >
-                          Explore More <ArrowRight className="size-4" />
-                       </Link>
-                     </div>
-                   </div>
-                </section>
-              ) : (
-                <>
-                  <div className="lg:hidden mb-12">
-                     <div className={`p-6 rounded-[32px] border ${walletBalance < totalAmount ? 'border-red-500/20 bg-red-500/5' : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/40'}`}>
-                        <div className="flex justify-between items-end">
-                           <div className="space-y-1">
-                              <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">Total Liquidity</p>
-                              <p className="text-2xl font-black font-mono">${(totalAmount || 0).toLocaleString()}</p>
-                           </div>
-                           <div className="text-right space-y-1">
-                              <p className="text-[9px] font-black opacity-40 uppercase tracking-widest">Available</p>
-                              <p className={`text-sm font-black ${walletBalance < totalAmount ? 'text-red-500' : 'text-emerald-500'}`}>${(walletBalance || 0).toLocaleString()}</p>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                {step === 1 && (
+              {/* Existing Step 1 & 2 content ... */}
+              {step === 1 && (
                 <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <div className="space-y-10">
                     <div className="flex items-center gap-6">
@@ -529,28 +457,28 @@ function CheckoutContent() {
                           <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Security Strategy</label>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                              <button 
-                              onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'escrow'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.escrowEnabled && formData.paymentMethod === 'escrow' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'wallet'})}
+                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
                              >
                                 <div className="flex items-center justify-between mb-4">
                                    <div className="flex items-center gap-2">
                                       <ShieldCheck className={`size-5 ${formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
                                       <span className="text-[10px] font-black uppercase tracking-tighter">Aura Escrow</span>
                                    </div>
-                                   {(formData.escrowEnabled && formData.paymentMethod === 'escrow') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                   {formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                 </div>
                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds locked until you verify order integrity.</p>
                              </button>
                              <button 
                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'wallet'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${(!formData.escrowEnabled && formData.paymentMethod === 'wallet') ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
                              >
                                 <div className="flex items-center justify-between mb-4">
                                    <div className="flex items-center gap-2">
-                                      <CreditCard className={`size-5 ${(!formData.escrowEnabled && formData.paymentMethod === 'wallet') ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                      <CreditCard className={`size-5 ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
                                       <span className="text-[10px] font-black uppercase tracking-tighter">Direct Secure</span>
                                    </div>
-                                   {(!formData.escrowEnabled && formData.paymentMethod === 'wallet') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                   {(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                 </div>
                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds transfer immediately to the vendor.</p>
                              </button>
@@ -651,14 +579,10 @@ function CheckoutContent() {
                    </div>
                 </section>
               )}
-              </>
-              )}
             </div>
           </div>
 
-          {step !== 3 && (
-            <div className={`lg:col-span-4 h-fit lg:sticky lg:top-36 ${step === 2 ? 'order-first lg:order-last' : ''}`}>
-
+          <div className="lg:col-span-4 h-fit sticky top-36">
             <div className="glass-panel p-10 rounded-[56px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
                <h3 className="text-3xl font-black mb-10 tracking-tighter uppercase leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
                <div className="space-y-6 max-h-[300px] overflow-y-auto no-scrollbar pr-2 mb-12">
@@ -701,31 +625,79 @@ function CheckoutContent() {
                    )}
 
                    <div className="flex justify-between items-end pt-8 border-t border-[var(--glass-border)]/50">
-                          <div className="space-y-1">
-                            <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] mb-3">Final Settlement</p>
-                            <p className="text-5xl font-black text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">${(totalAmount || 0).toLocaleString()}</p>
-                          </div>
+                      <div>
+                         <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-[0.4em] mb-1">Final Settlement</p>
+                         <p className="text-5xl font-black text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">{totalAmount.toLocaleString()}</p>
+                      </div>
                       <p className="text-[10px] font-black text-[var(--text-secondary)] opacity-40 uppercase pb-2">XAF</p>
                    </div>
                 </div>
 
                 {step === 2 && (
-                  <div className="space-y-4">
-                    <button 
-                      onClick={handlePlaceOrder}
-                      disabled={loading || (!isPayOnDelivery && walletBalance < totalAmount)}
-                      className="w-full h-20 mt-10 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group disabled:opacity-30 disabled:cursor-not-allowed"
+                 <button 
+                  onClick={handlePlaceOrder}
+                  disabled={loading}
+                  className="w-full h-20 mt-10 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group"
+                 >
+                   {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
+                 </button>
+               )}
+
+               {step === 3 && (
+                <section className="animate-in fade-in zoom-in-95 duration-1000">
+                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
+                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
+                        <CheckCircle2 className="size-16 animate-bounce" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Handshake <span className="text-[var(--accent)]">Complete</span></h2>
+                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been stabilized and assigned to the logistics network.</p>
+                    </div>
+
+                    <div className="glass-panel p-8 rounded-[40px] border border-[var(--accent)]/30 bg-[var(--accent)]/5 group cursor-pointer transition-all hover:bg-[var(--accent)]/10"
+                      onClick={async () => {
+                         const sub = await subscribeToPush();
+                         if (sub) toast.success("Aura Signal Established.");
+                      }}
                     >
-                      {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
-                    </button>
-                    {!isPayOnDelivery && walletBalance < totalAmount && (
-                       <p className="text-[9px] font-bold text-red-500 uppercase text-center tracking-tighter">Insufficient wallet balance to authorize transaction</p>
-                    )}
+                      <div className="flex items-center gap-6 text-left">
+                        <div className="size-16 rounded-3xl bg-black flex items-center justify-center text-[var(--accent)]">
+                          <Smartphone className="size-8" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] mb-1">PWA Connectivity</h4>
+                          <p className="text-sm font-black uppercase tracking-tight">Enable Real-Time Dispatch Alerts</p>
+                          <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">Get native push notifications for shipment tracking and escrow releases.</p>
+                        </div>
+                        <div className="size-10 rounded-full border border-[var(--accent)] flex items-center justify-center text-[var(--accent)] group-hover:scale-110 transition-transform">
+                          <Plus className="size-5" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link 
+                        href="/orders"
+                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
+                      >
+                         <Package className="size-4" /> Go to My Orders
+                      </Link>
+                      <Link 
+                        href="/discovery"
+                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                      >
+                         Continue Exploring <ArrowRight className="size-4" />
+                      </Link>
+                    </div>
                   </div>
-                )}
+                </section>
+               )}
             </div>
           </div>
-          )}
         </div>
       </main>
     </div>

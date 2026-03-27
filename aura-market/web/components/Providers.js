@@ -9,13 +9,11 @@ import BottomNav from '@/components/layout/BottomNav';
 import Footer from '@/components/layout/Footer';
 
 import PWAInit from '@/components/PWAInit';
-import { Toaster } from 'react-hot-toast';
 
 export default function Providers({ children }) {
   return (
     <ThemeProvider>
       <SocketProvider>
-        <Toaster position="top-right" />
         <PWAInit />
         <OnboardingWatcher />
         <TopNav />

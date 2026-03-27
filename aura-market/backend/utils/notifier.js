@@ -2,6 +2,7 @@ const Notification = require('../models/Notification.model');
 const User = require('../models/User.model');
 const nodemailer = require('nodemailer');
 const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = require('../config/env');
+const webPush = require('web-push');
 
 /**
  * utils/notifier.js
@@ -10,48 +11,30 @@ const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = require('../config/en
 const transporter = nodemailer.createTransport({
   host: EMAIL_HOST,
   port: EMAIL_PORT,
-  secure: parseInt(EMAIL_PORT) === 465,
+  secure: EMAIL_PORT == 465,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
   },
-  pool: true, // Use connection pooling for better reliability
-  maxConnections: 5,
-  maxMessages: 100,
   tls: {
     rejectUnauthorized: false
-  },
-  connectionTimeout: 15000, // Increase to 15s to handle network lag
-  greetingTimeout: 15000
+  }
 });
 
 transporter.verify((err) => {
   if (err) console.warn('⚠️ SMTP failed:', err.message);
-  else console.log('✅ SMTP ready and pooled');
+  else console.log('✅ SMTP ready');
 });
 
-// Helper for exponential backoff retry
-const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-
-const sendMailWithRetry = async (mailOptions, maxRetries = 2) => {
-  let lastError;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      if (attempt > 0) {
-        const delay = 1000 * Math.pow(2, attempt);
-        console.log(`🔄 Retrying email dispatch (Attempt ${attempt}/${maxRetries}) in ${delay}ms...`);
-        await sleep(delay);
-      }
-      return await transporter.sendMail(mailOptions);
-    } catch (err) {
-      lastError = err;
-      console.warn(`⚠️ SMTP Attempt ${attempt} failed:`, err.message);
-      if (err.message.includes('timeout') || err.message.includes('ECONNRESET')) continue;
-      break; // Stop for hard errors like auth or invalid email
-    }
-  }
-  throw lastError;
-};
+// ── Initialize VAPID once at module load time (not per notification) ──────────
+const VAPID_PUB  = process.env.VAPID_PUBLIC_KEY  || 'BMiW0FBPikPVXuG3v_llaQ3lgb1MfPiM_CEcKXafkGvc3KShUCR3OQkjXepzdMzaDzVxW-C8f8kBbLcTZLX9TiM';
+const VAPID_PRIV = process.env.VAPID_PRIVATE_KEY || 'bXwkKXDq6MGPtrtmBY175VsfuDHIjkXtxEvBsbAC2NM';
+try {
+  webPush.setVapidDetails('mailto:info@audienceaura.org', VAPID_PUB, VAPID_PRIV);
+  console.log('✅ VAPID details configured for web-push');
+} catch (e) {
+  console.error('❌ VAPID setup failed:', e.message);
+}
 
 /**
  * Build a structured, role-specific HTML order email
@@ -220,7 +203,7 @@ const sendNotification = async (app, recipientId, data) => {
           if (targetEmail) {
             console.log(`📧 Dispatching signal [${role}] to: ${targetEmail}`);
             try {
-              const info = await sendMailWithRetry({
+              const info = await transporter.sendMail({
                 from: `"Aura Market" <${EMAIL_USER}>`,
                 to: targetEmail,
                 subject: title,
@@ -263,38 +246,44 @@ const sendNotification = async (app, recipientId, data) => {
         }
       }
 
-      // 2. PWA WEB PUSH
+      // 2. PWA WEB PUSH — fires for ALL notifications (not just email flagged ones)
       try {
         const PushSubscription = require('../models/PushSubscription.model');
-        const webPush = require('web-push');
-
-        const VAPID_PUB = process.env.VAPID_PUBLIC_KEY || "BMiW0FBPikPVXuG3v_llaQ3lgb1MfPiM_CEcKXafkGvc3KShUCR3OQkjXepzdMzaDzVxW-C8f8kBbLcTZLX9TiM";
-        const VAPID_PRIV = process.env.VAPID_PRIVATE_KEY || "bXwkKXDq6MGPtrtmBY175VsfuDHIjkXtxEvBsbAC2NM";
-
-        webPush.setVapidDetails(
-          'mailto:info@audienceaura.org',
-          VAPID_PUB,
-          VAPID_PRIV
-        );
 
         const pwaSubscriptions = await PushSubscription.find({ user_id: recipientId });
 
-        const payload = JSON.stringify({
-          title,
-          body: message,
-          icon: '/logo-white.png',
-          badge: '/apple-touch-icon.png',
-          data: { url: emailLink || '/discovery' }
-        });
+        if (pwaSubscriptions.length > 0) {
+          const payload = JSON.stringify({
+            title,
+            body: message,
+            icon: '/logo-white.png',
+            badge: '/apple-touch-icon.png',
+            data: { url: emailLink || '/discovery' }
+          });
 
-        pwaSubscriptions.forEach(sub => {
-          webPush.sendNotification(sub.subscription, payload)
-            .catch(e => {
-              if (e.statusCode === 410 || e.statusCode === 404) {
-                PushSubscription.deleteOne({ _id: sub._id }).catch(() => { });
+          let sent = 0, failed = 0;
+          await Promise.allSettled(
+            pwaSubscriptions.map(async (sub) => {
+              try {
+                await webPush.sendNotification(sub.subscription, payload);
+                sent++;
+              } catch (e) {
+                failed++;
+                if (e.statusCode === 410 || e.statusCode === 404) {
+                  // Expired subscription — remove it
+                  await PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
+                  console.log(`🗑️  Removed stale PWA subscription for user ${recipientId}`);
+                } else {
+                  console.error(`❌ PWA push failed for sub ${sub._id}: [${e.statusCode}] ${e.body || e.message}`);
+                }
               }
-            });
-        });
+            })
+          );
+
+          console.log(`📱 PWA Push complete for [${recipientId}]: ${sent} sent, ${failed} failed out of ${pwaSubscriptions.length} subscriptions`);
+        } else {
+          console.log(`📱 No PWA subscriptions found for user ${recipientId} — skipping push`);
+        }
       } catch (e) {
         console.error('PWA Push background error:', e.message);
       }

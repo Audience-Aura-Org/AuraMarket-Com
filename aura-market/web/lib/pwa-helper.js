@@ -32,7 +32,7 @@ export async function registerPWA() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
     console.log('🚀 Aura SW Registered:', registration.scope);
     return registration;
   } catch (err) {
