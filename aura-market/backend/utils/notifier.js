@@ -10,20 +10,48 @@ const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = require('../config/en
 const transporter = nodemailer.createTransport({
   host: EMAIL_HOST,
   port: EMAIL_PORT,
-  secure: EMAIL_PORT == 465,
+  secure: parseInt(EMAIL_PORT) === 465,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
   },
+  pool: true, // Use connection pooling for better reliability
+  maxConnections: 5,
+  maxMessages: 100,
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  connectionTimeout: 15000, // Increase to 15s to handle network lag
+  greetingTimeout: 15000
 });
 
 transporter.verify((err) => {
   if (err) console.warn('⚠️ SMTP failed:', err.message);
-  else console.log('✅ SMTP ready');
+  else console.log('✅ SMTP ready and pooled');
 });
+
+// Helper for exponential backoff retry
+const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+const sendMailWithRetry = async (mailOptions, maxRetries = 2) => {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        const delay = 1000 * Math.pow(2, attempt);
+        console.log(`🔄 Retrying email dispatch (Attempt ${attempt}/${maxRetries}) in ${delay}ms...`);
+        await sleep(delay);
+      }
+      return await transporter.sendMail(mailOptions);
+    } catch (err) {
+      lastError = err;
+      console.warn(`⚠️ SMTP Attempt ${attempt} failed:`, err.message);
+      if (err.message.includes('timeout') || err.message.includes('ECONNRESET')) continue;
+      break; // Stop for hard errors like auth or invalid email
+    }
+  }
+  throw lastError;
+};
 
 /**
  * Build a structured, role-specific HTML order email
@@ -192,7 +220,7 @@ const sendNotification = async (app, recipientId, data) => {
           if (targetEmail) {
             console.log(`📧 Dispatching signal [${role}] to: ${targetEmail}`);
             try {
-              const info = await transporter.sendMail({
+              const info = await sendMailWithRetry({
                 from: `"Aura Market" <${EMAIL_USER}>`,
                 to: targetEmail,
                 subject: title,

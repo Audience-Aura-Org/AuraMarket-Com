@@ -92,7 +92,7 @@ function ChatContent() {
             read_status: !isUnread 
           };
           
-          const existingIndex = prev.findIndex(c => (c.partner._id || c.partner)?.toString() === partnerId);
+          const existingIndex = prev.findIndex(c => (c.partner?._id || c.partner)?.toString() === partnerId);
           if (existingIndex > -1) {
             const updated = [...prev];
             updated[existingIndex] = { ...updated[existingIndex], snippet: newEntry.snippet, date: newEntry.date, read_status: newEntry.read_status };
@@ -237,7 +237,11 @@ function ChatContent() {
 
     const activeId = activeChat._id.toString();
     const currentFirstMsgPartner = messages[0] 
-      ? (messages[0].sender_id === user?._id ? messages[0].receiver_id : messages[0].sender_id) 
+      ? (
+          (messages[0].sender_id?._id || messages[0].sender_id)?.toString() === user?._id?.toString() 
+          ? (messages[0].receiver_id?._id || messages[0].receiver_id)?.toString() 
+          : (messages[0].sender_id?._id || messages[0].sender_id)?.toString()
+        ) 
       : null;
 
     // If we already have messages for THIS person, don't re-fetch
@@ -319,12 +323,12 @@ function ChatContent() {
 
         // Update inbox entry for partner to show latest snippet
         setInbox(prev => {
-          const partnerId = activeChat._id;
+          const partnerId = activeChat._id.toString();
           const snippet = serverMsg.text || (serverMsg.product_reference && serverMsg.product_reference.name) || '';
-          const existing = prev.find(c => c.partner._id === partnerId);
+          const existing = prev.find(c => (c.partner?._id || c.partner)?.toString() === partnerId);
           const newEntry = { partner: activeChat, snippet, date: new Date().toISOString(), read_status: true };
           if (existing) {
-            return [ { ...existing, snippet: newEntry.snippet, date: newEntry.date, read_status: true }, ...prev.filter(c => c.partner._id !== partnerId) ];
+            return [ { ...existing, snippet: newEntry.snippet, date: newEntry.date, read_status: true }, ...prev.filter(c => (c.partner?._id || c.partner)?.toString() !== partnerId) ];
           }
           return [ newEntry, ...prev ];
         });

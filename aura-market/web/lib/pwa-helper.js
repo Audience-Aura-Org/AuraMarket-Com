@@ -45,8 +45,15 @@ export async function registerPWA() {
  * Requests notification permission and triggers subscription.
  */
 export async function subscribeToPush() {
-  const token = localStorage.getItem('token');
-  if (!token) return; // Only subscribe logged in users
+  let token = localStorage.getItem('aura_token');
+  if (!token) {
+    try {
+      const stored = localStorage.getItem('aura-auth-storage');
+      if (stored) token = JSON.parse(stored)?.state?.token;
+    } catch (e) {}
+  }
+
+  if (!token || token === 'undefined' || token === 'null') return; // Only subscribe logged in users
 
   try {
     const permission = await Notification.requestPermission();

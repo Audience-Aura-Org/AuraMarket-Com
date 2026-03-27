@@ -17,7 +17,15 @@ export default function PWAInit() {
     // We wait a few seconds to let the UX settle before 
     // requesting push synchronization for logged in users.
     const timer = setTimeout(() => {
-      if (localStorage.getItem('token')) {
+      let token = localStorage.getItem('aura_token');
+      if (!token) {
+        try {
+          const stored = localStorage.getItem('aura-auth-storage');
+          if (stored) token = JSON.parse(stored)?.state?.token;
+        } catch (e) {}
+      }
+
+      if (token && token !== 'undefined' && token !== 'null') {
         subscribeToPush();
       }
     }, 5000);
