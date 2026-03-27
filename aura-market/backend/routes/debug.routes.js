@@ -26,4 +26,40 @@ router.get('/vendors-list', protect, restrictTo('admin'), async (req, res, next)
   }
 });
 
+const { transporter } = require('../utils/notifier');
+const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER } = require('../config/env');
+
+// GET /api/v1/debug/smtp-test
+// Diagnoses SMTP connection issues
+router.get('/smtp-test', protect, restrictTo('admin'), async (req, res) => {
+  try {
+    const start = Date.now();
+    await transporter.verify();
+    const duration = Date.now() - start;
+    
+    return res.status(200).json({ 
+      success: true, 
+      message: 'SMTP is correctly configured and reachable.',
+      config: {
+        host: EMAIL_HOST,
+        port: EMAIL_PORT,
+        user: EMAIL_USER ? `${EMAIL_USER.substring(0, 3)}...` : 'not set'
+      },
+      duration: `${duration}ms`
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      code: err.code,
+      command: err.command,
+      config: {
+        host: EMAIL_HOST,
+        port: EMAIL_PORT,
+        user: EMAIL_USER ? `${EMAIL_USER.substring(0, 3)}...` : 'not set'
+      }
+    });
+  }
+});
+
 module.exports = router;

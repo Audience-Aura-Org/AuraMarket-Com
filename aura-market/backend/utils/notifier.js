@@ -11,7 +11,7 @@ const webPush = require('web-push');
 const transporter = nodemailer.createTransport({
   host: EMAIL_HOST,
   port: EMAIL_PORT,
-  secure: EMAIL_PORT == 465,
+  secure: Number(EMAIL_PORT) === 465,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
@@ -303,4 +303,4 @@ const notifyFollowers = async (app, vendorId, data) => {
   } catch (err) { console.error('Follower notify error:', err); }
 };
 
-module.exports = { sendNotification, notifyFollowers };
+module.exports = { sendNotification, notifyFollowers, transporter };

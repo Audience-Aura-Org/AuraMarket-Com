@@ -27,6 +27,8 @@ export default function HubContent() {
   const [loadingInbox, setLoadingInbox] = useState(true);
   const [loadingFeed, setLoadingFeed] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ totalPages: 1, totalProducts: 0 });
 
   useEffect(() => {
     try {
@@ -71,24 +73,31 @@ export default function HubContent() {
       }
     };
 
-    const fetchFeed = async () => {
-      try {
-        const res = await api.get('/products/hub');
-        if (res.data.success) {
-          const nextFeed = res.data.data.products || [];
-          setFeed(nextFeed);
+    fetchInbox();
+  }, []);
+
+  useEffect(() => {
+    fetchFeed(page);
+  }, [page]);
+
+  const fetchFeed = async (p = 1) => {
+    try {
+      setLoadingFeed(true);
+      const res = await api.get(`/products/hub?page=${p}&limit=20`);
+      if (res.data.success) {
+        const nextFeed = res.data.data.products || [];
+        setFeed(nextFeed);
+        setPagination(res.data.data.pagination || { totalPages: 1, totalProducts: 0 });
+        if (p === 1) {
           try { sessionStorage.setItem('aura_hub_feed', JSON.stringify(nextFeed)); } catch (_) {}
         }
-      } catch (err) {
-        console.error('Feed failure:', err);
-      } finally {
-        setLoadingFeed(false);
       }
-    };
-
-    fetchInbox();
-    fetchFeed();
-  }, []);
+    } catch (err) {
+      console.error('Feed failure:', err);
+    } finally {
+      setLoadingFeed(false);
+    }
+  };
 
   const filteredInbox = useMemo(() => {
     return inbox.filter(c => c.partner.name?.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -214,14 +223,63 @@ export default function HubContent() {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-4 space-y-4 no-scrollbar">
-               {loadingFeed ? (
+                {loadingFeed ? (
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                      {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 bg-[var(--bg-primary)]/40 animate-pulse rounded-[32px] border border-[var(--glass-border)]" />)}
                   </div>
                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                     {feed.map(product => <ProductCard key={product._id} product={product} />)}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                       {feed.map(product => <ProductCard key={product._id} product={product} />)}
+                    </div>
+
+                    {/* Desktop Pagination */}
+                    {pagination.totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-4 py-8 border-t border-[var(--glass-border)] mt-8">
+                        <button 
+                          disabled={page === 1}
+                          onClick={() => { setPage(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="px-4 py-2 rounded-xl border border-[var(--glass-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white disabled:opacity-30 transition-all"
+                        >First</button>
+                        <button 
+                          disabled={page === 1}
+                          onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="px-4 py-2 rounded-xl border border-[var(--glass-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white disabled:opacity-30 transition-all"
+                        >Prev</button>
+                        
+                        <div className="flex items-center gap-2">
+                          {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
+                            let pageNum;
+                            if (pagination.totalPages <= 5) pageNum = i + 1;
+                            else if (page <= 3) pageNum = i + 1;
+                            else if (page >= pagination.totalPages - 2) pageNum = pagination.totalPages - 4 + i;
+                            else pageNum = page - 2 + i;
+
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setPage(pageNum)}
+                                className={`size-8 rounded-lg text-[10px] font-black transition-all ${page === pageNum ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] opacity-60 hover:opacity-100'}`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button 
+                          disabled={page === pagination.totalPages}
+                          onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="px-4 py-2 rounded-xl border border-[var(--glass-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white disabled:opacity-30 transition-all"
+                        >Next</button>
+                        <button 
+                          disabled={page === pagination.totalPages}
+                          onClick={() => { setPage(pagination.totalPages); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="px-4 py-2 rounded-xl border border-[var(--glass-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white disabled:opacity-30 transition-all"
+                        >Last</button>
+                      </div>
+                    )}
+                  </>
                )}
             </div>
          </div>
