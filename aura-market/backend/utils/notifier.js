@@ -28,18 +28,21 @@ transporter.verify((err) => {
 /**
  * Build a structured, role-specific HTML order email
  */
+/**
+ * Build a structured, premium, role-specific HTML order email
+ */
 const buildOrderEmailHtml = (title, message, order = null, role = 'user', link = null) => {
   let detailsHtml = '';
 
   if (order) {
     const items = (order.products || []).map(p => `
-      <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #222;">
-          <p style="margin:0;font-size:13px;font-weight:700;color:#fff;">${p.name}</p>
-          <p style="margin:4px 0 0;font-size:11px;color:#555;">QTY: ${p.quantity} · ${p.price.toLocaleString()} XAF</p>
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <td style="padding: 16px 0;">
+          <div style="font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 4px;">${p.name}</div>
+          <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 1px;">QTY: ${p.quantity} &bull; ${p.price.toLocaleString()} XAF</div>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #222;text-align:right;">
-          <p style="margin:0;font-size:13px;font-weight:700;color:#a855f7;font-family:monospace;">${(p.price * p.quantity).toLocaleString()}</p>
+        <td style="padding: 16px 0; text-align: right; vertical-align: top;">
+          <div style="font-size: 14px; font-weight: 800; color: #a855f7; font-family: ui-monospace, 'Cascadia Code', monospace;">${(p.price * p.quantity).toLocaleString()}</div>
         </td>
       </tr>
     `).join('');
@@ -49,34 +52,36 @@ const buildOrderEmailHtml = (title, message, order = null, role = 'user', link =
     const pickup = vendorNode.pickup_address || {};
 
     const pickupNode = `
-      <div style="background:#0d0d0d;border:1px solid #a855f7/30;border-radius:16px;padding:24px;margin-top:32px;">
-        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#a855f7;text-transform:uppercase;letter-spacing:2px;">Pickup Coordinates (Store)</p>
-        <p style="margin:0;font-size:13px;font-weight:700;color:#fff;">${vendorNode.store_name || 'Vendor Node'}</p>
-        <p style="margin:4px 0;font-size:12px;color:#888;">${pickup.street || ''}${pickup.quartier ? ', ' + pickup.quartier : ''}${pickup.city ? ', ' + pickup.city : ''}</p>
-        <p style="margin:0;font-size:11px;font-weight:900;color:#fff;">${vendorNode.phone || ''}</p>
+      <div style="background: linear-gradient(145deg, #0f0f0f, #070707); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 20px; padding: 24px; margin-top: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div style="font-size: 9px; font-weight: 900; color: #a855f7; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Extraction Node (Vendor)</div>
+        <div style="font-size: 15px; font-weight: 800; color: #ffffff;">${vendorNode.store_name || 'Verified Merchant'}</div>
+        <div style="font-size: 13px; color: #888; margin-top: 4px; line-height: 1.5;">${pickup.street || ''}${pickup.quartier ? ', ' + pickup.quartier : ''}${pickup.city ? ', ' + pickup.city : ''}</div>
+        <div style="font-size: 12px; font-weight: 700; color: #a855f7; margin-top: 12px; font-family: monospace;">TELECOM: ${vendorNode.phone || 'N/A'}</div>
       </div>
     `;
 
     const deliveryNode = `
-      <div style="background:#0d0d0d;border:1px solid #222;border-radius:16px;padding:24px;margin-top:16px;">
-        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:2px;">Target Coordinates (Customer)</p>
-        <p style="margin:0;font-size:13px;font-weight:700;color:#fff;">${shipping.name || 'Recipient'}</p>
-        <p style="margin:4px 0;font-size:12px;color:#888;">${shipping.quartier || ''}${shipping.street ? ', ' + shipping.street : ''}</p>
-        <p style="margin:0;font-size:11px;font-weight:900;color:#a855f7;">${shipping.phone || ''}</p>
+      <div style="background: linear-gradient(145deg, #111111, #0a0a0a); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 24px; margin-top: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div style="font-size: 9px; font-weight: 900; color: #555; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Landing Coordinates (Client)</div>
+        <div style="font-size: 15px; font-weight: 800; color: #ffffff;">${shipping.name || 'Recipient'}</div>
+        <div style="font-size: 13px; color: #888; margin-top: 4px; line-height: 1.5;">${shipping.quartier || ''}${shipping.street ? ', ' + shipping.street : ''}</div>
+        <div style="font-size: 12px; font-weight: 700; color: #a855f7; margin-top: 12px; font-family: monospace;">HANDSHAKE: ${shipping.phone || 'N/A'}</div>
       </div>
     `;
 
     detailsHtml = `
-      <div style="margin-top:32px;border-top:2px solid #222;padding-top:32px;">
-        <p style="margin:0 0 12px;font-size:10px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:2px;">Protocol Manifest</p>
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">${items}</table>
+      <div style="margin-top: 40px; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-size: 10px; font-weight: 900; color: #444; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px;">Protocol Manifest</div>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">${items}</table>
         
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;">
-          <tr>
-            <td style="font-size:13px;font-weight:900;color:#fff;text-transform:uppercase;">Grand Total</td>
-            <td style="font-size:18px;font-weight:900;color:#fff;text-align:right;font-family:monospace;">${(order.total_amount || 0).toLocaleString()} <span style="font-size:10px;color:#555;">XAF</span></td>
-          </tr>
-        </table>
+        <div style="margin-top: 32px; padding: 24px; background: rgba(168, 85, 247, 0.05); border-radius: 20px; border: 1px dashed rgba(168, 85, 247, 0.2);">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-size: 12px; font-weight: 900; color: #888; text-transform: uppercase; letter-spacing: 1px;">Contract Total</td>
+              <td style="font-size: 24px; font-weight: 950; color: #ffffff; text-align: right; font-family: ui-monospace, monospace;">${(order.total_amount || 0).toLocaleString()} <span style="font-size: 12px; color: #a855f7; font-weight: 700;">XAF</span></td>
+            </tr>
+          </table>
+        </div>
 
         ${(role === 'vendor' || role === 'logistics') ? pickupNode + deliveryNode : ''}
       </div>
@@ -86,40 +91,66 @@ const buildOrderEmailHtml = (title, message, order = null, role = 'user', link =
   return `
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#0a0a0a;font-family:system-ui,-apple-system,sans-serif;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#0a0a0a;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="100%" style="max-width:600px;background:#111;border-radius:32px;border:1px solid #222;overflow:hidden;">
-        <!-- Header -->
-        <tr><td style="padding:40px;text-align:center;border-bottom:1px solid #222;">
-          <h1 style="margin:0;font-size:24px;font-weight:900;color:#fff;letter-spacing:-1px;">Aura<span style="color:#a855f7;">Market</span></h1>
-          <div style="display:inline-block;margin-top:12px;padding:6px 12px;background:#a855f7/10;border:1px solid #a855f7/20;border-radius:100px;">
-            <p style="margin:0;font-size:9px;font-weight:900;color:#a855f7;text-transform:uppercase;letter-spacing:2px;">Secure Protocol Verified</p>
-          </div>
-        </td></tr>
-        <!-- Content -->
-        <tr><td style="padding:40px;">
-          <h2 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.2;">${title}</h2>
-          <p style="margin:0;font-size:15px;color:#888;line-height:1.6;">${message}</p>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @media only screen and (max-width: 600px) {
+      .container { padding: 20px !important; border-radius: 0 !important; }
+      .header { padding: 40px 20px !important; }
+      .content { padding: 40px 24px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #050505; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #050505; padding: 40px 10px;">
+    <tr>
+      <td align="center">
+        <!-- Main Container -->
+        <table width="100%" style="max-width: 600px; background-color: #0a0a0a; border-radius: 40px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 40px 100px rgba(0,0,0,0.8);" class="container">
           
-          ${detailsHtml}
+          <!-- Glossy Header -->
+          <tr>
+            <td style="padding: 60px 40px; text-align: center; background: linear-gradient(to bottom, #111, #0a0a0a); position: relative;" class="header">
+              <div style="font-size: 28px; font-weight: 950; color: #ffffff; letter-spacing: -1.5px; text-transform: uppercase; margin-bottom: 8px;">Aura<span style="color: #a855f7;">Market</span></div>
+              <div style="display: inline-block; padding: 6px 16px; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 100px;">
+                <span style="font-size: 9px; font-weight: 900; color: #a855f7; text-transform: uppercase; letter-spacing: 2px;">SECURE PROTOCOL DISPATCH</span>
+              </div>
+            </td>
+          </tr>
 
-          ${link ? `
-          <div style="margin-top:40px;text-align:center;">
-            <a href="${link}" style="display:inline-block;padding:18px 36px;background:#fff;color:#000;text-decoration:none;border-radius:18px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;box-shadow:0 10px 20px rgba(0,0,0,0.4);">Access Manifest</a>
-          </div>
-          ` : ''}
-        </td></tr>
-        <!-- Footer -->
-        <tr><td style="padding:32px 40px;background:#0d0d0d;text-align:center;border-top:1px solid #1a1a1a;">
-          <p style="margin:0;font-size:11px;color:#444;line-height:1.8;">
-            Transaction Hash: [${Math.random().toString(36).slice(2, 10).toUpperCase()}]<br>
-            © ${new Date().getFullYear()} Audience Aura — Decentralized Commerce
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
+          <!-- Main Body Content -->
+          <tr>
+            <td style="padding: 60px 48px;" class="content">
+              <h2 style="margin: 0 0 20px; font-size: 28px; font-weight: 950; color: #ffffff; letter-spacing: -1px; line-height: 1.1;">${title}</h2>
+              <p style="margin: 0; font-size: 16px; color: #888; line-height: 1.6; font-weight: 500;">${message}</p>
+              
+              ${detailsHtml}
+
+              ${link ? `
+              <div style="margin-top: 50px; text-align: center;">
+                <a href="${link}" style="display: inline-block; padding: 22px 48px; background-color: #ffffff; color: #000000; text-decoration: none; border-radius: 24px; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 15px 35px rgba(255,255,255,0.2);">Initialize Manifest</a>
+              </div>
+              ` : ''}
+            </td>
+          </tr>
+
+          <!-- Footer Metadata -->
+          <tr>
+            <td style="padding: 40px; background-color: #070707; text-align: center; border-top: 1px solid rgba(255,255,255,0.03);">
+              <div style="font-size: 11px; font-weight: 700; color: #333; margin-bottom: 16px; letter-spacing: 1px;">
+                SIG-ID: [${Math.random().toString(36).slice(2, 12).toUpperCase()}]
+              </div>
+              <p style="margin: 0; font-size: 12px; color: #555; font-weight: 600;">
+                &copy; ${new Date().getFullYear()} <span style="color: #666;">Audience Aura Ecosystem</span><br>
+                <span style="font-size: 10px; opacity: 0.5; margin-top: 8px; display: block;">Decentralized Commerce Protocol v2.4.1</span>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
 </html>

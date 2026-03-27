@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2 } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
@@ -9,46 +9,67 @@ import { toast } from 'react-hot-toast';
 
 export default function StorePage() {
   const { id } = useParams();
+  const productsAnchor = useRef(null);
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
 
+  const handlePageChange = (p) => {
+    setPage(p);
+    productsAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [id]);
+
   useEffect(() => {
     const fetchStoreData = async () => {
       try {
-        setLoading(true);
-        // 1. Fetch Store Details
-        const storeRes = await api.get(`/vendors/stores/${id}`);
-        if (storeRes.data.success) {
-          const s = storeRes.data.data.store;
-          setStore(s);
-          setFollowersCount(s.vendor_id?.follower_count || 0);
+        if (page === 1) setLoading(true);
+        else setProductsLoading(true);
+
+        // 1. Fetch Store Details (only on first page)
+        if (page === 1) {
+          const storeRes = await api.get(`/vendors/stores/${id}`);
+          if (storeRes.data.success) {
+            const s = storeRes.data.data.store;
+            setStore(s);
+            setFollowersCount(s.vendor_id?.follower_count || 0);
+          }
         }
 
         // 2. Fetch Store's Products
-        const productsRes = await api.get(`/products?vendor_id=${id}`);
+        const productsRes = await api.get(`/products`, { params: { vendor_id: id, page, limit: 20 }});
         if (productsRes.data.success) {
           setProducts(productsRes.data.data.products);
+          setTotalPages(productsRes.data.pagination?.pages || 1);
         }
 
-        // 3. Check follow status if logged in
-        try {
-           const followRes = await api.get(`/vendors/${id}/follow-status`);
-           if (followRes.data.success) setIsFollowing(followRes.data.is_following);
-        } catch { /* Silent if not logged in */ }
+        // 3. Check follow status if logged in (only on first page)
+        if (page === 1) {
+          try {
+             const followRes = await api.get(`/vendors/${id}/follow-status`);
+             if (followRes.data.success) setIsFollowing(followRes.data.is_following);
+          } catch { /* Silent if not logged in */ }
+        }
 
       } catch (error) {
         console.error("Store Page Fetch Error:", error);
       } finally {
         setLoading(false);
+        setProductsLoading(false);
       }
     };
 
     if (id) fetchStoreData();
-  }, [id]);
+  }, [id, page]);
 
   const handleToggleFollow = async () => {
     setFollowLoading(true);
@@ -187,7 +208,7 @@ export default function StorePage() {
           </div>
         </div>
 
-        <div className="mt-16 mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div ref={productsAnchor} className="mt-16 mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
              {['Signal Intake', 'Latest Drops', 'Catalogs'].map((tab, i) => (
                <button 
@@ -204,12 +225,52 @@ export default function StorePage() {
           </div>
         </div>
 
-        {products.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-32">
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
+        {productsLoading ? (
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-32 opacity-40">
+             {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-[4/5] rounded-[32px] bg-[var(--bg-primary)] animate-pulse" />)}
+           </div>
+        ) : products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
+              {products.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pb-32">
+                 <button 
+                  disabled={page === 1}
+                  onClick={() => handlePageChange(page - 1)}
+                  className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                 >
+                   Previous
+                 </button>
+                 <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                       if (Math.abs(p - page) > 2 && p !== 1 && p !== totalPages) return p === 2 || p === totalPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
+                       return (
+                          <button 
+                             key={p}
+                             onClick={() => handlePageChange(p)}
+                             className={`size-10 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
+                          >
+                             {p}
+                          </button>
+                       );
+                    })}
+                 </div>
+                 <button 
+                  disabled={page === totalPages}
+                  onClick={() => handlePageChange(page + 1)}
+                  className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                 >
+                   Next
+                 </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="bg-[var(--bg-primary)]/40 rounded-[64px] p-24 text-center border border-[var(--glass-border)] mb-32 glass-panel">
             <Package className="size-16 mx-auto mb-6 opacity-10" />

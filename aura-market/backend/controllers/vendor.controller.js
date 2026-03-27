@@ -238,11 +238,17 @@ const updateVendorProfile = async (req, res, next) => {
 const getPublicStores = async (req, res, next) => {
   try {
     const { search } = req.query;
-    let query = {};
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const startIndex = (page - 1) * limit;
+
+    let query = { verified: true, is_active: true };
 
     if (search) {
       query.store_name = { $regex: search, $options: 'i' };
     }
+
+    const total = await Vendor.countDocuments(query);
 
     // We fetch base Vendors and populate their Stores
     // Used for store directories and discovery feeds
@@ -250,11 +256,14 @@ const getPublicStores = async (req, res, next) => {
       .select('store_name rating verified description user_id follower_count')
       .populate('store', 'logo banner categories') // only fetch visible assets
       .populate('user_id', 'branding avatar') // fetch user-level branding for fallbacks
-      .limit(20); 
+      .skip(startIndex)
+      .limit(limit)
+      .sort('-createdAt'); 
 
     res.status(200).json({
       success: true,
       count: stores.length,
+      pagination: { total, page, pages: Math.ceil(total / limit) },
       data: { stores },
     });
   } catch (error) {

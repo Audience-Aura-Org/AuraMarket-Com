@@ -62,7 +62,7 @@ export default function StoreHighlights({ title, data }) {
                          <span className="text-xs font-bold">{vendor.rating || 5.0} Rating</span>
                       </div>
                     </div>
-                    <Link href={`/store/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all">
+                    <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all">
                       <ArrowUpRight className="w-5 h-5" />
                     </Link>
                   </div>

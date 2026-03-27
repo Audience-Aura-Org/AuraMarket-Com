@@ -13,6 +13,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { trackView, trackWishlist, trackCart } from '@/services/tracking';
 import ProductCard from '@/components/ProductCard';
+import cartStore from '@/services/cartStore';
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
@@ -89,23 +90,17 @@ export default function ProductDetailsPage() {
     
     setAddingToCart(true);
     trackCart(product);
-    if (typeof window !== 'undefined') window.__AURA_PENDING_CART = (window.__AURA_PENDING_CART || 0) + 1;
+    cartStore.startMutation();
 
     try {
       const response = await api.post('/cart', { product_id: id, quantity });
       showToast('Added to cart!');
       
-      if (typeof window !== 'undefined') {
-        window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { 
-            detail: { cart: response.data.data.cart } 
-          }));
-        }
-      }
+      cartStore.endMutation();
+      cartStore.setCart(response.data.data.cart);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to add to cart', 'error');
-      if (typeof window !== 'undefined') window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
+      cartStore.endMutation();
     } finally {
       setAddingToCart(false);
     }

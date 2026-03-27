@@ -9,6 +9,7 @@ import {
   Truck, Package, Info, ShieldAlert, Search
 } from 'lucide-react';
 import api from '@/services/api';
+import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
@@ -231,7 +232,10 @@ function CheckoutContent() {
         toast.success(formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
       }
       
-      // NEW: Show Success State instead of immediate redirect
+      // Clear cart immediately across all components
+      cartStore.clearCart();
+      
+      // Show Success State instead of immediate redirect
       setStep(3); // Success step
       
     } catch (err) {
@@ -326,45 +330,45 @@ function CheckoutContent() {
                        </div>
                     </div>
 
-                    <div className="glass-panel p-10 rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-10">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                          <div className="space-y-3">
+                    <div className="glass-panel p-5 md:p-10 rounded-3xl md:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-6 md:space-y-10">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-10">
+                          <div className="space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Consignee Name</label>
                             <input 
                               placeholder="Full Name"
                               value={formData.name}
                               onChange={e => setFormData({...formData, name: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
                             />
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Comms Protocol (Phone)</label>
                             <input 
                               placeholder="+237 ..."
                               value={formData.phone}
                               onChange={e => setFormData({...formData, phone: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
                             />
                           </div>
-                          <div className="md:col-span-2 space-y-3">
+                          <div className="md:col-span-2 space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Handshake Email</label>
                             <input 
                               type="email"
                               placeholder="email@example.com"
                               value={formData.email}
                               onChange={e => setFormData({...formData, email: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
                             />
                           </div>
                           
 
-                          <div className="md:col-span-2 space-y-4">
+                          <div className="md:col-span-2 space-y-3 md:space-y-4">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Delivery Quartier (Zone)</label>
                             <div className="relative">
                                <button 
                                   type="button"
                                   onClick={() => setZoneOpen(!zoneOpen)}
-                                  className={`w-full flex items-center justify-between px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border transition-all outline-none ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
+                                  className={`w-full flex items-center justify-between px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border transition-all outline-none ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
                                >
                                   <div className="flex items-center gap-4">
                                      <MapPin className="size-5 text-[var(--accent)] opacity-40" />
@@ -386,14 +390,14 @@ function CheckoutContent() {
                             </div>
                           </div>
 
-                          <div className="md:col-span-2 space-y-3">
+                          <div className="md:col-span-2 space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Precise Landing Details (Build/Street No.)</label>
                             <textarea 
                               placeholder="House number, color of gate, or specific landmarks..."
                               rows={3}
                               value={formData.address}
                               onChange={e => setFormData({...formData, address: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold resize-none"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold resize-none"
                             />
                           </div>
 

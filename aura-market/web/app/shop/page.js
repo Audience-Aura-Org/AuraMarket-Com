@@ -29,6 +29,8 @@ function ShopContent() {
   const [activePrice, setActivePrice] = useState(null);
   const [search, setSearch] = useState(initialQuery);
   const [sortBy, setSortBy] = useState('newest');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // --- Category drill-down state ---
   const [categoryTree, setCategoryTree] = useState([]);
@@ -53,12 +55,12 @@ function ShopContent() {
   const productCacheRef = useRef(new Map());
 
   // Memoize the fetcher to stabilize the dependency graph
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (targetPage = page) => {
     // Clear any existing pending fetch to avoid overwhelming the server
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
     fetchTimeout.current = setTimeout(async () => {
-      const params = {};
+      const params = { page: targetPage, limit: 20 }; // Limited to 20 per page as requested
       if (activeCategoryName && activeCategoryName !== 'All') params.category = activeCategoryName;
       if (activePrice) {
         const range = PRICE_RANGES.find(p => p.id === activePrice);
@@ -71,7 +73,8 @@ function ShopContent() {
       const queryKey = JSON.stringify(params);
       const cached = productCacheRef.current.get(queryKey);
       if (cached) {
-        setProducts(cached);
+        setProducts(cached.products);
+        setTotalPages(cached.totalPages);
         setLoading(false);
         return;
       }
@@ -82,7 +85,9 @@ function ShopContent() {
         if (res.data.success) {
           const nextProducts = res.data.data.products || [];
           setProducts(nextProducts);
-          productCacheRef.current.set(queryKey, nextProducts);
+          const total = res.data.pagination?.pages || 1;
+          setTotalPages(total);
+          productCacheRef.current.set(queryKey, { products: nextProducts, totalPages: total });
         }
       } catch (err) {
         console.error('Shop fetch error:', err);
@@ -90,11 +95,16 @@ function ShopContent() {
         setLoading(false);
       }
     }, 300); // 300ms debounce buffer
-  }, [activeCategoryName, activePrice, sortBy, search]); 
+  }, [activeCategoryName, activePrice, sortBy, search, page]); 
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchProducts(page);
+  }, [page, activeCategoryName, activePrice, sortBy]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategoryName, activePrice, sortBy, search]);
 
   const handleCategoryClick = (cat) => {
     setBreadcrumb(prev => [...prev, cat]);
@@ -117,6 +127,13 @@ function ShopContent() {
     }
   };
 
+  const resultsAnchor = useRef(null);
+
+  const handlePageChange = (p) => {
+    setPage(p);
+    resultsAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   return (
@@ -135,13 +152,14 @@ function ShopContent() {
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 trackSearch(search);
-                fetchProducts();
+                setPage(1);
+                fetchProducts(1);
               }
             }}
             placeholder="Search for products..."
             className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg py-2 md:py-2.5 pl-3.5 pr-14 text-[10px] sm:text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-semibold"
           />
-          <button onClick={fetchProducts} className="absolute right-1 top-1 h-[calc(100%-8px)] px-3 sm:px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent)]/80 transition-all">
+          <button onClick={() => { setPage(1); fetchProducts(1); }} className="absolute right-1 top-1 h-[calc(100%-8px)] px-3 sm:px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent)]/80 transition-all">
             <Search className="size-4" />
           </button>
         </div>
@@ -306,7 +324,7 @@ function ShopContent() {
         </aside>
 
         {/* ── MAIN CONTENT ── */}
-        <main className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden">
+        <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden pt-[1px]">
           {/* Results Info + Sort */}
           <div className="px-4 md:px-6 lg:px-12 py-4 md:py-6 border-b border-[var(--glass-border)] flex flex-col md:flex-row items-center justify-between gap-4 bg-[var(--bg-primary)]/50 backdrop-blur-sm">
             <div className="text-center md:text-left">
@@ -387,11 +405,48 @@ function ShopContent() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6">
-                {products.map(product => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 mb-12">
+                  {products.map(product => (
+                    <ProductCard key={product._id} product={product} />
+                  ))}
+                </div>
+
+                {/* --- Pagination --- */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-12 pb-12">
+                     <button 
+                        disabled={page === 1}
+                        onClick={() => handlePageChange(page - 1)}
+                        className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all transition-colors"
+                     >
+                        Previous
+                     </button>
+                     <div className="flex items-center gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                           // Show only 5 pages around current
+                           if (Math.abs(p - page) > 2 && p !== 1 && p !== totalPages) return p === 2 || p === totalPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
+                           return (
+                              <button 
+                                 key={p}
+                                 onClick={() => handlePageChange(p)}
+                                 className={`size-10 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${page === p ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
+                              >
+                                 {p}
+                              </button>
+                           );
+                        })}
+                     </div>
+                     <button 
+                        disabled={page === totalPages}
+                        onClick={() => handlePageChange(page + 1)}
+                        className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all transition-colors"
+                     >
+                        Next
+                     </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </main>

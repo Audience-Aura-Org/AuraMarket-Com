@@ -3,50 +3,35 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingCart, ArrowRight, Package } from 'lucide-react';
-import api from '@/services/api';
 import { usePathname } from 'next/navigation';
+import cartStore from '@/services/cartStore';
+import { useAuthStore } from '@/hooks/useAuth';
 
 export default function FloatingCart() {
-  const [cart, setCart] = useState(null);
-  const [itemsInfo, setItemsInfo] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+  const [items, setItems] = useState(cartStore.getItems());
   const pathname = usePathname();
 
-  const fetchCart = async () => {
-    try {
-      const res = await api.get('/cart');
-      if (res.data?.success) {
-        setCart(res.data.data.cart);
-        setItemsInfo(res.data.data.cart?.items || []);
-      }
-    } catch (err) {
-      console.warn("[FloatingCart] Failed to fetch cart:", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchCart();
-    
-    const handleUpdate = () => {
-      fetchCart();
-    };
+    const unsub = cartStore.subscribe(({ items: newItems }) => {
+      setItems(newItems);
+    });
 
-    window.addEventListener('cart-updated', handleUpdate);
-    return () => window.removeEventListener('cart-updated', handleUpdate);
-  }, []);
+    // Fetch on mount if user logged in
+    if (user?._id) cartStore.refresh();
+
+    return unsub;
+  }, [user?._id]);
 
   // Do not show on auth, checkout, or cart pages themselves, or admin/vendor
   const hiddenRoutes = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/profile'];
   const shouldHide = hiddenRoutes.some(route => pathname?.startsWith(route));
 
   if (shouldHide) return null;
-  if (loading) return null;
-  if (!itemsInfo || itemsInfo.length === 0) return null;
+  if (items.length === 0) return null;
 
-  const totalItems = itemsInfo.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = itemsInfo.reduce((sum, item) => sum + (item.product?.price * item.quantity), 0);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
     <>
@@ -75,19 +60,19 @@ export default function FloatingCart() {
 
             {/* Expanded Content List */}
             <div className="space-y-4 max-h-[35vh] overflow-y-auto w-[288px] no-scrollbar opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
-               {itemsInfo.map((item, i) => (
-                 <div key={i} className="flex items-center gap-3 pb-3 border-b border-[var(--glass-border)] last:border-0 last:pb-0">
+               {items.map((item, i) => (
+                 <div key={item.id || i} className="flex items-center gap-3 pb-3 border-b border-[var(--glass-border)] last:border-0 last:pb-0">
                     <div className="w-12 h-12 rounded-xl bg-[var(--bg-secondary)] overflow-hidden shrink-0 border border-[var(--glass-border)]">
-                      {item.product?.images?.[0] ? (
-                        <img src={item.product.images[0].url || item.product.images[0]} className="w-full h-full object-cover" />
+                      {item.image ? (
+                        <img src={item.image} className="w-full h-full object-cover" />
                       ) : <Package className="w-4 h-4 m-auto opacity-20" />}
                     </div>
                     <div className="min-w-0 flex-1 whitespace-nowrap overflow-hidden pr-2">
-                      <p className="font-bold text-xs text-[var(--text-primary)] truncate">{item.product?.name}</p>
+                      <p className="font-bold text-xs text-[var(--text-primary)] truncate">{item.name}</p>
                       <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-0.5">QTY: {item.quantity}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                       <p className="text-sm font-black text-[var(--accent)]">{(item.product?.price * item.quantity).toLocaleString()} XAF</p>
+                       <p className="text-sm font-black text-[var(--accent)]">{(item.price * item.quantity).toLocaleString()} XAF</p>
                     </div>
                  </div>
                ))}
