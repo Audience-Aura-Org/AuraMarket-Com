@@ -94,7 +94,16 @@ export default function ProductDetailsPage() {
 
     try {
       const response = await api.post('/cart', { product_id: id, quantity });
-      showToast('Added to cart!');
+      
+      // Global feedback event
+      if (typeof window !== 'undefined') {
+         window.dispatchEvent(new CustomEvent('cart-item-added', { 
+           detail: { 
+             name: product.name, 
+             image: (product.images?.[0]?.url || product.images?.[0]) 
+           } 
+         }));
+      }
       
       cartStore.endMutation();
       cartStore.setCart(response.data.data.cart);

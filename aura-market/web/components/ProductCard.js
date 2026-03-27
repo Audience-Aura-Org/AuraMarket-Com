@@ -42,8 +42,12 @@ export default function ProductCard({ product }) {
     }
 
     setAdding(true);
-    // Optimistic UI: show toast immediately
-    showToast("Added to stack!");
+    // Global feedback event
+    if (typeof window !== 'undefined') {
+       window.dispatchEvent(new CustomEvent('cart-item-added', { 
+         detail: { name, image: mainImage } 
+       }));
+    }
     if (typeof window !== 'undefined') window.__AURA_PENDING_CART = (window.__AURA_PENDING_CART || 0) + 1;
     
     try {
@@ -65,7 +69,6 @@ export default function ProductCard({ product }) {
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to add to cart";
-      showToast(errorMessage, "error");
       // Still must decrement on error if we haven't already
       if (typeof window !== 'undefined') window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
     } finally {
@@ -89,17 +92,6 @@ export default function ProductCard({ product }) {
       onClick={() => trackAction({ product_id: productId, action_type: 'view', category, vendor_id: vendor_id?._id })}
       className="group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-md flex flex-col h-full"
     >
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-[10px] font-black uppercase tracking-widest transition-all animate-in fade-in slide-in-from-top-4 duration-300 ${
-          toast.type === 'error'
-            ? 'bg-red-500/10 border-red-500/20 text-red-500'
-            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
-        }`}>
-          <span className={`size-1.5 rounded-full ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
-          {toast.msg}
-        </div>
-      )}
 
       {/* Product Image Area */}
       <div className="relative aspect-square overflow-hidden bg-[var(--accent)]/5">

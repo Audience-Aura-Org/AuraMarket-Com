@@ -22,6 +22,7 @@ export default function TopNav() {
   const [search, setSearch] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
+  const [cartAnimate, setCartAnimate] = useState(false);
 
   // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
@@ -48,7 +49,10 @@ export default function TopNav() {
     const handleUpdate = (e) => {
       if (e.detail?.cart) {
         const items = e.detail.cart.items || [];
-        setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
+        const newCount = items.reduce((s, i) => s + (i.quantity || 1), 0);
+        setCartCount(newCount);
+        setCartAnimate(true);
+        setTimeout(() => setCartAnimate(false), 300);
       } else {
         fetchCounts();
       }
@@ -162,10 +166,10 @@ export default function TopNav() {
           </Link>
 
           <div className="relative group/cart">
-            <Link href="/cart" className="relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
-              <ShoppingCart className="size-5" />
+            <Link href="/cart" className={`relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)] ${cartAnimate ? 'scale-125' : 'scale-100'}`}>
+              <ShoppingCart className={`size-5 transition-transform duration-300 ${cartAnimate ? 'rotate-12' : 'rotate-0'}`} />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none">
+                <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none transition-all duration-300 ${cartAnimate ? 'scale-150 bg-emerald-500' : 'scale-100'}`}>
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}

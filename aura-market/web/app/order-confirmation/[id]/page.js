@@ -8,9 +8,15 @@ import {
   PartyPopper, ChevronRight
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { cartStore } from '@/services/cartStore';
 
 export default function OrderConfirmationPage() {
   const { id } = useParams();
+
+  useEffect(() => {
+    // Refresh cart store to sync with backend after items are pruned/ordered
+    cartStore.refresh();
+  }, []);
 
   return (
     <div className="min-h-screen relative flex items-center justify-center bg-[var(--bg-secondary)] px-8 py-24 overflow-hidden selection:bg-[var(--accent)]/30 transition-colors duration-500">
