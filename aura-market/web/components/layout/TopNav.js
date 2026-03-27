@@ -9,7 +9,6 @@ import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
 import socketService from '@/services/socket';
-import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
@@ -24,42 +23,52 @@ export default function TopNav() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
 
-  // ─── Cart count via centralized store ──────────────────────────────────────
+  // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
-    if (!user?._id) {
-      setCartCount(0);
-      return;
-    }
+    if (!user?._id) return;
+    const fetchCounts = () => {
+      api.get('/cart').then(res => {
+        if (res.data?.success) {
+          const items = res.data.data.cart?.items || [];
+          setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
+        }
+      }).catch(() => {});
+      
+      api.get('/chat').then(res => {
+        if (res.data?.success) {
+          const count = res.data.data.activeChats.filter(c => c.read_status === false).length;
+          setUnreadCount(count);
+        }
+      }).catch(() => {});
+    };
 
-    // Subscribe to cart store — updates immediately on any mutation
-    const unsub = cartStore.subscribe(({ count }) => {
-      setCartCount(count);
-    });
-
-    // Fetch fresh cart data on mount
-    cartStore.refresh();
-
-    // Fetch unread messages
-    api.get('/chat').then(res => {
-      if (res.data?.success) {
-        const count = res.data.data.activeChats.filter(c => c.read_status === false).length;
-        setUnreadCount(count);
+    fetchCounts();
+    
+    // Listen for events that change counts
+    const handleUpdate = (e) => {
+      if (e.detail?.cart) {
+        const items = e.detail.cart.items || [];
+        setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
+      } else {
+        fetchCounts();
       }
-    }).catch(() => {});
-
+    };
+    window.addEventListener('cart-updated', handleUpdate);
+    
     // Socket listeners for unread count
     const handleMsg = () => {
       if (!window.location.pathname.startsWith('/chat')) {
         setUnreadCount(prev => prev + 1);
       }
     };
-
+    
     socketService.on('receive_message', handleMsg);
-    socketService.on('messages_read', () => {});
+    socketService.on('messages_read', handleUpdate);
 
     return () => {
-      unsub();
+      window.removeEventListener('cart-updated', handleUpdate);
       socketService.off('receive_message', handleMsg);
+      socketService.off('messages_read', handleUpdate);
     };
   }, [user?._id]);
 

@@ -51,7 +51,7 @@ const createOrder = async (req, res, next) => {
     for (const item of products) {
       // Fetch currently active product 
       const product = await Product.findById(item.product_id).session(session);
-      
+
       if (!product || product.status !== 'active') {
         throw new Error(`Product ${item.product_id} is unavailable.`);
       }
@@ -106,11 +106,11 @@ const createOrder = async (req, res, next) => {
     }
 
     // 4. Assemble full Order
-    const { 
+    const {
       logistics_company_id,
       delivery_quartier,
       delivery_description,
-      escrow_enabled 
+      escrow_enabled
     } = req.body;
 
     let shipping_fee = 0;
@@ -138,10 +138,10 @@ const createOrder = async (req, res, next) => {
       payment_method,
       shipping_method,
       shipping_address: {
-         ...(shipping_address || req.user.address),
-         quartier: delivery_quartier || (shipping_address?.quartier),
-         email: req.user.email,
-         phone: req.user.phone
+        ...(shipping_address || req.user.address),
+        quartier: delivery_quartier || (shipping_address?.quartier),
+        email: req.user.email,
+        phone: req.user.phone
       },
       delivery_description,
       logistics_company_id: logistics_company_id || null,
@@ -238,7 +238,7 @@ const createOrder = async (req, res, next) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    
+
     // Since we threw generic `Error` objects above for stock/availability faults, catch them properly:
     if (error.message.includes('Insufficient stock') || error.message.includes('unavailable')) {
       return res.status(400).json({ success: false, message: error.message });
@@ -272,7 +272,7 @@ const payDirectly = async (req, res, next) => {
     // Transfer Funds
     user.wallet_balance -= order.total_amount;
     vendorUser.wallet_balance += order.total_amount;
-    
+
     await user.save({ session });
     await vendorUser.save({ session });
 
@@ -302,27 +302,27 @@ const payDirectly = async (req, res, next) => {
     // ── AUTOMATIC LOGISTICS SHIPMENT TRIGGER ──
     let logisticsNotification = null;
     if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
-        const quartier = order.shipping_address.quartier;
-        await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
-        
-        const logisticsComp = await LogisticsCompany.findById(order.logistics_company_id).session(session);
-        if (logisticsComp) {
-          const v = await Vendor.findById(order.vendor_id).session(session);
-          logisticsNotification = {
-            recipientId: logisticsComp.user_id,
-            data: {
-              title: 'New Shipment Assigned',
-              message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
-              type: 'system_alert',
-              metadata: { order_id: order._id, link: '/logistics/dashboard' },
-              sendEmail: true,
-              overrideEmail: logisticsComp.contact_email,
-              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
-              orderDetails: { ...order.toObject(), vendor_id: v },
-              role: 'logistics'
-            }
-          };
-        }
+      const quartier = order.shipping_address.quartier;
+      await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
+
+      const logisticsComp = await LogisticsCompany.findById(order.logistics_company_id).session(session);
+      if (logisticsComp) {
+        const v = await Vendor.findById(order.vendor_id).session(session);
+        logisticsNotification = {
+          recipientId: logisticsComp.user_id,
+          data: {
+            title: 'New Shipment Assigned',
+            message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+            type: 'system_alert',
+            metadata: { order_id: order._id, link: '/logistics/dashboard' },
+            sendEmail: true,
+            overrideEmail: logisticsComp.contact_email,
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+            orderDetails: { ...order.toObject(), vendor_id: v },
+            role: 'logistics'
+          }
+        };
+      }
     }
 
     await session.commitTransaction();
@@ -392,7 +392,7 @@ const getOrderById = async (req, res, next) => {
 
     // Verify Authorization: Only the customer who bought it or the vendor who sold it can view it
     const isCustomer = order.customer_id._id.toString() === req.user._id.toString();
-    
+
     // We must check if the user is the vendor for this order
     let isVendor = false;
     if (req.user.role === 'vendor' && req.vendor) {
@@ -596,14 +596,21 @@ const getInvoice = async (req, res, next) => {
     next(error);
   }
 };
-const createOrdersFromCart = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
 
+const checkout = async (req, res, next) => {
+  let session = null;
   try {
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    } catch (txError) {
+      console.warn('MongoDB Transactions not supported/available. Running in non-atomic mode.', txError.message);
+      session = null;
+    }
+
     const cart = await Cart.findOne({ user_id: req.user._id }).populate({
-        path: 'items.product',
-        select: 'name price stock images vendor_id status'
+      path: 'items.product',
+      select: 'name price stock images vendor_id status'
     }).session(session);
 
     if (!cart || cart.items.length === 0) throw new Error('Cart is empty.');
@@ -612,17 +619,17 @@ const createOrdersFromCart = async (req, res, next) => {
     for (const item of cart.items) {
       if (!item.product || item.product.status !== 'active') continue;
       if (item.product.stock < item.quantity) throw new Error(`Insufficient stock for ${item.product.name}`);
-      
+
       const vId = item.product.vendor_id.toString();
       if (!itemsByVendor[vId]) itemsByVendor[vId] = [];
       itemsByVendor[vId].push(item);
     }
 
     const createdOrders = [];
-    const { 
-      shipping_address, 
-      shipping_method, 
-      payment_method, 
+    const {
+      shipping_address,
+      shipping_method,
+      payment_method,
       escrow_enabled,
       logistics_company_id,
       delivery_quartier,
@@ -634,12 +641,12 @@ const createOrdersFromCart = async (req, res, next) => {
 
     // Validate global logistics compatibility if using partner
     if (effective_shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
-        const vendorIds = Object.keys(itemsByVendor);
-        const firms = await logisticsService.getCompatibleFirms(delivery_quartier, vendorIds);
-        const isCompatible = firms.some(f => f._id.toString() === logistics_company_id);
-        if (!isCompatible) {
-            throw new Error('Selected logistics company cannot handle one or more vendors in your cart for this delivery quartier.');
-        }
+      const vendorIds = Object.keys(itemsByVendor);
+      const firms = await logisticsService.getCompatibleFirms(delivery_quartier, vendorIds);
+      const isCompatible = firms.some(f => f._id.toString() === logistics_company_id);
+      if (!isCompatible) {
+        throw new Error('Selected logistics company cannot handle one or more vendors in your cart for this delivery quartier.');
+      }
     }
 
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
@@ -663,8 +670,8 @@ const createOrdersFromCart = async (req, res, next) => {
 
       let vendor_shipping_fee = 0;
       if (shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
-          const fees = await logisticsService.calculateShipmentFees([vendorId], delivery_quartier, logistics_company_id);
-          vendor_shipping_fee = fees.totalFee;
+        const fees = await logisticsService.calculateShipmentFees([vendorId], delivery_quartier, logistics_company_id);
+        vendor_shipping_fee = fees.totalFee;
       }
 
       const order = await Order.create([{
@@ -678,10 +685,10 @@ const createOrdersFromCart = async (req, res, next) => {
         shipping_method: shipping_method,
         logistics_company_id: logistics_company_id,
         shipping_address: {
-            ...(shipping_address || {}),
-            quartier: delivery_quartier || shipping_address?.quartier,
-            email: shipping_address?.email || req.user.email,
-            phone: shipping_address?.phone || req.user.phone
+          ...(shipping_address || {}),
+          quartier: delivery_quartier || shipping_address?.quartier,
+          email: shipping_address?.email || req.user.email,
+          phone: shipping_address?.phone || req.user.phone
         },
         delivery_description,
         payment_status: 'pending',
@@ -706,8 +713,10 @@ const createOrdersFromCart = async (req, res, next) => {
     cart.items = [];
     await cart.save({ session });
 
-    await session.commitTransaction();
-    session.endSession();
+    if (session && session.inTransaction()) {
+      await session.commitTransaction();
+    }
+    if (session) session.endSession();
 
     // ─────────────────────────────────────────────
     // NON-BLOCKING BACKGROUND DISPATCH (Post-Transaction)
@@ -775,20 +784,22 @@ const createOrdersFromCart = async (req, res, next) => {
       }
     });
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'Cart synchronized and orders split successfully.', 
-      data: { orderIds: createdOrders } 
+    res.status(201).json({
+      success: true,
+      message: 'Cart synchronized and orders split successfully.',
+      data: { orderIds: createdOrders }
     });
   } catch (error) {
-    if (session.inTransaction()) await session.abortTransaction();
-    session.endSession();
+    if (session && session.inTransaction()) await session.abortTransaction();
+    if (session) session.endSession();
+    console.error('CreateOrdersFromCart Error:', error);
     return res.status(400).json({ success: false, message: error.message });
   }
 };
 
 module.exports = {
   createOrder,
+  payDirectly,
   getCustomerOrders,
   getVendorOrders,
   getOrderById,
@@ -798,6 +809,7 @@ module.exports = {
   getInvoice,
   payDirectly,
   createOrdersFromCart,
+  checkout
 };
 
 

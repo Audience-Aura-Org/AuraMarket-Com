@@ -36,7 +36,7 @@ function CheckoutContent() {
     phone: '',
     address: '',
     city: '',
-    paymentMethod: 'wallet',
+    paymentMethod: 'escrow',
     escrowEnabled: true,
     logistics_company_id: null,
     quartier: ''
@@ -165,17 +165,15 @@ function CheckoutContent() {
       api.get('/cart')
         .then(res => {
           if (res.data.success && res.data.data.cart?.items) {
-             const items = res.data.data.cart.items.map(i => ({
-                product_id: i.product?._id || i.product,
-                vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id,
-                vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
-                name: i.product?.name,
-                price: i.product?.price,
-                quantity: i.quantity,
-                image: i.product?.images?.[0]?.url || i.product?.images?.[0]
-             }));
-
-             setCartItems(items);
+              setCartItems(res.data.data.cart.items.map(i => ({
+                 id: i._id || (i.product?._id || i.product),
+                 productId: i.product?._id || i.product,
+                 name: i.product?.name || 'Protocol Asset',
+                 price: Number(i.product?.price || 0),
+                 quantity: i.quantity || 1,
+                 image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
+                 vendor_name: i.product?.vendor_id?.store_name || 'Generic Provider',
+              })));
           }
         })
         .catch(() => {});
@@ -195,6 +193,8 @@ function CheckoutContent() {
 
     setLoading(true);
     setError(null);
+    const toastId = toast.loading("Secure Protocol Initializing...");
+
     try {
       let finalOrderIds = orderId ? [orderId] : [];
       
@@ -208,7 +208,7 @@ function CheckoutContent() {
                phone: formData.phone
             },
             escrow_enabled: formData.escrowEnabled,
-            payment_method: isPayOnDelivery ? 'pay_on_delivery' : 'wallet',
+            payment_method: isPayOnDelivery ? 'pay_on_delivery' : (formData.escrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: formData.logistics_company_id ? 'logistics_partner' : 'vendor_managed',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
@@ -232,22 +232,20 @@ function CheckoutContent() {
         }
       }
 
-      if (isPayOnDelivery) {
-        toast.success("Order placed. Payment will be settled on delivery.");
-      } else {
-        toast.success(formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
-      }
-      
-      // Clear cart immediately across all components
+      const successMsg = isPayOnDelivery 
+        ? "Order placed. Payment settled on delivery." 
+        : formData.escrowEnabled 
+          ? "Funds secured in Escrow Vault." 
+          : "Direct payment completed.";
+
+      toast.success(successMsg, { id: toastId, duration: 4000 });
       cartStore.clearCart();
-      
-      // Show Success State instead of immediate redirect
-      setStep(3); // Success step
+      setStep(3);
       
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Handshake failed. Protocol rejected the transaction.';
+      const msg = err?.response?.data?.message || 'Handshake failed. Please try again.';
       setError(msg);
-      toast.error(msg);
+      toast.error(msg, { id: toastId, duration: 6000 });
     } finally {
       setLoading(false);
     }
@@ -383,11 +381,11 @@ function CheckoutContent() {
                         <div className="flex justify-between items-end">
                            <div className="space-y-1">
                               <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">Total Liquidity</p>
-                              <p className="text-2xl font-black font-mono">{totalAmount.toLocaleString()} XAF</p>
+                              <p className="text-2xl font-black font-mono">${(totalAmount || 0).toLocaleString()}</p>
                            </div>
                            <div className="text-right space-y-1">
                               <p className="text-[9px] font-black opacity-40 uppercase tracking-widest">Available</p>
-                              <p className={`text-sm font-black ${walletBalance < totalAmount ? 'text-red-500' : 'text-emerald-500'}`}>{walletBalance.toLocaleString()} XAF</p>
+                              <p className={`text-sm font-black ${walletBalance < totalAmount ? 'text-red-500' : 'text-emerald-500'}`}>${(walletBalance || 0).toLocaleString()}</p>
                            </div>
                         </div>
                      </div>
@@ -531,28 +529,28 @@ function CheckoutContent() {
                           <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Security Strategy</label>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                              <button 
-                              onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'wallet'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'escrow'})}
+                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.escrowEnabled && formData.paymentMethod === 'escrow' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
                              >
                                 <div className="flex items-center justify-between mb-4">
                                    <div className="flex items-center gap-2">
                                       <ShieldCheck className={`size-5 ${formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
                                       <span className="text-[10px] font-black uppercase tracking-tighter">Aura Escrow</span>
                                    </div>
-                                   {formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                   {(formData.escrowEnabled && formData.paymentMethod === 'escrow') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                 </div>
                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds locked until you verify order integrity.</p>
                              </button>
                              <button 
                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'wallet'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${(!formData.escrowEnabled && formData.paymentMethod === 'wallet') ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
                              >
                                 <div className="flex items-center justify-between mb-4">
                                    <div className="flex items-center gap-2">
-                                      <CreditCard className={`size-5 ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                      <CreditCard className={`size-5 ${(!formData.escrowEnabled && formData.paymentMethod === 'wallet') ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
                                       <span className="text-[10px] font-black uppercase tracking-tighter">Direct Secure</span>
                                    </div>
-                                   {(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                   {(!formData.escrowEnabled && formData.paymentMethod === 'wallet') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                 </div>
                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds transfer immediately to the vendor.</p>
                              </button>
@@ -703,10 +701,10 @@ function CheckoutContent() {
                    )}
 
                    <div className="flex justify-between items-end pt-8 border-t border-[var(--glass-border)]/50">
-                      <div>
-                         <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-[0.4em] mb-1">Final Settlement</p>
-                         <p className="text-5xl font-black text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">{totalAmount.toLocaleString()}</p>
-                      </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] mb-3">Final Settlement</p>
+                            <p className="text-5xl font-black text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">${(totalAmount || 0).toLocaleString()}</p>
+                          </div>
                       <p className="text-[10px] font-black text-[var(--text-secondary)] opacity-40 uppercase pb-2">XAF</p>
                    </div>
                 </div>

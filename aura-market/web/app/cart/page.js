@@ -8,7 +8,6 @@ import {
   X, Loader2, CheckCircle2, ChevronLeft 
 } from 'lucide-react';
 import api from '@/services/api';
-import cartStore from '@/services/cartStore';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
@@ -25,44 +24,65 @@ export default function CartPage() {
     }
   };
 
-  // Load real cart from the store (which syncs from API)
+  // Load real cart
   useEffect(() => {
-    const unsub = cartStore.subscribe(({ items: newItems }) => {
-      setCartItems(newItems);
-      setLoading(false);
-    });
-
-    // Force a fresh fetch on visiting the cart page
     setLoading(true);
-    cartStore.refresh();
-
-    return unsub;
+    api.get('/cart')
+      .then(res => {
+        if (res.data.success && res.data.data.cart?.items && (!window.__AURA_PENDING_CART)) {
+          setCartItems(res.data.data.cart.items.map(item => ({
+            id: item._id || (item.product?._id || item.product),
+            productId: item.product?._id || item.product,
+            name: item.product?.name || 'Product',
+            price: item.product?.price || 0,
+            quantity: item.quantity,
+            image: item.product?.images?.[0]?.url || item.product?.images?.[0] || '',
+            vendor_name: item.product?.vendor_id?.store_name || 'Vendor',
+            vendor_id: item.product?.vendor_id?._id || item.product?.vendor_id || null,
+          })));
+        } else if (!res.data.data.cart?.items) {
+          setCartItems([]);
+        }
+      })
+      .catch(() => {
+        if (!window.__AURA_PENDING_CART) setCartItems([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const updateCartQty = async (id, delta) => {
-    cartStore.startMutation();
-    cartStore.optimisticUpdateQty(id, delta);
+    setPending(1);
+    setCartItems(prev => prev.map(it => it.id === id ? { ...it, quantity: Math.max(1, it.quantity + delta) } : it));
     try {
       const res = await api.patch('/cart/item', { item_id: id, quantity_delta: delta });
-      if (res.data?.success) cartStore.setCart(res.data.data.cart);
+      if (res.data?.success) {
+        setPending(-1);
+        if (window.__AURA_PENDING_CART === 0) {
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart: res.data.data.cart } }));
+        }
+      }
     } catch (err) {
       console.error('Failed updating cart item', err);
-    } finally {
-      cartStore.endMutation();
+      setPending(-1);
     }
   };
 
   const removeCartItem = async (id) => {
-    cartStore.startMutation();
-    const prev = cartStore.optimisticRemove(id);
+    setPending(1);
+    const prev = cartItems;
+    setCartItems(prevItems => prevItems.filter(i => i.id !== id));
     try {
       const res = await api.delete('/cart/item', { data: { item_id: id } });
-      if (res.data?.success) cartStore.setCart(res.data.data.cart);
+      if (res.data?.success) {
+        setPending(-1);
+        if (window.__AURA_PENDING_CART === 0) {
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart: res.data.data.cart } }));
+        }
+      }
     } catch (err) {
       console.error('Failed removing cart item', err);
-      cartStore.rollback(prev);
-    } finally {
-      cartStore.endMutation();
+      setPending(-1);
+      if (window.__AURA_PENDING_CART === 0) setCartItems(prev);
     }
   };
 
