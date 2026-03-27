@@ -41,10 +41,24 @@ transporter.verify((err) => {
   if (err) {
     console.warn(`⚠️  [SMTP] Link Broken [${EMAIL_HOST}:${EMAIL_PORT}]:`, err.message);
     if (err.code === 'ETIMEDOUT') {
-      console.warn('👉 DIAGNOSIS: Firewall Block. If you are on port 465, switch your Render Env to Port 587 and EMAIL_SECURE=false.');
+      console.warn('👉 DIAGNOSIS: Firewall Block. Change to Port 587 and EMAIL_SECURE=false in Render dashboard.');
     }
   } else {
     console.log(`✅ [SMTP] Frequency Established: SUCCESS with ${EMAIL_HOST}:${EMAIL_PORT} (Secure: ${isSecure})`);
+    
+    // 🔥 IGNITION TEST: Send a test signal to yourself on startup
+    if (process.env.NODE_ENV === 'production' || true) {
+       transporter.sendMail({
+         from: `"Aura System" <${EMAIL_USER}>`,
+         to: EMAIL_USER,
+         subject: '🔥 Aura Notification System Active',
+         text: `Handshake successful on port ${EMAIL_PORT}. System is now ready for order signals.`
+       }).then(() => {
+         console.log('✅ [SMTP] IGNITION SUCCESS: Test signal delivered to admin.');
+       }).catch(testErr => {
+         console.warn('❌ [SMTP] IGNITION FAILED: Sending failed despite successful handshake:', testErr.message);
+       });
+    }
   }
 });
 
