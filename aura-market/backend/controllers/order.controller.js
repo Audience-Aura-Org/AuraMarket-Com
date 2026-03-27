@@ -181,7 +181,10 @@ const createOrder = async (req, res, next) => {
         const orderWithVendor = order[0].toObject();
         orderWithVendor.vendor_id = vendor;
 
-        // Notify Vendor
+        // Help prevent SMTP connection timeout: Stagger dispatching
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+        // 1. Notify Vendor
         sendNotification(req.app, vendor.user_id, {
           title: 'New Order Received',
           message: `You have received a new order (#${order[0]._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
@@ -193,7 +196,9 @@ const createOrder = async (req, res, next) => {
           role: 'vendor'
         });
 
-        // Notify Customer
+        await sleep(1000); // 1s gap
+
+        // 2. Notify Customer
         sendNotification(req.app, req.user._id, {
           title: 'Order Confirmed',
           message: `Your order #${order[0]._id.toString().slice(-6).toUpperCase()} has been successfully processed and recorded.`,
@@ -205,8 +210,9 @@ const createOrder = async (req, res, next) => {
           role: 'customer'
         });
 
-        // Notify Logistics Partner
+        // 3. Notify Logistics Partner
         if (logisticsCompForNotify) {
+          await sleep(1000); // 1s gap
           sendNotification(req.app, logisticsCompForNotify.user_id, {
             title: 'New Shipment Assigned',
             message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
@@ -708,6 +714,8 @@ const createOrdersFromCart = async (req, res, next) => {
     // ─────────────────────────────────────────────
     setImmediate(async () => {
       try {
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
         for (const orderId of createdOrders) {
           const o = await Order.findById(orderId);
           if (!o) continue;
@@ -716,7 +724,7 @@ const createOrdersFromCart = async (req, res, next) => {
           const oWithVendor = o.toObject();
           oWithVendor.vendor_id = v;
 
-          // Notify Vendor
+          // 1. Notify Vendor
           sendNotification(req.app, v.user_id, {
             title: 'New Order Received',
             message: `New bulk order segment (#${o._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
@@ -728,7 +736,9 @@ const createOrdersFromCart = async (req, res, next) => {
             role: 'vendor'
           });
 
-          // Notify Customer
+          await sleep(500); // 0.5s gap
+
+          // 2. Notify Customer
           sendNotification(req.app, req.user._id, {
             title: 'Order Segment Placed',
             message: `Your order segment #${o._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
@@ -740,10 +750,11 @@ const createOrdersFromCart = async (req, res, next) => {
             role: 'customer'
           });
 
-          // Notify Logistics if applicable
+          // 3. Notify Logistics if applicable
           if (o.shipping_method === 'logistics_partner' && o.logistics_company_id) {
             const logisticsComp = await LogisticsCompany.findById(o.logistics_company_id);
             if (logisticsComp) {
+              await sleep(500); // 0.5s gap before logistics
               sendNotification(req.app, logisticsComp.user_id, {
                 title: 'New Shipment Assigned',
                 message: `You have new delivery work for Order #${o._id.toString().slice(-6).toUpperCase()}.`,
@@ -757,6 +768,7 @@ const createOrdersFromCart = async (req, res, next) => {
               });
             }
           }
+          await sleep(500); // 0.5s gap between segments
         }
       } catch (bgError) {
         console.error('Checkout bg notification error:', bgError);

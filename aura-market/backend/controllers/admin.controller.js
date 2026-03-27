@@ -457,8 +457,28 @@ const getLogisticsEarningsReport = async (req, res, next) => {
 
 const updateLogisticsFirm = async (req, res, next) => {
   try {
-    const { is_verified, quartier_prices, supported_pickup_regions } = req.body;
-    const firm = await LogisticsCompany.findByIdAndUpdate(req.params.id, { is_verified, quartier_prices, supported_pickup_regions }, { new: true });
+    const { is_verified, quartier_prices, supported_pickup_regions, contact_email, company_name, contact_phone } = req.body;
+    
+    const firm = await LogisticsCompany.findById(req.params.id);
+    if (!firm) return res.status(404).json({ success: false, message: 'Logistics firm not found.' });
+
+    if (typeof is_verified !== 'undefined') firm.is_verified = is_verified;
+    if (quartier_prices) firm.quartier_prices = quartier_prices;
+    if (supported_pickup_regions) firm.supported_pickup_regions = supported_pickup_regions;
+    if (company_name) firm.company_name = company_name;
+    if (contact_phone) firm.contact_phone = contact_phone;
+
+    // Sync email back to User account if changed here
+    if (contact_email && contact_email !== firm.contact_email) {
+      firm.contact_email = contact_email;
+      const user = await User.findById(firm.user_id);
+      if (user) {
+        user.email = contact_email;
+        await user.save({ validateBeforeSave: false });
+      }
+    }
+
+    await firm.save();
     res.status(200).json({ success: true, data: { firm } });
   } catch (error) {
     next(error);
