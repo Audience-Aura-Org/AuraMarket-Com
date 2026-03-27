@@ -62,4 +62,29 @@ router.get('/smtp-test', protect, restrictTo('admin'), async (req, res) => {
   }
 });
 
+// GET /api/v1/debug/smtp-handshake
+// PUBLIC diagnostic: Handshakes with SMTP (no-auth/no-db)
+router.get('/smtp-handshake', async (req, res) => {
+  try {
+    const start = Date.now();
+    await transporter.verify();
+    
+    return res.status(200).json({ 
+      success: true, 
+      message: 'SMTP Bridge Stabilized. Handshake complete.',
+      host: EMAIL_HOST,
+      port: EMAIL_PORT,
+      duration: `${Date.now() - start}ms`
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      code: err.code,
+      host: EMAIL_HOST,
+      port: EMAIL_PORT
+    });
+  }
+});
+
 module.exports = router;

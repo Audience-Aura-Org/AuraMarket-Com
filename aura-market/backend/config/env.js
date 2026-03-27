@@ -39,4 +39,5 @@ module.exports = {
   EMAIL_PORT: process.env.EMAIL_PORT || 587,
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
+  EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
 };

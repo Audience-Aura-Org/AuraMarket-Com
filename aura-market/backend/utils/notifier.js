@@ -1,7 +1,7 @@
 const Notification = require('../models/Notification.model');
 const User = require('../models/User.model');
 const nodemailer = require('nodemailer');
-const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = require('../config/env');
+const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_SECURE } = require('../config/env');
 const webPush = require('web-push');
 
 /**
@@ -11,7 +11,7 @@ const webPush = require('web-push');
 const transporter = nodemailer.createTransport({
   host: EMAIL_HOST,
   port: EMAIL_PORT,
-  secure: Number(EMAIL_PORT) === 465,
+  secure: EMAIL_SECURE !== undefined ? EMAIL_SECURE : (Number(EMAIL_PORT) === 465),
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
