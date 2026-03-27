@@ -24,6 +24,12 @@ function CheckoutContent() {
   const { user } = useAuthStore();
   
   const [step, setStep] = useState(1);
+
+  // Scroll to top on step change for mobile UX
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -176,11 +182,11 @@ function CheckoutContent() {
     }
   }, [orderId]);
 
+  const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
+
   const handlePlaceOrder = async () => {
     const subtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
     const totalAmount = subtotal + deliveryFee;
-
-    const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
 
     if (!isPayOnDelivery && walletBalance < totalAmount) {
         toast.error("Insufficient wallet liquidity. Please deposit funds.");
@@ -318,8 +324,76 @@ function CheckoutContent() {
             </div>
 
             <div className="pt-8">
-              {/* Existing Step 1 & 2 content ... */}
-              {step === 1 && (
+              {step === 3 ? (
+                <section className="animate-in fade-in zoom-in-95 duration-1000 py-12">
+                   <div className="max-w-3xl mx-auto text-center space-y-12">
+                     <div className="relative inline-block">
+                       <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
+                       <div className="size-32 md:size-40 rounded-[48px] md:rounded-[56px] bg-black text-white flex items-center justify-center shadow-3xl relative mx-auto">
+                         <CheckCircle2 className="size-16 md:size-20 animate-bounce" />
+                       </div>
+                     </div>
+                     
+                     <div className="space-y-4">
+                       <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase mb-4">Handshake <span className="text-[var(--accent)]">Complete</span></h2>
+                       <p className="text-sm md:text-base font-medium text-[var(--text-secondary)] max-w-xl mx-auto">Your order has been stabilized and assigned to the logistics network. Aura Nodes are now orchestrating fulfillment.</p>
+                     </div>
+
+                     <div className="glass-panel p-8 rounded-[40px] border border-[var(--accent)]/30 bg-[var(--accent)]/5 group cursor-pointer transition-all hover:bg-[var(--accent)]/10 text-left"
+                       onClick={async () => {
+                          const sub = await subscribeToPush();
+                          if (sub) toast.success("Aura Signal Established.");
+                       }}
+                     >
+                       <div className="flex items-center gap-6">
+                         <div className="size-16 rounded-3xl bg-black flex items-center justify-center text-[var(--accent)] shrink-0 shadow-lg">
+                           <Smartphone className="size-8" />
+                         </div>
+                         <div className="flex-1">
+                           <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] mb-1">PWA Connectivity</h4>
+                           <p className="text-base font-black uppercase tracking-tight">Enable Real-Time Dispatch Alerts</p>
+                           <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">Get native push notifications for shipment tracking and escrow releases.</p>
+                         </div>
+                         <div className="size-12 rounded-full border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] group-hover:scale-110 group-hover:bg-[var(--accent)] group-hover:text-white transition-all shrink-0">
+                           <Plus className="size-5" />
+                         </div>
+                       </div>
+                     </div>
+
+                     <div className="flex flex-col md:row items-center justify-center gap-4 pt-6">
+                       <Link 
+                         href="/orders"
+                         className="w-full md:w-auto px-12 h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
+                       >
+                          <Package className="size-4" /> Go to My Orders
+                       </Link>
+                       <Link 
+                         href="/discovery"
+                         className="w-full md:w-auto px-12 h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[11px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                       >
+                          Explore More <ArrowRight className="size-4" />
+                       </Link>
+                     </div>
+                   </div>
+                </section>
+              ) : (
+                <>
+                  <div className="lg:hidden mb-12">
+                     <div className={`p-6 rounded-[32px] border ${walletBalance < totalAmount ? 'border-red-500/20 bg-red-500/5' : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/40'}`}>
+                        <div className="flex justify-between items-end">
+                           <div className="space-y-1">
+                              <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">Total Liquidity</p>
+                              <p className="text-2xl font-black font-mono">{totalAmount.toLocaleString()} XAF</p>
+                           </div>
+                           <div className="text-right space-y-1">
+                              <p className="text-[9px] font-black opacity-40 uppercase tracking-widest">Available</p>
+                              <p className={`text-sm font-black ${walletBalance < totalAmount ? 'text-red-500' : 'text-emerald-500'}`}>{walletBalance.toLocaleString()} XAF</p>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+
+                {step === 1 && (
                 <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <div className="space-y-10">
                     <div className="flex items-center gap-6">
@@ -579,10 +653,14 @@ function CheckoutContent() {
                    </div>
                 </section>
               )}
+              </>
+              )}
             </div>
           </div>
 
-          <div className="lg:col-span-4 h-fit sticky top-36">
+          {step !== 3 && (
+            <div className={`lg:col-span-4 h-fit lg:sticky lg:top-36 ${step === 2 ? 'order-first lg:order-last' : ''}`}>
+
             <div className="glass-panel p-10 rounded-[56px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
                <h3 className="text-3xl font-black mb-10 tracking-tighter uppercase leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
                <div className="space-y-6 max-h-[300px] overflow-y-auto no-scrollbar pr-2 mb-12">
@@ -634,70 +712,22 @@ function CheckoutContent() {
                 </div>
 
                 {step === 2 && (
-                 <button 
-                  onClick={handlePlaceOrder}
-                  disabled={loading}
-                  className="w-full h-20 mt-10 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group"
-                 >
-                   {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
-                 </button>
-               )}
-
-               {step === 3 && (
-                <section className="animate-in fade-in zoom-in-95 duration-1000">
-                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
-                    <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
-                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
-                        <CheckCircle2 className="size-16 animate-bounce" />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Handshake <span className="text-[var(--accent)]">Complete</span></h2>
-                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been stabilized and assigned to the logistics network.</p>
-                    </div>
-
-                    <div className="glass-panel p-8 rounded-[40px] border border-[var(--accent)]/30 bg-[var(--accent)]/5 group cursor-pointer transition-all hover:bg-[var(--accent)]/10"
-                      onClick={async () => {
-                         const sub = await subscribeToPush();
-                         if (sub) toast.success("Aura Signal Established.");
-                      }}
+                  <div className="space-y-4">
+                    <button 
+                      onClick={handlePlaceOrder}
+                      disabled={loading || (!isPayOnDelivery && walletBalance < totalAmount)}
+                      className="w-full h-20 mt-10 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      <div className="flex items-center gap-6 text-left">
-                        <div className="size-16 rounded-3xl bg-black flex items-center justify-center text-[var(--accent)]">
-                          <Smartphone className="size-8" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] mb-1">PWA Connectivity</h4>
-                          <p className="text-sm font-black uppercase tracking-tight">Enable Real-Time Dispatch Alerts</p>
-                          <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">Get native push notifications for shipment tracking and escrow releases.</p>
-                        </div>
-                        <div className="size-10 rounded-full border border-[var(--accent)] flex items-center justify-center text-[var(--accent)] group-hover:scale-110 transition-transform">
-                          <Plus className="size-5" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <Link 
-                        href="/orders"
-                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
-                      >
-                         <Package className="size-4" /> Go to My Orders
-                      </Link>
-                      <Link 
-                        href="/discovery"
-                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
-                      >
-                         Continue Exploring <ArrowRight className="size-4" />
-                      </Link>
-                    </div>
+                      {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
+                    </button>
+                    {!isPayOnDelivery && walletBalance < totalAmount && (
+                       <p className="text-[9px] font-bold text-red-500 uppercase text-center tracking-tighter">Insufficient wallet balance to authorize transaction</p>
+                    )}
                   </div>
-                </section>
-               )}
+                )}
             </div>
           </div>
+          )}
         </div>
       </main>
     </div>
