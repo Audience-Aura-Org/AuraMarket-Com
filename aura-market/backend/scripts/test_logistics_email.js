@@ -36,9 +36,9 @@ async function testLogisticsNotification() {
         store_name: 'Aura Premium Store',
         phone: '+237 611 111 111',
         pickup_address: {
-           street: 'Boulevard de la Liberté',
-           quartier: 'Bonanjo',
-           city: 'Douala'
+          street: 'Boulevard de la Liberté',
+          quartier: 'Bonanjo',
+          city: 'Douala'
         }
       }
     };
@@ -59,10 +59,11 @@ async function testLogisticsNotification() {
     });
 
     console.log('Test notification sent successfully!');
-    process.exit(0);
   } catch (err) {
     console.error('Test Failed:', err);
-    process.exit(1);
+  } finally {
+    await mongoose.disconnect();
+    console.log('Disconnected from DB');
   }
 }
 
