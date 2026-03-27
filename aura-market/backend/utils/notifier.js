@@ -145,11 +145,21 @@ const sendNotification = async (app, recipientId, data) => {
       if (sendEmail && EMAIL_USER) {
         try {
           const EmailLog = require('../models/EmailLog.model');
-          const user = await User.findById(recipientId).select('email name');
-          const targetEmail = overrideEmail || user?.email;
+          const user = await User.findById(recipientId).select('email name role');
+
+          // For logistics role: always do a fresh lookup of contact_email from LogisticsCompany
+          // to guarantee we use the latest corporate email, not a stale cached value
+          let targetEmail = overrideEmail || user?.email;
+          if (role === 'logistics') {
+            const LogisticsCompany = require('../models/LogisticsCompany.model');
+            const firm = await LogisticsCompany.findOne({ user_id: recipientId }).select('contact_email');
+            if (firm?.contact_email) {
+              targetEmail = firm.contact_email; // Always override with current DB value
+            }
+          }
           
           if (targetEmail) {
-            console.log(`📧 Dispatching signal to: ${targetEmail}`);
+            console.log(`📧 Dispatching signal [${role}] to: ${targetEmail}`);
             try {
               const info = await transporter.sendMail({
                 from: `"Aura Market" <${EMAIL_USER}>`,

@@ -511,13 +511,15 @@ const updateUserAdmin = async (req, res, next) => {
 
     await user.save();
 
-    // Cascading updates: sync associated business profiles so notifications match the new user settings
+    // Cascading updates: sync associated business profiles so notifications always match the master User email
     if (emailChanged) {
-      if (user.role === 'logistics' || role === 'logistics') {
+      // Use the user's role from the DB (already saved above) — don't rely on req.body.role being present
+      if (user.role === 'logistics') {
         const logisticsComp = await LogisticsCompany.findOne({ user_id: user._id });
         if (logisticsComp) {
           logisticsComp.contact_email = email;
           await logisticsComp.save();
+          console.log(`✅ Synced LogisticsCompany contact_email → ${email} for user ${user._id}`);
         }
       }
     }
