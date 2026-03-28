@@ -62,6 +62,7 @@ const createOrder = async (req, res, next) => {
 
       // Deduct stock natively
       product.stock -= item.quantity;
+      product.purchase_count = (product.purchase_count || 0) + item.quantity;
       await product.save({ session });
 
       // Low stock alert
@@ -656,9 +657,9 @@ const createOrdersFromCart = async (req, res, next) => {
         };
       });
 
-      // Atomically decrement stock
+      // Atomically decrement stock and increment purchases
       for (const it of items) {
-        await Product.findByIdAndUpdate(it.product._id, { $inc: { stock: -it.quantity } }, { session });
+        await Product.findByIdAndUpdate(it.product._id, { $inc: { stock: -it.quantity, purchase_count: it.quantity } }, { session });
       }
 
       let vendor_shipping_fee = 0;
