@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -12,6 +13,7 @@ import { useAuthStore } from '@/hooks/useAuth';
  */
 export default function PWAInit() {
   const { user } = useAuthStore();
+  const pathname = usePathname();
   const subscribedRef = useRef(false);
 
   const attemptSubscription = async () => {
@@ -24,7 +26,7 @@ export default function PWAInit() {
     }
     if (!token || token === 'undefined' || token === 'null') return;
     
-    console.log('[PWAInit] Attempting push subscription sync...');
+    console.log('[PWAInit] Syncing push registration at node:', pathname);
     await subscribeToPush();
     subscribedRef.current = true;
   };
@@ -40,14 +42,13 @@ export default function PWAInit() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 2. Re-subscribe when user identity changes (login/logout cycle)
+  // 2. Re-subscribe when path changes or user identity changes
+  // This ensures the device always has a valid endpoint even during long sessions
   useEffect(() => {
     if (user?._id) {
-      subscribedRef.current = false; // Force re-sync on user change
-      const timer = setTimeout(() => attemptSubscription(), 2000);
-      return () => clearTimeout(timer);
+      attemptSubscription();
     }
-  }, [user?._id]);
+  }, [user?._id, pathname]);
 
   // 3. On app resume (coming back from background), check and re-subscribe.
   // This is the CRITICAL FIX: handles permission granted while app was backgrounded
