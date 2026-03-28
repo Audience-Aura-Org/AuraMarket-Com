@@ -555,31 +555,32 @@ export default function OnboardingPage() {
 
       {/* Persistent Controls */}
       {/* Persistent Controls - Elevated on mobile to clear bottom nav */}
-      <div className="fixed bottom-24 lg:bottom-0 left-0 w-full p-8 md:p-12 z-50 pointer-events-none transition-all">
-         <div className="max-w-4xl mx-auto flex items-center justify-between pointer-events-auto">
+      <div className="fixed bottom-24 lg:bottom-0 left-0 w-full p-4 md:p-12 z-50 pointer-events-none transition-all">
+         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 pointer-events-auto">
             <button 
               onClick={prevStep}
-              className={`h-14 px-10 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] font-black text-[10px] tracking-widest uppercase flex items-center gap-3 transition-all hover:bg-[var(--bg-secondary)] ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''}`}
+              className={`h-12 md:h-14 px-4 md:px-10 rounded-xl md:rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] font-black text-[8px] md:text-[10px] tracking-widest uppercase flex items-center gap-2 md:gap-3 transition-all hover:bg-[var(--bg-secondary)] ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''}`}
             >
-               <ArrowLeft className="size-4" />
-               Revert
+               <ArrowLeft className="size-3 md:size-4" />
+               <span className="hidden sm:inline">Revert</span>
             </button>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4 ml-auto">
                {currentStep < 3 && (
                   <button 
                     onClick={skipOnboarding}
-                    className="h-14 px-8 rounded-2xl text-[var(--text-secondary)] opacity-40 hover:opacity-100 font-black text-[10px] tracking-widest uppercase transition-all flex items-center gap-2"
+                    className="h-12 md:h-14 px-4 md:px-8 rounded-xl md:rounded-2xl text-[var(--text-secondary)] opacity-60 hover:opacity-100 font-black text-[8px] md:text-[10px] tracking-widest uppercase transition-all flex items-center gap-1 md:gap-2"
                   >
-                    Skip <SkipForward className="size-4" />
+                    <span>Skip</span> <SkipForward className="size-3 md:size-4" />
                   </button>
                )}
                {currentStep < 3 && (
                   <button 
                     onClick={nextStep}
-                    className="h-14 px-12 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] tracking-widest uppercase shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+                    className="h-12 md:h-14 px-6 md:px-12 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white font-black text-[8px] md:text-[10px] tracking-widest uppercase shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2 md:gap-3"
                   >
-                    Calibrate & Proceed <ArrowRight className="size-4" />
+                    <span className="sm:hidden">Next</span>
+                    <span className="hidden sm:inline">Calibrate & Proceed</span> <ArrowRight className="size-3 md:size-4" />
                   </button>
                )}
             </div>
