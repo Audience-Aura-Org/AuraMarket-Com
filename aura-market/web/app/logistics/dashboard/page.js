@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Truck, Package, CheckCircle, AlertCircle, Bell, Building, Globe, MapPin, Smartphone, Mail, Loader2, ArrowUpRight } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default function LogisticsDashboard() {
+function LogisticsDashboardContent() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -449,6 +449,18 @@ export default function LogisticsDashboard() {
         </div>
       )}
     </>
+  );
+}
+
+export default function LogisticsDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-[var(--bg-secondary)]">
+        <Loader2 className="size-10 animate-spin text-[var(--accent)]" />
+      </div>
+    }>
+      <LogisticsDashboardContent />
+    </Suspense>
   );
 }
 
