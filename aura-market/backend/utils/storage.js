@@ -45,14 +45,23 @@ if (useCloudinary) {
   console.warn('⚠️  [Storage] NO Cloudinary credentials found. Using Ephemeral Local Storage.');
   console.warn('👉  CRITICAL: Files uploaded will be WIPED on every Render restart/push.');
   
-  const uploadDir = 'uploads/';
-  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+  const baseDir = 'uploads/';
+  if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir);
 
   engine = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
+    destination: (req, file, cb) => {
+      // 📂 Dynamic Sub-folder Logic: organizes by 'type' from req.body
+      const subFolder = req.body.type || 'general';
+      const finalPath = path.join(baseDir, subFolder);
+      
+      if (!fs.existsSync(finalPath)) {
+        fs.mkdirSync(finalPath, { recursive: true });
+      }
+      cb(null, finalPath);
+    },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
     }
   });
 }

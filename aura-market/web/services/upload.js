@@ -6,9 +6,10 @@ import api from './api';
  */
 export const uploadService = {
   // Upload a single file
-  uploadSingle: async (file) => {
+  uploadSingle: async (file, type = 'general') => {
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('type', type);
 
     const res = await api.post('/upload/single', formData, {
       headers: {
@@ -19,11 +20,12 @@ export const uploadService = {
   },
 
   // Upload multiple files (up to 5)
-  uploadMultiple: async (files) => {
+  uploadMultiple: async (files, type = 'general') => {
     const formData = new FormData();
     Array.from(files).forEach((file) => {
       formData.append('images', file);
     });
+    formData.append('type', type);
 
     const res = await api.post('/upload/multiple', formData, {
       headers: {

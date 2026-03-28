@@ -49,6 +49,7 @@ export default function AddProductPage() {
       Object.entries(form).forEach(([k, v]) => formData.append(k, v));
       images.forEach(img => formData.append('images', img.file));
       formData.append('tags', JSON.stringify(tags));
+      formData.append('type', 'products');
       
       await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       router.push('/vendor/products');

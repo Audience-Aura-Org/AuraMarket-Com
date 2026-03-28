@@ -87,6 +87,7 @@ export default function EditProductPage() {
       newFiles.forEach(file => formData.append('images', file));
       
       formData.append('tags', JSON.stringify(tags));
+      formData.append('type', 'products');
       
       await api.patch(`/products/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       router.push('/vendor/products');

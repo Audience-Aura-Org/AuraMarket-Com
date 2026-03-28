@@ -267,7 +267,13 @@ export default function AccountPageClient() {
     setBrandingUploading(field);
     setBrandingStatus(`Uploading ${field.replace('_', ' ')}...`);
     try {
-      const res = await uploadService.uploadSingle(file);
+      // 📂 PASS TYPE: Ensures folder organization on the hosting
+      let uploadType = 'general';
+      if (field === 'logo') uploadType = 'avatars';
+      if (field === 'banner') uploadType = 'banners';
+      if (field.startsWith('kyc')) uploadType = 'kyc';
+
+      const res = await uploadService.uploadSingle(file, uploadType);
       if (res?.success && res?.data?.url) {
         if (field === 'kyc_front') {
           setKycData((p) => ({ ...p, file_url_front: res.data.url }));
