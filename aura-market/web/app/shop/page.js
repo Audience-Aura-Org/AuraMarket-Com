@@ -28,9 +28,10 @@ function ShopContent() {
   const [loading, setLoading] = useState(true);
   const [activePrice, setActivePrice] = useState(null);
   const [search, setSearch] = useState(initialQuery);
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState('-createdAt');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [viewMode, setViewMode] = useState('grid');
 
   // --- Category drill-down state ---
   const [categoryTree, setCategoryTree] = useState([]);
@@ -139,41 +140,84 @@ function ShopContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30">
       {/* Search Header */}
-      <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-20 flex flex-wrap items-center gap-4 lg:gap-8 sticky top-[64px] md:top-[72px] z-40 transition-all">
-        <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-[var(--accent)] whitespace-nowrap">
-          <MapPin className="size-3" /> <span className="hidden xs:inline">DELIVER TO</span> AURA HUB
-        </div>
+      <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-20 sticky top-[64px] md:top-[72px] z-40 transition-all">
         
-        <div className="flex-1 min-w-[200px] relative order-last md:order-none w-full md:w-auto">
-          <input 
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                trackSearch(search);
-                setPage(1);
-                fetchProducts(1);
-              }
-            }}
-            placeholder="Search for products..."
-            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg py-2 md:py-2.5 pl-3.5 pr-14 text-[10px] sm:text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-semibold"
-          />
-          <button onClick={() => { setPage(1); fetchProducts(1); }} className="absolute right-1 top-1 h-[calc(100%-8px)] px-3 sm:px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent)]/80 transition-all">
-            <Search className="size-4" />
-          </button>
+        {/* Mobile Layout */}
+        <div className="md:hidden flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-[var(--accent)]">
+              <MapPin className="size-3" /> AURA HUB
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black text-[var(--text-primary)] tracking-widest">ORDERS</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input 
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    trackSearch(search);
+                    setPage(1);
+                    fetchProducts(1);
+                  }
+                }}
+                placeholder="Search products..."
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl py-2.5 pl-3.5 pr-12 text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-bold"
+              />
+              <button onClick={() => { setPage(1); fetchProducts(1); }} className="absolute right-1 top-1 h-[calc(100%-8px)] px-3 text-[var(--accent)] bg-[var(--accent)]/10 rounded-lg">
+                <Search className="size-4" />
+              </button>
+            </div>
+            <button 
+              onClick={() => setIsFilterOpen(true)}
+              className="size-11 flex-shrink-0 flex items-center justify-center bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 md:gap-6 ml-auto">
-          <button 
-            onClick={() => setIsFilterOpen(true)}
-            className="lg:hidden flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg text-[10px] font-black tracking-widest uppercase hover:text-[var(--accent)] transition-all"
-          >
-            Filters
-          </button>
-          <div className="hidden sm:flex flex-col items-end">
-            <span className="text-[8px] font-black text-[var(--text-secondary)] tracking-widest leading-none">MY</span>
-            <span className="text-[10px] font-black text-[var(--text-primary)]">ORDERS</span>
+        {/* Desktop Layout */}
+        <div className="hidden md:flex flex-wrap items-center gap-4 lg:gap-8">
+          <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-[var(--accent)] whitespace-nowrap">
+            <MapPin className="size-3" /> DELIVER TO AURA HUB
+          </div>
+          
+          <div className="flex-1 relative">
+            <input 
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  trackSearch(search);
+                  setPage(1);
+                  fetchProducts(1);
+                }
+              }}
+              placeholder="Search for products..."
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg py-2.5 pl-3.5 pr-14 text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-semibold"
+            />
+            <button onClick={() => { setPage(1); fetchProducts(1); }} className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent)]/80 transition-all">
+              <Search className="size-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-6 ml-auto">
+            <button 
+              onClick={() => setIsFilterOpen(true)}
+              className="lg:hidden flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg text-[10px] font-black tracking-widest uppercase hover:text-[var(--accent)] transition-all"
+            >
+              Filters
+            </button>
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] font-black text-[var(--text-secondary)] tracking-widest leading-none">MY</span>
+              <span className="text-[10px] font-black text-[var(--text-primary)]">ORDERS</span>
+            </div>
           </div>
         </div>
       </div>
@@ -358,18 +402,18 @@ function ShopContent() {
                   onChange={e => setSortBy(e.target.value)}
                   className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-lg py-2 px-4 text-[10px] font-black tracking-widest outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all cursor-pointer text-[var(--text-primary)] min-w-[140px]"
                 >
-                  <option value="newest">NEWEST ARRIVALS</option>
-                  <option value="price-low">PRICE: LOW TO HIGH</option>
-                  <option value="price-high">PRICE: HIGH TO LOW</option>
-                  <option value="rating">AVG. REVIEWS</option>
+                  <option value="-createdAt">NEWEST ARRIVALS</option>
+                  <option value="price">PRICE: LOW TO HIGH</option>
+                  <option value="-price">PRICE: HIGH TO LOW</option>
+                  <option value="-rating">AVG. REVIEWS</option>
                 </select>
               </div>
               <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)]" />
               <div className="flex items-center gap-1.5 p-1 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--glass-border)] self-end sm:self-auto">
-                <button className="size-8 rounded-md bg-[var(--accent)] text-white flex items-center justify-center shadow-sm">
+                <button onClick={() => setViewMode('grid')} className={`size-8 rounded-md flex items-center justify-center shadow-sm transition-colors ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}>
                   <LayoutGrid className="size-4" />
                 </button>
-                <button className="size-8 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center">
+                <button onClick={() => setViewMode('list')} className={`size-8 rounded-md flex items-center justify-center shadow-sm transition-colors ${viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}>
                   <List className="size-4" />
                 </button>
               </div>
@@ -406,9 +450,9 @@ function ShopContent() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 mb-12">
+                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
                   {products.map(product => (
-                    <ProductCard key={product._id} product={product} />
+                    <ProductCard key={product._id} product={product} layout={viewMode} />
                   ))}
                 </div>
 

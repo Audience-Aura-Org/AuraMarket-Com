@@ -10,7 +10,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { cartStore } from '@/services/cartStore';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, layout = 'grid' }) {
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
@@ -85,14 +85,16 @@ export default function ProductCard({ product }) {
     window.location.href = `/checkout?productId=${productId}&quantity=1`;
   };
 
+  const isList = layout === 'list';
+
   return (
     <div 
       onClick={() => trackAction({ product_id: productId, action_type: 'view', category, vendor_id: vendor_id?._id })}
-      className="group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-md flex flex-col h-full"
+      className={`group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-md flex ${isList ? 'flex-row' : 'flex-col h-full'}`}
     >
 
       {/* Product Image Area */}
-      <div className="relative aspect-square overflow-hidden bg-[var(--accent)]/5">
+      <div className={`relative overflow-hidden bg-[var(--accent)]/5 flex-shrink-0 ${isList ? 'w-32 md:w-48 h-full min-h-[140px]' : 'aspect-square'}`}>
         <img 
           src={mainImage} 
           alt={name}
@@ -121,16 +123,16 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Content Area */}
-      <div className="p-4 flex flex-col flex-1 gap-3">
+      <div className={`p-4 flex flex-col flex-1 ${isList ? 'justify-center gap-2' : 'gap-3'}`}>
         <div className="space-y-3">
           <Link href={`/products/${productId}`} className="block">
-            <h3 className="text-xs sm:text-sm font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
+            <h3 className={`font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight ${isList ? 'text-sm md:text-base line-clamp-2' : 'text-xs sm:text-sm line-clamp-1'}`}>
               {name}
             </h3>
           </Link>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-[var(--text-primary)]">${price?.toLocaleString()}</span>
+            <span className="text-sm md:text-base font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
             <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)]">
                <span className="flex items-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-500" /> {product.purchase_count || 0}</span>
                <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
@@ -157,7 +159,7 @@ export default function ProductCard({ product }) {
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 flex items-center gap-2 mt-auto relative z-20 focus-within:z-30">
+        <div className={`pt-2 flex items-center gap-2 mt-auto relative z-20 focus-within:z-30 ${isList ? 'max-w-[200px]' : ''}`}>
           <button 
             onClick={handleBuyNow}
             className="flex-1 h-9 bg-[var(--accent)] text-white text-[10px] sm:text-[9px] font-black tracking-widest rounded-xl flex items-center justify-center hover:bg-[var(--accent)]/80 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95"

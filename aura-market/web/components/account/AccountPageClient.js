@@ -53,10 +53,27 @@ export default function AccountPageClient() {
     store_name: '',
     description: '',
     logo: '',
-    banner: ''
+    banner: '',
+    pickup_address: { city: '', quartier: '', address_description: '' }
   });
 
-  const [userData, setUserData] = useState({ name: '', phone: '' });
+  const [userData, setUserData] = useState({ 
+    name: '', 
+    phone: '',
+    onboarding_location: { city: '', quartier: '', address_description: '' }
+  });
+  
+  const [zones, setZones] = useState([]);
+  
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const res = await api.get('/logistics/zones');
+        if (res.data.success) setZones(res.data.data.zones || []);
+      } catch (e) {}
+    };
+    fetchZones();
+  }, []);
   const [kycData, setKycData] = useState({ full_name: '', id_type: 'national_id', id_number: '', file_url: '' });
   const [kycStatus, setKycStatus] = useState(null);
   const [kycLoading, setKycLoading] = useState(false);
@@ -126,7 +143,12 @@ export default function AccountPageClient() {
     });
     setUserData({
       name: user.name || '',
-      phone: user.phone || ''
+      phone: user.phone || '',
+      onboarding_location: {
+        city: user.onboarding_location?.city || '',
+        quartier: user.onboarding_location?.quartier || '',
+        address_description: user.onboarding_location?.address_description || ''
+      }
     });
     if (user.kyc) {
       setKycStatus(user.kyc.status);
@@ -161,7 +183,12 @@ export default function AccountPageClient() {
           store_name: v.store_name || '',
           description: v.description || '',
           logo: v.store?.logo || '',
-          banner: v.store?.banner || ''
+          banner: v.store?.banner || '',
+          pickup_address: {
+             city: v.pickup_address?.city || '',
+             quartier: v.pickup_address?.quartier || '',
+             address_description: v.pickup_address?.address_description || ''
+          }
         });
       }
     } catch (err) {
@@ -179,7 +206,8 @@ export default function AccountPageClient() {
     try {
       await api.patch('/vendors/profile', {
         store_name: storeData.store_name,
-        description: storeData.description
+        description: storeData.description,
+        pickup_address: storeData.pickup_address
       });
       if (storeData.logo || storeData.banner) {
         await api.patch('/vendors/store', { logo: storeData.logo, banner: storeData.banner });
@@ -528,6 +556,34 @@ export default function AccountPageClient() {
                       <InputRow label="Auth Node (Email)" value={user?.email} disable />
                       <InputRow label="Platform Role" value={user?.role?.toUpperCase()} disable />
                       
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                         <SelectModule 
+                            label="Operational Sector (City)"
+                            value={userData.onboarding_location.city}
+                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, city: v, quartier: ''}})}
+                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select City Node"
+                         />
+                         <SelectModule 
+                            label="Local Quartier (Zone)"
+                            value={userData.onboarding_location.quartier}
+                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, quartier: v}})}
+                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === userData.onboarding_location.city).map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select Quartier Signal"
+                            disable={!userData.onboarding_location.city}
+                         />
+                      </div>
+                      <InputModule 
+                         label="Address Description" 
+                         value={userData.onboarding_location.address_description} 
+                         onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })} 
+                         icon={MapPin} 
+                         placeholder="Additional routing metadata (Door #, Landmark)..." 
+                         area
+                      />
+                      
                       <div className="pt-4 flex justify-end">
                         <button
                           onClick={handleUpdateProfile}
@@ -644,6 +700,34 @@ export default function AccountPageClient() {
                     <div className="space-y-8 py-4">
                       <InputModule label="Organization Name" value={storeData.store_name} onChange={(v) => setStoreData({ ...storeData, store_name: v })} icon={Store} placeholder="CyberDyne Systems Inc." />
                       <InputModule label="Mission Manifesto" value={storeData.description} onChange={(v) => setStoreData({ ...storeData, description: v })} icon={BarChart3} placeholder="Our primary directive is to revolutionize..." area />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                         <SelectModule 
+                            label="Fulfillment Origin (City)"
+                            value={storeData.pickup_address.city}
+                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})}
+                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select City Node"
+                         />
+                         <SelectModule 
+                            label="Pickup Zone (Quartier)"
+                            value={storeData.pickup_address.quartier}
+                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
+                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === storeData.pickup_address.city).map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select Quartier Signal"
+                            disable={!storeData.pickup_address.city}
+                         />
+                      </div>
+                      <InputModule 
+                         label="Fulfillment Handshake Info (Pickup Location)" 
+                         value={storeData.pickup_address.address_description} 
+                         onChange={(v) => setStoreData({ ...storeData, pickup_address: {...storeData.pickup_address, address_description: v} })} 
+                         icon={MapPin} 
+                         placeholder="Exact point for logistics to pick up your goods..." 
+                         area
+                      />
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
@@ -1087,7 +1171,28 @@ function ActionButton({ icon: Icon, label, desc }) {
           <p className="text-[10px] font-bold opacity-50 group-hover:opacity-100">{desc}</p>
         </div>
       </div>
-      <ChevronRight className="size-4 opacity-20 group-hover:opacity-100 transition-all" />
     </button>
+  );
+}
+
+function SelectModule({ label, value, onChange, options, icon: Icon, placeholder, disable = false }) {
+  return (
+    <div className="space-y-3 px-2">
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="size-4 text-[var(--accent)] opacity-40" />}
+        <label className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">{label}</label>
+      </div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disable}
+        className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-full px-8 py-5 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all shadow-inner text-[var(--text-primary)] appearance-none cursor-pointer disabled:opacity-50"
+      >
+        <option value="">{placeholder}</option>
+        {options.map(opt => (
+           <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
   );
 }

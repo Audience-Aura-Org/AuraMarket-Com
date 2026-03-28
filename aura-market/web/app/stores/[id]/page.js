@@ -19,6 +19,7 @@ export default function StorePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('Signal Intake');
 
   const handlePageChange = (p) => {
     setPage(p);
@@ -46,7 +47,12 @@ export default function StorePage() {
         }
 
         // 2. Fetch Store's Products
-        const productsRes = await api.get(`/products`, { params: { vendor_id: id, page, limit: 20 }});
+        let sortParam = '-createdAt';
+        if (activeTab === 'Signal Intake') sortParam = '-createdAt'; // Popularity/Default
+        else if (activeTab === 'Latest Drops') sortParam = '-createdAt';
+        else if (activeTab === 'Catalogs') sortParam = 'category';
+
+        const productsRes = await api.get(`/products`, { params: { vendor_id: id, page, limit: 20, sort: sortParam }});
         if (productsRes.data.success) {
           setProducts(productsRes.data.data.products);
           setTotalPages(productsRes.data.pagination?.pages || 1);
@@ -69,7 +75,7 @@ export default function StorePage() {
     };
 
     if (id) fetchStoreData();
-  }, [id, page]);
+  }, [id, page, activeTab]);
 
   const handleToggleFollow = async () => {
     setFollowLoading(true);
@@ -131,10 +137,10 @@ export default function StorePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)] via-transparent to-transparent" />
       </section>
 
-      <div className="w-full px-6 relative z-10 -mt-24 md:-mt-32">
-        <div className="glass-panel rounded-[48px] p-8 md:p-12 border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl">
-          <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
-            <div className="size-32 md:size-44 rounded-[40px] border-8 border-[var(--bg-primary)] overflow-hidden shadow-2xl relative group shrink-0 bg-[var(--bg-secondary)]">
+      <div className="w-full px-4 md:px-6 relative z-10 -mt-20 md:-mt-32">
+        <div className="glass-panel rounded-3xl md:rounded-[48px] p-6 md:p-12 border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl">
+          <div className="flex flex-col md:flex-row gap-5 md:gap-8 items-center md:items-start text-center md:text-left">
+            <div className="size-24 md:size-44 rounded-[28px] md:rounded-[40px] border-4 md:border-8 border-[var(--bg-primary)] overflow-hidden shadow-2xl relative group shrink-0 bg-[var(--bg-secondary)]">
                <img 
                 src={store.logo || store.vendor_id?.user_id?.branding?.logo || store.vendor_id?.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(store.vendor_id?.store_name || 'Store')}&background=random&size=200`} 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -142,65 +148,65 @@ export default function StorePage() {
               />
             </div>
 
-            <div className="flex-1 space-y-5">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-[var(--text-primary)] mb-1 uppercase">
+            <div className="flex-1 space-y-4 md:space-y-5 w-full">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4">
+                <h1 className="text-3xl md:text-6xl font-black tracking-tighter text-[var(--text-primary)] md:mb-1 uppercase">
                   {store.vendor_id?.store_name}
                 </h1>
-                <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 font-black text-xs tracking-widest shadow-sm">
-                  <Star className="size-3 fill-current" />
+                <div className="flex items-center gap-1.5 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 font-black text-[10px] md:text-xs tracking-widest shadow-sm">
+                  <Star className="size-3 md:size-3 fill-current" />
                   {store.vendor_id?.rating?.toFixed(1) || '4.9'}
                 </div>
                 {store.vendor_id?.verified && (
-                  <div className="size-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
-                    <ShieldCheck className="size-5" />
+                  <div className="size-6 md:size-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                    <ShieldCheck className="size-4 md:size-5" />
                   </div>
                 )}
               </div>
 
-              <p className="text-[var(--text-secondary)] text-lg max-w-3xl font-medium leading-relaxed mx-auto md:mx-0">
+              <p className="text-[var(--text-secondary)] text-sm md:text-lg max-w-3xl font-medium leading-relaxed mx-auto md:mx-0">
                 {store.vendor_id?.description || "Verified Marketplace Node. Curated premium products with unprecedented quality in every item."}
               </p>
 
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-10 pt-2">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)] border border-[var(--glass-border)]">
-                    <Package className="size-5" />
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 md:gap-10 pt-2">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="size-8 md:size-10 rounded-lg md:rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)] border border-[var(--glass-border)]">
+                    <Package className="size-4 md:size-5" />
                   </div>
-                  <p className="text-sm font-bold text-[var(--text-secondary)]">
-                    <span className="text-[var(--text-primary)] font-black text-base">{products.length}</span> Objects
+                  <p className="text-xs md:text-sm font-bold text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-primary)] font-black text-sm md:text-base pr-1">{products.length}</span> Objects
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)] border border-[var(--glass-border)]">
-                    <Users className="size-5" />
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="size-8 md:size-10 rounded-lg md:rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)] border border-[var(--glass-border)]">
+                    <Users className="size-4 md:size-5" />
                   </div>
-                  <p className="text-sm font-bold text-[var(--text-secondary)]">
-                    <span className="text-[var(--text-primary)] font-black text-base">{followersCount.toLocaleString()}</span> Followers
+                  <p className="text-xs md:text-sm font-bold text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-primary)] font-black text-sm md:text-base pr-1">{followersCount.toLocaleString()}</span> Followers
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-emerald-500/5 flex items-center justify-center text-emerald-600 border border-emerald-500/10">
-                    <ShieldCheck className="size-5" />
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="size-8 md:size-10 rounded-lg md:rounded-xl bg-emerald-500/5 flex items-center justify-center text-emerald-600 border border-emerald-500/10">
+                    <ShieldCheck className="size-4 md:size-5" />
                   </div>
-                  <p className="text-sm font-black text-[var(--text-secondary)] tracking-tight uppercase">Nexus Escrow</p>
+                  <p className="text-[10px] md:text-sm font-black text-[var(--text-secondary)] tracking-tight uppercase">Nexus Escrow</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center md:justify-start gap-4 pt-6">
+              <div className="grid grid-cols-2 md:flex items-center justify-center md:justify-start gap-2 md:gap-4 pt-4 md:pt-6 w-full">
                  <button 
                   onClick={handleToggleFollow}
                   disabled={followLoading}
-                  className={`h-14 px-12 rounded-2xl font-black text-[10px] tracking-widest uppercase transition-all flex items-center gap-3 ${
+                  className={`h-12 md:h-14 px-2 md:px-12 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 md:gap-3 w-full md:w-auto ${
                     isFollowing 
                     ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white' 
                     : 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20 hover:opacity-90'
                   }`}
                  >
-                    {followLoading ? <Loader2 className="size-4 animate-spin" /> : (isFollowing ? <UserMinus className="size-4" /> : <UserPlus className="size-4" />)}
-                    {isFollowing ? 'Unsubscribe' : 'Subscribe to Node'}
+                    {followLoading ? <Loader2 className="size-3 md:size-4 animate-spin" /> : (isFollowing ? <UserMinus className="size-3 md:size-4" /> : <UserPlus className="size-3 md:size-4" />)}
+                    {isFollowing ? 'Unsubscribe' : 'Subscribe'}
                  </button>
-                 <button className="h-14 px-12 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase hover:bg-[var(--bg-secondary)] transition-all">
+                 <button className="h-12 md:h-14 px-2 md:px-12 rounded-xl md:rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[9px] md:text-[10px] tracking-widest uppercase hover:bg-[var(--bg-secondary)] transition-all flex items-center justify-center w-full md:w-auto">
                    Contact
                  </button>
               </div>
@@ -210,11 +216,12 @@ export default function StorePage() {
 
         <div ref={productsAnchor} className="mt-16 mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
-             {['Signal Intake', 'Latest Drops', 'Catalogs'].map((tab, i) => (
+             {['Signal Intake', 'Latest Drops', 'Catalogs'].map((tab) => (
                <button 
                 key={tab}
+                onClick={() => { setActiveTab(tab); setPage(1); }}
                 className={`h-12 px-8 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all shrink-0 border-2 ${
-                  i === 0 
+                  tab === activeTab
                   ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg' 
                   : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                 }`}
@@ -238,7 +245,7 @@ export default function StorePage() {
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
+            {(totalPages > 1 || products.length === 20 || page > 1) && (
               <div className="flex items-center justify-center gap-3 pb-32">
                  <button 
                   disabled={page === 1}
@@ -248,8 +255,9 @@ export default function StorePage() {
                    Previous
                  </button>
                  <div className="flex items-center gap-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                       if (Math.abs(p - page) > 2 && p !== 1 && p !== totalPages) return p === 2 || p === totalPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
+                    {Array.from({ length: Math.max(totalPages, page + (products.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
+                       const maxPages = Math.max(totalPages, page + (products.length === 20 ? 1 : 0));
+                       if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
                        return (
                           <button 
                              key={p}
@@ -262,7 +270,7 @@ export default function StorePage() {
                     })}
                  </div>
                  <button 
-                  disabled={page === totalPages}
+                  disabled={products.length < 20}
                   onClick={() => handlePageChange(page + 1)}
                   className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                  >

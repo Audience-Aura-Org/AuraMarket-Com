@@ -106,7 +106,7 @@ export default function OnboardingPage() {
                         description: vpRes.data.data.vendor.description || ''
                      });
                   }
-               } catch (e) { console.log("No partial vendor profile yet."); }
+               } catch (e) { /* silent catch */ }
             }
 
             // Auto-skip logic

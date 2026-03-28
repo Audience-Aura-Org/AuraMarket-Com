@@ -45,21 +45,7 @@ transporter.verify((err) => {
     }
   } else {
     console.log(`✅ [SMTP] Frequency Established: SUCCESS with ${EMAIL_HOST}:${EMAIL_PORT} (Secure: ${isSecure})`);
-    
-    // 🔥 IGNITION TEST: Send a test signal to yourself on startup
-    const envLabel = process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'LOCALHOST';
-    if (process.env.NODE_ENV === 'production' || true) {
-       transporter.sendMail({
-         from: `"Aura System (${envLabel})" <${EMAIL_USER}>`,
-         to: EMAIL_USER,
-         subject: `🔥 [${envLabel}] Aura Notification System Active`,
-         text: `Handshake successful on port ${EMAIL_PORT}. Source environment: ${envLabel}. System is now ready for order signals.`
-       }).then(() => {
-         console.log('✅ [SMTP] IGNITION SUCCESS: Test signal delivered to admin.');
-       }).catch(testErr => {
-         console.warn('❌ [SMTP] IGNITION FAILED: Sending failed despite successful handshake:', testErr.message);
-       });
-    }
+
   }
 });
 

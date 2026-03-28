@@ -59,11 +59,7 @@ function ChatContent() {
     }
 
     const handleIncoming = (msg) => {
-      console.log('[Chat] Incoming Socket Event:', { 
-        msgId: msg._id, 
-        sender: msg.sender_id?._id || msg.sender_id,
-        receiver: msg.receiver_id?._id || msg.receiver_id
-      });
+
 
       try {
         const currentUserId = userRef.current?._id?.toString();
@@ -113,11 +109,11 @@ function ChatContent() {
           );
           
           if (belongsToActiveChat) {
-            console.log('[Chat] ✅ Appending message to active chat:', activeId);
+
             setMessages(prev => {
               // Prevent duplicates
               if (msg._id && prev.some(m => m._id?.toString() === msg._id?.toString())) {
-                console.log('[Chat] Message already exists, skipping duplicate');
+
                 return prev;
               }
               return [...prev, msg];
@@ -128,10 +124,10 @@ function ChatContent() {
               api.patch(`/chat/read/${activeId}`).catch(() => {});
             }
           } else {
-            console.log('[Chat] ⚠️ Message does not belong to active chat. activeId:', activeId, 'from:', senderId, 'to:', receiverId);
+
           }
         } else {
-          console.log('[Chat] ⚠️ No active chat selected yet');
+
         }
       } catch (err) {
         console.error('[Chat] Socket handler error:', err);

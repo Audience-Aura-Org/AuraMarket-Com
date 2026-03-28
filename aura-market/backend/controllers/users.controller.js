@@ -25,6 +25,7 @@ const updateMe = async (req, res, next) => {
     if (req.body?.name !== undefined) updates.name = req.body.name;
     if (req.body?.phone !== undefined) updates.phone = req.body.phone;
     if (req.body?.avatar !== undefined) updates.avatar = req.body.avatar || null;
+    if (req.body?.onboarding_location !== undefined) updates.onboarding_location = req.body.onboarding_location;
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ success: false, message: 'No valid fields provided.' });

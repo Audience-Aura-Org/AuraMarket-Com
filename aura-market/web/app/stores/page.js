@@ -159,8 +159,8 @@ export default function StoresDirectoryPage() {
             ))}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
+            {/* Pagination Controls */}
+            {(totalPages > 1 || filteredStores.length === 20 || page > 1) && (
               <div className="flex items-center justify-center gap-4 mt-20">
                  <button 
                     disabled={page === 1}
@@ -170,8 +170,9 @@ export default function StoresDirectoryPage() {
                     Previous
                  </button>
                  <div className="flex items-center gap-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                       if (Math.abs(p - page) > 2 && p !== 1 && p !== totalPages) return p === 2 || p === totalPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
+                    {Array.from({ length: Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
+                       const maxPages = Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0));
+                       if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
                        return (
                           <button 
                              key={p}
@@ -184,7 +185,7 @@ export default function StoresDirectoryPage() {
                     })}
                  </div>
                  <button 
-                    disabled={page === totalPages}
+                    disabled={filteredStores.length < 20}
                     onClick={() => handlePageChange(page + 1)}
                     className="px-8 py-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                  >

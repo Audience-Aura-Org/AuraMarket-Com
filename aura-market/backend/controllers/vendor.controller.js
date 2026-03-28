@@ -208,11 +208,16 @@ const updateStore = async (req, res, next) => {
 // @access  Private (Role: vendor)
 // ─────────────────────────────────────────────
 const updateVendorProfile = async (req, res, next) => {
-  try {
-    const { store_name, description } = req.body;
+    try {
+    const { store_name, description, pickup_address } = req.body;
+    const updates = {};
+    if (store_name !== undefined) updates.store_name = store_name;
+    if (description !== undefined) updates.description = description;
+    if (pickup_address !== undefined) updates.pickup_address = pickup_address;
+
     const vendor = await Vendor.findByIdAndUpdate(
       req.vendor._id,
-      { store_name, description },
+      updates,
       { new: true, runValidators: true }
     );
 
@@ -242,7 +247,7 @@ const getPublicStores = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 20;
     const startIndex = (page - 1) * limit;
 
-    let query = { verified: true, is_active: true };
+    let query = { is_onboarded: true };
 
     if (search) {
       query.store_name = { $regex: search, $options: 'i' };

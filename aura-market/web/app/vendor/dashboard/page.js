@@ -33,14 +33,14 @@ export default function VendorDashboard() {
         if (stored) {
           const parsed = JSON.parse(stored);
           authToken = parsed?.state?.token;
-          console.log('[VendorDashboard] Recovered token from localStorage:', !!authToken);
+
         }
       } catch (e) {
         console.error('[VendorDashboard] Failed to parse localStorage:', e);
       }
     }
 
-    console.log('[VendorDashboard] Token from Zustand:', !!token, 'Recovered:', !!authToken);
+
     
     if (!authToken) {
       setError(null);
@@ -52,9 +52,9 @@ export default function VendorDashboard() {
     const fetchData = async () => {
       try {
         // Verify vendor profile first
-        console.log('[VendorDashboard] Checking vendor profile...');
+
         const vendorRes = await api.get('/vendor/me');
-        console.log('[VendorDashboard] /vendor/me:', vendorRes.status, vendorRes.data.success);
+
         
         if (!vendorRes.data.success) {
           setError('Vendor profile not found or unauthorized.');
@@ -62,7 +62,7 @@ export default function VendorDashboard() {
         }
 
         // Fetch products, orders and finance data in parallel
-        console.log('[VendorDashboard] Fetching products, orders and wallet...');
+
         const [productsRes, ordersRes, walletRes, vendorProfileRes] = await Promise.all([
           api.get('/vendor/products'),
           api.get('/vendor/orders'),
@@ -73,12 +73,12 @@ export default function VendorDashboard() {
         if (isMounted) {
           if (productsRes.data.success) {
             const prods = productsRes.data.data.products || [];
-            console.log('[VendorDashboard] Setting products:', prods.length);
+
             setProducts(prods);
           }
           if (ordersRes.data.success) {
             const ordrs = ordersRes.data.data.orders || [];
-            console.log('[VendorDashboard] Setting orders:', ordrs.length);
+
             setOrders(ordrs);
           }
           if (walletRes.data.success) {
