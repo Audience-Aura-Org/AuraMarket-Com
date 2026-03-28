@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import socketService from '@/services/socket';
 import { toast } from 'react-hot-toast';
 
 export default function OrderDetailPage() {
@@ -30,19 +31,45 @@ export default function OrderDetailPage() {
   
   const { user } = useAuthStore();
 
+  const fetchOrderManifest = async () => {
+    try {
+      const res = await api.get(`/orders/${id}`);
+      if (res.data.success) {
+        setOrder(res.data.data.order);
+        setShipments(res.data.data.shipments || []);
+      }
+    } catch (err) {
+      toast.error("Failed to load order manifest.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (id) {
-      api.get(`/orders/${id}`)
-        .then(res => { 
-          if (res.data.success) {
-            setOrder(res.data.data.order);
-            setShipments(res.data.data.shipments || []);
-          } 
-        })
-        .catch(() => toast.error("Failed to load order manifest."))
-        .finally(() => setLoading(false));
+      fetchOrderManifest();
     }
   }, [id]);
+
+  // Real-time Status Sync: Listen for notification events for this order
+  useEffect(() => {
+    if (!id || !user?._id) return;
+
+    const handleUpdate = (notif) => {
+      // If the notification metadata contains our current order_id, refresh!
+      if (notif.metadata?.order_id?.toString() === id.toString()) {
+        console.log(`[Matrix Sync] Order ${id} updated remotely. Refreshing manifest...`);
+        fetchOrderManifest();
+        toast.success(`Protocol Update: ${notif.title || 'Order Synchronized'}`, {
+          icon: '⚡',
+          style: { borderRadius: '16px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--accent)' }
+        });
+      }
+    };
+
+    socketService.on('notification', handleUpdate);
+    return () => socketService.off('notification', handleUpdate);
+  }, [id, user?._id]);
 
   const handleRaiseDispute = async (e) => {
     e.preventDefault();
@@ -400,24 +427,28 @@ export default function OrderDetailPage() {
               {/* Logistics Comms */}
               <div className="flex flex-col gap-2">
                  <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.4em] mb-1 opacity-40 ml-4">Authorized Channel</p>
-                 <Link 
-                   href={`/chat?vendorId=${order.vendor_id?.user_id || order.vendor_id?._id}`}
-                   className="w-full h-16 rounded-[28px] bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center gap-4 group/chat hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all overflow-hidden relative shadow-lg"
-                 >
-                     <div className="flex items-center gap-2">
-                        {order.vendor_id && (
-                          <div className="size-5 rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0">
-                             <img 
+                  <Link 
+                    href={`/chat?vendorId=${order.vendor_id?._id || order.vendor_id?.user_id}`}
+                    className="w-full p-6 rounded-[32px] bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-between group/chat hover:bg-[var(--accent)] hover:text-white transition-all overflow-hidden relative shadow-xl"
+                  >
+                      <div className="flex items-center gap-4 relative z-10">
+                         <div className="size-16 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-inner group-hover:border-white/20">
+                            <img 
                               src={order.vendor_id?.user_id?.branding?.logo || order.vendor_id?.store?.logo || order.vendor_id?.user_id?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${order.vendor_id?.store_name}&backgroundColor=var(--accent)`} 
                               className="size-full object-cover"
                               alt="Store"
                             />
-                          </div>
-                        )}
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Channel: {order.vendor_id?.store_name}</span>
-                     </div>
-                     <div className="absolute top-0 right-0 size-16 bg-white/5 rounded-full blur-xl group-hover:bg-white/10 transition-all" />
-                 </Link>
+                         </div>
+                         <div>
+                            <p className="text-[9px] font-black uppercase tracking-[0.4em] mb-1 opacity-40 group-hover:opacity-100">Authorized Node</p>
+                            <h4 className="text-sm font-black uppercase tracking-tight">Channel: {order.vendor_id?.store_name}</h4>
+                         </div>
+                      </div>
+                      <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center border border-[var(--glass-border)] group-hover:bg-white/10 group-hover:border-white/20 transition-all z-10">
+                         <MessageSquare className="size-4" />
+                      </div>
+                      <div className="absolute top-0 right-0 size-32 bg-[var(--accent)]/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all" />
+                  </Link>
               </div>
            </div>
         </div>

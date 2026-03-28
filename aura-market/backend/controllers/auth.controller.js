@@ -293,13 +293,13 @@ const changePassword = async (req, res, next) => {
 const getUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let user = await User.findById(id).select('name avatar role');
+    let user = await User.findById(id).select('name avatar role branding');
 
     // If ID isn't a direct User ID, try resolving it as a Vendor ID (e.g. from Cart/Product pages)
     if (!user) {
       const vendor = await require('../models/Vendor.model').findById(id);
       if (vendor) {
-        user = await User.findById(vendor.user_id).select('name avatar role');
+        user = await User.findById(vendor.user_id).select('name avatar role branding');
         if (user) {
           user = user.toObject();
           user.name = vendor.store_name; // Adopt the store name in chat context

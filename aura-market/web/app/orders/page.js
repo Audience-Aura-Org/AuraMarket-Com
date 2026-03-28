@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import socketService from '@/services/socket';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,15 +22,35 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState('all');
   const { user } = useAuthStore();
 
+  const fetchOrders = async () => {
+    try {
+      const res = await api.get('/orders/my-orders');
+      if (res.data.success) setOrders(res.data.data.orders);
+    } catch (err) {} finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user?._id) {
-      api.get('/orders/my-orders')
-        .then(res => {
-          if (res.data.success) setOrders(res.data.data.orders);
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+      fetchOrders();
     }
+  }, [user?._id]);
+
+  // Real-time synchronization
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const handleUpdate = (notif) => {
+      // If it's an order-related notification, refresh the whole list to show the status shift
+      if (notif.type === 'order_status' || notif.metadata?.order_id) {
+        console.log('[Matrix Sync] Order event detected. Refreshing Index...');
+        fetchOrders();
+      }
+    };
+
+    socketService.on('notification', handleUpdate);
+    return () => socketService.off('notification', handleUpdate);
   }, [user?._id]);
 
   const filteredOrders = orders.filter(o => filter === 'all' || o.order_status === filter);

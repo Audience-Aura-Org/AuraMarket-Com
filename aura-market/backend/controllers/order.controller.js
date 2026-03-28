@@ -350,7 +350,14 @@ const payDirectly = async (req, res, next) => {
 const getCustomerOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ customer_id: req.user._id })
-      .populate('vendor_id', 'store_name')
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name user_id',
+        populate: {
+          path: 'user_id',
+          select: 'name avatar branding'
+        }
+      })
       .sort('-createdAt');
 
     res.status(200).json({ success: true, count: orders.length, data: { orders } });
@@ -368,6 +375,14 @@ const getVendorOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ vendor_id: req.vendor._id })
       .populate('customer_id', 'name email phone avatar')
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name user_id',
+        populate: {
+          path: 'user_id',
+          select: 'name avatar branding'
+        }
+      })
       .sort('-createdAt');
 
     res.status(200).json({ success: true, count: orders.length, data: { orders } });
@@ -385,7 +400,14 @@ const getOrderById = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('customer_id', 'name email phone')
-      .populate('vendor_id', 'store_name');
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name user_id',
+        populate: {
+          path: 'user_id',
+          select: 'name avatar branding'
+        }
+      });
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found.' });
@@ -408,7 +430,14 @@ const getOrderById = async (req, res, next) => {
 
     const shipments = await Shipment.find({ order_id: order._id })
       .populate('logistics_id', 'company_name contact_phone')
-      .populate('vendor_id', 'store_name');
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name user_id',
+        populate: {
+          path: 'user_id',
+          select: 'name avatar branding'
+        }
+      });
 
     res.status(200).json({ success: true, data: { order, shipments } });
   } catch (error) {
