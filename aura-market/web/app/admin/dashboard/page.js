@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, Users, Store, Scale, Sparkles, Package, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 
 export const dynamic = 'force-dynamic';

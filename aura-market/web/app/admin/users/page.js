@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X, Phone } from 'lucide-react';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
