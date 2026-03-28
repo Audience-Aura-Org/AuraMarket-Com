@@ -8,13 +8,24 @@ const uploadSingle = (req, res) => {
     return res.status(400).json({ success: false, message: 'Please upload a file' });
   }
 
-  // 🚀 PATH DISCOVERY: Cloudinary uses .path (absolute URL), Local uses req.file.path (relative with subfolders)
-  // Ensure we normalize backslashes (Windows) to forward slashes for URLs
-  let fileUrl = req.file.path ? req.file.path.replace(/\\/g, '/') : `/uploads/${req.file.filename}`;
-  
-  // If it's a local path and doesn't start with a slash, add one
-  if (!fileUrl.startsWith('http') && !fileUrl.startsWith('/')) {
-    fileUrl = '/' + fileUrl;
+  // 🚀 PATH DISCOVERY: Cloudinary uses .path (absolute URL), Local uses req.file.path
+  // If it's a Cloudinary URL, use it directly.
+  // If it's a local path, we need to extract the relative path starting from 'uploads'
+  let fileUrl = '';
+  if (req.file.path && req.file.path.startsWith('http')) {
+    fileUrl = req.file.path;
+  } else if (req.file.path) {
+    // Local: The path might be absolute. Find the index of 'uploads' and take everything from there.
+    const normalizedPath = req.file.path.replace(/\\/g, '/');
+    const uploadsIndex = normalizedPath.lastIndexOf('/uploads/');
+    if (uploadsIndex !== -1) {
+      fileUrl = normalizedPath.substring(uploadsIndex);
+    } else {
+      // Fallback if 'uploads' not found in path (should not happen with our storage config)
+      fileUrl = `/uploads/${req.body.type || 'others'}/${req.file.filename}`;
+    }
+  } else {
+    fileUrl = `/uploads/${req.body.type || 'others'}/${req.file.filename}`;
   }
 
   res.status(200).json({
@@ -34,9 +45,18 @@ const uploadMultiple = (req, res) => {
   }
   
   const urls = req.files.map(file => {
-    let url = file.path ? file.path.replace(/\\/g, '/') : `/uploads/${file.filename}`;
-    if (!url.startsWith('http') && !url.startsWith('/')) url = '/' + url;
-    return { url, filename: file.filename };
+    let fileUrl = '';
+    if (file.path && file.path.startsWith('http')) {
+      fileUrl = file.path;
+    } else if (file.path) {
+      const normalizedPath = file.path.replace(/\\/g, '/');
+      const uploadsIndex = normalizedPath.lastIndexOf('/uploads/');
+      if (uploadsIndex !== -1) fileUrl = normalizedPath.substring(uploadsIndex);
+      else fileUrl = `/uploads/${req.body.type || 'others'}/${file.filename}`;
+    } else {
+      fileUrl = `/uploads/${req.body.type || 'others'}/${file.filename}`;
+    }
+    return { url: fileUrl, filename: file.filename };
   });
 
   res.status(200).json({
