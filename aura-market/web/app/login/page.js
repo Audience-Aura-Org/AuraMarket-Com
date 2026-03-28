@@ -55,23 +55,28 @@ export default function LoginPage() {
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--accent)]/10 rounded-full blur-[120px] -z-10 animation-delay-2000"></div>
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 lg:px-12 py-6">
+      <header className="flex items-center justify-between px-6 lg:px-12 py-6 bg-[var(--nav-bg)] border-b border-[var(--nav-border)]">
         <Link href="/" className="flex items-center gap-3 group">
+          <img
+            src="/logo-white.png"
+            alt="Aura Market"
+            className="h-7 w-auto object-contain group-hover:scale-105 transition-transform dark:hidden"
+          />
           <img
             src="/logo-black.png"
             alt="Aura Market"
-            className="h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+            className="h-7 w-auto object-contain group-hover:scale-105 transition-transform hidden dark:block"
           />
-          <h1 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">
+          <h1 className="text-xl font-black tracking-tighter text-[var(--nav-text)]">
             Aura<span className="text-[var(--accent)]">Market</span>
           </h1>
         </Link>
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/shop" className="text-[10px] uppercase tracking-widest font-black text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Shop</Link>
-          <Link href="/discovery" className="text-[10px] uppercase tracking-widest font-black text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Discovery</Link>
+          <Link href="/shop" className="text-[10px] uppercase tracking-widest font-black text-[var(--nav-text)] opacity-70 hover:opacity-100 hover:text-[var(--accent)] transition-colors">Shop</Link>
+          <Link href="/discovery" className="text-[10px] uppercase tracking-widest font-black text-[var(--nav-text)] opacity-70 hover:opacity-100 hover:text-[var(--accent)] transition-colors">Discovery</Link>
         </nav>
         <Link href="/register">
-          <button className="px-6 py-2.5 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 hover:border-[var(--accent)]/50 text-[10px] font-black uppercase tracking-widest transition-all">
+          <button className="px-6 py-2.5 rounded-xl border border-[var(--nav-border)] bg-white/5 hover:border-[var(--accent)]/50 text-[10px] font-black uppercase tracking-widest text-[var(--nav-text)] transition-all">
             Sign Up
           </button>
         </Link>

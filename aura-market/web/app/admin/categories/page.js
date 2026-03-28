@@ -182,7 +182,7 @@ export default function AdminCategories() {
 
   return (
     <>
-      <header className="h-20 lg:h-24 flex items-center justify-between px-6 lg:px-12 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-2xl shrink-0 z-10">
+      <header className="h-20 lg:h-24 flex items-center justify-between px-6 lg:px-12 border-b border-[var(--nav-border)] bg-[var(--nav-bg)] backdrop-blur-2xl shrink-0 z-10 text-[var(--nav-text)]">
         <div className="flex flex-col">
           <h2 className="text-lg lg:text-2xl font-black uppercase tracking-tighter leading-none">Category <span className="text-[var(--accent)]">Matrix</span></h2>
           <p className="hidden sm:block text-[8px] lg:text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] mt-1.5 lg:mt-2 opacity-50">Authorized Taxonomy Management</p>

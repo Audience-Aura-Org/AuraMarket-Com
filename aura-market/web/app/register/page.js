@@ -55,18 +55,18 @@ export default function RegisterPage() {
       <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[var(--accent)]/10 blur-[150px] rounded-full -z-10"></div>
 
       {/* Navigation */}
-      <header className="flex items-center justify-between px-6 lg:px-20 py-6 border-b border-[var(--glass-border)] backdrop-blur-md sticky top-0 z-50 bg-[var(--bg-primary)]/80">
+      <header className="flex items-center justify-between px-6 lg:px-20 py-6 border-b border-[var(--nav-border)] backdrop-blur-md sticky top-0 z-50 bg-[var(--nav-bg)]">
         <Link href="/" className="flex items-center gap-3">
           <div className="text-[var(--accent)]">
             <span className="material-symbols-outlined text-4xl">polymer</span>
           </div>
-          <h2 className="text-[var(--text-primary)] text-xl font-extrabold tracking-tight">Aura Market</h2>
+          <h2 className="text-[var(--nav-text)] text-xl font-extrabold tracking-tight">Aura Market</h2>
         </Link>
         <div className="hidden md:flex items-center gap-8">
           <nav className="flex items-center gap-8">
-            <Link className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-sm font-semibold" href="/">Home</Link>
-            <a className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-sm font-semibold" href="#">Features</a>
-            <Link className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-sm font-semibold" href="/shop">Marketplace</Link>
+            <Link className="text-[var(--nav-text)] opacity-70 hover:opacity-100 hover:text-[var(--accent)] transition-colors text-sm font-semibold" href="/">Home</Link>
+            <a className="text-[var(--nav-text)] opacity-70 hover:opacity-100 hover:text-[var(--accent)] transition-colors text-sm font-semibold" href="#">Features</a>
+            <Link className="text-[var(--nav-text)] opacity-70 hover:opacity-100 hover:text-[var(--accent)] transition-colors text-sm font-semibold" href="/shop">Marketplace</Link>
           </nav>
           <Link href="/login">
             <button className="bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-[var(--accent)]/20">

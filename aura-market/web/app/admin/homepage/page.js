@@ -100,7 +100,7 @@ export default function AdminHomepagePage() {
       <RoleSidebar role="admin" />
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
-        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)] shadow-lg shadow-[var(--accent)]/5">
               <MonitorPlay className="w-5 h-5" />

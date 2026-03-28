@@ -46,6 +46,18 @@
   --card-bg: rgba(255, 255, 255, 0.03);
 }
 
+/* Dashboard Header Automagic Color Override */
+header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-primary)]"] {
+  color: var(--nav-text) !important;
+}
+header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-secondary)]"] {
+  color: var(--nav-text) !important;
+  opacity: 0.7 !important;
+}
+header.bg-\[var\(--nav-bg\)\] [class*="bg-[var(--bg-primary)]"] {
+  background-color: var(--nav-border) !important;
+}
+
 /* Global theme management */
 html {
   transition: background-color 0.3s ease, color 0.3s ease;

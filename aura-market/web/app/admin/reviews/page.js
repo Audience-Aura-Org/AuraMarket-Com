@@ -69,7 +69,7 @@ export default function AdminReviewsPage() {
   return (
     <>
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--glass-border)] z-20 bg-[var(--bg-primary)]/80 backdrop-blur-xl shrink-0">
+      <header className="h-16 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--nav-border)] z-20 bg-[var(--nav-bg)] backdrop-blur-xl shrink-0 text-[var(--nav-text)]">
         <div className="flex items-center gap-4">
           <h1 className="text-lg lg:text-xl font-black tracking-tight uppercase">Governance <span className="text-[var(--accent)]">Reviews</span></h1>
           <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)] opacity-30" />

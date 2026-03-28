@@ -109,7 +109,7 @@ export default function LogisticsPricingPage() {
 
   return (
     <>
-      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0">
+      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--nav-border)] bg-[var(--nav-bg)] backdrop-blur-3xl shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--nav-text)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <Link href="/logistics/dashboard" className="size-10 lg:size-12 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group">
              <ArrowLeft className="size-4 lg:size-5 group-hover:-translate-x-1 transition-transform" />
