@@ -233,7 +233,7 @@ const modifyShipmentStatus = async (req, res, next) => {
         metadata: { order_id: order._id, shipment_id: shipment._id },
         sendEmail: true,
         overrideEmail: firm.contact_email,
-        emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+        emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard?shipmentId=${shipment._id}`,
         orderDetails: order.toObject(),
         role: 'logistics'
       });

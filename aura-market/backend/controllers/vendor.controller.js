@@ -96,9 +96,15 @@ const onboardVendor = async (req, res, next) => {
       store = storeArray[0];
     }
 
-    // 4. Force mark user as onboarded (ensure persistence)
+    // 4. Force mark user as onboarded and sync initial branding (if any)
     const User = require('../models/User.model');
-    await User.findByIdAndUpdate(req.user._id, { onboarded: true }, { session });
+    const brandingUpdates = {};
+    if (store_name) brandingUpdates['branding.store_name'] = store_name; // and more if needed
+    
+    await User.findByIdAndUpdate(req.user._id, { 
+      onboarded: true,
+      ...(brandingUpdates)
+    }, { session });
 
     // Commit Transaction
     await session.commitTransaction();
@@ -186,10 +192,17 @@ const updateStore = async (req, res, next) => {
     );
 
     if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: 'Store not found.',
-      });
+      return res.status(404).json({ success: false, message: 'Store not found.' });
+    }
+
+    // 🚀 SYNC: Mirror branding assets to the core User model for Chat/Notifications consistency
+    const User = require('../models/User.model');
+    const brandingUpdates = {};
+    if (updateData.logo) brandingUpdates['branding.logo'] = updateData.logo;
+    if (updateData.banner) brandingUpdates['branding.banner'] = updateData.banner;
+    
+    if (Object.keys(brandingUpdates).length > 0) {
+      await User.findByIdAndUpdate(req.user._id, { $set: brandingUpdates });
     }
 
     res.status(200).json({

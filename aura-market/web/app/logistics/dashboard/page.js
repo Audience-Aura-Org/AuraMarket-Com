@@ -5,12 +5,14 @@ import { Truck, Package, CheckCircle, AlertCircle, Bell, Building, Globe, MapPin
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default function LogisticsDashboard() {
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function LogisticsDashboard() {
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
+    const fetchProfile = async () => {
     try {
        const res = await api.get('/logistics/shipments/firm');
        if (res.data.success) {
@@ -53,7 +55,7 @@ export default function LogisticsDashboard() {
           // Calculate stats
           const active = fetchedShipments.filter(s => ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(s.status)).length;
           const pending = fetchedShipments.filter(s => s.status === 'pending').length;
-          const delivered24h = fetchedShipments.filter(s => s.status === 'delivered').length; // Simplify for now
+          const delivered24h = fetchedShipments.filter(s => s.status === 'delivered').length; 
           
           setStats([
             { label: 'Active Shipments', value: active.toString(), icon: Truck, color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
@@ -61,6 +63,17 @@ export default function LogisticsDashboard() {
             { label: 'Delivered Total', value: delivered24h.toString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
             { label: 'Failed Deliveries', value: fetchedShipments.filter(s => s.status === 'failed').length.toString(), icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-500/10' },
           ]);
+
+          // 🚀 DEEP LINK: Auto-open specific shipment if ID provided in URL (for notifications)
+          const deepLinkId = searchParams.get('shipmentId');
+          if (deepLinkId) {
+            const target = fetchedShipments.find(s => s._id === deepLinkId);
+            if (target) {
+              openUpdateModal(target);
+              // Clean up URL to prevent ghost modals on refresh
+              router.replace('/logistics/dashboard');
+            }
+          }
        }
     } catch (err) {
        if (err.response?.status === 403) setProfile(null);

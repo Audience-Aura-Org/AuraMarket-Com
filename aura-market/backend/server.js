@@ -47,6 +47,7 @@ connectDB();
 // 6. Initialize Express app, HTTP server, & WebSockets
 // ─────────────────────────────────────────────
 const app = express();
+app.set('trust proxy', 1); // 🔥 ESSENTIAL: Render/Proxy identity mapping
 const server = http.createServer(app);
 
 // Initialize Socket.io Chat Events

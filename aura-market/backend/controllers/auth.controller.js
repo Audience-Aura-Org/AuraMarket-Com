@@ -224,7 +224,7 @@ const getMe = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const updateProfile = async (req, res, next) => {
   try {
-    const allowedFields = ['name', 'phone', 'avatar', 'address'];
+    const allowedFields = ['name', 'phone', 'avatar', 'address', 'branding'];
     const updates = {};
 
     allowedFields.forEach((field) => {
@@ -299,12 +299,31 @@ const getUser = async (req, res, next) => {
     if (!user) {
       const vendor = await require('../models/Vendor.model').findById(id);
       if (vendor) {
+        const VendorStore = await require('../models/Store.model').findOne({ vendor_id: vendor._id });
         user = await User.findById(vendor.user_id).select('name avatar role branding');
         if (user) {
           user = user.toObject();
-          user.name = vendor.store_name; // Adopt the store name in chat context
+          user.name = vendor.store_name; 
+          // 🚀 SYNC: If user is discovered as a vendor but User branding is missing, fallback to Store visuals
+          if (!user.branding?.logo && VendorStore?.logo) {
+            user.branding = { ...user.branding, logo: VendorStore.logo };
+          }
+          if (!user.branding?.banner && VendorStore?.banner) {
+             user.branding = { ...user.branding, banner: VendorStore.banner };
+          }
         }
       }
+    } else if (user.role === 'vendor') {
+       // If we found the user directly but they are a vendor, also try pulling their store name
+       const vendor = await require('../models/Vendor.model').findOne({ user_id: user._id });
+       if (vendor) {
+         user = user.toObject();
+         user.name = vendor.store_name;
+         // and fallback branding if missing
+         const VendorStore = await require('../models/Store.model').findOne({ vendor_id: vendor._id });
+         if (!user.branding?.logo && VendorStore?.logo) user.branding = { ...user.branding, logo: VendorStore.logo };
+         if (!user.branding?.banner && VendorStore?.banner) user.branding = { ...user.branding, banner: VendorStore.banner };
+       }
     }
 
     if (!user) {
