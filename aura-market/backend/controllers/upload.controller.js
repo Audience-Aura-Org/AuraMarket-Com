@@ -8,10 +8,8 @@ const uploadSingle = (req, res) => {
     return res.status(400).json({ success: false, message: 'Please upload a file' });
   }
 
-  // Construct the URL to the file
-  const protocol = req.protocol;
-  const host = req.get('host');
-  const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+  // Use relative path to ensure environment portability (frontend handles origin)
+  const fileUrl = `/uploads/${req.file.filename}`;
 
   res.status(200).json({
     success: true,
@@ -28,12 +26,9 @@ const uploadMultiple = (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ success: false, message: 'Please upload files' });
   }
-
-  const protocol = req.protocol;
-  const host = req.get('host');
   
   const urls = req.files.map(file => ({
-    url: `${protocol}://${host}/uploads/${file.filename}`,
+    url: `/uploads/${file.filename}`,
     filename: file.filename
   }));
 

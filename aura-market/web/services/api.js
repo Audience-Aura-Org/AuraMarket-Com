@@ -12,7 +12,12 @@ const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/ap
 
 const normalizeAssetUrls = (value) => {
   if (typeof value === 'string') {
-    return value.replace(/^http:\/\/localhost:5000/i, API_ORIGIN);
+    // 1. Handle relative paths from the new upload logic
+    if (value.startsWith('/uploads/')) {
+      return `${API_ORIGIN}${value}`;
+    }
+    // 2. Fix legacy absolute URLs that might have been hardcoded to local hosts
+    return value.replace(/^https?:\/\/(localhost|127\.0\.0\.1):5000/i, API_ORIGIN);
   }
 
   if (Array.isArray(value)) {
