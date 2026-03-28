@@ -279,8 +279,8 @@ const sendNotification = async (app, recipientId, data) => {
           const payload = JSON.stringify({
             title,
             body: message,
-            icon: '/logo-white.png',
-            badge: '/apple-touch-icon.png',
+            icon: 'https://auramarket.com/logo-white.png', // Fallback to absolute
+            tag: type === 'message' ? `msg-${recipientId}` : `alert-${recipientId}-${Date.now()}`,
             data: { url: emailLink || '/discovery' }
           });
 

@@ -47,17 +47,28 @@ export default function HubContent() {
         if (!partnerId) return;
 
         setInbox(prev => {
+          const existingIdx = prev.findIndex(c => (c.partner?._id || c.partner)?.toString() === partnerId);
+          let basePartner = partnerData || { _id: partnerId };
+          
+          // If we have an existing partner object with names/store_names, prefer it
+          if (existingIdx > -1) {
+             const existing = prev[existingIdx];
+             if (typeof existing.partner === 'object') {
+                basePartner = { ...existing.partner, ...partnerData };
+             }
+          }
+
           const newEntry = {
             id: partnerId,
-            partner: partnerData || { _id: partnerId },
+            partner: basePartner,
             snippet,
             date: new Date().toISOString(),
             read_status: !isUnread,
           };
-          const existingIdx = prev.findIndex(c => (c.partner?._id || c.partner)?.toString() === partnerId);
+
           if (existingIdx > -1) {
             const updated = [...prev];
-            updated[existingIdx] = { ...updated[existingIdx], snippet, date: newEntry.date, read_status: !isUnread };
+            updated[existingIdx] = { ...updated[existingIdx], ...newEntry };
             const item = updated.splice(existingIdx, 1)[0];
             return [item, ...updated];
           }
