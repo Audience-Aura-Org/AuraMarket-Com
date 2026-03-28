@@ -292,10 +292,11 @@ const sendNotification = async (app, recipientId, data) => {
                 sent++;
               } catch (e) {
                 failed++;
-                if (e.statusCode === 410 || e.statusCode === 404) {
-                  // Expired subscription — remove it
+                // 410 = subscription expired, 404 = endpoint gone, 401 = VAPID key mismatch
+                // All three mean the subscription is permanently invalid — remove it
+                if (e.statusCode === 410 || e.statusCode === 404 || e.statusCode === 401) {
                   await PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
-                  console.log(`🗑️  Removed stale PWA subscription for user ${recipientId}`);
+                  console.log(`🗑️  Purged invalid PWA subscription ${sub._id} for user ${recipientId} (HTTP ${e.statusCode})`);
                 } else {
                   console.error(`❌ PWA push failed for sub ${sub._id}: [${e.statusCode}] ${e.body || e.message}`);
                 }

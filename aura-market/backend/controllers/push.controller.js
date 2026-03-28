@@ -32,7 +32,7 @@ const subscribe = async (req, res, next) => {
 
 /**
  * @route   DELETE /api/push/unsubscribe
- * @desc    Remove a subscription
+ * @desc    Remove a specific subscription by endpoint
  * @access  Private
  */
 const unsubscribe = async (req, res, next) => {
@@ -45,7 +45,27 @@ const unsubscribe = async (req, res, next) => {
   }
 };
 
+/**
+ * @route   DELETE /api/push/purge-all
+ * @desc    Wipe ALL push subscriptions for the user — forces clean re-registration
+ *          Use when VAPID keys have rotated or subscriptions are permanently stale
+ * @access  Private
+ */
+const purgeAll = async (req, res, next) => {
+  try {
+    const result = await PushSubscription.deleteMany({ user_id: req.user._id });
+    console.log(`🗑️  Purged ${result.deletedCount} stale push subscriptions for user ${req.user._id}`);
+    res.status(200).json({ 
+      success: true, 
+      message: `Purged ${result.deletedCount} stale subscriptions. Re-open the app to re-register.` 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   subscribe,
-  unsubscribe
+  unsubscribe,
+  purgeAll
 };

@@ -108,17 +108,33 @@ export async function subscribeToPush() {
     }
     return subscription;
   } catch (err) {
-    // Handle the specific VAPID mismatch / expired subscription error
-    if (err.name === 'InvalidStateError' || err.code === 0) {
-      console.warn('[PWA] Subscription mismatch detected — clearing and resubscribing...');
+    // Handle VAPID mismatch, expired or invalid subscription errors
+    if (err.name === 'InvalidStateError' || err.code === 0 || err.name === 'AbortError') {
+      console.warn('[PWA] Subscription error detected — purging stale subscriptions and resubscribing...');
       try {
+        // 1. Clear this device's local browser subscription
         const reg = await navigator.serviceWorker.ready;
         const oldSub = await reg.pushManager.getSubscription();
         if (oldSub) await oldSub.unsubscribe();
-        // Recursive retry once
-        return subscribeToPush();
+
+        // 2. Purge ALL stale subscriptions from the backend DB for this user
+        await api.delete('/push/purge-all').catch(() => {});
+        console.log('[PWA] Backend subscriptions purged — creating fresh registration...');
+
+        // 3. Re-subscribe with correct VAPID key (one retry only)
+        const reg2 = await navigator.serviceWorker.ready;
+        const newSub = await reg2.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        await api.post('/push/subscribe', { 
+          subscription: newSub.toJSON(), 
+          device_type: window.innerWidth < 768 ? 'mobile' : 'desktop' 
+        });
+        console.log('✅ [PWA] Fresh push subscription registered after recovery.');
+        return newSub;
       } catch (retryErr) {
-        console.error('[PWA] Retry subscription failed:', retryErr);
+        console.error('[PWA] Recovery subscription failed:', retryErr.message);
       }
     }
     console.error('❌ Push Subscription Error:', err.name, err.message);
