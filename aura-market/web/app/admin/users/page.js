@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X } from 'lucide-react';
+import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X, Phone } from 'lucide-react';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -15,7 +15,7 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState('all');
 
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: '', verification_status: '', password: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: '', verification_status: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -56,6 +56,7 @@ export default function AdminUsersPage() {
     setEditForm({
       name: user.name || '',
       email: user.email || '',
+      phone: user.phone || '',
       role: user.role || 'customer',
       verification_status: user.verification_status || 'unverified',
       password: ''
@@ -151,6 +152,9 @@ export default function AdminUsersPage() {
                       <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 flex items-center gap-2 truncate">
                         <Mail className="size-3 shrink-0" /> {u.email}
                       </p>
+                      <p className="text-[10px] font-bold text-[var(--accent)] flex items-center gap-2 truncate">
+                        <Phone className="size-3 shrink-0" /> {u.phone || 'NO PHONE ATTACHED'}
+                      </p>
                     </div>
                   </div>
 
@@ -221,6 +225,17 @@ export default function AdminUsersPage() {
                   onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-sm focus:border-[var(--accent)] outline-none transition-colors"
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Phone Number</label>
+                <input 
+                  type="text" 
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="+2376..."
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-sm focus:border-[var(--accent)] outline-none transition-colors"
                 />
               </div>
 
