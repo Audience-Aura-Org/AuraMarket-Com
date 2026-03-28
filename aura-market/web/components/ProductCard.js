@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap } from 'lucide-react';
+import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap, Eye } from 'lucide-react';
 import { trackAction } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
@@ -131,19 +131,19 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Content Area */}
-      <div className="p-4 flex flex-col flex-1 gap-3">
+      <div className="p-4 flex flex-col flex-1 gap-3 relative z-10">
         <div className="space-y-3">
-          <Link href={`/products/${productId}`} className="block">
-            <h3 className="text-xs sm:text-sm font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
+          <Link href={`/products/${productId}`} className="block relative z-20">
+            <h3 className="!text-[12px] sm:!text-[14px] font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
               {name}
             </h3>
           </Link>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
+            <span className="text-[12px] sm:text-[14px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
             <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)]">
                <span className="flex items-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-500" /> {product.purchase_count || 0}</span>
-               <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
+               <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
             </div>
           </div>
           

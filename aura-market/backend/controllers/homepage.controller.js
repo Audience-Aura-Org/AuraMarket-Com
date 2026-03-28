@@ -27,7 +27,7 @@ const getHomepage = async (req, res, next) => {
     .sort({ order: 1 })
     .populate({
       path: 'data.product_id',
-      select: 'name price images rating stock vendor_id',
+      select: 'name price images rating stock vendor_id view_count purchase_count',
       populate: { 
         path: 'vendor_id', 
         select: 'store_name user_id',
@@ -133,7 +133,7 @@ const getAdminSections = async (req, res, next) => {
       .sort({ order: 1 })
       .populate({
         path: 'data.product_id',
-        select: 'name price images rating stock vendor_id',
+        select: 'name price images rating stock vendor_id view_count purchase_count',
         populate: { 
           path: 'vendor_id', 
           select: 'store_name user_id',
