@@ -102,7 +102,18 @@ api.interceptors.response.use(
 
     if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
       if (error.response) {
-        console.warn(`[API] ${error.response.status} Error at ${config.url}: ${error.response.data?.message || 'Check network tab'}`);
+        const status = error.response.status;
+        console.warn(`[API] ${status} Error at ${config.url}: ${error.response.data?.message || 'Check network tab'}`);
+        
+        // Auto-logout on 401 (token expired/invalid) to prevent background 401 loop
+        if (status === 401 && typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('aura-auth-storage');
+            localStorage.removeItem('aura_token');
+            // We don't force page reload here to avoid infinite loops, 
+            // but the next hook call will see the empty state.
+          } catch (e) { /* ignore */ }
+        }
       } else {
         console.warn(`[API Network/Unknown Error] at ${config.url}: ${error.message}`);
       }

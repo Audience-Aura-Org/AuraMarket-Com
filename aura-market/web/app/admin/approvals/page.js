@@ -15,7 +15,6 @@ export default function AdminApprovals() {
   const [mounted, setMounted] = useState(false);
   const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioning, setActioning] = useState(null);
 
@@ -30,12 +29,9 @@ export default function AdminApprovals() {
       if (activeTab === 'Vendors') {
         const res = await api.get('/admin/vendors/pending');
         if (res.data?.success) setVendors(res.data.data.submissions || []);
-      } else if (activeTab === 'Products') {
+      } else {
         const res = await api.get('/admin/products/pending');
         if (res.data?.success) setProducts(res.data.data.products || []);
-      } else if (activeTab === 'Withdrawals') {
-        const res = await api.get('/wallet/admin/withdrawals');
-        if (res.data?.success) setWithdrawals(res.data.data.transactions || []);
       }
     } catch (err) {
       console.error('Failed to fetch pending queue:', err);
@@ -78,21 +74,6 @@ export default function AdminApprovals() {
     }
   };
 
-  const handleReviewWithdrawal = async (txId, action) => {
-    setActioning(txId);
-    try {
-      const res = await api.patch(`/wallet/admin/withdrawals/${txId}`, { action });
-      if (res.data.success) {
-        toast.success(`Withdrawal ${action}ed successfully`);
-        setWithdrawals(prev => prev.filter(w => w._id !== txId));
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Financial sync failed');
-    } finally {
-      setActioning(null);
-    }
-  };
-
   if (!mounted) return null;
 
   return (
@@ -110,17 +91,11 @@ export default function AdminApprovals() {
                Vendors
              </button>
              <button 
-                onClick={() => setActiveTab('Products')} 
-                className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'Products' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
-              >
-                Products
-              </button>
-              <button 
-                onClick={() => setActiveTab('Withdrawals')} 
-                className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'Withdrawals' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
-              >
-                Withdrawals
-              </button>
+               onClick={() => setActiveTab('Products')} 
+               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'Products' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
+             >
+               Products
+             </button>
           </div>
         </div>
         <div className="flex items-center gap-3 lg:gap-4">
@@ -141,7 +116,7 @@ export default function AdminApprovals() {
                {[
                  { label: 'Pending Vendors', value: vendors.length, icon: Building2 },
                  { label: 'Pending Products', value: products.length, icon: Package },
-                 { label: 'Withdrawal Req.', value: withdrawals.length, icon: RefreshCw },
+                 { label: 'Average Time', value: '4.2h', icon: RefreshCw },
                  { label: 'Safety Index', value: '99.2%', icon: ShieldCheck }
                ].map(s => (
                  <div key={s.label} className="glass-panel p-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
@@ -212,7 +187,7 @@ export default function AdminApprovals() {
                                 </div>
                              </td>
                           </tr>
-                        )) : activeTab === 'Products' ? products.map(p => (
+                        )) : products.map(p => (
                           <tr key={p._id} className="hover:bg-[var(--accent)]/5 transition-all group">
                              <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
@@ -256,50 +231,9 @@ export default function AdminApprovals() {
                                 </div>
                              </td>
                           </tr>
-                        )) : withdrawals.map(w => (
-                          <tr key={w._id} className="hover:bg-[var(--accent)]/5 transition-all group">
-                             <td className="px-8 py-5">
-                                <div className="flex items-center gap-4">
-                                   <div className="size-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center font-black border border-red-500/10">
-                                      <DollarSign className="size-5" />
-                                   </div>
-                                   <div>
-                                      <p className="text-sm font-black text-[var(--text-primary)]">{w.user_id?.name || 'Unknown User'}</p>
-                                      <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">REF: {w.reference}</p>
-                                   </div>
-                                </div>
-                             </td>
-                             <td className="px-6 py-5">
-                                <p className="text-xs font-black text-rose-500">{w.amount?.toLocaleString()} XAF</p>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-1 opacity-60">Payout Frequency</p>
-                             </td>
-                             <td className="px-6 py-5">
-                                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-[0.2em] border border-amber-500/20">
-                                   Awaiting Liquidaton
-                                </span>
-                             </td>
-                             <td className="px-8 py-5 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                   <button 
-                                     onClick={() => handleReviewWithdrawal(w._id, 'reject')}
-                                     disabled={actioning === w._id}
-                                     className="size-9 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
-                                   >
-                                      <X className="size-5" />
-                                   </button>
-                                   <button 
-                                     onClick={() => handleReviewWithdrawal(w._id, 'approve')}
-                                     disabled={actioning === w._id}
-                                     className="size-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
-                                   >
-                                      {actioning === w._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="size-5" />}
-                                   </button>
-                                </div>
-                             </td>
-                          </tr>
                         ))}
 
-                        {((activeTab === 'Vendors' && vendors.length === 0) || (activeTab === 'Products' && products.length === 0) || (activeTab === 'Withdrawals' && withdrawals.length === 0)) && !loading && (
+                        {((activeTab === 'Vendors' && vendors.length === 0) || (activeTab === 'Products' && products.length === 0)) && !loading && (
                           <tr>
                              <td colSpan={4} className="px-8 py-20 text-center">
                                 <div className="flex flex-col items-center gap-4 opacity-30">

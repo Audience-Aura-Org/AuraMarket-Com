@@ -108,6 +108,22 @@ export const cartStore = {
   async refresh() {
     if (_pendingOps > 0) return; // Don't overwrite during inflight mutations
     if (_fetchPromise) return _fetchPromise;
+
+    // Guest protection: Don't fetch if no token exists to avoid 401 spam
+    let hasToken = false;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('aura-auth-storage');
+        const legacy = localStorage.getItem('aura_token');
+        if (stored) {
+           const parsed = JSON.parse(stored);
+           hasToken = !!parsed?.state?.token;
+        }
+        if (!hasToken && legacy) hasToken = true;
+      } catch (e) { /* ignore parse errors */ }
+    }
+    
+    if (!hasToken) return;
     
     _fetchPromise = api.get('/cart')
       .then(res => {

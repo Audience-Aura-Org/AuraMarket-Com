@@ -43,6 +43,8 @@ const {
   getAllProducts
 } = require('../controllers/admin.controller');
 
+const { getAuditLogs } = require('../controllers/audit.controller');
+
 
 const {
   getAdminDisputes,
@@ -103,6 +105,9 @@ router.patch('/settings', updateSettings);
 
 // Email Monitoring
 router.get('/notifications/email-logs', getEmailLogs);
+
+// Audit Logging
+router.get('/audit', getAuditLogs);
 
 // Queue Moderation
 router.get('/vendors/pending', getPendingVendors);

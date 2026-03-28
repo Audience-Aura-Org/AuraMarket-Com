@@ -17,9 +17,8 @@ const LogisticsCompany = require('../models/LogisticsCompany.model');
 const LogisticZone = require('../models/LogisticZone.model');
 const KYC = require('../models/KYC.model');
 const Report = require('../models/Report.model');
-const Dispute = require('../models/Dispute.model');
-const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
+const Transaction = require('../models/Transaction.model');
 const EmailLog = require('../models/EmailLog.model');
 const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('../services/logistics.service');
@@ -145,9 +144,6 @@ const getPlatformAnalytics = async (req, res, next) => {
       { $group: { _id: null, totalHeldFunds: { $sum: '$amount' } } }
     ]);
     const totalHeldFunds = escrowStats.length > 0 ? escrowStats[0].totalHeldFunds : 0;
-    const activeDisputes = await Dispute.countDocuments({ status: { $ne: 'resolved' } });
-    const activeShipments = await Shipment.countDocuments({ status: { $nin: ['delivered', 'cancelled'] } });
-    const pendingWithdrawals = await Transaction.countDocuments({ type: 'withdrawal', status: 'pending' });
     res.status(200).json({
       success: true,
       data: {
@@ -160,10 +156,7 @@ const getPlatformAnalytics = async (req, res, next) => {
           pending_products: pendingProducts,
           orders: totalOrders,
           revenue: totalRevenue,
-          escrow_vault: totalHeldFunds,
-          active_disputes: activeDisputes,
-          active_shipments: activeShipments,
-          pending_withdrawals: pendingWithdrawals
+          escrow_vault: totalHeldFunds
         }
       }
     });

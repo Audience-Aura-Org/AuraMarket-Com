@@ -18,6 +18,13 @@ export default function CartPreview() {
 
   const fetchCart = async (force = false) => {
     if (typeof window !== 'undefined' && window.__AURA_PENDING_CART > 0) return;
+    
+    // Guest protection: Don't call if no token exists
+    if (typeof window !== 'undefined') {
+       const hasToken = !!localStorage.getItem('aura_token') || !!localStorage.getItem('aura-auth-storage');
+       if (!hasToken) return;
+    }
+
     try {
       const res = await api.get('/cart');
       if (res.data?.success && (!window.__AURA_PENDING_CART)) {
@@ -110,7 +117,7 @@ export default function CartPreview() {
               </div>
               <div className="flex-1">
                 <div className="text-sm font-black truncate">{it.name}</div>
-                <div className="text-[10px] text-[var(--text-secondary)]">{it.quantity} × ${it.price.toLocaleString()}</div>
+                <div className="text-[10px] text-[var(--text-secondary)]">{it.quantity} × {it.price.toLocaleString()} XAF</div>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => updateQty(it.id, -1)} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)]"><Minus className="w-3 h-3" /></button>
@@ -121,7 +128,7 @@ export default function CartPreview() {
           ))}
           <div className="pt-3 border-t border-[var(--glass-border)] mt-2 flex items-center justify-between">
             <div className="text-[10px] text-[var(--text-secondary)] font-black">Subtotal</div>
-            <div className="font-black">${subtotal.toLocaleString()}</div>
+            <div className="font-black">{subtotal.toLocaleString()} XAF</div>
           </div>
           <div className="mt-3 flex gap-2">
             <Link href="/cart" className="flex-1 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-sm text-center">View Cart</Link>

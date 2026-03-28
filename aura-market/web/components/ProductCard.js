@@ -140,7 +140,7 @@ export default function ProductCard({ product }) {
           </Link>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-[var(--text-primary)]">${price?.toLocaleString()}</span>
+            <span className="text-sm font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
             <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)]">
                <span className="flex items-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-500" /> {product.purchase_count || 0}</span>
                <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>

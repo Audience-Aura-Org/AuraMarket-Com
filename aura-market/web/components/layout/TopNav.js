@@ -9,6 +9,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
 import socketService from '@/services/socket';
+import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
@@ -21,39 +22,33 @@ export default function TopNav() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
-  const [cartCount, setCartCount] = useState(0);
+  const [cartCount, setCartCount] = useState(cartStore.getCount());
 
   // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
     if (!user?._id) return;
     const fetchCounts = () => {
-      api.get('/cart').then(res => {
-        if (res.data?.success) {
-          const items = res.data.data.cart?.items || [];
-          setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
-        }
-      }).catch(() => {});
+      // Use cartStore.refresh() instead of manual fetch to get benefits of deduplication and token checks
+      cartStore.refresh();
       
-      api.get('/chat').then(res => {
-        if (res.data?.success) {
-          const count = res.data.data.activeChats.filter(c => c.read_status === false).length;
-          setUnreadCount(count);
-        }
-      }).catch(() => {});
+      // Token check for chat
+      const hasToken = !!localStorage.getItem('aura_token') || !!localStorage.getItem('aura-auth-storage');
+      if (hasToken) {
+        api.get('/chat').then(res => {
+          if (res.data?.success) {
+            const count = res.data.data.activeChats.filter(c => c.read_status === false).length;
+            setUnreadCount(count);
+          }
+        }).catch(() => {});
+      }
     };
 
     fetchCounts();
     
-    // Listen for events that change counts
-    const handleUpdate = (e) => {
-      if (e.detail?.cart) {
-        const items = e.detail.cart.items || [];
-        setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
-      } else {
-        fetchCounts();
-      }
-    };
-    window.addEventListener('cart-updated', handleUpdate);
+    // Subscribe to cart changes
+    const unsubCart = cartStore.subscribe(({ count }) => {
+      setCartCount(count);
+    });
     
     // Socket listeners for unread count
     const handleMsg = () => {
@@ -63,10 +58,10 @@ export default function TopNav() {
     };
     
     socketService.on('receive_message', handleMsg);
-    socketService.on('messages_read', handleUpdate);
+    socketService.on('messages_read', fetchCounts);
 
     return () => {
-      window.removeEventListener('cart-updated', handleUpdate);
+      unsubCart();
       socketService.off('receive_message', handleMsg);
       socketService.off('messages_read', handleUpdate);
     };

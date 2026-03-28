@@ -34,6 +34,7 @@ const ADMIN_NAV = [
   { icon: 'category', label: 'Categories', href: '/admin/categories' },
   { icon: 'star', label: 'Reviews', href: '/admin/reviews' },
   { icon: 'mark_email_read', label: 'Email Logs', href: '/admin/notifications/email-logs' },
+  { icon: 'history', label: 'Audit Ledger', href: '/admin/audit' },
   { icon: 'web', label: 'CMS / Hero', href: '/admin/homepage' },
 ];
 

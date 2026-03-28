@@ -15,9 +15,9 @@
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
-  --nav-bg: rgba(255, 255, 255, 0.9);
-  --nav-text: #0f172a;
-  --nav-border: rgba(15, 23, 42, 0.06);
+  --nav-bg: rgba(10, 5, 15, 0.95); /* Dark Header for Light Mode */
+  --nav-text: #f8fafc;
+  --nav-border: rgba(255, 255, 255, 0.08);
   --component-bg: rgba(15, 23, 42, 0.04);
   --text-primary: #0f172a;
   --text-secondary: #64748b;
@@ -32,17 +32,17 @@
 .dark {
   --bg-primary: #0a050a;
   --bg-secondary: #120812;
-  --nav-bg: #f2f2f3;
-  --nav-text: #1b1b1b;
-  --nav-border: rgba(0, 0, 0, 0.08);
-  --component-bg: rgba(0, 0, 0, 0.04);
+  --nav-bg: rgba(255, 255, 255, 0.9); /* Light Header for Dark Mode */
+  --nav-text: #0a051b;
+  --nav-border: rgba(15, 23, 42, 0.06);
+  --component-bg: rgba(255, 255, 255, 0.04);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --accent: #f20df2;
   --accent-light: #f472b6;
   --accent-glow: rgba(242, 13, 242, 0.15);
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.12);
   --card-bg: rgba(255, 255, 255, 0.03);
 }
 

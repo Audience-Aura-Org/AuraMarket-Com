@@ -22,7 +22,6 @@ const {
   initiateDeposit,
   requestWithdrawal,
   processWithdrawal,
-  getPendingWithdrawals,
   payOrderWithWallet,
 } = require('../controllers/wallet.controller');
 
@@ -39,7 +38,6 @@ router.post('/withdraw', requestWithdrawal);
 router.post('/pay-order', payOrderWithWallet); // Direct Wallet Payment checkout
 
 // ── Admin Tools ───────────────────────────────
-router.get('/admin/withdrawals', restrictTo('admin'), getPendingWithdrawals);
 router.patch('/admin/withdrawals/:id', restrictTo('admin'), processWithdrawal);
 
 module.exports = router;
