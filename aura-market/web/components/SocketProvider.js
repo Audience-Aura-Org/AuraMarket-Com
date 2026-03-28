@@ -27,6 +27,9 @@ export default function SocketProvider({ children }) {
     }
 
     const handleNewMessage = (msg) => {
+      // 🚀 FOCUS GUARD: If user has multiple tabs open, only the focused one shows the toast
+      if (!document.hasFocus()) return;
+      
       console.log('[SocketProvider] receive_message fired:', msg);
       if (window.location.pathname.startsWith('/chat')) return;
       const senderName = msg.sender_id?.name || 'Aura User';
@@ -37,6 +40,9 @@ export default function SocketProvider({ children }) {
     };
 
     const handleNotification = (notif) => {
+      // 🚀 FOCUS GUARD
+      if (!document.hasFocus()) return;
+
       console.log('[SocketProvider] notification fired:', notif);
       setNotifToast({
         id: notif._id || Date.now(),

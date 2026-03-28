@@ -200,7 +200,11 @@ const sendNotification = async (app, recipientId, data) => {
     });
 
     const io = app.get('io');
-    if (io) io.to(recipientId.toString()).emit('notification', notification);
+    // 🚀 REDUNDANCY GUARD: Chat messages already emit 'receive_message' in the controller.
+    // We only emit 'notification' for system alerts (orders, account items, etc.)
+    if (io && type !== 'message') {
+      io.to(recipientId.toString()).emit('notification', notification);
+    }
 
     // ─────────────────────────────────────────────
     // BACKGROUND SIDE-EFFECTS (Non-Blocking)
