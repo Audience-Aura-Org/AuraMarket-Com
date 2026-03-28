@@ -8,8 +8,8 @@ const uploadSingle = (req, res) => {
     return res.status(400).json({ success: false, message: 'Please upload a file' });
   }
 
-  // Use relative path to ensure environment portability (frontend handles origin)
-  const fileUrl = `/uploads/${req.file.filename}`;
+  // 🚀 PATH DISCOVERY: Cloudinary uses .path (absolute URL), Local uses /uploads/.filename
+  const fileUrl = req.file.path || `/uploads/${req.file.filename}`;
 
   res.status(200).json({
     success: true,
@@ -28,7 +28,7 @@ const uploadMultiple = (req, res) => {
   }
   
   const urls = req.files.map(file => ({
-    url: `/uploads/${file.filename}`,
+    url: file.path || `/uploads/${file.filename}`,
     filename: file.filename
   }));
 

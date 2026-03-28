@@ -15,6 +15,7 @@
   "dependencies": {
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^1.41.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
@@ -22,6 +23,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.0",
     "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.2",
     "otplib": "^13.3.0",
     "pdfkit": "^0.17.2",

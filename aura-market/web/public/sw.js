@@ -1,9 +1,9 @@
 /**
- * Aura Market — PWA Service Worker v3
- * Robust background push handling with absolute path resolution.
+ * Aura Market — PWA Service Worker v4
+ * Robust background push handling with redundant notification suppression.
  */
 
-const CACHE_NAME = 'aura-cache-v4'; // Bumped version
+const CACHE_NAME = 'aura-cache-v5'; // Bumped version
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -57,23 +57,15 @@ self.addEventListener('fetch', (event) => {
 
 // ── Push Notifications ───────────────────────────────────────────────────────
 self.addEventListener('push', function (event) {
-  console.log('[SW] Push Received:', event);
-  
-  if (!event.data) {
-    console.warn('[SW] Push event has no data.');
-    return;
-  }
+  if (!event.data) return;
 
   let data = {};
   try {
     data = event.data.json();
-    console.log('[SW] Push Data:', data);
   } catch (e) {
-    console.warn('[SW] Push data is not JSON, treating as text.');
     data = { title: 'Aura Market', body: event.data.text() };
   }
 
-  // Ensure absolute URLs for icons to avoid load failure in PWA mode
   const baseUrl = self.location.origin;
   const icon = data.icon ? (data.icon.startsWith('http') ? data.icon : baseUrl + data.icon) : baseUrl + '/logo-white.png';
   const badge = data.badge ? (data.badge.startsWith('http') ? data.badge : baseUrl + data.badge) : baseUrl + '/logo-white.png';
@@ -85,7 +77,7 @@ self.addEventListener('push', function (event) {
     vibrate: [200, 100, 200],
     tag: data.tag || 'aura-notification',
     renotify: true,
-    requireInteraction: true, // Keep notification visible until user interacts (useful for testing)
+    requireInteraction: true,
     data: {
       url: data.data?.url || (data.url || '/')
     },
@@ -96,7 +88,19 @@ self.addEventListener('push', function (event) {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Aura Market', options)
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      // 🚨 DOUBLE NOTIFICATION GUARD
+      // If any tab of our app is currently focused/active, do NOT show a system notification.
+      // The SocketProvider will show a beautiful in-app toast instead.
+      // This ensures the user only gets a system alert when the app is backgrounded or closed.
+      const isFocused = clientList.some(client => client.focused);
+      if (isFocused) {
+        console.log('[SW] App is focused. Suppressing system push in favor of in-app toast.');
+        return null;
+      }
+      
+      return self.registration.showNotification(data.title || 'Aura Market', options);
+    })
   );
 });
 

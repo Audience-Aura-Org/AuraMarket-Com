@@ -4,3 +4,5 @@ aura-market/**/dist/
 aura-market/**/build/
 aura-market/**/.expo/
 aura-market/.git_disabled/
+aura-market/backend/uploads/*
+!aura-market/backend/uploads/.gitkeep
