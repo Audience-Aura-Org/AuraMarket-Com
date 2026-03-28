@@ -114,12 +114,14 @@ export default function ProductCard({ product, layout = 'grid' }) {
         </div>
 
         {/* Rating Floating */}
-        <div className="absolute bottom-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
-           <div className="flex items-center gap-1 bg-[var(--bg-primary)]/90 backdrop-blur-xl px-2 py-1 rounded-lg border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] shadow-sm">
-              <Star className="w-2.5 h-2.5 fill-[var(--accent)] text-[var(--accent)]" />
-              <span>{rating || '4.8'}</span>
-           </div>
-        </div>
+        {rating > 0 && (
+          <div className="absolute bottom-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
+             <div className="flex items-center gap-1 bg-[var(--bg-primary)]/90 backdrop-blur-xl px-2 py-1 rounded-lg border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] shadow-sm">
+                <Star className="w-2.5 h-2.5 fill-[var(--accent)] text-[var(--accent)]" />
+                <span>{rating.toFixed(1)}</span>
+             </div>
+          </div>
+        )}
       </div>
 
       {/* Content Area */}

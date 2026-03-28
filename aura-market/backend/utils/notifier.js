@@ -30,9 +30,9 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false,
     minVersion: 'TLSv1.2'
   },
-  // ── ENABLE DETAILED LOGGING FOR RENDER ──────────
-  debug: true,
-  logger: true,
+  // ── LOGGING ──────────
+  debug: false,
+  logger: false,
   connectionTimeout: 15000, // Increased to 15s for STARTTLS handshake
   greetingTimeout: 15000,
 });
