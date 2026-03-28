@@ -22,6 +22,7 @@ const {
   initiateDeposit,
   requestWithdrawal,
   processWithdrawal,
+  getPendingWithdrawals,
   payOrderWithWallet,
 } = require('../controllers/wallet.controller');
 
