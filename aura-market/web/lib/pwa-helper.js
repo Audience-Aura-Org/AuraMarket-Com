@@ -5,7 +5,7 @@
  * Comprehensive PWA Service Worker Registration & Web Push Management
  */
 
-const VAPID_PUBLIC_KEY = "BMiW0FBPikPVXuG3v_llaQ3lgb1MfPiM_CEcKXafkGvc3KShUCR3OQkjXepzdMzaDzVxW-C8f8kBbLcTZLX9TiM";
+const VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
 
 // Helper to convert base64 to Uint8Array for VAPID
 function urlBase64ToUint8Array(base64String) {

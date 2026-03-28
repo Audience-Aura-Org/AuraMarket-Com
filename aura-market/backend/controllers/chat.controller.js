@@ -131,15 +131,27 @@ const sendMessage = async (req, res, next) => {
       const receiverRoom = receiver_id.toString();
       const senderRoom = req.user._id.toString();
       
-      const receiverCount = io.sockets.adapter.rooms.get(receiverRoom)?.size || 0;
-      const senderCount = io.sockets.adapter.rooms.get(senderRoom)?.size || 0;
-      
-      console.log(`[API] 📤 Broadcasting via socket - receiver room: ${receiverRoom} (${receiverCount} connected), sender room: ${senderRoom} (${senderCount} connected)`);
-      
       io.to(receiverRoom).emit('receive_message', populated);
       io.to(senderRoom).emit('sent_message_echo', populated);
       
       console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
+      
+      // SEND UNIFIED NOTIFICATION (In-app + PWA Push)
+      try {
+        const { sendNotification } = require('../utils/notifier');
+        const senderName = req.user.branding?.logo ? (req.user.name || 'Merchant') : req.user.name;
+        
+        await sendNotification(req.app, receiver_id, {
+          title: `New Message from ${senderName}`,
+          message: text || (product_reference ? 'Shared a product with you' : 'New Message'),
+          type: 'message',
+          metadata: { sender_id: req.user._id, link: `/chat/${req.user._id}` },
+          emailLink: `${process.env.WEB_CLIENT_URL}/chat/${req.user._id}`
+        });
+        console.log(`✅ [Notifier] Message signal dispatched to receiver: ${receiver_id}`);
+      } catch (err) {
+        console.error(`❌ [Notifier] Signal dispatch failed:`, err.message);
+      }
     } else {
       console.warn(`⚠️ [API] IO instance not available, socket events not emitted`);
     }
