@@ -51,6 +51,14 @@ function ShopContent() {
       .catch(err => console.error(err));
   }, []);
 
+  // Sync category from URL
+  useEffect(() => {
+    const urlCategory = searchParams.get('category');
+    if (urlCategory) {
+      setActiveCategoryName(urlCategory);
+    }
+  }, [searchParams]);
+
   // Debounce ref to avoid multiple overlapping fetches
   const fetchTimeout = useRef(null);
   const productCacheRef = useRef(new Map());

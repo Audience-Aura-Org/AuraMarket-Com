@@ -128,9 +128,9 @@ export default function ProductCard({ product, layout = 'grid' }) {
       <div className={`p-4 flex flex-col flex-1 ${isList ? 'justify-center gap-2' : 'gap-3'}`}>
         <div className="space-y-3">
           <Link href={`/products/${productId}`} className="block">
-            <h3 className={`font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight ${isList ? 'text-sm md:text-base line-clamp-2' : 'text-xs sm:text-sm line-clamp-1'}`}>
+            <h4 className={`font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tighter! ${isList ? 'text-[14px]! md:text-base line-clamp-2' : 'text-[14px]! sm:text-sm line-clamp-1'}`}>
               {name}
-            </h3>
+            </h4>
           </Link>
           
           <div className="flex items-center justify-between">

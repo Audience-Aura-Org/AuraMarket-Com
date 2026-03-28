@@ -20,6 +20,7 @@ export default function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -147,13 +148,20 @@ export default function RegisterPage() {
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]/60">lock</span>
                 <input 
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                   className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl py-4 pl-12 pr-12 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent outline-none transition-all placeholder:text-[var(--text-secondary)]/40" 
                   placeholder="••••••••" 
                   required
                 />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-[var(--text-secondary)]/60 hover:text-[var(--text-primary)] transition-colors p-2"
+                >
+                  <span className="material-symbols-outlined text-xl pointer-events-none">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                </button>
               </div>
             </div>
 
