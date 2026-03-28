@@ -94,7 +94,7 @@ export default function ProductCard({ product, layout = 'grid' }) {
     >
 
       {/* Product Image Area */}
-      <div className={`relative overflow-hidden bg-[var(--accent)]/5 flex-shrink-0 ${isList ? 'w-32 md:w-48 h-full min-h-[140px]' : 'aspect-square'}`}>
+      <div className={`relative overflow-hidden bg-[var(--accent)]/5 flex-shrink-0 ${isList ? 'w-32 md:w-48 aspect-square' : 'aspect-square'}`}>
         <img 
           src={mainImage} 
           alt={name}
@@ -146,9 +146,9 @@ export default function ProductCard({ product, layout = 'grid' }) {
               href={`/stores/${vendor_id?._id || ''}`}
               className="flex items-center gap-1.5 group/vendor"
             >
-              <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)]">
+              <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center">
                 <img 
-                  src={vendor_id?.store?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
+                  src={vendor_id?.user_id?.branding?.logo || vendor_id?.user_id?.avatar || vendor_id?.store?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
                   className="size-full object-cover"
                   alt="Store"
                 />

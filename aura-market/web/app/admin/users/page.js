@@ -158,25 +158,25 @@ export default function AdminUsersPage() {
                      <div className="text-left sm:text-right">
                         <p className="text-[8px] lg:text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mb-1">Status</p>
                         <div className="flex items-center gap-2">
-                           <div className={`size-1.5 lg:size-2 rounded-full ${u.verification_status === 'verified' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : u.verification_status === 'rejected' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'}`} />
-                           <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">{u.verification_status || 'Pending'}</span>
+                           <div className={`size-1.5 lg:size-2 rounded-full ${u.verification_status === 'verified' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : u.verification_status === 'rejected' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : u.verification_status === 'held' ? 'bg-amber-600 shadow-[0_0_10px_#d97706]' : 'bg-amber-400 shadow-[0_0_10px_#fbbf24]'}`} />
+                           <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">{u.verification_status?.replace('_', ' ') || 'Pending'}</span>
                         </div>
                      </div>
 
                      <div className="flex items-center gap-2 lg:gap-3">
                         {u.verification_status === 'verified' ? (
                           <button 
-                            onClick={() => handleStatusUpdate(u._id, 'rejected')}
-                            className="size-10 lg:size-12 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm border border-rose-500/20"
-                            title="Block User"
+                            onClick={() => handleStatusUpdate(u._id, 'held')}
+                            className="size-10 lg:size-12 rounded-xl bg-amber-600/10 text-amber-600 flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm border border-amber-600/20"
+                            title="Hold Node"
                           >
-                            <Ban className="size-4 lg:size-5" />
+                            <ShieldAlert className="size-4 lg:size-5" />
                           </button>
                         ) : (
                           <button 
                             onClick={() => handleStatusUpdate(u._id, 'verified')}
                             className="size-10 lg:size-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm border border-emerald-500/20"
-                            title="Verify User"
+                            title="Verify Node"
                           >
                             <CheckCircle className="size-4 lg:size-5" />
                           </button>
@@ -261,6 +261,7 @@ export default function AdminUsersPage() {
                     <option value="pending">Pending</option>
                     <option value="verified">Verified</option>
                     <option value="rejected">Rejected</option>
+                    <option value="held">Held</option>
                   </select>
                 </div>
               </div>

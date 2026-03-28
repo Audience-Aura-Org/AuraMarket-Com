@@ -46,23 +46,15 @@ export default function HubContent() {
 
     const fetchInbox = async () => {
       try {
-        const res = await api.get('/users/followed-vendors');
+        const res = await api.get('/chat');
         if (res.data.success) {
-           const mappedNodes = res.data.data.follows?.map(f => {
-              const vendor = f.vendor_id;
-              if (!vendor) return null;
-              return {
-                 id: f._id,
-                 partner: {
-                    _id: vendor._id,
-                    name: vendor.store_name,
-                    avatar: vendor.user_id?.branding?.logo || vendor.user_id?.avatar
-                 },
-                 date: f.createdAt,
-                 snippet: 'Node synchronized. Open channel.',
-                 read_status: true
-              };
-           }).filter(Boolean) || [];
+           const mappedNodes = res.data.data.activeChats?.map(c => ({
+              id: c.partner?._id,
+              partner: c.partner,
+              date: c.date,
+              snippet: c.snippet,
+              read_status: c.read_status
+           })) || [];
            setInbox(mappedNodes);
            try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(mappedNodes)); } catch (_) {}
         }
@@ -173,7 +165,7 @@ export default function HubContent() {
       {/* ── DESKTOP VIEW: 3-COLUMN LAYOUT ───────────────────────────────────── */}
       <div className="hidden md:flex w-full h-full relative z-10 container mx-auto gap-8 px-6 py-8">
          {/* Sidebar: Chat List */}
-         <div className="w-[340px] flex flex-col gap-6">
+         <div className="w-[350px] flex flex-col gap-6">
             <div className="flex flex-col gap-2">
                <h2 className="text-3xl font-black uppercase tracking-tighter">THE HUB</h2>
                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)] opacity-80">Operational Pulse</p>

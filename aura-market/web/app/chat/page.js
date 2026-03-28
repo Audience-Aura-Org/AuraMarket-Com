@@ -363,13 +363,13 @@ function ChatContent() {
   return (
     <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
       {/* Sidebar List */}
-      <aside className={`w-full md:w-[320px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
+      <aside className={`w-full md:w-[350px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
             <div className="flex flex-col">
-            <h1 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
-            <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5 opacity-80 flex items-center gap-1.5">
-               <span className={`size-1.5 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
-               Secure Chat
+            <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-none">COMM <span className="text-[var(--accent)]">CENTER</span></h1>
+            <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.25em] mt-1.5 opacity-60 flex items-center gap-1.5 leading-none">
+               <span className={`size-2 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
+               Operational Pipe
             </p>
           </div>
           <div className="flex items-center gap-2">

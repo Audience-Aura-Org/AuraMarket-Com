@@ -6,7 +6,8 @@ import {
   History, Plus, TrendingUp, Loader2, X, CheckCircle2,
   AlertCircle, ArrowDownRight, CreditCard, Building2
 } from 'lucide-react';
-import RoleSidebar from '@/components/layout/RoleSidebar';
+import { useAuthStore } from '@/hooks/useAuth';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,7 @@ const TX_ICONS = {
 };
 
 export default function VendorWalletPage() {
+  const { user } = useAuthStore();
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
@@ -106,11 +108,7 @@ export default function VendorWalletPage() {
   const totalOut = transactions.filter(t => ['withdrawal', 'payment'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
-      <div className="absolute top-[-15%] right-[-5%] w-[600px] h-[600px] bg-[var(--accent)]/8 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-[-15%] left-[5%] w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-[150px] pointer-events-none" />
-
-      <RoleSidebar role="vendor" />
+    <DashboardLayout role={user?.role || 'customer'}>
 
       {/* Toast */}
       {toast && (
@@ -182,7 +180,7 @@ export default function VendorWalletPage() {
         </div>
       )}
 
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
+      <div className="flex-1 flex flex-col min-h-0 relative z-10 w-full">
         {/* Header */}
         <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)]/50">
           <div className="flex items-center gap-3">
@@ -326,8 +324,8 @@ export default function VendorWalletPage() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

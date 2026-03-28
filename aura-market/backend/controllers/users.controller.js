@@ -36,7 +36,17 @@ const updateMe = async (req, res, next) => {
       runValidators: true,
     });
 
-    return res.status(200).json({ success: true, message: 'Account updated successfully.', data: { user } });
+    // Cascading updates for role-specific records
+    if (updates.phone) {
+      if (user.role === 'vendor') {
+        await Vendor.findOneAndUpdate({ user_id: user._id }, { phone: updates.phone });
+      } else if (user.role === 'logistics') {
+        const LogisticsCompany = require('../models/LogisticsCompany.model');
+        await LogisticsCompany.findOneAndUpdate({ user_id: user._id }, { contact_phone: updates.phone });
+      }
+    }
+
+    return res.status(200).json({ success: true, message: 'Account records synchronized.', data: { user } });
   } catch (error) {
     next(error);
   }
@@ -45,18 +55,26 @@ const updateMe = async (req, res, next) => {
 // POST /api/v1/users/kyc
 const submitKYC = async (req, res, next) => {
   try {
-    const { full_name, id_type, id_number, file_url } = req.body;
-    if (!full_name || !id_type || !id_number || !file_url) {
-      return res.status(400).json({ success: false, message: 'All KYC fields are required.' });
+    const { full_name, id_type, id_number, file_url_front, file_url_back } = req.body;
+    if (!full_name || !id_type || !id_number || !file_url_front) {
+      return res.status(400).json({ success: false, message: 'Front-of-ID and legal identifiers are required.' });
     }
     const vendor = await Vendor.findOne({ user_id: req.user._id });
     const kyc = await KYC.findOneAndUpdate(
       { user_id: req.user._id },
-      { full_name, document_type: id_type, document_number: id_number, document_front_url: file_url, status: 'pending', vendor_id: vendor ? vendor._id : null },
+      { 
+        full_name, 
+        document_type: id_type, 
+        document_number: id_number, 
+        document_front_url: file_url_front, 
+        document_back_url: file_url_back || null,
+        status: 'pending', 
+        vendor_id: vendor ? vendor._id : null 
+      },
       { upsert: true, new: true, runValidators: true }
     );
     const user = await User.findByIdAndUpdate(req.user._id, { verification_status: 'pending' }, { new: true });
-    res.status(200).json({ success: true, message: 'KYC submission received.', data: { kyc, user } });
+    res.status(200).json({ success: true, message: 'KYC submission received node-side. Governance review scheduled.', data: { kyc, user } });
   } catch (error) {
     next(error);
   }
