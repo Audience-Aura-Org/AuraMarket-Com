@@ -217,6 +217,17 @@ function CheckoutContent() {
     setLoading(true);
     setError(null);
     try {
+      // Sync profile fields if updated during checkout (keeps fields in sync as requested)
+      if (user?._id) {
+          const updates = {};
+          if (formData.phone && formData.phone !== user.phone) updates.phone = formData.phone;
+          if (formData.name && formData.name !== user.name) updates.name = formData.name;
+          if (Object.keys(updates).length > 0) {
+              await api.patch('/auth/update-profile', updates);
+              useAuthStore.getState().updateUser(updates);
+          }
+      }
+
       let finalOrderIds = orderId ? [orderId] : [];
       
       if (!orderId) {
@@ -527,7 +538,7 @@ function CheckoutContent() {
 
                        <button 
                         onClick={() => setStep(2)}
-                        disabled={!formData.name || !formData.address || !formData.email || !formData.logistics_company_id}
+                        disabled={!formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
                        >
                          Review Matrix & Finalize
