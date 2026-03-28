@@ -63,7 +63,7 @@ export default function TopNav() {
     return () => {
       unsubCart();
       socketService.off('receive_message', handleMsg);
-      socketService.off('messages_read', handleUpdate);
+      socketService.off('messages_read', fetchCounts);
     };
   }, [user?._id]);
 
