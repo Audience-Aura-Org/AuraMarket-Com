@@ -316,19 +316,23 @@ function ChatLink({ chat }) {
          href={`/messages?vendorId=${chat.partner._id}`}
          className="w-full p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4 hover:border-[var(--accent)]/40 transition-all group relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5"
       >
-         <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative shrink-0">
-            <img src={chat.partner.branding?.logo || chat.partner.avatar || `https://ui-avatars.com/api/?name=${chat.partner.name}`} className="size-full object-cover" alt="" />
+         <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative shrink-0 flex items-center justify-center">
+            {chat.partner.branding?.logo || chat.partner.avatar ? (
+              <img src={chat.partner.branding?.logo || chat.partner.avatar} className="size-full object-cover" alt="" />
+            ) : (
+              <span className="text-[var(--text-primary)] font-black text-xs">{(chat.partner.store_name || chat.partner.name)?.[0]?.toUpperCase()}</span>
+            )}
             <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
          </div>
          <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start mb-0.5">
                <div className="flex items-center gap-1.5 group/vendor">
-                  <div className="size-4 rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0">
-                     <img 
-                        src={chat.partner.branding?.logo || chat.partner.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${chat.partner.name}&backgroundColor=var(--accent)`} 
-                        className="size-full object-cover" 
-                        alt="Store" 
-                     />
+                  <div className="size-4 rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 flex items-center justify-center">
+                     {chat.partner.branding?.logo || chat.partner.avatar ? (
+                        <img src={chat.partner.branding?.logo || chat.partner.avatar} className="size-full object-cover" alt="" />
+                     ) : (
+                        <span className="text-[var(--text-primary)] font-black text-[6px]">{(chat.partner.store_name || chat.partner.name)?.[0]?.toUpperCase()}</span>
+                     )}
                   </div>
                   <span className="text-[9px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[120px]">
                      {chat.partner.store_name || chat.partner.name}

@@ -20,6 +20,7 @@ const {
   followVendor,
   unfollowVendor,
   getFollowers,
+  getFollowing,
   checkFollowStatus,
 } = require('../controllers/vendor.controller');
 

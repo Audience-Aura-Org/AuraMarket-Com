@@ -147,11 +147,15 @@ export default function ProductCard({ product, layout = 'grid' }) {
               className="flex items-center gap-1.5 group/vendor"
             >
               <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center">
-                <img 
-                  src={vendor_id?.user_id?.branding?.logo || vendor_id?.user_id?.avatar || vendor_id?.store?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
-                  className="size-full object-cover"
-                  alt="Store"
-                />
+                {vendor_id?.user_id?.branding?.logo || vendor_id?.user_id?.avatar || vendor_id?.store?.logo ? (
+                  <img 
+                    src={vendor_id?.user_id?.branding?.logo || vendor_id?.user_id?.avatar || vendor_id?.store?.logo} 
+                    className="size-full object-cover"
+                    alt="Store"
+                  />
+                ) : (
+                  <span className="text-[var(--text-primary)] font-black text-[6px]">{(vendor_id?.store_name || vendor_id?.name || 'A')?.[0]?.toUpperCase()}</span>
+                )}
               </div>
               <span className="text-[9px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[80px]">
                 {vendor_id?.store_name || 'Verified Node'}
