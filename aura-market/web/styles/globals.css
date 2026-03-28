@@ -14,18 +14,18 @@
 
 :root {
   --bg-primary: #ffffff;
-  --bg-secondary: #f3f3f3;
-  --nav-bg: #0a050a;
-  --nav-text: #f8fafc;
-  --nav-border: rgba(255, 255, 255, 0.08);
-  --component-bg: rgba(255, 255, 255, 0.08);
-  --text-primary: #111111;
-  --text-secondary: #565959;
+  --bg-secondary: #f8fafc;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --nav-text: #0f172a;
+  --nav-border: rgba(15, 23, 42, 0.06);
+  --component-bg: rgba(15, 23, 42, 0.04);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
   --accent: #f20df2;
   --accent-light: #f472b6;
-  --accent-glow: rgba(242, 13, 242, 0.1);
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.4);
+  --accent-glow: rgba(242, 13, 242, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(15, 23, 42, 0.08);
   --card-bg: #ffffff;
 }
 

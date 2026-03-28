@@ -108,7 +108,7 @@ export default function TopNav() {
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
           <Link href="/" className="flex items-center gap-2 md:gap-3 group">
             <img
-              src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'}
+              src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'}
               alt="Aura Market"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
@@ -126,13 +126,13 @@ export default function TopNav() {
         
         {/* Search Bar - Desktop */}
         <div className="hidden md:flex flex-1 max-w-xl mx-4 relative group">
-          <div className="w-full flex items-center bg-white/5 rounded-2xl px-4 py-2 border border-white/10 focus-within:border-[var(--accent)]/50 focus-within:bg-white/10 transition-all">
-            <Search className="text-[var(--nav-text)]/40 size-4 group-focus-within:text-[var(--accent)] transition-colors" />
+          <div className="w-full flex items-center bg-[var(--bg-secondary)] rounded-2xl px-4 py-2 border border-[var(--nav-border)] focus-within:border-[var(--accent)]/50 focus-within:bg-[var(--bg-primary)] transition-all">
+            <Search className="text-[var(--text-secondary)] size-4 group-focus-within:text-[var(--accent)] transition-colors" />
             <input 
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
-              className="bg-transparent border-none focus:ring-0 text-[var(--nav-text)] text-xs w-full placeholder:text-[var(--nav-text)]/30 outline-none pl-3 font-bold" 
+              className="bg-transparent border-none focus:ring-0 text-[var(--text-primary)] text-xs w-full placeholder:text-[var(--text-secondary)]/40 outline-none pl-3 font-bold" 
               placeholder="Search premium nodes..." 
               type="text"
             />
@@ -144,19 +144,19 @@ export default function TopNav() {
           {/* Mobile Search Toggle */}
           <button 
             onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="md:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:bg-[var(--accent)]/10 transition-all"
+            className="md:hidden p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--nav-border)] text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all"
           >
             <Search className="size-5" />
           </button>
 
           <button 
             onClick={toggleTheme}
-            className="hidden sm:flex p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
+            className="hidden sm:flex p-2 md:p-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--nav-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-primary)]"
           >
             {theme === 'light' ? <Moon className="size-5" /> : <Sun className="size-5" />}
           </button>
           
-          <Link href="/chat" className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
+          <Link href="/chat" className="relative p-2 md:p-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--nav-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-primary)]">
             <MessageCircle className="size-5" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
@@ -166,7 +166,7 @@ export default function TopNav() {
           </Link>
 
           <div className="relative group/cart">
-            <Link href="/cart" className={`relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)] ${cartAnimate ? 'scale-125' : 'scale-100'}`}>
+          <Link href="/cart" className={`relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-[var(--bg-secondary)] border border-[var(--nav-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-primary)] ${cartAnimate ? 'scale-125' : 'scale-100'}`}>
               <ShoppingCart className={`size-5 transition-transform duration-300 ${cartAnimate ? 'rotate-12' : 'rotate-0'}`} />
               {cartCount > 0 && (
                 <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none transition-all duration-300 ${cartAnimate ? 'scale-150 bg-emerald-500' : 'scale-100'}`}>
