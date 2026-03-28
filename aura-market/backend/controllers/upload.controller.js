@@ -4,29 +4,31 @@
  */
 
 const uploadSingle = (req, res) => {
+  console.log(`📡 [API] Asset ingestion node triggered - Part: ${req.file ? 'exists' : 'missing'}, Type: ${req.body.type}`);
+  
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'Please upload a file' });
   }
 
   // 🚀 PATH DISCOVERY: Cloudinary uses .path (absolute URL), Local uses req.file.path
-  // If it's a Cloudinary URL, use it directly.
-  // If it's a local path, we need to extract the relative path starting from 'uploads'
   let fileUrl = '';
   if (req.file.path && req.file.path.startsWith('http')) {
     fileUrl = req.file.path;
   } else if (req.file.path) {
-    // Local: The path might be absolute. Find the index of 'uploads' and take everything from there.
+    // Local: Normalize for Linux/Render and find the relative /uploads route
     const normalizedPath = req.file.path.replace(/\\/g, '/');
-    const uploadsIndex = normalizedPath.lastIndexOf('/uploads/');
+    const uploadsIndex = normalizedPath.lastIndexOf('/uploads');
+    
     if (uploadsIndex !== -1) {
       fileUrl = normalizedPath.substring(uploadsIndex);
     } else {
-      // Fallback if 'uploads' not found in path (should not happen with our storage config)
-      fileUrl = `/uploads/${req.body.type || 'others'}/${req.file.filename}`;
+      fileUrl = `/uploads/${req.body.type || 'general'}/${req.file.filename}`;
     }
   } else {
-    fileUrl = `/uploads/${req.body.type || 'others'}/${req.file.filename}`;
+    fileUrl = `/uploads/${req.body.type || 'general'}/${req.file.filename}`;
   }
+
+  console.log(`✅ [API] Asset normalized: ${fileUrl}`);
 
   res.status(200).json({
     success: true,

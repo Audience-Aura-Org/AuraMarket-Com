@@ -42,28 +42,37 @@ if (useCloudinary) {
   console.log('✅ [Storage] External Persistent Node (Cloudinary) CALIBRATED.');
 } else {
   // 2. Local Storage Implementation (Ephemeral — files lost on Render deploy)
-  console.warn('⚠️  [Storage] NO Cloudinary credentials found. Using Ephemeral Local Storage.');
-  console.warn('👉  CRITICAL: Files uploaded will be WIPED on every Render restart/push.');
-  
-  const baseDir = 'uploads/';
-  if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir);
+  const baseDir = path.join(__dirname, '..', 'uploads');
+  if (!fs.existsSync(baseDir)) {
+     fs.mkdirSync(baseDir, { recursive: true });
+     console.log(`📡 [Storage] Initialized Node Landing Zone: ${baseDir}`);
+  }
 
   engine = multer.diskStorage({
     destination: (req, file, cb) => {
-      // 📂 Dynamic Sub-folder Logic: organizes by 'type' from req.body
+      // 📂 Dynamic Sub-folder Logic: organizes by 'type' from req.body (pre-populated by frontend reordering)
       const subFolder = req.body.type || 'general';
       const finalPath = path.join(baseDir, subFolder);
       
-      if (!fs.existsSync(finalPath)) {
-        fs.mkdirSync(finalPath, { recursive: true });
+      try {
+        if (!fs.existsSync(finalPath)) {
+          fs.mkdirSync(finalPath, { recursive: true });
+          console.log(`📁 [Storage] Created category sector: ${subFolder}`);
+        }
+        cb(null, finalPath);
+      } catch (err) {
+        console.error(`❌ [Storage] Partition creation fail: ${err.message}`);
+        cb(null, baseDir); // Fallback to root
       }
-      cb(null, finalPath);
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
+      const name = `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`;
+      console.log(`📦 [Storage] Indexing asset: ${name}`);
+      cb(null, name);
     }
   });
+  console.warn('⚠️  [Storage] Using Ephemeral Local Storage (No Cloudinary detected).');
 }
 
 // ── Master Multer Configuration ───────────────────────────────────────────
