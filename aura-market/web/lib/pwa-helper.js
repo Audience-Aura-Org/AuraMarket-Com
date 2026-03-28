@@ -25,7 +25,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
- * Registers the Service Worker and Subscribes if necessary.
+ * Registers the Service Worker and returns the registration.
  */
 export async function registerPWA() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -35,6 +35,10 @@ export async function registerPWA() {
   try {
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
     console.log('🚀 Aura SW Registered:', registration.scope);
+    // Force SW to activate immediately without waiting for tabs to close
+    if (registration.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
     return registration;
   } catch (err) {
     console.error('❌ PWA Registration Failed:', err);
@@ -43,9 +47,15 @@ export async function registerPWA() {
 }
 
 /**
- * Requests notification permission and triggers subscription.
+ * Requests notification permission and syncs subscription to backend.
+ * Always re-syncs the current subscription — handles stale/expired subs
+ * and ensures the backend always has the latest push endpoint.
  */
 export async function subscribeToPush() {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return null;
+  }
+
   let token = localStorage.getItem('aura_token');
   if (!token) {
     try {
@@ -54,37 +64,64 @@ export async function subscribeToPush() {
     } catch (e) {}
   }
 
-  if (!token || token === 'undefined' || token === 'null') return; // Only subscribe logged in users
+  if (!token || token === 'undefined' || token === 'null') {
+    console.log('[PWA] No auth token — skipping push subscription');
+    return null;
+  }
 
   try {
-    const permission = await Notification.requestPermission();
+    // Request permission if not yet granted
+    let permission = Notification.permission;
+    if (permission === 'default') {
+      permission = await Notification.requestPermission();
+    }
+    
     if (permission !== 'granted') {
       console.warn('⚠️ Push permission denied by user.');
       return null;
     }
 
     const registration = await navigator.serviceWorker.ready;
+    
+    // Always get or create subscription
     let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
+      console.log('[PWA] No existing subscription found — creating new one...');
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
+      console.log('[PWA] New push subscription created:', subscription.endpoint.slice(-20));
+    } else {
+      console.log('[PWA] Existing subscription found — re-syncing with backend...');
     }
 
-    // 4. Sync with backend using the authenticated axios instance
+    // Always sync the subscription to the backend (handles stale entries)
     const res = await api.post('/push/subscribe', { 
-      subscription, 
+      subscription: subscription.toJSON(), 
       device_type: window.innerWidth < 768 ? 'mobile' : 'desktop' 
     });
 
     if (res.data?.success) {
-      console.log('✅ Matrix Connection Stabilized (Push Synchronized).');
+      console.log('✅ Push subscription synchronized with Aura Matrix.');
     }
     return subscription;
   } catch (err) {
-    console.error('❌ Push Subscription Error:', err);
+    // Handle the specific VAPID mismatch / expired subscription error
+    if (err.name === 'InvalidStateError' || err.code === 0) {
+      console.warn('[PWA] Subscription mismatch detected — clearing and resubscribing...');
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const oldSub = await reg.pushManager.getSubscription();
+        if (oldSub) await oldSub.unsubscribe();
+        // Recursive retry once
+        return subscribeToPush();
+      } catch (retryErr) {
+        console.error('[PWA] Retry subscription failed:', retryErr);
+      }
+    }
+    console.error('❌ Push Subscription Error:', err.name, err.message);
     return null;
   }
 }

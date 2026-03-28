@@ -1,36 +1,74 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
+import { useAuthStore } from '@/hooks/useAuth';
 
 /**
  * PWAInit — Secure Background Channel Lifecycle
- * Automatically registers the Service Worker on mount and 
- * ensures the app is synced with the PWA notification Matrix.
+ * - Registers the Service Worker on mount
+ * - Subscribes to push on login and on every app resume (visibility change)
+ * - Handles the case where permission is granted anew after a re-visit
  */
 export default function PWAInit() {
+  const { user } = useAuthStore();
+  const subscribedRef = useRef(false);
+
+  const attemptSubscription = async () => {
+    let token = localStorage.getItem('aura_token');
+    if (!token) {
+      try {
+        const stored = localStorage.getItem('aura-auth-storage');
+        if (stored) token = JSON.parse(stored)?.state?.token;
+      } catch (e) {}
+    }
+    if (!token || token === 'undefined' || token === 'null') return;
+    
+    console.log('[PWAInit] Attempting push subscription sync...');
+    await subscribeToPush();
+    subscribedRef.current = true;
+  };
+
+  // 1. On initial mount, register SW and subscribe if user is logged in
   useEffect(() => {
-    // 1. Initial SW Registration
     registerPWA();
 
-    // 2. Delayed Permission Check for Subscriptions
-    // We wait a few seconds to let the UX settle before 
-    // requesting push synchronization for logged in users.
     const timer = setTimeout(() => {
-      let token = localStorage.getItem('aura_token');
-      if (!token) {
-        try {
-          const stored = localStorage.getItem('aura-auth-storage');
-          if (stored) token = JSON.parse(stored)?.state?.token;
-        } catch (e) {}
-      }
-
-      if (token && token !== 'undefined' && token !== 'null') {
-        subscribeToPush();
-      }
-    }, 5000);
+      attemptSubscription();
+    }, 3000);
 
     return () => clearTimeout(timer);
+  }, []);
+
+  // 2. Re-subscribe when user identity changes (login/logout cycle)
+  useEffect(() => {
+    if (user?._id) {
+      subscribedRef.current = false; // Force re-sync on user change
+      const timer = setTimeout(() => attemptSubscription(), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user?._id]);
+
+  // 3. On app resume (coming back from background), check and re-subscribe.
+  // This is the CRITICAL FIX: handles permission granted while app was backgrounded
+  // and ensures the device always has a valid, live subscription registered.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Check current permission state directly from the browser API
+        if (Notification.permission === 'granted' && !subscribedRef.current) {
+          console.log('[PWAInit] App resumed with granted permission — re-syncing push...');
+          attemptSubscription();
+        }
+        // If permission was just granted (was "default" before), also sync
+        if (Notification.permission === 'granted') {
+          attemptSubscription();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   return null;

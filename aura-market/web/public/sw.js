@@ -3,7 +3,7 @@
  * Handles background push notifications even when the tab is closed.
  */
 
-const CACHE_NAME = 'aura-cache-v2'; // Bumped version — forces cache refresh on all clients
+const CACHE_NAME = 'aura-cache-v3'; // Bumped — forces cache refresh and activates new SW immediately
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -18,6 +18,14 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
+});
+
+// ── Message: Handle SKIP_WAITING from PWAInit ────────────────────────────────
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING — activating immediately...');
+    self.skipWaiting();
+  }
 });
 
 // ── Activate: Delete old caches ──────────────────────────────────────────────

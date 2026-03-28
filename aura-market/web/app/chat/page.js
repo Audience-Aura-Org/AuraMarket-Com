@@ -295,6 +295,26 @@ function ChatContent() {
     }
   }, [messages]);
 
+  // ── Visibility Resume Sync ────────────────────────────────────────────────
+  // When user returns to the app after being backgrounded, re-fetch the active
+  // conversation to pull in any messages that arrived while the socket was dormant.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && activeChatRef.current?._id) {
+        const activeId = activeChatRef.current._id.toString();
+        console.log('[Chat] App resumed — re-syncing messages for:', activeId);
+        api.get(`/chat/${activeId}`).then(res => {
+          if (res.data.success) {
+            setMessages(res.data.data.messages);
+          }
+        }).catch(() => {});
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const hasPending = messages.some(m => m.pending);
