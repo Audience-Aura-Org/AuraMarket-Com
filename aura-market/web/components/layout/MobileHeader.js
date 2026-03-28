@@ -1,10 +1,12 @@
 "use client";
 
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { useTheme } from "@/context/ThemeContext";
+import { useAuthStore } from '@/hooks/useAuth';
 
 export default function MobileHeader({ isOpen, toggleSidebar }) {
   const { theme } = useTheme();
+  const { user } = useAuthStore();
 
   return (
     <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-[190] transition-colors duration-500">
@@ -27,7 +29,13 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         </div>
       </div>
 
-      <div className="size-7 rounded-lg bg-gradient-to-tr from-[var(--accent)]/15 to-indigo-600/10 border border-[var(--accent)]/15 flex items-center justify-center font-black text-[10px] text-[var(--accent)] shrink-0">A</div>
+      <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden flex items-center justify-center font-black text-[10px] text-[var(--accent)] shrink-0">
+        {user?.branding?.logo || user?.avatar ? (
+          <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt="" />
+        ) : (
+          <User className="size-4 opacity-40 text-[var(--text-secondary)]" />
+        )}
+      </div>
     </header>
   );
 }

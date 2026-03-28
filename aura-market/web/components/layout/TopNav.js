@@ -180,8 +180,8 @@ export default function TopNav() {
             <Link href="/profile" className="shrink-0">
                <div className="size-8 md:size-10 rounded-xl bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
                  <div className="size-full bg-[var(--bg-primary)] rounded-[10px] flex items-center justify-center overflow-hidden">
-                    {user.avatar ? (
-                      <img src={user.avatar} className="size-full object-cover" alt={user.name} />
+                    {user.branding?.logo || user.avatar ? (
+                      <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt={user.name} />
                     ) : (
                       <span className="text-[var(--text-primary)] font-black text-[10px] md:text-xs">{user.name?.[0]?.toUpperCase()}</span>
                     )}
