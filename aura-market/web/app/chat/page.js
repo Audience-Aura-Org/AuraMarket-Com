@@ -297,7 +297,8 @@ function ChatContent() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChat || sending) return;
+    const hasPending = messages.some(m => m.pending);
+    if (!newMessage.trim() || !activeChat || sending || hasPending) return;
 
     setSending(true);
     const text = newMessage.trim();
@@ -454,12 +455,14 @@ function ChatContent() {
                   <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
                 </div>
                   <div className="flex-1 text-left min-w-0">
-                    <h3 className="font-bold text-sm text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
+                  <div className="flex justify-between items-start mb-0.5">
+                    <h3 className="font-bold !text-[9px] text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
                       {chat.partner.store_name || chat.partner.name}
                     </h3>
-                    <span className="text-[10px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
+                    <span className="!text-[8px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
                       {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                     </span>
+                  </div>
                     <p className={`!text-[10px] font-bold uppercase tracking-widest truncate whitespace-nowrap mt-1 ${!chat.read_status ? 'text-[var(--text-primary)] opacity-90' : 'text-[var(--text-secondary)] opacity-40'}`}>
                     {chat.snippet || 'No messages yet'}
                   </p>
@@ -487,10 +490,10 @@ function ChatContent() {
                   {activeChat.branding?.logo || activeChat.avatar ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name?.[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.store_name || activeChat.name}</h2>
-                  <div className="flex items-center gap-1.5">
-                    <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Identity Verified</p>
+                  <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.store_name || activeChat.name}</h2>
+                  <div className="flex items-center gap-1">
+                    <div className="size-1.5 rounded-full bg-emerald-500" />
+                    <p className="!text-[10px] text-[var(--text-secondary)]">Online</p>
                   </div>
                 </div>
               </div>

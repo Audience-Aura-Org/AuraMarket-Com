@@ -1,14 +1,22 @@
 import axios from 'axios';
 
 
+const getBaseURL = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:5000/api/v1`;
+  }
+  return 'http://localhost:5000/api/v1';
+};
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+const API_ORIGIN = getBaseURL().replace(/\/api\/v1\/?$/, '');
 
 const normalizeAssetUrls = (value) => {
   if (typeof value === 'string') {
