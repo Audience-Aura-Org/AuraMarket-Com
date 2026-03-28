@@ -169,53 +169,75 @@ function ChatContent() {
     const initChat = async () => {
       setLoading(true);
       try {
-        // Fetch inbox first as it's the core
-        const inboxRes = await api.get('/chat');
-        if (!inboxRes.data.success) return;
-        
-        const chats = inboxRes.data.data.activeChats;
-        setInbox(chats);
+        const [inboxRes, followRes] = await Promise.all([
+           api.get('/chat'),
+           api.get('/vendors/following').catch(() => ({ data: { success: true, data: { following: [] } } }))
+        ]);
 
-        const vendorId = searchParams.get('vendorId');
-        const productId = searchParams.get('productId');
-        
-        // Prepare parallel promises for extra context
-        const promises = [];
-        
-        // 1. Vendor Profile if needed
-        if (vendorId) {
-          const existing = chats.find(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString());
-          if (existing) {
-             setActiveChat(existing.partner);
-          } else {
-             promises.push(api.get(`/auth/users/${vendorId}`).then(res => {
-               if (res.data.success) setActiveChat(res.data.data.user);
-             }));
-          }
-          
-          // 2. Initial Message History for that vendor (Saves 1 round trip)
-          promises.push(api.get(`/chat/${vendorId}`).then(res => {
-             if (res.data.success) {
-                setMessages(res.data.data.messages);
-                // Mark as read locally if there's an unread message from them
-                if (res.data.data.messages.some(m => !m.read_status && m.receiver_id === user?._id)) {
-                  api.patch(`/chat/read/${vendorId}`).catch(() => {});
-                  // Sync other tabs immediately
-                  socketService.emit('messages_read', { sender_id: vendorId });
-                }
+        if (inboxRes.data.success && followRes.data.success) {
+           const activeChats = inboxRes.data.data.activeChats || [];
+           const following = followRes.data.data.following || [];
+           const combined = new Map();
+
+           // 1. Followed vendors (Potential Chats)
+           following.forEach(f => {
+              const partner = f.vendor_id?.user_id;
+              if (!partner) return;
+              combined.set(partner._id.toString(), {
+                partner: { ...partner, store_name: f.vendor_id?.store_name },
+                date: f.createdAt,
+                snippet: 'Node established. Ready for transmission.',
+                read_status: true
+              });
+           });
+
+           // 2. Active chats (Priority)
+           activeChats.forEach(c => {
+              const pid = (c.partner?._id || c.partner)?.toString();
+              if (!pid) return;
+              combined.set(pid, {
+                partner: c.partner,
+                date: c.date,
+                snippet: c.snippet,
+                read_status: c.read_status
+              });
+           });
+
+           const chats = Array.from(combined.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
+           setInbox(chats);
+
+           const vendorId = searchParams.get('vendorId');
+           const productId = searchParams.get('productId');
+           
+           const promises = [];
+           if (vendorId) {
+             const existing = chats.find(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString());
+             if (existing) {
+                setActiveChat(existing.partner);
+             } else {
+                promises.push(api.get(`/auth/users/${vendorId}`).then(res => {
+                  if (res.data.success) setActiveChat(res.data.data.user);
+                }));
              }
-          }).catch(console.warn));
-        }
+             
+             promises.push(api.get(`/chat/${vendorId}`).then(res => {
+                if (res.data.success && res.data.data.messages.length > 0) {
+                   setMessages(res.data.data.messages);
+                   if (res.data.data.messages.some(m => !m.read_status && m.receiver_id === user?._id)) {
+                     api.patch(`/chat/read/${vendorId}`).catch(() => {});
+                     socketService.emit('messages_read', { sender_id: vendorId });
+                   }
+                }
+             }));
+           }
+           
+           if (productId) {
+             promises.push(api.get(`/products/${productId}`).then(res => {
+               if (res.data.success) setDraftProduct(res.data.data.product);
+             }).catch(console.warn));
+           }
 
-        // 3. Product Preview
-        if (productId) {
-           promises.push(api.get(`/products/${productId}`).then(res => {
-             if (res.data.success) setDraftProduct(res.data.data.product);
-           }).catch(console.warn));
-        }
-
-        if (promises.length > 0) {
-           await Promise.allSettled(promises);
+           if (promises.length > 0) await Promise.allSettled(promises);
         }
       } catch (err) {
         console.error('Failed to load chat inbox', err);
@@ -427,14 +449,14 @@ function ChatContent() {
                 >
                 <div className="relative shrink-0">
                   <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-base border border-[var(--glass-border)]">
-                     {chat.partner.avatar ? <img src={chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" /> : chat.partner.name[0]}
+                     {chat.partner.branding?.logo || chat.partner.avatar ? <img src={chat.partner.branding?.logo || chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" /> : chat.partner.name?.[0]}
                   </div>
                   <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
                 </div>
                   <div className="flex-1 text-left min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
                     <h3 className="font-bold !text-[9px] text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
-                      {chat.partner.name}
+                      {chat.partner.store_name || chat.partner.name}
                     </h3>
                     <span className="!text-[8px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
                       {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
@@ -464,10 +486,10 @@ function ChatContent() {
               <div className="flex items-center gap-4">
                 <button onClick={() => setActiveChat(null)} className="md:hidden size-9 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)]"><ArrowLeft className="w-5 h-5" /></button>
                 <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-base border border-[var(--glass-border)]">
-                  {activeChat.avatar ? <img src={activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name[0]}
+                  {activeChat.branding?.logo || activeChat.avatar ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name?.[0]}
                 </div>
                 <div>
-                  <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.name}</h2>
+                  <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.store_name || activeChat.name}</h2>
                   <div className="flex items-center gap-1">
                     <div className="size-1.5 rounded-full bg-emerald-500" />
                     <p className="!text-[10px] text-[var(--text-secondary)]">Online</p>

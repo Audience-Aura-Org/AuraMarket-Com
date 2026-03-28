@@ -457,6 +457,25 @@ const checkFollowStatus = async (req, res, next) => {
   }
 };
 
+const getFollowing = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const following = await Follow.find({ user_id: userId })
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name rating verified user_id average_response_time',
+        populate: [
+          { path: 'user_id', select: 'name avatar role branding' }
+        ]
+      })
+      .sort('-createdAt');
+
+    res.status(200).json({ success: true, count: following.length, data: { following } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   onboardVendor,
   getVendorProfile,
@@ -468,5 +487,6 @@ module.exports = {
   followVendor,
   unfollowVendor,
   getFollowers,
+  getFollowing,
   checkFollowStatus,
 };

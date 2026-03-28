@@ -46,20 +46,50 @@ export default function HubContent() {
 
     const fetchInbox = async () => {
       try {
-        const res = await api.get('/chat');
-        if (res.data.success) {
-           const mappedNodes = res.data.data.activeChats?.map(c => ({
-              id: c.partner?._id,
-              partner: c.partner,
-              date: c.date,
-              snippet: c.snippet,
-              read_status: c.read_status
-           })) || [];
+        const [inboxRes, followRes] = await Promise.all([
+           api.get('/chat'),
+           api.get('/vendors/following').catch(() => ({ data: { success: true, data: { following: [] } } }))
+        ]);
+
+        if (inboxRes.data.success && followRes.data.success) {
+           const activeChats = inboxRes.data.data.activeChats || [];
+           const following = followRes.data.data.following || [];
+           const combined = new Map();
+
+           // 1. Initial follow synchronization (Potential Chats)
+           following.forEach(f => {
+              const partner = f.vendor_id?.user_id;
+              if (!partner) return;
+              combined.set(partner._id.toString(), {
+                id: partner._id,
+                partner: { ...partner, store_name: f.vendor_id?.store_name },
+                date: f.createdAt,
+                snippet: 'Node established. Ready for transmission.',
+                read_status: true,
+                isFollow: true
+              });
+           });
+
+           // 2. Active conversation overlay (Higher priority/Snippets)
+           activeChats.forEach(c => {
+              const pid = (c.partner?._id || c.partner)?.toString();
+              if (!pid) return;
+              combined.set(pid, {
+                id: pid,
+                partner: c.partner,
+                date: c.date,
+                snippet: c.snippet,
+                read_status: c.read_status,
+                isFollow: combined.has(pid)
+              });
+           });
+
+           const mappedNodes = Array.from(combined.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
            setInbox(mappedNodes);
            try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(mappedNodes)); } catch (_) {}
         }
       } catch (err) {
-        console.error('Inbox failure:', err);
+         console.error('Inbox failure:', err);
       } finally {
         setLoadingInbox(false);
       }
@@ -287,7 +317,7 @@ function ChatLink({ chat }) {
          className="w-full p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4 hover:border-[var(--accent)]/40 transition-all group relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5"
       >
          <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative shrink-0">
-            <img src={chat.partner.avatar || `https://ui-avatars.com/api/?name=${chat.partner.name}`} className="size-full object-cover" alt="" />
+            <img src={chat.partner.branding?.logo || chat.partner.avatar || `https://ui-avatars.com/api/?name=${chat.partner.name}`} className="size-full object-cover" alt="" />
             <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
          </div>
          <div className="flex-1 min-w-0">
@@ -295,13 +325,13 @@ function ChatLink({ chat }) {
                <div className="flex items-center gap-1.5 group/vendor">
                   <div className="size-4 rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0">
                      <img 
-                        src={chat.partner.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${chat.partner.name}&backgroundColor=var(--accent)`} 
+                        src={chat.partner.branding?.logo || chat.partner.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${chat.partner.name}&backgroundColor=var(--accent)`} 
                         className="size-full object-cover" 
                         alt="Store" 
                      />
                   </div>
                   <span className="text-[9px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[120px]">
-                     {chat.partner.name}
+                     {chat.partner.store_name || chat.partner.name}
                   </span>
                </div>
                <span className="text-[8px] font-black opacity-40 uppercase">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
