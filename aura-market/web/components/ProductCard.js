@@ -8,6 +8,7 @@ import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap, Eye } from '
 import { trackAction } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import cartStore from '@/services/cartStore';
 
 export default function ProductCard({ product }) {
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
@@ -42,9 +43,19 @@ export default function ProductCard({ product }) {
     }
 
     setAdding(true);
-    // Optimistic UI: show toast immediately
-    showToast("Added to stack!");
-    if (typeof window !== 'undefined') window.__AURA_PENDING_CART = (window.__AURA_PENDING_CART || 0) + 1;
+    
+    // OPTIMISTIC BROADCAST (Instant UI response)
+    cartStore.addItem(product, 1);
+
+    // Global feedback event (triggers beautiful background notification)
+    if (typeof window !== 'undefined') {
+       window.dispatchEvent(new CustomEvent('cart-item-added', { 
+         detail: { 
+           name: product.name, 
+           image: mainImage 
+         } 
+       }));
+    }
     
     try {
       const payload = { 
@@ -53,21 +64,11 @@ export default function ProductCard({ product }) {
       };
       
       const response = await api.post('/cart', payload);
-      
-      // Decrement BEFORE dispatching so listeners see count as 0
-      if (typeof window !== 'undefined') {
-        window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { 
-            detail: { cart: response.data.data.cart } 
-          }));
-        }
-      }
+      cartStore.setCart(response.data.data.cart);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to add to cart";
       showToast(errorMessage, "error");
-      // Still must decrement on error if we haven't already
-      if (typeof window !== 'undefined') window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
+      cartStore.refresh();
     } finally {
       setAdding(false);
     }
