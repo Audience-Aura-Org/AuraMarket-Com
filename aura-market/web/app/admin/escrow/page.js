@@ -45,7 +45,7 @@ export default function AdminEscrow() {
 
   return (
     <>
-      <header className="h-20 lg:h-24 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--nav-border)] bg-[var(--nav-bg)] shrink-0 z-10 text-[var(--nav-text)]">
+      <header className="h-20 lg:h-24 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Escrow <span className="text-[var(--accent)]">Vault</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />

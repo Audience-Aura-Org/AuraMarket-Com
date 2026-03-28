@@ -49,7 +49,7 @@ export default function AdminAuditLogs() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
-      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--nav-border)] bg-[var(--nav-bg)] shrink-0 sticky top-16 z-10 backdrop-blur-xl text-[var(--nav-text)]">
+      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 sticky top-16 z-10 backdrop-blur-xl text-[var(--text-primary)]">
         <div className="flex items-center gap-6">
           <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner">
              <Shield className="w-6 h-6" />

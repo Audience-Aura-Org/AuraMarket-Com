@@ -135,7 +135,7 @@ export default function VendorDashboard() {
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
-        <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-[var(--nav-border)] relative z-20 bg-[var(--nav-bg)] backdrop-blur-2xl gap-2 min-w-0 text-[var(--nav-text)]">
+        <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-2 min-w-0 text-[var(--text-primary)]">
           <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
             <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
             <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />

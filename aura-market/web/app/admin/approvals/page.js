@@ -79,7 +79,7 @@ export default function AdminApprovals() {
   return (
     <div className="flex flex-col min-h-full">
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--nav-border)] bg-[var(--nav-bg)] shrink-0 sticky top-0 z-20 text-[var(--nav-text)]">
+      <header className="h-16 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 sticky top-0 z-20 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Queue <span className="text-[var(--accent)]">Control</span></h2>
           <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)]" />

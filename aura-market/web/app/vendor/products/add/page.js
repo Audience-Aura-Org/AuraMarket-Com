@@ -69,7 +69,7 @@ export default function AddProductPage() {
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
         {/* Header */}
-        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--nav-border)] relative z-10 bg-[var(--nav-bg)] text-[var(--nav-text)]">
+        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)] text-[var(--text-primary)]">
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => router.back()} className="p-2 rounded-xl hover:bg-[var(--accent)]/5 transition-colors text-[var(--text-primary)]">
               <ArrowLeft className="w-6 h-6" />

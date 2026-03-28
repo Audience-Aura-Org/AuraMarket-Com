@@ -51,7 +51,7 @@ export default function AdminAnalytics() {
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full no-scrollbar">
         {/* Header */}
-        <header className="h-16 flex items-center justify-between px-10 glass-panel border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)]">
+        <header className="h-16 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)]">
           <div className="flex items-center gap-6">
             <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Platform <span className="text-[var(--accent)]">Intelligence</span></h2>
             <div className="h-4 w-px bg-[var(--glass-border)]" />

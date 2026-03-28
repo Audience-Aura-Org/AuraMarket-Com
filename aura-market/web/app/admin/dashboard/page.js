@@ -49,7 +49,7 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <header className="h-16 lg:h-20 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--nav-border)] bg-[var(--nav-bg)] backdrop-blur-xl shrink-0 text-[var(--nav-text)]">
+      <header className="h-16 lg:h-20 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-fluid-lg lg:text-fluid-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Admin <span className="text-[var(--accent)]">Dashboard</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30"></div>

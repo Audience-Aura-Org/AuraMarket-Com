@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--nav-border)] bg-[var(--nav-bg)] backdrop-blur-xl shrink-0 z-10 text-[var(--nav-text)]">
+      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">User <span className="text-[var(--accent)]">Directory</span></h2>
           <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)] opacity-30" />
