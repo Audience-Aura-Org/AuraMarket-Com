@@ -23,7 +23,7 @@ const NotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['order_status', 'payment_received', 'wallet_update', 'chat_alert', 'system_alert', 'vendor_update'],
+      enum: ['order_status', 'payment_received', 'wallet_update', 'chat_alert', 'message', 'system_alert', 'vendor_update', 'promo'],
       default: 'system_alert'
     },
     metadata: {

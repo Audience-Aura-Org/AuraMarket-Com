@@ -17,11 +17,12 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import ProductCard from '@/components/ProductCard';
+import socketService from '@/services/socket';
 
 export default function HubContent() {
   const { user } = useAuthStore();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('chats'); // 'chats' or 'feed'
+  const [activeTab, setActiveTab] = useState('chats');
   const [inbox, setInbox] = useState([]);
   const [feed, setFeed] = useState([]);
   const [loadingInbox, setLoadingInbox] = useState(true);
@@ -29,6 +30,51 @@ export default function HubContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ totalPages: 1, totalProducts: 0 });
+
+  // Real-time incoming message updates — mirrors Comm Center behavior
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const handleMessage = (msg) => {
+      try {
+        const currentUserId = user._id.toString();
+        const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
+        const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
+        const snippet = msg.text || (msg.product_reference?.name ? `📦 ${msg.product_reference.name}` : 'New message');
+        const isUnread = receiverId === currentUserId;
+        const partnerData = senderId === currentUserId ? msg.receiver_id : msg.sender_id;
+        const partnerId = (partnerData?._id || (senderId === currentUserId ? receiverId : senderId))?.toString();
+        if (!partnerId) return;
+
+        setInbox(prev => {
+          const newEntry = {
+            id: partnerId,
+            partner: partnerData || { _id: partnerId },
+            snippet,
+            date: new Date().toISOString(),
+            read_status: !isUnread,
+          };
+          const existingIdx = prev.findIndex(c => (c.partner?._id || c.partner)?.toString() === partnerId);
+          if (existingIdx > -1) {
+            const updated = [...prev];
+            updated[existingIdx] = { ...updated[existingIdx], snippet, date: newEntry.date, read_status: !isUnread };
+            const item = updated.splice(existingIdx, 1)[0];
+            return [item, ...updated];
+          }
+          return [newEntry, ...prev];
+        });
+      } catch (err) {
+        console.error('[Hub] Socket message handler error:', err);
+      }
+    };
+
+    socketService.on('receive_message', handleMessage);
+    socketService.on('sent_message_echo', handleMessage);
+    return () => {
+      socketService.off('receive_message', handleMessage);
+      socketService.off('sent_message_echo', handleMessage);
+    };
+  }, [user?._id]);
 
   useEffect(() => {
     try {
