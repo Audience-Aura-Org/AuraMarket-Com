@@ -107,40 +107,67 @@ function CheckoutContent() {
       }
   }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems]);
 
-  // 1. Fetch Auth User Metadata (Wallet Balance)
+  // 1. Fetch Auth User Metadata & Auto-fill Profile
   useEffect(() => {
     if (user?._id) {
+       // Initial fill from current user object in state
+       setFormData(f => ({
+         ...f,
+         name: f.name || user.name || '',
+         email: f.email || user.email || '',
+         phone: f.phone || user.phone || '',
+         city: f.city || user.onboarding_location?.city || '',
+         quartier: f.quartier || user.onboarding_location?.quartier || '',
+         address: f.address || user.onboarding_location?.address_description || ''
+       }));
+
        api.get('/users/me').then(res => {
          if (res.data.success) {
-            setWalletBalance(res.data.data.user.wallet_balance || 0);
-            setFormData(f => ({ ...f, email: f.email || res.data.data.user.email || '' }));
+            const u = res.data.data.user;
+            setWalletBalance(u.wallet_balance || 0);
+            
+            // Re-sync if profile returned more data
+            setFormData(f => ({ 
+              ...f, 
+              name: f.name || u.name || '',
+              email: f.email || u.email || '',
+              phone: f.phone || u.phone || '',
+              city: f.city || u.onboarding_location?.city || '',
+              quartier: f.quartier || u.onboarding_location?.quartier || '',
+              address: f.address || u.onboarding_location?.address_description || ''
+            }));
          }
        }).catch(() => {});
     }
   }, [user?._id]);
 
-  // 2. Fetch Saved Addresses
+  // 2. Fetch Saved Addresses (Override with default if exists)
   useEffect(() => {
-    api.get('/addresses')
-      .then(res => {
-        if (res.data.success) {
-          const addrs = res.data.data.addresses || [];
-          setSavedAddresses(addrs);
-          const def = addrs.find(a => a.is_default) || addrs[0];
-          if (def) {
-            setFormData(f => ({ 
-              ...f, 
-              name: f.name || def.name, 
-              phone: f.phone || def.phone, 
-              address: f.address_line || def.address_line, 
-              city: f.city || def.city,
-              email: f.email || user?.email || ''
-            }));
+    if (user?._id) {
+      api.get('/addresses')
+        .then(res => {
+          if (res.data.success) {
+            const addrs = res.data.data.addresses || [];
+            setSavedAddresses(addrs);
+            
+            // If the user has a default address, prioritize it
+            const def = addrs.find(a => a.is_default) || addrs[0];
+            if (def) {
+              setFormData(f => ({ 
+                ...f, 
+                name: f.name || def.name || user.name || '', 
+                phone: f.phone || def.phone || user.phone || '', 
+                address: f.address || def.address_line || user.onboarding_location?.address_description || '', 
+                city: f.city || def.city || user.onboarding_location?.city || '',
+                email: f.email || user.email || '',
+                quartier: f.quartier || def.quartier || user.onboarding_location?.quartier || ''
+              }));
+            }
           }
-        }
-      })
-      .catch(() => {});
-  }, [user]);
+        })
+        .catch(() => {});
+    }
+  }, [user?._id]);
 
   // 3. Load Order Matrix or Cart Items
   useEffect(() => {
