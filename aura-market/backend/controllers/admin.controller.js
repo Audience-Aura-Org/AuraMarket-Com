@@ -290,6 +290,19 @@ const updateOrderAdmin = async (req, res, next) => {
         });
       }
     }
+
+    // Notify Customer about overall status shift
+    if (order_status) {
+      await sendNotification(req.app, order.customer_id, {
+        title: `Order Updated: ${order_status.toUpperCase()}`,
+        message: `An administrator has shifted the status of your Order #${order._id.toString().slice(-6).toUpperCase()} to: ${order_status}.`,
+        type: 'order_status',
+        metadata: { order_id: order._id, link: '/orders' },
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+      });
+    }
+
     res.status(200).json({ success: true, message: 'Order updated.', data: { order } });
   } catch (error) {
     next(error);
@@ -423,6 +436,20 @@ const updateAdminShipment = async (req, res, next) => {
     if (typeof price !== 'undefined') shipment.price = Number(price) || 0;
     if (status) shipment.status = status;
     await shipment.save();
+
+    // Notify Customer about shipment update
+    const order = await Order.findById(shipment.order_id);
+    if (order) {
+      await sendNotification(req.app, order.customer_id, {
+        title: 'Shipment Coordination Update',
+        message: `An administrator has updated the logistics mapping for your Order #${order._id.toString().slice(-6).toUpperCase()}. Status: ${status || shipment.status}`,
+        type: 'order_status',
+        metadata: { order_id: order._id, link: '/orders' },
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+      });
+    }
+
     res.status(200).json({ success: true, data: { shipment } });
   } catch (error) {
     next(error);

@@ -692,8 +692,8 @@ function CheckoutContent() {
                     </div>
                     
                     <div>
-                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Handshake <span className="text-[var(--accent)]">Complete</span></h2>
-                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been stabilized and assigned to the logistics network.</p>
+                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Order <span className="text-[var(--accent)]">Successful</span></h2>
+                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
                     </div>
 
                     <div className="glass-panel p-8 rounded-[40px] border border-[var(--accent)]/30 bg-[var(--accent)]/5 group cursor-pointer transition-all hover:bg-[var(--accent)]/10"
