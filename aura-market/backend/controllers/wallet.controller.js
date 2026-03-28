@@ -205,6 +205,23 @@ const processWithdrawal = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────
+// @route   GET /api/wallet/admin/withdrawals
+// @desc    Admin: get all pending withdrawals
+// @access  Private (Role: admin)
+// ─────────────────────────────────────────────
+const getPendingWithdrawals = async (req, res, next) => {
+  try {
+    const transactions = await Transaction.find({ type: 'withdrawal', status: 'pending' })
+      .populate('user_id', 'name email role')
+      .sort('-createdAt');
+
+    res.status(200).json({ success: true, count: transactions.length, data: { transactions } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
 // @route   POST /api/wallet/pay-order
 // @desc    Pay for an order using Wallet Balance
 // @access  Private
@@ -298,5 +315,6 @@ module.exports = {
   initiateDeposit,
   requestWithdrawal,
   processWithdrawal,
+  getPendingWithdrawals,
   payOrderWithWallet,
 };

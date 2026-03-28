@@ -1,6 +1,7 @@
 import '../styles/globals.css';
 import { Poppins } from 'next/font/google';
 import Providers from '@/components/Providers';
+import PWAInstall from '@/components/layout/PWAInstall';
 
 const poppins = Poppins({
   weight: ['300', '400', '500', '600', '700', '800'],
@@ -47,7 +48,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="font-[Poppins,sans-serif] min-h-screen">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <PWAInstall />
+        </Providers>
       </body>
     </html>
   );

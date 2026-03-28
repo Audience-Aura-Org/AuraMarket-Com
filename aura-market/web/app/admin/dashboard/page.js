@@ -98,10 +98,10 @@ export default function AdminDashboard() {
           <div className="xl:col-span-8 space-y-8">
              <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  {[
-                  { title: 'Users', desc: 'Manage user accounts', icon: 'person', count: stats?.users || 0, color: 'text-blue-500', bg: 'bg-blue-500/10', href: '/admin/users' },
-                  { title: 'Vendors', desc: 'Manage seller stores', icon: 'store', count: stats?.vendors || 0, color: 'text-amber-500', bg: 'bg-amber-500/10', href: '/admin/vendors' },
-                  { title: 'Products', desc: 'Approve and manage products', icon: 'inventory', count: stats?.products || 0, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10', href: '/admin/products' },
-                  { title: 'Pending Payments', desc: 'Secure funds in holding', icon: 'account_balance', count: `${(stats?.escrow_vault || 0).toLocaleString()} XAF`, color: 'text-emerald-500', bg: 'bg-emerald-500/10', href: '/admin/escrow' },
+                  { title: 'Users', desc: 'Manage user accounts', icon: 'person', count: stats?.users || 0, color: 'text-blue-400', bg: 'bg-blue-400/10', href: '/admin/users' },
+                  { title: 'Tribunal', desc: 'Resolve active disputes', icon: 'gavel', count: stats?.active_disputes || 0, color: 'text-rose-500', bg: 'bg-rose-500/10', href: '/admin/disputes' },
+                  { title: 'Approvals', desc: 'Review pending queue', icon: 'verified_user', count: (stats?.pending_vendors || 0) + (stats?.pending_products || 0), color: 'text-indigo-500', bg: 'bg-indigo-500/10', href: '/admin/approvals' },
+                  { title: 'Logistics', desc: 'Monitor active shipments', icon: 'local_shipping', count: stats?.active_shipments || 0, color: 'text-cyan-500', bg: 'bg-cyan-500/10', href: '/admin/logistics' },
                 ].map((card) => (
                   <Link key={card.title} href={card.href} className="glass-panel rounded-[24px] p-6 border border-[var(--glass-border)] hover:border-[var(--accent)]/40 transition-all flex items-center justify-between group bg-[var(--bg-primary)]/50 hover:shadow-xl">
                      <div className="space-y-4">
