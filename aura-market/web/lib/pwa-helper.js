@@ -4,6 +4,7 @@
  * lib/pwa-helper.js
  * Comprehensive PWA Service Worker Registration & Web Push Management
  */
+import api from '@/services/api';
 
 const VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
 
@@ -72,21 +73,13 @@ export async function subscribeToPush() {
       });
     }
 
-    // Sync with backend
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/push/subscribe`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ 
-        subscription, 
-        device_type: window.innerWidth < 768 ? 'mobile' : 'desktop' 
-      })
+    // 4. Sync with backend using the authenticated axios instance
+    const res = await api.post('/push/subscribe', { 
+      subscription, 
+      device_type: window.innerWidth < 768 ? 'mobile' : 'desktop' 
     });
 
-    const data = await res.json();
-    if (data.success) {
+    if (res.data?.success) {
       console.log('✅ Matrix Connection Stabilized (Push Synchronized).');
     }
     return subscription;
