@@ -171,10 +171,17 @@ export default function OrdersPage() {
                       </div>
                    </div>
                    <div>
-                      <h4 className="text-base font-black truncate max-w-[300px] uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors">
-                        {(order.products || [])[0]?.name || 'N/A'} {(order.products || []).length > 1 ? `& ${(order.products || []).length - 1} more` : ''}
-                      </h4>
-                       <div className="mt-1">
+                     <div className="space-y-1.5 mt-2">
+                        {(order.products || []).map((p, idx) => (
+                          <div key={idx} className="flex items-center gap-2 max-w-[300px]">
+                            <span className="text-xs font-black text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 rounded">{p.quantity}x</span>
+                            <h4 className="text-sm font-black truncate uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors">
+                              {p.name || 'N/A'}
+                            </h4>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-2">
                          {order.vendor_id && (
                            <Link 
                              href={`/stores/${order.vendor_id._id}`}

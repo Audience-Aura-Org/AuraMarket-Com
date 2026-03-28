@@ -8,6 +8,7 @@ export default function PWAInstallBanner() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    let timerId;
     const handleBeforeInstallPrompt = (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
@@ -17,7 +18,9 @@ export default function PWAInstallBanner() {
       // Check if user has already dismissed it this session
       const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
       if (!dismissed) {
-        setIsVisible(true);
+        timerId = setTimeout(() => {
+          setIsVisible(true);
+        }, 30000); // 30 seconds delay
       }
     };
 
@@ -28,7 +31,10 @@ export default function PWAInstallBanner() {
       setIsVisible(false);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      if (timerId) clearTimeout(timerId);
+    };
   }, []);
 
   const handleInstall = async () => {
