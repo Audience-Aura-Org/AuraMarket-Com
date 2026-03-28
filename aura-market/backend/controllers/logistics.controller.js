@@ -217,9 +217,9 @@ const modifyShipmentStatus = async (req, res, next) => {
       title: 'Package Update',
       message: `Your package status from ${firm?.company_name || 'Logistic Partner'} has been updated to: ${status.replace(/_/g, ' ')}.`,
       type: 'order_status',
-      metadata: { order_id: order._id, link: '/orders' },
+      metadata: { order_id: order._id, link: `/orders/${order._id}` },
       sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
       orderDetails: order,
       role: 'customer'
     });

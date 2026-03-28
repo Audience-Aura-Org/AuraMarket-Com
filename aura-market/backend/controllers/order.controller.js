@@ -197,23 +197,20 @@ const createOrder = async (req, res, next) => {
           role: 'vendor'
         });
 
-        await sleep(1000); // 1s gap
-
         // 2. Notify Customer
         sendNotification(req.app, req.user._id, {
           title: 'Order Confirmed',
           message: `Your order #${order[0]._id.toString().slice(-6).toUpperCase()} has been successfully processed and recorded.`,
           type: 'order_status',
-          metadata: { order_id: order[0]._id, link: '/orders' },
+          metadata: { order_id: order[0]._id, link: `/orders/${order[0]._id}` },
           sendEmail: true,
-          emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
+          emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order[0]._id}`,
           orderDetails: orderWithVendor,
           role: 'customer'
         });
 
         // 3. Notify Logistics Partner
         if (logisticsCompForNotify) {
-          await sleep(1000); // 1s gap
           sendNotification(req.app, logisticsCompForNotify.user_id, {
             title: 'New Shipment Assigned',
             message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
@@ -586,9 +583,9 @@ const approveRefund = async (req, res, next) => {
       title: 'Refund Approved',
       message: `Your refund for Order #${order._id.toString().slice(-6)} has been approved and funds returned to your wallet.`,
       type: 'wallet_update',
-      metadata: { order_id: order._id, link: '/orders' },
+      metadata: { order_id: order._id, link: `/orders/${order._id}` },
       sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`
     });
 
     res.status(200).json({ success: true, message: 'Refund approved and funds returned.', data: { order } });

@@ -8,9 +8,8 @@ import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap } from 'lucid
 import { trackAction } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
-import { cartStore } from '@/services/cartStore';
 
-export default function ProductCard({ product, layout = 'grid' }) {
+export default function ProductCard({ product }) {
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
@@ -43,17 +42,9 @@ export default function ProductCard({ product, layout = 'grid' }) {
     }
 
     setAdding(true);
-
-    // 🔥 OPTIMISTIC BROADCAST (The "Fluent" secret)
-    // We update the local store IMMEDIATELY before the network even starts
-    cartStore.addItem(product, 1);
-    
-    // Global feedback event
-    if (typeof window !== 'undefined') {
-       window.dispatchEvent(new CustomEvent('cart-item-added', { 
-         detail: { name, image: mainImage } 
-       }));
-    }
+    // Optimistic UI: show toast immediately
+    showToast("Added to stack!");
+    if (typeof window !== 'undefined') window.__AURA_PENDING_CART = (window.__AURA_PENDING_CART || 0) + 1;
     
     try {
       const payload = { 
@@ -63,12 +54,20 @@ export default function ProductCard({ product, layout = 'grid' }) {
       
       const response = await api.post('/cart', payload);
       
-      // Update with final server truth quietly
-      cartStore.setCart(response.data.data.cart);
+      // Decrement BEFORE dispatching so listeners see count as 0
+      if (typeof window !== 'undefined') {
+        window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
+        if (window.__AURA_PENDING_CART === 0) {
+          window.dispatchEvent(new CustomEvent('cart-updated', { 
+            detail: { cart: response.data.data.cart } 
+          }));
+        }
+      }
     } catch (err) {
-      console.error("Cart error:", err);
-      // On failure, we might want to refresh to "Correct" the optimistic count
-      cartStore.refresh();
+      const errorMessage = err.response?.data?.message || "Failed to add to cart";
+      showToast(errorMessage, "error");
+      // Still must decrement on error if we haven't already
+      if (typeof window !== 'undefined') window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
     } finally {
       setAdding(false);
     }
@@ -85,16 +84,25 @@ export default function ProductCard({ product, layout = 'grid' }) {
     window.location.href = `/checkout?productId=${productId}&quantity=1`;
   };
 
-  const isList = layout === 'list';
-
   return (
     <div 
       onClick={() => trackAction({ product_id: productId, action_type: 'view', category, vendor_id: vendor_id?._id })}
-      className={`group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-md flex ${isList ? 'flex-row' : 'flex-col h-full'}`}
+      className="group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-md flex flex-col h-full"
     >
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-[10px] font-black uppercase tracking-widest transition-all animate-in fade-in slide-in-from-top-4 duration-300 ${
+          toast.type === 'error'
+            ? 'bg-red-500/10 border-red-500/20 text-red-500'
+            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+        }`}>
+          <span className={`size-1.5 rounded-full ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
+          {toast.msg}
+        </div>
+      )}
 
       {/* Product Image Area */}
-      <div className={`relative overflow-hidden bg-[var(--accent)]/5 flex-shrink-0 ${isList ? 'w-32 md:w-48 aspect-square' : 'aspect-square'}`}>
+      <div className="relative aspect-square overflow-hidden bg-[var(--accent)]/5">
         <img 
           src={mainImage} 
           alt={name}
@@ -114,27 +122,25 @@ export default function ProductCard({ product, layout = 'grid' }) {
         </div>
 
         {/* Rating Floating */}
-        {rating > 0 && (
-          <div className="absolute bottom-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
-             <div className="flex items-center gap-1 bg-[var(--bg-primary)]/90 backdrop-blur-xl px-2 py-1 rounded-lg border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] shadow-sm">
-                <Star className="w-2.5 h-2.5 fill-[var(--accent)] text-[var(--accent)]" />
-                <span>{rating.toFixed(1)}</span>
-             </div>
-          </div>
-        )}
+        <div className="absolute bottom-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
+           <div className="flex items-center gap-1 bg-[var(--bg-primary)]/90 backdrop-blur-xl px-2 py-1 rounded-lg border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] shadow-sm">
+              <Star className="w-2.5 h-2.5 fill-[var(--accent)] text-[var(--accent)]" />
+              <span>{rating || '4.8'}</span>
+           </div>
+        </div>
       </div>
 
       {/* Content Area */}
-      <div className={`p-4 flex flex-col flex-1 ${isList ? 'justify-center gap-2' : 'gap-3'}`}>
+      <div className="p-4 flex flex-col flex-1 gap-3">
         <div className="space-y-3">
           <Link href={`/products/${productId}`} className="block">
-            <h4 className={`font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tighter! ${isList ? 'text-[14px]! md:text-base line-clamp-2' : 'text-[14px]! sm:text-sm line-clamp-1'}`}>
+            <h3 className="text-xs sm:text-sm font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
               {name}
-            </h4>
+            </h3>
           </Link>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm md:text-base font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
+            <span className="text-sm font-black text-[var(--text-primary)]">${price?.toLocaleString()}</span>
             <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)]">
                <span className="flex items-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-500" /> {product.purchase_count || 0}</span>
                <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
@@ -146,16 +152,12 @@ export default function ProductCard({ product, layout = 'grid' }) {
               href={`/stores/${vendor_id?._id || ''}`}
               className="flex items-center gap-1.5 group/vendor"
             >
-              <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center">
-                {vendor_id?.user_id?.branding?.logo || vendor_id?.user_id?.avatar || vendor_id?.store?.logo ? (
-                  <img 
-                    src={vendor_id?.user_id?.branding?.logo || vendor_id?.user_id?.avatar || vendor_id?.store?.logo} 
-                    className="size-full object-cover"
-                    alt="Store"
-                  />
-                ) : (
-                  <span className="text-[var(--text-primary)] font-black text-[6px]">{(vendor_id?.store_name || vendor_id?.name || 'A')?.[0]?.toUpperCase()}</span>
-                )}
+              <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)]">
+                <img 
+                  src={vendor_id?.store?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
+                  className="size-full object-cover"
+                  alt="Store"
+                />
               </div>
               <span className="text-[9px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[80px]">
                 {vendor_id?.store_name || 'Verified Node'}
@@ -165,7 +167,7 @@ export default function ProductCard({ product, layout = 'grid' }) {
         </div>
 
         {/* Action Buttons */}
-        <div className={`pt-2 flex items-center gap-2 mt-auto relative z-20 focus-within:z-30 ${isList ? 'max-w-[200px]' : ''}`}>
+        <div className="pt-2 flex items-center gap-2 mt-auto relative z-20 focus-within:z-30">
           <button 
             onClick={handleBuyNow}
             className="flex-1 h-9 bg-[var(--accent)] text-white text-[10px] sm:text-[9px] font-black tracking-widest rounded-xl flex items-center justify-center hover:bg-[var(--accent)]/80 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95"
