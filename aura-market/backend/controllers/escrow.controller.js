@@ -164,7 +164,7 @@ const releaseFunds = async (req, res, next) => {
         amount: vendorPayout,
         description: `Escrow Released (Fee ${settings.commission_rate}% deducted).`
       },
-      { session, new: true }
+      { session, returnDocument: 'after' }
     );
 
     // Log Platform Revenue Transaction (linked to an admin or just a system log)

@@ -88,7 +88,7 @@ const updateBanners = async (req, res, next) => {
     const layout = await Homepage.findOneAndUpdate(
       { version: 'v1' },
       { hero_banners },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     res.status(200).json({ success: true, message: 'Hero Banners synchronized.', data: { layout } });
   } catch (error) {
@@ -105,7 +105,7 @@ const setFeaturedProducts = async (req, res, next) => {
     const layout = await Homepage.findOneAndUpdate(
       { version: 'v1' },
       { featured_products },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     res.status(200).json({ success: true, message: 'Featured map synchronized.', data: { layout } });
   } catch (error) {
@@ -213,7 +213,7 @@ const getPendingReports = async (req, res, next) => {
 const resolveReport = async (req, res, next) => {
   try {
     const { status, admin_notes } = req.body;
-    const report = await Report.findByIdAndUpdate(req.params.id, { status, admin_notes, resolved_by: req.user._id }, { new: true });
+    const report = await Report.findByIdAndUpdate(req.params.id, { status, admin_notes, resolved_by: req.user._id }, { returnDocument: 'after' });
     if (!report) return res.status(404).json({ success: false, message: 'Report not found.' });
     res.status(200).json({ success: true, message: 'Report updated.', data: { report } });
   } catch (error) {
@@ -384,7 +384,7 @@ const getAllProducts = async (req, res, next) => {
 const updateUserStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
-    const user = await User.findByIdAndUpdate(req.params.id, { verification_status: status }, { new: true });
+    const user = await User.findByIdAndUpdate(req.params.id, { verification_status: status }, { returnDocument: 'after' });
     res.status(200).json({ success: true, data: { user } });
   } catch (error) {
     next(error);
@@ -394,7 +394,7 @@ const updateUserStatus = async (req, res, next) => {
 const updateVendorStatus = async (req, res, next) => {
   try {
     const { verified } = req.body;
-    const vendor = await Vendor.findByIdAndUpdate(req.params.id, { verified }, { new: true });
+    const vendor = await Vendor.findByIdAndUpdate(req.params.id, { verified }, { returnDocument: 'after' });
     res.status(200).json({ success: true, data: { vendor } });
   } catch (error) {
     next(error);

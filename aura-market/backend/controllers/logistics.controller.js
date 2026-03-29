@@ -332,7 +332,7 @@ const updatePricing = async (req, res, next) => {
         quartier_prices: sanitizedPrices,
         supported_pickup_regions: supported_pickup_regions || []
       },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
 

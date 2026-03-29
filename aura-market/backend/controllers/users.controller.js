@@ -32,7 +32,7 @@ const updateMe = async (req, res, next) => {
     }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 
@@ -71,9 +71,9 @@ const submitKYC = async (req, res, next) => {
         status: 'pending', 
         vendor_id: vendor ? vendor._id : null 
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: 'after', runValidators: true }
     );
-    const user = await User.findByIdAndUpdate(req.user._id, { verification_status: 'pending' }, { new: true });
+    const user = await User.findByIdAndUpdate(req.user._id, { verification_status: 'pending' }, { returnDocument: 'after' });
     res.status(200).json({ success: true, message: 'KYC submission received node-side. Governance review scheduled.', data: { kyc, user } });
   } catch (error) {
     next(error);
@@ -107,7 +107,7 @@ const completeOnboarding = async (req, res, next) => {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { liked_categories, onboarding_location: location, onboarded: true },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     res.status(200).json({ success: true, message: 'Onboarding finalized. Welcome to the Hub.', data: { user } });
   } catch (error) {

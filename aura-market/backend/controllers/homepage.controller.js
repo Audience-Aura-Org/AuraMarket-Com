@@ -74,7 +74,7 @@ const updateSection = async (req, res, next) => {
     const section = await HomepageSection.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     
     if (!section) return res.status(404).json({ success: false, message: 'Section not found' });

@@ -21,7 +21,7 @@ const subscribe = async (req, res, next) => {
         subscription, 
         device_type: device_type || 'mobile' 
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
     res.status(200).json({ success: true, message: 'Subscription stabilized in the Matrix.' });

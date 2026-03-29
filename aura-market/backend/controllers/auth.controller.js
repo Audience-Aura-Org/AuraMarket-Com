@@ -234,7 +234,7 @@ const updateProfile = async (req, res, next) => {
     });
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
-      new: true,           // return updated document
+      returnDocument: 'after',           // return updated document
       runValidators: true, // run schema validators on update
     });
 

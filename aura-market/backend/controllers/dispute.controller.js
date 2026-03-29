@@ -167,7 +167,7 @@ const resolveDispute = async (req, res, next) => {
             amount: vendorPayout, 
             description: `Admin Dispute Release (Fee ${settings.commission_rate}% deducted).` 
           },
-          { session, new: true, upsert: true }
+          { session, returnDocument: 'after', upsert: true }
         );
 
         escrow.status = 'released';

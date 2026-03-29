@@ -188,7 +188,7 @@ const updateStore = async (req, res, next) => {
     const store = await Store.findOneAndUpdate(
       { vendor_id: vendor._id },
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!store) {
@@ -231,7 +231,7 @@ const updateVendorProfile = async (req, res, next) => {
     const vendor = await Vendor.findByIdAndUpdate(
       req.vendor._id,
       updates,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!vendor) {

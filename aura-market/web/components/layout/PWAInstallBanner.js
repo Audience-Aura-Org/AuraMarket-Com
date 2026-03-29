@@ -6,9 +6,22 @@ import { Download, XCircle, Sparkles, Smartphone } from 'lucide-react';
 export default function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     let timerId;
+    
+    // Prevent showing if already installed natively or PWA
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      setIsVisible(false);
+      return;
+    }
+
+    // Detect iOS
+    const ua = window.navigator.userAgent;
+    const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    setIsIOS(isIOSDevice);
+
     const handleBeforeInstallPrompt = (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
@@ -20,15 +33,20 @@ export default function PWAInstallBanner() {
       if (!dismissed) {
         timerId = setTimeout(() => {
           setIsVisible(true);
-        }, 30000); // 30 seconds delay
+        }, 5000); // Reduced to 5 seconds for better visibility
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Also check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsVisible(false);
+    // iOS doesn't fire beforeinstallprompt, so we explicitly show the banner
+    if (isIOSDevice) {
+       const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
+       if (!dismissed) {
+         timerId = setTimeout(() => {
+           setIsVisible(true);
+         }, 5000);
+       }
     }
 
     return () => {
@@ -38,6 +56,11 @@ export default function PWAInstallBanner() {
   }, []);
 
   const handleInstall = async () => {
+    if (isIOS) {
+      alert('To install on iOS: Tap the Share icon (square with an up arrow) at the bottom of Safari, then select "Add to Home Screen".');
+      return;
+    }
+
     if (!deferredPrompt) return;
     
     // Show the install prompt
