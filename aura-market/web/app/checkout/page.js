@@ -696,26 +696,7 @@ function CheckoutContent() {
                       <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
                     </div>
 
-                    <div className="glass-panel p-8 rounded-[40px] border border-[var(--accent)]/30 bg-[var(--accent)]/5 group cursor-pointer transition-all hover:bg-[var(--accent)]/10"
-                      onClick={async () => {
-                         const sub = await subscribeToPush();
-                         if (sub) toast.success("Aura Signal Established.");
-                      }}
-                    >
-                      <div className="flex items-center gap-6 text-left">
-                        <div className="size-16 rounded-3xl bg-black flex items-center justify-center text-[var(--accent)]">
-                          <Smartphone className="size-8" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] mb-1">PWA Connectivity</h4>
-                          <p className="text-sm font-black uppercase tracking-tight">Enable Real-Time Dispatch Alerts</p>
-                          <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">Get native push notifications for shipment tracking and escrow releases.</p>
-                        </div>
-                        <div className="size-10 rounded-full border border-[var(--accent)] flex items-center justify-center text-[var(--accent)] group-hover:scale-110 transition-transform">
-                          <Plus className="size-5" />
-                        </div>
-                      </div>
-                    </div>
+
 
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <Link 
