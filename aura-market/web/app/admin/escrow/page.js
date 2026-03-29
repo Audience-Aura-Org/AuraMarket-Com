@@ -16,6 +16,7 @@ export default function AdminEscrow() {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingAction, setLoadingAction] = useState(null);
 
   useEffect(() => {
     setMounted(true);
@@ -35,6 +36,48 @@ export default function AdminEscrow() {
       toast.error('Failed to sync with secure vault');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRelease = async (orderId) => {
+    if (!orderId) {
+      toast.error('Invalid order reference');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to FORCE RELEASE funds to the vendor? This action is irreversible.')) return;
+    
+    setLoadingAction(orderId);
+    try {
+      const res = await api.post(`/escrow/release/${orderId}`);
+      if (res.data?.success) {
+        toast.success('Funds released successfully');
+        fetchEscrow();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to release funds');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleRefund = async (orderId) => {
+    if (!orderId) {
+      toast.error('Invalid order reference');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to FORCE REFUND funds to the customer? This action is irreversible.')) return;
+    
+    setLoadingAction(orderId);
+    try {
+      const res = await api.post(`/escrow/refund/${orderId}`, { reason: 'Admin override' });
+      if (res.data?.success) {
+        toast.success('Funds refunded successfully');
+        fetchEscrow();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to refund funds');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -85,6 +128,7 @@ export default function AdminEscrow() {
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Amount (XAF)</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Protocol State</th>
                         <th className="px-6 lg:px-8 py-4 lg:py-5 text-right">Timestamp</th>
+                        <th className="px-6 lg:px-8 py-4 lg:py-5 text-right">Actions</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--glass-border)]/50">
@@ -125,11 +169,33 @@ export default function AdminEscrow() {
                              <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] uppercase tracking-tight">{new Date(l.createdAt).toLocaleDateString()}</p>
                              <p className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] opacity-40 lowercase">{new Date(l.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                           </td>
+                          <td className="px-6 lg:px-8 py-4 lg:py-5 text-right whitespace-nowrap">
+                             {l.status === 'held' ? (
+                               <div className="flex items-center justify-end gap-2">
+                                 <button
+                                   onClick={() => handleRelease(l.order_id?._id)}
+                                   disabled={loadingAction === l.order_id?._id}
+                                   className={`px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-black uppercase tracking-wider ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                 >
+                                   Release
+                                 </button>
+                                 <button
+                                   onClick={() => handleRefund(l.order_id?._id)}
+                                   disabled={loadingAction === l.order_id?._id}
+                                   className={`px-3 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-black uppercase tracking-wider ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                 >
+                                   Refund
+                                 </button>
+                               </div>
+                             ) : (
+                               <span className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-40">Settled</span>
+                             )}
+                          </td>
                        </tr>
                      ))}
                      {logs.length === 0 && !loading && (
                        <tr>
-                          <td colSpan={5} className="px-8 py-20 lg:py-32 text-center">
+                          <td colSpan={6} className="px-8 py-20 lg:py-32 text-center">
                              <div className="flex flex-col items-center gap-4 lg:gap-6 opacity-20">
                                 <History className="size-10 lg:size-16" />
                                 <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-widest leading-relaxed">System scan complete.<br/>Vault history clear.</p>

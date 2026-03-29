@@ -124,7 +124,14 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         {/* Nav */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
           {config.nav.map(item => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+            const bestMatch = config.nav.reduce((best, current) => {
+              if (pathname === current.href || pathname?.startsWith(current.href + '/')) {
+                if (!best || current.href.length > best.href.length) return current;
+              }
+              return best;
+            }, null);
+            const isActive = bestMatch?.href === item.href;
+
             return (
               <Link
                 key={item.href}

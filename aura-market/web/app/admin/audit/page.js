@@ -5,7 +5,7 @@ import api from '@/services/api';
 import { 
   Shield, Clock, User, FileText, Filter, 
   Search, RefreshCw, ChevronRight, AlertTriangle,
-  Database, Fingerprint, Activity
+  Database, Fingerprint, Activity, Loader2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 

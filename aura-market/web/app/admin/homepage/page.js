@@ -18,7 +18,6 @@ import {
   Tablet,
   MonitorIcon
 } from 'lucide-react';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import SectionForm from '../storefront/components/SectionForm';
 
 export const dynamic = 'force-dynamic';
@@ -86,20 +85,16 @@ export default function AdminHomepagePage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] flex-col items-center justify-center relative">
-        <RoleSidebar role="admin" />
-        <main className="flex-1 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex-col items-center justify-center relative">
+        <div className="flex-1 flex flex-col items-center justify-center">
             <div className="w-16 h-16 rounded-full border-4 border-[var(--accent)]/30 border-t-[var(--accent)] animate-spin" />
-        </main>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative">
-      <RoleSidebar role="admin" />
-
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] relative">
         <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)] shadow-lg shadow-[var(--accent)]/5">
@@ -240,7 +235,6 @@ export default function AdminHomepagePage() {
             onSuccess={() => { setIsFormOpen(false); fetchSections(); }}
           />
         )}
-      </main>
     </div>
   );
 }
