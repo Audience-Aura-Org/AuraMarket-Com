@@ -6,6 +6,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
