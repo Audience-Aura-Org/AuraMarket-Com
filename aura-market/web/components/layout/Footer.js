@@ -3,13 +3,17 @@
 import Link from 'next/link';
 import { 
   Sparkles, Smartphone, Laptop, 
-  Settings, ShieldCheck, Mail, Info 
+  Settings, ShieldCheck, Zap
 } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] pt-20 pb-24 px-8 md:px-20 transition-colors duration-500">
-      <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
+    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] pt-20 pb-24 px-8 md:px-20 transition-colors duration-500 overflow-hidden relative">
+      
+      {/* Visual Accent */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-[1px] bg-gradient-to-r from-transparent via-[var(--accent)]/30 to-transparent opacity-50" />
+
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 relative z-10">
         
         {/* Brand Section */}
         <div className="flex flex-col gap-6 md:col-span-2">
@@ -28,21 +32,28 @@ export default function Footer() {
            </div>
         </div>
 
-        {/* Links: Experience */}
+        {/* Links: Experience (HIGH VISIBILITY) */}
         <div className="flex flex-col gap-6">
            <h3 className="text-xs font-black text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
               <Sparkles className="size-3 text-[var(--accent)]" /> Experience
            </h3>
-           <nav className="flex flex-col gap-4">
-              <Link href="/discovery" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors inline-flex items-center gap-2">Discovery Hub</Link>
-              <Link href="/shop" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors inline-flex items-center gap-2">Storefronts</Link>
-              {/* PWA HUB LINK */}
-              <Link href="/onboarding/pwa" className="group flex flex-col gap-1 p-3 -m-3 rounded-2xl hover:bg-[var(--accent)]/5 transition-all">
-                 <span className="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] flex items-center gap-2">
-                    Get the Aura App <Smartphone className="size-3.5" />
-                 </span>
-                 <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest opacity-50">Desktop & iOS Native</span>
-              </Link>
+           <nav className="flex flex-col gap-2">
+              <Link href="/discovery" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] py-2 transition-colors inline-flex items-center gap-2">Discovery Hub</Link>
+              <Link href="/shop" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] py-2 transition-colors inline-flex items-center gap-2">Storefronts</Link>
+              
+              {/* VIBRANT PWA LINK */}
+              <div className="mt-4 p-5 rounded-[2rem] bg-[var(--accent)]/10 border border-[var(--accent)]/40 group/pwa relative overflow-hidden active:scale-95 transition-all">
+                <Link href="/onboarding/pwa" className="relative z-10 flex flex-col gap-1.5 underline-offset-4 decoration-[var(--accent)]/40 decoration-2">
+                   <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-[var(--accent)] uppercase tracking-widest">Aura App</span>
+                      <Zap className="size-3 text-[var(--accent)] animate-pulse" />
+                   </div>
+                   <h4 className="text-sm font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">Get Native Node</h4>
+                   <p className="text-[9px] text-[var(--text-secondary)] leading-tight opacity-70">Experience faster, smoother performance on Desktop & iOS.</p>
+                </Link>
+                {/* Shimmer overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--accent)]/10 to-transparent -translate-x-full group-hover:animate-[footer-shimmer_3s_infinite_linear]" />
+              </div>
            </nav>
         </div>
 
@@ -55,7 +66,9 @@ export default function Footer() {
               <Link href="/help-center" className="hover:text-[var(--accent)] transition-colors">Help Center</Link>
               <Link href="/terms-of-service" className="hover:text-[var(--accent)] transition-colors">Privacy & Terms</Link>
               <div className="pt-4 flex flex-col gap-1 opacity-40">
-                 <span className="text-[9px] font-black uppercase tracking-[0.3em]">Android Native</span>
+                 <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em]">Android Native</span>
+                 </div>
                  <span className="text-[10px] font-bold italic">Launching Soon 🚀</span>
               </div>
            </nav>
@@ -73,6 +86,12 @@ export default function Footer() {
             <Settings className="size-4" />
          </div>
       </div>
+
+      <style jsx>{`
+        @keyframes footer-shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </footer>
   );
 }
