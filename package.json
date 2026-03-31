@@ -1,9 +1,8 @@
 {
-  "name": "aura-market-monorepo",
+  "name": "aura-market-deploy",
   "version": "1.0.0",
   "scripts": {
-    "build": "cd aura-market/web && npm install --include=dev && npm run build",
+    "build": "ls -R && cd aura-market/web && npm install && npm run build",
     "start": "cd aura-market/web && npm start"
-  },
-  "dependencies": {}
+  }
 }
