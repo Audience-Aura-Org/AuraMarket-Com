@@ -102,10 +102,6 @@ const modifyShipmentStatus = async (req, res, next) => {
     const { status, note, proof_image, failure_reason, receiver_name } = req.body;
     const { id } = req.params;
 
-<<<<<<< HEAD
-    const firm     = await LogisticsCompany.findOne({ user_id: req.user._id }).session(session);
-=======
->>>>>>> aura-import-main
     const shipment = await Shipment.findById(id).session(session);
     if (!shipment) throw new Error('Shipment not found.');
 
@@ -382,12 +378,7 @@ const getProfile = async (req, res, next) => {
 const updatePricing = async (req, res, next) => {
   try {
     const { quartier_prices, supported_pickup_regions } = req.body;
-<<<<<<< HEAD
-    
-=======
 
-    // Sanitize the pricing matrix to remove existing IDs if any, preventing conflict
->>>>>>> aura-import-main
     const sanitizedPrices = (quartier_prices || []).map(p => ({
       quartier: p.quartier,
       price:    Number(p.price)
@@ -395,15 +386,9 @@ const updatePricing = async (req, res, next) => {
 
     const firm = await LogisticsCompany.findOneAndUpdate(
       { user_id: req.user._id },
-<<<<<<< HEAD
-      { 
-        quartier_prices:           sanitizedPrices, 
-        supported_pickup_regions:  supported_pickup_regions || [] 
-=======
       {
-        quartier_prices: sanitizedPrices,
+        quartier_prices: sanitisedPrices,
         supported_pickup_regions: supported_pickup_regions || []
->>>>>>> aura-import-main
       },
       { returnDocument: 'after', runValidators: true }
     );

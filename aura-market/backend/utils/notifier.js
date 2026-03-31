@@ -1,72 +1,3 @@
-<<<<<<< HEAD
-/**
- * utils/notifier.js
- * Aura Market — Centralized Notification Dispatcher
- *
- * Handles:
- *  1. Persistent DB notifications (Notification model)
- *  2. Real-time Socket.IO push (if user is online)
- *  3. Email delivery via emailService (Titan SMTP)
- */
-
-const Notification = require('../models/Notification.model');
-const User          = require('../models/User.model');
-const { sendEmail } = require('./emailService');
-
-/**
- * Send a notification to a single user.
- *
- * @param {object}  app         - Express app instance (for Socket.IO access)
- * @param {string}  recipientId - MongoDB User _id
- * @param {object}  data
- * @param {string}  data.title
- * @param {string}  data.message
- * @param {string}  data.type
- * @param {object}  [data.metadata]
- * @param {boolean} [data.sendEmail=false]     - Send plain-text email using title/message
- * @param {object}  [data.emailTemplate]       - { subject, html, text } — overrides plain email
- */
-const sendNotification = async (app, recipientId, data) => {
-  try {
-    const { title, message, type, metadata, sendEmail: wantsEmail = false, emailTemplate } = data;
-
-    // 1. Persist notification
-    const notification = await Notification.create({
-      recipient: recipientId,
-      title,
-      message,
-      type,
-      metadata,
-    });
-
-    // 2. Real-time push via Socket.IO
-    const io = app?.get('io');
-    if (io) {
-      io.to(recipientId.toString()).emit('notification', notification);
-    }
-
-    // 3. Email delivery
-    if (wantsEmail || emailTemplate) {
-      const user = await User.findById(recipientId).select('email name');
-      if (user?.email) {
-        if (emailTemplate) {
-          // Rich HTML template provided by caller
-          await sendEmail({
-            to:      user.email,
-            subject: emailTemplate.subject,
-            html:    emailTemplate.html,
-            text:    emailTemplate.text,
-          });
-        } else {
-          // Fallback: plain-text email
-          await sendEmail({
-            to:      user.email,
-            subject: title,
-            html:    `<p>${message}</p>`,
-            text:    message,
-          });
-        }
-=======
 const webPush = require('web-push');
 const nodemailer = require('nodemailer');
 const Notification = require('../models/Notification.model');
@@ -105,7 +36,7 @@ const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink) => {
         <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Order Details</h3>
           <ul style="padding-left: 20px;">${items}</ul>
-          <p><strong>Total:</strong> ₦${orderDetails.total_amount?.toLocaleString()}</p>
+          <p><strong>Total:</strong> ${orderDetails.total_amount?.toLocaleString()} XAF</p>
         </div>
       ` : ''}
       ${emailLink ? `
@@ -138,7 +69,6 @@ const sendNotification = async (app, recipientId, data) => {
     // ─────────────────────────────────────────────
     
     // 🚀 CHANNEL 1: PWA WEB PUSH (ULTRA-FAST PATH)
-    // We fire this first and separately from Email to ensure zero-latency delivery.
     (async () => {
       try {
         const PushSubscription = require('../models/PushSubscription.model');
@@ -149,7 +79,6 @@ const sendNotification = async (app, recipientId, data) => {
             title,
             body: message,
             icon: '/logo-white.png', 
-            // Unique tag ensures delivery isn't collapsed for critical order alerts
             tag: type === 'message' ? `msg-${recipientId}` : `alert-${recipientId}-${Date.now()}`,
             data: { url: emailLink || (metadata?.link) || '/discovery' }
           });
@@ -157,7 +86,6 @@ const sendNotification = async (app, recipientId, data) => {
           await Promise.allSettled(subs.map(sub => 
             webPush.sendNotification(sub.subscription, payload)
               .catch(async (e) => {
-                // Auto-purge stale endpoints
                 if (e.statusCode === 410 || e.statusCode === 404 || e.statusCode === 401) {
                   await PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
                   console.log(`🗑️  Purged invalid sub ${sub._id} (HTTP ${e.statusCode})`);
@@ -168,7 +96,6 @@ const sendNotification = async (app, recipientId, data) => {
         }
       } catch (err) {
         console.error('❌ PWA Push Signal Error:', err.message);
->>>>>>> aura-import-main
       }
     })();
 
@@ -180,7 +107,6 @@ const sendNotification = async (app, recipientId, data) => {
           const user = await User.findById(recipientId).select('email name role');
           let targetEmail = overrideEmail || user?.email;
 
-          // Logistics override lookup
           if (role === 'logistics' && !overrideEmail) {
             const LogisticsCompany = require('../models/LogisticsCompany.model');
             const firm = await LogisticsCompany.findOne({ user_id: recipientId }).select('contact_email');
@@ -219,27 +145,13 @@ const sendNotification = async (app, recipientId, data) => {
   }
 };
 
-/**
- * Broadcast a notification to all followers of a vendor.
- */
 const notifyFollowers = async (app, vendorId, data) => {
   try {
     const Follow = require('../models/Follow.model');
     const followers = await Follow.find({ vendor_id: vendorId });
-<<<<<<< HEAD
-    if (followers.length === 0) return;
-
-    await Promise.all(
-      followers.map(f => sendNotification(app, f.user_id, { ...data, type: 'vendor_update' }))
-    );
-  } catch (error) {
-    console.error('Mass Notification Error:', error);
-=======
-    // Parallel broadcast to all followers
     await Promise.allSettled(followers.map(f => sendNotification(app, f.user_id, { ...data, type: 'vendor_update' })));
   } catch (err) {
     console.error('Follower broadcast fail:', err);
->>>>>>> aura-import-main
   }
 };
 
