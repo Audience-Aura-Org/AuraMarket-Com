@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { useNotifications } from '@/hooks/useNotifications';
-import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle, Bell } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle } from 'lucide-react';
 import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
@@ -22,27 +21,56 @@ export default function TopNav() {
   const { theme, toggleTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
   const [cartCount, setCartCount] = useState(cartStore.getCount());
-
-  // ── Centralised notification + chat unread counts ─────────────────────────
-  const { unreadCount: notifCount, unreadMessages } = useNotifications();
 
   // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
     if (!user?._id) return;
+    const fetchCounts = () => {
+      // Use cartStore.refresh() instead of manual fetch to get benefits of deduplication and token checks
+      cartStore.refresh();
+      
+      // Token check for chat
+      const hasToken = !!localStorage.getItem('aura_token') || !!localStorage.getItem('aura-auth-storage');
+      if (hasToken) {
+        api.get('/chat').then(res => {
+          if (res.data?.success) {
+            const count = res.data.data.activeChats.filter(c => c.read_status === false).length;
+            setUnreadCount(count);
+          }
+        }).catch(() => {});
+      }
+    };
 
-    // Refresh cart store on mount/user change
-    cartStore.refresh();
+    fetchCounts();
     
     // Subscribe to cart changes
     const unsubCart = cartStore.subscribe(({ count }) => {
       setCartCount(count);
     });
     
+    // Socket listeners for unread count
+    const handleMsg = () => {
+      if (!window.location.pathname.startsWith('/chat')) {
+        setUnreadCount(prev => prev + 1);
+      }
+    };
+    
+    socketService.on('receive_message', handleMsg);
+    socketService.on('messages_read', fetchCounts);
+
     return () => {
       unsubCart();
+      socketService.off('receive_message', handleMsg);
+      socketService.off('messages_read', fetchCounts);
     };
   }, [user?._id]);
+
+  // Clear unread badge when viewing chat
+  useEffect(() => {
+    if (pathname?.startsWith('/chat')) setUnreadCount(0);
+  }, [pathname]);
 
   // Hide on auth, admin, vendor, logistics, and full-screen chat pages
   if (
@@ -118,40 +146,16 @@ export default function TopNav() {
           >
             {theme === 'light' ? <Moon className="size-5" /> : <Sun className="size-5" />}
           </button>
-
-          {/* ── Notifications Bell ── */}
-          {user && (
-            <Link
-              href="/notifications"
-              id="nav-notification-bell"
-              className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
-              title="Notifications"
-            >
-              <Bell className="size-5" />
-              {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
-                  {notifCount > 99 ? '99+' : notifCount}
-                </span>
-              )}
-            </Link>
-          )}
           
-          {/* ── Messages / Chat ── */}
-          <Link
-            href="/chat"
-            id="nav-chat-icon"
-            className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
-            title="Messages"
-          >
+          <Link href="/chat" className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
             <MessageCircle className="size-5" />
-            {unreadMessages > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
-                {unreadMessages > 99 ? '99+' : unreadMessages}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </Link>
 
-          {/* ── Cart ── */}
           <div className="relative group/cart">
             <Link href="/cart" className="relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
               <ShoppingCart className="size-5" />
@@ -210,3 +214,4 @@ export default function TopNav() {
     </header>
   );
 }
+
