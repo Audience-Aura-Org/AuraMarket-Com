@@ -115,16 +115,25 @@ const requestWithdrawal = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { amount } = req.body;
+    const { amount, method, details } = req.body;
     const user = await User.findById(req.user._id).session(session);
 
     if (amount <= 0 || user.wallet_balance < amount) {
       throw new Error('Insufficient wallet balance or invalid amount.');
     }
 
+    if (!method) {
+      throw new Error('Withdrawal method is required.');
+    }
+
     // Deduct from wallet immediately to prevent double spending
     user.wallet_balance -= amount;
     await user.save({ session });
+
+    // Create a descriptive label
+    const methodLabels = { mtn: 'MTN MoMo', orange: 'Orange Money', bank: 'Bank Transfer' };
+    const methodLabel = methodLabels[method] || method.toUpperCase();
+    const accountRef = details?.account_number ? ` (${details.account_number})` : '';
 
     // Create pending withdrawal transaction
     const transaction = await Transaction.create([{
@@ -133,7 +142,8 @@ const requestWithdrawal = async (req, res, next) => {
       amount,
       reference: generateTxRef(),
       status: 'pending', // Requires admin approval
-      description: 'Wallet withdrawal request',
+      description: `Withdrawal to ${methodLabel}${accountRef}`,
+      gateway_response: { method, details, requested_at: new Date() } // Store structured data
     }], { session });
 
     await session.commitTransaction();
@@ -147,7 +157,7 @@ const requestWithdrawal = async (req, res, next) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    if (error.message.includes('Insufficient')) {
+    if (error.message.includes('Insufficient') || error.message.includes('required')) {
       return res.status(400).json({ success: false, message: error.message });
     }
     next(error);
@@ -173,7 +183,6 @@ const processWithdrawal = async (req, res, next) => {
 
     if (action === 'approve') {
       transaction.status = 'completed';
-      // In production, trigger external payout API here mapping to vendor's bank account
     } else if (action === 'reject') {
       transaction.status = 'rejected';
       // Refund the wallet since we deducted it during the request phase
@@ -183,6 +192,16 @@ const processWithdrawal = async (req, res, next) => {
     } else {
       throw new Error("Invalid action. Use 'approve' or 'reject'.");
     }
+
+    // Audit Log
+    const { logAction } = require('./audit.controller');
+    await logAction(
+      req.user._id, 
+      'withdrawal_process', 
+      'transaction', 
+      transaction._id, 
+      { action, amount: transaction.amount }
+    );
 
     await transaction.save({ session });
 
@@ -247,7 +266,6 @@ const payOrderWithWallet = async (req, res, next) => {
     order.payment_status = 'paid';
     
     // Auto-progress order_status ONLY if no Escrow is involved
-    // Assuming 'wallet' direct payments skip Escrow. 
     order.order_status = 'processing'; 
     await order.save({ session });
 
@@ -258,11 +276,19 @@ const payOrderWithWallet = async (req, res, next) => {
         await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
         const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id).session(session);
         if (logisticsFirm) {
+          const orderWithVendor = order.toObject();
+          const v = await Vendor.findById(order.vendor_id).session(session);
+          orderWithVendor.vendor_id = v;
+
           await sendNotification(req.app, logisticsFirm.user_id, {
             title: 'New Shipment Assigned',
             message: `You have a new shipment for order #${order._id.toString().slice(-6).toUpperCase()}.`,
             type: 'system_alert',
-            metadata: { order_id: order._id }
+            metadata: { order_id: order._id, link: '/logistics/dashboard' },
+            sendEmail: true,
+            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+            orderDetails: orderWithVendor,
+            role: 'logistics'
           });
         }
       }

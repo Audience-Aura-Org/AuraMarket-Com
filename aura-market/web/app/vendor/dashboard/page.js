@@ -33,14 +33,14 @@ export default function VendorDashboard() {
         if (stored) {
           const parsed = JSON.parse(stored);
           authToken = parsed?.state?.token;
-          console.log('[VendorDashboard] Recovered token from localStorage:', !!authToken);
+
         }
       } catch (e) {
         console.error('[VendorDashboard] Failed to parse localStorage:', e);
       }
     }
 
-    console.log('[VendorDashboard] Token from Zustand:', !!token, 'Recovered:', !!authToken);
+
     
     if (!authToken) {
       setError(null);
@@ -52,9 +52,9 @@ export default function VendorDashboard() {
     const fetchData = async () => {
       try {
         // Verify vendor profile first
-        console.log('[VendorDashboard] Checking vendor profile...');
+
         const vendorRes = await api.get('/vendor/me');
-        console.log('[VendorDashboard] /vendor/me:', vendorRes.status, vendorRes.data.success);
+
         
         if (!vendorRes.data.success) {
           setError('Vendor profile not found or unauthorized.');
@@ -62,7 +62,7 @@ export default function VendorDashboard() {
         }
 
         // Fetch products, orders and finance data in parallel
-        console.log('[VendorDashboard] Fetching products, orders and wallet...');
+
         const [productsRes, ordersRes, walletRes, vendorProfileRes] = await Promise.all([
           api.get('/vendor/products'),
           api.get('/vendor/orders'),
@@ -73,12 +73,12 @@ export default function VendorDashboard() {
         if (isMounted) {
           if (productsRes.data.success) {
             const prods = productsRes.data.data.products || [];
-            console.log('[VendorDashboard] Setting products:', prods.length);
+
             setProducts(prods);
           }
           if (ordersRes.data.success) {
             const ordrs = ordersRes.data.data.orders || [];
-            console.log('[VendorDashboard] Setting orders:', ordrs.length);
+
             setOrders(ordrs);
           }
           if (walletRes.data.success) {
@@ -135,7 +135,7 @@ export default function VendorDashboard() {
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
-        <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)]/80 backdrop-blur-2xl gap-2 min-w-0">
+        <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-2 min-w-0 text-[var(--text-primary)]">
           <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
             <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
             <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />

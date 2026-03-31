@@ -20,14 +20,14 @@ const getHomepage = async (req, res, next) => {
     const sections = await HomepageSection.find({
       is_active: true,
       $and: [
-        { $or: [{ scheduled_start: { $lte: now } }, { scheduled_start: null }] },
-        { $or: [{ scheduled_end: { $gte: now } }, { scheduled_end: null }] }
+        { $or: [{ scheduled_start: { $lte: now } }, { scheduled_start: null }, { scheduled_start: { $exists: false } }] },
+        { $or: [{ scheduled_end: { $gte: now } }, { scheduled_end: null }, { scheduled_end: { $exists: false } }] }
       ]
     })
     .sort({ order: 1 })
     .populate({
       path: 'data.product_id',
-      select: 'name price images rating stock vendor_id',
+      select: 'name price images rating stock vendor_id view_count purchase_count',
       populate: { 
         path: 'vendor_id', 
         select: 'store_name user_id',
@@ -74,7 +74,7 @@ const updateSection = async (req, res, next) => {
     const section = await HomepageSection.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     
     if (!section) return res.status(404).json({ success: false, message: 'Section not found' });
@@ -133,7 +133,7 @@ const getAdminSections = async (req, res, next) => {
       .sort({ order: 1 })
       .populate({
         path: 'data.product_id',
-        select: 'name price images rating stock vendor_id',
+        select: 'name price images rating stock vendor_id view_count purchase_count',
         populate: { 
           path: 'vendor_id', 
           select: 'store_name user_id',

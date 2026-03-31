@@ -91,7 +91,7 @@ export default function VendorAnalyticsPage() {
 
   return (
     <>
-      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0">
+      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Economic <span className="text-[var(--accent)]">Intelligence</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />

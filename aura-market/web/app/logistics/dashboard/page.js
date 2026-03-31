@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Truck, Package, CheckCircle, AlertCircle, Bell, Building, Globe, MapPin, Smartphone, Mail, Loader2, ArrowUpRight } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default function LogisticsDashboard() {
+function LogisticsDashboardContent() {
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +45,7 @@ export default function LogisticsDashboard() {
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
+    const fetchProfile = async () => {
     try {
        const res = await api.get('/logistics/shipments/firm');
        if (res.data.success) {
@@ -53,7 +56,7 @@ export default function LogisticsDashboard() {
           // Calculate stats
           const active = fetchedShipments.filter(s => ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(s.status)).length;
           const pending = fetchedShipments.filter(s => s.status === 'pending').length;
-          const delivered24h = fetchedShipments.filter(s => s.status === 'delivered').length; // Simplify for now
+          const delivered24h = fetchedShipments.filter(s => s.status === 'delivered').length; 
           
           setStats([
             { label: 'Active Shipments', value: active.toString(), icon: Truck, color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
@@ -61,6 +64,17 @@ export default function LogisticsDashboard() {
             { label: 'Delivered Total', value: delivered24h.toString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
             { label: 'Failed Deliveries', value: fetchedShipments.filter(s => s.status === 'failed').length.toString(), icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-500/10' },
           ]);
+
+          // 🚀 DEEP LINK: Auto-open specific shipment if ID provided in URL (for notifications)
+          const deepLinkId = searchParams.get('shipmentId');
+          if (deepLinkId) {
+            const target = fetchedShipments.find(s => s._id === deepLinkId);
+            if (target) {
+              openUpdateModal(target);
+              // Clean up URL to prevent ghost modals on refresh
+              router.replace('/logistics/dashboard');
+            }
+          }
        }
     } catch (err) {
        if (err.response?.status === 403) setProfile(null);
@@ -212,7 +226,7 @@ export default function LogisticsDashboard() {
 
   return (
     <>
-      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0">
+      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-2xl shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-2xl font-black text-[var(--text-primary)] tracking-tighter uppercase">Transit <span className="text-[var(--accent)]">Control</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
@@ -436,6 +450,18 @@ export default function LogisticsDashboard() {
         </div>
       )}
     </>
+  );
+}
+
+export default function LogisticsDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-[var(--bg-secondary)]">
+        <Loader2 className="size-10 animate-spin text-[var(--accent)]" />
+      </div>
+    }>
+      <LogisticsDashboardContent />
+    </Suspense>
   );
 }
 

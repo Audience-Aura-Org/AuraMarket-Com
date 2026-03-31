@@ -31,6 +31,7 @@ const debugRoutes = require('./debug.routes');
 const homepageRoutes = require('./homepage.routes');
 const discoveryRoutes = require('./discovery.routes');
 const trackingRoutes = require('./tracking.routes');
+const pushRoutes = require('./push.routes');
 
 // Mount routes
 router.use('/auth', strictLimiter, authRoutes);
@@ -61,6 +62,7 @@ router.use('/categories', publicLimiter, categoryRoutes);
 router.use('/homepage', homepageRoutes);
 router.use('/discovery', publicLimiter, discoveryRoutes);
 router.use('/track', trackingRoutes);
+router.use('/push', pushRoutes);
 // Dev/debug routes (safe to mount locally)
 router.use('/debug', debugRoutes);
 

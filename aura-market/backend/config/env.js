@@ -35,10 +35,22 @@ module.exports = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
   WEB_CLIENT_URL: process.env.WEB_CLIENT_URL || 'http://localhost:3000',
   PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY,
+<<<<<<< HEAD
   EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.titan.email',
   EMAIL_PORT: parseInt(process.env.EMAIL_PORT) || 587,
   EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Aura Market',
+=======
+  EMAIL_HOST: process.env.EMAIL_HOST,
+  EMAIL_PORT: parseInt(process.env.EMAIL_PORT, 10) || 587,
+  EMAIL_USER: process.env.EMAIL_USER,
+  EMAIL_PASS: process.env.EMAIL_PASS,
+  EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
+  EVERSEND_CLIENT_ID: process.env.EVERSEND_CLIENT_ID,
+  EVERSEND_CLIENT_SECRET: process.env.EVERSEND_CLIENT_SECRET,
+  EVERSEND_BASE_URL: process.env.EVERSEND_BASE_URL || 'https://api.eversend.co/v1',
+>>>>>>> aura-import-main
 };
+

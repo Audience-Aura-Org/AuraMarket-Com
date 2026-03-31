@@ -18,6 +18,13 @@ export default function CartPreview() {
 
   const fetchCart = async (force = false) => {
     if (typeof window !== 'undefined' && window.__AURA_PENDING_CART > 0) return;
+    
+    // Guest protection: Don't call if no token exists
+    if (typeof window !== 'undefined') {
+       const hasToken = !!localStorage.getItem('aura_token') || !!localStorage.getItem('aura-auth-storage');
+       if (!hasToken) return;
+    }
+
     try {
       const res = await api.get('/cart');
       if (res.data?.success && (!window.__AURA_PENDING_CART)) {

@@ -1,37 +1,46 @@
 "use client";
 
+<<<<<<< HEAD
 import { Menu, X, Bell, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
+=======
+import { Menu, X, User } from 'lucide-react';
+import { useTheme } from "@/context/ThemeContext";
+>>>>>>> aura-import-main
 import { useAuthStore } from '@/hooks/useAuth';
 
 export default function MobileHeader({ isOpen, toggleSidebar }) {
   const { theme } = useTheme();
   const { user } = useAuthStore();
+<<<<<<< HEAD
   const { unreadCount, unreadMessages } = useNotifications();
+=======
+>>>>>>> aura-import-main
 
   return (
-    <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-[190] transition-colors duration-500">
+    <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-[var(--nav-bg)] border-b border-[var(--nav-border)] text-[var(--nav-text)] sticky top-0 z-[190] transition-colors duration-500">
       <div className="flex items-center gap-3">
         <button 
           onClick={toggleSidebar}
-          className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:text-[var(--accent)] transition-all"
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:text-[var(--accent)] transition-all"
         >
           {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
         <div className="flex items-center gap-2 min-w-0">
            <img 
-             src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'} 
+             src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'} 
              alt="Aura" 
              className="h-4.5 w-auto shrink-0"
            />
-           <h1 className="text-[11px] font-black tracking-tight text-[var(--text-primary)] uppercase leading-none truncate">
+           <h1 className="text-[11px] font-black tracking-tight text-[var(--nav-text)] uppercase leading-none truncate">
              Aura <span className="text-[var(--accent)]">Market</span>
            </h1>
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Right-side icon row (notifications + messages) */}
       <div className="flex items-center gap-2">
         {/* Notification Bell */}
@@ -68,6 +77,14 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
 
         {/* Role indicator pill */}
         <div className="size-7 rounded-lg bg-gradient-to-tr from-[var(--accent)]/15 to-indigo-600/10 border border-[var(--accent)]/15 flex items-center justify-center font-black text-[10px] text-[var(--accent)] shrink-0">A</div>
+=======
+      <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden flex items-center justify-center font-black text-[10px] text-[var(--accent)] shrink-0">
+        {user?.branding?.logo || user?.avatar ? (
+          <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt="" />
+        ) : (
+          <User className="size-4 opacity-40 text-[var(--text-secondary)]" />
+        )}
+>>>>>>> aura-import-main
       </div>
     </header>
   );

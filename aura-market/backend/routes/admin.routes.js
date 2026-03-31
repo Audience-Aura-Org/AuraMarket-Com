@@ -31,7 +31,7 @@ const {
   updateUserAdmin,
   getAllVendors,
   updateVendorStatus,
-  getAdminShipments,
+  fetchAdminShipments,
   updateAdminShipment,
   getAdminLogisticsFirms,
   getLogisticsEarningsReport,
@@ -39,8 +39,11 @@ const {
   updateLogisticsFirm,
   addLogisticZone,
   getAdvancedAnalytics,
+  getEmailLogs,
   getAllProducts
 } = require('../controllers/admin.controller');
+
+const { getAuditLogs } = require('../controllers/audit.controller');
 
 
 const {
@@ -73,7 +76,7 @@ router.get('/kyc/pending', getPendingKYC);
 router.patch('/kyc/:id/review', reviewKYC);
 
 // Logistics Monitoring
-router.get('/logistics/shipments', getAdminShipments);
+router.get('/logistics/shipments', fetchAdminShipments);
 router.patch('/logistics/shipments/:id', updateAdminShipment);
 router.get('/logistics/firms', getAdminLogisticsFirms);
 router.get('/logistics/earnings', getLogisticsEarningsReport);
@@ -99,6 +102,12 @@ router.patch('/reports/:id/resolve', resolveReport);
 // Platform Settings
 router.get('/settings', getSettings);
 router.patch('/settings', updateSettings);
+
+// Email Monitoring
+router.get('/notifications/email-logs', getEmailLogs);
+
+// Audit Logging
+router.get('/audit', getAuditLogs);
 
 // Queue Moderation
 router.get('/vendors/pending', getPendingVendors);

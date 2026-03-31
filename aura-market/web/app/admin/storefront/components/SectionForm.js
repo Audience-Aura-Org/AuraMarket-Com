@@ -142,7 +142,8 @@ export default function SectionForm({ section, onClose, onSuccess }) {
     if (!file) return;
     setUploadingIndex(index);
     try {
-      const res = await uploadService.uploadSingle(file);
+      const uploadType = formData.type === 'categories' ? 'categories' : 'banners';
+      const res = await uploadService.uploadSingle(file, uploadType);
       if (res.success) {
         updateDataItem(index, 'image_url', res.data.url);
       }

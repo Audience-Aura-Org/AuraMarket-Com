@@ -96,9 +96,15 @@ const onboardVendor = async (req, res, next) => {
       store = storeArray[0];
     }
 
-    // 4. Force mark user as onboarded (ensure persistence)
+    // 4. Force mark user as onboarded and sync initial branding (if any)
     const User = require('../models/User.model');
-    await User.findByIdAndUpdate(req.user._id, { onboarded: true }, { session });
+    const brandingUpdates = {};
+    if (store_name) brandingUpdates['branding.store_name'] = store_name; // and more if needed
+    
+    await User.findByIdAndUpdate(req.user._id, { 
+      onboarded: true,
+      ...(brandingUpdates)
+    }, { session });
 
     // Commit Transaction
     await session.commitTransaction();
@@ -182,14 +188,21 @@ const updateStore = async (req, res, next) => {
     const store = await Store.findOneAndUpdate(
       { vendor_id: vendor._id },
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: 'Store not found.',
-      });
+      return res.status(404).json({ success: false, message: 'Store not found.' });
+    }
+
+    // 🚀 SYNC: Mirror branding assets to the core User model for Chat/Notifications consistency
+    const User = require('../models/User.model');
+    const brandingUpdates = {};
+    if (updateData.logo) brandingUpdates['branding.logo'] = updateData.logo;
+    if (updateData.banner) brandingUpdates['branding.banner'] = updateData.banner;
+    
+    if (Object.keys(brandingUpdates).length > 0) {
+      await User.findByIdAndUpdate(req.user._id, { $set: brandingUpdates });
     }
 
     res.status(200).json({
@@ -208,12 +221,17 @@ const updateStore = async (req, res, next) => {
 // @access  Private (Role: vendor)
 // ─────────────────────────────────────────────
 const updateVendorProfile = async (req, res, next) => {
-  try {
-    const { store_name, description } = req.body;
+    try {
+    const { store_name, description, pickup_address } = req.body;
+    const updates = {};
+    if (store_name !== undefined) updates.store_name = store_name;
+    if (description !== undefined) updates.description = description;
+    if (pickup_address !== undefined) updates.pickup_address = pickup_address;
+
     const vendor = await Vendor.findByIdAndUpdate(
       req.vendor._id,
-      { store_name, description },
-      { new: true, runValidators: true }
+      updates,
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!vendor) {
@@ -238,11 +256,17 @@ const updateVendorProfile = async (req, res, next) => {
 const getPublicStores = async (req, res, next) => {
   try {
     const { search } = req.query;
-    let query = {};
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const startIndex = (page - 1) * limit;
+
+    let query = { is_onboarded: true };
 
     if (search) {
       query.store_name = { $regex: search, $options: 'i' };
     }
+
+    const total = await Vendor.countDocuments(query);
 
     // We fetch base Vendors and populate their Stores
     // Used for store directories and discovery feeds
@@ -250,11 +274,14 @@ const getPublicStores = async (req, res, next) => {
       .select('store_name rating verified description user_id follower_count')
       .populate('store', 'logo banner categories') // only fetch visible assets
       .populate('user_id', 'branding avatar') // fetch user-level branding for fallbacks
-      .limit(20); 
+      .skip(startIndex)
+      .limit(limit)
+      .sort('-createdAt'); 
 
     res.status(200).json({
       success: true,
       count: stores.length,
+      pagination: { total, page, pages: Math.ceil(total / limit) },
       data: { stores },
     });
   } catch (error) {
@@ -443,6 +470,25 @@ const checkFollowStatus = async (req, res, next) => {
   }
 };
 
+const getFollowing = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const following = await Follow.find({ user_id: userId })
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name rating verified user_id average_response_time',
+        populate: [
+          { path: 'user_id', select: 'name avatar role branding' }
+        ]
+      })
+      .sort('-createdAt');
+
+    res.status(200).json({ success: true, count: following.length, data: { following } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   onboardVendor,
   getVendorProfile,
@@ -454,5 +500,6 @@ module.exports = {
   followVendor,
   unfollowVendor,
   getFollowers,
+  getFollowing,
   checkFollowStatus,
 };

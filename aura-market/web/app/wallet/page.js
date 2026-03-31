@@ -6,7 +6,8 @@ import {
   History, Plus, TrendingUp, Loader2, X, CheckCircle2,
   AlertCircle, ArrowDownRight, CreditCard, Building2
 } from 'lucide-react';
-import RoleSidebar from '@/components/layout/RoleSidebar';
+import { useAuthStore } from '@/hooks/useAuth';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,7 @@ const TX_ICONS = {
 };
 
 export default function VendorWalletPage() {
+  const { user } = useAuthStore();
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
@@ -82,18 +84,29 @@ export default function VendorWalletPage() {
     }
   };
 
+  const [withdrawalMethod, setWithdrawalMethod] = useState(''); // 'mtn' | 'orange' | 'bank'
+  const [accountDetails, setAccountDetails] = useState({ account_number: '', holder_name: '', bank_name: '' });
+
   const handleWithdraw = async () => {
     if (!amount || Number(amount) <= 0) return showToast('Enter a valid amount.', 'error');
     if (Number(amount) > balance) return showToast('Insufficient balance.', 'error');
+    if (!withdrawalMethod) return showToast('Select a withdrawal method.', 'error');
+    
     setSubmitting(true);
     try {
-      const res = await api.post('/wallet/withdraw', { amount: Number(amount) });
+      const res = await api.post('/wallet/withdraw', { 
+        amount: Number(amount),
+        method: withdrawalMethod,
+        details: accountDetails
+      });
       if (res.data.success) {
         setBalance(res.data.data.remaining_balance);
         setTransactions(prev => [res.data.data.transaction[0] || res.data.data.transaction, ...prev]);
         showToast('Withdrawal request submitted! Awaiting admin approval.');
         setModal(null);
         setAmount('');
+        setWithdrawalMethod('');
+        setAccountDetails({ account_number: '', holder_name: '', bank_name: '' });
       }
     } catch (err) {
       showToast(err?.response?.data?.message || 'Withdrawal failed.', 'error');
@@ -106,11 +119,7 @@ export default function VendorWalletPage() {
   const totalOut = transactions.filter(t => ['withdrawal', 'payment'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
-      <div className="absolute top-[-15%] right-[-5%] w-[600px] h-[600px] bg-[var(--accent)]/8 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-[-15%] left-[5%] w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-[150px] pointer-events-none" />
-
-      <RoleSidebar role="vendor" />
+    <DashboardLayout role={user?.role || 'customer'}>
 
       {/* Toast */}
       {toast && (
@@ -125,66 +134,131 @@ export default function VendorWalletPage() {
       {/* Modal */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md glass-panel bg-[var(--bg-primary)]/95 border border-[var(--glass-border)] rounded-[2rem] p-8 shadow-2xl relative">
-            <button onClick={() => { setModal(null); setAmount(''); }} className="absolute top-5 right-5 p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-[var(--text-secondary)]">
+          <div className="w-full max-w-lg glass-panel bg-[var(--bg-primary)]/95 border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar">
+            <button onClick={() => { setModal(null); setAmount(''); setWithdrawalMethod(''); }} className="absolute top-5 right-5 p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-[var(--text-secondary)]">
               <X className="w-5 h-5" />
             </button>
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${modal === 'deposit' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
               {modal === 'deposit' ? <ArrowDownLeft className="w-7 h-7" /> : <ArrowUpRight className="w-7 h-7" />}
             </div>
             <h2 className="text-2xl font-black text-[var(--text-primary)] mb-1">{modal === 'deposit' ? 'Add Funds' : 'Withdraw Funds'}</h2>
-            <p className="text-sm text-[var(--text-secondary)] font-bold mb-6">
+            <p className="text-sm text-[var(--text-secondary)] font-bold mb-6 opacity-70">
               {modal === 'deposit' 
                 ? 'Funds are instantly added to your wallet (simulated).' 
                 : 'Withdrawal requests require admin approval (1-2 business days).'}
             </p>
 
-            <div className="mb-6">
-              <label className="text-xs font-black text-[var(--text-secondary)] tracking-widest uppercase mb-2 block">Amount (XAF)</label>
-              <input
-                type="number"
-                min="1"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                placeholder="e.g. 50000"
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold text-2xl"
-                onKeyDown={e => e.key === 'Enter' && (modal === 'deposit' ? handleDeposit() : handleWithdraw())}
-              />
+            <div className="space-y-6">
+              <div>
+                <label className="text-xs font-black text-[var(--text-secondary)] tracking-widest uppercase mb-2 block opacity-50">Amount (XAF)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-black text-3xl"
+                  />
+                  <div className="absolute right-6 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--text-secondary)]">XAF</div>
+                </div>
+                {modal === 'withdraw' && (
+                  <p className="mt-2 text-xs text-[var(--text-secondary)] font-bold opacity-70 flex justify-between">
+                    <span>Available: {balance.toLocaleString()} XAF</span>
+                    {amount && <span className="text-[var(--accent)]">Fee: {(Number(amount) * 0.01).toLocaleString()} XAF</span>}
+                  </p>
+                )}
+              </div>
+
               {modal === 'withdraw' && (
-                <p className="mt-2 text-xs text-[var(--text-secondary)] font-bold opacity-70">
-                  Available: {balance.toLocaleString()} XAF
-                </p>
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <label className="text-xs font-black text-[var(--text-secondary)] tracking-widest uppercase block opacity-50">Transfer Via</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'mtn', label: 'MTN MoMo', logo: 'size-6 rounded-lg bg-yellow-400' },
+                      { id: 'orange', label: 'Orange Money', logo: 'size-6 rounded-lg bg-orange-500' },
+                      { id: 'bank', label: 'Bank Transfer', logo: 'size-6 rounded-lg bg-blue-600' }
+                    ].map(m => (
+                      <button 
+                        key={m.id}
+                        onClick={() => setWithdrawalMethod(m.id)}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 group ${withdrawalMethod === m.id ? 'bg-[var(--accent)]/10 border-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40'}`}
+                      >
+                         <div className={`${m.logo} flex items-center justify-center overflow-hidden`}>
+                            {m.id === 'bank' && <Building2 className="w-4 h-4 text-white" />}
+                            {m.id === 'mtn' && <span className="text-[8px] font-black text-black">MTN</span>}
+                            {m.id === 'orange' && <span className="text-[8px] font-black text-white">OM</span>}
+                         </div>
+                         <span className={`text-[9px] font-black uppercase tracking-tighter ${withdrawalMethod === m.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>{m.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {withdrawalMethod && (
+                    <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-2">
+                       <div>
+                          <input 
+                            type="text" 
+                            placeholder={withdrawalMethod === 'bank' ? 'Account Number / IBAN' : 'Phone Number (6xx xxx xxx)'}
+                            value={accountDetails.account_number}
+                            onChange={e => setAccountDetails({...accountDetails, account_number: e.target.value})}
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                          />
+                       </div>
+                       <div>
+                          <input 
+                            type="text" 
+                            placeholder="Account Holder Name"
+                            value={accountDetails.holder_name}
+                            onChange={e => setAccountDetails({...accountDetails, holder_name: e.target.value})}
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                          />
+                       </div>
+                       {withdrawalMethod === 'bank' && (
+                          <input 
+                            type="text" 
+                            placeholder="Bank Name (UBA, Afribank...)"
+                            value={accountDetails.bank_name}
+                            onChange={e => setAccountDetails({...accountDetails, bank_name: e.target.value})}
+                            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                          />
+                       )}
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
 
-            {/* Quick amounts */}
-            <div className="flex gap-2 mb-6">
-              {[5000, 10000, 25000, 50000].map(qa => (
-                <button key={qa} onClick={() => setAmount(String(qa))} className="flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest border border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-secondary)] hover:text-[var(--accent)]">
-                  {(qa / 1000).toFixed(0)}k
-                </button>
-              ))}
-            </div>
+              {modal === 'deposit' && (
+                <div className="flex gap-2 mb-2">
+                  {[5000, 10000, 25000, 50000].map(qa => (
+                    <button key={qa} onClick={() => setAmount(String(qa))} className="flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest border border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-secondary)] hover:text-[var(--accent)]">
+                      {(qa / 1000).toFixed(0)}K
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            <button
-              onClick={modal === 'deposit' ? handleDeposit : handleWithdraw}
-              disabled={submitting || !amount}
-              className={`w-full h-14 flex items-center justify-center gap-3 font-black uppercase tracking-[0.15em] text-[11px] rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg ${
-                modal === 'deposit' 
-                  ? 'bg-emerald-500 text-white shadow-emerald-500/30 hover:bg-emerald-600' 
-                  : 'bg-red-500 text-white shadow-red-500/30 hover:bg-red-600'
-              }`}
-            >
-              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-              {submitting ? 'Processing...' : modal === 'deposit' ? 'Confirm Deposit' : 'Request Withdrawal'}
-            </button>
+              <button
+                onClick={modal === 'deposit' ? handleDeposit : handleWithdraw}
+                disabled={submitting || !amount || (modal === 'withdraw' && (!withdrawalMethod || !accountDetails.account_number || !accountDetails.holder_name))}
+                className={`w-full h-16 flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-[11px] rounded-2xl transition-all active:scale-95 disabled:opacity-30 shadow-2xl ${
+                  modal === 'deposit' 
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/30 hover:shadow-emerald-500/50' 
+                    : 'bg-[var(--accent)] text-white shadow-[var(--accent)]/30 hover:shadow-[var(--accent)]/50'
+                }`}
+              >
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                {submitting ? 'Processing' : modal === 'deposit' ? 'Secure Deposit' : 'Confirm Withdrawal'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
+
+      <div className="flex-1 flex flex-col min-h-0 relative z-10 w-full">
         {/* Header */}
-        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)]/50">
+        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--nav-border)] relative z-10 bg-[var(--nav-bg)] text-[var(--nav-text)]">
           <div className="flex items-center gap-3">
             <Wallet className="w-6 h-6 text-[var(--accent)]" />
             <div>
@@ -326,8 +400,8 @@ export default function VendorWalletPage() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

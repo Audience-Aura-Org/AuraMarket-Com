@@ -12,33 +12,43 @@ export default function StoresDirectoryPage() {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [mounted, setMounted] = useState(false);
+
+  const fetchStores = async (pageNum = 1) => {
+    setLoading(true);
+    try {
+      const data = await vendorService.getPublicStores(pageNum);
+      if (data?.success) {
+        setStores(data.data.stores || []);
+        setTotalPages(data.pagination?.pages || 1);
+      }
+    } catch (err) {
+      console.error("Error fetching stores:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
-    const fetchStores = async () => {
-      try {
-        const data = await vendorService.getPublicStores();
-        if (data?.success) {
-          setStores(data.data.stores || []);
-        }
-      } catch (err) {
-        console.error("Error fetching stores:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStores();
-  }, []);
+    fetchStores(page);
+  }, [page]);
 
   const filteredStores = stores.filter(s => 
     s.store_name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handlePageChange = (p) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 relative overflow-x-hidden pb-40 transition-colors duration-500">
+    <div className="min_h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 relative overflow-x-hidden pb-40 transition-colors duration-500">
       {/* Background Ambience */}
       <div className="fixed top-[-10%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent)]/10 rounded-full blur-[140px] pointer-events-none"></div>
       <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-[var(--accent-light)]/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -63,7 +73,7 @@ export default function StoresDirectoryPage() {
               <input 
                 type="text" 
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search premium nodes..." 
                 className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-all outline-none shadow-sm"
               />
@@ -87,7 +97,8 @@ export default function StoresDirectoryPage() {
              <p className="text-[var(--text-secondary)] font-medium mt-2">Adjust your frequency scan criteria.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {filteredStores.map((s) => (
               <Link 
                 key={s._id} 
@@ -146,7 +157,43 @@ export default function StoresDirectoryPage() {
                 </div>
               </Link>
             ))}
-          </div>
+            </div>
+
+            {/* Pagination Controls */}
+            {(totalPages > 1 || filteredStores.length === 20 || page > 1) && (
+              <div className="flex items-center justify-center gap-4 mt-20">
+                 <button 
+                    disabled={page === 1}
+                    onClick={() => handlePageChange(page - 1)}
+                    className="px-8 py-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                 >
+                    Previous
+                 </button>
+                 <div className="flex items-center gap-2">
+                    {Array.from({ length: Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
+                       const maxPages = Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0));
+                       if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
+                       return (
+                          <button 
+                             key={p}
+                             onClick={() => handlePageChange(p)}
+                             className={`size-12 rounded-2xl flex items-center justify-center text-[10px] font-black transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
+                          >
+                             {p}
+                          </button>
+                       );
+                    })}
+                 </div>
+                 <button 
+                    disabled={filteredStores.length < 20}
+                    onClick={() => handlePageChange(page + 1)}
+                    className="px-8 py-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                 >
+                    Next
+                 </button>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

@@ -1,125 +1,63 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import api from '@/services/api';
 import { ArrowRight, Plus, Minus, Trash2, Package, ShoppingBag } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
-
-// ── Global in-memory cache shared with CartPreview ────────────────────────────
-let _cartCache = null;
-
-function parseItems(cartItems) {
-  return (cartItems || []).map(i => ({
-    id: i._id || (i.product?._id || i.product),
-    productId: i.product?._id || i.product,
-    name: i.product?.name || 'Premium Asset',
-    price: i.product?.price || 0,
-    quantity: i.quantity || 1,
-    image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
-  }));
-}
+import cartStore from '@/services/cartStore';
 
 export default function CartSidebar() {
   const { user } = useAuthStore();
   const pathname = usePathname();
-  const [items, setItems] = useState([]);
-
-  // Initialize global pending tracker if it doesn't exist
-  if (typeof window !== 'undefined' && typeof window.__AURA_PENDING_CART === 'undefined') {
-    window.__AURA_PENDING_CART = 0;
-  }
-
-  // Helper to safely modify global pending count
-  const setPending = (delta) => {
-    if (typeof window !== 'undefined') {
-      window.__AURA_PENDING_CART = Math.max(0, window.__AURA_PENDING_CART + delta);
-    }
-  };
+  const [items, setItems] = useState(cartStore.getItems());
 
   // Pages where the sidebar should never appear
   const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat'];
   const shouldHide = hidden.some(r => pathname?.startsWith(r));
 
-  const fetchCart = async (force = false) => {
-    // If we have ANY active local changes anywhere in the app, don't fetch from server to avoid ghosting
-    if (typeof window !== 'undefined' && window.__AURA_PENDING_CART > 0) return;
-
-    if (!force && _cartCache) {
-      setItems(parseItems(_cartCache));
-      return;
-    }
-    try {
-      const res = await api.get('/cart');
-      if (res.data?.success && (!window.__AURA_PENDING_CART)) {
-        _cartCache = res.data.data.cart?.items || [];
-        setItems(parseItems(_cartCache));
-      }
-    } catch { /* unauthenticated or error */ }
-  };
-
   useEffect(() => {
-    if (user?._id && !shouldHide) fetchCart();
-    
-    const onUpdate = (e) => {
-      // Very Important: Only anchor to server data if we aren't mid-flight with ANY action in the app
-      if (e.detail?.cart && (!window.__AURA_PENDING_CART)) {
-        _cartCache = e.detail.cart.items || [];
-        setItems(parseItems(_cartCache));
-      } else if (!e.detail?.cart) {
-        fetchCart(true); 
-      }
-    };
-    
-    window.addEventListener('cart-updated', onUpdate);
-    return () => window.removeEventListener('cart-updated', onUpdate);
+    // Subscribe to store updates
+    const unsub = cartStore.subscribe(({ items: newItems }) => {
+      setItems(newItems);
+    });
+
+    // Fetch fresh data on mount if user is logged in
+    if (user?._id && !shouldHide) {
+      cartStore.refresh();
+    }
+
+    return unsub;
   }, [user?._id, shouldHide]);
 
   const updateQty = async (itemId, delta) => {
-    setPending(1);
-    // Local optimistic update
-    setItems(prev => prev.map(it =>
-      it.id === itemId ? { ...it, quantity: Math.max(1, it.quantity + delta) } : it
-    ));
-    
+    cartStore.startMutation();
+    cartStore.optimisticUpdateQty(itemId, delta);
     try {
       const res = await api.patch('/cart/item', { item_id: itemId, quantity_delta: delta });
       if (res.data?.success) {
-        const cart = res.data.data.cart;
-        _cartCache = cart.items || [];
-        
-        // Finalize pending count before dispatch
-        setPending(-1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart } }));
-        }
+        cartStore.setCart(res.data.data.cart);
       }
-    } catch { 
-      setPending(-1);
-      fetchCart(true); 
+    } catch {
+      cartStore.refresh();
+    } finally {
+      cartStore.endMutation();
     }
   };
 
   const removeItem = async (itemId) => {
-    setPending(1);
-    // Local optimistic update
-    setItems(prev => prev.filter(i => i.id !== itemId));
-    
+    cartStore.startMutation();
+    const prev = cartStore.optimisticRemove(itemId);
     try {
       const res = await api.delete('/cart/item', { data: { item_id: itemId } });
       if (res.data?.success) {
-        const cart = res.data.data.cart;
-        _cartCache = cart.items || [];
-
-        setPending(-1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart } }));
-        }
+        cartStore.setCart(res.data.data.cart);
       }
-    } catch { 
-      setPending(-1);
-      fetchCart(true); 
+    } catch {
+      cartStore.rollback(prev);
+    } finally {
+      cartStore.endMutation();
     }
   };
 

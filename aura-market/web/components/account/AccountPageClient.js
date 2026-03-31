@@ -5,13 +5,14 @@ import {
   ArrowLeft, User, Bell, Shield, Lock, Power, ChevronRight,
   Store, ShieldAlert, Palette, Database, BarChart3,
   Mail, MapPin, Camera, ExternalLink, RefreshCw,
-  Truck, LayoutGrid, ShieldCheck, ShoppingBag,
-  Users, Heart
+  Truck, LayoutGrid, ShoppingBag,
+  Users, Heart, Phone, Moon, Sun, ShieldCheck
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useTheme } from '@/context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
@@ -35,6 +36,7 @@ export default function AccountPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, logout, updateUser } = useAuthStore();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('general');
   const canUseBanner = ['vendor', 'logistics'].includes(user?.role);
 
@@ -52,12 +54,29 @@ export default function AccountPageClient() {
   const [storeData, setStoreData] = useState({
     store_name: '',
     description: '',
-    logo: '',
-    banner: ''
+    logo: user?.branding?.logo || '',
+    banner: user?.branding?.banner || '',
+    pickup_address: { city: '', quartier: '', address_description: '' }
   });
 
-  const [userData, setUserData] = useState({ name: '', phone: '' });
-  const [kycData, setKycData] = useState({ full_name: '', id_type: 'national_id', id_number: '', file_url: '' });
+  const [userData, setUserData] = useState({ 
+    name: '', 
+    phone: '',
+    onboarding_location: { city: '', quartier: '', address_description: '' }
+  });
+  
+  const [zones, setZones] = useState([]);
+  
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const res = await api.get('/logistics/zones');
+        if (res.data.success) setZones(res.data.data.zones || []);
+      } catch (e) {}
+    };
+    fetchZones();
+  }, []);
+  const [kycData, setKycData] = useState({ full_name: '', id_type: 'national_id', id_number: '', file_url_front: '', file_url_back: '' });
   const [kycStatus, setKycStatus] = useState(null);
   const [kycLoading, setKycLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -70,6 +89,7 @@ export default function AccountPageClient() {
 
   const [audience, setAudience] = useState([]);
   const [audienceLoading, setAudienceLoading] = useState(false);
+  const [govUsers, setGovUsers] = useState([]);
 
   const fetchOrders = useCallback(async () => {
      if (!user) return;
@@ -124,9 +144,21 @@ export default function AccountPageClient() {
       logo: existing.logo || user.avatar || '',
       banner: existing.banner || ''
     });
+    if (user.role === 'vendor') {
+      setStoreData(prev => ({
+        ...prev,
+        logo: existing.logo || user.avatar || '',
+        banner: existing.banner || ''
+      }));
+    }
     setUserData({
       name: user.name || '',
-      phone: user.phone || ''
+      phone: user.phone || '',
+      onboarding_location: {
+        city: user.onboarding_location?.city || '',
+        quartier: user.onboarding_location?.quartier || '',
+        address_description: user.onboarding_location?.address_description || ''
+      }
     });
     if (user.kyc) {
       setKycStatus(user.kyc.status);
@@ -148,6 +180,10 @@ export default function AccountPageClient() {
       setBrandingStatus('Profile update failed.');
     } finally {
       setProfileSaving(false);
+      if (user.role === 'vendor' && userData.name) {
+         setStoreData(s => ({ ...s, store_name: userData.name }));
+         // Optionally trigger auto-sync with vendor record here
+      }
       setTimeout(() => setBrandingStatus(''), 2500);
     }
   };
@@ -161,7 +197,12 @@ export default function AccountPageClient() {
           store_name: v.store_name || '',
           description: v.description || '',
           logo: v.store?.logo || '',
-          banner: v.store?.banner || ''
+          banner: v.store?.banner || '',
+          pickup_address: {
+             city: v.pickup_address?.city || '',
+             quartier: v.pickup_address?.quartier || '',
+             address_description: v.pickup_address?.address_description || ''
+          }
         });
       }
     } catch (err) {
@@ -179,12 +220,10 @@ export default function AccountPageClient() {
     try {
       await api.patch('/vendors/profile', {
         store_name: storeData.store_name,
-        description: storeData.description
+        description: storeData.description,
+        pickup_address: storeData.pickup_address
       });
-      if (storeData.logo || storeData.banner) {
-        await api.patch('/vendors/store', { logo: storeData.logo, banner: storeData.banner });
-      }
-      setSaveStatus('Updates committed successfully.');
+      setSaveStatus('Store profile synchronized.');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (err) {
       console.error("Update failed", err);
@@ -226,13 +265,22 @@ export default function AccountPageClient() {
   const handleBrandingFileUpload = async (field, file) => {
     if (!file) return;
     setBrandingUploading(field);
-    setBrandingStatus(`Uploading ${field}...`);
+    setBrandingStatus(`Uploading ${field.replace('_', ' ')}...`);
     try {
-      const res = await uploadService.uploadSingle(file);
+      // 📂 PASS TYPE: Ensures folder organization on the hosting
+      let uploadType = 'general';
+      if (field === 'logo') uploadType = 'avatars';
+      if (field === 'banner') uploadType = 'banners';
+      if (field.startsWith('kyc')) uploadType = 'kyc';
+
+      const res = await uploadService.uploadSingle(file, uploadType);
       if (res?.success && res?.data?.url) {
-        if (field === 'kyc') {
-          setKycData((p) => ({ ...p, file_url: res.data.url }));
-          setBrandingStatus(`KYC document uploaded. Submit to apply.`);
+        if (field === 'kyc_front') {
+          setKycData((p) => ({ ...p, file_url_front: res.data.url }));
+          setBrandingStatus(`Front of ID uploaded.`);
+        } else if (field === 'kyc_back') {
+          setKycData((p) => ({ ...p, file_url_back: res.data.url }));
+          setBrandingStatus(`Back of ID uploaded.`);
         } else {
           setProfileBranding((p) => ({ ...p, [field]: res.data.url }));
           setBrandingStatus(`${field} uploaded. Save to apply.`);
@@ -525,8 +573,43 @@ export default function AccountPageClient() {
                         icon={User} 
                         placeholder="Human Name" 
                       />
+                      <InputModule 
+                        label="Logistics Signal (Phone)" 
+                        value={userData.phone} 
+                        onChange={(v) => setUserData({ ...userData, phone: v })} 
+                        icon={Phone} 
+                        placeholder="+237 ..." 
+                      />
                       <InputRow label="Auth Node (Email)" value={user?.email} disable />
                       <InputRow label="Platform Role" value={user?.role?.toUpperCase()} disable />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                         <SelectModule 
+                            label="Operational Sector (City)"
+                            value={userData.onboarding_location.city}
+                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, city: v, quartier: ''}})}
+                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select City Node"
+                         />
+                         <SelectModule 
+                            label="Local Quartier (Zone)"
+                            value={userData.onboarding_location.quartier}
+                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, quartier: v}})}
+                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === userData.onboarding_location.city).map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select Quartier Signal"
+                            disable={!userData.onboarding_location.city}
+                         />
+                      </div>
+                      <InputModule 
+                         label="Address Description" 
+                         value={userData.onboarding_location.address_description} 
+                         onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })} 
+                         icon={MapPin} 
+                         placeholder="Additional routing metadata (Door #, Landmark)..." 
+                         area
+                      />
                       
                       <div className="pt-4 flex justify-end">
                         <button
@@ -542,16 +625,21 @@ export default function AccountPageClient() {
 
                   <SectionBox title="Interface Preferences">
                     <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-6">
-                        <div className="size-12 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center">
-                          <Palette className="size-5 text-[var(--accent)]" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-[11px] font-black tracking-widest uppercase block">Dynamic Shadows</span>
-                          <p className="text-[10px] text-[var(--text-secondary)] font-bold opacity-60">Enable depth effects across all panels</p>
-                        </div>
-                      </div>
-                      <Toggle active />
+                       <div className="flex items-center gap-4">
+                         <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
+                           {theme === 'dark' ? <Moon className="size-5" /> : <Sun className="size-5" />}
+                         </div>
+                         <div>
+                           <p className="text-[11px] font-black uppercase tracking-tight">System Appearance</p>
+                           <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">Toggle between Dark and Light protocol modes.</p>
+                         </div>
+                       </div>
+                       <button 
+                         onClick={toggleTheme}
+                         className={`w-14 h-8 rounded-full relative transition-all duration-300 ${theme === 'dark' ? 'bg-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.5)]' : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]'}`}
+                       >
+                         <div className={`absolute top-1 size-6 rounded-full bg-white shadow-xl transition-all duration-300 ${theme === 'dark' ? 'left-7' : 'left-1'}`} />
+                       </button>
                     </div>
                   </SectionBox>
                 </div>
@@ -630,7 +718,7 @@ export default function AccountPageClient() {
                 <div className="space-y-12">
                   <header className="space-y-4 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-4">
-                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Command Center</h2>
+                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)] uppercase">Command <span className="text-[var(--accent)]">Center</span></h2>
                       <p className="text-[var(--text-secondary)] font-medium max-w-lg">Customize your organization&apos;s digital storefront presence.</p>
                     </div>
                     {saveStatus && (
@@ -640,107 +728,87 @@ export default function AccountPageClient() {
                     )}
                   </header>
 
-                  <SectionBox title="Strategic Alignment">
-                    <div className="space-y-8 py-4">
-                      <InputModule label="Organization Name" value={storeData.store_name} onChange={(v) => setStoreData({ ...storeData, store_name: v })} icon={Store} placeholder="CyberDyne Systems Inc." />
-                      <InputModule label="Mission Manifesto" value={storeData.description} onChange={(v) => setStoreData({ ...storeData, description: v })} icon={BarChart3} placeholder="Our primary directive is to revolutionize..." area />
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Store Logo Upload</span>
-                            <label className="h-10 px-5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase cursor-pointer hover:border-[var(--accent)]/30 transition-all flex items-center gap-2">
-                              <Camera className="size-4 text-[var(--accent)]" />
-                              Select File
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  setSaveStatus('Uploading logo...');
-                                  try {
-                                    const res = await uploadService.uploadSingle(file);
-                                    if (res?.success && res?.data?.url) {
-                                      setStoreData((s) => ({ ...s, logo: res.data.url }));
-                                      setSaveStatus('Logo uploaded.');
-                                    } else {
-                                      setSaveStatus('Logo upload failed.');
-                                    }
-                                  } catch (err) {
-                                    console.error(err);
-                                    setSaveStatus('Logo upload failed.');
-                                  } finally {
-                                    setTimeout(() => setSaveStatus(''), 2500);
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
-                          <div className="h-20 rounded-[24px] bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] overflow-hidden flex items-center justify-center">
-                            {storeData.logo ? (
-                              <img src={storeData.logo} alt="Store logo preview" className="h-full w-full object-cover" />
-                            ) : (
-                              <span className="text-[10px] font-black tracking-widest uppercase opacity-40">No logo</span>
-                            )}
-                          </div>
+                  <SectionBox title="Storefront Presence">
+                    <div className="space-y-8">
+                      {/* Sync Notice */}
+                      <div className="p-8 rounded-[40px] bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center gap-8 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 size-32 bg-[var(--accent)]/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-[var(--accent)]/20 transition-all" />
+                        <div className="size-16 rounded-[24px] bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] relative z-10">
+                          <Palette className="size-8" />
                         </div>
-
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Store Banner Upload</span>
-                            <label className="h-10 px-5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase cursor-pointer hover:border-[var(--accent)]/30 transition-all flex items-center gap-2">
-                              <ExternalLink className="size-4 text-[var(--accent)]" />
-                              Select File
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  setSaveStatus('Uploading banner...');
-                                  try {
-                                    const res = await uploadService.uploadSingle(file);
-                                    if (res?.success && res?.data?.url) {
-                                      setStoreData((s) => ({ ...s, banner: res.data.url }));
-                                      setSaveStatus('Banner uploaded.');
-                                    } else {
-                                      setSaveStatus('Banner upload failed.');
-                                    }
-                                  } catch (err) {
-                                    console.error(err);
-                                    setSaveStatus('Banner upload failed.');
-                                  } finally {
-                                    setTimeout(() => setSaveStatus(''), 2500);
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
-                          <div className="h-20 rounded-[24px] bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] overflow-hidden flex items-center justify-center">
-                            {storeData.banner ? (
-                              <img src={storeData.banner} alt="Store banner preview" className="h-full w-full object-cover" />
-                            ) : (
-                              <span className="text-[10px] font-black tracking-widest uppercase opacity-40">No banner</span>
-                            )}
-                          </div>
+                        <div className="flex-1 relative z-10">
+                          <p className="text-sm font-black uppercase tracking-tight">Unified Platform Branding</p>
+                          <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 leading-relaxed mt-1 max-w-md">
+                            Your storefront visuals (Logo & Banner) are synchronized with your <span className="text-[var(--accent)]">General Profile</span> settings to maintain cross-platform brand integrity.
+                          </p>
                         </div>
+                        <button 
+                          onClick={() => setActiveTab('general')}
+                          className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-black uppercase tracking-widest hover:border-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all relative z-10"
+                        >
+                          Modify Assets
+                        </button>
                       </div>
 
-                      <InputModule label="Store Logo URL" value={storeData.logo} onChange={(v) => setStoreData({ ...storeData, logo: v })} icon={Camera} placeholder="https://.../logo.png" />
-                      <InputModule label="Store Banner URL" value={storeData.banner} onChange={(v) => setStoreData({ ...storeData, banner: v })} icon={ExternalLink} placeholder="https://.../banner.jpg" />
+                      <div className="space-y-8">
+                        <InputModule 
+                          label="Store Alias" 
+                          value={storeData.store_name} 
+                          onChange={(v) => setStoreData({ ...storeData, store_name: v })} 
+                          icon={Store} 
+                          placeholder="Organization Name" 
+                        />
+                        <InputModule 
+                          label="Store Transmission (Bio)" 
+                          value={storeData.description} 
+                          onChange={(v) => setStoreData({ ...storeData, description: v })} 
+                          icon={Database} 
+                          placeholder="Describe your node's purpose and mission..." 
+                          area 
+                        />
+                      </div>
+                    </div>
+                  </SectionBox>
+
+                  <SectionBox title="Logistics Hub (Pickup)">
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <SelectModule 
+                            label="Fulfillment Hub (City)" 
+                            value={storeData.pickup_address.city} 
+                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})} 
+                            options={zones.filter(z => z.type === 'city').map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select Node"
+                          />
+                          <SelectModule 
+                             label="Pickup Region (Quartier)"
+                             value={storeData.pickup_address.quartier}
+                             onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
+                             options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === storeData.pickup_address.city).map(z => ({ label: z.name, value: z.name }))}
+                             icon={MapPin}
+                             placeholder="Select Sub-Node"
+                             disable={!storeData.pickup_address.city}
+                          />
+                      </div>
+                      <InputModule 
+                        label="Handshake Coordinates (Pickup Address)" 
+                        value={storeData.pickup_address.address_description} 
+                        onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })} 
+                        icon={MapPin} 
+                        placeholder="Specific building info for logistics pickup..." 
+                        area 
+                      />
                     </div>
                   </SectionBox>
 
                   <button
                     onClick={handleUpdateStore}
                     disabled={loading}
-                    className="w-full py-8 md:py-10 bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.4em] rounded-[32px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[var(--accent)]/30 uppercase flex items-center justify-center gap-4 disabled:opacity-50"
+                    className="w-full py-10 bg-[var(--accent)] text-white font-black text-[11px] tracking-[0.5em] rounded-[40px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[var(--accent)]/40 uppercase flex items-center justify-center gap-4 disabled:opacity-50"
                   >
                     {loading ? <RefreshCw className="size-5 animate-spin" /> : <RefreshCw className="size-5" />}
-                    {loading ? 'Committing Synchronisation...' : 'Finalize Store Profile'}
+                    {loading ? 'Committing Hub Sync...' : 'Finalize Store Profile'}
                   </button>
                 </div>
               )}
@@ -837,43 +905,66 @@ export default function AccountPageClient() {
                            placeholder="Ex: 2024-X99" 
                          />
   
-                         <div className="space-y-4">
-                            <div className="flex items-center justify-between px-2">
-                               <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Upload Scan (Front)</span>
-                               {brandingUploading === 'kyc' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
-                            </div>
-                            <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
-                               {kycData.file_url ? (
-                                 <>
-                                   <img src={kycData.file_url} className="absolute inset-0 size-full object-contain p-4" alt="ID scan" />
-                                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                      <p className="text-white text-[10px] font-black uppercase tracking-widest">Replace Document</p>
-                                   </div>
-                                 </>
-                               ) : (
-                                 <>
-                                   <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
-                                   <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60">PDF, PNG or JPG max 5MB</p>
-                                 </>
-                               )}
-                               <input 
-                                 type="file" 
-                                 className="absolute inset-0 opacity-0 cursor-pointer" 
-                                 onChange={(e) => handleBrandingFileUpload('kyc', e.target.files?.[0])} 
-                               />
-                            </div>
-                         </div>
-  
-                         <button
-                           onClick={handleKYCSubmit}
-                           disabled={kycLoading || kycStatus === 'pending'}
-                           className={`w-full py-6 rounded-[32px] font-black text-[12px] tracking-[0.3em] uppercase transition-all shadow-2xl ${
-                             kycStatus === 'pending' ? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' :
-                             'bg-[var(--accent)] text-white shadow-[var(--accent)]/30 hover:scale-[1.02]'
-                           }`}
-                         >
-                           {kycLoading ? 'Encrypting Request...' : kycStatus === 'pending' ? 'Under Governance Review' : 'Initialize Identity Verification'}
-                         </button>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="space-y-4">
+                                <div className="flex items-center justify-between px-2">
+                                   <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">ID Front Scan</span>
+                                   {brandingUploading === 'kyc_front' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
+                                </div>
+                                <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
+                                   {kycData.file_url_front ? (
+                                     <>
+                                       <img src={kycData.file_url_front} className="absolute inset-0 size-full object-contain p-4" alt="ID front" />
+                                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <p className="text-white text-[10px] font-black uppercase tracking-widest">Replace Front</p>
+                                       </div>
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
+                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest">Front Page</p>
+                                     </>
+                                   )}
+                                   <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleBrandingFileUpload('kyc_front', e.target.files?.[0])} />
+                                </div>
+                             </div>
+
+                             <div className="space-y-4">
+                                <div className="flex items-center justify-between px-2">
+                                   <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">ID Back Scan</span>
+                                   {brandingUploading === 'kyc_back' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
+                                </div>
+                                <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
+                                   {kycData.file_url_back ? (
+                                     <>
+                                       <img src={kycData.file_url_back} className="absolute inset-0 size-full object-contain p-4" alt="ID back" />
+                                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <p className="text-white text-[10px] font-black uppercase tracking-widest">Replace Back</p>
+                                       </div>
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
+                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest">Back Page</p>
+                                     </>
+                                   )}
+                                   <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleBrandingFileUpload('kyc_back', e.target.files?.[0])} />
+                                </div>
+                             </div>
+                          </div>
+   
+                          <div className="flex justify-center pt-8">
+                             <button
+                               onClick={handleKYCSubmit}
+                               disabled={kycLoading || kycStatus === 'pending'}
+                               className={`min-w-[320px] px-10 py-5 rounded-full font-black text-[10px] tracking-[0.2em] uppercase transition-all shadow-xl ${
+                                 kycStatus === 'pending' ? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' :
+                                 'bg-[var(--accent)] text-white shadow-[var(--accent)]/30 hover:scale-105 active:scale-95'
+                               }`}
+                             >
+                               {kycLoading ? 'Commiting Node Data...' : kycStatus === 'pending' ? 'Governance Review In Progress' : 'Initialize Identity Verification'}
+                             </button>
+                          </div>
                        </div>
                      )}
                    </div>
@@ -983,16 +1074,73 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'governance' && user?.role === 'admin' && (
-                <div className="space-y-12">
-                  <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Protocol Governance</h2>
-                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Advanced administrative controls for platform stability and regulation.</p>
-                  </header>
-                  <SectionBox title="Administrative Override">
-                    <ActionButton icon={ShieldAlert} label="System Lockdown" desc="Temporarily suspend all non-essential platform services." />
-                    <ActionButton icon={User} label="Node Verification" desc="Manually review and approve pending vendor applications." />
-                  </SectionBox>
-                </div>
+                 <div className="space-y-12 pb-32">
+                   <header className="space-y-4">
+                     <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Protocol Governance</h2>
+                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Advanced administrative controls for platform stability and regulation.</p>
+                   </header>
+ 
+                    <SectionBox title="User Governance">
+                       <div className="space-y-6">
+                          <div className="relative group">
+                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)] opacity-40 group-focus-within:opacity-100 transition-opacity" />
+                             <input 
+                                type="text"
+                                placeholder="Search by Node ID or Email..."
+                                className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-6 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all shadow-inner text-[var(--text-primary)]"
+                                onChange={async (e) => {
+                                   const q = e.target.value;
+                                   if (q.length < 3) return;
+                                   try {
+                                      const res = await api.get(`/admin/users?search=${q}`);
+                                      if (res.data.success) setGovUsers(res.data.data.users || []);
+                                   } catch (_) {}
+                                }}
+                             />
+                          </div>
+
+                          <div className="space-y-4">
+                             {(govUsers || []).map(u => (
+                                <div key={u._id} className="p-6 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-between gap-6">
+                                   <div className="flex items-center gap-4">
+                                      <div className="size-12 rounded-2xl bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)]">
+                                         <img src={u.branding?.logo || u.avatar} alt="" className="size-full object-cover" />
+                                      </div>
+                                      <div>
+                                         <p className="text-[11px] font-black uppercase tracking-tight">{u.name}</p>
+                                         <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">{u.email} • {u.role}</p>
+                                      </div>
+                                   </div>
+                                   <div className="flex items-center gap-2">
+                                      <button 
+                                         onClick={async () => {
+                                            const nextStatus = u.verification_status === 'held' ? 'unverified' : 'held';
+                                            try { await api.patch(`/admin/users/${u._id}/status`, { status: nextStatus }); setBrandingStatus(`User ${u.name} ${nextStatus}.`); } catch (_) {}
+                                         }}
+                                         className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${u.verification_status === 'held' ? 'bg-amber-500 text-white' : 'bg-transparent border-[var(--glass-border)] hover:bg-amber-500/10 text-amber-500'}`}
+                                      >
+                                         {u.verification_status === 'held' ? 'Release Node' : 'Hold Node'}
+                                      </button>
+                                      <button 
+                                         onClick={async () => {
+                                            try { await api.patch(`/admin/users/${u._id}/status`, { status: 'unverified' }); setBrandingStatus(`Verification requested for ${u.name}`); } catch (_) {}
+                                         }}
+                                         className="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all"
+                                      >
+                                         Request Verify
+                                      </button>
+                                   </div>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                    </SectionBox>
+
+                   <SectionBox title="Administrative Override">
+                     <ActionButton icon={ShieldAlert} label="System Lockdown" desc="Temporarily suspend all non-essential platform services." />
+                     <ActionButton icon={User} label="Node Verification" desc="Manually review and approve pending vendor applications." />
+                   </SectionBox>
+                 </div>
               )}
 
               {activeTab === 'advanced' && user?.role === 'admin' && (
@@ -1087,7 +1235,28 @@ function ActionButton({ icon: Icon, label, desc }) {
           <p className="text-[10px] font-bold opacity-50 group-hover:opacity-100">{desc}</p>
         </div>
       </div>
-      <ChevronRight className="size-4 opacity-20 group-hover:opacity-100 transition-all" />
     </button>
+  );
+}
+
+function SelectModule({ label, value, onChange, options, icon: Icon, placeholder, disable = false }) {
+  return (
+    <div className="space-y-3 px-2">
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="size-4 text-[var(--accent)] opacity-40" />}
+        <label className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">{label}</label>
+      </div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disable}
+        className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-full px-8 py-5 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all shadow-inner text-[var(--text-primary)] appearance-none cursor-pointer disabled:opacity-50"
+      >
+        <option value="">{placeholder}</option>
+        {options.map(opt => (
+           <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
   );
 }

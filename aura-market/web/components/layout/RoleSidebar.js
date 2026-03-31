@@ -19,6 +19,7 @@ const VENDOR_NAV = [
 ];
 
 const ADMIN_NAV = [
+<<<<<<< HEAD
   { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
   { icon: 'person',         label: 'Users',            href: '/admin/users' },
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
@@ -35,6 +36,26 @@ const ADMIN_NAV = [
   { icon: 'category',       label: 'Categories',       href: '/admin/categories' },
   { icon: 'star',           label: 'Reviews',          href: '/admin/reviews' },
   { icon: 'web',            label: 'CMS / Hero',       href: '/admin/homepage' },
+=======
+  { icon: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
+  { icon: 'person', label: 'Users', href: '/admin/users' },
+  { icon: 'store', label: 'Vendors', href: '/admin/vendors' },
+  { icon: 'inventory', label: 'Products', href: '/admin/products' },
+  { icon: 'receipt_long', label: 'Orders', href: '/admin/orders' },
+  { icon: 'chat', label: 'Messages', href: '/messages' },
+  { icon: 'forum', label: 'System Comms', href: '/admin/messages' },
+  { icon: 'how_to_reg', label: 'Vendor KYC', href: '/admin/approvals' },
+  { icon: 'gavel', label: 'Disputes', href: '/admin/disputes' },
+  { icon: 'account_balance', label: 'Escrow', href: '/admin/escrow' },
+  { icon: 'local_shipping', label: 'Shipment Node', href: '/admin/logistics' },
+  { icon: 'payments', label: 'Logistics Earnings', href: '/admin/logistics/earnings' },
+  { icon: 'monitoring', label: 'Analytics', href: '/admin/analytics' },
+  { icon: 'category', label: 'Categories', href: '/admin/categories' },
+  { icon: 'star', label: 'Reviews', href: '/admin/reviews' },
+  { icon: 'mark_email_read', label: 'Email Logs', href: '/admin/notifications/email-logs' },
+  { icon: 'history', label: 'Audit Ledger', href: '/admin/audit' },
+  { icon: 'web', label: 'CMS / Hero', href: '/admin/homepage' },
+>>>>>>> aura-import-main
 ];
 
 const LOGISTICS_NAV = [
@@ -152,8 +173,19 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         {/* Nav */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
           {config.nav.map(item => {
+<<<<<<< HEAD
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
             const badge = getBadge(item);
+=======
+            const bestMatch = config.nav.reduce((best, current) => {
+              if (pathname === current.href || pathname?.startsWith(current.href + '/')) {
+                if (!best || current.href.length > best.href.length) return current;
+              }
+              return best;
+            }, null);
+            const isActive = bestMatch?.href === item.href;
+
+>>>>>>> aura-import-main
             return (
               <Link
                 key={item.href}

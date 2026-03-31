@@ -8,10 +8,15 @@ import TopNav from '@/components/layout/TopNav';
 import BottomNav from '@/components/layout/BottomNav';
 import Footer from '@/components/layout/Footer';
 
+import PWAInit from '@/components/PWAInit';
+import PWAInstallBanner from '@/components/layout/PWAInstallBanner';
+
 export default function Providers({ children }) {
   return (
     <ThemeProvider>
       <SocketProvider>
+        <PWAInit />
+        <PWAInstallBanner />
         <OnboardingWatcher />
         <TopNav />
         <div className="flex flex-row items-stretch w-full">

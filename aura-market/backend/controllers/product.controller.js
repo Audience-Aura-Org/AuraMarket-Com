@@ -226,8 +226,9 @@ const updateProduct = async (req, res, next) => {
     const oldStock = product.stock;
     const newStock = updateData.stock !== undefined ? Number(updateData.stock) : oldStock;
 
-    product = await Product.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true, runValidators: true });
+    product = await Product.findByIdAndUpdate(req.params.id, { $set: updateData }, { returnDocument: 'after', runValidators: true });
 
+    const vendor = req.vendor;
     const { notifyFollowers } = require('../utils/notifier');
     notifyFollowers(req.app, vendor._id, {
       title: 'Product Inventory Update',
@@ -301,7 +302,7 @@ const trackProductView = async (req, res, next) => {
     await RecentlyViewed.findOneAndUpdate(
       { user_id: req.user._id, product_id: req.params.id },
       { viewed_at: new Date() },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     const viewCount = await RecentlyViewed.countDocuments({ user_id: req.user._id });
@@ -362,7 +363,7 @@ const watchProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
-    await StockWatch.findOneAndUpdate({ user_id: req.user._id, product_id: req.params.id }, {}, { upsert: true, new: true });
+    await StockWatch.findOneAndUpdate({ user_id: req.user._id, product_id: req.params.id }, {}, { upsert: true, returnDocument: 'after' });
     res.status(200).json({ success: true, message: 'You will be notified when this product is restocked.' });
   } catch (error) {
     next(error);

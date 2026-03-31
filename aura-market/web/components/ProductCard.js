@@ -4,10 +4,11 @@ import { useState } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap } from 'lucide-react';
+import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap, Eye } from 'lucide-react';
 import { trackAction } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import cartStore from '@/services/cartStore';
 
 export default function ProductCard({ product }) {
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
@@ -42,9 +43,19 @@ export default function ProductCard({ product }) {
     }
 
     setAdding(true);
-    // Optimistic UI: show toast immediately
-    showToast("Added to stack!");
-    if (typeof window !== 'undefined') window.__AURA_PENDING_CART = (window.__AURA_PENDING_CART || 0) + 1;
+    
+    // OPTIMISTIC BROADCAST (Instant UI response)
+    cartStore.addItem(product, 1);
+
+    // Global feedback event (triggers beautiful background notification)
+    if (typeof window !== 'undefined') {
+       window.dispatchEvent(new CustomEvent('cart-item-added', { 
+         detail: { 
+           name: product.name, 
+           image: mainImage 
+         } 
+       }));
+    }
     
     try {
       const payload = { 
@@ -53,21 +64,11 @@ export default function ProductCard({ product }) {
       };
       
       const response = await api.post('/cart', payload);
-      
-      // Decrement BEFORE dispatching so listeners see count as 0
-      if (typeof window !== 'undefined') {
-        window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { 
-            detail: { cart: response.data.data.cart } 
-          }));
-        }
-      }
+      cartStore.setCart(response.data.data.cart);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to add to cart";
       showToast(errorMessage, "error");
-      // Still must decrement on error if we haven't already
-      if (typeof window !== 'undefined') window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
+      cartStore.refresh();
     } finally {
       setAdding(false);
     }
@@ -131,19 +132,19 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Content Area */}
-      <div className="p-4 flex flex-col flex-1 gap-3">
+      <div className="p-4 flex flex-col flex-1 gap-3 relative z-10">
         <div className="space-y-3">
-          <Link href={`/products/${productId}`} className="block">
-            <h3 className="!text-[10px] font-black text-[var(--text-primary)] truncate whitespace-nowrap group-hover:text-[var(--accent)] transition-colors tracking-tight">
+          <Link href={`/products/${productId}`} className="block relative z-20">
+            <h3 className="!text-[12px] sm:!text-[14px] font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
               {name}
             </h3>
           </Link>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
+            <span className="text-[12px] sm:text-[14px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
             <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)]">
                <span className="flex items-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-500" /> {product.purchase_count || 0}</span>
-               <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
+               <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
             </div>
           </div>
           
@@ -154,7 +155,7 @@ export default function ProductCard({ product }) {
             >
               <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)]">
                 <img 
-                  src={vendor_id?.store?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
+                  src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
                   className="size-full object-cover"
                   alt="Store"
                 />

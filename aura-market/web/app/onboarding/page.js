@@ -106,7 +106,7 @@ export default function OnboardingPage() {
                         description: vpRes.data.data.vendor.description || ''
                      });
                   }
-               } catch (e) { console.log("No partial vendor profile yet."); }
+               } catch (e) { /* silent catch */ }
             }
 
             // Auto-skip logic
@@ -449,44 +449,50 @@ export default function OnboardingPage() {
                  className="max-w-md mx-auto space-y-8"
                >
                   <div className="space-y-4">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4">Operational Sector (City)</label>
-                     <div className="relative">
-                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
-                        <select 
-                           value={location.city}
-                           onChange={e => setLocation(prev => ({ ...prev, city: e.target.value, quartier: '' }))}
-                           className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10"
-                        >
-                           <option value="">Select City Node</option>
-                           {zones.filter(z => z.type === 'region').map(z => (
-                              <option key={z._id} value={z.name}>{z.name}</option>
-                           ))}
-                        </select>
-                     </div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4">
+                        {isVendor ? 'Fulfillment Origin (City)' : 'Operational Sector (City)'}
+                      </label>
+                      <div className="relative">
+                         <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
+                         <select 
+                            value={location.city}
+                            onChange={e => setLocation(prev => ({ ...prev, city: e.target.value, quartier: '' }))}
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10"
+                         >
+                            <option value="">Select City Node</option>
+                            {zones.filter(z => z.type === 'region').map(z => (
+                               <option key={z._id} value={z.name}>{z.name}</option>
+                            ))}
+                         </select>
+                      </div>
 
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">Local Quartier (Zone)</label>
-                     <div className="relative">
-                        <Globe className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
-                        <select 
-                           value={location.quartier}
-                           onChange={e => setLocation(prev => ({ ...prev, quartier: e.target.value }))}
-                           disabled={!location.city}
-                           className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10 disabled:opacity-50"
-                        >
-                           <option value="">Select Quartier Signal</option>
-                           {zones.filter(z => z.type === 'quartier' && z.parent_id?.name === location.city).map(z => (
-                              <option key={z._id} value={z.name}>{z.name}</option>
-                           ))}
-                        </select>
-                     </div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">
+                        {isVendor ? 'Pickup Zone (Quartier)' : 'Local Quartier (Zone)'}
+                      </label>
+                      <div className="relative">
+                         <Globe className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--text-secondary)] opacity-40" />
+                         <select 
+                            value={location.quartier}
+                            onChange={e => setLocation(prev => ({ ...prev, quartier: e.target.value }))}
+                            disabled={!location.city}
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-5 text-sm font-bold appearance-none outline-none focus:ring-4 focus:ring-[var(--accent)]/10 disabled:opacity-50"
+                         >
+                            <option value="">Select Quartier Signal</option>
+                            {zones.filter(z => z.type === 'quartier' && z.parent_id?.name === location.city).map(z => (
+                               <option key={z._id} value={z.name}>{z.name}</option>
+                            ))}
+                         </select>
+                      </div>
 
-                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">Address Description (Optional)</label>
-                     <textarea 
-                        placeholder="Additional routing metadata (Door #, Landmark)..."
-                        value={location.address_description}
-                        onChange={e => setLocation(prev => ({ ...prev, address_description: e.target.value }))}
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 text-sm font-bold focus:ring-4 focus:ring-[var(--accent)]/10 outline-none h-32 resize-none"
-                     />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-4 block pt-2">
+                        {isVendor ? 'Fulfillment Handshake Info (Pickup Location)' : 'Address Description (Optional)'}
+                      </label>
+                      <textarea 
+                         placeholder={isVendor ? "Exact point for logistics to pick up your goods (e.g. Next to Total Station, Green Gate #4)..." : "Additional routing metadata (Door #, Landmark)..."}
+                         value={location.address_description}
+                         onChange={e => setLocation(prev => ({ ...prev, address_description: e.target.value }))}
+                         className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 text-sm font-bold focus:ring-4 focus:ring-[var(--accent)]/10 outline-none h-32 resize-none"
+                      />
                   </div>
                </motion.div>
             )}
@@ -548,31 +554,33 @@ export default function OnboardingPage() {
       </div>
 
       {/* Persistent Controls */}
-      <div className="fixed bottom-0 left-0 w-full p-8 md:p-12 z-50 pointer-events-none">
-         <div className="max-w-4xl mx-auto flex items-center justify-between pointer-events-auto">
+      {/* Persistent Controls - Elevated on mobile to clear bottom nav */}
+      <div className="fixed bottom-24 lg:bottom-0 left-0 w-full p-4 md:p-12 z-50 pointer-events-none transition-all">
+         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 pointer-events-auto">
             <button 
               onClick={prevStep}
-              className={`h-14 px-10 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] font-black text-[10px] tracking-widest uppercase flex items-center gap-3 transition-all hover:bg-[var(--bg-secondary)] ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''}`}
+              className={`h-12 md:h-14 px-4 md:px-10 rounded-xl md:rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] font-black text-[8px] md:text-[10px] tracking-widest uppercase flex items-center gap-2 md:gap-3 transition-all hover:bg-[var(--bg-secondary)] ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''}`}
             >
-               <ArrowLeft className="size-4" />
-               Revert
+               <ArrowLeft className="size-3 md:size-4" />
+               <span className="hidden sm:inline">Revert</span>
             </button>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4 ml-auto">
                {currentStep < 3 && (
                   <button 
                     onClick={skipOnboarding}
-                    className="h-14 px-8 rounded-2xl text-[var(--text-secondary)] opacity-40 hover:opacity-100 font-black text-[10px] tracking-widest uppercase transition-all flex items-center gap-2"
+                    className="h-12 md:h-14 px-4 md:px-8 rounded-xl md:rounded-2xl text-[var(--text-secondary)] opacity-60 hover:opacity-100 font-black text-[8px] md:text-[10px] tracking-widest uppercase transition-all flex items-center gap-1 md:gap-2"
                   >
-                    Skip <SkipForward className="size-4" />
+                    <span>Skip</span> <SkipForward className="size-3 md:size-4" />
                   </button>
                )}
                {currentStep < 3 && (
                   <button 
                     onClick={nextStep}
-                    className="h-14 px-12 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] tracking-widest uppercase shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+                    className="h-12 md:h-14 px-6 md:px-12 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white font-black text-[8px] md:text-[10px] tracking-widest uppercase shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2 md:gap-3"
                   >
-                    Calibrate & Proceed <ArrowRight className="size-4" />
+                    <span className="sm:hidden">Next</span>
+                    <span className="hidden sm:inline">Calibrate & Proceed</span> <ArrowRight className="size-3 md:size-4" />
                   </button>
                )}
             </div>

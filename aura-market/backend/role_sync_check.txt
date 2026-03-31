@@ -1,0 +1,2 @@
+﻿[dotenv@17.3.1] injecting env (20) from .env -- tip: ΓÜÖ∩╕Å  write to custom object with { processEnv: myObject }
+ROLE_CHECK: zeroxerxes8@gmail.com -> logistics

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X } from 'lucide-react';
-import RoleSidebar from '@/components/layout/RoleSidebar';
+import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X, Phone } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
@@ -15,7 +14,7 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState('all');
 
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: '', verification_status: '', password: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: '', verification_status: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -56,6 +55,7 @@ export default function AdminUsersPage() {
     setEditForm({
       name: user.name || '',
       email: user.email || '',
+      phone: user.phone || '',
       role: user.role || 'customer',
       verification_status: user.verification_status || 'unverified',
       password: ''
@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl shrink-0 z-10">
+      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">User <span className="text-[var(--accent)]">Directory</span></h2>
           <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)] opacity-30" />
@@ -151,6 +151,9 @@ export default function AdminUsersPage() {
                       <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 flex items-center gap-2 truncate">
                         <Mail className="size-3 shrink-0" /> {u.email}
                       </p>
+                      <p className="text-[10px] font-bold text-[var(--accent)] flex items-center gap-2 truncate">
+                        <Phone className="size-3 shrink-0" /> {u.phone || 'NO PHONE ATTACHED'}
+                      </p>
                     </div>
                   </div>
 
@@ -158,25 +161,25 @@ export default function AdminUsersPage() {
                      <div className="text-left sm:text-right">
                         <p className="text-[8px] lg:text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mb-1">Status</p>
                         <div className="flex items-center gap-2">
-                           <div className={`size-1.5 lg:size-2 rounded-full ${u.verification_status === 'verified' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : u.verification_status === 'rejected' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'}`} />
-                           <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">{u.verification_status || 'Pending'}</span>
+                           <div className={`size-1.5 lg:size-2 rounded-full ${u.verification_status === 'verified' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : u.verification_status === 'rejected' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : u.verification_status === 'held' ? 'bg-amber-600 shadow-[0_0_10px_#d97706]' : 'bg-amber-400 shadow-[0_0_10px_#fbbf24]'}`} />
+                           <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">{u.verification_status?.replace('_', ' ') || 'Pending'}</span>
                         </div>
                      </div>
 
                      <div className="flex items-center gap-2 lg:gap-3">
                         {u.verification_status === 'verified' ? (
                           <button 
-                            onClick={() => handleStatusUpdate(u._id, 'rejected')}
-                            className="size-10 lg:size-12 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm border border-rose-500/20"
-                            title="Block User"
+                            onClick={() => handleStatusUpdate(u._id, 'held')}
+                            className="size-10 lg:size-12 rounded-xl bg-amber-600/10 text-amber-600 flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm border border-amber-600/20"
+                            title="Hold Node"
                           >
-                            <Ban className="size-4 lg:size-5" />
+                            <ShieldAlert className="size-4 lg:size-5" />
                           </button>
                         ) : (
                           <button 
                             onClick={() => handleStatusUpdate(u._id, 'verified')}
                             className="size-10 lg:size-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm border border-emerald-500/20"
-                            title="Verify User"
+                            title="Verify Node"
                           >
                             <CheckCircle className="size-4 lg:size-5" />
                           </button>
@@ -225,6 +228,17 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Phone Number</label>
+                <input 
+                  type="text" 
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="+2376..."
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-sm focus:border-[var(--accent)] outline-none transition-colors"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Email Address</label>
                 <input 
                   type="email" 
@@ -261,6 +275,7 @@ export default function AdminUsersPage() {
                     <option value="pending">Pending</option>
                     <option value="verified">Verified</option>
                     <option value="rejected">Rejected</option>
+                    <option value="held">Held</option>
                   </select>
                 </div>
               </div>

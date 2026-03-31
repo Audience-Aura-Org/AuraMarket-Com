@@ -4,7 +4,8 @@ const { protect } = require('../middleware/auth.middleware');
 const { 
   getNotifications, 
   markAsRead, 
-  markAllAsRead 
+  markAllAsRead,
+  deleteNotification
 } = require('../controllers/notification.controller');
 
 router.use(protect);
@@ -12,5 +13,6 @@ router.use(protect);
 router.get('/', getNotifications);
 router.patch('/read-all', markAllAsRead);
 router.patch('/:id/read', markAsRead);
+router.delete('/:id', deleteNotification);
 
 module.exports = router;

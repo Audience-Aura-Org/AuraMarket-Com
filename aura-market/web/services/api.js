@@ -1,18 +1,34 @@
 import axios from 'axios';
 
 
+const getBaseURL = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isLocal 
+      ? `http://localhost:5000/api/v1`
+      : `${window.location.protocol}//${window.location.hostname}/api/v1`;
+  }
+  return 'http://localhost:5000/api/v1';
+};
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+const API_ORIGIN = getBaseURL().replace(/\/api\/v1\/?$/, '');
 
 const normalizeAssetUrls = (value) => {
   if (typeof value === 'string') {
-    return value.replace(/^http:\/\/localhost:5000/i, API_ORIGIN);
+    // 1. Handle relative paths from the new upload logic
+    if (value.startsWith('/uploads/')) {
+      return `${API_ORIGIN}${value}`;
+    }
+    // 2. Fix legacy absolute URLs that might have been hardcoded to local hosts
+    return value.replace(/^https?:\/\/(localhost|127\.0\.0\.1):5000/i, API_ORIGIN);
   }
 
   if (Array.isArray(value)) {
@@ -86,7 +102,18 @@ api.interceptors.response.use(
 
     if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
       if (error.response) {
-        console.warn(`[API] ${error.response.status} Error at ${config.url}: ${error.response.data?.message || 'Check network tab'}`);
+        const status = error.response.status;
+        console.warn(`[API] ${status} Error at ${config.url}: ${error.response.data?.message || 'Check network tab'}`);
+        
+        // Auto-logout on 401 (token expired/invalid) to prevent background 401 loop
+        if (status === 401 && typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('aura-auth-storage');
+            localStorage.removeItem('aura_token');
+            // We don't force page reload here to avoid infinite loops, 
+            // but the next hook call will see the empty state.
+          } catch (e) { /* ignore */ }
+        }
       } else {
         console.warn(`[API Network/Unknown Error] at ${config.url}: ${error.message}`);
       }

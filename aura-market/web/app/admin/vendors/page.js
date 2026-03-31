@@ -50,7 +50,7 @@ export default function AdminVendorsPage() {
 
   return (
     <>
-      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl shrink-0 z-10">
+      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Nexus <span className="text-[var(--accent)]">Vendors</span></h2>
           <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)] opacity-30" />

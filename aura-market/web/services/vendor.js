@@ -30,11 +30,11 @@ export const vendorService = {
   },
 
   // Get public stores
-  getPublicStores: async () => {
-    const cacheKey = 'vendors_public_cache_v1';
+  getPublicStores: async (page = 1) => {
+    const cacheKey = `vendors_public_cache_p${page}_v1`;
 
     // Try to return fresh-ish cache immediately
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && page === 1) {
       try {
         const raw = localStorage.getItem(cacheKey);
         if (raw) {
@@ -43,7 +43,7 @@ export const vendorService = {
           const FIVE_MIN = 5 * 60 * 1000;
           if (age < FIVE_MIN && parsed.data) {
             // Background refresh
-            vendorService._refreshPublicStores(cacheKey).catch(() => {});
+            vendorService._refreshPublicStores(page, cacheKey).catch(() => {});
             return parsed.data;
           }
         }
@@ -53,10 +53,10 @@ export const vendorService = {
     }
 
     // No valid cache — fetch and store
-    const res = await api.get('/vendors');
+    const res = await api.get('/vendors', { params: { page, limit: 20 } });
     if (res?.data) {
       try {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && page === 1) {
           localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: res.data }));
         }
       } catch (e) {}
@@ -65,10 +65,10 @@ export const vendorService = {
   },
 
   // Background refresher used when returning cache quickly
-  _refreshPublicStores: async (cacheKey = 'vendors_public_cache_v1') => {
+  _refreshPublicStores: async (page = 1, cacheKey = 'vendors_public_cache_v1') => {
     try {
-      const res = await api.get('/vendors');
-      if (res?.data && typeof window !== 'undefined') {
+      const res = await api.get('/vendors', { params: { page, limit: 20 } });
+      if (res?.data && typeof window !== 'undefined' && page === 1) {
         localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: res.data }));
       }
       return res.data;

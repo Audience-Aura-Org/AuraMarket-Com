@@ -71,7 +71,7 @@ const getUserInbox = async (req, res, next) => {
     // Populate user identities securely across the aggregated items
     const populatedInbox = await Message.populate(inbox, {
       path: 'latestMessage.sender_id latestMessage.receiver_id',
-      select: 'name avatar role',
+      select: 'name avatar role branding',
       model: 'User', // Required inside Aggregation populates
     });
 
@@ -122,8 +122,8 @@ const sendMessage = async (req, res, next) => {
     // Populate for immediate UI consumption if needed
     const populated = await Message.findById(message._id)
       .populate('product_reference', 'name price images')
-      .populate('sender_id', 'name avatar role')
-      .populate('receiver_id', 'name avatar role');
+      .populate('sender_id', 'name avatar role branding')
+      .populate('receiver_id', 'name avatar role branding');
 
     // Emit socket events for real-time updates across clients
     const io = req.app.get('io');
@@ -140,6 +140,24 @@ const sendMessage = async (req, res, next) => {
       io.to(senderRoom).emit('sent_message_echo', populated);
       
       console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
+
+      // 🚀 RESTORED: PWA Push & Email Signal for Chat
+      (async () => {
+        try {
+          const { sendNotification } = require('../utils/notifier');
+          const senderName = req.user.branding?.store_name || req.user.name || 'Merchant';
+          
+          await sendNotification(req.app, receiver_id, {
+            title: `New Message from ${senderName}`,
+            message: text || (product_reference ? '📦 Shared a product with you' : 'Sent you a message'),
+            type: 'message',
+            metadata: { sender_id: req.user._id, link: `/messages?vendorId=${req.user._id}` },
+            emailLink: `${process.env.WEB_CLIENT_URL}/messages?vendorId=${req.user._id}`
+          });
+        } catch (err) {
+          console.error(`❌ [Notifier] Dispatch failed:`, err.message);
+        }
+      })();
     } else {
       console.warn(`⚠️ [API] IO instance not available, socket events not emitted`);
     }
@@ -183,8 +201,8 @@ const markAsRead = async (req, res, next) => {
 const getAllMessagesAdmin = async (req, res, next) => {
   try {
     const messages = await Message.find({})
-      .populate('sender_id', 'name avatar role email')
-      .populate('receiver_id', 'name avatar role email')
+      .populate('sender_id', 'name avatar role email branding')
+      .populate('receiver_id', 'name avatar role email branding')
       .populate('product_reference', 'name price images')
       .sort({ createdAt: -1 });
 

@@ -46,12 +46,9 @@ export default function AdminAnalytics() {
   if (!mounted) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)]">
-      <RoleSidebar role="admin" />
-
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full no-scrollbar">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
         {/* Header */}
-        <header className="h-16 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+        <header className="h-16 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)]">
           <div className="flex items-center gap-6">
             <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Platform <span className="text-[var(--accent)]">Intelligence</span></h2>
             <div className="h-4 w-px bg-[var(--glass-border)]" />
@@ -103,11 +100,11 @@ export default function AdminAnalytics() {
                    </div>
                    
                    <div className="h-64 flex items-end gap-2 pb-8">
-                      {advancedData.sales_over_time.length > 0 ? advancedData.sales_over_time.map((d, i) => (
+                      {(advancedData.sales_over_time || []).length > 0 ? (advancedData.sales_over_time || []).map((d, i) => (
                         <div key={d._id} className="flex-1 group relative">
                            <div 
                               className="w-full bg-[var(--accent)]/20 hover:bg-[var(--accent)] rounded-t-lg transition-all" 
-                              style={{ height: `${(d.dailyRevenue / Math.max(...advancedData.sales_over_time.map(s=>s.dailyRevenue))) * 100}%` }}
+                              style={{ height: `${(d.dailyRevenue / Math.max(...(advancedData.sales_over_time || []).map(s=>s.dailyRevenue))) * 100}%` }}
                            />
                            <div className="absolute bottom-[-24px] left-1/2 translate-x-[-50%] opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--bg-primary)] text-[8px] font-black uppercase whitespace-nowrap px-2 py-1 rounded shadow-lg border border-[var(--glass-border)] z-10 pointer-events-none">
                               {d._id}: {d.dailyRevenue.toLocaleString()}
@@ -126,7 +123,7 @@ export default function AdminAnalytics() {
                 <div className="glass-panel p-8 rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex flex-col">
                    <h4 className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)] border-b border-[var(--glass-border)] pb-6 mb-8">Node Leaders</h4>
                    <div className="flex-1 space-y-6">
-                      {advancedData.top_vendors.map((v, i) => (
+                      {(advancedData.top_vendors || []).map((v, i) => (
                         <div key={v._id} className="flex items-center justify-between group">
                            <div className="flex items-center gap-4">
                               <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center font-black text-[var(--text-primary)] group-hover:bg-[var(--accent)] group-hover:text-white transition-all text-sm font-mono italic shadow-lg">
@@ -140,7 +137,7 @@ export default function AdminAnalytics() {
                            <p className="text-xs font-black text-[var(--text-primary)] font-mono">{v.total_revenue?.toLocaleString()} <span className="text-[8px] opacity-40">XAF</span></p>
                         </div>
                       ))}
-                      {advancedData.top_vendors.length === 0 && (
+                      {(advancedData.top_vendors || []).length === 0 && (
                         <div className="size-full flex flex-col items-center justify-center gap-4 opacity-10 py-12">
                            <Users className="size-12" />
                            <p className="font-black text-xs uppercase tracking-[0.2em] text-center px-4 leading-relaxed">Top performing nodes not yet indexed.</p>
@@ -155,7 +152,6 @@ export default function AdminAnalytics() {
 
            </div>
         </div>
-      </main>
     </div>
   );
 }

@@ -108,7 +108,7 @@ const loadVendor = async (req, res, next) => {
     const Vendor = require('../models/Vendor.model');
     const vendor = await Vendor.findOne({ user_id: req.user._id });
     
-    if (!vendor) {
+    if (!vendor && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Vendor profile required. Please complete onboarding.'

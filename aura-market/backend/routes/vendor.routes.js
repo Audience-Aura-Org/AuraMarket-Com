@@ -20,6 +20,7 @@ const {
   followVendor,
   unfollowVendor,
   getFollowers,
+  getFollowing,
   checkFollowStatus,
 } = require('../controllers/vendor.controller');
 
@@ -46,6 +47,7 @@ router.get('/', getPublicStores);
 router.get('/stores/:id', getStore);
 
 // Follow/Unfollow (Any Authenticated User)
+router.get('/following', protect, getFollowing);
 router.get('/:id/follow-status', protect, checkFollowStatus);
 router.post('/:id/follow', protect, followVendor);
 router.delete('/:id/follow', protect, unfollowVendor);

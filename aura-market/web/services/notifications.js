@@ -24,10 +24,9 @@ export const notificationService = {
     return res.data;
   },
 
-  // Real-time listener for incoming pushes
+  // Real-time listener for incoming pushes — uses the proper SocketService.on() queue
   onPush: (callback) => {
-    if (socketService.socket) {
-      socketService.socket.on('notification', callback);
-    }
+    socketService.on('notification', callback);
+    return () => socketService.off('notification', callback);
   }
 };

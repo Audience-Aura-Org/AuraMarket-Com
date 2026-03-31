@@ -55,7 +55,7 @@ export default function AdminSubscriptionsPage() {
       <RoleSidebar role="admin" />
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
-        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)]/50">
+        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)] text-[var(--text-primary)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shadow-lg shadow-[var(--accent)]/5">
               <CreditCard className="w-5 h-5" />

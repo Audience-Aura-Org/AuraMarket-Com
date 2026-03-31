@@ -10,6 +10,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
 import socketService from '@/services/socket';
+import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
@@ -21,7 +22,7 @@ export default function TopNav() {
   const { theme, toggleTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [cartCount, setCartCount] = useState(0);
+  const [cartCount, setCartCount] = useState(cartStore.getCount());
 
   // ── Centralised notification + chat unread counts ─────────────────────────
   const { unreadCount: notifCount, unreadMessages } = useNotifications();
@@ -29,29 +30,17 @@ export default function TopNav() {
   // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
     if (!user?._id) return;
-    const fetchCart = () => {
-      api.get('/cart').then(res => {
-        if (res.data?.success) {
-          const items = res.data.data.cart?.items || [];
-          setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
-        }
-      }).catch(() => {});
-    };
 
-    fetchCart();
-
-    const handleUpdate = (e) => {
-      if (e.detail?.cart) {
-        const items = e.detail.cart.items || [];
-        setCartCount(items.reduce((s, i) => s + (i.quantity || 1), 0));
-      } else {
-        fetchCart();
-      }
-    };
-    window.addEventListener('cart-updated', handleUpdate);
-
+    // Refresh cart store on mount/user change
+    cartStore.refresh();
+    
+    // Subscribe to cart changes
+    const unsubCart = cartStore.subscribe(({ count }) => {
+      setCartCount(count);
+    });
+    
     return () => {
-      window.removeEventListener('cart-updated', handleUpdate);
+      unsubCart();
     };
   }, [user?._id]);
 
@@ -182,8 +171,8 @@ export default function TopNav() {
             <Link href="/profile" className="shrink-0">
                <div className="size-8 md:size-10 rounded-xl bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
                  <div className="size-full bg-[var(--bg-primary)] rounded-[10px] flex items-center justify-center overflow-hidden">
-                    {user.avatar ? (
-                      <img src={user.avatar} className="size-full object-cover" alt={user.name} />
+                    {user.branding?.logo || user.avatar ? (
+                      <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt={user.name} />
                     ) : (
                       <span className="text-[var(--text-primary)] font-black text-[10px] md:text-xs">{user.name?.[0]?.toUpperCase()}</span>
                     )}

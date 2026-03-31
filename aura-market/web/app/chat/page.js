@@ -59,11 +59,7 @@ function ChatContent() {
     }
 
     const handleIncoming = (msg) => {
-      console.log('[Chat] Incoming Socket Event:', { 
-        msgId: msg._id, 
-        sender: msg.sender_id?._id || msg.sender_id,
-        receiver: msg.receiver_id?._id || msg.receiver_id
-      });
+
 
       try {
         const currentUserId = userRef.current?._id?.toString();
@@ -92,7 +88,7 @@ function ChatContent() {
             read_status: !isUnread 
           };
           
-          const existingIndex = prev.findIndex(c => (c.partner._id || c.partner)?.toString() === partnerId);
+          const existingIndex = prev.findIndex(c => (c.partner?._id || c.partner)?.toString() === partnerId);
           if (existingIndex > -1) {
             const updated = [...prev];
             updated[existingIndex] = { ...updated[existingIndex], snippet: newEntry.snippet, date: newEntry.date, read_status: newEntry.read_status };
@@ -113,11 +109,11 @@ function ChatContent() {
           );
           
           if (belongsToActiveChat) {
-            console.log('[Chat] ✅ Appending message to active chat:', activeId);
+
             setMessages(prev => {
               // Prevent duplicates
               if (msg._id && prev.some(m => m._id?.toString() === msg._id?.toString())) {
-                console.log('[Chat] Message already exists, skipping duplicate');
+
                 return prev;
               }
               return [...prev, msg];
@@ -128,10 +124,10 @@ function ChatContent() {
               api.patch(`/chat/read/${activeId}`).catch(() => {});
             }
           } else {
-            console.log('[Chat] ⚠️ Message does not belong to active chat. activeId:', activeId, 'from:', senderId, 'to:', receiverId);
+
           }
         } else {
-          console.log('[Chat] ⚠️ No active chat selected yet');
+
         }
       } catch (err) {
         console.error('[Chat] Socket handler error:', err);
@@ -173,53 +169,75 @@ function ChatContent() {
     const initChat = async () => {
       setLoading(true);
       try {
-        // Fetch inbox first as it's the core
-        const inboxRes = await api.get('/chat');
-        if (!inboxRes.data.success) return;
-        
-        const chats = inboxRes.data.data.activeChats;
-        setInbox(chats);
+        const [inboxRes, followRes] = await Promise.all([
+           api.get('/chat'),
+           api.get('/vendors/following').catch(() => ({ data: { success: true, data: { following: [] } } }))
+        ]);
 
-        const vendorId = searchParams.get('vendorId');
-        const productId = searchParams.get('productId');
-        
-        // Prepare parallel promises for extra context
-        const promises = [];
-        
-        // 1. Vendor Profile if needed
-        if (vendorId) {
-          const existing = chats.find(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString());
-          if (existing) {
-             setActiveChat(existing.partner);
-          } else {
-             promises.push(api.get(`/auth/users/${vendorId}`).then(res => {
-               if (res.data.success) setActiveChat(res.data.data.user);
-             }));
-          }
-          
-          // 2. Initial Message History for that vendor (Saves 1 round trip)
-          promises.push(api.get(`/chat/${vendorId}`).then(res => {
-             if (res.data.success) {
-                setMessages(res.data.data.messages);
-                // Mark as read locally if there's an unread message from them
-                if (res.data.data.messages.some(m => !m.read_status && m.receiver_id === user?._id)) {
-                  api.patch(`/chat/read/${vendorId}`).catch(() => {});
-                  // Sync other tabs immediately
-                  socketService.emit('messages_read', { sender_id: vendorId });
-                }
+        if (inboxRes.data.success && followRes.data.success) {
+           const activeChats = inboxRes.data.data.activeChats || [];
+           const following = followRes.data.data.following || [];
+           const combined = new Map();
+
+           // 1. Followed vendors (Potential Chats)
+           following.forEach(f => {
+              const partner = f.vendor_id?.user_id;
+              if (!partner) return;
+              combined.set(partner._id.toString(), {
+                partner: { ...partner, store_name: f.vendor_id?.store_name },
+                date: f.createdAt,
+                snippet: 'Node established. Ready for transmission.',
+                read_status: true
+              });
+           });
+
+           // 2. Active chats (Priority)
+           activeChats.forEach(c => {
+              const pid = (c.partner?._id || c.partner)?.toString();
+              if (!pid) return;
+              combined.set(pid, {
+                partner: c.partner,
+                date: c.date,
+                snippet: c.snippet,
+                read_status: c.read_status
+              });
+           });
+
+           const chats = Array.from(combined.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
+           setInbox(chats);
+
+           const vendorId = searchParams.get('vendorId');
+           const productId = searchParams.get('productId');
+           
+           const promises = [];
+           if (vendorId) {
+             const existing = chats.find(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString());
+             if (existing) {
+                setActiveChat(existing.partner);
+             } else {
+                promises.push(api.get(`/auth/users/${vendorId}`).then(res => {
+                  if (res.data.success) setActiveChat(res.data.data.user);
+                }));
              }
-          }).catch(console.warn));
-        }
+             
+             promises.push(api.get(`/chat/${vendorId}`).then(res => {
+                if (res.data.success && res.data.data.messages.length > 0) {
+                   setMessages(res.data.data.messages);
+                   if (res.data.data.messages.some(m => !m.read_status && m.receiver_id === user?._id)) {
+                     api.patch(`/chat/read/${vendorId}`).catch(() => {});
+                     socketService.emit('messages_read', { sender_id: vendorId });
+                   }
+                }
+             }));
+           }
+           
+           if (productId) {
+             promises.push(api.get(`/products/${productId}`).then(res => {
+               if (res.data.success) setDraftProduct(res.data.data.product);
+             }).catch(console.warn));
+           }
 
-        // 3. Product Preview
-        if (productId) {
-           promises.push(api.get(`/products/${productId}`).then(res => {
-             if (res.data.success) setDraftProduct(res.data.data.product);
-           }).catch(console.warn));
-        }
-
-        if (promises.length > 0) {
-           await Promise.allSettled(promises);
+           if (promises.length > 0) await Promise.allSettled(promises);
         }
       } catch (err) {
         console.error('Failed to load chat inbox', err);
@@ -237,7 +255,11 @@ function ChatContent() {
 
     const activeId = activeChat._id.toString();
     const currentFirstMsgPartner = messages[0] 
-      ? (messages[0].sender_id === user?._id ? messages[0].receiver_id : messages[0].sender_id) 
+      ? (
+          (messages[0].sender_id?._id || messages[0].sender_id)?.toString() === user?._id?.toString() 
+          ? (messages[0].receiver_id?._id || messages[0].receiver_id)?.toString() 
+          : (messages[0].sender_id?._id || messages[0].sender_id)?.toString()
+        ) 
       : null;
 
     // If we already have messages for THIS person, don't re-fetch
@@ -273,9 +295,30 @@ function ChatContent() {
     }
   }, [messages]);
 
+  // ── Visibility Resume Sync ────────────────────────────────────────────────
+  // When user returns to the app after being backgrounded, re-fetch the active
+  // conversation to pull in any messages that arrived while the socket was dormant.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && activeChatRef.current?._id) {
+        const activeId = activeChatRef.current._id.toString();
+        console.log('[Chat] App resumed — re-syncing messages for:', activeId);
+        api.get(`/chat/${activeId}`).then(res => {
+          if (res.data.success) {
+            setMessages(res.data.data.messages);
+          }
+        }).catch(() => {});
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChat || sending) return;
+    const hasPending = messages.some(m => m.pending);
+    if (!newMessage.trim() || !activeChat || sending || hasPending) return;
 
     setSending(true);
     const text = newMessage.trim();
@@ -319,12 +362,12 @@ function ChatContent() {
 
         // Update inbox entry for partner to show latest snippet
         setInbox(prev => {
-          const partnerId = activeChat._id;
+          const partnerId = activeChat._id.toString();
           const snippet = serverMsg.text || (serverMsg.product_reference && serverMsg.product_reference.name) || '';
-          const existing = prev.find(c => c.partner._id === partnerId);
+          const existing = prev.find(c => (c.partner?._id || c.partner)?.toString() === partnerId);
           const newEntry = { partner: activeChat, snippet, date: new Date().toISOString(), read_status: true };
           if (existing) {
-            return [ { ...existing, snippet: newEntry.snippet, date: newEntry.date, read_status: true }, ...prev.filter(c => c.partner._id !== partnerId) ];
+            return [ { ...existing, snippet: newEntry.snippet, date: newEntry.date, read_status: true }, ...prev.filter(c => (c.partner?._id || c.partner)?.toString() !== partnerId) ];
           }
           return [ newEntry, ...prev ];
         });
@@ -363,13 +406,13 @@ function ChatContent() {
   return (
     <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
       {/* Sidebar List */}
-      <aside className={`w-full md:w-[320px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
+      <aside className={`w-full md:w-[350px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
             <div className="flex flex-col">
-            <h1 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">Messages</h1>
-            <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5 opacity-80 flex items-center gap-1.5">
-               <span className={`size-1.5 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
-               Secure Chat
+            <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-none">COMM <span className="text-[var(--accent)]">CENTER</span></h1>
+            <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.25em] mt-1.5 opacity-60 flex items-center gap-1.5 leading-none">
+               <span className={`size-2 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
+               Operational Pipe
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -426,15 +469,15 @@ function ChatContent() {
                   className={`w-full p-4 rounded-2xl border flex items-center gap-4 transition-all relative group overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 ${activeChat?._id === chat.partner._id ? 'bg-[var(--bg-primary)] border-[var(--accent)]/40' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40'}`}
                 >
                 <div className="relative shrink-0">
-                  <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-base border border-[var(--glass-border)]">
-                     {chat.partner.avatar ? <img src={chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" /> : chat.partner.name[0]}
+                  <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-bold text-base border border-[var(--glass-border)]">
+                     {chat.partner.branding?.logo || chat.partner.avatar ? <img src={chat.partner.branding?.logo || chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" /> : chat.partner.name?.[0]?.toUpperCase()}
                   </div>
                   <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
                 </div>
                   <div className="flex-1 text-left min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
                     <h3 className="font-bold !text-[9px] text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
-                      {chat.partner.name}
+                      {chat.partner.store_name || chat.partner.name}
                     </h3>
                     <span className="!text-[8px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
                       {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
@@ -463,11 +506,11 @@ function ChatContent() {
             <div className="px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
               <div className="flex items-center gap-4">
                 <button onClick={() => setActiveChat(null)} className="md:hidden size-9 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)]"><ArrowLeft className="w-5 h-5" /></button>
-                <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-base border border-[var(--glass-border)]">
-                  {activeChat.avatar ? <img src={activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name[0]}
+                <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-bold text-base border border-[var(--glass-border)] overflow-hidden">
+                  {activeChat.branding?.logo || activeChat.avatar ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name?.[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.name}</h2>
+                  <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.store_name || activeChat.name}</h2>
                   <div className="flex items-center gap-1">
                     <div className="size-1.5 rounded-full bg-emerald-500" />
                     <p className="!text-[10px] text-[var(--text-secondary)]">Online</p>

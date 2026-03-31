@@ -70,10 +70,10 @@ export default function Footer() {
           <div className="space-y-6">
             <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-primary)]">Resources</h4>
             <ul className="space-y-4">
-              <li><Link href="#" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Privacy Policy</Link></li>
-              <li><Link href="#" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Terms of Service</Link></li>
-              <li><Link href="#" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Dispute Resolution</Link></li>
+              <li><Link href="/help-center" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Help Center</Link></li>
+              <li><Link href="/privacy-policy" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms-of-service" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Terms of Service</Link></li>
+              <li><Link href="/dispute-resolution" className="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">Dispute Resolution</Link></li>
             </ul>
           </div>
 

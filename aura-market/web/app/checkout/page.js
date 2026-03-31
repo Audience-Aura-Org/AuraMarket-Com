@@ -6,12 +6,14 @@ import {
   ShieldCheck, MapPin, CreditCard, ArrowRight, 
   Lock, CheckCircle2, Plus, Loader2, ChevronDown,
   Smartphone, Wallet, ArrowLeft, Gem, AlertCircle,
-  Truck, Package, Info, ShieldAlert, Search
+  Truck, Package, Info, ShieldAlert, Search, X
 } from 'lucide-react';
 import api from '@/services/api';
+import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +33,8 @@ function CheckoutContent() {
     paymentMethod: 'wallet',
     escrowEnabled: true,
     logistics_company_id: null,
-    quartier: ''
+    quartier: '',
+    eversend: { phone: '', country: 'CM', currency: 'XAF', pinId: '', pin: '' }
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -43,6 +46,7 @@ function CheckoutContent() {
   const [logisticsLoading, setLogisticsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [logisticsOpen, setLogisticsOpen] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [zones, setZones] = useState([]);
   const [compatibleFee, setCompatibleFee] = useState(0);
   const [zoneOpen, setZoneOpen] = useState(false);
@@ -105,40 +109,67 @@ function CheckoutContent() {
       }
   }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems]);
 
-  // 1. Fetch Auth User Metadata (Wallet Balance)
+  // 1. Fetch Auth User Metadata & Auto-fill Profile
   useEffect(() => {
     if (user?._id) {
+       // Initial fill from current user object in state
+       setFormData(f => ({
+         ...f,
+         name: f.name || user.name || '',
+         email: f.email || user.email || '',
+         phone: f.phone || user.phone || '',
+         city: f.city || user.onboarding_location?.city || '',
+         quartier: f.quartier || user.onboarding_location?.quartier || '',
+         address: f.address || user.onboarding_location?.address_description || ''
+       }));
+
        api.get('/users/me').then(res => {
          if (res.data.success) {
-            setWalletBalance(res.data.data.user.wallet_balance || 0);
-            setFormData(f => ({ ...f, email: f.email || res.data.data.user.email || '' }));
+            const u = res.data.data.user;
+            setWalletBalance(u.wallet_balance || 0);
+            
+            // Re-sync if profile returned more data
+            setFormData(f => ({ 
+              ...f, 
+              name: f.name || u.name || '',
+              email: f.email || u.email || '',
+              phone: f.phone || u.phone || '',
+              city: f.city || u.onboarding_location?.city || '',
+              quartier: f.quartier || u.onboarding_location?.quartier || '',
+              address: f.address || u.onboarding_location?.address_description || ''
+            }));
          }
        }).catch(() => {});
     }
   }, [user?._id]);
 
-  // 2. Fetch Saved Addresses
+  // 2. Fetch Saved Addresses (Override with default if exists)
   useEffect(() => {
-    api.get('/addresses')
-      .then(res => {
-        if (res.data.success) {
-          const addrs = res.data.data.addresses || [];
-          setSavedAddresses(addrs);
-          const def = addrs.find(a => a.is_default) || addrs[0];
-          if (def) {
-            setFormData(f => ({ 
-              ...f, 
-              name: f.name || def.name, 
-              phone: f.phone || def.phone, 
-              address: f.address_line || def.address_line, 
-              city: f.city || def.city,
-              email: f.email || user?.email || ''
-            }));
+    if (user?._id) {
+      api.get('/addresses')
+        .then(res => {
+          if (res.data.success) {
+            const addrs = res.data.data.addresses || [];
+            setSavedAddresses(addrs);
+            
+            // If the user has a default address, prioritize it
+            const def = addrs.find(a => a.is_default) || addrs[0];
+            if (def) {
+              setFormData(f => ({ 
+                ...f, 
+                name: f.name || def.name || user.name || '', 
+                phone: f.phone || def.phone || user.phone || '', 
+                address: f.address || def.address_line || user.onboarding_location?.address_description || '', 
+                city: f.city || def.city || user.onboarding_location?.city || '',
+                email: f.email || user.email || '',
+                quartier: f.quartier || def.quartier || user.onboarding_location?.quartier || ''
+              }));
+            }
           }
-        }
-      })
-      .catch(() => {});
-  }, [user]);
+        })
+        .catch(() => {});
+    }
+  }, [user?._id]);
 
   // 3. Load Order Matrix or Cart Items
   useEffect(() => {
@@ -175,12 +206,15 @@ function CheckoutContent() {
   }, [orderId]);
 
   const handlePlaceOrder = async () => {
-    const subtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-    const totalAmount = subtotal + deliveryFee;
+    // Compute amounts from the authoritative sources, not stale state
+    const computedSubtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    const computedDelivery = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
+    const totalAmount = computedSubtotal + computedDelivery;
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
+    const isEversend = formData.paymentMethod === 'eversend';
 
-    if (!isPayOnDelivery && walletBalance < totalAmount) {
+    if (!isPayOnDelivery && !isEversend && walletBalance < totalAmount) {
         toast.error("Insufficient wallet liquidity. Please deposit funds.");
         return;
     }
@@ -188,6 +222,17 @@ function CheckoutContent() {
     setLoading(true);
     setError(null);
     try {
+      // Sync profile fields if updated during checkout (keeps fields in sync as requested)
+      if (user?._id) {
+          const updates = {};
+          if (formData.phone && formData.phone !== user.phone) updates.phone = formData.phone;
+          if (formData.name && formData.name !== user.name) updates.name = formData.name;
+          if (Object.keys(updates).length > 0) {
+              await api.patch('/auth/update-profile', updates);
+              useAuthStore.getState().updateUser(updates);
+          }
+      }
+
       let finalOrderIds = orderId ? [orderId] : [];
       
       if (!orderId) {
@@ -200,7 +245,8 @@ function CheckoutContent() {
                phone: formData.phone
             },
             escrow_enabled: formData.escrowEnabled,
-            payment_method: isPayOnDelivery ? 'pay_on_delivery' : 'wallet',
+            payment_method: isPayOnDelivery ? 'pay_on_delivery' : (formData.escrowEnabled ? 'escrow' : 'wallet'),
+            shipping_method: formData.logistics_company_id ? 'logistics_partner' : 'vendor_managed',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
          });
@@ -212,15 +258,53 @@ function CheckoutContent() {
          }
       }
 
-      for (const id of finalOrderIds) {
-        if (isPayOnDelivery) {
-          continue;
+      if (!isEversend) {
+        for (const id of finalOrderIds) {
+          if (isPayOnDelivery) continue;
+          if (formData.escrowEnabled) {
+            await api.post('/escrow/hold', { order_id: id });
+          } else {
+            await api.post(`/orders/${id}/pay-direct`);
+          }
         }
-        if (formData.escrowEnabled) {
-          await api.post('/escrow/hold', { order_id: id });
-        } else {
-          await api.post(`/orders/${id}/pay-direct`);
+      } else {
+        const evRes = await api.post('/payments/eversend/initialize', {
+           amount: totalAmount,
+           currency: formData.eversend.currency,
+           phone: formData.phone, // Use primary contact
+           country: formData.eversend.country,
+           order_ids: finalOrderIds,
+           redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`
+        });
+
+        if (!evRes.data.success) {
+          throw new Error(evRes.data.message || 'Eversend initialization failed.');
         }
+
+        const { checkout_url, reference, transaction_id } = evRes.data.data;
+        const ref = reference || transaction_id;
+
+        if (checkout_url) {
+          toast.success('Redirecting to secure payment gateway...');
+          window.location.href = checkout_url;
+          return;
+        }
+
+        if (ref) {
+          // If in sandbox mode, skip the verify page and go straight to Step 3 for instant feedback
+          if (ref.startsWith('SBX-')) {
+             toast.success('Sandbox order processed successfully!');
+             cartStore.clearCart();
+             setStep(3);
+             return;
+          }
+          
+          toast.success('Payment request sent to your phone. Please approve to complete.');
+          router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${ref}`);
+          return;
+        }
+
+        throw new Error('No transaction reference returned from payment gateway.');
       }
 
       if (isPayOnDelivery) {
@@ -228,10 +312,15 @@ function CheckoutContent() {
       } else {
         toast.success(formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
       }
-      router.push(`/orders`);
+      
+      // Clear cart immediately across all components
+      cartStore.clearCart();
+      
+      // Show Success State instead of immediate redirect
+      setStep(3); // Success step
       
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Handshake failed. Protocol rejected the transaction.';
+      const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -241,8 +330,8 @@ function CheckoutContent() {
 
   const matrixItems = order?.products || cartItems;
   const subtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-  const deliveryFee = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
-  const totalAmount = subtotal + deliveryFee;
+  const finalDeliveryFee = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
+  const totalAmount = subtotal + finalDeliveryFee;
 
   // Breakdown vendors and their fees
   const feePerVendor = selectedLogistics && formData.quartier ? (selectedLogistics.quartier_prices?.find(p => p.quartier === formData.quartier)?.price || 0) : 0;
@@ -292,23 +381,25 @@ function CheckoutContent() {
           <div className="lg:col-span-8 space-y-12">
             <div className="flex items-center gap-4 mb-4">
                {[
-                 { id: 1, label: 'Fulfillment' },
-                 { id: 2, label: 'Confirmation' }
-               ].map((s) => (
-                 <button 
-                  key={s.id}
-                  onClick={() => s.id < step && setStep(s.id)}
-                  className={`flex-1 h-2 rounded-full transition-all duration-700 relative group overflow-hidden ${step >= s.id ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
-                 >
-                    {step === s.id && <div className="absolute inset-x-0 h-full bg-white/30 animate-pulse" />}
-                    <span className={`absolute top-4 left-0 text-[8px] font-black uppercase tracking-widest transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
-                      {s.label}
-                    </span>
-                 </button>
-               ))}
+                  { id: 1, label: 'Fulfillment' },
+                  { id: 2, label: 'Confirmation' },
+                  { id: 3, label: 'Success' }
+                ].map((s) => (
+                  <button 
+                   key={s.id}
+                   onClick={() => s.id < step && setStep(s.id)}
+                   className={`flex-1 h-2 rounded-full transition-all duration-700 relative group overflow-hidden ${step >= s.id ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
+                  >
+                     {step === s.id && <div className="absolute inset-x-0 h-full bg-white/30 animate-pulse" />}
+                     <span className={`absolute top-4 left-0 text-[8px] font-black uppercase tracking-widest transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
+                       {s.label}
+                     </span>
+                  </button>
+                ))}
             </div>
 
             <div className="pt-8">
+              {/* Existing Step 1 & 2 content ... */}
               {step === 1 && (
                 <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <div className="space-y-10">
@@ -320,45 +411,45 @@ function CheckoutContent() {
                        </div>
                     </div>
 
-                    <div className="glass-panel p-10 rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-10">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                          <div className="space-y-3">
+                    <div className="glass-panel p-5 md:p-10 rounded-3xl md:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-6 md:space-y-10">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-10">
+                          <div className="space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Consignee Name</label>
                             <input 
                               placeholder="Full Name"
                               value={formData.name}
                               onChange={e => setFormData({...formData, name: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
                             />
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Comms Protocol (Phone)</label>
                             <input 
                               placeholder="+237 ..."
                               value={formData.phone}
                               onChange={e => setFormData({...formData, phone: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
                             />
                           </div>
-                          <div className="md:col-span-2 space-y-3">
+                          <div className="md:col-span-2 space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Handshake Email</label>
                             <input 
                               type="email"
                               placeholder="email@example.com"
                               value={formData.email}
                               onChange={e => setFormData({...formData, email: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold"
                             />
                           </div>
                           
 
-                          <div className="md:col-span-2 space-y-4">
+                          <div className="md:col-span-2 space-y-3 md:space-y-4">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Delivery Quartier (Zone)</label>
                             <div className="relative">
                                <button 
                                   type="button"
                                   onClick={() => setZoneOpen(!zoneOpen)}
-                                  className={`w-full flex items-center justify-between px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border transition-all outline-none ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
+                                  className={`w-full flex items-center justify-between px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border transition-all outline-none ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
                                >
                                   <div className="flex items-center gap-4">
                                      <MapPin className="size-5 text-[var(--accent)] opacity-40" />
@@ -380,14 +471,14 @@ function CheckoutContent() {
                             </div>
                           </div>
 
-                          <div className="md:col-span-2 space-y-3">
+                          <div className="md:col-span-2 space-y-2 md:space-y-3">
                             <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Precise Landing Details (Build/Street No.)</label>
                             <textarea 
                               placeholder="House number, color of gate, or specific landmarks..."
                               rows={3}
                               value={formData.address}
                               onChange={e => setFormData({...formData, address: e.target.value})}
-                              className="w-full px-8 py-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold resize-none"
+                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm font-bold resize-none"
                             />
                           </div>
 
@@ -444,58 +535,103 @@ function CheckoutContent() {
                        </div>
 
                        <div className="pt-4 space-y-4">
-                          <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Security Strategy</label>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                             <button 
-                              onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'wallet'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                             >
-                                <div className="flex items-center justify-between mb-4">
-                                   <div className="flex items-center gap-2">
-                                      <ShieldCheck className={`size-5 ${formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                      <span className="text-[10px] font-black uppercase tracking-tighter">Aura Escrow</span>
-                                   </div>
-                                   {formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                </div>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds locked until you verify order integrity.</p>
-                             </button>
-                             <button 
-                              onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'wallet'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                             >
-                                <div className="flex items-center justify-between mb-4">
-                                   <div className="flex items-center gap-2">
-                                      <CreditCard className={`size-5 ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                      <span className="text-[10px] font-black uppercase tracking-tighter">Direct Secure</span>
-                                   </div>
-                                   {(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                </div>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds transfer immediately to the vendor.</p>
-                             </button>
-                             <button
-                              onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'pay_on_delivery'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'pay_on_delivery' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                             >
-                                <div className="flex items-center justify-between mb-4">
-                                   <div className="flex items-center gap-2">
-                                      <Truck className={`size-5 ${formData.paymentMethod === 'pay_on_delivery' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                      <span className="text-[10px] font-black uppercase tracking-tighter">Pay on Delivery</span>
-                                   </div>
-                                   {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                </div>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Test mode: payment is settled when logistics confirms delivery.</p>
-                             </button>
-                          </div>
-                       </div>
+                           <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Payment Strategy</label>
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <button 
+                               onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'wallet'})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <ShieldCheck className={`size-5 ${formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Aura Escrow</span>
+                                    </div>
+                                    {formData.paymentMethod === 'wallet' && formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds secured in wallet until you verify order.</p>
+                              </button>
 
-                       <button 
-                        onClick={() => setStep(2)}
-                        disabled={!formData.name || !formData.address || !formData.email || !formData.logistics_company_id}
-                        className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
-                       >
-                         Review Matrix & Finalize
-                       </button>
-                    </div>
+                              <button 
+                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Mobile Money / Card</span>
+                                    </div>
+                                    {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct deposit via Eversend secure gateway.</p>
+                              </button>
+
+                              <button 
+                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'wallet'})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' && !formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <CreditCard className={`size-5 ${formData.paymentMethod === 'wallet' && !formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Direct Wallet</span>
+                                    </div>
+                                    {formData.paymentMethod === 'wallet' && !formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Immediate settlement from your Aura Wallet balance.</p>
+                              </button>
+
+                              <button
+                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'pay_on_delivery'})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'pay_on_delivery' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <Truck className={`size-5 ${formData.paymentMethod === 'pay_on_delivery' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Pay on Delivery</span>
+                                    </div>
+                                    {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Payment is settled when logistics confirms delivery.</p>
+                              </button>
+                           </div>
+
+                           {formData.paymentMethod === 'eversend' && (
+                              <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                       <label className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
+                                       <input 
+                                          type="text"
+                                          placeholder="+237..."
+                                          value={formData.eversend.phone}
+                                          onChange={e => setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}})}
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black uppercase outline-none focus:border-[var(--accent)] transition-all"
+                                       />
+                                    </div>
+                                    <div className="space-y-2">
+                                       <label className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
+                                       <select 
+                                          value={formData.eversend.currency}
+                                          onChange={e => setFormData({...formData, eversend: {...formData.eversend, currency: e.target.value}})}
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black uppercase outline-none focus:border-[var(--accent)] transition-all"
+                                       >
+                                          <option value="XAF">XAF (Central Africa)</option>
+                                          <option value="NGN">NGN (Nigeria)</option>
+                                          <option value="UGX">UGX (Uganda)</option>
+                                       </select>
+                                    </div>
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+
+                        <button 
+                         onClick={() => setStep(2)}
+                         disabled={!formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
+                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
+                        >
+                          Review Matrix & Finalize
+                        </button>
+                     </div>
                   </div>
                 </section>
               )}
@@ -631,6 +767,41 @@ function CheckoutContent() {
                  >
                    {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
                  </button>
+               )}
+
+               {step === 3 && (
+                <section className="animate-in fade-in zoom-in-95 duration-1000">
+                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
+                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
+                        <CheckCircle2 className="size-16 animate-bounce" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Order <span className="text-[var(--accent)]">Successful</span></h2>
+                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
+                    </div>
+
+
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link 
+                        href="/orders"
+                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
+                      >
+                         <Package className="size-4" /> Go to My Orders
+                      </Link>
+                      <Link 
+                        href="/discovery"
+                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                      >
+                         Continue Exploring <ArrowRight className="size-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </section>
                )}
             </div>
           </div>

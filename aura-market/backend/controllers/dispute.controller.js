@@ -167,7 +167,7 @@ const resolveDispute = async (req, res, next) => {
             amount: vendorPayout, 
             description: `Admin Dispute Release (Fee ${settings.commission_rate}% deducted).` 
           },
-          { session, new: true, upsert: true }
+          { session, returnDocument: 'after', upsert: true }
         );
 
         escrow.status = 'released';
@@ -175,6 +175,15 @@ const resolveDispute = async (req, res, next) => {
         await escrow.save({ session });
       }
     }
+
+    const { logAction } = require('./audit.controller');
+    await logAction(
+      req.user._id, 
+      'dispute_resolve', 
+      'dispute', 
+      dispute._id, 
+      { type: resolution_type, notes: admin_notes }
+    );
 
     dispute.status = 'resolved';
     dispute.resolution_type = resolution_type;

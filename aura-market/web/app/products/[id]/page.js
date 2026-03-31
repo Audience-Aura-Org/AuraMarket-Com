@@ -13,6 +13,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { trackView, trackWishlist, trackCart } from '@/services/tracking';
 import ProductCard from '@/components/ProductCard';
+import cartStore from '@/services/cartStore';
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
@@ -89,23 +90,28 @@ export default function ProductDetailsPage() {
     
     setAddingToCart(true);
     trackCart(product);
-    if (typeof window !== 'undefined') window.__AURA_PENDING_CART = (window.__AURA_PENDING_CART || 0) + 1;
+    
+    // 🔥 OPTIMISTIC BROADCAST (Instant UI response)
+    cartStore.addItem(product, quantity);
+
+    // Global feedback event
+    if (typeof window !== 'undefined') {
+       window.dispatchEvent(new CustomEvent('cart-item-added', { 
+         detail: { 
+           name: product.name, 
+           image: (product.images?.[0]?.url || product.images?.[0]) 
+         } 
+       }));
+    }
 
     try {
       const response = await api.post('/cart', { product_id: id, quantity });
-      showToast('Added to cart!');
       
-      if (typeof window !== 'undefined') {
-        window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { 
-            detail: { cart: response.data.data.cart } 
-          }));
-        }
-      }
+      // Update with server truth quietly
+      cartStore.setCart(response.data.data.cart);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to add to cart', 'error');
-      if (typeof window !== 'undefined') window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) - 1);
+      cartStore.refresh();
     } finally {
       setAddingToCart(false);
     }
@@ -366,19 +372,19 @@ export default function ProductDetailsPage() {
 
               <div className={`space-y-6 ${mode === 'premium' ? 'p-6 rounded-[2.5rem] glass-panel bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-xl' : ''}`}>
                  
-                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <div className="flex items-center justify-between px-3 sm:px-4 h-12 sm:h-16 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl sm:rounded-2xl w-full sm:w-36 shadow-sm">
-                       <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4"/></button>
-                       <span className="font-black text-base sm:text-lg">{quantity}</span>
-                       <button onClick={() => setQuantity(quantity + 1)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Plus className="w-4 h-4"/></button>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex items-center justify-between px-6 h-14 sm:h-20 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl sm:rounded-[1.5rem] w-full sm:w-44 shadow-sm group/qty">
+                       <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:scale-125 transition-all"><Minus className="w-4 h-4"/></button>
+                       <span className="font-black text-lg sm:text-xl tracking-tighter">{quantity}</span>
+                       <button onClick={() => setQuantity(quantity + 1)} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:scale-125 transition-all"><Plus className="w-4 h-4"/></button>
                     </div>
                     
                     <button 
                       onClick={handleAddToCart}
                       disabled={addingToCart || product.stock === 0}
-                      className="flex-1 h-12 sm:h-16 flex items-center justify-center gap-2 sm:gap-3 bg-[var(--accent)] text-white font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-[10px] sm:text-[11px] rounded-xl sm:rounded-2xl hover:bg-[var(--accent)]/90 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                      className="flex-1 h-14 sm:h-20 flex items-center justify-center gap-3 bg-[var(--accent)] text-white font-black uppercase tracking-[0.2em] text-[11px] sm:text-[13px] rounded-2xl sm:rounded-[1.5rem] hover:bg-[var(--accent)]/90 transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95 disabled:opacity-50"
                     >
-                      {addingToCart ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />}
+                      {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
                       {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                     </button>
                  </div>
@@ -386,7 +392,7 @@ export default function ProductDetailsPage() {
                   <button
                     onClick={handleBuyNow}
                     disabled={buyingNow || product.stock === 0}
-                    className="w-full h-12 sm:h-16 flex items-center justify-center gap-2 sm:gap-3 font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-[10px] sm:text-[11px] rounded-xl sm:rounded-2xl transition-all active:scale-95 border border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-transparent hover:text-[var(--text-primary)] disabled:opacity-50"
+                    className="w-full h-14 sm:h-20 flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-[11px] sm:text-[13px] rounded-2xl sm:rounded-[1.5rem] transition-all active:scale-95 border-2 border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-transparent hover:text-[var(--text-primary)] disabled:opacity-50 shadow-lg"
                   >
                     {buyingNow ? 'Processing...' : 'Buy Now'}
                   </button>

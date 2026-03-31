@@ -23,7 +23,7 @@ const {
 } = require('../controllers/order.controller');
 
 
-const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
 
 // All order routes require authentication
 router.use(protect);
@@ -38,9 +38,9 @@ router.post('/:id/pay-direct', restrictTo('customer'), payDirectly);
 
 
 // ── Vendor Routes ─────────────────────────────
-router.get('/vendor-orders', restrictTo('vendor'), getVendorOrders);
-router.patch('/:id/status', restrictTo('vendor', 'admin'), updateOrderStatus);
-router.patch('/:id/approve-refund', restrictTo('vendor'), approveRefund);
+router.get('/vendor-orders', restrictTo('vendor'), loadVendor, getVendorOrders);
+router.patch('/:id/status', restrictTo('vendor', 'admin'), loadVendor, updateOrderStatus);
+router.patch('/:id/approve-refund', restrictTo('vendor'), loadVendor, approveRefund);
 
 // ── Shared Endpoint ───────────────────────────
 // Accessible by customer tracking their shipment OR vendor viewing their ticket

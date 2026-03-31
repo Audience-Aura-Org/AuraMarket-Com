@@ -112,7 +112,7 @@ export default function AdminOrdersPage() {
 
   return (
     <>
-      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shrink-0 z-10">
+      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 text-[var(--text-primary)]">
         <div>
           <h1 className="text-lg lg:text-xl font-black tracking-tight text-[var(--text-primary)] uppercase">Orders <span className="text-[var(--accent)]">Management</span></h1>
           <p className="hidden md:block text-[10px] text-[var(--text-secondary)] font-bold mt-0.5 uppercase tracking-widest opacity-60">Full platform order visibility</p>
