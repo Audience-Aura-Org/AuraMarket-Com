@@ -74,32 +74,32 @@ export default function PWAInstallBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-10 h-16 duration-1000 ${isDesktop ? 'bottom-8 right-8 w-[28rem]' : 'bottom-24 left-0 right-0 px-5 max-w-lg mx-auto'}`}>
+    <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-10 h-16 duration-1000 ${isDesktop ? 'bottom-8 right-8 w-[26rem]' : 'bottom-24 left-0 right-0 px-5 max-w-lg mx-auto'}`}>
       
-      {/* Branded "Exactly" Bar (v14.0) */}
+      {/* Branded "Streamlined" Bar (v15.0) */}
       <div 
         onClick={handleInstall}
         className="group relative h-full w-full bg-[var(--bg-primary)]/95 backdrop-blur-3xl rounded-[2.5rem] border border-[var(--glass-border)] flex items-center justify-between pl-5 pr-4 cursor-pointer shadow-2xl hover:border-[var(--accent)]/30 transition-all active:scale-[0.98] overflow-hidden"
       >
         
-        {/* Identity & Single Line Title */}
+        {/* Identity & Streamlined Shorter Title */}
         <div className="flex items-center gap-4">
            <div className="size-11 rounded-2xl bg-black flex items-center justify-center p-2.5 shadow-lg shadow-[var(--accent)]/20 transform group-hover:rotate-6 transition-all ring-1 ring-white/10 shrink-0">
               <img src="/logo-white.png" alt="Aura Logo" className="size-full object-contain filter drop-shadow-[0_0_5px_var(--accent)]" />
            </div>
-           {/* EXACTLY 16PX SINGLE LINE */}
-           <h2 className="text-[16px] font-black text-[var(--text-primary)] tracking-tight uppercase leading-none font-[Poppins,system-ui] flex items-center gap-2 opacity-90 whitespace-nowrap">
-              Install Mobile Hub <Sparkles className="size-4 text-[var(--accent)]" />
+           {/* REFINED 13PX SINGLE LINE - SHORT & PUNCHY */}
+           <h2 className="text-[13px] font-black text-[var(--text-primary)] tracking-tight uppercase leading-none font-[Poppins,system-ui] flex items-center gap-2 opacity-90 whitespace-nowrap">
+              Install Aura <Sparkles className="size-3.5 text-[var(--accent)] animate-pulse" />
            </h2>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-3">
            <button 
-              className="px-8 h-11 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-[var(--accent)]/30 hover:bg-[var(--accent)]/90 flex items-center gap-2 transition-all active:scale-95 shrink-0"
+              className="px-6 h-11 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-[var(--accent)]/30 hover:bg-[var(--accent)]/90 flex items-center gap-2 transition-all active:scale-95 shrink-0"
            >
               <Download className="size-4" />
-              Get Aura
+              Get App
            </button>
            <button 
              onClick={dismiss}
