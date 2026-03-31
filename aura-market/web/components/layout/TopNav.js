@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle, Smartphone } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle } from 'lucide-react';
 import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
@@ -170,16 +170,6 @@ export default function TopNav() {
               <CartPreview />
             </div>
           </div>
-
-          {/* APP PORTAL: High Visibility Desktop/Mobile */}
-          <Link 
-            href="/onboarding/pwa" 
-            className="flex items-center justify-center p-2 md:p-2.5 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/30 hover:bg-[var(--accent)] text-[var(--accent)] hover:text-white transition-all shadow-lg shadow-[var(--accent)]/5 group/app"
-            title="Get the Aura App"
-          >
-            <Smartphone className="size-5 lg:size-4" />
-            <span className="hidden lg:inline ml-2 text-[10px] font-black tracking-widest uppercase">App</span>
-          </Link>
           
           {user ? (
             <Link href="/profile" className="shrink-0">
