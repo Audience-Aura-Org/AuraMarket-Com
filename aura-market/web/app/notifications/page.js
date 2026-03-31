@@ -8,33 +8,25 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
-<<<<<<< HEAD
 import { useNotifications } from '@/hooks/useNotifications';
-=======
 import { notificationService } from '@/services/notifications';
->>>>>>> aura-import-main
 
 export const dynamic = 'force-dynamic';
 
-// Mapped to the backend enum: order_status|payment_received|wallet_update|chat_alert|system_alert|vendor_update
+// Mapped to the backend enum
 const ICON_MAP = {
-<<<<<<< HEAD
-  order:        { Icon: Package,        color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
-  order_update: { Icon: Package,        color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
-  payment:      { Icon: CreditCard,     color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  chat:         { Icon: MessageCircle,  color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
-  system:       { Icon: Sparkles,       color: 'text-amber-500',   bg: 'bg-amber-500/10' },
-  system_alert: { Icon: Sparkles,       color: 'text-amber-500',   bg: 'bg-amber-500/10' },
-  vendor_update:{ Icon: Store,          color: 'text-sky-500',     bg: 'bg-sky-500/10' },
-  logistics:    { Icon: Truck,          color: 'text-purple-500',  bg: 'bg-purple-500/10' },
-=======
+  order:             { Icon: Package,       color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
   order_status:      { Icon: Package,       color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
+  order_update:      { Icon: Package,       color: 'text-indigo-500',  bg: 'bg-indigo-500/10' },
+  payment:           { Icon: CreditCard,    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
   payment_received:  { Icon: CreditCard,    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
   wallet_update:     { Icon: CreditCard,    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  chat:              { Icon: MessageCircle, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
   chat_alert:        { Icon: MessageCircle, color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
+  system:            { Icon: Sparkles,      color: 'text-amber-500',   bg: 'bg-amber-500/10' },
   system_alert:      { Icon: Sparkles,      color: 'text-amber-500',   bg: 'bg-amber-500/10' },
   vendor_update:     { Icon: Store,         color: 'text-sky-500',     bg: 'bg-sky-500/10' },
->>>>>>> aura-import-main
+  logistics:         { Icon: Truck,         color: 'text-purple-500',  bg: 'bg-purple-500/10' },
 };
 
 function timeAgo(iso) {
@@ -51,24 +43,6 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const { markAllRead: clearBadge } = useNotifications();
 
-<<<<<<< HEAD
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await api.get('/notifications');
-        if (res.data.success) {
-          setNotifications(res.data.data.notifications || []);
-        }
-      } catch {
-        setNotifications([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifications();
-    // Clear the badge on the notification/bell icons immediately
-    clearBadge();
-=======
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get('/notifications');
@@ -77,16 +51,17 @@ export default function NotificationsPage() {
       }
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
->>>>>>> aura-import-main
   }, []);
 
   useEffect(() => {
     fetchNotifications();
+    clearBadge(); // Clear global badge count
 
-    // Subscribe to real-time pushes — prepend new notification at top
+    // Subscribe to real-time pushes
     const unsubscribe = notificationService.onPush((notif) => {
       setNotifications(prev => [notif, ...prev]);
     });
@@ -94,23 +69,21 @@ export default function NotificationsPage() {
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, clearBadge]);
 
   const markRead = async (id) => {
     try { await api.patch(`/notifications/${id}/read`); } catch { /* silent */ }
     setNotifications(prev => prev.map(n => n._id === id ? { ...n, is_read: true } : n));
-    // Optionally refresh badge count if we mark a single one as read
   };
 
   const markAllRead = async () => {
     try { 
       await api.patch('/notifications/read-all'); 
-      clearBadge(); // Clear the global badge too
+      clearBadge();
     } catch { /* silent */ }
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
-  // Delete via API now that the route exists
   const deleteNotif = async (id) => {
     try { await api.delete(`/notifications/${id}`); } catch { /* silent */ }
     setNotifications(prev => prev.filter(n => n._id !== id));
@@ -157,7 +130,7 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-6">
             {notifications.map((n) => {
-              const typeKey = n.type in ICON_MAP ? n.type : 'system_alert';
+              const typeKey = Object.keys(ICON_MAP).find(k => n.type?.includes(k)) || 'system_alert';
               const { Icon, color, bg } = ICON_MAP[typeKey];
               return (
                 <div
@@ -193,14 +166,6 @@ export default function NotificationsPage() {
                       <span className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase opacity-30">
                         {timeAgo(n.createdAt)}
                       </span>
-                      {n.type === 'order_status' && (
-                        <button 
-                          onClick={e => { e.stopPropagation(); router.push('/orders'); }}
-                          className="text-[10px] font-black text-[var(--accent)] tracking-[0.2em] uppercase hover:underline"
-                        >
-                          View Orders
-                        </button>
-                      )}
                     </div>
                   </div>
 

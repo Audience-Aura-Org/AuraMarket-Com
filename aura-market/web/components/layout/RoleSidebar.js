@@ -19,7 +19,6 @@ const VENDOR_NAV = [
 ];
 
 const ADMIN_NAV = [
-<<<<<<< HEAD
   { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
   { icon: 'person',         label: 'Users',            href: '/admin/users' },
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
@@ -35,27 +34,9 @@ const ADMIN_NAV = [
   { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },
   { icon: 'category',       label: 'Categories',       href: '/admin/categories' },
   { icon: 'star',           label: 'Reviews',          href: '/admin/reviews' },
+  { icon: 'mark_email_read', label: 'Email Logs',      href: '/admin/notifications/email-logs' },
+  { icon: 'history',         label: 'Audit Ledger',    href: '/admin/audit' },
   { icon: 'web',            label: 'CMS / Hero',       href: '/admin/homepage' },
-=======
-  { icon: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
-  { icon: 'person', label: 'Users', href: '/admin/users' },
-  { icon: 'store', label: 'Vendors', href: '/admin/vendors' },
-  { icon: 'inventory', label: 'Products', href: '/admin/products' },
-  { icon: 'receipt_long', label: 'Orders', href: '/admin/orders' },
-  { icon: 'chat', label: 'Messages', href: '/messages' },
-  { icon: 'forum', label: 'System Comms', href: '/admin/messages' },
-  { icon: 'how_to_reg', label: 'Vendor KYC', href: '/admin/approvals' },
-  { icon: 'gavel', label: 'Disputes', href: '/admin/disputes' },
-  { icon: 'account_balance', label: 'Escrow', href: '/admin/escrow' },
-  { icon: 'local_shipping', label: 'Shipment Node', href: '/admin/logistics' },
-  { icon: 'payments', label: 'Logistics Earnings', href: '/admin/logistics/earnings' },
-  { icon: 'monitoring', label: 'Analytics', href: '/admin/analytics' },
-  { icon: 'category', label: 'Categories', href: '/admin/categories' },
-  { icon: 'star', label: 'Reviews', href: '/admin/reviews' },
-  { icon: 'mark_email_read', label: 'Email Logs', href: '/admin/notifications/email-logs' },
-  { icon: 'history', label: 'Audit Ledger', href: '/admin/audit' },
-  { icon: 'web', label: 'CMS / Hero', href: '/admin/homepage' },
->>>>>>> aura-import-main
 ];
 
 const LOGISTICS_NAV = [
@@ -74,8 +55,6 @@ const ROLE_CONFIG = {
     accent: '#f20df2',
     plan: 'Pro Vendor',
     icon: 'auto_awesome',
-    statusLabel: 'Platform Status',
-    statusValue: 'Active',
   },
   admin: {
     nav: ADMIN_NAV,
@@ -83,8 +62,6 @@ const ROLE_CONFIG = {
     accent: '#bf34bf',
     plan: 'Admin Access',
     icon: 'shield_with_heart',
-    statusLabel: 'Platform Status',
-    statusValue: 'Critical Secure',
   },
   logistics: {
     nav: LOGISTICS_NAV,
@@ -92,8 +69,6 @@ const ROLE_CONFIG = {
     accent: '#a855f7',
     plan: 'Logistics Ops',
     icon: 'local_shipping',
-    statusLabel: 'Network Health',
-    statusValue: 'Optimal Flow',
   },
 };
 
@@ -104,7 +79,6 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   const router = useRouter();
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.vendor;
 
-  // ── Live unread counts from the centralised hook ──
   const { unreadCount, unreadMessages } = useNotifications();
 
   const handleLogout = () => {
@@ -112,22 +86,19 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
     router.push('/login');
   };
 
-  // Returns the badge count for a nav item (or 0)
   const getBadge = (item) => {
     if (item.badge === 'messages') return unreadMessages;
-    if (item.badge === 'orders')   return unreadCount;        // new order/logistics notifications
+    if (item.badge === 'orders')   return unreadCount;
     return 0;
   };
 
   return (
     <>
-      {/* Backdrop for Mobile */}
       <div 
         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[180] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
-      {/* Sidebar Aside */}
       <aside className={`fixed lg:static inset-y-0 left-0 w-[88vw] max-w-72 lg:w-72 bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[200] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo Area */}
         <div className="p-5 flex items-center justify-between border-b border-[var(--glass-border)] opacity-90">
@@ -144,13 +115,12 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                <p className="text-[7px] font-black tracking-[0.08em] uppercase opacity-50 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>
-          {/* Mobile Close Button */}
           <button onClick={onClose} className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors shrink-0">
             <span className="material-symbols-outlined">close_fullscreen</span>
           </button>
         </div>
 
-        {/* Notification Bell row — always visible at top of sidebar */}
+        {/* Global Notifications */}
         <div className="px-4 py-3 border-b border-[var(--glass-border)] flex items-center gap-3">
           <Link
             href="/notifications"
@@ -158,7 +128,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             className="flex-1 flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent)]/5 transition-all group"
           >
             <span className="material-symbols-outlined text-xl text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors">notifications</span>
-            <span className="font-medium text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Notifications</span>
+            <span className="font-medium text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Signals</span>
             {unreadCount > 0 && (
               <span
                 className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse"
@@ -170,13 +140,8 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
           </Link>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
           {config.nav.map(item => {
-<<<<<<< HEAD
-            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
-            const badge = getBadge(item);
-=======
             const bestMatch = config.nav.reduce((best, current) => {
               if (pathname === current.href || pathname?.startsWith(current.href + '/')) {
                 if (!best || current.href.length > best.href.length) return current;
@@ -184,8 +149,8 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
               return best;
             }, null);
             const isActive = bestMatch?.href === item.href;
+            const badge = getBadge(item);
 
->>>>>>> aura-import-main
             return (
               <Link
                 key={item.href}
@@ -214,7 +179,6 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                 <span className={`font-medium text-sm transition-colors truncate flex-1 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                   {item.label}
                 </span>
-                {/* Badge */}
                 {badge > 0 && (
                   <span
                     className="min-w-[20px] h-5 px-1.5 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
@@ -225,7 +189,8 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                 )}
               </Link>
             );
-          })}{/* Preferences */}
+          })}
+
           <div className="pt-8 pb-2 px-4">
             <p className="text-[10px] tracking-widest text-[var(--text-secondary)] font-bold">Preferences</p>
           </div>
@@ -244,13 +209,11 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
           </button>
         </nav>
 
-        {/* Footer Status */}
         <div className="p-6">
           <div
             className="glass-panel p-4 rounded-xl border border-[var(--glass-border)]"
             style={{ background: `${config.accent}08` }}
           >
-            <p className="text-xs text-[var(--text-secondary)] mb-2">{config.statusLabel}</p>
             <p className="text-sm font-bold text-[var(--text-primary)] flex items-center justify-between">
               {config.plan}
               <span
