@@ -21,7 +21,13 @@
       "purpose": "maskable"
     },
     {
-      "src": "/logo-black.png",
+      "src": "/logo-white.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-white.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -31,6 +37,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/logo-white.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "screenshots": [
@@ -39,14 +51,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Premium Multi-Vendor Discovery"
+      "label": "Aura Standalone for Windows/macOS"
     },
     {
       "src": "/logo-white.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Aura Market Mobile"
+      "label": "Aura Standalone for Mobile"
     }
   ],
   "orientation": "portrait"
