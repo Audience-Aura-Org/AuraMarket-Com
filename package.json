@@ -1,8 +1,8 @@
 {
-  "name": "aura-market-ready",
-  "version": "3.0.0",
+  "name": "aura-market-monorepo",
+  "version": "4.0.0",
   "scripts": {
-    "build": "cd aura-market/web && npm install && npm run build && cd ../.. && (rm -rf .next public standalone || true) && cp -r aura-market/web/.next ./.next && cp -r aura-market/web/public ./public && cp -r aura-market/web/.next/standalone ./standalone && echo 'AURA_SURFACE_BUILD_READY'",
+    "build": "node diagnose.js",
     "start": "node standalone/server.js"
   }
 }
