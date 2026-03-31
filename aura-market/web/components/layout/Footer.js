@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Smartphone, Sparkles, MonitorSmartphone, ShieldCheck, Mail, FileText, Scale } from 'lucide-react';
+// Direct imports to bypass Turbopack Barrel-Cache conflicts
+import { Smartphone } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { MonitorSmartphone } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { Scale } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -110,5 +117,13 @@ export default function Footer() {
         }
       `}</style>
     </footer>
+  );
+}
+
+function Shield({ className }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
   );
 }
