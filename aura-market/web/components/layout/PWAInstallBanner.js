@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, X, Smartphone, Laptop, Sparkles, Zap } from 'lucide-react';
+import { Download, X, Smartphone, Laptop, Sparkles } from 'lucide-react';
 
 export default function PWAInstallBanner() {
   const router = useRouter();
@@ -69,23 +69,23 @@ export default function PWAInstallBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-10 duration-1000 ${isDesktop ? 'bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4' : 'bottom-24 left-0 right-0 px-4'}`}>
+    <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-10 duration-1000 ${isDesktop ? 'bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-8' : 'bottom-24 left-0 right-0 px-5'}`}>
       
-      {/* Premium Poppins Rounded Bar */}
+      {/* Condensed Poppins Rounded Bar */}
       <div 
         onClick={handleInstall}
-        className="group relative h-16 w-full bg-[var(--bg-primary)]/90 backdrop-blur-3xl rounded-[2.5rem] border border-[var(--glass-border)] flex items-center justify-between pl-6 pr-4 cursor-pointer shadow-2xl hover:border-[var(--accent)]/30 transition-all active:scale-[0.98]"
+        className="group relative h-16 w-full bg-[var(--bg-primary)]/95 backdrop-blur-3xl rounded-[2rem] border border-[var(--glass-border)] flex items-center justify-between pl-6 pr-4 cursor-pointer shadow-2xl hover:border-[var(--accent)]/30 transition-all active:scale-[0.98]"
       >
         
         {/* Identity Section */}
         <div className="flex items-center gap-4">
-           <div className="size-10 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-[var(--accent)]/30 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+           <div className="size-10 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-[var(--accent)]/30 transform group-hover:scale-110 transition-all duration-500">
               {isDesktop ? <Laptop className="size-5" /> : <Smartphone className="size-5" />}
            </div>
            <div className="flex flex-col">
-              <h4 className="text-[10px] font-black tracking-[0.25em] text-[var(--accent)] uppercase mb-0.5 leading-none opacity-80 group-hover:opacity-100 transition-opacity">Node Integration</h4>
-              <h2 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase leading-none font-[Poppins,system-ui] flex items-center gap-2">
-                 Join Standalone Aura <Sparkles className="size-3 text-[var(--accent)]" />
+              <h4 className="text-[9px] font-black tracking-[0.2em] text-[var(--accent)] uppercase mb-0.5 leading-none opacity-80 group-hover:opacity-100 transition-opacity">Aura Native</h4>
+              <h2 className="text-xs font-black text-[var(--text-primary)] tracking-tight uppercase leading-none font-[Poppins,system-ui] flex items-center gap-2">
+                 Install Mobile App <Sparkles className="size-3 text-[var(--accent)]" />
               </h2>
            </div>
         </div>
@@ -93,22 +93,22 @@ export default function PWAInstallBanner() {
         {/* Action Controls */}
         <div className="flex items-center gap-2">
            <button 
-              className="px-6 h-10 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[var(--accent)]/25 hover:bg-[var(--accent)]/90 flex items-center gap-2 transition-all group-hover:translate-x-0.5"
+              className="px-6 h-10 rounded-xl bg-[var(--accent)] text-white font-black text-[9px] uppercase tracking-widest shadow-xl shadow-[var(--accent)]/25 hover:bg-[var(--accent)]/90 flex items-center gap-2 transition-all active:scale-95"
            >
-              <Download className="size-3.5" />
+              <Download className="size-3" />
               Get Aura
            </button>
            <button 
              onClick={dismiss}
-             className="size-10 rounded-2xl bg-[var(--text-secondary)]/5 text-[var(--text-secondary)] hover:text-white hover:bg-rose-500/20 transition-all opacity-40 hover:opacity-100 flex items-center justify-center"
+             className="size-10 rounded-xl bg-[var(--text-secondary)]/5 text-[var(--text-secondary)] hover:text-white hover:bg-rose-500/20 transition-all opacity-40 hover:opacity-100 flex items-center justify-center"
            >
-             <X className="size-5" />
+             <X className="size-4" />
            </button>
         </div>
 
         {/* Liquid Shimmer Underlay */}
-        <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none opacity-20">
-           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent -translate-x-full group-hover:animate-[aura-shimmer_3s_infinite_linear]" />
+        <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none opacity-25">
+           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[aura-shimmer_3s_infinite_linear]" />
         </div>
 
       </div>
