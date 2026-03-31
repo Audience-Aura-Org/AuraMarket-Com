@@ -1,9 +1,9 @@
 /**
- * Aura Market — PWA Service Worker v4
+ * Aura Market — PWA Service Worker v6
  * Robust background push handling with redundant notification suppression.
  */
 
-const CACHE_NAME = 'aura-cache-v5'; // Bumped version
+const CACHE_NAME = 'aura-cache-v6'; // Bumped version
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -50,6 +50,7 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
+      // Return cached, but try to fetch in background if not found
       return cached || fetch(event.request).catch(() => null);
     })
   );
@@ -89,16 +90,12 @@ self.addEventListener('push', function (event) {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      // 🚨 DOUBLE NOTIFICATION GUARD
-      // If any tab of our app is currently focused/active, do NOT show a system notification.
-      // The SocketProvider will show a beautiful in-app toast instead.
-      // This ensures the user only gets a system alert when the app is backgrounded or closed.
+      // DOUBLE NOTIFICATION GUARD
       const isFocused = clientList.some(client => client.focused);
       if (isFocused) {
-        console.log('[SW] App is focused. Suppressing system push in favor of in-app toast.');
+        console.log('[SW v6] App focused. Suppressing system push for in-app toast.');
         return null;
       }
-      
       return self.registration.showNotification(data.title || 'Aura Market', options);
     })
   );
@@ -107,7 +104,6 @@ self.addEventListener('push', function (event) {
 // ── Notification Click ────────────────────────────────────────────────────────
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-
   if (event.action === 'close') return;
 
   const urlToOpen = event.notification.data?.url || '/';
