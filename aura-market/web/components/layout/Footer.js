@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Smartphone, Sparkles, MonitorSmartphone, ShieldCheck, Zap } from 'lucide-react';
+import { Smartphone, MonitorSmartphone } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -18,10 +18,10 @@ export default function Footer() {
     <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] py-20 px-8 transition-colors duration-500 relative z-10">
       <div className="max-w-[1400px] mx-auto">
         
-        {/* 4-COLUMN SIGNATURE GRID */}
+        {/* ORIGINAL 4-COLUMN GRID FROM 46fafda */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
           
-          {/* C-01: Logo & Vision */}
+          {/* Logo & Vision */}
           <div className="flex flex-col gap-6 md:col-span-1">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center p-2 shadow-2xl">
@@ -29,68 +29,63 @@ export default function Footer() {
               </div>
               <h2 className="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)]">Aura Market</h2>
             </div>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs opacity-60 italic">
-              Premium multi-vendor ecosystem. Definitive liquid-glass commerce.
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs opacity-60">
+              The premium multi-vendor ecosystem defining the future of commerce through liquid-glass aesthetics.
             </p>
           </div>
 
-          {/* C-02: Discovery Hub & PWA Portal */}
+          {/* Discovery Hub */}
           <div className="flex flex-col gap-6">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] flex items-center gap-2">
-               <Sparkles className="size-3" /> Discover
-            </h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)] opacity-40">Discovery Hub</h3>
             <ul className="flex flex-col gap-4 text-sm font-bold text-[var(--text-secondary)]">
               <li><Link href="/discovery" className="hover:text-[var(--accent)] transition-all">Hub Experience</Link></li>
               <li><Link href="/shop" className="hover:text-[var(--accent)] transition-all">Collections</Link></li>
               <li><Link href="/brands" className="hover:text-[var(--accent)] transition-all">Verified Brands</Link></li>
-              {/* NATIVE PWA Hub LINK */}
+              {/* NATIVE PWA Hub INTEGRATION (SUBTLE) */}
               <li className="pt-2">
-                 <Link href="/onboarding/pwa" className="flex items-center gap-2.5 text-[var(--accent)] group">
-                    <div className="size-7 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center ring-1 ring-[var(--accent)]/20 group-hover:scale-110 transition-all">
-                       <Smartphone className="size-3.5" />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-widest">Get the App</span>
+                 <Link href="/onboarding/pwa" className="flex items-center gap-2 group text-[var(--accent)] opacity-80 hover:opacity-100 transition-opacity">
+                    Get the App <Smartphone className="size-3.5 group-hover:scale-110 transition-transform" />
                  </Link>
               </li>
             </ul>
           </div>
 
-          {/* C-03: Infrastructure & Systems */}
+          {/* Infrastructure */}
           <div className="flex flex-col gap-6">
-             <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-primary)] opacity-40">System Node</h3>
+             <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)] opacity-40">Systems</h3>
              <ul className="flex flex-col gap-4 text-sm font-bold text-[var(--text-secondary)]">
-                <li><Link href="/logistics" className="hover:text-emerald-500 transition-all flex items-center gap-2">Logistics <Zap className="size-3 opacity-20" /></Link></li>
-                <li><Link href="/api-status" className="hover:text-indigo-500 transition-all">Global Stats</Link></li>
-                <li className="opacity-30 italic text-[9px] uppercase tracking-widest pt-2">Android Portal Coming Soon 🚀</li>
+                <li><Link href="/logistics" className="hover:text-emerald-500 transition-all">Logistics Control</Link></li>
+                <li><Link href="/api-status" className="hover:text-indigo-500 transition-all">API Services</Link></li>
+                <li><Link href="/compliance" className="hover:text-rose-500 transition-all">Compliance Node</Link></li>
              </ul>
           </div>
 
-          {/* C-04: Security & Support */}
+          {/* Security Node */}
           <div className="flex flex-col gap-6">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-primary)] opacity-40">Trust Node</h3>
-            <div className="flex flex-col gap-4">
-               <div className="flex items-center gap-3 text-emerald-500 px-4 py-3 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 backdrop-blur-xl">
-                  <Shield className="w-4 h-4" />
-                  <span className="text-[9px] font-black uppercase tracking-widest">E2E Encrypted</span>
-               </div>
-               <Link href="/help" className="text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">Help Center Hub</Link>
+            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)] opacity-40">Secure Hub</h3>
+            <div className="flex items-center gap-2 text-emerald-500 px-4 py-3 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 w-fit">
+               <Shield className="w-4 h-4" />
+               <span className="text-[10px] font-black uppercase tracking-widest">End-to-End Encryption Active</span>
             </div>
           </div>
 
         </div>
 
-        {/* Status Line */}
-        <div className="border-t border-[var(--glass-border)] pt-10 flex flex-col md:flex-row items-center justify-between text-[var(--text-secondary)] gap-8 opacity-50">
+        {/* Global Stats Footer Line */}
+        <div className="border-t border-[var(--glass-border)] pt-10 flex flex-col md:flex-row items-center justify-between text-[var(--text-secondary)] gap-8 opacity-40">
           <p className="text-[10px] font-black uppercase tracking-[0.3em]">
-            © {currentYear} Aura Market.
+            © {currentYear} Aura Market. Designed for Excellence.
           </p>
           <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-widest">
              <div className="flex items-center gap-2">
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-               Optimal
+               Network Status: Optimal
              </div>
              <div className="flex items-center gap-2">
-                <MonitorSmartphone className="size-3.5" /> PWA Hub Active
+                Server: EU-West-Node
+             </div>
+             <div className="flex items-center gap-2">
+                <MonitorSmartphone className="size-3.5" /> STANDALONE SUPPORT
              </div>
           </div>
         </div>

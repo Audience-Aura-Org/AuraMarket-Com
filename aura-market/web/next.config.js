@@ -8,8 +8,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com' },
     ],
   },
-  // Reverting to Stable Profile to resolve compilation issues
-  experimental: {}
+  // Ensure we are on the definitive stable profile for monorepos
+  experimental: {
+     turbopack: {
+        root: '.',
+     },
+  }
 };
 
 export default nextConfig;
