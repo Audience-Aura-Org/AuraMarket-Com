@@ -7,53 +7,62 @@ try {
   const root = process.cwd();
   const webDir = path.join(root, 'aura-market/web');
 
-  // Perform the actual Next.js build
+  // Build the app
   execSync('cd aura-market/web && npm install && npm run build', { stdio: 'inherit' });
 
-  console.log('📦 [2/5] Extraction Phase: Mapping Standalone Artifacts...');
+  console.log('📦 [2/5] Extraction & Stealth Proxying...');
   
-  // Clean start
-  ['server.js', 'node_modules', '.next', 'public'].forEach(f => {
-    if (fs.existsSync(f)) {
-      console.log(`Cleaning old ${f}...`);
-      // Use fs.rmSync if available, otherwise just warn
-      try { fs.rmSync(f, { recursive: true, force: true }); } catch(e) {}
-    }
-  });
-
-  const standalonePath = path.join(webDir, '.next/standalone');
-  if (fs.existsSync(standalonePath)) {
-    console.log('Copying Standalone Brain to Root...');
-    execSync(`cp -rf ${standalonePath}/* .`);
+  // 1. Move the monorepo-level standalone build results to root
+  const rootStandalone = path.join(webDir, '.next/standalone');
+  if (fs.existsSync(rootStandalone)) {
+     console.log('Mirroring Standalone files...');
+     execSync(`cp -rf ${rootStandalone}/* .`);
   }
 
-  // Next.js Monorepo Quirk: It nests the server deep in standalone
-  const nestedAppPath = path.join(root, 'aura-market/web');
-  if (fs.existsSync(nestedAppPath) && fs.existsSync(path.join(nestedAppPath, 'server.js'))) {
-    console.log('Flattening Nested Server Structure...');
-    execSync(`cp -rf ${nestedAppPath}/* .`);
+  // 2. Flatten monorepo structure (find and move internal server.js)
+  const deepStandalone = path.join(webDir, '.next/standalone/aura-market/web');
+  if (fs.existsSync(deepStandalone)) {
+     console.log('Flattening deepest server node...');
+     execSync(`cp -rf ${deepStandalone}/* .`);
   }
 
-  console.log('🖼️ [3/5] Syncing Visual Assets...');
+  // 3. THE STEALTH SWAP: Rename official server and place our Wrapper
+  if (fs.existsSync('server.js')) {
+    console.log('Swapping for Stealth Boost Wrapper...');
+    fs.renameSync('server.js', 'next-server.js');
+    
+    const wrapper = `
+const path = require('path');
+process.env.NODE_ENV = 'production';
+process.env.PORT = process.env.PORT || 3000;
+process.env.HOSTNAME = '0.0.0.0';
+console.log('--- AURA STEALTH SERVER ONLINE ---');
+console.log('📡 Port: ' + process.env.PORT);
+try {
+  require('./next-server.js');
+} catch (err) {
+  console.error('❌ CRASH: ', err);
+  process.exit(1);
+}
+    `;
+    fs.writeFileSync('server.js', wrapper.trim());
+  }
+
+  console.log('🖼️ [3/5] SYNCing Browser Assets...');
   if (!fs.existsSync('.next')) fs.mkdirSync('.next');
   execSync(`cp -rf ${path.join(webDir, '.next/static')} .next/static`);
   execSync(`cp -rf ${path.join(webDir, 'public')} ./public`);
 
-  console.log('🧪 [4/5] Running Self-Diagnostic...');
-  const checkFiles = ['server.js', 'node_modules', '.next/static', 'public'];
-  checkFiles.forEach(f => {
-    if (fs.existsSync(f)) {
-      console.log(`✅ VERIFIED: ${f} is at the surface.`);
-    } else {
-      console.log(`❌ ERROR: ${f} failed to reach the surface.`);
-    }
+  console.log('🧪 [4/5] Self-Diagnostic Status Check...');
+  ['server.js', 'next-server.js', 'node_modules', '.next/static', 'public'].forEach(f => {
+    console.log(`${fs.existsSync(f) ? '✅' : '❌'} ${f}`);
   });
 
-  console.log('🏁 [5/5] --- AURA_FORCE_SYNC_v2_SUCCESS ---');
+  console.log('🏁 [5/5] --- AURA_STEALTH_SUCCESS ---');
   process.exit(0);
 
 } catch (err) {
-  console.error('💥 AURA_FORCE_SYNC_CRITICAL_FAILURE');
+  console.error('💥 FATAL ERROR IN DEPLOYER');
   console.error(err);
   process.exit(1);
 }
