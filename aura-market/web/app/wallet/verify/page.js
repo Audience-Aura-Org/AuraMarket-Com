@@ -203,8 +203,8 @@ export default function WalletVerifyPage() {
   const { user } = useAuthStore();
 
   return (
-    <DashboardLayout role={user?.role || 'customer'}>
-      <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--nav-border)] relative z-10 bg-[var(--nav-bg)] text-[var(--nav-text)]">
+    <DashboardLayout role={user?.role || 'customer'} hideSidebar={true}>
+      <header className="h-20 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--nav-border)] relative z-10 bg-[var(--nav-bg)] text-[var(--nav-text)]">
         <div className="flex items-center gap-3">
           <Wallet className="w-6 h-6 text-[var(--accent)]" />
           <div>
