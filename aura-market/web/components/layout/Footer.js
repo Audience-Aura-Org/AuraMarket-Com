@@ -26,36 +26,36 @@ export default function Footer() {
 
       <div className="max-w-[1400px] mx-auto relative z-10">
         
-        {/* Top Massive Branding & Engagement */}
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-16 md:mb-20 gap-10">
-           <div className="flex flex-col gap-5">
-              <div className="size-14 rounded-3xl bg-black flex items-center justify-center p-3 shadow-2xl ring-1 ring-white/10 group hover:scale-105 transition-all cursor-pointer">
+        {/* Top Branding & Engagement */}
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-10 md:mb-12 gap-6 md:gap-8">
+           <div className="flex flex-col gap-3">
+              <div className="size-10 rounded-xl bg-black flex items-center justify-center p-2 shadow-xl ring-1 ring-white/10 group hover:scale-105 transition-all cursor-pointer">
                  <img src="/logo-white.png" alt="Aura Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-transform group-hover:rotate-6" />
               </div>
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
                 Aura Market
               </h2>
-              <p className="text-sm text-[var(--text-secondary)] max-w-sm opacity-60 italic font-medium leading-relaxed">
-                 The definitive multi-vendor ecosystem. Crafted with absolute precision and world-class liquid-glass aesthetics.
+              <p className="text-xs text-[var(--text-secondary)] max-w-xs opacity-60 italic font-medium leading-snug">
+                 The definitive multi-vendor ecosystem. Crafted with absolute precision.
               </p>
            </div>
 
            {/* Newsletter Hub */}
-           <div className="w-full md:w-[420px] flex flex-col gap-4">
-              <p className="text-[10px] font-black text-[var(--text-primary)] uppercase tracking-[0.3em] opacity-80 flex items-center gap-2">
-                 <Sparkles className="size-3.5 text-[var(--accent)]" /> 
+           <div className="w-full md:w-[340px] flex flex-col gap-2.5">
+              <p className="text-[9px] font-black text-[var(--text-primary)] uppercase tracking-[0.3em] opacity-80 flex items-center gap-2 pl-1">
+                 <Sparkles className="size-3 text-[var(--accent)]" /> 
                  Stay Locked In
               </p>
-              <form className="relative group overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-3xl transition-all focus-within:border-[var(--accent)] hover:border-[var(--glass-border-hover)]" onSubmit={(e) => e.preventDefault()}>
+              <form className="relative group overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-3xl transition-all focus-within:border-[var(--accent)] hover:border-[var(--glass-border-hover)]" onSubmit={(e) => e.preventDefault()}>
                 <input 
                   type="email" 
                   placeholder="Enter secured email..."
-                  className="w-full h-14 pl-5 pr-14 bg-transparent text-sm font-bold outline-none text-[var(--text-primary)] placeholder:opacity-40"
+                  className="w-full h-11 pl-4 pr-12 bg-transparent text-xs font-bold outline-none text-[var(--text-primary)] placeholder:opacity-40"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
-                <button className="absolute right-1.5 top-1.5 bottom-1.5 w-12 rounded-xl flex items-center justify-center bg-[var(--accent)] text-white hover:scale-[0.96] transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95">
-                   <Send className="size-4" />
+                <button className="absolute right-1 top-1 bottom-1 w-10 rounded-lg flex items-center justify-center bg-[var(--accent)] text-white hover:scale-[0.96] transition-all shadow-md shadow-[var(--accent)]/20 active:scale-95">
+                   <Send className="size-3.5" />
                 </button>
               </form>
            </div>
@@ -101,23 +101,23 @@ export default function Footer() {
              </ul>
           </div>
 
-          {/* C-04: High-Fidelity App Card */}
+          {/* C-04: High-Fidelity App Card (50% Mobile) */}
           <div 
-             className="flex flex-col col-span-2 md:col-span-1 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-8 relative overflow-hidden group hover:border-[var(--accent)] transition-all duration-500 cursor-pointer shadow-xl shadow-black/5"
+             className="flex flex-col col-span-1 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-xl rounded-2xl md:rounded-[2rem] p-5 md:p-6 relative overflow-hidden group hover:border-[var(--accent)] transition-all duration-500 cursor-pointer shadow-xl shadow-black/5"
              onClick={() => router.push('/onboarding/pwa')}
           >
-             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 blur-[40px] rounded-full group-hover:bg-[var(--accent)]/20 transition-all duration-700" />
-             <div className="relative z-10 flex flex-col h-full justify-between gap-10">
-                <div className="size-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-white shadow-lg shadow-[var(--accent)]/30 group-hover:scale-110 transition-transform duration-500">
-                   <Smartphone className="size-6" />
+             <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-[var(--accent)]/10 blur-[30px] rounded-full group-hover:bg-[var(--accent)]/20 transition-all duration-700" />
+             <div className="relative z-10 flex flex-col h-full justify-between gap-6 md:gap-8">
+                <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-black border border-white/5 flex items-center justify-center text-[var(--accent)] shadow-lg shadow-[var(--accent)]/20 group-hover:scale-110 transition-transform duration-500 ring-1 ring-[var(--accent)]/10">
+                   <Smartphone className="size-4 md:size-5" />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)]">Standalone Platform</span>
-                   <h4 className="text-2xl font-black text-[var(--text-primary)] leading-none tracking-tight uppercase">
-                     Get App <Sparkles className="inline size-4 text-[var(--accent)] opacity-80 -mt-1" />
+                <div className="flex flex-col gap-1 md:gap-1.5">
+                   <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] opacity-40">Native Hub</span>
+                   <h4 className="text-sm md:text-xl font-black text-[var(--text-primary)] leading-none tracking-tight uppercase flex items-center gap-1.5">
+                     Get App <Sparkles className="size-3 text-[var(--accent)] animate-pulse" />
                    </h4>
-                   <p className="text-xs text-[var(--text-secondary)] opacity-60 font-medium mt-1">
-                     Experience Aura natively.
+                   <p className="text-[10px] md:text-xs text-[var(--text-secondary)] opacity-60 font-medium mt-1 leading-snug">
+                     Install PWA instantly.
                    </p>
                 </div>
              </div>
