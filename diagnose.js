@@ -3,45 +3,57 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 try {
-  console.log('[1/4] Starting Deep Build...');
+  console.log('🚀 [1/5] Initiating Global Build Context...');
   const root = process.cwd();
   const webDir = path.join(root, 'aura-market/web');
 
-  // Build the app
+  // Perform the actual Next.js build
   execSync('cd aura-market/web && npm install && npm run build', { stdio: 'inherit' });
 
-  console.log('[2/4] Constructing Atomic Runtime...');
+  console.log('📦 [2/5] Extraction Phase: Mapping Standalone Artifacts...');
   
-  // 1. Copy the "Brain" (global node_modules of the standalone build)
-  const rootStandalone = path.join(webDir, '.next/standalone');
-  if (fs.existsSync(rootStandalone)) {
-     console.log('Pushing standalone brain to root...');
-     execSync(`cp -rn ${rootStandalone}/* .`); // r=recursive, n=no-overwrite if exists
+  // Clean start
+  ['server.js', 'node_modules', '.next', 'public'].forEach(f => {
+    if (fs.existsSync(f)) {
+      console.log(`Cleaning old ${f}...`);
+      // Use fs.rmSync if available, otherwise just warn
+      try { fs.rmSync(f, { recursive: true, force: true }); } catch(e) {}
+    }
+  });
+
+  const standalonePath = path.join(webDir, '.next/standalone');
+  if (fs.existsSync(standalonePath)) {
+    console.log('Copying Standalone Brain to Root...');
+    execSync(`cp -rf ${standalonePath}/* .`);
   }
 
-  // 2. Resolve Monorepo Deep Server (Next.js quirk)
-  const deepStandalone = path.join(webDir, '.next/standalone/aura-market/web');
-  if (fs.existsSync(deepStandalone)) {
-     console.log('Detected Deep Monorepo Server. Flattening...');
-     execSync(`cp -rf ${deepStandalone}/* .`); // f=force overwrite to move server.js to root
+  // Next.js Monorepo Quirk: It nests the server deep in standalone
+  const nestedAppPath = path.join(root, 'aura-market/web');
+  if (fs.existsSync(nestedAppPath) && fs.existsSync(path.join(nestedAppPath, 'server.js'))) {
+    console.log('Flattening Nested Server Structure...');
+    execSync(`cp -rf ${nestedAppPath}/* .`);
   }
 
-  console.log('[3/4] SYNCing Assets...');
+  console.log('🖼️ [3/5] Syncing Visual Assets...');
   if (!fs.existsSync('.next')) fs.mkdirSync('.next');
   execSync(`cp -rf ${path.join(webDir, '.next/static')} .next/static`);
-  execSync(`cp -rf ${path.join(webDir, 'public')} .`);
+  execSync(`cp -rf ${path.join(webDir, 'public')} ./public`);
 
-  console.log('[4/4] Final Verification...');
-  if (fs.existsSync('server.js')) {
-    console.log('--- AURA_FULL_BRAIN_READY ---');
-  } else {
-    throw new Error('Fatal: server.js not found at surface.');
-  }
+  console.log('🧪 [4/5] Running Self-Diagnostic...');
+  const checkFiles = ['server.js', 'node_modules', '.next/static', 'public'];
+  checkFiles.forEach(f => {
+    if (fs.existsSync(f)) {
+      console.log(`✅ VERIFIED: ${f} is at the surface.`);
+    } else {
+      console.log(`❌ ERROR: ${f} failed to reach the surface.`);
+    }
+  });
 
+  console.log('🏁 [5/5] --- AURA_FORCE_SYNC_v2_SUCCESS ---');
   process.exit(0);
 
 } catch (err) {
-  console.error('--- AURA_DEPLOY_FAILED ---');
+  console.error('💥 AURA_FORCE_SYNC_CRITICAL_FAILURE');
   console.error(err);
   process.exit(1);
 }
