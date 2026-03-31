@@ -17,14 +17,14 @@ export default function Footer() {
   if (!mounted) return null;
 
   return (
-    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] py-24 px-8 transition-colors duration-500 relative z-10 overflow-hidden">
+    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] py-12 md:py-24 px-6 md:px-8 transition-colors duration-500 relative z-10 overflow-hidden">
       <div className="max-w-[1400px] mx-auto">
         
         {/* 4-COLUMN DEFINITIVE BALANCED GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-24 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-16 mb-16 md:mb-24 items-start">
           
           {/* C-01: Identity & Vision */}
-          <div className="flex flex-col gap-8 md:col-span-1 min-h-[280px]">
+          <div className="flex flex-col gap-6 md:gap-8 md:col-span-1 md:min-h-[280px]">
             <div className="flex items-center gap-3">
               <div className="size-11 rounded-2xl bg-black border border-white/10 flex items-center justify-center p-2.5 shadow-2xl">
                  <img src="/logo-white.png" alt="Aura Logo" className="w-full h-full object-contain" />
@@ -41,7 +41,7 @@ export default function Footer() {
           </div>
 
           {/* C-02: Discovery Hub (Balanced) */}
-          <div className="flex flex-col gap-8 min-h-[280px]">
+          <div className="flex flex-col gap-6 md:gap-8 md:min-h-[280px]">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] opacity-40">Discovery</h3>
             <ul className="flex flex-col gap-5 text-sm font-bold text-[var(--text-secondary)]">
               <li><Link href="/discovery" className="hover:text-[var(--accent)] transition-all">Hub Experience</Link></li>
@@ -53,7 +53,7 @@ export default function Footer() {
           </div>
 
           {/* C-03: Legal & Ecosystem (Balanced) */}
-          <div className="flex flex-col gap-8 min-h-[280px]">
+          <div className="flex flex-col gap-6 md:gap-8 md:min-h-[280px]">
              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] opacity-40">Protocols</h3>
              <ul className="flex flex-col gap-5 text-sm font-bold text-[var(--text-secondary)]">
                 <li><Link href="/privacy" className="hover:text-[var(--accent)] transition-all flex items-center gap-3"><ShieldCheck className="size-4 opacity-40" /> Privacy Node</Link></li>
@@ -65,10 +65,10 @@ export default function Footer() {
           </div>
 
           {/* C-04: Security & Engagement Portal (Balanced) */}
-          <div className="flex flex-col gap-8 min-h-[280px]">
+          <div className="flex flex-col gap-6 md:gap-8 md:min-h-[280px]">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] opacity-40">Security Hub</h3>
             
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-6 md:gap-8">
                {/* Subscription Section */}
                <div className="flex flex-col gap-4">
                   <form className="relative group overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-3xl transition-all focus-within:border-[var(--accent)] shadow-sm" onSubmit={(e) => e.preventDefault()}>
@@ -107,7 +107,7 @@ export default function Footer() {
         </div>
 
         {/* Status Line */}
-        <div className="border-t border-[var(--glass-border)] pt-12 flex flex-col md:flex-row items-center justify-between text-[var(--text-secondary)] gap-10 opacity-50">
+        <div className="border-t border-[var(--glass-border)] pt-8 md:pt-12 flex flex-col md:flex-row items-center justify-between text-[var(--text-secondary)] gap-6 md:gap-10 opacity-50">
           <div className="flex flex-col gap-2">
             <p className="text-[10px] font-black uppercase tracking-[0.4em]">
               © {currentYear} Aura Market. Designed for Excellence.
