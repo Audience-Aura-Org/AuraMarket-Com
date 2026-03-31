@@ -1,5 +1,6 @@
 const Cart = require('../models/Cart.model');
 const Product = require('../models/Product.model');
+const Vendor = require('../models/Vendor.model');
 
 // POST /api/cart -> add/update item
 const addToCart = async (req, res, next) => {
@@ -24,7 +25,7 @@ const addToCart = async (req, res, next) => {
     }
     
     // Vendor check via product vendor_id instead of separate query
-    const vendor = await require('../models/Vendor.model').findOne({ user_id: userId }).lean();
+    const vendor = await Vendor.findOne({ user_id: userId }).lean();
     if (vendor && product.vendor_id.toString() === vendor._id.toString()) {
       return res.status(400).json({ 
         success: false, 
@@ -132,7 +133,7 @@ const removeFromCart = async (req, res, next) => {
           } 
         } 
       },
-      { returnDocument: 'after' }
+      { new: true }
     ).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
 
     console.log(`[Cart API] Atomic pull finished. New items count: ${cart?.items?.length || 0}`);
@@ -148,7 +149,7 @@ const clearCart = async (req, res, next) => {
     const cart = await Cart.findOneAndUpdate(
       { user_id: req.user._id },
       { $set: { items: [] } },
-      { returnDocument: 'after', upsert: true }
+      { new: true, upsert: true }
     ).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
 
     res.status(200).json({ success: true, data: { cart } });

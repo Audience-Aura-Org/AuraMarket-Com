@@ -6,7 +6,7 @@ import {
   ShieldCheck, MapPin, CreditCard, ArrowRight, 
   Lock, CheckCircle2, Plus, Loader2, ChevronDown,
   Smartphone, Wallet, ArrowLeft, Gem, AlertCircle,
-  Truck, Package, Info, ShieldAlert, Search
+  Truck, Package, Info, ShieldAlert, Search, X
 } from 'lucide-react';
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
@@ -33,7 +33,8 @@ function CheckoutContent() {
     paymentMethod: 'wallet',
     escrowEnabled: true,
     logistics_company_id: null,
-    quartier: ''
+    quartier: '',
+    eversend: { phone: '', country: 'CM', currency: 'XAF', pinId: '', pin: '' }
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -45,6 +46,7 @@ function CheckoutContent() {
   const [logisticsLoading, setLogisticsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [logisticsOpen, setLogisticsOpen] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [zones, setZones] = useState([]);
   const [compatibleFee, setCompatibleFee] = useState(0);
   const [zoneOpen, setZoneOpen] = useState(false);
@@ -204,12 +206,15 @@ function CheckoutContent() {
   }, [orderId]);
 
   const handlePlaceOrder = async () => {
-    const subtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-    const totalAmount = subtotal + deliveryFee;
+    // Compute amounts from the authoritative sources, not stale state
+    const computedSubtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    const computedDelivery = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
+    const totalAmount = computedSubtotal + computedDelivery;
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
+    const isEversend = formData.paymentMethod === 'eversend';
 
-    if (!isPayOnDelivery && walletBalance < totalAmount) {
+    if (!isPayOnDelivery && !isEversend && walletBalance < totalAmount) {
         toast.error("Insufficient wallet liquidity. Please deposit funds.");
         return;
     }
@@ -253,15 +258,53 @@ function CheckoutContent() {
          }
       }
 
-      for (const id of finalOrderIds) {
-        if (isPayOnDelivery) {
-          continue;
+      if (!isEversend) {
+        for (const id of finalOrderIds) {
+          if (isPayOnDelivery) continue;
+          if (formData.escrowEnabled) {
+            await api.post('/escrow/hold', { order_id: id });
+          } else {
+            await api.post(`/orders/${id}/pay-direct`);
+          }
         }
-        if (formData.escrowEnabled) {
-          await api.post('/escrow/hold', { order_id: id });
-        } else {
-          await api.post(`/orders/${id}/pay-direct`);
+      } else {
+        const evRes = await api.post('/payments/eversend/initialize', {
+           amount: totalAmount,
+           currency: formData.eversend.currency,
+           phone: formData.phone, // Use primary contact
+           country: formData.eversend.country,
+           order_ids: finalOrderIds,
+           redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`
+        });
+
+        if (!evRes.data.success) {
+          throw new Error(evRes.data.message || 'Eversend initialization failed.');
         }
+
+        const { checkout_url, reference, transaction_id } = evRes.data.data;
+        const ref = reference || transaction_id;
+
+        if (checkout_url) {
+          toast.success('Redirecting to secure payment gateway...');
+          window.location.href = checkout_url;
+          return;
+        }
+
+        if (ref) {
+          // If in sandbox mode, skip the verify page and go straight to Step 3 for instant feedback
+          if (ref.startsWith('SBX-')) {
+             toast.success('Sandbox order processed successfully!');
+             cartStore.clearCart();
+             setStep(3);
+             return;
+          }
+          
+          toast.success('Payment request sent to your phone. Please approve to complete.');
+          router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${ref}`);
+          return;
+        }
+
+        throw new Error('No transaction reference returned from payment gateway.');
       }
 
       if (isPayOnDelivery) {
@@ -277,7 +320,7 @@ function CheckoutContent() {
       setStep(3); // Success step
       
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Handshake failed. Protocol rejected the transaction.';
+      const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -287,8 +330,8 @@ function CheckoutContent() {
 
   const matrixItems = order?.products || cartItems;
   const subtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-  const deliveryFee = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
-  const totalAmount = subtotal + deliveryFee;
+  const finalDeliveryFee = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
+  const totalAmount = subtotal + finalDeliveryFee;
 
   // Breakdown vendors and their fees
   const feePerVendor = selectedLogistics && formData.quartier ? (selectedLogistics.quartier_prices?.find(p => p.quartier === formData.quartier)?.price || 0) : 0;
@@ -492,58 +535,103 @@ function CheckoutContent() {
                        </div>
 
                        <div className="pt-4 space-y-4">
-                          <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Security Strategy</label>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                             <button 
-                              onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'wallet'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                             >
-                                <div className="flex items-center justify-between mb-4">
-                                   <div className="flex items-center gap-2">
-                                      <ShieldCheck className={`size-5 ${formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                      <span className="text-[10px] font-black uppercase tracking-tighter">Aura Escrow</span>
-                                   </div>
-                                   {formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                </div>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds locked until you verify order integrity.</p>
-                             </button>
-                             <button 
-                              onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'wallet'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                             >
-                                <div className="flex items-center justify-between mb-4">
-                                   <div className="flex items-center gap-2">
-                                      <CreditCard className={`size-5 ${(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                      <span className="text-[10px] font-black uppercase tracking-tighter">Direct Secure</span>
-                                   </div>
-                                   {(!formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery') && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                </div>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds transfer immediately to the vendor.</p>
-                             </button>
-                             <button
-                              onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'pay_on_delivery'})}
-                              className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'pay_on_delivery' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                             >
-                                <div className="flex items-center justify-between mb-4">
-                                   <div className="flex items-center gap-2">
-                                      <Truck className={`size-5 ${formData.paymentMethod === 'pay_on_delivery' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                      <span className="text-[10px] font-black uppercase tracking-tighter">Pay on Delivery</span>
-                                   </div>
-                                   {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                </div>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Test mode: payment is settled when logistics confirms delivery.</p>
-                             </button>
-                          </div>
-                       </div>
+                           <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Payment Strategy</label>
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <button 
+                               onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'wallet'})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <ShieldCheck className={`size-5 ${formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Aura Escrow</span>
+                                    </div>
+                                    {formData.paymentMethod === 'wallet' && formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds secured in wallet until you verify order.</p>
+                              </button>
 
-                       <button 
-                        onClick={() => setStep(2)}
-                        disabled={!formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
-                        className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
-                       >
-                         Review Matrix & Finalize
-                       </button>
-                    </div>
+                              <button 
+                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Mobile Money / Card</span>
+                                    </div>
+                                    {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct deposit via Eversend secure gateway.</p>
+                              </button>
+
+                              <button 
+                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'wallet'})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' && !formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <CreditCard className={`size-5 ${formData.paymentMethod === 'wallet' && !formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Direct Wallet</span>
+                                    </div>
+                                    {formData.paymentMethod === 'wallet' && !formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Immediate settlement from your Aura Wallet balance.</p>
+                              </button>
+
+                              <button
+                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'pay_on_delivery'})}
+                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'pay_on_delivery' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                              >
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                       <Truck className={`size-5 ${formData.paymentMethod === 'pay_on_delivery' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                       <span className="text-[10px] font-black uppercase tracking-tighter">Pay on Delivery</span>
+                                    </div>
+                                    {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                 </div>
+                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Payment is settled when logistics confirms delivery.</p>
+                              </button>
+                           </div>
+
+                           {formData.paymentMethod === 'eversend' && (
+                              <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                       <label className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
+                                       <input 
+                                          type="text"
+                                          placeholder="+237..."
+                                          value={formData.eversend.phone}
+                                          onChange={e => setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}})}
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black uppercase outline-none focus:border-[var(--accent)] transition-all"
+                                       />
+                                    </div>
+                                    <div className="space-y-2">
+                                       <label className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
+                                       <select 
+                                          value={formData.eversend.currency}
+                                          onChange={e => setFormData({...formData, eversend: {...formData.eversend, currency: e.target.value}})}
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black uppercase outline-none focus:border-[var(--accent)] transition-all"
+                                       >
+                                          <option value="XAF">XAF (Central Africa)</option>
+                                          <option value="NGN">NGN (Nigeria)</option>
+                                          <option value="UGX">UGX (Uganda)</option>
+                                       </select>
+                                    </div>
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+
+                        <button 
+                         onClick={() => setStep(2)}
+                         disabled={!formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
+                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
+                        >
+                          Review Matrix & Finalize
+                        </button>
+                     </div>
                   </div>
                 </section>
               )}

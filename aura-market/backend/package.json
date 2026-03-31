@@ -24,6 +24,7 @@
     "mongoose": "^9.3.0",
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^8.0.2",
     "otplib": "^13.3.0",
     "pdfkit": "^0.17.2",

@@ -177,56 +177,59 @@ const createOrder = async (req, res, next) => {
     session.endSession();
 
     // 7. Background Notifications (non-blocking, post-transaction)
-    setImmediate(async () => {
-      try {
-        const orderWithVendor = order[0].toObject();
-        orderWithVendor.vendor_id = vendor;
+    // Only fire here for physical payments (POD).
+    // All wallet and gateway payments trigger notifications in the settlement logic.
+    if (payment_method === 'pay_on_delivery') {
+      setImmediate(async () => {
+        try {
+          const orderWithVendor = order[0].toObject();
+          orderWithVendor.vendor_id = vendor;
 
-        // Help prevent SMTP connection timeout: Stagger dispatching
-        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+          const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-        // 1. Notify Vendor
-        sendNotification(req.app, vendor.user_id, {
-          title: 'New Order Received',
-          message: `You have received a new order (#${order[0]._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
-          type: 'order_status',
-          metadata: { order_id: order[0]._id, link: '/vendor/orders' },
-          sendEmail: true,
-          emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
-          orderDetails: orderWithVendor,
-          role: 'vendor'
-        });
-
-        // 2. Notify Customer
-        sendNotification(req.app, req.user._id, {
-          title: 'Order Confirmed',
-          message: `Your order #${order[0]._id.toString().slice(-6).toUpperCase()} has been successfully processed and recorded.`,
-          type: 'order_status',
-          metadata: { order_id: order[0]._id, link: `/orders/${order[0]._id}` },
-          sendEmail: true,
-          emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order[0]._id}`,
-          orderDetails: orderWithVendor,
-          role: 'customer'
-        });
-
-        // 3. Notify Logistics Partner
-        if (logisticsCompForNotify) {
-          sendNotification(req.app, logisticsCompForNotify.user_id, {
-            title: 'New Shipment Assigned',
-            message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
-            type: 'system_alert',
-            metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
+          // 1. Notify Vendor
+          sendNotification(req.app, vendor.user_id, {
+            title: 'New Order Received (POD)',
+            message: `New Pay-on-Delivery order (#${order[0]._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
+            type: 'order_status',
+            metadata: { order_id: order[0]._id, link: '/vendor/orders' },
             sendEmail: true,
-            overrideEmail: logisticsCompForNotify.contact_email,
-            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+            emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
             orderDetails: orderWithVendor,
-            role: 'logistics'
+            role: 'vendor'
           });
+
+          // 2. Notify Customer
+          sendNotification(req.app, req.user._id, {
+            title: 'Order Confirmed (POD)',
+            message: `Your Pay-on-Delivery order #${order[0]._id.toString().slice(-6).toUpperCase()} has been successfully recorded.`,
+            type: 'order_status',
+            metadata: { order_id: order[0]._id, link: `/orders/${order[0]._id}` },
+            sendEmail: true,
+            emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order[0]._id}`,
+            orderDetails: orderWithVendor,
+            role: 'customer'
+          });
+
+          // 3. Notify Logistics Partner if applicable
+          if (logisticsCompForNotify) {
+            sendNotification(req.app, logisticsCompForNotify.user_id, {
+              title: 'New Shipment Assigned (POD)',
+              message: `You have new delivery work for Order #${order[0]._id.toString().slice(-6).toUpperCase()}.`,
+              type: 'system_alert',
+              metadata: { order_id: order[0]._id, link: '/logistics/dashboard' },
+              sendEmail: true,
+              overrideEmail: logisticsCompForNotify.contact_email,
+              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+              orderDetails: orderWithVendor,
+              role: 'logistics'
+            });
+          }
+        } catch (bgErr) {
+          console.error('Order notification bg error:', bgErr);
         }
-      } catch (bgErr) {
-        console.error('Order notification bg error:', bgErr);
-      }
-    });
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -637,8 +640,13 @@ const createOrdersFromCart = async (req, res, next) => {
 
     const itemsByVendor = {};
     for (const item of cart.items) {
-      if (!item.product || item.product.status !== 'active') continue;
-      if (item.product.stock < item.quantity) throw new Error(`Insufficient stock for ${item.product.name}`);
+      if (!item.product) continue;
+      
+      // Ensure product is active and has stock
+      if (item.product.status !== 'active') continue;
+      if (item.product.stock < item.quantity) {
+        throw new Error(`Insufficient stock for ${item.product.name}. Available: ${item.product.stock}`);
+      }
       
       const vId = item.product.vendor_id.toString();
       if (!itemsByVendor[vId]) itemsByVendor[vId] = [];
@@ -659,7 +667,7 @@ const createOrdersFromCart = async (req, res, next) => {
     // Determine effective shipping method
     const effective_shipping_method = logistics_company_id ? 'logistics_partner' : (shipping_method || 'vendor_managed');
 
-    // Validate global logistics compatibility if using partner
+    // 1. Group validation for logistics partner if applicable
     if (effective_shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
         const vendorIds = Object.keys(itemsByVendor);
         const firms = await logisticsService.getCompatibleFirms(delivery_quartier, vendorIds);
@@ -670,40 +678,45 @@ const createOrdersFromCart = async (req, res, next) => {
     }
 
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
-
       let subtotal = 0;
       const orderProducts = items.map(it => {
-        subtotal += it.product.price * it.quantity;
+        const itemPrice = it.product.price;
+        subtotal += itemPrice * it.quantity;
+        
         return {
           product_id: it.product._id,
           name: it.product.name,
           quantity: it.quantity,
-          price: it.product.price,
+          price: itemPrice,
           image: it.product.images?.[0]?.url || it.product.images?.[0]
         };
       });
 
-      // Atomically decrement stock and increment purchases
+      // Atomically decrement stock and increment purchases for ALL items in this segment
       for (const it of items) {
-        await Product.findByIdAndUpdate(it.product._id, { $inc: { stock: -it.quantity, purchase_count: it.quantity } }, { session });
+        await Product.findByIdAndUpdate(
+          it.product._id, 
+          { $inc: { stock: -it.quantity, purchase_count: it.quantity } }, 
+          { session, new: true }
+        );
       }
 
       let vendor_shipping_fee = 0;
-      if (shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
+      if (effective_shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
           const fees = await logisticsService.calculateShipmentFees([vendorId], delivery_quartier, logistics_company_id);
           vendor_shipping_fee = fees.totalFee;
       }
 
-      const order = await Order.create([{
+      const orderData = {
         customer_id: req.user._id,
         vendor_id: vendorId,
         products: orderProducts,
         subtotal,
         shipping_fee: vendor_shipping_fee,
         total_amount: subtotal + vendor_shipping_fee,
-        payment_method: payment_method,
-        shipping_method: shipping_method,
-        logistics_company_id: logistics_company_id,
+        payment_method: payment_method || 'wallet',
+        shipping_method: effective_shipping_method,
+        logistics_company_id: logistics_company_id || null,
         shipping_address: {
             ...(shipping_address || {}),
             quartier: delivery_quartier || shipping_address?.quartier,
@@ -714,9 +727,10 @@ const createOrdersFromCart = async (req, res, next) => {
         payment_status: 'pending',
         order_status: 'placed',
         escrow_enabled: escrow_enabled !== undefined ? escrow_enabled : true
-      }], { session });
+      };
 
-      createdOrders.push(order[0]._id);
+      const [newOrder] = await Order.create([orderData], { session });
+      createdOrders.push(newOrder._id);
 
       // Create shipment immediately for non-escrow instant/deferred payments (e.g. POD, Wallet)
       if (
@@ -725,7 +739,7 @@ const createOrdersFromCart = async (req, res, next) => {
         logistics_company_id &&
         delivery_quartier
       ) {
-        await logisticsService.createShipmentsForOrder(order[0], delivery_quartier, logistics_company_id, session);
+        await logisticsService.createShipmentsForOrder(newOrder, delivery_quartier, logistics_company_id, session);
       }
     } // End of itemsByVendor loop
 
@@ -738,69 +752,73 @@ const createOrdersFromCart = async (req, res, next) => {
 
     // ─────────────────────────────────────────────
     // NON-BLOCKING BACKGROUND DISPATCH (Post-Transaction)
+    // Only fire here for physical payments (POD).
+    // All wallet and gateway payments trigger notifications in the settlement logic.
     // ─────────────────────────────────────────────
-    setImmediate(async () => {
-      try {
-        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    if (payment_method === 'pay_on_delivery') {
+      setImmediate(async () => {
+        try {
+          const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-        for (const orderId of createdOrders) {
-          const o = await Order.findById(orderId);
-          if (!o) continue;
+          for (const orderId of createdOrders) {
+            const o = await Order.findById(orderId);
+            if (!o) continue;
 
-          const v = await Vendor.findById(o.vendor_id);
-          const oWithVendor = o.toObject();
-          oWithVendor.vendor_id = v;
+            const v = await Vendor.findById(o.vendor_id);
+            const oWithVendor = o.toObject();
+            oWithVendor.vendor_id = v;
 
-          // 1. Notify Vendor
-          sendNotification(req.app, v.user_id, {
-            title: 'New Order Received',
-            message: `New bulk order segment (#${o._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
-            type: 'order_status',
-            metadata: { order_id: o._id, link: '/vendor/orders' },
-            sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
-            orderDetails: oWithVendor,
-            role: 'vendor'
-          });
+            // 1. Notify Vendor
+            sendNotification(req.app, v.user_id, {
+              title: 'New Order Received (POD)',
+              message: `New bulk order segment (#${o._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
+              type: 'order_status',
+              metadata: { order_id: o._id, link: '/vendor/orders' },
+              sendEmail: true,
+              emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
+              orderDetails: oWithVendor,
+              role: 'vendor'
+            });
 
-          await sleep(500); // 0.5s gap
+            await sleep(500); // 0.5s gap
 
-          // 2. Notify Customer
-          sendNotification(req.app, req.user._id, {
-            title: 'Order Segment Placed',
-            message: `Your order segment #${o._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
-            type: 'order_status',
-            metadata: { order_id: o._id, link: '/orders' },
-            sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
-            orderDetails: oWithVendor,
-            role: 'customer'
-          });
+            // 2. Notify Customer
+            sendNotification(req.app, req.user._id, {
+              title: 'Order Segment Placed (POD)',
+              message: `Your order segment #${o._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
+              type: 'order_status',
+              metadata: { order_id: o._id, link: '/orders' },
+              sendEmail: true,
+              emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
+              orderDetails: oWithVendor,
+              role: 'customer'
+            });
 
-          // 3. Notify Logistics if applicable
-          if (o.shipping_method === 'logistics_partner' && o.logistics_company_id) {
-            const logisticsComp = await LogisticsCompany.findById(o.logistics_company_id);
-            if (logisticsComp) {
-              await sleep(500); // 0.5s gap before logistics
-              sendNotification(req.app, logisticsComp.user_id, {
-                title: 'New Shipment Assigned',
-                message: `You have new delivery work for Order #${o._id.toString().slice(-6).toUpperCase()}.`,
-                type: 'system_alert',
-                metadata: { order_id: o._id, link: '/logistics/dashboard' },
-                sendEmail: true,
-                overrideEmail: logisticsComp.contact_email,
-                emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
-                orderDetails: oWithVendor,
-                role: 'logistics'
-              });
+            // 3. Notify Logistics if applicable
+            if (o.shipping_method === 'logistics_partner' && o.logistics_company_id) {
+              const logisticsComp = await LogisticsCompany.findById(o.logistics_company_id);
+              if (logisticsComp) {
+                await sleep(500); // 0.5s gap before logistics
+                sendNotification(req.app, logisticsComp.user_id, {
+                  title: 'New Shipment Assigned (POD)',
+                  message: `You have new delivery work for Order #${o._id.toString().slice(-6).toUpperCase()}.`,
+                  type: 'system_alert',
+                  metadata: { order_id: o._id, link: '/logistics/dashboard' },
+                  sendEmail: true,
+                  overrideEmail: logisticsComp.contact_email,
+                  emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+                  orderDetails: oWithVendor,
+                  role: 'logistics'
+                });
+              }
             }
+            await sleep(500); // 0.5s gap between segments
           }
-          await sleep(500); // 0.5s gap between segments
+        } catch (bgError) {
+          console.error('Checkout bg notification error:', bgError);
         }
-      } catch (bgError) {
-        console.error('Checkout bg notification error:', bgError);
-      }
-    });
+      });
+    }
 
     res.status(201).json({ 
       success: true, 

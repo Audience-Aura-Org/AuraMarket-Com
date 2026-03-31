@@ -20,8 +20,8 @@ const getHomepage = async (req, res, next) => {
     const sections = await HomepageSection.find({
       is_active: true,
       $and: [
-        { $or: [{ scheduled_start: { $lte: now } }, { scheduled_start: null }] },
-        { $or: [{ scheduled_end: { $gte: now } }, { scheduled_end: null }] }
+        { $or: [{ scheduled_start: { $lte: now } }, { scheduled_start: null }, { scheduled_start: { $exists: false } }] },
+        { $or: [{ scheduled_end: { $gte: now } }, { scheduled_end: null }, { scheduled_end: { $exists: false } }] }
       ]
     })
     .sort({ order: 1 })

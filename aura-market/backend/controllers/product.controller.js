@@ -228,6 +228,7 @@ const updateProduct = async (req, res, next) => {
 
     product = await Product.findByIdAndUpdate(req.params.id, { $set: updateData }, { returnDocument: 'after', runValidators: true });
 
+    const vendor = req.vendor;
     const { notifyFollowers } = require('../utils/notifier');
     notifyFollowers(req.app, vendor._id, {
       title: 'Product Inventory Update',

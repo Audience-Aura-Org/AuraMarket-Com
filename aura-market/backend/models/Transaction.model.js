@@ -52,9 +52,30 @@ const TransactionSchema = new mongoose.Schema(
       ref: 'Order',
       default: null, // Only applicable for 'payment', 'refund', 'escrow_release'
     },
+    order_ids: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Order',
+    }], // Support for multiple orders in one payment session
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null, // Flexible additional context
+    },
     gateway_response: {
       type: mongoose.Schema.Types.Mixed,
-      default: null, // To store payload from Paystack/Flutterwave
+      default: null, // Raw payload from Paystack / Eversend / etc.
+    },
+    gateway: {
+      type: String,
+      enum: ['paystack', 'eversend', 'flutterwave', 'wallet', 'manual'],
+      default: 'paystack',
+    },
+    currency: {
+      type: String,
+      default: null, // ISO currency code, e.g. 'XAF', 'NGN', 'UGX'
+    },
+    gateway_transaction_id: {
+      type: String,
+      default: null, // External transaction ID from the payment provider
     },
   },
   {
