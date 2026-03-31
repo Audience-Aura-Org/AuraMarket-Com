@@ -8,6 +8,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com' },
     ],
   },
+  experimental: {
+    // Silence Turbopack root inference warnings in monorepo
+    turbo: {
+      root: '../../',
+    }
+  }
 };
 
 export default nextConfig;
