@@ -10,7 +10,7 @@ const nextConfig = {
   },
   experimental: {
     // Silence Turbopack root inference warnings in monorepo
-    turbo: {
+    turbopack: {
       root: '../../',
     }
   }
