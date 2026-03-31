@@ -103,7 +103,12 @@ api.interceptors.response.use(
     if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
       if (error.response) {
         const status = error.response.status;
-        console.warn(`[API] ${status} Error at ${config.url}: ${error.response.data?.message || 'Check network tab'}`);
+        const message = error.response.data?.message || 'Check network tab';
+        
+        // Silence 401s for guests (it's expected on some routes like /cart)
+        if (status !== 401) {
+          console.warn(`[API] ${status} Error at ${config.url}: ${message}`);
+        }
         
         // Auto-logout on 401 (token expired/invalid) to prevent background 401 loop
         if (status === 401 && typeof window !== 'undefined') {

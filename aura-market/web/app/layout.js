@@ -39,7 +39,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en" className={poppins.variable} data-scroll-behavior="smooth">
       <head>
         <link
           rel="stylesheet"
