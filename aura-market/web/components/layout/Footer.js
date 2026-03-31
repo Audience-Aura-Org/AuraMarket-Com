@@ -3,18 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 // Direct imports for stability
-import { Smartphone } from 'lucide-react';
-import { Sparkles } from 'lucide-react';
-import { MonitorSmartphone } from 'lucide-react';
-import { ShieldCheck } from 'lucide-react';
-import { Mail } from 'lucide-react';
-import { FileText } from 'lucide-react';
-import { Scale } from 'lucide-react';
-import { Zap } from 'lucide-react';
+import { Smartphone, Sparkles, MonitorSmartphone, ShieldCheck, Mail, FileText, Scale, Zap, Send } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [mounted, setMounted] = useState(false);
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -38,22 +32,17 @@ export default function Footer() {
               <h2 className="text-2xl font-black uppercase tracking-tighter text-[var(--text-primary)]">Aura Market</h2>
             </div>
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs opacity-60 italic">
-               Premium Multi-Vendor Ecosystem. The future of commerce wrapped in liquid-glass.
+               The premium multi-vendor ecosystem defining the future of liquid-glass commerce.
             </p>
           </div>
 
-          {/* C-02: Discovery & App Portal */}
+          {/* C-02: Discovery Hub */}
           <div className="flex flex-col gap-8">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] opacity-40">Discovery Hub</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] opacity-40">Discovery</h3>
             <ul className="flex flex-col gap-5 text-sm font-bold text-[var(--text-secondary)]">
               <li><Link href="/discovery" className="hover:text-[var(--accent)] transition-all">Hub Experience</Link></li>
               <li><Link href="/shop" className="hover:text-[var(--accent)] transition-all">Collections</Link></li>
-              <li>
-                 <Link href="/onboarding/pwa" className="flex items-center gap-3 group text-[var(--accent)] hover:opacity-80 transition-all font-black uppercase text-[11px] tracking-widest">
-                    <Smartphone className="size-4 group-hover:scale-110 transition-transform" />
-                    Get Aura App
-                 </Link>
-              </li>
+              <li><Link href="/brands" className="hover:text-[var(--accent)] transition-all">Verified Brands</Link></li>
             </ul>
           </div>
 
@@ -61,29 +50,53 @@ export default function Footer() {
           <div className="flex flex-col gap-8">
              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] opacity-40">Protocols</h3>
              <ul className="flex flex-col gap-5 text-sm font-bold text-[var(--text-secondary)]">
-                <li><Link href="/privacy" className="hover:text-[var(--accent)] transition-all flex items-center gap-3"><ShieldCheck className="size-4 opacity-40 px-0.5" /> Privacy Node</Link></li>
-                <li><Link href="/terms" className="hover:text-[var(--accent)] transition-all flex items-center gap-3"><Scale className="size-4 opacity-40 px-0.5" /> Market Protocol</Link></li>
-                <li><Link href="/subscribe" className="hover:text-[var(--accent)] transition-all flex items-center gap-3"><Mail className="size-4 opacity-40 px-0.5" /> Join Exclusive</Link></li>
+                <li><Link href="/privacy" className="hover:text-[var(--accent)] transition-all flex items-center gap-3"><ShieldCheck className="size-4 opacity-40" /> Privacy Node</Link></li>
+                <li><Link href="/terms" className="hover:text-[var(--accent)] transition-all flex items-center gap-3"><Scale className="size-4 opacity-40" /> Market Protocol</Link></li>
+                <li><Link href="/logistics" className="hover:text-emerald-500 transition-all flex items-center gap-3"><Zap className="size-4 opacity-40" /> Systems Node</Link></li>
              </ul>
           </div>
 
-          {/* C-04: Security & Systems Hub */}
+          {/* C-04: Security & Subscribers Hub (REFACTORED) */}
           <div className="flex flex-col gap-8">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] opacity-40">Security Hub</h3>
-            <div className="flex flex-col gap-6">
-               <ul className="flex flex-col gap-5 text-sm font-bold text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-3 text-emerald-500">
-                    <ShieldCheck className="size-4" /> 
-                    <span className="text-[11px] font-black uppercase tracking-widest leading-none pt-0.5">E2E Encrypted</span>
-                  </li>
-                  <li><Link href="/logistics" className="hover:text-emerald-500 transition-all flex items-center gap-3"><Zap className="size-4 opacity-40 px-0.5" /> Systems Node</Link></li>
-                  <li>
-                    <div className="flex flex-col gap-1.5 pt-2 opacity-30">
-                       <p className="text-[8px] font-black uppercase tracking-[0.4em]">Mobile Launching</p>
-                       <p className="text-[10px] font-bold italic flex items-center gap-2">Android Soon 🚀</p>
-                    </div>
-                  </li>
-               </ul>
+            
+            <div className="flex flex-col gap-8">
+               {/* Subscription Sub-node */}
+               <div className="flex flex-col gap-4">
+                  <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-80">Stay Locked In</p>
+                  <form className="relative group overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-3xl transition-all focus-within:border-[var(--accent)]" onSubmit={(e) => e.preventDefault()}>
+                    <input 
+                      type="email" 
+                      placeholder="secured-email"
+                      className="w-full h-12 pl-4 pr-12 bg-transparent text-xs font-bold outline-none text-white placeholder:opacity-30"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <button className="absolute right-0 top-0 h-full w-12 flex items-center justify-center bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all">
+                       <Send className="size-4" />
+                    </button>
+                  </form>
+               </div>
+
+               {/* App Installation Sub-node */}
+               <div className="flex flex-col gap-4">
+                  <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-80">Get the App</p>
+                  <Link href="/onboarding/pwa" className="flex items-center gap-4 group p-4 rounded-2xl bg-gradient-to-br from-[var(--accent)]/5 to-transparent border border-[var(--glass-border)] hover:border-[var(--accent)]/50 transition-all shadow-xl shadow-[var(--accent)]/5">
+                     <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner ring-1 ring-[var(--accent)]/20 shadow-[var(--accent)]/30">
+                        <Smartphone className="size-5" />
+                     </div>
+                     <div className="flex flex-col">
+                        <span className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)]">Aura PWA Hub</span>
+                        <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest">Install Desktop/iOS</span>
+                     </div>
+                  </Link>
+               </div>
+
+               {/* Network Status Minimal */}
+               <div className="flex items-center gap-3 text-emerald-500 opacity-80 pl-1">
+                  <ShieldCheck className="size-4" /> 
+                  <span className="text-[10px] font-black uppercase tracking-widest">E2E Encrypted Node</span>
+               </div>
             </div>
           </div>
 
@@ -99,7 +112,7 @@ export default function Footer() {
           <div className="flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.4em]">
              <div className="flex items-center gap-2">
                <div className="size-2 bg-emerald-500 rounded-full animate-blink shadow-[0_0_8px_var(--emerald-500)]" />
-               Network Optimal
+               Optimal
              </div>
              <div className="flex items-center gap-3">
                 <MonitorSmartphone className="size-4" /> Standalone Active
