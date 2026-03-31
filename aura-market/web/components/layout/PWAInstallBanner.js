@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, X, Laptop, Smartphone, Sparkles } from 'lucide-react';
+import { Download, X, Smartphone, Laptop, Sparkles, Zap } from 'lucide-react';
 
 export default function PWAInstallBanner() {
   const router = useRouter();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     let timerId;
-    
-    // Prevent showing if already standalone
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     if (isStandalone) {
       setIsVisible(false);
@@ -23,27 +22,22 @@ export default function PWAInstallBanner() {
     const ua = window.navigator.userAgent;
     const isIOSDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setIsIOS(isIOSDevice);
+    setIsDesktop(window.innerWidth > 1024);
 
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      
       const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
       if (!dismissed) {
-        timerId = setTimeout(() => {
-          setIsVisible(true);
-        }, 3000);
+        timerId = setTimeout(() => setIsVisible(true), 3000);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
     if (isIOSDevice) {
        const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
        if (!dismissed) {
-         timerId = setTimeout(() => {
-           setIsVisible(true);
-         }, 3000);
+         timerId = setTimeout(() => setIsVisible(true), 3000);
        }
     }
 
@@ -75,47 +69,52 @@ export default function PWAInstallBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-20 left-0 right-0 z-[250] animate-in fade-in slide-in-from-bottom-5 duration-700 w-full">
+    <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-10 duration-1000 ${isDesktop ? 'bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4' : 'bottom-24 left-0 right-0 px-4'}`}>
       
-      {/* Slim Full-Width Bar */}
+      {/* Premium Poppins Rounded Bar */}
       <div 
         onClick={handleInstall}
-        className="group relative h-12 w-full bg-[var(--bg-primary)]/80 backdrop-blur-3xl border-t border-[var(--glass-border)] flex items-center justify-between px-6 cursor-pointer hover:bg-[var(--accent)]/[0.03] transition-colors"
+        className="group relative h-16 w-full bg-[var(--bg-primary)]/90 backdrop-blur-3xl rounded-[2.5rem] border border-[var(--glass-border)] flex items-center justify-between pl-6 pr-4 cursor-pointer shadow-2xl hover:border-[var(--accent)]/30 transition-all active:scale-[0.98]"
       >
         
-        {/* Left Side: Label */}
-        <div className="flex items-center gap-3 overflow-hidden">
-           <div className="size-6 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shrink-0">
-              <Sparkles className="size-3.5 fill-[var(--accent)]" />
+        {/* Identity Section */}
+        <div className="flex items-center gap-4">
+           <div className="size-10 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-[var(--accent)]/30 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+              {isDesktop ? <Laptop className="size-5" /> : <Smartphone className="size-5" />}
            </div>
-           <p className="text-[10px] font-black text-[var(--text-primary)] tracking-[0.2em] uppercase truncate opacity-70 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Aura Standalone <span className="opacity-40 font-bold mx-2">•</span> Offline & Fast
-           </p>
+           <div className="flex flex-col">
+              <h4 className="text-[10px] font-black tracking-[0.25em] text-[var(--accent)] uppercase mb-0.5 leading-none opacity-80 group-hover:opacity-100 transition-opacity">Node Integration</h4>
+              <h2 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase leading-none font-[Poppins,system-ui] flex items-center gap-2">
+                 Join Standalone Aura <Sparkles className="size-3 text-[var(--accent)]" />
+              </h2>
+           </div>
         </div>
 
-        {/* Right Side: Action + Close */}
-        <div className="flex items-center gap-6">
+        {/* Action Controls */}
+        <div className="flex items-center gap-2">
            <button 
-              className="text-[10px] font-black text-[var(--accent)] tracking-widest uppercase hover:underline flex items-center gap-2 group-hover:scale-105 transition-transform"
+              className="px-6 h-10 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[var(--accent)]/25 hover:bg-[var(--accent)]/90 flex items-center gap-2 transition-all group-hover:translate-x-0.5"
            >
-              <Download className="size-3" />
-              Install Now 🚀
+              <Download className="size-3.5" />
+              Get Aura
            </button>
            <button 
              onClick={dismiss}
-             className="p-1 px-2 rounded-lg hover:bg-[var(--glass-border)] text-[var(--text-secondary)] transition-all opacity-40 hover:opacity-100 border border-transparent hover:border-[var(--glass-border)]"
+             className="size-10 rounded-2xl bg-[var(--text-secondary)]/5 text-[var(--text-secondary)] hover:text-white hover:bg-rose-500/20 transition-all opacity-40 hover:opacity-100 flex items-center justify-center"
            >
-             <X className="size-3.5" />
+             <X className="size-5" />
            </button>
         </div>
 
-        {/* Liquid Shimmer Accent */}
-        <div className="absolute top-0 left-0 h-[1.5px] bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent w-full opacity-40 animate-[shimmer_3s_infinite_linear]" style={{ backgroundSize: '100% 100%' }} />
+        {/* Liquid Shimmer Underlay */}
+        <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none opacity-20">
+           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent -translate-x-full group-hover:animate-[aura-shimmer_3s_infinite_linear]" />
+        </div>
+
       </div>
 
       <style jsx>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
+        @keyframes aura-shimmer {
           100% { transform: translateX(100%); }
         }
       `}</style>
