@@ -10,32 +10,32 @@ try {
   // Build the app
   execSync('cd aura-market/web && npm install && npm run build', { stdio: 'inherit' });
 
-  console.log('[2/4] Constructing Standalone Runtime...');
+  console.log('[2/4] Constructing Atomic Runtime...');
   
-  // 1. Copy the standalone engine (everything inside it)
-  if (fs.existsSync(path.join(webDir, '.next/standalone'))) {
-    // Specifically target the standalone/aura-market/web folder if it exists (Next.js monorepo quirk)
-    const deepStandalone = path.join(webDir, '.next/standalone/aura-market/web');
-    if (fs.existsSync(deepStandalone)) {
-       execSync(`cp -r ${deepStandalone}/* .`);
-    } else {
-       execSync(`cp -r ${path.join(webDir, '.next/standalone')}/* .`);
-    }
+  // 1. Copy the "Brain" (global node_modules of the standalone build)
+  const rootStandalone = path.join(webDir, '.next/standalone');
+  if (fs.existsSync(rootStandalone)) {
+     console.log('Pushing standalone brain to root...');
+     execSync(`cp -rn ${rootStandalone}/* .`); // r=recursive, n=no-overwrite if exists
   }
 
-  console.log('[3/4] SYNCing Browser Assets...');
-  // 2. Mirror .next/static and public (REQUIRED for CSS/Images to work)
-  if (!fs.existsSync('.next')) fs.mkdirSync('.next');
-  execSync(`cp -r ${path.join(webDir, '.next/static')} .next/static`);
-  execSync(`cp -r ${path.join(webDir, 'public')} .`);
+  // 2. Resolve Monorepo Deep Server (Next.js quirk)
+  const deepStandalone = path.join(webDir, '.next/standalone/aura-market/web');
+  if (fs.existsSync(deepStandalone)) {
+     console.log('Detected Deep Monorepo Server. Flattening...');
+     execSync(`cp -rf ${deepStandalone}/* .`); // f=force overwrite to move server.js to root
+  }
 
-  console.log('[4/4] Validating Entry Node...');
+  console.log('[3/4] SYNCing Assets...');
+  if (!fs.existsSync('.next')) fs.mkdirSync('.next');
+  execSync(`cp -rf ${path.join(webDir, '.next/static')} .next/static`);
+  execSync(`cp -rf ${path.join(webDir, 'public')} .`);
+
+  console.log('[4/4] Final Verification...');
   if (fs.existsSync('server.js')) {
-    console.log('--- AURA_ATOMIC_READY ---');
+    console.log('--- AURA_FULL_BRAIN_READY ---');
   } else {
-    console.warn('Warning: server.js not found at surface. Attempting fallback mapping.');
-    // Check if it exists in one of the subdirs and bring it up
-    execSync('find . -name server.js -exec cp {} . \\;');
+    throw new Error('Fatal: server.js not found at surface.');
   }
 
   process.exit(0);
