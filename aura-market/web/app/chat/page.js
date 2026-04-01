@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   Send, Search, MoreVertical, Paperclip, Smile, Image as ImageIcon, 
   ChevronLeft, Check, CheckCheck, User, Package, Clock, ShieldCheck, 
@@ -11,8 +12,12 @@ import api from "@/services/api";
 import socketService from "@/services/socket";
 import { useAuthStore } from "@/hooks/useAuth";
 
-export default function ChatPage() {
+function ChatUI() {
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+  const vendorIdParam = searchParams.get('vendorId');
+  const productIdParam = searchParams.get('productId');
+
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -29,9 +34,8 @@ export default function ChatPage() {
        socketService.connect(user._id);
     }
     
-    // Listen for incoming messages
+    // Listen for events
     socketService.on('receive_message', (msg) => {
-      // Only append if it belongs to the current active chat
       const partnerId = msg.sender_id?._id || msg.sender_id;
       if (activeChat && (partnerId === activeChat.partner?._id)) {
         setMessages(prev => [...prev, msg]);
@@ -40,7 +44,6 @@ export default function ChatPage() {
       fetchChats();
     });
 
-    // Listen for sender echoes
     socketService.on('sent_message_echo', (msg) => {
       const receiverId = msg.receiver_id?._id || msg.receiver_id;
       if (activeChat && (receiverId === activeChat.partner?._id)) {
@@ -50,19 +53,14 @@ export default function ChatPage() {
       fetchChats();
     });
 
-    // Real-time Presence Synchronizer
     socketService.on('user_presence', (data) => {
        const { userId, isOnline, lastSeen } = data;
-       
-       // Update global chat list status
        setChats(prev => prev.map(c => {
           if (c.partner?._id === userId) {
              return { ...c, partner: { ...c.partner, is_online: isOnline, last_seen: lastSeen } };
           }
           return c;
        }));
-
-       // Update active chat header if applicable
        setActiveChat(prev => {
           if (prev?.partner?._id === userId) {
              return { ...prev, partner: { ...prev.partner, is_online: isOnline, last_seen: lastSeen } };
@@ -73,6 +71,42 @@ export default function ChatPage() {
 
     return () => socketService.disconnect();
   }, [activeChat?._id, user?._id]);
+
+  // Handle URL Deep Linking
+  useEffect(() => {
+     if (vendorIdParam && chats.length > 0) {
+        const existing = chats.find(c => c.partner?._id === vendorIdParam);
+        if (existing) {
+           setActiveChat(existing);
+           fetchMessages(vendorIdParam);
+        } else {
+           // Case: New conversation originating from Discovery
+           fetchVendorDetails(vendorIdParam);
+        }
+     }
+  }, [vendorIdParam, chats.length]);
+
+  const fetchVendorDetails = async (id) => {
+     try {
+        const res = await api.get(`/users/${id}`);
+        if (res.data.success) {
+           const vUser = res.data.data.user;
+           setActiveChat({
+              partner: {
+                 _id: vUser._id,
+                 name: vUser.name,
+                 avatar: vUser.avatar || vUser.branding?.logo,
+                 role: vUser.role || 'Vendor',
+                 is_online: vUser.is_online,
+                 last_seen: vUser.last_seen
+              },
+              snippet: "Direct Inquiry from Discovery",
+              date: new Date().toISOString()
+           });
+           setMessages([]);
+        }
+     } catch (err) { console.error("Vendor fetch error:", err); }
+  };
 
   const fetchChats = async () => {
     try {
@@ -135,7 +169,11 @@ export default function ChatPage() {
     if (!newMessage.trim() || !activeChat) return;
     setSending(true);
     try {
-      await api.post('/chat', { receiver_id: activeChat.partner?._id, text: newMessage });
+      await api.post('/chat', { 
+         receiver_id: activeChat.partner?._id, 
+         text: newMessage,
+         product_reference: productIdParam || null
+      });
       setNewMessage("");
     } catch (err) { console.error(err); } finally { setSending(false); }
   };
@@ -151,12 +189,17 @@ export default function ChatPage() {
      return `Last seen ${lastSeen.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  if (loading) return (
+     <div className="h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+        <Activity className="size-12 text-[var(--accent)] animate-pulse" />
+     </div>
+  );
+
   return (
     <div className="h-screen bg-[var(--bg-secondary)] flex overflow-hidden font-sans selection:bg-[var(--accent)]/30">
       
-      {/* Sidebar - WhatsApp Style */}
+      {/* Sidebar */}
       <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-[380px] bg-[var(--bg-primary)] border-r border-[var(--nav-border)] flex-col shrink-0 z-40 transition-all`}>
-        
         <div className="px-5 py-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -168,7 +211,6 @@ export default function ChatPage() {
                </h1>
             </div>
             <div className="flex items-center gap-1">
-              <button className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all"><Search className="size-4" /></button>
               <button className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all"><MoreVertical className="size-4" /></button>
             </div>
           </div>
@@ -225,7 +267,6 @@ export default function ChatPage() {
                   </div>
                </div>
                <div className="flex items-center gap-1">
-                  <button className="p-2 rounded-lg text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all"><Search className="size-4" /></button>
                   <button className="p-2 rounded-lg text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all"><MoreVertical className="size-4" /></button>
                </div>
             </div>
@@ -247,7 +288,6 @@ export default function ChatPage() {
 
             <div className="px-5 py-5 bg-[var(--bg-secondary)] border-t border-[var(--nav-border)]/5">
                <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-3">
-                  <button type="button" className="p-2.5 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shrink-0"><Plus className="size-4.5" /></button>
                   <div className="flex-1 relative">
                     <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Transmission text..." className="w-full h-10 pl-5 pr-12 rounded-full bg-[var(--bg-primary)] border border-[var(--nav-border)] text-[12px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/30 transition-all font-mono" />
                     <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[var(--text-secondary)] opacity-30"><Smile className="size-5" /></button>
@@ -267,4 +307,12 @@ export default function ChatPage() {
       </div>
     </div>
   );
+}
+
+export default function ChatPage() {
+   return (
+      <Suspense fallback={<div className="h-screen bg-[var(--bg-primary)] flex items-center justify-center text-[var(--accent)] font-black uppercase tracking-widest">Calibrating Node...</div>}>
+         <ChatUI />
+      </Suspense>
+   );
 }

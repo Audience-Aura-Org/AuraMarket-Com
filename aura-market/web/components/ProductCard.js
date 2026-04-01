@@ -178,7 +178,7 @@ export default function ProductCard({ product }) {
           
           <div className="flex items-center gap-1.5">
             {user?._id !== vendorUserId && (
-              <Link href={`/messages?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
+              <Link href={`/chat?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
                 <MessageSquare className="size-4" />
               </Link>
             )}

@@ -370,7 +370,7 @@ export default function HubContent() {
 function ChatLink({ chat }) {
    return (
       <Link 
-         href={`/messages?vendorId=${chat.partner._id}`}
+         href={`/chat?vendorId=${chat.partner._id}`}
          className="w-full p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4 hover:border-[var(--accent)]/40 transition-all group relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5"
       >
          <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative shrink-0 flex items-center justify-center">
