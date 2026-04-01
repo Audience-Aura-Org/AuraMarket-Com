@@ -43,6 +43,7 @@ module.exports = {
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Aura Market',
   EVERSEND_CLIENT_ID: process.env.EVERSEND_CLIENT_ID,
   EVERSEND_CLIENT_SECRET: process.env.EVERSEND_CLIENT_SECRET,
+  EVERSEND_WEBHOOK_SECRET: process.env.EVERSEND_WEBHOOK_SECRET,
   EVERSEND_BASE_URL: process.env.EVERSEND_BASE_URL || 'https://api.eversend.co/v1',
 };
 

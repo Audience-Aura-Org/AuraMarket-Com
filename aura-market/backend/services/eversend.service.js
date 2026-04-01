@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
-const { EVERSEND_CLIENT_ID, EVERSEND_CLIENT_SECRET, EVERSEND_BASE_URL } = require('../config/env');
+const { EVERSEND_CLIENT_ID, EVERSEND_CLIENT_SECRET, EVERSEND_WEBHOOK_SECRET, EVERSEND_BASE_URL } = require('../config/env');
 
 // ── In-memory token cache ────────────────────────────────────────────────────
 let _tokenCache = { token: null, expiresAt: 0 };
@@ -131,7 +131,7 @@ const getCollectionStatus = async (transactionId) => {
  */
 const verifyWebhookSignature = (rawBody, signature) => {
   const hash = crypto
-    .createHmac('sha512', EVERSEND_CLIENT_SECRET)
+    .createHmac('sha512', EVERSEND_WEBHOOK_SECRET)
     .update(rawBody)
     .digest('hex');
   return hash === signature;
