@@ -29,6 +29,10 @@ function ChatContent() {
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [draftProduct, setDraftProduct] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const fileInputRef = useRef(null);
   
   const scrollRef = useRef(null);
   const activeChatRef = useRef(null);
@@ -315,10 +319,15 @@ function ChatContent() {
     setNewMessage('');
 
     try {
-      const res = await api.post('/chat', {
-        receiver_id: activeChat._id,
-        text,
-        product_reference: draftProduct ? draftProduct._id : (searchParams.get('productId') || null)
+      const formData = new FormData();
+      formData.append('receiver_id', activeChat._id);
+      formData.append('text', text);
+      if (selectedImage) formData.append('image', selectedImage);
+      if (draftProduct) formData.append('product_reference', draftProduct._id);
+      else if (searchParams.get('productId')) formData.append('product_reference', searchParams.get('productId'));
+
+      const res = await api.post('/chat', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data.success) {
@@ -368,12 +377,12 @@ function ChatContent() {
         <div className="px-6 py-8 flex flex-col gap-6 bg-gradient-to-b from-[var(--bg-primary)] to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
-              <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-none">
+              <h1 className="text-xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-none">
                 Aura<span className="text-[var(--accent)]">Comms</span>
               </h1>
-              <div className="flex items-center gap-2 mt-2">
-                 <div className={`size-2 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_var(--emerald-500)]' : 'bg-red-500'}`} />
-                 <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">System Active</span>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                 <div className={`size-1.5 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_var(--emerald-500)]' : 'bg-red-500'}`} />
+                 <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">System Active</span>
               </div>
             </div>
             <button 
@@ -426,7 +435,7 @@ function ChatContent() {
                     }`}
                   >
                     <div className="relative shrink-0">
-                      <div className="size-14 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
+                      <div className="size-11 rounded-xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                          {chat.partner.branding?.logo || chat.partner.avatar ? (
                            <img src={chat.partner.branding?.logo || chat.partner.avatar} className="size-full object-cover" alt="" />
                          ) : (
@@ -499,26 +508,46 @@ function ChatContent() {
                  </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 relative">
                  <div className="hidden lg:flex items-center gap-8 mr-6 opacity-30 px-6 border-r border-[var(--glass-border)] h-8">
                     <div className="flex flex-col items-center">
                        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-primary)]">Role</span>
                        <span className="text-[10px] font-bold text-[var(--accent)]">{activeChat.role || 'User'}</span>
                     </div>
-                    <div className="flex flex-col items-center">
-                       <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-primary)]">ID</span>
-                       <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">#{activeChat._id.slice(-6)}</span>
-                    </div>
                  </div>
-                 <button className="size-11 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                    <Phone className="size-4.5" />
+                 <button className="size-10 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+                    <Phone className="size-4" />
                  </button>
-                 <button className="size-11 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                    <Video className="size-4.5" />
+                 <button className="size-10 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+                    <Video className="size-4" />
                  </button>
-                 <button className="size-11 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                    <MoreVertical className="size-4.5" />
-                 </button>
+                 <div className="relative">
+                   <button 
+                     onClick={() => setShowMenu(!showMenu)}
+                     className={`size-10 rounded-2xl border flex items-center justify-center transition-all ${showMenu ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg-primary)]/40 border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}
+                   >
+                      <MoreVertical className="size-4" />
+                   </button>
+                   <AnimatePresence>
+                     {showMenu && (
+                       <motion.div 
+                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                         animate={{ opacity: 1, y: 0, scale: 1 }}
+                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                         className="absolute right-0 mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl p-2 z-[100] backdrop-blur-3xl overflow-hidden"
+                       >
+                         <div className="flex flex-col gap-1">
+                            <button className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] rounded-xl transition-all flex items-center gap-2">
+                               <ShieldCheck className="size-3.5" /> Report Node
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] rounded-xl transition-all flex items-center gap-2 text-red-400">
+                               <X className="size-3.5" /> Clear Pipe
+                            </button>
+                         </div>
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
+                 </div>
               </div>
             </header>
 
@@ -568,18 +597,18 @@ function ChatContent() {
                           </div>
                         )}
                         
-                        <div className={`group relative max-w-[85%] md:max-w-[65%] px-6 py-4 rounded-[2rem] text-sm shadow-sm transition-all duration-300 ${
+                        <div className={`group relative max-w-[85%] md:max-w-[70%] px-3 py-1.5 rounded-2xl text-[13px] shadow-sm transition-all duration-300 ${
                           isMe 
-                          ? 'bg-[var(--accent)] text-white border border-[var(--accent)]/20' 
-                          : 'bg-[var(--bg-primary)]/80 backdrop-blur-xl text-[var(--text-primary)] border border-[var(--glass-border)]'
+                          ? 'bg-[var(--accent)] text-white border border-[var(--accent)]/10' 
+                          : 'bg-[var(--bg-primary)]/90 backdrop-blur-xl text-[var(--text-primary)] border border-[var(--glass-border)]'
                         }`}
-                        style={isMe ? { borderBottomRightRadius: '6px' } : { borderBottomLeftRadius: '6px' }}>
-                          <p className="font-bold tracking-tight leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                          <div className={`flex items-center gap-3 mt-3 opacity-50 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <span className="text-[10px] font-black uppercase tracking-tighter">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        style={isMe ? { borderTopRightRadius: '2px' } : { borderTopLeftRadius: '2px' }}>
+                          <p className="font-medium tracking-tight leading-snug whitespace-pre-wrap">{msg.text}</p>
+                          <div className={`flex items-center gap-2 mt-1 opacity-50 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <span className="text-[9px] font-bold uppercase tracking-tight">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             {isMe && (
                               <div className="flex items-center">
-                                {msg.pending ? <Activity className="size-3 animate-pulse" /> : msg.failed ? <X className="size-3 text-red-400" /> : <CheckCheck className="size-3" />}
+                                {msg.pending ? <Activity className="size-2.5 animate-pulse" /> : msg.failed ? <X className="size-2.5 text-red-400" /> : <CheckCheck className="size-2.5" />}
                               </div>
                             )}
                           </div>
@@ -595,53 +624,93 @@ function ChatContent() {
             <div className="px-6 py-8 bg-gradient-to-t from-[var(--bg-secondary)] via-[var(--bg-secondary)]/90 to-transparent relative z-30">
               <form onSubmit={handleSendMessage} className="max-w-[1000px] mx-auto relative group">
                 
+                {/* Image Preview Overlay */}
+                <AnimatePresence>
+                  {imagePreview && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                      className="absolute bottom-full left-0 mb-6 bg-[var(--bg-primary)]/90 border border-[var(--glass-border)] rounded-2xl p-2 shadow-2xl flex items-center gap-3 overflow-hidden"
+                    >
+                       <div className="size-20 rounded-xl overflow-hidden border border-[var(--glass-border)]">
+                          <img src={imagePreview} className="size-full object-cover" />
+                       </div>
+                       <button 
+                         type="button"
+                         onClick={() => { setSelectedImage(null); setImagePreview(null); }}
+                         className="size-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all mr-2"
+                       >
+                          <X className="size-4" />
+                       </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Draft Product Indicator */}
                 <AnimatePresence>
                   {draftProduct && (
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                      className="absolute bottom-full left-0 right-0 mb-6 bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--accent)]/30 rounded-[2.5rem] p-4 flex items-center gap-5 shadow-2xl"
+                      className="absolute bottom-full left-0 right-0 mb-6 bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--accent)]/30 rounded-2xl p-3 flex items-center gap-4 shadow-2xl"
                     >
-                      <div className="size-16 rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0">
-                         {draftProduct.images?.[0] ? <img src={draftProduct.images[0].url || draftProduct.images[0]} className="size-full object-cover" /> : <Package className="size-6 opacity-20 m-auto h-full" />}
+                      <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0">
+                         {draftProduct.images?.[0] ? <img src={draftProduct.images[0].url || draftProduct.images[0]} className="size-full object-cover" /> : <Package className="size-5 opacity-20 m-auto h-full" />}
                       </div>
                       <div className="flex-1">
-                         <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] mb-1 block">Inquiry Protocol Active</span>
-                         <h4 className="text-md font-black text-[var(--text-primary)] uppercase leading-none">{draftProduct.name}</h4>
+                         <span className="text-[9px] font-black uppercase tracking-widest text-[var(--accent)] mb-0.5 block">Inquiry Protocol Active</span>
+                         <h4 className="text-xs font-black text-[var(--text-primary)] uppercase leading-none">{draftProduct.name}</h4>
                       </div>
                       <button 
                          type="button"
                          onClick={() => setDraftProduct(null)} 
-                         className="size-12 rounded-2xl bg-[var(--bg-secondary)] text-red-400 hover:bg-red-400/10 border border-[var(--glass-border)] transition-all flex items-center justify-center shrink-0"
+                         className="size-10 rounded-xl bg-[var(--bg-secondary)] text-red-400 hover:bg-red-400/10 border border-[var(--glass-border)] transition-all flex items-center justify-center shrink-0"
                       >
-                         <X className="size-5" />
+                         <X className="size-4" />
                       </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                <div className="glass-panel p-2 rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl flex items-center gap-2 group-focus-within:border-[var(--accent)]/50 transition-all duration-500 shadow-2xl">
-                   <div className="flex items-center px-4 gap-4">
-                      <button type="button" className="size-12 rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all flex items-center justify-center"><ImageIcon className="size-5.5" /></button>
-                      <button type="button" className="size-12 rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all flex items-center justify-center"><Smile className="size-5.5" /></button>
+                <div className="glass-panel p-1.5 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl flex items-center gap-2 group-focus-within:border-[var(--accent)]/40 transition-all duration-500 shadow-2xl">
+                   <div className="flex items-center px-2 gap-2">
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                             setSelectedImage(file);
+                             setImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`size-11 rounded-full flex items-center justify-center transition-all ${selectedImage ? 'bg-[var(--accent)] text-white' : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}
+                      >
+                         <ImageIcon className="size-5" />
+                      </button>
+                      <button type="button" className="size-11 rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all flex items-center justify-center"><Smile className="size-5" /></button>
                    </div>
                    
-                   <div className="w-px h-8 bg-[var(--glass-border)] opacity-40 mx-2" />
+                   <div className="w-px h-6 bg-[var(--glass-border)] opacity-30 mx-1" />
 
                    <input 
                       type="text" 
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Node transmission text..." 
-                      className="flex-1 h-14 bg-transparent border-none outline-none px-4 text-sm font-bold text-[var(--text-primary)] placeholder:opacity-30 tracking-tight"
+                      placeholder="Node transmission..." 
+                      className="flex-1 h-12 bg-transparent border-none outline-none px-4 text-xs font-bold text-[var(--text-primary)] placeholder:opacity-30 tracking-tight"
                    />
 
                    <button 
                       type="submit"
-                      disabled={!newMessage.trim() || sending}
-                      className="size-14 rounded-full bg-[var(--accent)] text-white hover:scale-[0.96] active:scale-95 transition-all flex items-center justify-center disabled:opacity-40 shadow-xl shadow-[var(--accent)]/30 shrink-0"
+                      disabled={(!newMessage.trim() && !selectedImage) || sending}
+                      className="size-12 rounded-full bg-[var(--accent)] text-white hover:scale-[0.96] active:scale-95 transition-all flex items-center justify-center disabled:opacity-40 shadow-xl shadow-[var(--accent)]/30 shrink-0"
                    >
-                      {sending ? <Loader2 className="size-6 animate-spin" /> : <Send className="size-6 transform -rotate-12" />}
+                      {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 transform -rotate-12" />}
                    </button>
                 </div>
               </form>
