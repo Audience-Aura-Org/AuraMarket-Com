@@ -1,194 +1,201 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Smartphone, Sparkles, MonitorSmartphone, ShieldCheck, Send, Globe, Command, Zap, Scale, Cpu, Activity, Fingerprint } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { Send, ArrowUpRight, ShieldCheck, Zap } from 'lucide-react';
+
+const NAV = [
+  {
+    label: 'Shop',
+    links: [
+      { name: 'Discovery Hub', href: '/discovery' },
+      { name: 'Collections', href: '/shop' },
+      { name: 'Verified Brands', href: '/brands' },
+      { name: 'Signature Drops', href: '/search' },
+    ],
+  },
+  {
+    label: 'Platform',
+    links: [
+      { name: 'Global Merchants', href: '/vendors' },
+      { name: 'Global Logistics', href: '/logistics' },
+      { name: 'Support Hub', href: '/help' },
+      { name: 'Network Status', href: '/api-status' },
+    ],
+  },
+  {
+    label: 'Legal',
+    links: [
+      { name: 'Privacy Policy', href: '/privacy' },
+      { name: 'Market Rules', href: '/terms' },
+      { name: 'Cookie Policy', href: '/privacy' },
+    ],
+  },
+];
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
+  useEffect(() => { setMounted(true); }, []);
   if (!mounted) return null;
 
-  // Unconditionally destruct Footer on messaging apps regardless of Providers wrapper state
   const isChatPage = pathname?.startsWith('/messages') || pathname?.startsWith('/chat') || pathname?.startsWith('/admin/messages');
   if (isChatPage) return null;
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSubmitted(true);
+    setEmail('');
+    setTimeout(() => setSubmitted(false), 3000);
+  };
+
   return (
-    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] pt-14 pb-10 px-6 md:px-12 lg:px-20 transition-colors duration-500 relative z-10 overflow-hidden">
-      
-      {/* Background layered effects for ultra-premium depth */}
-      <div className="absolute top-0 left-1/4 w-[800px] h-[400px] bg-[var(--accent)]/3 blur-[140px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[600px] h-[300px] bg-indigo-500/3 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-0 left-0 w-full h-full bg-[url('/noise.png')] opacity-[0.02] pointer-events-none" />
+    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] relative overflow-hidden transition-colors duration-500">
 
-      <div className="max-w-[1400px] mx-auto relative z-10">
-        
-        {/* Top Branding & Smart Newsletter Hub */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-20 gap-12 lg:gap-20">
-           <div className="flex flex-col gap-5 max-w-lg">
-              <div className="flex items-center gap-4 group cursor-pointer" onClick={() => router.push('/')}>
-                <div className="size-10 rounded-xl bg-black flex items-center justify-center p-2 shadow-2xl ring-1 ring-white/10 transform group-hover:rotate-6 transition-all duration-500">
-                   <img src="/logo-white.png" alt="Aura" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_var(--accent)]" />
-                </div>
-                <div className="flex flex-col">
-                  <h2 className="text-lg md:text-xl font-black uppercase tracking-tighter text-[var(--text-primary)] leading-none">
-                    Aura<span className="text-[var(--accent)]">Market</span>
-                  </h2>
-                  <span className="text-[8px] font-black tracking-[0.4em] text-[var(--accent)] opacity-60 mt-0.5">DEFINITIVE REVISION</span>
-                </div>
-              </div>
-              <p className="text-sm text-[var(--text-secondary)] opacity-70 italic font-medium leading-relaxed">
-                 The world's most precise multi-vendor ecosystem. <br className="hidden md:block" /> Bringing liquid-glass aesthetics to global commerce.
-              </p>
-           </div>
+      {/* Subtle top accent bar */}
+      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
 
-           {/* Newsletter Hub - Signature Design */}
-          <div className="w-full lg:w-[380px] relative">
-              <div className="absolute -top-10 right-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] opacity-0 lg:opacity-100 transform translate-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                 <Activity className="size-3 text-emerald-500" />
-                 <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Nodes Online</span>
+      {/* Main body */}
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-20 py-16">
+
+        {/* ── TOP ROW: Brand left, newsletter right ─────────────────────────── */}
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-0 justify-between mb-16">
+
+          {/* Brand block */}
+          <div className="flex flex-col gap-6 max-w-xs">
+            <button onClick={() => router.push('/')} className="flex items-center gap-3 group w-fit">
+              <div className="size-9 rounded-xl bg-black p-2 ring-1 ring-white/10 group-hover:ring-[var(--accent)]/40 transition-all duration-300 shadow-xl">
+                <img src="/logo-white.png" alt="Aura" className="w-full h-full object-contain" />
               </div>
-              <div className="glass-panel p-5 rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/30 transition-all duration-500">
-                <p className="text-xs font-black text-[var(--text-primary)] mb-4 tracking-widest uppercase flex items-center gap-2">
-                   <Sparkles className="size-3.5 text-[var(--accent)]" /> 
-                   Secure Access Hub
-                </p>
-                <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
-                  <div className="relative flex-1 group">
-                    <input 
-                      type="email" 
-                      placeholder="secured-identity@aura.io"
-                      className="w-full h-12 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] pl-4 pr-4 text-xs font-bold outline-none text-[var(--text-primary)] placeholder:opacity-30 focus:border-[var(--accent)] transition-all"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <button className="h-12 px-6 rounded-xl bg-[var(--accent)] text-white hover:scale-[0.98] transition-all shadow-xl shadow-[var(--accent)]/30 active:scale-95 flex items-center justify-center">
-                     <Send className="size-4" />
-                  </button>
-                </form>
+              <div className="text-left leading-none">
+                <span className="block text-base font-black uppercase tracking-tighter text-[var(--text-primary)]">
+                  Aura<span className="text-[var(--accent)]">Market</span>
+                </span>
+                <span className="block text-[7px] font-bold tracking-[0.35em] text-[var(--text-secondary)] opacity-40 mt-0.5 uppercase">
+                  Definitive Revision
+                </span>
               </div>
-           </div>
+            </button>
+            <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+              The world's most precise multi-vendor ecosystem. Liquid-glass aesthetics for global commerce.
+            </p>
+            {/* Trust badges */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                <Zap className="size-3" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Live</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]">
+                <ShieldCheck className="size-3 text-[var(--accent)]" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Secured</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Newsletter block */}
+          <div className="flex flex-col gap-4 lg:text-right max-w-sm lg:max-w-md w-full">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)] mb-1">Stay in the loop</p>
+              <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tight leading-tight">
+                Early access.<br />Exclusive drops.
+              </h3>
+            </div>
+            {submitted ? (
+              <div className="flex items-center gap-2 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                <ShieldCheck className="size-4 shrink-0" />
+                <span className="text-sm font-bold">You're in. Welcome to Aura.</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="flex-1 h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-4 text-sm font-medium outline-none text-[var(--text-primary)] placeholder:opacity-30 focus:border-[var(--accent)]/50 transition-all min-w-0"
+                />
+                <button
+                  type="submit"
+                  className="h-11 px-5 rounded-xl bg-[var(--accent)] text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shrink-0 hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95"
+                >
+                  <Send className="size-3.5" />
+                  Join
+                </button>
+              </form>
+            )}
+          </div>
         </div>
 
-        <div className="w-full h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent opacity-30 mb-20" />
+        {/* Divider */}
+        <div className="w-full h-px bg-[var(--glass-border)] opacity-60 mb-12" />
 
-        {/* Links & Ecosystem Grid - Liquid Glass Experience */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-12 mb-16">
-          
-          {/* Section 01: Core Nodes */}
-          <div className="flex flex-col gap-8">
-            <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-primary)] opacity-40">
-               <Cpu className="size-3" /> Core Nodes
-            </h3>
-            <ul className="flex flex-col gap-6 text-sm font-bold text-[var(--text-secondary)]">
-              <li><Link href="/discovery" className="hover:text-[var(--accent)] transition-all flex items-center gap-2 group"><div className="size-1 rounded-full bg-[var(--accent)] opacity-0 group-hover:opacity-100 transition-all" /> Hub Experience</Link></li>
-              <li><Link href="/shop" className="hover:text-[var(--accent)] transition-all flex items-center gap-2 group"><div className="size-1 rounded-full bg-[var(--accent)] opacity-0 group-hover:opacity-100 transition-all" /> Collections</Link></li>
-              <li><Link href="/brands" className="hover:text-[var(--accent)] transition-all flex items-center gap-2 group"><div className="size-1 rounded-full bg-[var(--accent)] opacity-0 group-hover:opacity-100 transition-all" /> Verified Brands</Link></li>
-              <li><Link href="/search" className="hover:text-[var(--accent)] transition-all flex items-center gap-2 group"><div className="size-1 rounded-full bg-[var(--accent)] opacity-0 group-hover:opacity-100 transition-all" /> Signature Drops</Link></li>
-            </ul>
-          </div>
+        {/* ── MAIN NAV LINKS + PWA CTA ──────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+          {NAV.map(section => (
+            <div key={section.label} className="flex flex-col gap-4">
+              <h4 className="text-[9px] font-black uppercase tracking-[0.35em] text-[var(--text-secondary)] opacity-40">
+                {section.label}
+              </h4>
+              <ul className="flex flex-col gap-3">
+                {section.links.map(link => (
+                  <li key={link.name}>
+                    <Link
+                      href={link.href}
+                      className="text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors hover:translate-x-0.5 inline-block"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
-          {/* Section 02: Operational Protocols */}
-          <div className="flex flex-col gap-8">
-             <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-primary)] opacity-40">
-                <Fingerprint className="size-3" /> Protocols
-             </h3>
-             <ul className="flex flex-col gap-6 text-sm font-bold text-[var(--text-secondary)]">
-                <li><Link href="/privacy" className="hover:text-[var(--text-primary)] transition-all flex items-center gap-3">
-                   <div className="size-8 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center opacity-40"><ShieldCheck className="size-3.5" /></div>
-                   Privacy Node
-                </Link></li>
-                <li><Link href="/terms" className="hover:text-[var(--text-primary)] transition-all flex items-center gap-3">
-                   <div className="size-8 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center opacity-40"><Scale className="size-3.5" /></div>
-                   Market Rules
-                </Link></li>
-                <li><Link href="/logistics" className="hover:text-emerald-500 transition-all flex items-center gap-3">
-                   <div className="size-8 rounded-lg bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-center text-emerald-500"><Zap className="size-3.5" /></div>
-                   Global Logistics
-                </Link></li>
-             </ul>
-          </div>
-
-          {/* Section 03: Global Grid */}
-          <div className="flex flex-col gap-8">
-             <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-primary)] opacity-40">
-                <Globe className="size-3" /> Global Grid
-             </h3>
-             <ul className="flex flex-col gap-6 text-sm font-bold text-[var(--text-secondary)]">
-                <li><Link href="/vendors" className="hover:text-[var(--text-primary)] transition-all">Global Merchants</Link></li>
-                <li><Link href="/api-status" className="hover:text-[var(--text-primary)] transition-all">Network Status</Link></li>
-                <li><Link href="/help" className="hover:text-[var(--text-primary)] transition-all">Support Hub</Link></li>
-                <li className="flex items-center gap-3 mt-4">
-                   <span className="px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-black uppercase tracking-widest border border-[var(--accent)]/20">Aura v4.0.0</span>
-                   <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_var(--emerald-500)]" />
-                </li>
-             </ul>
-          </div>
-
-          {/* Section 04: PWA Native Card - Refined High-Fidelity */}
-          <div 
-             className="flex flex-col col-span-1 border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-2xl rounded-[2.5rem] p-7 relative overflow-hidden group hover:border-[var(--accent)]/50 transition-all duration-700 cursor-pointer shadow-2xl shadow-black/10"
-             onClick={() => router.push('/onboarding/pwa')}
+          {/* PWA CTA column */}
+          <div
+            onClick={() => router.push('/onboarding/pwa')}
+            className="flex flex-col justify-between p-5 rounded-2xl border border-[var(--glass-border)] hover:border-[var(--accent)]/40 bg-[var(--bg-secondary)]/50 backdrop-blur cursor-pointer group transition-all duration-300 relative overflow-hidden col-span-1"
           >
-             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 blur-[40px] rounded-full group-hover:bg-[var(--accent)]/20 transition-all duration-1000" />
-             <div className="relative z-10 flex flex-col h-full justify-between gap-10">
-                <div className="size-14 rounded-2xl bg-black border border-white/5 flex items-center justify-center text-[var(--accent)] shadow-2xl group-hover:scale-110 transition-transform duration-700 ring-1 ring-[var(--accent)]/20">
-                   <Smartphone className="size-6" />
-                </div>
-                <div className="flex flex-col gap-2">
-                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--accent)]">Standalone</span>
-                   <h4 className="text-xl font-black text-[var(--text-primary)] leading-tight tracking-tighter uppercase">
-                     Redeem Aura <br /> Experience
-                   </h4>
-                   <p className="text-[11px] text-[var(--text-secondary)] opacity-60 font-medium mt-1 leading-snug">
-                     Native identity verification. <br /> Optimal performance.
-                   </p>
-                </div>
-             </div>
-             <div className="absolute bottom-4 right-6 text-[var(--accent)] opacity-20 transform translate-x-4 group-hover:translate-x-0 transition-transform duration-500">
-                <MonitorSmartphone className="size-16" />
-             </div>
-          </div>
-
-        </div>
-
-        {/* Status Line - Definitive Conclusion */}
-        <div className="flex flex-col lg:flex-row items-center justify-between pt-10 border-t border-[var(--glass-border)] text-[var(--text-secondary)] gap-8">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-             <div className="flex items-center gap-3 bg-[var(--bg-secondary)] px-4 py-2 rounded-2xl border border-[var(--glass-border)] shadow-sm">
-               <ShieldCheck className="size-4 text-[var(--accent)]" /> 
-               <span className="text-[10px] font-black uppercase tracking-[0.3em] leading-none pt-0.5 text-[var(--text-primary)]">Secured via Aura ShieldΓäó</span>
-             </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
-               ┬⌐ {currentYear} Aura Global. Definitive Copy.
-             </p>
-          </div>
-          
-          <div className="flex items-center gap-10 text-[9px] font-black uppercase tracking-[0.5em] opacity-50">
-             <Link href="/privacy" className="hover:text-[var(--text-primary)] transition-colors">Privacy</Link>
-             <Link href="/terms" className="hover:text-[var(--text-primary)] transition-colors">Terms</Link>
-             <Link href="/logistics" className="hover:text-[var(--text-primary)] transition-colors">Logistics</Link>
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative z-10">
+              <div className="size-10 rounded-xl bg-black p-2 ring-1 ring-white/10 mb-4 group-hover:ring-[var(--accent)]/30 transition-all">
+                <img src="/logo-white.png" alt="Aura" className="w-full h-full object-contain" />
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--accent)] mb-1">Install App</p>
+              <h5 className="text-sm font-black text-[var(--text-primary)] leading-tight">
+                Aura on your homescreen
+              </h5>
+              <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-1 leading-snug">
+                Fast. Offline-ready. Native feel.
+              </p>
+            </div>
+            <div className="relative z-10 mt-4 flex items-center gap-1 text-[var(--accent)] text-[10px] font-black uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity">
+              Get the app <ArrowUpRight className="size-3" />
+            </div>
           </div>
         </div>
-        
+
+        {/* ── BOTTOM BAR ──────────────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-[var(--glass-border)]">
+          <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
+            © {currentYear} Aura Global. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6 text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
+            <Link href="/privacy" className="hover:opacity-100 transition-opacity">Privacy</Link>
+            <Link href="/terms" className="hover:opacity-100 transition-opacity">Terms</Link>
+            <Link href="/logistics" className="hover:opacity-100 transition-opacity">Logistics</Link>
+            <span className="px-2 py-0.5 rounded-full border border-[var(--glass-border)] text-[var(--accent)] opacity-100 not-italic">v4.0</span>
+          </div>
+        </div>
+
       </div>
-
-      <style jsx>{`
-        @keyframes shine {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(100%); }
-        }
-      `}</style>
     </footer>
   );
 }
