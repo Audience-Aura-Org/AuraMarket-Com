@@ -8,7 +8,7 @@ import {
   CheckCheck, ArrowLeft, Phone, Video,
   ShieldCheck, Loader2, User, Package,
   ExternalLink, X, LayoutGrid, Sparkles,
-  Command, Activity, Zap, Cpu
+  Command, Activity, Zap, Cpu, MonitorSmartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
