@@ -1,219 +1,290 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { 
-  Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, 
-  ChevronLeft, Package, Truck, CreditCard, Tag, RefreshCw
+  Trash2, Plus, Minus, ArrowRight, 
+  ShoppingBag, ShieldCheck, Truck, Tag, 
+  X, Loader2, CheckCircle2, ChevronLeft 
 } from 'lucide-react';
 import api from '@/services/api';
-import { trackAction } from '@/services/tracking';
-import cartStore from '@/services/cartStore';
 
 export default function CartPage() {
-  const router = useRouter();
-  const [items, setItems] = useState([]);
+  const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [promoCode, setPromoCode] = useState("");
-  const [discount, setDiscount] = useState(0);
+  const [couponCode, setCouponCode] = useState('');
+  const [coupon, setCoupon]  = useState(null); 
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
 
-  // Sync with central store
+  // Helper to safely modify global pending count
+  const setPending = (delta) => {
+    if (typeof window !== 'undefined') {
+      window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) + delta);
+    }
+  };
+
+  // Load real cart
   useEffect(() => {
-    const unsub = cartStore.subscribe(({ items: newItems }) => {
-      setItems(newItems);
-      setLoading(false);
-    });
-    cartStore.refresh();
-    return unsub;
+    setLoading(true);
+    api.get('/cart')
+      .then(res => {
+        if (res.data.success && res.data.data.cart?.items && (!window.__AURA_PENDING_CART)) {
+          setCartItems(res.data.data.cart.items.map(item => ({
+            id: item._id || (item.product?._id || item.product),
+            productId: item.product?._id || item.product,
+            name: item.product?.name || 'Product',
+            price: item.product?.price || 0,
+            quantity: item.quantity,
+            image: item.product?.images?.[0]?.url || item.product?.images?.[0] || '',
+            vendor_name: item.product?.vendor_id?.store_name || 'Vendor',
+            vendor_id: item.product?.vendor_id?._id || item.product?.vendor_id || null,
+          })));
+        } else if (!res.data.data.cart?.items) {
+          setCartItems([]);
+        }
+      })
+      .catch(() => {
+        if (!window.__AURA_PENDING_CART) setCartItems([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const updateQuantity = async (itemId, delta) => {
+  const updateCartQty = async (id, delta) => {
+    setPending(1);
+    setCartItems(prev => prev.map(it => it.id === id ? { ...it, quantity: Math.max(1, it.quantity + delta) } : it));
     try {
-      const response = await api.patch('/cart/item', { item_id: itemId, quantity_delta: delta });
-      if (response.data.success) {
-        cartStore.setCart(response.data.data.cart);
+      const res = await api.patch('/cart/item', { item_id: id, quantity_delta: delta });
+      if (res.data?.success) {
+        setPending(-1);
+        if (window.__AURA_PENDING_CART === 0) {
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart: res.data.data.cart } }));
+        }
       }
     } catch (err) {
-      console.error("Update failed:", err);
-      cartStore.refresh();
+      console.error('Failed updating cart item', err);
+      setPending(-1);
     }
   };
 
-  const removeItem = async (itemId) => {
+  const removeCartItem = async (id) => {
+    setPending(1);
+    const prev = cartItems;
+    setCartItems(prevItems => prevItems.filter(i => i.id !== id));
     try {
-      const response = await api.delete('/cart/item', { data: { item_id: itemId } });
-      if (response.data.success) {
-        cartStore.setCart(response.data.data.cart);
+      const res = await api.delete('/cart/item', { data: { item_id: id } });
+      if (res.data?.success) {
+        setPending(-1);
+        if (window.__AURA_PENDING_CART === 0) {
+          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart: res.data.data.cart } }));
+        }
       }
     } catch (err) {
-      console.error("Remove failed:", err);
-      cartStore.refresh();
+      console.error('Failed removing cart item', err);
+      setPending(-1);
+      if (window.__AURA_PENDING_CART === 0) setCartItems(prev);
     }
   };
 
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const delivery = subtotal > 0 ? 1500 : 0;
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await api.post('/coupons/apply', { code: couponCode.trim() });
+      if (res.data.success) {
+        setCoupon(res.data.data.coupon);
+      } else {
+        setCouponError(res.data.message || 'Invalid coupon code');
+      }
+    } catch (err) {
+      setCouponError(err.response?.data?.message || 'Could not apply coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => { setCoupon(null); setCouponCode(''); setCouponError(''); };
+
+  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const delivery = 2500;
+  const discount = coupon ? (coupon.type === 'percent' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount) : 0;
   const total = subtotal + delivery - discount;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-        <RefreshCw className="w-10 h-10 text-[var(--accent)] animate-spin opacity-20" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
+      <Loader2 className="w-10 h-10 text-[var(--accent)] animate-spin" />
+    </div>
+  );
 
-  if (items.length === 0) {
+  if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-[var(--bg-secondary)] py-20 px-4">
-        <div className="max-w-md mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
-           <div className="size-24 rounded-full bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center justify-center mx-auto shadow-2xl">
-             <ShoppingBag className="w-10 h-10 text-[var(--accent)]/30" />
-           </div>
-           <div className="space-y-3">
-             <h1 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tighter italic">Your Stash is Empty</h1>
-             <p className="text-[11px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Intercept products and add them to your protocol</p>
-           </div>
-           <Link 
-             href="/shop" 
-             className="inline-flex items-center gap-2 h-12 px-10 bg-[var(--accent)] text-white rounded-2xl font-black text-[10px] tracking-widest uppercase hover:translate-y-[-2px] transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95"
-           >
-             RETURN TO HUB <ArrowRight className="w-4 h-4" />
-           </Link>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--bg-secondary)] text-[var(--text-primary)]">
+        <div className="size-24 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center mb-6 shadow-lg">
+          <ShoppingBag className="w-10 h-10 text-[var(--text-secondary)]/30" />
         </div>
+        <h1 className="text-2xl sm:text-3xl font-black mb-2 tracking-tight">Your cart is empty</h1>
+        <p className="text-[var(--text-secondary)] mb-8 max-w-xs text-center text-sm">Add products to continue to checkout.</p>
+            <Link href="/shop" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 uppercase">
+               Browse products
+            </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] pb-32">
-      {/* Header Overlay */}
-      <div className="sticky top-0 z-20 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 lg:px-12 py-6">
-         <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-               <button onClick={() => router.back()} className="size-10 rounded-xl hover:bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center transition-all">
-                  <ChevronLeft className="w-5 h-5 text-[var(--text-secondary)]" />
-               </button>
-               <div>
-                  <h1 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter leading-none italic">Cart Protocol</h1>
-                  <p className="text-[10px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mt-1">{items.length} ACTIVE NODES</p>
-               </div>
-            </div>
-            <Link href="/shop" className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest hover:underline decoration-2 underline-offset-4">Continue Discovery</Link>
-         </div>
-      </div>
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500">
+      {/* Background Liquid Effects */}
+      <div className="fixed top-[-10%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-[var(--accent-light)]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-12 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* ITEM LIST */}
-        <div className="lg:col-span-8 space-y-4">
-           {items.map((item) => (
-             <div key={item.id} className="group flex flex-col sm:flex-row gap-6 p-5 rounded-3xl bg-[var(--bg-primary)]/80 backdrop-blur-xl border border-[var(--glass-border)] shadow-md hover:shadow-xl hover:border-[var(--accent)]/30 transition-all duration-500">
-                {/* Thumb */}
-                <div className="relative size-24 sm:size-32 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-inner">
-                   {item.image ? (
-                     <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                   ) : (
-                     <Package className="w-8 h-8 m-auto opacity-10 text-[var(--text-primary)]" />
-                   )}
-                </div>
-
-                {/* Details */}
-                <div className="flex-1 flex flex-col justify-between py-1">
-                   <div>
-                      <div className="flex justify-between items-start mb-2">
-                         <div className="space-y-1">
-                            <h3 className="text-lg font-black text-[var(--text-primary)] uppercase tracking-tight line-clamp-1 group-hover:text-[var(--accent)] transition-colors italic">{item.name}</h3>
-                            <p className="text-[10px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.15em] flex items-center gap-1.5">
-                               <RefreshCw className="w-3 h-3 text-[var(--accent)]" /> {item.vendor_name || 'Verified Aura Node'}
-                            </p>
-                         </div>
-                         <button onClick={() => removeItem(item.id)} className="text-red-500/30 hover:text-red-500 transition-colors p-2 rounded-xl hover:bg-red-500/5 shadow-sm">
-                            <Trash2 className="w-5 h-5" />
-                         </button>
-                      </div>
-                      <p className="text-sm font-black text-[var(--text-primary)]">{item.price.toLocaleString()} XAF</p>
-                   </div>
-
-                   <div className="flex items-center justify-between mt-6">
-                      <div className="flex items-center gap-1 p-1 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-inner">
-                         <button onClick={() => updateQuantity(item.id, -1)} className="size-10 rounded-xl hover:bg-[var(--bg-primary)] flex items-center justify-center transition-all opacity-40 hover:opacity-100"><Minus className="w-4 h-4" /></button>
-                         <span className="w-10 text-center font-black text-[var(--text-primary)]">{item.quantity}</span>
-                         <button onClick={() => updateQuantity(item.id, 1)} className="size-10 rounded-xl hover:bg-[var(--bg-primary)] flex items-center justify-center transition-all opacity-40 hover:opacity-100"><Plus className="w-4 h-4" /></button>
-                      </div>
-                      <p className="text-xl font-black text-[var(--accent)] italic">{(item.price * item.quantity).toLocaleString()} XAF</p>
-                   </div>
-                </div>
-             </div>
-           ))}
+      <main className="w-full px-4 sm:px-6 lg:px-20 py-6 sm:py-8 relative z-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 sm:mb-8">
+          <div>
+            <Link href="/discovery" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[10px] md:text-xs font-black tracking-widest mb-3 md:mb-4 uppercase">
+              <ChevronLeft className="w-3.5 h-3.5" /> Continue Exploring
+            </Link>
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-none text-balance">
+              Your <span className="text-[var(--accent)]">Cart</span>
+            </h1>
+          </div>
+          <div className="px-3 md:px-4 py-1.5 glass-panel rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 flex items-center gap-2 shadow-sm self-start md:self-auto">
+             <span className="size-1.5 md:size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+             <span className="text-[9px] md:text-[11px] font-black tracking-wider text-[var(--text-primary)] uppercase">{cartItems.length} Items</span>
+          </div>
         </div>
 
-        {/* SUMMARY STICKY */}
-        <div className="lg:col-span-4 lg:sticky lg:top-32 space-y-6">
-           <div className="rounded-3xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl border border-[var(--accent)]/20 p-8 shadow-2xl relative overflow-hidden group">
-              {/* Glow Accent */}
-              <div className="absolute -top-24 -right-24 size-48 bg-[var(--accent)]/10 blur-[60px] rounded-full" />
-              
-              <h2 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-[0.3em] mb-8 border-b border-[var(--glass-border)] pb-4 flex items-center gap-2 italic">
-                 <ShieldCheck className="w-4 h-4 text-emerald-500" /> Secure Checkout
-              </h2>
-
-              <div className="space-y-6 mb-8">
-                 <div className="flex justify-between items-center text-[11px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
-                    <span>Subtotal Manifest</span>
-                    <span className="text-[var(--text-primary)] font-mono">{subtotal.toLocaleString()} XAF</span>
-                 </div>
-                 <div className="flex justify-between items-center text-[11px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
-                    <span>Logistics Entry</span>
-                    <span className="text-[var(--text-primary)] font-mono">{delivery.toLocaleString()} XAF</span>
-                 </div>
-                 {discount > 0 && (
-                   <div className="flex justify-between items-center text-[11px] font-black text-emerald-500 uppercase tracking-widest">
-                      <span>Spectral Discount</span>
-                      <span className="font-mono">-{discount.toLocaleString()} XAF</span>
-                   </div>
-                 )}
-                 <div className="pt-6 border-t border-[var(--glass-border)] flex justify-between items-end">
-                    <div>
-                       <p className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.25em] mb-1">Total Payload</p>
-                       <p className="text-3xl font-black text-[var(--text-primary)] tracking-tighter italic">{total.toLocaleString()} XAF</p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+          <div className="lg:col-span-8 space-y-4">
+            {cartItems.map((item, idx) => (
+              <div key={`${item.id || item.productId || item.name}-${idx}`} className="p-3 sm:p-4 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col sm:flex-row gap-3 sm:gap-4 hover:border-[var(--accent)]/30 transition-all duration-300 group glass-panel shadow-sm">
+                <div className="w-full sm:w-28 h-28 sm:h-28 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex-shrink-0 relative">
+                  <img src={item.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-between py-1">
+                  <div>
+                    <div className="flex justify-between items-start mb-1 gap-2">
+                       <h3 className="text-sm sm:text-lg font-black text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
+                       <div className="flex gap-2">
+                         <Link href={`/messages?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm" title="Message vendor">
+                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v7.5A2.25 2.25 0 0 1 19.5 16.5h-7.818a.75.75 0 0 0-.53.22l-3.53 3.53A.75.75 0 0 1 6 19.5v-3a.75.75 0 0 0-.75-.75H4.5A2.25 2.25 0 0 1 2.25 13.5v-7.5A2.25 2.25 0 0 1 4.5 3.75h15A2.25 2.25 0 0 1 21.75 6.75Z" />
+                           </svg>
+                         </Link>
+                         <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
+                       </div>
                     </div>
-                 </div>
+                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-wide mb-3">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
+                    <div className="flex items-center gap-3 bg-[var(--bg-secondary)] p-1.5 px-3 rounded-xl border border-[var(--glass-border)] shadow-inner">
+                      <button onClick={() => updateCartQty(item.id, -1)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4" /></button>
+                      <span className="font-black text-base w-5 text-center">{item.quantity}</span>
+                      <button onClick={() => updateCartQty(item.id, 1)} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"><Plus className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center gap-4 shadow-inner">
+              <div className="size-10 rounded-xl bg-[var(--accent)] flex items-center justify-center text-white shadow-[0_0_20px_rgba(242,13,242,0.25)] flex-shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-black text-[var(--text-primary)] text-sm tracking-tight">Escrow protection</h4>
+                <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">Payment is released only after delivery is confirmed.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 lg:sticky lg:top-32 h-fit">
+            <div className="glass-panel p-4 sm:p-6 lg:p-8 rounded-3xl border border-[var(--glass-border)] shadow-3xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[var(--accent)]/20 transition-all duration-700"></div>
+              
+              <h2 className="text-xl font-black mb-5 uppercase tracking-tight">Order summary</h2>
+              
+              <div className="space-y-4 mb-6">
+                {coupon ? (
+                  <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl animate-in zoom-in-95 duration-300 shadow-sm">
+                    <div className="flex items-center gap-2">
+                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                       <span className="font-black text-emerald-700 text-[10px] tracking-widest uppercase">Code {coupon.code} Active</span>
+                    </div>
+                    <button onClick={removeCoupon} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                       <div className="relative flex-1">
+                         <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
+                         <input
+                           value={couponCode}
+                           onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                           onKeyDown={e => e.key === 'Enter' && applyCoupon()}
+                           placeholder="Promo code"
+                           className="w-full pl-11 pr-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold tracking-wide text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all uppercase shadow-inner"
+                         />
+                       </div>
+                       <button
+                         onClick={applyCoupon}
+                         disabled={couponLoading || !couponCode.trim()}
+                         className="px-5 py-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-black rounded-xl text-[10px] tracking-wider disabled:opacity-50 transition-all uppercase shadow-sm"
+                       >
+                         {couponLoading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" /> : 'Apply'}
+                       </button>
+                    </div>
+                    {couponError && <p className="text-[10px] font-black text-red-500 ml-1 tracking-tighter uppercase">{couponError}</p>}
+                  </div>
+                )}
               </div>
 
-              {/* Promo Input */}
-              <div className="relative mb-8 group">
-                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] opacity-30 group-focus-within:text-[var(--accent)] transition-all" />
-                 <input 
-                   type="text" 
-                   placeholder="VOUCHER PROTOCOL"
-                   className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[10px] font-black tracking-widest uppercase outline-none focus:border-[var(--accent)]/40 transition-all placeholder:opacity-20 shadow-inner"
-                   value={promoCode}
-                   onChange={(e) => setPromoCode(e.target.value)}
-                 />
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
+                  <span>Subtotal</span>
+                  <span className="text-[var(--text-primary)] font-mono font-bold">{subtotal.toLocaleString()} XAF</span>
+                </div>
+                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
+                  <span>Logistics</span>
+                  <span className="text-[var(--text-primary)] font-mono font-bold">{delivery.toLocaleString()} XAF</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-wide uppercase">
+                    <span>Aura Discount</span>
+                    <span className="font-mono font-bold">- {discount.toLocaleString()} XAF</span>
+                  </div>
+                )}
+                <div className="h-px bg-[var(--glass-border)] my-6" />
+                <div className="flex justify-between items-baseline">
+                   <span className="text-xs font-black text-[var(--text-secondary)] tracking-[0.2em] uppercase">Total</span>
+                   <span className="text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">{total.toLocaleString()} XAF</span>
+                </div>
               </div>
 
               <Link 
-                href="/checkout"
-                className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs tracking-[0.2em] uppercase flex items-center justify-center gap-3 hover:translate-y-[-2px] transition-all shadow-2xl shadow-[var(--accent)]/20 active:scale-95 group"
+                href="/checkout" 
+                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.2em] uppercase flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
               >
-                PROCEED TO CHECKOUT <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                Go to checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
-           </div>
 
-           {/* Security Badges */}
-           <div className="flex flex-col gap-4 px-2 italic">
-              <div className="flex items-center gap-3 text-[9px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
-                 <Truck className="w-4 h-4 text-[var(--accent)]" /> Global Freight Network
+              <div className="flex items-center justify-center gap-6 py-4 border-t border-[var(--glass-border)]">
+                <div className="flex items-center gap-2 text-[8px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
+                   <Truck className="w-3 h-3 text-[var(--accent)]" /> Aura Node
+                </div>
+                <div className="size-1 rounded-full bg-[var(--glass-border)]"></div>
+                <div className="flex items-center gap-2 text-[8px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
+                   <ShieldCheck className="w-3 h-3 text-emerald-500" /> Secure
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-[9px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
-                 <CreditCard className="w-4 h-4 text-emerald-500" /> End-to-End Encryption
-              </div>
-           </div>
+            </div>
+          </div>
         </div>
-
-      </div>
+      </main>
     </div>
   );
 }

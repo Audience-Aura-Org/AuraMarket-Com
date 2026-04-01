@@ -24,12 +24,12 @@ export default function SocketProvider({ children }) {
   // Toast states
   const [chatToast, setChatToast] = useState(null);
   const [notifToast, setNotifToast] = useState(null);
-  // cartToast removed as feedback is now handled via CartSidebar
+  const [cartToast, setCartToast] = useState(null);
 
   // Timers
   const chatToastTimer = useRef(null);
   const notifToastTimer = useRef(null);
-  // cartToastTimer removed
+  const cartToastTimer = useRef(null);
   const connectedUserId = useRef(null);
 
   useEffect(() => {
@@ -86,7 +86,22 @@ export default function SocketProvider({ children }) {
     };
   }, [user?._id]);
 
-  // Local Cart Added event listener removed -> Handled via CartSidebar subscription
+  // Handle local Cart Added event (browser-side)
+  useEffect(() => {
+    const handleCartItemAdded = (e) => {
+      const { name, image } = e.detail || {};
+      setCartToast({ 
+        id: Date.now(), 
+        name: name || 'Item added to stack', 
+        image: image || null 
+      });
+      if (cartToastTimer.current) clearTimeout(cartToastTimer.current);
+      cartToastTimer.current = setTimeout(() => setCartToast(null), 4000);
+    };
+
+    window.addEventListener('cart-item-added', handleCartItemAdded);
+    return () => window.removeEventListener('cart-item-added', handleCartItemAdded);
+  }, []);
 
   // Disconnect only on logout
   useEffect(() => {
@@ -189,7 +204,26 @@ export default function SocketProvider({ children }) {
         </div>
       )}
 
-      {/* Cart Item Toast removed */}
+      {/* ─── Cart Item Toast ─────────────────────────────────────────────── */}
+      {cartToast && (
+        <div 
+          className={`fixed z-[9997] max-w-[320px] w-full right-6 bottom-24 md:bottom-auto ${chatToast || notifToast ? 'md:top-40' : 'md:top-6'}`}
+          style={{ animation: 'slideInFromRight 0.3s ease-out' }}
+        >
+          <div
+            onClick={() => { router.push('/cart'); setCartToast(null); }}
+            className="bg-emerald-500/95 backdrop-blur-2xl border border-emerald-400/30 rounded-2xl p-4 shadow-2xl flex items-center gap-4 cursor-pointer hover:scale-[1.02] transition-all group text-white"
+          >
+            <div className="size-12 rounded-xl bg-white/10 shrink-0 border border-white/20 overflow-hidden">
+               {cartToast.image ? <img src={cartToast.image} className="size-full object-cover" /> : <div className="size-full flex items-center justify-center font-black">📦</div>}
+            </div>
+            <div className="flex-1 min-w-0">
+               <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-0.5 leading-none">Added to Stack</p>
+               <p className="text-sm font-bold truncate leading-tight">{cartToast.name}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

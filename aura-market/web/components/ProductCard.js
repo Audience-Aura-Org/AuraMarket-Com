@@ -44,7 +44,19 @@ export default function ProductCard({ product }) {
 
     setAdding(true);
     
-    // Server-side baseline: Only update UI after successful API payload
+    // OPTIMISTIC BROADCAST (Instant UI response)
+    cartStore.addItem(product, 1);
+
+    // Global feedback event (triggers beautiful background notification)
+    if (typeof window !== 'undefined') {
+       window.dispatchEvent(new CustomEvent('cart-item-added', { 
+         detail: { 
+           name: product.name, 
+           image: mainImage 
+         } 
+       }));
+    }
+    
     try {
       const payload = { 
         product_id: productId.toString(), 
@@ -52,15 +64,7 @@ export default function ProductCard({ product }) {
       };
       
       const response = await api.post('/cart', payload);
-      if (response.data?.success) {
-        cartStore.setCart(response.data.data.cart);
-        // Dispatch the visual feedback event for other components
-        if (typeof window !== 'undefined') {
-           window.dispatchEvent(new CustomEvent('cart-item-added', { 
-             detail: { name: product.name, image: mainImage } 
-           }));
-        }
-      }
+      cartStore.setCart(response.data.data.cart);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to add to cart";
       showToast(errorMessage, "error");
@@ -174,7 +178,7 @@ export default function ProductCard({ product }) {
           
           <div className="flex items-center gap-1.5">
             {user?._id !== vendorUserId && (
-              <Link href={`/chat?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
+              <Link href={`/messages?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
                 <MessageSquare className="size-4" />
               </Link>
             )}

@@ -103,7 +103,7 @@ export default function TopNav() {
               alt="Aura Market"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
-            <h1 className="text-md md:text-lg font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
+            <h1 className="text-lg md:text-xl font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
               Aura<span className="text-[var(--accent)]">Market</span>
             </h1>
           </Link>
@@ -157,25 +157,14 @@ export default function TopNav() {
           </Link>
 
           <div className="relative group/cart">
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                // If on desktop, toggle sidebar. If mobile, go to /cart
-                if (window.innerWidth >= 1024) {
-                  cartStore.toggleSidebar();
-                } else {
-                  router.push('/cart');
-                }
-              }} 
-              className="relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
-            >
+            <Link href="/cart" className="relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
               <ShoppingCart className="size-5" />
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none">
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
-            </button>
+            </Link>
 
             <div className="absolute right-0 mt-3 w-80 z-50 hidden md:block opacity-0 pointer-events-none group-hover/cart:opacity-100 group-hover/cart:pointer-events-auto transition-all">
               <CartPreview />
