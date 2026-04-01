@@ -16,38 +16,33 @@ import cartStore from '@/services/cartStore';
 
 export default function Providers({ children }) {
   const pathname = usePathname();
-  const [cartCount, setCartCount] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const isMessagesPage = pathname?.startsWith('/messages') || pathname?.startsWith('/chat') || pathname?.startsWith('/admin/messages');
   
-  // Pages where the sidebar should never appear
-  const hiddenRoutes = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat'];
-  const isCartHidden = hiddenRoutes.some(r => pathname?.startsWith(r));
+  // Pages where we want a CLEAN full-page scroll without the sidebars/push logic
+  const isFullFlow = ['/checkout', '/login', '/register', '/onboarding', '/cart'].some(r => pathname?.startsWith(r));
 
-  // Subscribe to cart to know if we should indent the layout for the fixed sidebar
   useEffect(() => {
-    const unsub = cartStore.subscribe(({ count }) => {
-      setCartCount(count);
+    const unsub = cartStore.subscribe(({ isSidebarOpen: open }) => {
+      setIsSidebarOpen(open);
     });
     return unsub;
   }, []);
 
-  // Force clean viewport on messaging apps
+  // Force scroll behavior
   useEffect(() => {
-    if (isMessagesPage) {
+    if (!isFullFlow) {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
       document.documentElement.style.overflow = 'auto';
     }
-    return () => {
-      document.body.style.overflow = 'auto';
-      document.documentElement.style.overflow = 'auto';
-    };
-  }, [isMessagesPage]);
+  }, [pathname, isFullFlow]);
 
-  const showSidebar = !isCartHidden && cartCount > 0;
+  // We push content ONLY on desktop when the sidebar is open and NOT on a full-flow or cart page
+  const shouldPush = isSidebarOpen && !isFullFlow;
 
   return (
     <ThemeProvider>
@@ -55,25 +50,29 @@ export default function Providers({ children }) {
         <PWAInit />
         <PWAInstallBanner />
         <OnboardingWatcher />
-        <TopNav />
         
-        {/* Dynamic layout container */}
-        <div className="flex flex-row w-full min-h-screen">
-          <main 
-            className={`
-              flex-1 flex flex-col min-w-0 transition-all duration-300
-              ${showSidebar ? 'lg:mr-[260px]' : 'lg:mr-0'}
-            `}
-          >
-            {children}
-            {!isMessagesPage && <Footer />}
-          </main>
+        <div className="flex flex-col h-[100dvh] overflow-hidden bg-[var(--bg-secondary)]">
+          <TopNav />
           
-          {/* CartSidebar is now fixed (handled inside its component), but we leave this here for consistency */}
-          <CartSidebar />
+          <div className="flex flex-row flex-1 overflow-hidden relative">
+            <main 
+              id="main-scroll-container" 
+              className={`
+                flex-1 overflow-y-auto flex flex-col relative no-scrollbar transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+                ${shouldPush ? 'lg:mr-[320px]' : 'lg:mr-0'}
+              `}
+            >
+              <div className="flex-1">
+                {children}
+              </div>
+              {!isMessagesPage && <Footer />}
+            </main>
+            
+            <CartSidebar />
+          </div>
+          
+          <BottomNav />
         </div>
-        
-        <BottomNav />
       </SocketProvider>
     </ThemeProvider>
   );
