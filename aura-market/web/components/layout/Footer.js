@@ -4,19 +4,24 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 // Direct imports for stability
 import { Smartphone, Sparkles, MonitorSmartphone, ShieldCheck, Send, Globe, Command, Zap, Scale } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) return null;
+
+  // Unconditionally destruct Footer on messaging apps regardless of Providers wrapper state
+  const isChatPage = pathname?.startsWith('/messages') || pathname?.startsWith('/chat') || pathname?.startsWith('/admin/messages');
+  if (isChatPage) return null;
 
   return (
     <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] pt-20 pb-10 px-6 md:px-12 transition-colors duration-500 relative z-10 overflow-hidden">
