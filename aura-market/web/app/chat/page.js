@@ -297,11 +297,50 @@ function ChatUI() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-[var(--bg-primary)] relative">
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-[var(--bg-primary)] relative overflow-hidden">
              <div className="absolute inset-0 bg-[url('/bg-grid.png')] opacity-[0.02]" />
-             <div className="size-20 rounded-[2rem] bg-gradient-to-tr from-[var(--accent)]/20 to-transparent border border-[var(--accent)]/10 flex items-center justify-center mb-8"><ShieldCheck className="size-8 text-[var(--accent)]" /></div>
-             <h2 className="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-2">Aura Global Protocol</h2>
-             <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-30 max-w-xs uppercase tracking-widest leading-relaxed">Nodes active. Zero-Bloat standard verified.</p>
+             
+             {/* Centered Identity Cluster */}
+             <div className="flex flex-col items-center gap-6 relative z-10">
+                <div className="size-20 rounded-[2.5rem] bg-gradient-to-tr from-[var(--accent)]/20 via-[var(--accent)]/5 to-transparent border border-[var(--glass-border)] flex items-center justify-center p-5 shadow-2xl shadow-[var(--accent)]/10 animate-in zoom-in duration-1000">
+                   <img src="/logo-white.png" className="size-full object-contain filter drop-shadow-[0_0_15px_var(--accent)]" alt="" />
+                </div>
+                
+                <div className="space-y-1">
+                   <h2 className="text-2xl font-black uppercase tracking-[-0.05em] text-[var(--text-primary)] font-[Poppins,sans-serif]">
+                      Aura<span className="text-[var(--accent)]">Market</span>
+                   </h2>
+                   <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--accent)] opacity-80 leading-none">
+                      DEFINITIVE REVISION
+                   </p>
+                </div>
+
+                <div className="max-w-md space-y-1 mt-4">
+                   <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest leading-loose">
+                      The world's most precise multi-vendor ecosystem.
+                   </p>
+                   <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest leading-relaxed">
+                      Bringing liquid-glass aesthetics to global commerce.
+                   </p>
+                </div>
+
+                <div className="flex items-center gap-6 mt-8">
+                   <div className="flex flex-col items-center gap-1.5 grayscale opacity-30 hover:grayscale-0 hover:opacity-100 transition-all cursor-crosshair">
+                      <div className="size-1 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em]">Nodes Online</span>
+                   </div>
+                   <div className="flex flex-col items-center gap-1.5 grayscale opacity-30 hover:grayscale-0 hover:opacity-100 transition-all cursor-crosshair">
+                      <ShieldCheck className="size-3 text-[var(--accent)]" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em]">Secure Access Hub</span>
+                   </div>
+                </div>
+
+                <div className="mt-12 pt-6 border-t border-[var(--glass-border)] w-32 flex justify-center opacity-10">
+                   <span className="text-[6px] font-black uppercase tracking-[0.4em] font-[Poppins,sans-serif]">
+                      secured-identity@aura.io
+                   </span>
+                </div>
+             </div>
           </div>
         )}
       </div>
