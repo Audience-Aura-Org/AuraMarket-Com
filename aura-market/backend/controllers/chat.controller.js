@@ -71,7 +71,7 @@ const getUserInbox = async (req, res, next) => {
     // Populate user identities securely across the aggregated items
     const populatedInbox = await Message.populate(inbox, {
       path: 'latestMessage.sender_id latestMessage.receiver_id',
-      select: 'name avatar role branding',
+      select: 'name avatar role branding is_online last_seen',
       model: 'User', // Required inside Aggregation populates
     });
 
@@ -122,8 +122,8 @@ const sendMessage = async (req, res, next) => {
     // Populate for immediate UI consumption if needed
     const populated = await Message.findById(message._id)
       .populate('product_reference', 'name price images')
-      .populate('sender_id', 'name avatar role branding')
-      .populate('receiver_id', 'name avatar role branding');
+      .populate('sender_id', 'name avatar role branding is_online last_seen')
+      .populate('receiver_id', 'name avatar role branding is_online last_seen');
 
     // Emit socket events for real-time updates across clients
     const io = req.app.get('io');

@@ -141,6 +141,16 @@ const UserSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // ── Presence Tracking ────────────────────────
+    is_online: {
+      type: Boolean,
+      default: false,
+    },
+    last_seen: {
+      type: Date,
+      default: Date.now,
+    },
+
     // ── Password Reset ───────────────────────────
     reset_password_token: String,
     reset_password_expires: Date,
