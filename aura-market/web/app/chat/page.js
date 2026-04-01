@@ -251,34 +251,34 @@ function ChatUI() {
       <div className={`flex-1 flex flex-col bg-[var(--bg-secondary)] relative ${!activeChat && 'hidden md:flex'}`}>
         {activeChat ? (
           <>
-            <div className="h-14 bg-[var(--bg-primary)] border-b border-[var(--nav-border)] flex items-center justify-between px-4 sticky top-0 z-40 backdrop-blur-xl">
-               <div className="flex items-center gap-3">
-                  <button onClick={() => setActiveChat(null)} className="md:hidden p-2 rounded-full text-[var(--text-secondary)]"><ArrowLeft className="size-4" /></button>
-                  <div className="size-9 rounded-xl overflow-hidden border border-[var(--nav-border)] bg-white/5 flex items-center justify-center p-1 shrink-0 shadow-2xl">
+            <div className="h-11 bg-[var(--bg-primary)] border-b border-[var(--nav-border)]/10 flex items-center justify-between px-4 sticky top-0 z-40 backdrop-blur-3xl">
+               <div className="flex items-center gap-2">
+                  <button onClick={() => setActiveChat(null)} className="md:hidden p-1 rounded-full text-[var(--text-secondary)] opacity-50 hover:opacity-100 transition-all"><ArrowLeft className="size-3" /></button>
+                  <div className="size-7 rounded-lg overflow-hidden border border-[var(--nav-border)]/5 bg-white/5 flex items-center justify-center p-1 shrink-0 shadow-lg">
                      <img src={activeChat.partner?.avatar || activeChat.partner?.branding?.logo} className="size-full object-contain" alt="" onError={(e) => { e.target.src = 'https://api.dicebear.com/7.x/initials/svg?seed=' + activeChat.partner?.name; }} />
                   </div>
                   <div className="flex flex-col">
-                    <h2 className="text-[12px] font-black uppercase text-[var(--text-primary)] tracking-tighter leading-none mb-1 font-[Poppins,sans-serif]">{activeChat.partner?.name}</h2>
-                    <div className="flex items-center gap-1.5 opacity-40 font-[Poppins,sans-serif]">
-                       <span className="text-[7px] font-black uppercase tracking-[0.2em]">{activeChat.partner?.role || 'Guest Node'}</span>
-                       <span className="text-[7px] opacity-20">/</span>
-                       <span className="text-[7px] font-black uppercase tracking-[0.15em]">{formatPresence(activeChat.partner)}</span>
+                    <h2 className="text-[11px] font-black uppercase text-[var(--text-primary)] tracking-tight leading-none mb-0.5 font-[Poppins,sans-serif]">{activeChat.partner?.name}</h2>
+                    <div className="flex items-center gap-1 opacity-25 font-[Poppins,sans-serif]">
+                       <span className="text-[6px] font-black uppercase tracking-[0.2em]">{activeChat.partner?.role || 'Guest Node'}</span>
+                       <span className="text-[6px] opacity-20">/</span>
+                       <span className="text-[6px] font-black uppercase tracking-[0.1em]">{formatPresence(activeChat.partner)}</span>
                     </div>
                   </div>
                </div>
-               <div className="flex items-center gap-1">
-                  <button className="p-2 rounded-lg text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all"><MoreVertical className="size-4" /></button>
+               <div className="flex items-center gap-0.5">
+                  <button className="p-1.5 rounded-lg text-[var(--text-secondary)] opacity-20 hover:opacity-100 transition-all"><MoreVertical className="size-3.5" /></button>
                </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[url('/bg-grid.png')] bg-fixed flex flex-col scrollbar-thin scrollbar-thumb-[var(--accent)]/10">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[url('/bg-grid.png')] bg-fixed flex flex-col no-scrollbar">
                {messages.map((msg, idx) => {
                    const isSelf = msg.sender_id?._id === user?._id || msg.sender_id === user?._id;
                    return (
                      <motion.div key={idx} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}>
-                       <div className={`max-w-[85%] md:max-w-[70%] px-4 py-2 rounded-2xl text-[12px] font-black tracking-tight shadow-sm border ${isSelf ? 'bg-[var(--accent)] text-white border-white/10 rounded-tr-none translate-x-2' : 'bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--glass-border)] rounded-tl-none -translate-x-2'}`}>
+                       <div className={`max-w-[85%] md:max-w-[70%] px-3 py-1.5 rounded-xl text-[11px] font-black tracking-tight shadow-sm border ${isSelf ? 'bg-[var(--accent)] text-white border-white/10 rounded-tr-none translate-x-1' : 'bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--nav-border)]/10 rounded-tl-none -translate-x-1'}`}>
                           <p className="leading-relaxed break-words">{msg.text}</p>
-                          <div className={`flex items-center justify-end gap-1 mt-1 opacity-40`}><span className="text-[7px] font-black uppercase">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>{isSelf && <CheckCheck className="size-2.5" />}</div>
+                          <div className={`flex items-center justify-end gap-1 mt-0.5 opacity-30`}><span className="text-[6px] font-black uppercase">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>{isSelf && <CheckCheck className="size-2" />}</div>
                        </div>
                      </motion.div>
                    );
@@ -286,13 +286,24 @@ function ChatUI() {
                <div ref={messagesEndRef} />
             </div>
 
-            <div className="px-5 py-5 bg-[var(--bg-secondary)] border-t border-[var(--nav-border)]/5">
-               <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-3">
-                  <div className="flex-1 relative">
-                    <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Transmission text..." className="w-full h-10 pl-5 pr-12 rounded-full bg-[var(--bg-primary)] border border-[var(--nav-border)] text-[12px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/30 transition-all font-mono" />
-                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[var(--text-secondary)] opacity-30"><Smile className="size-5" /></button>
+            <div className="px-4 py-4 bg-[var(--bg-secondary)] border-t border-[var(--nav-border)]/5">
+               <form onSubmit={handleSendMessage} className="max-w-2xl mx-auto relative group">
+                  <input 
+                    type="text" 
+                    value={newMessage} 
+                    onChange={(e) => setNewMessage(e.target.value)} 
+                    placeholder="Transmission text..." 
+                    className="w-full h-9 pl-5 pr-12 rounded-full bg-[var(--bg-primary)] border border-[var(--nav-border)]/10 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/30 transition-all font-sans" 
+                  />
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                     <button 
+                       type="submit" 
+                       disabled={!newMessage.trim() || sending} 
+                       className="size-7 rounded-full bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/30 flex items-center justify-center active:scale-[0.8] disabled:opacity-10 transition-all"
+                     >
+                       {sending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3 transform -rotate-12" />}
+                     </button>
                   </div>
-                  <button type="submit" disabled={!newMessage.trim() || sending} className="size-10 rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30 flex items-center justify-center active:scale-[0.8] disabled:opacity-30 shrink-0"><Send className="size-4 transform -rotate-12" /></button>
                </form>
             </div>
           </>
