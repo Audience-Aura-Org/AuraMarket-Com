@@ -159,9 +159,14 @@ export default function ChatPage() {
         
         <div className="px-5 py-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-[12px] font-black text-[var(--text-primary)] uppercase tracking-tight flex items-center gap-2">
-               Aura<span className="text-[var(--accent)]">Comms</span>
-            </h1>
+            <div className="flex items-center gap-2">
+               <div className="size-7 rounded-sm bg-gradient-to-tr from-[var(--accent)] to-[var(--accent)]/50 flex items-center justify-center rotate-3 shadow-lg shadow-[var(--accent)]/20 shrink-0">
+                  <ShieldCheck className="size-4.5 text-white" />
+               </div>
+               <h1 className="text-[14px] font-[Quicksand,sans-serif] font-bold text-[var(--text-primary)] uppercase tracking-[0.1em]">
+                  Aura<span className="opacity-50">.</span>Comms
+               </h1>
+            </div>
             <div className="flex items-center gap-1">
               <button className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all"><Search className="size-4" /></button>
               <button className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-all"><MoreVertical className="size-4" /></button>

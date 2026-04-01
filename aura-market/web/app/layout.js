@@ -1,5 +1,5 @@
 import '../styles/globals.css';
-import { Poppins } from 'next/font/google';
+import { Poppins, Quicksand } from 'next/font/google';
 import Providers from '@/components/Providers';
 
 const poppins = Poppins({
@@ -7,6 +7,13 @@ const poppins = Poppins({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-poppins',
+});
+
+const quicksand = Quicksand({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-quicksand',
 });
 
 export const metadata = {
