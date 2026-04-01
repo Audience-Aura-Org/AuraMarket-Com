@@ -14,7 +14,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Providers({ children }) {
   const pathname = usePathname();
-  const isMessagesPage = pathname?.startsWith('/messages');
+  const isMessagesPage = pathname?.startsWith('/messages') || pathname?.startsWith('/chat') || pathname?.startsWith('/admin/messages');
 
   return (
     <ThemeProvider>

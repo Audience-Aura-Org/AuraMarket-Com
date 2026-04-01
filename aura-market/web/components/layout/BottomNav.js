@@ -18,7 +18,7 @@ export default function BottomNav() {
     setMounted(true);
   }, []);
 
-  const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages');
+  const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages') || pathname?.startsWith('/admin/messages');
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register');
 
   if (!mounted || isChatPage || isAuthPage) return null;
