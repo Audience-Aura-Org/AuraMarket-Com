@@ -384,7 +384,7 @@ function ChatContent() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
+    <div className="fixed inset-0 h-[100dvh] bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden">
       {/* Sidebar */}
       <aside className={`w-full md:w-[350px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
@@ -491,11 +491,11 @@ function ChatContent() {
                     ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover rounded-full" alt="" onError={(e) => { e.target.style.display='none'; }} /> 
                     : activeChat.name?.[0]?.toUpperCase()}
                 </div>
-                <div>
-                  <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.store_name || activeChat.name}</h2>
-                  <div className="flex items-center gap-1">
-                    <div className={`size-1.5 rounded-full ${activeChat.is_online ? 'bg-emerald-500' : 'bg-[var(--text-secondary)]/40'}`} />
-                    <p className="!text-[10px] text-[var(--text-secondary)]">{formatPresence(activeChat)}</p>
+                <div className="flex flex-col min-w-0 pr-2">
+                  <h2 className="!text-[11px] font-black text-[var(--text-primary)] leading-tight mb-0.5 truncate uppercase tracking-tight">{activeChat.store_name || activeChat.name}</h2>
+                  <div className="flex items-center gap-1.5 leading-none">
+                    <div className={`size-1.5 rounded-full ${activeChat.is_online ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]' : 'bg-[var(--text-secondary)]/30'}`} />
+                    <p className="!text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest">{formatPresence(activeChat)}</p>
                   </div>
                 </div>
               </div>
