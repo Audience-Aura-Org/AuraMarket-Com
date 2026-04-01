@@ -69,13 +69,13 @@ export default function CartSidebar() {
     <aside
       className={`
         hidden lg:flex flex-col
-        transition-all duration-300 ease-in-out overflow-hidden
+        transition-all duration-300 ease-in-out
         border-l border-[var(--glass-border)]
         bg-[var(--bg-primary)]/60 backdrop-blur-xl
-        sticky top-[64px] self-start
-        ${open ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-l-0'}
+        fixed right-0 top-[64px] z-[100]
+        ${open ? 'translate-x-0 opacity-100' : 'translate-x-[260px] opacity-0 pointer-events-none'}
       `}
-      style={{ height: 'calc(100vh - 64px)' }}
+      style={{ height: 'calc(100vh - 64px)', width: '260px' }}
     >
       {/* Inner content — fixed width, full height, never scrolls itself */}
       <div className="w-[260px] flex flex-col h-full overflow-hidden">
