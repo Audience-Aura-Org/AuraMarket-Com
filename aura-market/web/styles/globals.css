@@ -101,25 +101,24 @@ h6 {
   }
 
   h1 {
-    font-size: clamp(1.45rem, 6vw, 2rem);
-    line-height: 1.08;
-    letter-spacing: -0.03em;
+    font-size: 18px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
   }
 
   h2 {
-    font-size: clamp(1.2rem, 5.2vw, 1.6rem);
-    line-height: 1.12;
+    font-size: 16px;
+    line-height: 1.1;
   }
 
   h3 {
-    font-size: clamp(1.05rem, 4.4vw, 1.25rem);
-    line-height: 1.18;
+    font-size: 14px;
+    line-height: 1.1;
   }
 
-  h4,
-  h5,
-  h6 {
-    line-height: 1.2;
+  h4, h5, h6 {
+    font-size: 13px;
+    line-height: 1.1;
   }
 
   p {

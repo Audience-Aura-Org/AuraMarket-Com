@@ -103,7 +103,7 @@ export default function TopNav() {
               alt="Aura Market"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
-            <h1 className="text-lg md:text-xl font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
+            <h1 className="text-md md:text-lg font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
               Aura<span className="text-[var(--accent)]">Market</span>
             </h1>
           </Link>

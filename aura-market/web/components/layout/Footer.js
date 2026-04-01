@@ -23,7 +23,7 @@ export default function Footer() {
   if (isChatPage) return null;
 
   return (
-    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] pt-24 pb-12 px-6 md:px-12 lg:px-20 transition-colors duration-500 relative z-10 overflow-hidden">
+    <footer className="w-full bg-[var(--bg-primary)] border-t border-[var(--glass-border)] pt-14 pb-10 px-6 md:px-12 lg:px-20 transition-colors duration-500 relative z-10 overflow-hidden">
       
       {/* Background layered effects for ultra-premium depth */}
       <div className="absolute top-0 left-1/4 w-[800px] h-[400px] bg-[var(--accent)]/3 blur-[140px] rounded-full pointer-events-none" />
@@ -36,14 +36,14 @@ export default function Footer() {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-20 gap-12 lg:gap-20">
            <div className="flex flex-col gap-5 max-w-lg">
               <div className="flex items-center gap-4 group cursor-pointer" onClick={() => router.push('/')}>
-                <div className="size-12 rounded-2xl bg-black flex items-center justify-center p-2.5 shadow-2xl ring-1 ring-white/10 transform group-hover:rotate-6 transition-all duration-500">
+                <div className="size-10 rounded-xl bg-black flex items-center justify-center p-2 shadow-2xl ring-1 ring-white/10 transform group-hover:rotate-6 transition-all duration-500">
                    <img src="/logo-white.png" alt="Aura" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_var(--accent)]" />
                 </div>
                 <div className="flex flex-col">
-                  <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[var(--text-primary)] leading-none">
+                  <h2 className="text-lg md:text-xl font-black uppercase tracking-tighter text-[var(--text-primary)] leading-none">
                     Aura<span className="text-[var(--accent)]">Market</span>
                   </h2>
-                  <span className="text-[10px] font-black tracking-[0.4em] text-[var(--accent)] opacity-60 mt-1">DEFINITIVE VERSION</span>
+                  <span className="text-[8px] font-black tracking-[0.4em] text-[var(--accent)] opacity-60 mt-0.5">DEFINITIVE REVISION</span>
                 </div>
               </div>
               <p className="text-sm text-[var(--text-secondary)] opacity-70 italic font-medium leading-relaxed">
@@ -52,12 +52,12 @@ export default function Footer() {
            </div>
 
            {/* Newsletter Hub - Signature Design */}
-           <div className="w-full lg:w-[420px] relative">
-              <div className="absolute -top-12 right-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] opacity-0 lg:opacity-100 transform translate-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+          <div className="w-full lg:w-[380px] relative">
+              <div className="absolute -top-10 right-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] opacity-0 lg:opacity-100 transform translate-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
                  <Activity className="size-3 text-emerald-500" />
-                 <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Nodes Online: 142ms Delay</span>
+                 <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Nodes Online</span>
               </div>
-              <div className="glass-panel p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/30 transition-all duration-500">
+              <div className="glass-panel p-5 rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/30 transition-all duration-500">
                 <p className="text-xs font-black text-[var(--text-primary)] mb-4 tracking-widest uppercase flex items-center gap-2">
                    <Sparkles className="size-3.5 text-[var(--accent)]" /> 
                    Secure Access Hub
@@ -83,7 +83,7 @@ export default function Footer() {
         <div className="w-full h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent opacity-30 mb-20" />
 
         {/* Links & Ecosystem Grid - Liquid Glass Experience */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-16 mb-24">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-12 mb-16">
           
           {/* Section 01: Core Nodes */}
           <div className="flex flex-col gap-8">
