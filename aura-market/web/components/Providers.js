@@ -16,11 +16,11 @@ import cartStore from '@/services/cartStore';
 
 export default function Providers({ children }) {
   const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(cartStore.getSidebarState());
   
   const isMessagesPage = pathname?.startsWith('/messages') || pathname?.startsWith('/chat') || pathname?.startsWith('/admin/messages');
   
-  // Pages where we want a CLEAN full-page scroll without the sidebars/push logic
+  // High-density flows where sidebar should stay closed or never show
   const isFullFlow = ['/checkout', '/login', '/register', '/onboarding', '/cart'].some(r => pathname?.startsWith(r));
 
   useEffect(() => {
@@ -42,6 +42,7 @@ export default function Providers({ children }) {
   }, [pathname, isFullFlow]);
 
   // We push content ONLY on desktop when the sidebar is open and NOT on a full-flow or cart page
+  // The sidebar is "Always out" (default true) per user request.
   const shouldPush = isSidebarOpen && !isFullFlow;
 
   return (
@@ -58,8 +59,8 @@ export default function Providers({ children }) {
             <main 
               id="main-scroll-container" 
               className={`
-                flex-1 overflow-y-auto flex flex-col relative no-scrollbar transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
-                ${shouldPush ? 'lg:mr-[320px]' : 'lg:mr-0'}
+                flex-1 overflow-y-auto flex flex-col relative no-scrollbar transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
+                ${shouldPush ? 'lg:mr-[280px]' : 'lg:mr-0'}
               `}
             >
               <div className="flex-1">

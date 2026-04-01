@@ -44,19 +44,7 @@ export default function ProductCard({ product }) {
 
     setAdding(true);
     
-    // OPTIMISTIC BROADCAST (Instant UI response)
-    cartStore.addItem(product, 1);
-
-    // Global feedback event (triggers beautiful background notification)
-    if (typeof window !== 'undefined') {
-       window.dispatchEvent(new CustomEvent('cart-item-added', { 
-         detail: { 
-           name: product.name, 
-           image: mainImage 
-         } 
-       }));
-    }
-    
+    // Server-side baseline: Only update UI after successful API payload
     try {
       const payload = { 
         product_id: productId.toString(), 
@@ -64,7 +52,15 @@ export default function ProductCard({ product }) {
       };
       
       const response = await api.post('/cart', payload);
-      cartStore.setCart(response.data.data.cart);
+      if (response.data?.success) {
+        cartStore.setCart(response.data.data.cart);
+        // Dispatch the visual feedback event for other components
+        if (typeof window !== 'undefined') {
+           window.dispatchEvent(new CustomEvent('cart-item-added', { 
+             detail: { name: product.name, image: mainImage } 
+           }));
+        }
+      }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to add to cart";
       showToast(errorMessage, "error");
