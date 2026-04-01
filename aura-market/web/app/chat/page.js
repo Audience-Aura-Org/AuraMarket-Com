@@ -496,11 +496,11 @@ function ChatContent() {
                     <div className="size-10 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl group-hover:scale-105 transition-all">
                        {activeChat.branding?.logo || activeChat.avatar ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center font-black text-[var(--accent)]">{activeChat.name?.[0]}</div>}
                     </div>
-                    <div className="flex items-center gap-2 min-w-0 max-w-[220px]">
-                       <h2 className="text-[12px] font-black uppercase text-[var(--text-primary)] tracking-tight leading-none truncate whitespace-nowrap">{activeChat.store_name || activeChat.name}</h2>
-                       <div className="flex items-center gap-1 opacity-40 shrink-0">
-                          <Activity className="size-2 text-emerald-500" />
-                          <span className="text-[7px] font-black uppercase tracking-widest leading-none pt-0.5">Verified</span>
+                    <div className="flex items-center gap-3 min-w-0 max-w-[280px]">
+                       <h2 className="text-[16px] font-black uppercase text-[var(--text-primary)] tracking-tight leading-none truncate whitespace-nowrap">{activeChat.store_name || activeChat.name}</h2>
+                       <div className="flex items-center gap-1.5 opacity-50 shrink-0">
+                          <Activity className="size-3 text-emerald-500" />
+                          <span className="text-[8px] font-black uppercase tracking-widest leading-none pt-0.5">Verified Node</span>
                        </div>
                     </div>
                  </div>
@@ -648,22 +648,28 @@ function ChatContent() {
                   {draftProduct && (
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                      className="absolute bottom-full left-0 right-0 mb-6 bg-[var(--bg-primary)]/90 backdrop-blur-3xl border border-[var(--accent)]/30 rounded-2xl p-3 flex items-center gap-4 shadow-2xl"
+                      className="absolute bottom-full left-0 right-0 mb-4 h-14 bg-[var(--bg-primary)]/95 backdrop-blur-3xl border border-[var(--glass-border)] rounded-[2.5rem] px-5 flex items-center justify-between shadow-2xl group cursor-pointer hover:border-[var(--accent)]/30 transition-all"
                     >
-                      <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0">
-                         {draftProduct.images?.[0] ? <img src={draftProduct.images[0].url || draftProduct.images[0]} className="size-full object-cover" /> : <Package className="size-5 opacity-20 m-auto h-full" />}
+                      <div className="flex items-center gap-4 min-w-0">
+                         <div className="size-10 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-black/10 shrink-0 transform group-hover:rotate-6 transition-all">
+                            {draftProduct.images?.[0] ? <img src={draftProduct.images[0].url || draftProduct.images[0]} className="size-full object-cover" /> : <Package className="size-5 opacity-20 m-auto h-full" />}
+                         </div>
+                         <h4 className="text-[16px] font-black text-[var(--text-primary)] uppercase leading-none truncate tracking-tight">{draftProduct.name}</h4>
                       </div>
-                      <div className="flex-1">
-                         <span className="text-[9px] font-black uppercase tracking-widest text-[var(--accent)] mb-0.5 block">Inquiry Protocol Active</span>
-                         <h4 className="text-xs font-black text-[var(--text-primary)] uppercase leading-none">{draftProduct.name}</h4>
+                      <div className="flex items-center gap-3">
+                         <button 
+                            className="px-5 h-9 rounded-xl bg-[var(--accent)] text-white font-black text-[9px] uppercase tracking-[0.2em] shadow-lg shadow-[var(--accent)]/30 hover:scale-[0.98] transition-all shrink-0"
+                         >
+                            Inquire Now
+                         </button>
+                         <button 
+                            type="button"
+                            onClick={() => setDraftProduct(null)} 
+                            className="size-9 rounded-xl bg-[var(--text-secondary)]/5 text-[var(--text-secondary)] hover:text-red-500 transition-all opacity-40 hover:opacity-100 flex items-center justify-center shrink-0"
+                         >
+                            <X className="size-4" />
+                         </button>
                       </div>
-                      <button 
-                         type="button"
-                         onClick={() => setDraftProduct(null)} 
-                         className="size-10 rounded-xl bg-[var(--bg-secondary)] text-red-400 hover:bg-red-400/10 border border-[var(--glass-border)] transition-all flex items-center justify-center shrink-0"
-                      >
-                         <X className="size-4" />
-                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>                <div className="glass-panel p-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl flex items-center gap-1 group-focus-within:border-[var(--accent)]/40 transition-all duration-500 shadow-xl">
