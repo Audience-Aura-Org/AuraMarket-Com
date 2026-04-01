@@ -404,7 +404,7 @@ function ChatContent() {
         : '/discovery';
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
+    <div className="fixed inset-0 z-[9999] bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
       {/* Sidebar List */}
       <aside className={`w-full md:w-[350px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
