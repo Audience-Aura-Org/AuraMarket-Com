@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { 
   Trash2, Plus, Minus, ArrowRight, 
   ShoppingBag, ShieldCheck, Truck, Tag, 
-  X, Loader2, CheckCircle2, ChevronLeft 
+  X, Loader2, CheckCircle2, ChevronLeft,
+  Package
 } from 'lucide-react';
 import api from '@/services/api';
 
@@ -112,161 +113,121 @@ export default function CartPage() {
 
   return (
     <div className="h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] flex flex-col overflow-hidden transition-colors duration-500">
-      {/* Background */}
-      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-0 w-[400px] h-[400px] bg-[var(--accent-light)]/5 rounded-full blur-[100px] pointer-events-none z-0" />
+      {/* Background Decorations */}
+      <div className="fixed top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-0 size-[400px] bg-[var(--accent-light)]/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      {/* Page header */}
-      <div className="flex-shrink-0 px-4 sm:px-6 lg:px-12 pt-6 pb-4 relative z-10">
-        <Link href="/discovery" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[10px] font-black tracking-widest mb-3 uppercase w-fit">
-          <ChevronLeft className="w-3.5 h-3.5" /> Continue Exploring
-        </Link>
-        <div className="flex items-end justify-between gap-4">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-none">
-            Your <span className="text-[var(--accent)]">Cart</span>
-          </h1>
-          <div className="px-3 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur flex items-center gap-2 shadow-sm mb-1">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black tracking-wider text-[var(--text-primary)] uppercase">{cartItems.length} Items</span>
+      {/* HEADER SECTION */}
+      <div className="px-5 py-4 border-b border-[var(--glass-border)] flex items-center justify-between shrink-0 bg-[var(--bg-primary)]/80 backdrop-blur-md relative z-20">
+        <div className="flex items-center gap-3">
+          <Link href="/discovery" className="size-8 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div>
+            <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)] leading-none">ORDER STASH</h1>
+            <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-widest mt-1.5 leading-none">Aura Terminal / Cart V4.2</p>
           </div>
+        </div>
+        <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full flex items-center gap-2">
+          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[9px] font-black tracking-[0.1em] text-emerald-600 uppercase">{cartItems.length} NODES LOADED</span>
         </div>
       </div>
 
-      {/* Split layout — scrolls only inside */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden relative z-10 px-4 sm:px-6 lg:px-12 pb-4 sm:pb-6">
-
-        {/* LEFT: Scrollable product list */}
-        <div className="flex-1 lg:pr-6 overflow-y-auto no-scrollbar space-y-3 pb-4">
-          {cartItems.map((item, idx) => (
-            <div key={`${item.id || item.productId || item.name}-${idx}`} className="p-3 sm:p-4 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex gap-3 sm:gap-4 hover:border-[var(--accent)]/30 transition-all duration-300 group shadow-sm">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 relative">
-                <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.name} />
+      {/* SCROLLABLE BODY CONTAINER */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden relative z-10 px-4 sm:px-6 lg:px-12 pb-4 pt-4">
+        
+        {/* LEFT COLUMN: PRODUCT LIST */}
+        <div className="flex-1 lg:pr-6 overflow-y-auto no-scrollbar space-y-3 pb-8">
+          {cartItems.map((it, idx) => (
+            <div key={`${it.id}-${idx}`} className="group flex items-center gap-4 p-3.5 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] hover:border-[var(--accent)]/40 transition-all shadow-sm">
+              {/* Product Image */}
+              <div className="size-14 rounded-xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 flex items-center justify-center shadow-inner">
+                {it.image ? <img src={it.image} className="w-full h-full object-cover" alt="" /> : <Package className="size-5 opacity-10" />}
               </div>
-              <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
-                <div>
-                  <div className="flex justify-between items-start mb-1 gap-2">
-                    <h3 className="text-sm sm:text-base font-black text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
-                    <div className="flex gap-1.5 shrink-0">
-                      <Link href={`/chat?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-1.5 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)]" title="Message vendor">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v7.5A2.25 2.25 0 0 1 19.5 16.5h-7.818a.75.75 0 0 0-.53.22l-3.53 3.53A.75.75 0 0 1 6 19.5v-3a.75.75 0 0 0-.75-.75H4.5A2.25 2.25 0 0 1 2.25 13.5v-7.5A2.25 2.25 0 0 1 4.5 3.75h15A2.25 2.25 0 0 1 21.75 6.75Z" /></svg>
-                      </Link>
-                      <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-1.5 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
-                    </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className="min-w-0">
+                    <h3 className="text-[10px] font-black text-[var(--text-primary)] uppercase tracking-wider truncate mb-1 leading-none">{it.name}</h3>
+                    <p className="text-[7px] font-bold text-[var(--text-secondary)] opacity-40 uppercase truncate tracking-widest">{it.vendor_name || 'Aura Integrated Node'}</p>
                   </div>
-                  <p className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-wide">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-black text-[var(--accent)] pl-3 tracking-tight">{(it.price * it.quantity).toLocaleString()} XAF</p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-lg sm:text-xl font-black text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
-                  <div className="flex items-center gap-2.5 bg-[var(--bg-secondary)] p-1 px-2.5 rounded-xl border border-[var(--glass-border)]">
-                    <button onClick={() => updateCartQty(item.id, -1)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-3.5 h-3.5" /></button>
-                    <span className="font-black text-sm w-5 text-center">{item.quantity}</span>
-                    <button onClick={() => updateCartQty(item.id, 1)} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"><Plus className="w-3.5 h-3.5" /></button>
+
+                <div className="flex items-center justify-between">
+                  {/* Quantity Controls */}
+                  <div className="flex items-center gap-2 bg-[var(--bg-secondary)]/50 p-1 rounded-xl border border-[var(--glass-border)] shadow-inner">
+                    <button onClick={() => updateCartQty(it.id, -1)} className="size-6 rounded-lg hover:bg-[var(--bg-primary)] flex items-center justify-center transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><Minus className="size-2.5" /></button>
+                    <span className="text-[9px] font-black w-4 text-center">{it.quantity}</span>
+                    <button onClick={() => updateCartQty(it.id, 1)} className="size-6 rounded-lg hover:bg-[var(--bg-primary)] flex items-center justify-center transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><Plus className="size-2.5" /></button>
+                  </div>
+                  
+                  {/* Item Actions */}
+                  <div className="flex items-center gap-3">
+                    <Link 
+                      href={`/chat?vendorId=${encodeURIComponent(it.vendor_id || '')}&productId=${encodeURIComponent(it.id || '')}`}
+                      className="text-[8px] font-black text-[var(--text-secondary)] opacity-40 hover:text-[var(--accent)] hover:opacity-100 uppercase tracking-widest transition-all"
+                    >
+                      Message
+                    </Link>
+                    <button onClick={() => removeCartItem(it.id)} className="text-[8px] font-black text-red-500/40 hover:text-red-500 uppercase tracking-widest transition-colors">
+                      Remove
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           ))}
-
-          {/* Escrow badge */}
-          <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center gap-4">
-            <div className="size-9 rounded-xl bg-[var(--accent)] flex items-center justify-center text-white shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="font-black text-[var(--text-primary)] text-sm">Escrow protection</h4>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">Payment released only after delivery is confirmed.</p>
-            </div>
-          </div>
         </div>
 
-        {/* RIGHT: Fixed order summary — never scrolls */}
-        <div className="lg:w-[360px] xl:w-[400px] shrink-0 lg:overflow-y-auto no-scrollbar">
-          <div className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 backdrop-blur-3xl p-5 sm:p-6 relative overflow-hidden shadow-2xl h-full flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none" />
+        {/* RIGHT COLUMN: ORDER SUMMARY SIDEBAR */}
+        <div className="lg:w-[340px] xl:w-[380px] shrink-0 pt-0 lg:pt-0">
+          <div className="bg-[var(--bg-primary)]/80 backdrop-blur-3xl border border-[var(--glass-border)] rounded-[2rem] p-6 lg:p-8 flex flex-col gap-5 shadow-2xl relative overflow-hidden h-fit">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
+            
+            <div className="mb-1">
+              <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--accent)] mb-1.5 opacity-80">PRE-CHECKOUT MANIFEST</p>
+              <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tighter">Order Summary</h2>
+            </div>
 
-            <div className="relative z-10">
-              <h2 className="text-lg font-black mb-5 uppercase tracking-tight">Order summary</h2>
-
-              {/* Coupon */}
-              <div className="mb-5">
-                {coupon ? (
-                  <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span className="font-black text-emerald-700 text-[10px] tracking-widest uppercase">Code {coupon.code} Active</span>
-                    </div>
-                    <button onClick={removeCoupon} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                        <input
-                          value={couponCode}
-                          onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
-                          onKeyDown={e => e.key === 'Enter' && applyCoupon()}
-                          placeholder="Promo code"
-                          className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold tracking-wide text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all uppercase"
-                        />
-                      </div>
-                      <button
-                        onClick={applyCoupon}
-                        disabled={couponLoading || !couponCode.trim()}
-                        className="px-4 py-2.5 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-black rounded-xl text-[10px] tracking-wider disabled:opacity-50 transition-all uppercase"
-                      >
-                        {couponLoading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" /> : 'Apply'}
-                      </button>
-                    </div>
-                    {couponError && <p className="text-[10px] font-black text-red-500 tracking-tighter uppercase">{couponError}</p>}
-                  </div>
-                )}
+            <div className="space-y-4">
+              <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                <span className="text-[var(--text-secondary)] opacity-50">Subtotal</span>
+                <span className="text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
               </div>
-
-              {/* Totals */}
-              <div className="space-y-3 mb-5">
-                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
-                  <span>Subtotal</span>
-                  <span className="text-[var(--text-primary)] font-mono font-bold">{subtotal.toLocaleString()} XAF</span>
+              <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                <span className="text-[var(--text-secondary)] opacity-50">Logistic Fee</span>
+                <span className="text-[var(--accent)] opacity-80">Calculated later</span>
+              </div>
+              
+              <div className="pt-4 mt-2 border-t border-[var(--glass-border)]/60 flex justify-between items-end">
+                <div>
+                  <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em] mb-1.5">Net Amount</p>
+                  <p className="text-2xl font-black text-[var(--text-primary)] leading-none tracking-tighter">{total.toLocaleString()} XAF</p>
                 </div>
-                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
-                  <span>Logistics</span>
-                  <span className="font-mono font-bold opacity-40">Set at checkout</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-wide uppercase">
-                    <span>Discount</span>
-                    <span className="font-mono font-bold">- {discount.toLocaleString()} XAF</span>
-                  </div>
-                )}
-                <div className="h-px bg-[var(--glass-border)] my-2" />
-                <div className="flex justify-between items-baseline">
-                  <span className="text-xs font-black text-[var(--text-secondary)] tracking-[0.2em] uppercase">Total</span>
-                  <span className="text-2xl font-black text-[var(--text-primary)] font-mono tracking-tight">{total.toLocaleString()} XAF</span>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+                  <ShieldCheck className="size-3 text-emerald-500" />
                 </div>
               </div>
             </div>
 
-            {/* CTA */}
-            <div className="relative z-10 mt-auto">
-              <Link
-                href="/checkout"
-                className="w-full py-3.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.2em] uppercase flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
+            <div className="pt-4 space-y-3">
+              <Link 
+                href="/checkout" 
+                className="w-full h-12 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-xl font-black text-[10px] tracking-[0.15em] uppercase flex items-center justify-center gap-3 hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--text-primary)]/5 active:scale-95 group"
               >
-                Go to checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                Proceed to Checkout <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <div className="flex items-center justify-center gap-5 pt-3 border-t border-[var(--glass-border)]">
-                <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
-                  <Truck className="w-3 h-3 text-[var(--accent)]" /> Aura Node
-                </div>
-                <div className="size-1 rounded-full bg-[var(--glass-border)]" />
-                <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> Secure
-                </div>
-              </div>
+              <p className="text-[8px] text-center font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em] leading-relaxed">
+                By clicking proceed, you agree to the <br/> Aura Market terms of service.
+              </p>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
