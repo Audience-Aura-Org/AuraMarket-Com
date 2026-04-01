@@ -202,12 +202,12 @@ function ChatUI() {
       <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-[380px] bg-[var(--bg-primary)] border-r border-[var(--nav-border)] flex-col shrink-0 z-40 transition-all`}>
         <div className="px-5 py-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-               <div className="size-7 rounded-sm bg-gradient-to-tr from-[var(--accent)] to-[var(--accent)]/50 flex items-center justify-center rotate-3 shadow-lg shadow-[var(--accent)]/20 shrink-0">
-                  <ShieldCheck className="size-4.5 text-white" />
+            <div className="flex items-center gap-3">
+               <div className="size-8 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center p-1.5 shadow-xl shadow-black/10 shrink-0">
+                  <img src="/logo-white.png" className="size-full object-contain filter drop-shadow-[0_0_8px_var(--accent)]" alt="Aura Logo" />
                </div>
-               <h1 className="text-[14px] font-[Quicksand,sans-serif] font-bold text-[var(--text-primary)] uppercase tracking-[0.1em]">
-                  Aura<span className="opacity-50">.</span>Comms
+               <h1 className="text-[14px] font-[Poppins,sans-serif] font-black text-[var(--text-primary)] uppercase tracking-[0.2em] flex items-center gap-1.5">
+                  Aura<span className="text-[var(--accent)] animate-pulse">.</span>Comms
                </h1>
             </div>
             <div className="flex items-center gap-1">
