@@ -666,10 +666,8 @@ function ChatContent() {
                       </button>
                     </motion.div>
                   )}
-                </AnimatePresence>
-
-                <div className="glass-panel p-1.5 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl flex items-center gap-2 group-focus-within:border-[var(--accent)]/40 transition-all duration-500 shadow-2xl">
-                   <div className="flex items-center px-2 gap-2">
+                </AnimatePresence>                <div className="glass-panel p-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl flex items-center gap-1 group-focus-within:border-[var(--accent)]/40 transition-all duration-500 shadow-xl">
+                   <div className="flex items-center px-1 gap-1">
                       <input 
                         type="file" 
                         ref={fileInputRef} 
@@ -686,29 +684,29 @@ function ChatContent() {
                       <button 
                         type="button" 
                         onClick={() => fileInputRef.current?.click()}
-                        className={`size-11 rounded-full flex items-center justify-center transition-all ${selectedImage ? 'bg-[var(--accent)] text-white' : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}
+                        className={`size-8 rounded-lg flex items-center justify-center transition-all ${selectedImage ? 'bg-[var(--accent)] text-white' : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}
                       >
-                         <ImageIcon className="size-5" />
+                         <ImageIcon className="size-4" />
                       </button>
-                      <button type="button" className="size-11 rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all flex items-center justify-center"><Smile className="size-5" /></button>
+                      <button type="button" className="size-8 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all flex items-center justify-center"><Smile className="size-4" /></button>
                    </div>
                    
-                   <div className="w-px h-6 bg-[var(--glass-border)] opacity-30 mx-1" />
-
+                   <div className="w-px h-4 bg-[var(--glass-border)] opacity-30" />
+ 
                    <input 
                       type="text" 
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Node transmission..." 
-                      className="flex-1 h-12 bg-transparent border-none outline-none px-4 text-xs font-bold text-[var(--text-primary)] placeholder:opacity-30 tracking-tight"
+                      placeholder="Transmitting..." 
+                      className="flex-1 h-9 bg-transparent border-none outline-none px-3 text-[12px] font-bold text-[var(--text-primary)] placeholder:opacity-30 tracking-tight"
                    />
-
+ 
                    <button 
                       type="submit"
                       disabled={(!newMessage.trim() && !selectedImage) || sending}
-                      className="size-12 rounded-full bg-[var(--accent)] text-white hover:scale-[0.96] active:scale-95 transition-all flex items-center justify-center disabled:opacity-40 shadow-xl shadow-[var(--accent)]/30 shrink-0"
+                      className="size-8 rounded-lg bg-[var(--accent)] text-white hover:scale-[0.96] active:scale-95 transition-all flex items-center justify-center disabled:opacity-40 shadow-lg shadow-[var(--accent)]/30 shrink-0"
                    >
-                      {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 transform -rotate-12" />}
+                      {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4 transform -rotate-12" />}
                    </button>
                 </div>
               </form>
