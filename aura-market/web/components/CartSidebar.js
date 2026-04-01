@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import api from '@/services/api';
-import { ArrowRight, Plus, Minus, Package, ShoppingBag, X, ChevronRight, ShoppingCart } from 'lucide-react';
+import { ArrowRight, Plus, Minus, Trash2, Package, ShoppingBag } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import cartStore from '@/services/cartStore';
 
@@ -12,33 +12,38 @@ export default function CartSidebar() {
   const { user } = useAuthStore();
   const pathname = usePathname();
   const [items, setItems] = useState(cartStore.getItems());
-  const [isOpen, setIsOpen] = useState(cartStore.getSidebarState());
-  
-  const prevCountRef = useRef(items.length);
-  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat', '/onboarding'];
-  const isHiddenRoute = hidden.some(r => pathname?.startsWith(r));
+
+  // Pages where the sidebar should never appear
+  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat'];
+  const shouldHide = hidden.some(r => pathname?.startsWith(r));
 
   useEffect(() => {
-    const unsub = cartStore.subscribe(({ items: newItems, isSidebarOpen }) => {
-      if (newItems.length > prevCountRef.current && !isHiddenRoute) {
-        cartStore.toggleSidebar(true);
-      }
-      prevCountRef.current = newItems.length;
+    // Subscribe to store updates
+    const unsub = cartStore.subscribe(({ items: newItems }) => {
       setItems(newItems);
-      setIsOpen(isSidebarOpen);
     });
-    if (user?._id && !isHiddenRoute) cartStore.refresh();
+
+    // Fetch fresh data on mount if user is logged in
+    if (user?._id && !shouldHide) {
+      cartStore.refresh();
+    }
+
     return unsub;
-  }, [user?._id, isHiddenRoute]);
+  }, [user?._id, shouldHide]);
 
   const updateQty = async (itemId, delta) => {
     cartStore.startMutation();
     cartStore.optimisticUpdateQty(itemId, delta);
     try {
       const res = await api.patch('/cart/item', { item_id: itemId, quantity_delta: delta });
-      if (res.data?.success) cartStore.setCart(res.data.data.cart);
-    } catch { cartStore.refresh(); }
-    finally { cartStore.endMutation(); }
+      if (res.data?.success) {
+        cartStore.setCart(res.data.data.cart);
+      }
+    } catch {
+      cartStore.refresh();
+    } finally {
+      cartStore.endMutation();
+    }
   };
 
   const removeItem = async (itemId) => {
@@ -46,89 +51,113 @@ export default function CartSidebar() {
     const prev = cartStore.optimisticRemove(itemId);
     try {
       const res = await api.delete('/cart/item', { data: { item_id: itemId } });
-      if (res.data?.success) cartStore.setCart(res.data.data.cart);
-    } catch { cartStore.rollback(prev); }
-    finally { cartStore.endMutation(); }
+      if (res.data?.success) {
+        cartStore.setCart(res.data.data.cart);
+      }
+    } catch {
+      cartStore.rollback(prev);
+    } finally {
+      cartStore.endMutation();
+    }
   };
 
   const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
-  const isVisible = !isHiddenRoute && isOpen;
+  const totalQty = items.reduce((s, it) => s + it.quantity, 0);
+  const open = !shouldHide && items.length > 0;
 
   return (
     <aside
-      id="cart-sidebar-rail"
       className={`
         hidden lg:flex flex-col
-        transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
-        border-l border-[var(--glass-border)] bg-[var(--bg-primary)]
-        shrink-0 h-full relative z-[60]
-        ${isVisible ? 'translate-x-0 w-[260px] opacity-100 shadow-2xl' : 'translate-x-full w-0 opacity-0 pointer-events-none'}
+        transition-all duration-300 ease-in-out overflow-hidden
+        border-l border-[var(--glass-border)]
+        bg-[var(--bg-primary)]/60 backdrop-blur-xl
+        sticky top-[64px] self-start
+        ${open ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-l-0'}
       `}
+      style={{ height: 'calc(100vh - 64px)' }}
     >
-      <div className="w-[260px] flex flex-col h-full overflow-hidden bg-[var(--bg-primary)]">
-        
-        {/* REFINED HEADER (Legibility prioritized) */}
-        <div className="px-5 pt-8 pb-5 border-b border-[var(--glass-border)] shrink-0 flex items-center justify-between text-[var(--text-primary)]">
-          <div className="flex items-center gap-3">
-             <div className="size-8 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg shadow-[var(--accent)]/20">
-               <ShoppingCart className="w-4 h-4" />
-             </div>
-             <div>
-               <h2 className="text-[10px] font-black uppercase tracking-[0.25em] leading-none mb-1.5">HUB STASH</h2>
-               <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest leading-none">{items.length} ACTIVE ITEMS</p>
-             </div>
+      {/* Inner content — fixed width, full height, never scrolls itself */}
+      <div className="w-[260px] flex flex-col h-full overflow-hidden">
+
+        {/* Header */}
+        <div className="px-5 pt-6 pb-4 border-b border-[var(--glass-border)] shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-[var(--accent)]" />
+              <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)]">Your Stash</h2>
+            </div>
+            <span className="text-[9px] font-black bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-0.5 rounded-full">
+              {totalQty} {totalQty === 1 ? 'item' : 'items'}
+            </span>
           </div>
-          <button onClick={() => cartStore.toggleSidebar(false)} className="size-8 flex items-center justify-center bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl hover:text-[var(--accent)] transition-all">
-             <ChevronRight className="size-4" />
-          </button>
         </div>
 
-        {/* REFINED LEGIBILITY ITEMS */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 no-scrollbar bg-transparent">
+        {/* Items list — ONLY this region scrolls */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scrollbar min-h-0">
           {items.map(it => (
-            <div key={it.id || it.productId} className="flex flex-col gap-3 group">
-              <div className="flex items-start gap-3.5">
-                <div className="size-11 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 overflow-hidden shadow-sm transition-transform group-hover:scale-105">
-                   {it.image ? <img src={it.image} className="w-full h-full object-cover" /> : <Package className="w-5 h-5 m-auto opacity-10" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                   <h4 className="text-[10px] font-black text-[var(--text-primary)] uppercase tracking-tight leading-tight mb-1 truncate">{it.name}</h4>
-                   <div className="flex items-center justify-between mt-2">
-                      <p className="text-[11px] font-black text-[var(--accent)] tracking-tighter">{(it.price * it.quantity).toLocaleString()} <span className="text-[8px] opacity-40">XAF</span></p>
-                      <button onClick={() => removeItem(it.id)} className="text-[9px] font-black text-red-500/50 hover:text-red-500 uppercase tracking-widest px-2 transition-colors">REMOVE</button>
-                   </div>
-                </div>
+            <div key={it.id || it.productId} className="flex items-center gap-3 group border-b border-[var(--glass-border)] pb-3 last:border-0 last:pb-0">
+              {/* Thumbnail */}
+              <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-sm">
+                {it.image
+                  ? <img src={it.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  : <Package className="w-4 h-4 m-auto opacity-20" />
+                }
               </div>
-              <div className="grid grid-cols-3 items-center bg-[var(--bg-secondary)]/50 p-1 rounded-2xl border border-[var(--glass-border)] transition-colors group-hover:border-[var(--accent)]/10">
-                 <button onClick={() => updateQty(it.id, -1)} className="size-6 rounded-xl hover:bg-[var(--bg-primary)] flex items-center justify-center transition-all shadow-sm"><Minus className="size-3" /></button>
-                 <span className="text-[10px] font-black text-center text-[var(--text-primary)]">{it.quantity}</span>
-                 <button onClick={() => updateQty(it.id, 1)} className="size-6 rounded-xl hover:bg-[var(--bg-primary)] flex items-center justify-center transition-all shadow-sm"><Plus className="size-3" /></button>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black text-[var(--text-primary)] truncate leading-snug uppercase tracking-wider">{it.name}</p>
+                <p className="text-[11px] font-black text-[var(--accent)] mt-0.5">{(it.price * it.quantity).toLocaleString()} XAF</p>
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => updateQty(it.id, -1)}
+                  className="size-6 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors shadow-sm"
+                >
+                  <Minus className="w-2 h-2" />
+                </button>
+                <span className="text-[10px] font-black w-4 text-center text-[var(--text-primary)]">{it.quantity}</span>
+                <button
+                  onClick={() => updateQty(it.id, 1)}
+                  className="size-6 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors shadow-sm"
+                >
+                  <Plus className="w-2 h-2" />
+                </button>
+                <button
+                  onClick={() => removeItem(it.id)}
+                  className="size-6 ml-0.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shadow-sm"
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                </button>
               </div>
             </div>
           ))}
-          {items.length === 0 && (
-            <div className="py-24 text-center flex flex-col items-center opacity-20">
-               <ShoppingBag className="size-10 mb-5" />
-               <p className="text-[10px] font-black uppercase tracking-[0.2em]">Stash Neutral</p>
-            </div>
-          )}
         </div>
 
-        {/* TERMINAL FOOTER (Restored Buttons) */}
-        <div className="px-5 py-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-3xl shrink-0">
-           <div className="flex justify-between items-end mb-6 px-1 text-[var(--text-primary)]">
-              <span className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">TOTAL_MANIFEST</span>
-              <span className="text-[16px] font-black tracking-tighter italic-none">{subtotal.toLocaleString()} XAF</span>
-           </div>
-           
-           <div className="flex flex-col gap-3">
-              <Link href="/checkout" className="w-full h-12 bg-[var(--accent)] text-white rounded-2xl font-black text-[10px] tracking-[0.2em] uppercase flex items-center justify-center gap-3 hover:translate-y-[-2px] transition-all shadow-xl shadow-[var(--accent)]/10 active:scale-95 group">
-                CHECKOUT <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link href="/cart" className="w-full h-11 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 rounded-2xl font-black text-[10px] tracking-[0.2em] uppercase flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all shadow-sm">
-                CART PAGE
-              </Link>
-           </div>
+        {/* Footer / CTA */}
+        <div className="px-4 pb-6 pt-4 border-t border-[var(--glass-border)] shrink-0 space-y-3">
+          {/* Subtotal */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Subtotal</span>
+            <span className="text-base font-black text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
+          </div>
+
+          {/* Buttons */}
+          <Link
+            href="/checkout"
+            className="w-full py-3 bg-[var(--accent)] text-white rounded-xl font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
+          >
+            Checkout <ArrowRight className="w-3 h-3" />
+          </Link>
+          <Link
+            href="/cart"
+            className="w-full py-2.5 border border-[var(--glass-border)] rounded-xl font-black text-[10px] tracking-widest uppercase flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/30 transition-all"
+          >
+            Full Cart View
+          </Link>
         </div>
       </div>
     </aside>
