@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -37,36 +37,45 @@ function ChatContent() {
     if (user?._id) {
       socketService.connect(user._id);
     }
+    // Shared global socket handled by SocketProvider. don't disconnect on unmount
   }, [user]);
 
+  // keep refs current for socket handlers
   useEffect(() => { userRef.current = user; }, [user]);
   useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
 
-  // Register global socket handlers
+  // Register global socket handlers using stable references to prevent duplicate listeners
   useEffect(() => {
     if (!user?._id) return;
 
+    // Use _socketHandlerRef to maintain stable references across re-renders
     if (!window._socketHandlerRef) {
       window._socketHandlerRef = {};
     }
 
+    // Check if this user already has handlers registered
     if (window._socketHandlerRef[user._id]) {
-      return;
+      return; // Already registered, don't register again
     }
 
     const handleIncoming = (msg) => {
+
+
       try {
         const currentUserId = userRef.current?._id?.toString();
         const active = activeChatRef.current;
         const activeId = active?._id?.toString();
 
+        // Normalize IDs ΓÇö backend populates these as objects
         const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
         const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
 
+        // ΓöÇΓöÇ Update sidebar preview ALWAYS ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
         setInbox(prev => {
-          const snippet = msg.text || (msg.product_reference?.name ? `📦 ${msg.product_reference.name}` : '');
+          const snippet = msg.text || (msg.product_reference?.name ? `≡ƒôª ${msg.product_reference.name}` : '');
           const isUnread = receiverId === currentUserId;
           
+          // Safely extract partner
           const partnerData = senderId === currentUserId ? msg.receiver_id : msg.sender_id;
           const partnerId = (partnerData?._id || (senderId === currentUserId ? receiverId : senderId))?.toString();
           
@@ -83,30 +92,42 @@ function ChatContent() {
           if (existingIndex > -1) {
             const updated = [...prev];
             updated[existingIndex] = { ...updated[existingIndex], snippet: newEntry.snippet, date: newEntry.date, read_status: newEntry.read_status };
+            // Move to top
             const item = updated.splice(existingIndex, 1)[0];
             return [item, ...updated];
           }
           return [newEntry, ...prev];
         });
 
+        // ΓöÇΓöÇ Append to current viewing area if message is for active chat ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
         if (activeId) {
+          const partnerId = (senderId === currentUserId ? receiverId : senderId)?.toString();
+          // Message belongs to active chat if it's between me and activeChat person
           const belongsToActiveChat = (
             (senderId === currentUserId && receiverId === activeId) ||
             (senderId === activeId && receiverId === currentUserId)
           );
           
           if (belongsToActiveChat) {
+
             setMessages(prev => {
+              // Prevent duplicates
               if (msg._id && prev.some(m => m._id?.toString() === msg._id?.toString())) {
+
                 return prev;
               }
               return [...prev, msg];
             });
 
+            // Mark incoming messages as read
             if (receiverId === currentUserId) {
               api.patch(`/chat/read/${activeId}`).catch(() => {});
             }
+          } else {
+
           }
+        } else {
+
         }
       } catch (err) {
         console.error('[Chat] Socket handler error:', err);
@@ -119,23 +140,17 @@ function ChatContent() {
       setInbox(prev => prev.map(c => (c.partner._id || c.partner)?.toString() === sid ? { ...c, read_status: true } : c));
     };
 
-    const handlePresence = ({ userId, isOnline, lastSeen }) => {
-      setInbox(prev => prev.map(c => c.partner?._id === userId ? { ...c, partner: { ...c.partner, is_online: isOnline, last_seen: lastSeen } } : c));
-      setActiveChat(prev => prev?._id === userId ? { ...prev, is_online: isOnline, last_seen: lastSeen } : prev);
-    };
-
-    window._socketHandlerRef[user._id] = { handleIncoming, handleReadSync, handlePresence };
+    // Store handlers for reference
+    window._socketHandlerRef[user._id] = { handleIncoming, handleReadSync };
 
     socketService.on('receive_message', handleIncoming);
     socketService.on('sent_message_echo', handleIncoming);
     socketService.on('messages_read', handleReadSync);
-    socketService.on('user_presence', handlePresence);
 
     return () => {
       socketService.off('receive_message', handleIncoming);
       socketService.off('sent_message_echo', handleIncoming);
       socketService.off('messages_read', handleReadSync);
-      socketService.off('user_presence', handlePresence);
       
       if (window._socketHandlerRef?.[user._id]) {
         delete window._socketHandlerRef[user._id];
@@ -143,8 +158,9 @@ function ChatContent() {
     };
   }, [user?._id]);
 
-  // Initial load
+  // Initial load: Fetch Inbox and handle query params
   useEffect(() => {
+    // Wait until the auth token or user is available to avoid 401 on initial load
     if (!token && !user?._id) {
       setLoading(false);
       return;
@@ -163,6 +179,7 @@ function ChatContent() {
            const following = followRes.data.data.following || [];
            const combined = new Map();
 
+           // 1. Followed vendors (Potential Chats)
            following.forEach(f => {
               const partner = f.vendor_id?.user_id;
               if (!partner) return;
@@ -174,6 +191,7 @@ function ChatContent() {
               });
            });
 
+           // 2. Active chats (Priority)
            activeChats.forEach(c => {
               const pid = (c.partner?._id || c.partner)?.toString();
               if (!pid) return;
@@ -199,9 +217,7 @@ function ChatContent() {
              } else {
                 promises.push(api.get(`/auth/users/${vendorId}`).then(res => {
                   if (res.data.success) setActiveChat(res.data.data.user);
-                }).catch(() => api.get(`/users/${vendorId}`).then(res => {
-                  if (res.data.success) setActiveChat(res.data.data.user);
-                })));
+                }));
              }
              
              promises.push(api.get(`/chat/${vendorId}`).then(res => {
@@ -246,16 +262,19 @@ function ChatContent() {
         ) 
       : null;
 
+    // If we already have messages for THIS person, don't re-fetch
     if (messages.length > 0 && currentFirstMsgPartner === activeId) {
        return; 
     }
 
     const fetchConversation = async () => {
+      // Clear current messages to prevent ghosting or stale socket appends
       setMessages([]);
       try {
         const res = await api.get(`/chat/${activeId}`);
         if (res.data.success) {
           setMessages(res.data.data.messages);
+          // Mark as read
           if (res.data.data.messages.some(m => !m.read_status && (m.receiver_id?._id || m.receiver_id) === user?._id)) {
             api.patch(`/chat/read/${activeId}`).catch(err => console.error("Read sync failed", err));
             socketService.emit('messages_read', { sender_id: activeId });
@@ -276,11 +295,14 @@ function ChatContent() {
     }
   }, [messages]);
 
-  // Visibility Resume Sync
+  // ΓöÇΓöÇ Visibility Resume Sync ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // When user returns to the app after being backgrounded, re-fetch the active
+  // conversation to pull in any messages that arrived while the socket was dormant.
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && activeChatRef.current?._id) {
         const activeId = activeChatRef.current._id.toString();
+        console.log('[Chat] App resumed ΓÇö re-syncing messages for:', activeId);
         api.get(`/chat/${activeId}`).then(res => {
           if (res.data.success) {
             setMessages(res.data.data.messages);
@@ -319,6 +341,7 @@ function ChatContent() {
       product_reference: currentProductRef,
     };
 
+    // Append optimistic message immediately
     setMessages(prev => [...prev, optimisticMsg]);
     setNewMessage('');
 
@@ -331,11 +354,13 @@ function ChatContent() {
 
       if (res.data.success) {
         const serverMsg = res.data.data.message;
+        // Replace optimistic message with server message and remove any duplicate server id if present
         setMessages(prev => {
           const withoutServer = prev.filter(m => m._id !== serverMsg._id);
           return withoutServer.map(m => (m._id === tempId ? serverMsg : m));
         });
 
+        // Update inbox entry for partner to show latest snippet
         setInbox(prev => {
           const partnerId = activeChat._id.toString();
           const snippet = serverMsg.text || (serverMsg.product_reference && serverMsg.product_reference.name) || '';
@@ -350,9 +375,10 @@ function ChatContent() {
         if (draftProduct || searchParams.get('productId')) {
           setDraftProduct(null);
           const currentVendorId = (searchParams.get('vendorId') || activeChat?._id || '').toString();
-          router.replace(currentVendorId ? `/chat?vendorId=${currentVendorId}` : '/chat');
+          router.replace(currentVendorId ? `/messages?vendorId=${currentVendorId}` : '/messages');
         }
       } else {
+        // mark optimistic as failed
         setMessages(prev => prev.map(m => m._id === tempId ? { ...m, pending: false, failed: true } : m));
       }
     } catch (err) {
@@ -377,18 +403,12 @@ function ChatContent() {
         ? '/logistics/dashboard'
         : '/discovery';
 
-  const formatPresence = (partner) => {
-    if (partner?.is_online) return 'Online';
-    if (!partner?.last_seen) return 'Offline';
-    return `Last seen ${new Date(partner.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  };
-
   return (
     <div className="fixed inset-0 bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden min-h-0">
-      {/* Sidebar */}
+      {/* Sidebar List */}
       <aside className={`w-full md:w-[350px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
         <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
-          <div className="flex flex-col">
+            <div className="flex flex-col">
             <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-none">COMM <span className="text-[var(--accent)]">CENTER</span></h1>
             <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.25em] mt-1.5 opacity-60 flex items-center gap-1.5 leading-none">
                <span className={`size-2 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
@@ -407,7 +427,7 @@ function ChatContent() {
           </div>
         </div>
         
-        <div className="p-4">
+            <div className="p-4">
           <div className="relative group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 group-focus-within:text-[var(--accent)] transition-colors" />
             <input 
@@ -436,41 +456,41 @@ function ChatContent() {
                 <div className="py-16 text-center px-8 opacity-40">
                   <MessageCircle className="w-10 h-10 text-[var(--text-secondary)]/30 mx-auto mb-3" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] leading-loose">
-                    No active connections.<br />Start a conversation.
+                    No active connections.
+                    <br />
+                    Start a conversation.
                   </p>
                 </div>
               ) : (
                 filteredInbox.map((chat) => (
-                  <button
-                    key={chat.partner._id}
-                    onClick={() => setActiveChat(chat.partner)}
-                    className={`w-full p-4 rounded-2xl border flex items-center gap-4 transition-all relative group overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 ${activeChat?._id === chat.partner._id ? 'bg-[var(--bg-primary)] border-[var(--accent)]/40' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40'}`}
-                  >
-                    <div className="relative shrink-0">
-                      <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-bold text-base border border-[var(--glass-border)]">
-                         {chat.partner.branding?.logo || chat.partner.avatar 
-                           ? <img src={chat.partner.branding?.logo || chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" onError={(e) => { e.target.style.display='none'; }} /> 
-                           : chat.partner.name?.[0]?.toUpperCase()}
-                      </div>
-                      <div className={`absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--bg-primary)] ${chat.partner.is_online ? 'bg-emerald-500' : 'bg-[var(--text-secondary)]/30'}`} />
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="flex justify-between items-start mb-0.5">
-                        <h3 className="font-bold !text-[9px] text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
-                          {chat.partner.store_name || chat.partner.name}
-                        </h3>
-                        <span className="!text-[8px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
-                          {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      <p className={`!text-[10px] font-bold uppercase tracking-widest truncate whitespace-nowrap mt-1 ${!chat.read_status ? 'text-[var(--text-primary)] opacity-90' : 'text-[var(--text-secondary)] opacity-40'}`}>
-                        {chat.snippet || 'No messages yet'}
-                      </p>
-                    </div>
-                    {!chat.read_status && (
-                      <div className="absolute top-1/2 right-6 -translate-y-1/2 size-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                    )}
-                  </button>
+              <button
+                  key={chat.partner._id}
+                  onClick={() => setActiveChat(chat.partner)}
+                  className={`w-full p-4 rounded-2xl border flex items-center gap-4 transition-all relative group overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 ${activeChat?._id === chat.partner._id ? 'bg-[var(--bg-primary)] border-[var(--accent)]/40' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40'}`}
+                >
+                <div className="relative shrink-0">
+                  <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-bold text-base border border-[var(--glass-border)]">
+                     {chat.partner.branding?.logo || chat.partner.avatar ? <img src={chat.partner.branding?.logo || chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" /> : chat.partner.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
+                </div>
+                  <div className="flex-1 text-left min-w-0">
+                  <div className="flex justify-between items-start mb-0.5">
+                    <h3 className="font-bold !text-[9px] text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
+                      {chat.partner.store_name || chat.partner.name}
+                    </h3>
+                    <span className="!text-[8px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
+                      {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                    <p className={`!text-[10px] font-bold uppercase tracking-widest truncate whitespace-nowrap mt-1 ${!chat.read_status ? 'text-[var(--text-primary)] opacity-90' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                    {chat.snippet || 'No messages yet'}
+                  </p>
+                </div>
+                {!chat.read_status && (
+                  <div className="absolute top-1/2 right-6 -translate-y-1/2 size-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
+                )}
+              </button>
                 ))
               )}
             </div>
@@ -487,15 +507,13 @@ function ChatContent() {
               <div className="flex items-center gap-4">
                 <button onClick={() => setActiveChat(null)} className="md:hidden size-9 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)]"><ArrowLeft className="w-5 h-5" /></button>
                 <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-bold text-base border border-[var(--glass-border)] overflow-hidden">
-                  {activeChat.branding?.logo || activeChat.avatar 
-                    ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover rounded-full" alt="" onError={(e) => { e.target.style.display='none'; }} /> 
-                    : activeChat.name?.[0]?.toUpperCase()}
+                  {activeChat.branding?.logo || activeChat.avatar ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover rounded-full" alt="" /> : activeChat.name?.[0]?.toUpperCase()}
                 </div>
                 <div>
                   <h2 className="!text-[10px] font-semibold text-[var(--text-primary)] leading-none mb-1 truncate whitespace-nowrap max-w-[150px] xs:max-w-[190px] sm:max-w-[260px]">{activeChat.store_name || activeChat.name}</h2>
                   <div className="flex items-center gap-1">
-                    <div className={`size-1.5 rounded-full ${activeChat.is_online ? 'bg-emerald-500' : 'bg-[var(--text-secondary)]/40'}`} />
-                    <p className="!text-[10px] text-[var(--text-secondary)]">{formatPresence(activeChat)}</p>
+                    <div className="size-1.5 rounded-full bg-emerald-500" />
+                    <p className="!text-[10px] text-[var(--text-secondary)]">Online</p>
                   </div>
                 </div>
               </div>
@@ -563,7 +581,7 @@ function ChatContent() {
 
             <div className="px-3 py-2 bg-[var(--bg-primary)] border-t border-[var(--glass-border)] z-30 relative pb-[max(8px,env(safe-area-inset-bottom))]">
               {draftProduct && (
-                <div className="absolute bottom-[100%] left-1/2 -translate-x-1/2 mb-4 bg-[var(--bg-secondary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-[1.5rem] p-3 flex gap-4 shadow-2xl w-[90%] max-w-sm items-center">
+                <div className="absolute bottom-[100%] left-1/2 -translate-x-1/2 mb-4 bg-[var(--bg-secondary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-[1.5rem] p-3 flex gap-4 shadow-2xl animate-fade-in-up w-[90%] max-w-sm items-center">
                   <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[var(--glass-border)] bg-[var(--bg-primary)]">
                      {draftProduct.images?.[0] ? <img src={draftProduct.images[0].url || draftProduct.images[0]} className="w-full h-full object-cover" /> : <Package className="w-5 h-5 m-auto opacity-20" />}
                   </div>
@@ -575,7 +593,7 @@ function ChatContent() {
                      onClick={() => {
                        setDraftProduct(null);
                        const currentVendorId = (searchParams.get('vendorId') || activeChat?._id || '').toString();
-                       router.replace(currentVendorId ? `/chat?vendorId=${currentVendorId}` : '/chat');
+                       router.replace(currentVendorId ? `/messages?vendorId=${currentVendorId}` : '/messages');
                      }} 
                      className="size-8 flex items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/10 border border-[var(--glass-border)] transition-colors shadow-sm"
                   >
@@ -595,7 +613,6 @@ function ChatContent() {
                 />
                 <button type="button" className="hidden sm:flex size-10 shrink-0 rounded-full hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-colors items-center justify-center"><Smile className="w-5 h-5" /></button>
                 <button 
-                  type="submit"
                   disabled={!newMessage.trim() || sending}
                   className="size-9 sm:size-10 shrink-0 rounded-full bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors flex items-center justify-center disabled:opacity-40"
                 >
@@ -624,7 +641,7 @@ function ChatContent() {
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="fixed inset-0 bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-secondary)] text-sm">Loading...</div>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <ChatContent />
     </Suspense>
   );
