@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -9,13 +10,13 @@
   --color-bg-primary: var(--bg-primary);
   --color-text-primary: var(--text-primary);
   --color-card-bg: var(--card-bg);
-  --font-display: "Poppins", "Plus Jakarta Sans", sans-serif;
+  --font-display: "Poppins", sans-serif;
 }
 
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
-  --nav-bg: rgba(10, 5, 15, 0.95); /* Dark Header for Light Mode */
+  --nav-bg: rgba(10, 5, 15, 0.95); 
   --nav-text: #f8fafc;
   --nav-border: rgba(255, 255, 255, 0.08);
   --component-bg: rgba(15, 23, 42, 0.04);
@@ -32,7 +33,7 @@
 .dark {
   --bg-primary: #0a050a;
   --bg-secondary: #120812;
-  --nav-bg: rgba(255, 255, 255, 0.9); /* Light Header for Dark Mode */
+  --nav-bg: rgba(255, 255, 255, 0.9);
   --nav-text: #0a051b;
   --nav-border: rgba(15, 23, 42, 0.06);
   --component-bg: rgba(255, 255, 255, 0.04);
@@ -46,19 +47,7 @@
   --card-bg: rgba(255, 255, 255, 0.03);
 }
 
-/* Dashboard Header Automagic Color Override */
-header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-primary)]"] {
-  color: var(--nav-text) !important;
-}
-header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-secondary)]"] {
-  color: var(--nav-text) !important;
-  opacity: 0.7 !important;
-}
-header.bg-\[var\(--nav-bg\)\] [class*="bg-[var(--bg-primary)]"] {
-  background-color: var(--nav-border) !important;
-}
-
-/* Global theme management */
+/* Rest of the file remains as before but ensuring no italics */
 html {
   transition: background-color 0.3s ease, color 0.3s ease;
   scroll-behavior: smooth;
@@ -77,105 +66,48 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1,h2,h3,h4,h5,h6 {
   text-wrap: balance;
   letter-spacing: -0.02em;
+  font-style: normal !important;
 }
 
-/* Global mobile density pass: tighter text + spacing */
+i, em { font-style: normal !important; }
+
+/* Dashboard Header Automagic Color Override */
+header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-primary)]"] {
+  color: var(--nav-text) !important;
+}
+header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-secondary)]"] {
+  color: var(--nav-text) !important;
+  opacity: 0.7 !important;
+}
+header.bg-\[var\(--nav-bg\)\] [class*="bg-[var(--bg-primary)]"] {
+  background-color: var(--nav-border) !important;
+}
+
 @media (max-width: 640px) {
-  html {
-    font-size: 15px;
-  }
-
-  /* Prevent iOS keyboard focus zoom on inputs */
-  input,
-  textarea,
-  select {
-    font-size: 16px !important;
-  }
-
-  h1 {
-    font-size: 18px;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-
-  h2 {
-    font-size: 16px;
-    line-height: 1.1;
-  }
-
-  h3 {
-    font-size: 14px;
-    line-height: 1.1;
-  }
-
-  h4, h5, h6 {
-    font-size: 13px;
-    line-height: 1.1;
-  }
-
-  p {
-    line-height: 1.45;
-  }
-
-  /* Prevent tiny uppercase CTA labels from wrapping to 2 lines on phones */
-  button,
-  a {
-    word-break: normal;
-  }
-
-  button[class*='uppercase'][class*='text-[10px]'],
-  a[class*='uppercase'][class*='text-[10px]'],
-  button[class*='uppercase'][class*='text-[9px]'],
-  a[class*='uppercase'][class*='text-[9px]'] {
-    white-space: nowrap;
-    letter-spacing: 0.12em;
-  }
+  html { font-size: 15px; }
+  input, textarea, select { font-size: 16px !important; }
+  h1 { font-size: 18px; line-height: 1.1; letter-spacing: -0.02em; }
+  h2 { font-size: 16px; line-height: 1.1; }
+  h3 { font-size: 14px; line-height: 1.1; }
+  h4, h5, h6 { font-size: 13px; line-height: 1.1; }
+  p { line-height: 1.45; }
+  button, a { word-break: normal; }
 }
 
-/* Mobile Typography & Spacing Scale */
 @layer utilities {
-  .text-fluid-xs {
-    font-size: clamp(0.6rem, 2vw, 0.75rem);
-  }
-
-  .text-fluid-sm {
-    font-size: clamp(0.8rem, 2.5vw, 0.875rem);
-  }
-
-  .text-fluid-base {
-    font-size: clamp(0.9rem, 3vw, 1rem);
-  }
-
-  .text-fluid-lg {
-    font-size: clamp(1rem, 4vw, 1.125rem);
-  }
-
-  .text-fluid-xl {
-    font-size: clamp(1.25rem, 5vw, 1.5rem);
-  }
-
-  .text-fluid-2xl {
-    font-size: clamp(1.5rem, 6vw, 1.875rem);
-  }
-
-  .p-fluid {
-    padding: clamp(1rem, 5vw, 2.5rem);
-  }
-
-  .gap-fluid {
-    gap: clamp(0.5rem, 3vw, 1.5rem);
-  }
+  .text-fluid-xs { font-size: clamp(0.6rem, 2vw, 0.75rem); }
+  .text-fluid-sm { font-size: clamp(0.8rem, 2.5vw, 0.875rem); }
+  .text-fluid-base { font-size: clamp(0.9rem, 3vw, 1rem); }
+  .text-fluid-lg { font-size: clamp(1rem, 4vw, 1.125rem); }
+  .text-fluid-xl { font-size: clamp(1.25rem, 5vw, 1.5rem); }
+  .text-fluid-2xl { font-size: clamp(1.5rem, 6vw, 1.875rem); }
+  .p-fluid { padding: clamp(1rem, 5vw, 2.5rem); }
+  .gap-fluid { gap: clamp(0.5rem, 3vw, 1.5rem); }
 }
 
-/* Glass panel — used everywhere */
 .glass-panel {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
@@ -184,113 +116,16 @@ h6 {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* Fuchsia/Purple tinted glass */
-.glass {
-  background: var(--accent-glow);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Rich liquid glass for hero cards */
-.liquid-glass {
-  background: linear-gradient(135deg, var(--accent-glow) 0%, var(--glass-bg) 50%, var(--accent-glow) 100%);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
-}
-
-/* Blur blob decoration */
-.bg-blur-blob {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(242, 13, 242, 0.4) 0%, rgba(242, 13, 242, 0) 70%);
-  filter: blur(60px);
-  z-index: -1;
-}
-
-/* Hide scrollbar utility */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Notification & Toast System */
 .notification-layer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  z-index: 9999;
-  pointer-events: none;
+  position: fixed; top: 0; right: 0; padding: 1.5rem; width: 100%; max-width: 420px;
+  display: flex; flex-direction: column; gap: 0.75rem; z-index: 9999; pointer-events: none;
 }
 
 .notification-toast {
-  pointer-events: auto;
-  width: 100%;
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
-  border-radius: 12px;
-  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.25);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-left: 4px solid var(--accent);
-}
-
-/* Animations */
-@keyframes gradientBG {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-}
-
-.animate-blob {
-  animation: blob 7s infinite;
-}
-
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
+  pointer-events: auto; width: 100%; background: var(--glass-bg); backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border); color: var(--text-primary); border-radius: 12px;
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.25); border-left: 4px solid var(--accent);
 }

@@ -24,6 +24,7 @@ let _raw = null;            // Raw cart object from API
 let _pendingOps = 0;        // Inflight mutation count (prevents stale overwrites)
 let _subscribers = [];      // Listener callbacks
 let _fetchPromise = null;   // Deduplicated fetch (avoid parallel GETs)
+let _sidebarOpen = true;    // Default open on desktop per user preference
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,11 @@ function parseItems(raw) {
 }
 
 function notify() {
-  const snapshot = { items: _items, count: _items.reduce((s, i) => s + i.quantity, 0) };
+  const snapshot = { 
+    items: _items, 
+    count: _items.reduce((s, i) => s + i.quantity, 0),
+    isSidebarOpen: _sidebarOpen
+  };
   _subscribers.forEach(fn => {
     try { fn(snapshot); } catch (e) { /* ignore subscriber errors */ }
   });
@@ -67,7 +72,11 @@ export const cartStore = {
   subscribe(fn) {
     _subscribers.push(fn);
     // Call immediately with current state
-    fn({ items: _items, count: _items.reduce((s, i) => s + i.quantity, 0) });
+    fn({ 
+      items: _items, 
+      count: _items.reduce((s, i) => s + i.quantity, 0),
+      isSidebarOpen: _sidebarOpen
+    });
     return () => {
       _subscribers = _subscribers.filter(s => s !== fn);
     };
@@ -217,6 +226,15 @@ export const cartStore = {
   isPending() {
     return _pendingOps > 0;
   },
+  
+  toggleSidebar(force) {
+    _sidebarOpen = force !== undefined ? force : !_sidebarOpen;
+    notify();
+  },
+  
+  getSidebarState() {
+    return _sidebarOpen;
+  }
 };
 
 export default cartStore;
