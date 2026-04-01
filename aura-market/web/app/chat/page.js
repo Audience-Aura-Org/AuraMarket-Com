@@ -493,13 +493,15 @@ function ChatContent() {
                     <ArrowLeft className="size-4" />
                  </button>
                  <div className="flex items-center gap-3 group cursor-pointer">
-                    <div className="size-10 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl group-hover:scale-105 transition-all">
-                       {activeChat.branding?.logo || activeChat.avatar ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center font-black text-[var(--accent)]">{activeChat.name?.[0]}</div>}
+                    <div className="size-11 rounded-2xl overflow-hidden border border-white/5 bg-black flex items-center justify-center p-2.5 shadow-lg shadow-[var(--accent)]/20 group-hover:rotate-6 transition-all ring-1 ring-white/10 shrink-0">
+                       {activeChat.branding?.logo || activeChat.avatar ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-contain filter drop-shadow-[0_0_5px_var(--accent)]" alt="" /> : <div className="size-full flex items-center justify-center font-black text-[var(--accent)]">{activeChat.name?.[0]}</div>}
                     </div>
                     <div className="flex items-center gap-3 min-w-0 max-w-[280px]">
-                       <h2 className="text-[16px] font-black uppercase text-[var(--text-primary)] tracking-tight leading-none truncate whitespace-nowrap">{activeChat.store_name || activeChat.name}</h2>
-                       <div className="flex items-center gap-1.5 opacity-50 shrink-0">
-                          <Activity className="size-3 text-emerald-500" />
+                       <h2 className="text-[16px] font-black uppercase text-[var(--text-primary)] tracking-tight leading-none truncate whitespace-nowrap">
+                         {activeChat.store_name || activeChat.name}
+                       </h2>
+                       <div className="flex items-center gap-1.5 opacity-60 shrink-0">
+                          <Sparkles className="size-3.5 text-[var(--accent)] animate-pulse" />
                           <span className="text-[8px] font-black uppercase tracking-widest leading-none pt-0.5">Verified Node</span>
                        </div>
                     </div>
