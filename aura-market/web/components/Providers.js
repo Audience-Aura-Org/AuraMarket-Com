@@ -10,8 +10,12 @@ import Footer from '@/components/layout/Footer';
 
 import PWAInit from '@/components/PWAInit';
 import PWAInstallBanner from '@/components/layout/PWAInstallBanner';
+import { usePathname } from 'next/navigation';
 
 export default function Providers({ children }) {
+  const pathname = usePathname();
+  const isMessagesPage = pathname?.startsWith('/messages');
+
   return (
     <ThemeProvider>
       <SocketProvider>
@@ -22,7 +26,7 @@ export default function Providers({ children }) {
         <div className="flex flex-row items-stretch w-full">
           <main className="flex-1 flex flex-col min-h-screen min-w-0">
             {children}
-            <Footer />
+            {!isMessagesPage && <Footer />}
           </main>
           <CartSidebar />
         </div>

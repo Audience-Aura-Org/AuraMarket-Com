@@ -42,9 +42,9 @@ export default function Footer() {
 
            {/* Newsletter Hub */}
            <div className="w-full md:w-[340px] flex flex-col gap-2.5">
-              <p className="text-[9px] font-black text-[var(--text-primary)] uppercase tracking-[0.3em] opacity-80 flex items-center gap-2 pl-1">
+              <p className="text-sm font-semibold text-[var(--text-primary)] opacity-80 flex items-center gap-2 pl-1">
                  <Sparkles className="size-3 text-[var(--accent)]" /> 
-                 Stay Locked In
+                 Stay logged in
               </p>
               <form className="relative group overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-3xl transition-all focus-within:border-[var(--accent)] hover:border-[var(--glass-border-hover)]" onSubmit={(e) => e.preventDefault()}>
                 <input 
