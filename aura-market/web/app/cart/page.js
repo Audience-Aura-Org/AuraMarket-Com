@@ -107,9 +107,8 @@ export default function CartPage() {
   const removeCoupon = () => { setCoupon(null); setCouponCode(''); setCouponError(''); };
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const delivery = 2500;
   const discount = coupon ? (coupon.type === 'percent' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount) : 0;
-  const total = subtotal + delivery - discount;
+  const total = subtotal - discount;
 
   if (loading) return (
     <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
@@ -154,7 +153,7 @@ export default function CartPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
           <div className="lg:col-span-8 space-y-4">
             {cartItems.map((item, idx) => (
               <div key={`${item.id || item.productId || item.name}-${idx}`} className="p-3 sm:p-4 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col sm:flex-row gap-3 sm:gap-4 hover:border-[var(--accent)]/30 transition-all duration-300 group glass-panel shadow-sm">
@@ -168,7 +167,7 @@ export default function CartPage() {
                     <div className="flex justify-between items-start mb-1 gap-2">
                        <h3 className="text-sm sm:text-lg font-black text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
                        <div className="flex gap-2">
-                         <Link href={`/messages?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm" title="Message vendor">
+                         <Link href={`/chat?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm" title="Message vendor">
                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
                              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v7.5A2.25 2.25 0 0 1 19.5 16.5h-7.818a.75.75 0 0 0-.53.22l-3.53 3.53A.75.75 0 0 1 6 19.5v-3a.75.75 0 0 0-.75-.75H4.5A2.25 2.25 0 0 1 2.25 13.5v-7.5A2.25 2.25 0 0 1 4.5 3.75h15A2.25 2.25 0 0 1 21.75 6.75Z" />
                            </svg>
@@ -202,7 +201,7 @@ export default function CartPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-4 lg:sticky lg:top-32 h-fit">
+          <div className="lg:col-span-4 lg:sticky lg:top-28 self-start">
             <div className="glass-panel p-4 sm:p-6 lg:p-8 rounded-3xl border border-[var(--glass-border)] shadow-3xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[var(--accent)]/20 transition-all duration-700"></div>
               
@@ -250,7 +249,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
                   <span>Logistics</span>
-                  <span className="text-[var(--text-primary)] font-mono font-bold">{delivery.toLocaleString()} XAF</span>
+                  <span className="text-[var(--text-primary)] font-mono font-bold opacity-40">Set at checkout</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-wide uppercase">
