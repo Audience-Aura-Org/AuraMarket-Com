@@ -191,7 +191,7 @@ function ShopContent() {
         </div>
 
         {/* STICKY CATEGORY NAV (Stays Fixed on Scroll) */}
-        <div className="sticky top-[56px] md:top-[72px] z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] py-1 px-4 md:px-6 lg:px-12 shadow-sm transition-all">
+        <div className="sticky top-[56px] md:top-[72px] z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-12 shadow-sm transition-all">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
              {breadcrumb.length > 0 ? (
                <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
