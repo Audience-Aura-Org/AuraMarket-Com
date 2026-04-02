@@ -171,7 +171,7 @@ function ShopContent() {
         <div className="flex flex-col w-full min-h-[calc(100vh-140px)] relative">
         
         {/* SEARCH COMPONENT (Scrolls Away) */}
-        <div className="px-4 md:px-6 lg:px-12 py-1.5 bg-[var(--bg-primary)] flex justify-center border-b border-[var(--glass-border)]/50">
+        <div className="px-4 md:px-6 lg:px-12 py-2 bg-[var(--bg-primary)] flex justify-center border-b border-[var(--glass-border)]/50">
           <div className="relative w-full max-w-6xl">
             <input
               type="text"
@@ -179,7 +179,7 @@ function ShopContent() {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
               placeholder="Search for products..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-1.5 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
             />
             <button
               onClick={() => { setPage(1); fetchProducts(1); }}
