@@ -170,14 +170,15 @@ export default function StorefrontBuilder() {
                             <button 
                               onClick={() => handleToggle(section._id, section.is_active)}
                               className={`size-10 rounded-xl border border-[var(--glass-border)] flex items-center justify-center transition-all shadow-lg ${section.is_active ? 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white' : 'text-white/20 hover:bg-emerald-500/20 hover:text-emerald-500'}`}
+                              title={section.is_active ? "Deactivate" : "Activate"}
                             >
                                <CheckCircle2 className="size-5" />
                             </button>
                             <button 
                               onClick={() => { setEditingSection(section); setIsFormOpen(true); }}
-                              className="size-10 rounded-xl border border-[var(--glass-border)] bg-white/5 text-white/40 hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-lg flex items-center justify-center"
+                              className="h-10 px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[9px] font-black uppercase tracking-widest"
                             >
-                               <Settings2 className="size-5" />
+                               <Settings2 className="size-4" /> Modify
                             </button>
                          </div>
                       </div>
@@ -187,38 +188,47 @@ export default function StorefrontBuilder() {
                    <div className="flex-1 p-6 md:p-8 overflow-x-auto no-scrollbar relative min-h-[220px]">
                       <div className="flex items-center gap-6 pb-2 min-w-full lg:min-w-0">
                          {section.data && section.data.length > 0 ? (
-                            section.data.map((item, idx) => (
-                               <div key={idx} className="w-[180px] md:w-[220px] shrink-0 space-y-4 group/preview relative">
-                                  <div className="aspect-[16/10] rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] overflow-hidden shadow-lg group-hover/preview:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 relative">
-                                     {item.image_url ? (
-                                       <img src={item.image_url} alt="" className="size-full object-cover group-hover/preview:scale-110 transition-transform duration-700" />
-                                     ) : item.category_name ? (
-                                       <div className="size-full flex flex-col items-center justify-center gap-2 opacity-20">
-                                          <Tag className="size-8" />
-                                          <span className="text-[8px] font-black uppercase tracking-[0.2em]">Category Mapping</span>
+                            section.data.map((item, idx) => {
+                               const isVendor = section.type === 'stores';
+                               const vendorLogo = item.vendor_id?.store?.logo || item.vendor_logo;
+                               const vendorName = item.vendor_id?.store_name || item.vendor_name || 'Vendor';
+                               const initialsLogo = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(vendorName)}&backgroundColor=0d0d0d&textColor=ffffff`;
+                               
+                               return (
+                                 <div key={idx} className="w-[180px] md:w-[220px] shrink-0 space-y-4 group/preview relative">
+                                    <div className="aspect-[16/10] rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] overflow-hidden shadow-lg group-hover/preview:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 relative">
+                                       {item.image_url ? (
+                                         <img src={item.image_url} alt="" className="size-full object-cover group-hover/preview:scale-110 transition-transform duration-700" />
+                                       ) : isVendor ? (
+                                         <img src={vendorLogo || initialsLogo} alt="" className="size-full object-cover group-hover/preview:scale-110 transition-transform duration-700" />
+                                       ) : item.category_name ? (
+                                         <div className="size-full flex flex-col items-center justify-center gap-2 opacity-20 bg-gradient-to-br from-[var(--glass-border)] to-transparent">
+                                            <Tag className="size-8" />
+                                            <span className="text-[8px] font-black uppercase tracking-[0.2em]">Category Mapping</span>
+                                         </div>
+                                       ) : (
+                                         <div className="size-full flex flex-col items-center justify-center gap-2 opacity-10">
+                                            <ImageIcon className="size-8" />
+                                         </div>
+                                       )}
+                                       
+                                       {/* Quick badge */}
+                                       <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between translate-y-4 opacity-0 group-hover/preview:translate-y-0 group-hover/preview:opacity-100 transition-all duration-300">
+                                          <span className="text-[8px] font-black text-white uppercase tracking-widest truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || vendorName || 'NODE'}</span>
+                                          <ArrowRight className="size-3 text-[var(--accent)]" />
                                        </div>
-                                     ) : (
-                                       <div className="size-full flex flex-col items-center justify-center gap-2 opacity-10">
-                                          <ImageIcon className="size-8" />
+                                    </div>
+                                    
+                                    <div className="px-1 space-y-1">
+                                       <div className="flex items-center justify-between">
+                                          <h4 className="text-[11px] font-black text-[var(--text-primary)] uppercase tracking-tight truncate max-w-[140px]">{item.headline || item.category_name || item.product_name || vendorName || 'Unnamed Element'}</h4>
+                                          {item.tag && <span className="text-[8px] font-bold text-[var(--accent)]">{item.tag}</span>}
                                        </div>
-                                     )}
-                                     
-                                     {/* Quick badge */}
-                                     <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between translate-y-4 opacity-0 group-hover/preview:translate-y-0 group-hover/preview:opacity-100 transition-all duration-300">
-                                        <span className="text-[8px] font-black text-white uppercase tracking-widest truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || 'NODE'}</span>
-                                        <ArrowRight className="size-3 text-[var(--accent)]" />
-                                     </div>
-                                  </div>
-                                  
-                                  <div className="px-1 space-y-1">
-                                     <div className="flex items-center justify-between">
-                                        <h4 className="text-[11px] font-black text-[var(--text-primary)] uppercase tracking-tight truncate max-w-[140px]">{item.headline || item.category_name || item.product_name || 'Unnamed Element'}</h4>
-                                        {item.tag && <span className="text-[8px] font-bold text-[var(--accent)]">{item.tag}</span>}
-                                     </div>
-                                     {item.subtext && <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 truncate leading-none">{item.subtext}</p>}
-                                  </div>
-                               </div>
-                            ))
+                                       {(item.subtext || isVendor) && <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 truncate leading-none">{item.subtext || 'Vendor Profile Active'}</p>}
+                                    </div>
+                                 </div>
+                               );
+                            })
                          ) : (
                             <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-20 space-y-3">
                                <Grid className="size-8" />
