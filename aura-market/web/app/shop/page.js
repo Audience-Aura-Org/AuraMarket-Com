@@ -170,71 +170,75 @@ function ShopContent() {
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 font-[var(--font-poppins)]">
         <div className="flex flex-col w-full min-h-[calc(100vh-140px)] relative">
         
-        {/* SEARCH HEADER */}
-        <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] px-4 md:px-6 lg:px-12 py-3 sticky top-[56px] md:top-[72px] z-40 backdrop-blur-xl shadow-sm flex justify-center">
-          <div className="relative w-full max-w-6xl">
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
-              placeholder="Search for products..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
-            />
-            <button
-              onClick={() => { setPage(1); fetchProducts(1); }}
-              className="absolute right-1.5 top-1.5 h-[calc(100%-12px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center"
-            >
-              <Search className="size-3.5" />
-            </button>
+        {/* UNIFIED STICKY CONTROL BAR (Search + Categories) */}
+        <div className="sticky top-[56px] md:top-[72px] z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] transition-all shadow-sm">
+          
+          {/* SEARCH COMPONENT (Primary Controller) */}
+          <div className="px-4 md:px-6 lg:px-12 py-3 flex justify-center border-b border-[var(--glass-border)]/50">
+            <div className="relative w-full max-w-6xl">
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
+                placeholder="Search for products..."
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+              />
+              <button
+                onClick={() => { setPage(1); fetchProducts(1); }}
+                className="absolute right-1.5 top-1.5 h-[calc(100%-12px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-bold"
+              >
+                <Search className="size-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
 
-
-        {/* CATEGORY CHIPS */}
-        <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-12 sticky top-[96px] md:top-[116px] z-30 shadow-sm backdrop-blur-xl bg-[var(--bg-primary)]/90">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
-             {breadcrumb.length > 0 ? (
-               <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
-                 <Home className="size-3 lg:size-3.5" /> Home
-               </button>
-             ) : (
-                <button 
-                  onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                  className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
-                >
-                  All
-                </button>
-             )}
-
-             {breadcrumb.length > 0 && breadcrumb.map((crumb, idx) => (
-               <div key={crumb._id} className="flex items-center gap-2 shrink-0">
-                  <ChevronRight className="size-3 text-[var(--glass-border)] hidden sm:block" />
+          {/* CATEGORY NAV (Secondary Controller) */}
+          <div className="py-3 px-4 md:px-6 lg:px-12">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
+               {breadcrumb.length > 0 ? (
+                 <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                   <Home className="size-3 lg:size-3.5" /> Home
+                 </button>
+               ) : (
                   <button 
-                    onClick={() => handleBreadcrumbClick(idx)} 
-                    className={`px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                    onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
+                    className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                   >
-                    {crumb.name}
+                    All
                   </button>
-               </div>
-             ))}
+               )}
 
-             {breadcrumb.length > 0 && currentLevel.length > 0 && <div className="h-4 w-px bg-[var(--glass-border)] mx-1 shrink-0 hidden sm:block" />}
+               {breadcrumb.length > 0 && breadcrumb.map((crumb, idx) => (
+                 <div key={crumb._id} className="flex items-center gap-2 shrink-0">
+                    <ChevronRight className="size-3 text-[var(--glass-border)] hidden sm:block" />
+                    <button 
+                      onClick={() => handleBreadcrumbClick(idx)} 
+                      className={`px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      {crumb.name}
+                    </button>
+                 </div>
+               ))}
 
-             {currentLevel.map(cat => (
-               <button
-                  key={cat._id}
-                  onClick={() => {
-                    if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
-                    else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
-                  }}
-                  className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
-               >
-                 {cat.name}
-               </button>
-             ))}
+               {breadcrumb.length > 0 && currentLevel.length > 0 && <div className="h-4 w-px bg-[var(--glass-border)] mx-1 shrink-0 hidden sm:block" />}
+
+               {currentLevel.map(cat => (
+                 <button
+                    key={cat._id}
+                    onClick={() => {
+                      if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
+                      else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
+                    }}
+                    className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                 >
+                   {cat.name}
+                 </button>
+               ))}
+            </div>
           </div>
         </div>
+
 
         {/* ── MAIN CONTENT ── */}
         <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden pt-[1px]">
