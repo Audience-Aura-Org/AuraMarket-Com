@@ -377,17 +377,18 @@ function ShopContent() {
         {/* ── MAIN CONTENT ── */}
         <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden pt-[1px]">
           {/* Results Info + Sort */}
-          <div className="px-4 md:px-6 lg:px-12 py-3 md:py-4 border-b border-[var(--glass-border)] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-[var(--bg-primary)]/80 backdrop-blur-xl z-30 font-[var(--font-poppins)]">
-            <div className="flex flex-col text-left w-full md:w-auto">
-              <p className="text-[11px] md:text-xs font-medium text-[var(--text-secondary)] tracking-tight">
-                Showing <span className="text-[var(--text-primary)] font-semibold">{products.length}</span> results
+          <div className="px-4 md:px-6 lg:px-12 py-3 md:py-4 border-b border-[var(--glass-border)] flex items-center justify-between gap-3 bg-[var(--bg-primary)]/80 backdrop-blur-xl z-30 font-[var(--font-poppins)] overflow-x-auto no-scrollbar">
+            <div className="flex flex-col text-left shrink-0">
+              <p className="text-[11px] md:text-xs font-medium text-[var(--text-secondary)] tracking-tight whitespace-nowrap">
+                Showing <span className="text-[var(--text-primary)] font-semibold">{products.length}</span>
+                <span className="hidden sm:inline"> results</span>
                 {activeCategoryName !== 'All' && (
                   <> in <span className="text-[var(--text-primary)] font-semibold"> {activeCategoryName}</span></>
                 )}
               </p>
               {/* Breadcrumb trail in main area */}
               {breadcrumb.length > 0 && (
-                <div className="flex items-center gap-1.5 mt-0.5 overflow-x-auto no-scrollbar whitespace-nowrap hidden md:flex">
+                <div className="flex items-center gap-1.5 mt-0.5 overflow-x-auto no-scrollbar whitespace-nowrap hidden lg:flex">
                   <button onClick={() => handleBreadcrumbClick(-1)} className="text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">All</button>
                   {breadcrumb.map((crumb, idx) => (
                     <span key={crumb._id} className="flex items-center gap-1">
@@ -402,14 +403,13 @@ function ShopContent() {
             </div>
 
             {/* Sort & View Toggle */}
-            <div className="flex items-center justify-between w-full md:w-auto gap-3 border-t md:border-t-0 border-[var(--glass-border)] pt-3 md:pt-0 mt-1 md:mt-0">
-              
-              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0 ml-auto">
+              <div className="flex items-center gap-2">
                 <span className="text-[10px] font-medium text-[var(--text-secondary)] whitespace-nowrap hidden lg:block">Sort by:</span>
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value)}
-                  className="bg-transparent border border-[var(--glass-border)] rounded-md py-1.5 px-3 text-[11px] font-medium text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all cursor-pointer hover:bg-[var(--bg-secondary)]/50 appearance-none pr-7 bg-no-repeat bg-[right_0.5rem_top_50%] bg-[length:0.65rem] shadow-sm max-w-[120px] sm:max-w-none text-ellipsis"
+                  className="bg-transparent border border-[var(--glass-border)] rounded-md py-1.5 px-2 md:px-3 text-[10px] md:text-[11px] font-medium text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all cursor-pointer hover:bg-[var(--bg-secondary)]/50 appearance-none pr-6 md:pr-7 bg-no-repeat bg-[right_0.4rem_top_50%] md:bg-[right_0.5rem_top_50%] bg-[length:0.6rem] shadow-sm max-w-[110px] sm:max-w-none text-ellipsis"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23999%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")` }}
                 >
                   <option value="-createdAt">Newest Arrivals</option>
@@ -421,11 +421,11 @@ function ShopContent() {
               
               <div className="h-4 w-px bg-[var(--glass-border)] hidden sm:block" />
               
-              <div className="flex items-center gap-1 bg-[var(--bg-secondary)] rounded-md p-0.5 border border-[var(--glass-border)] shrink-0">
-                <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-[4px] transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
+              <div className="flex items-center gap-0.5 md:gap-1 bg-[var(--bg-secondary)] rounded-md p-0.5 border border-[var(--glass-border)] shrink-0">
+                <button onClick={() => setViewMode('grid')} className={`p-1 md:p-1.5 rounded-[4px] transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
                   <LayoutGrid className="size-3.5" />
                 </button>
-                <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-[4px] transition-all flex items-center justify-center ${viewMode === 'list' ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
+                <button onClick={() => setViewMode('list')} className={`p-1 md:p-1.5 rounded-[4px] transition-all flex items-center justify-center ${viewMode === 'list' ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
                   <List className="size-3.5" />
                 </button>
               </div>
