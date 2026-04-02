@@ -35,20 +35,23 @@ function ShopContent() {
 
   // --- Category drill-down state ---
   const [categoryTree, setCategoryTree] = useState([]);
-  const [breadcrumb, setBreadcrumb] = useState([]); // array of { _id, name, children }
+  const [breadcrumb, setBreadcrumb] = useState([]); // array mapping of { _id, name, children }
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [activeCategoryName, setActiveCategoryName] = useState('All');
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
 
-  // Current level of categories shown in sidebar
+  // Current level of categories shown in navigation
   const currentLevel = breadcrumb.length === 0
     ? categoryTree
     : breadcrumb[breadcrumb.length - 1].children;
 
   // Fetch categories that have products
   useEffect(() => {
+    setIsCategoriesLoading(true);
     api.get('/categories/with-products')
       .then(res => { if (res.data.success) setCategoryTree(res.data.data); })
-      .catch(err => console.error(err));
+      .catch(err => console.error(err))
+      .finally(() => setIsCategoriesLoading(false));
   }, []);
 
   // Sync category from URL
@@ -59,20 +62,18 @@ function ShopContent() {
     }
   }, [searchParams]);
 
-  // Debounce ref to avoid multiple overlapping fetches
+  // Debounce ref
   const fetchTimeout = useRef(null);
   const productCacheRef = useRef(new Map());
 
-  // Memoize the fetcher to stabilize the dependency graph
-  const fetchProducts = useCallback(async (targetPage = page) => {
-    // Provide immediate feedback by setting loading
+  // Optimized Fetcher
+  const fetchProducts = useCallback(async (targetPage = page, isImmediate = false) => {
     setLoading(true);
 
-    // Clear any existing pending fetch to avoid overwhelming the server
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
-    fetchTimeout.current = setTimeout(async () => {
-      const params = { page: targetPage, limit: 20 }; // Limited to 20 per page as requested
+    const executeFetch = async () => {
+      const params = { page: targetPage, limit: 20 };
       if (activeCategoryName && activeCategoryName !== 'All') params.category = activeCategoryName;
       if (activePrice) {
         const range = PRICE_RANGES.find(p => p.id === activePrice);
@@ -84,7 +85,9 @@ function ShopContent() {
 
       const queryKey = JSON.stringify(params);
       const cached = productCacheRef.current.get(queryKey);
-      if (cached) {
+      
+      // Only use cache for non-search queries to avoid stale results
+      if (cached && !search) {
         setProducts(cached.products);
         setTotalPages(cached.totalPages);
         setLoading(false);
@@ -98,19 +101,40 @@ function ShopContent() {
           setProducts(nextProducts);
           const total = res.data.pagination?.pages || 1;
           setTotalPages(total);
-          productCacheRef.current.set(queryKey, { products: nextProducts, totalPages: total });
+          
+          if (!search) {
+            productCacheRef.current.set(queryKey, { products: nextProducts, totalPages: total });
+          }
         }
       } catch (err) {
         console.error('Shop fetch error:', err);
       } finally {
         setLoading(false);
       }
-    }, 300); // 300ms debounce buffer
+    };
+
+    if (isImmediate) {
+      executeFetch();
+    } else {
+      fetchTimeout.current = setTimeout(executeFetch, 300);
+    }
   }, [activeCategoryName, activePrice, sortBy, search, page]); 
 
+  // Trigger fetch: Use immediate for filters, debounce for search
   useEffect(() => {
-    fetchProducts(page);
-  }, [page, activeCategoryName, activePrice, sortBy, search]);
+    // Determine if we should bypass the debounce (for explicit filter changes)
+    const urlQuery = searchParams.get('q') || '';
+    const isSearching = search !== urlQuery;
+    fetchProducts(page, !isSearching);
+  }, [page, activeCategoryName, activePrice, sortBy]);
+
+  // Special handle for search input to ensure it debounces correctly
+  useEffect(() => {
+    const urlQuery = searchParams.get('q') || '';
+    if (search !== urlQuery) {
+      fetchProducts(1, false); // debounced
+    }
+  }, [search]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -193,45 +217,54 @@ function ShopContent() {
         {/* STICKY CATEGORY NAV (Stays Fixed on Scroll) */}
         <div className="sticky top-[56px] md:top-[72px] z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-12 shadow-sm transition-all">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
-             {breadcrumb.length > 0 ? (
-               <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
-                 <Home className="size-3 lg:size-3.5" /> Home
-               </button>
+             {isCategoriesLoading ? (
+               // Category Skeletons
+               [...Array(6)].map((_, i) => (
+                 <div key={i} className="shrink-0 w-20 md:w-24 h-8 md:h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse border border-[var(--glass-border)]/30"></div>
+               ))
              ) : (
-                <button 
-                  onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                  className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
-                >
-                  All
-                </button>
-             )}
-
-             {breadcrumb.length > 0 && breadcrumb.map((crumb, idx) => (
-               <div key={crumb._id} className="flex items-center gap-2 shrink-0">
-                  <ChevronRight className="size-3 text-[var(--glass-border)] hidden sm:block" />
+              <>
+               {breadcrumb.length > 0 ? (
+                 <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                   <Home className="size-3 lg:size-3.5" /> Home
+                 </button>
+               ) : (
                   <button 
-                    onClick={() => handleBreadcrumbClick(idx)} 
-                    className={`px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                    onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
+                    className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                   >
-                    {crumb.name}
+                    All
                   </button>
-               </div>
-             ))}
+               )}
 
-             {breadcrumb.length > 0 && currentLevel.length > 0 && <div className="h-4 w-px bg-[var(--glass-border)] mx-1 shrink-0 hidden sm:block" />}
+               {breadcrumb.length > 0 && breadcrumb.map((crumb, idx) => (
+                 <div key={crumb._id} className="flex items-center gap-2 shrink-0">
+                    <ChevronRight className="size-3 text-[var(--glass-border)] hidden sm:block" />
+                    <button 
+                      onClick={() => handleBreadcrumbClick(idx)} 
+                      className={`px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      {crumb.name}
+                    </button>
+                 </div>
+               ))}
 
-             {currentLevel.map(cat => (
-               <button
-                  key={cat._id}
-                  onClick={() => {
-                    if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
-                    else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
-                  }}
-                  className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
-               >
-                 {cat.name}
-               </button>
-             ))}
+               {breadcrumb.length > 0 && currentLevel.length > 0 && <div className="h-4 w-px bg-[var(--glass-border)] mx-1 shrink-0 hidden sm:block" />}
+
+               {currentLevel.map(cat => (
+                 <button
+                    key={cat._id}
+                    onClick={() => {
+                      if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
+                      else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
+                    }}
+                    className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                 >
+                   {cat.name}
+                 </button>
+               ))}
+              </>
+             )}
           </div>
         </div>
 

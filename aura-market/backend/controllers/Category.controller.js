@@ -45,41 +45,59 @@ exports.getAllCategories = async (req, res) => {
 // @desc    Get hierarchical tree filtered to only categories with products (for shop sidebar)
 exports.getCategoriesWithProducts = async (req, res) => {
   try {
-    // Get distinct categories used in products
-    const productCategories = await Product.distinct('category');
-    const catSet = new Set(productCategories.map(c => c.toLowerCase()));
+    // 1. Get all active categories at once
+    const allCategories = await Category.find({ is_active: true }).sort('name').lean();
+    
+    // 2. Get distinct categories that have active products
+    const productCategoryNames = await Product.distinct('category', { status: 'active' });
+    const productCatSet = new Set(productCategoryNames.map(c => c?.toLowerCase()));
 
-    const allCategories = await Category.find({ is_active: true }).sort('name');
+    // 3. Map categories for quick lookup
+    const catMap = {};
+    allCategories.forEach(cat => {
+      catMap[cat._id] = { 
+        ...cat, 
+        children: [], 
+        hasProducts: productCatSet.has(cat.name?.toLowerCase()) 
+      };
+    });
 
-    // Helper: collect all descendant names of a category
-    const getDescendantNames = (cat, allCats, visited = new Set()) => {
-      if (visited.has(String(cat._id))) return [];
-      visited.add(String(cat._id));
-      const children = allCats.filter(c => String(c.parent_id) === String(cat._id));
-      let names = [cat.name.toLowerCase()];
-      for (const child of children) {
-        names = names.concat(getDescendantNames(child, allCats, visited));
+    // 4. Build hierarchy and connect children
+    const roots = [];
+    allCategories.forEach(cat => {
+      const node = catMap[cat._id];
+      if (cat.parent_id && catMap[cat.parent_id]) {
+        catMap[cat.parent_id].children.push(node);
+      } else if (!cat.parent_id) {
+        roots.push(node);
       }
-      return names;
+    });
+
+    // 5. Bubble up 'hasProducts' status (recursively check children)
+    const bubbleHasProducts = (node) => {
+      let childrenHaveProducts = false;
+      for (const child of node.children) {
+        if (bubbleHasProducts(child)) {
+          childrenHaveProducts = true;
+        }
+      }
+      node.hasProducts = node.hasProducts || childrenHaveProducts;
+      return node.hasProducts;
     };
 
-    // A category has products if it or any of its descendants match a product category
-    const hasProducts = (cat) => {
-      const descendants = getDescendantNames(cat, allCategories);
-      return descendants.some(name => catSet.has(name));
-    };
+    roots.forEach(bubbleHasProducts);
 
-    const buildTree = (items, parentId = null) => {
-      return items
-        .filter(item => String(item.parent_id) === String(parentId))
-        .filter(item => hasProducts(item))
-        .map(item => ({
-          ...item._doc,
-          children: buildTree(items, item._id)
+    // 6. Clean the tree to only include nodes with products
+    const pruneTree = (nodes) => {
+      return nodes
+        .filter(n => n.hasProducts)
+        .map(n => ({
+          ...n,
+          children: pruneTree(n.children)
         }));
     };
 
-    const tree = buildTree(allCategories, null);
+    const tree = pruneTree(roots);
     res.status(200).json({ success: true, data: tree });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
