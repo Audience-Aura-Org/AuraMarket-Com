@@ -2,18 +2,11 @@
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { 
-  Layout, 
-  Plus, 
-  GripVertical, 
-  Settings2, 
-  Trash2, 
-  Eye, 
-  CheckCircle2, 
-  XCircle,
-  Clock,
-  ChevronUp,
-  ChevronDown,
-  Save
+  Layout, Plus, GripVertical, Settings2, Trash2, 
+  CheckCircle2, XCircle, ChevronUp, 
+  ChevronDown, Grid, Package, Store, Tag, 
+  List, Eye, Image as ImageIcon, ExternalLink,
+  Clock, ArrowRight, Layers, Sparkles, Activity
 } from 'lucide-react';
 import SectionForm from './components/SectionForm';
 
@@ -52,7 +45,7 @@ export default function StorefrontBuilder() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this section?')) return;
+    if (!confirm('Decommission this storefront sector?')) return;
     try {
       await api.delete(`/homepage/admin/sections/${id}`);
       fetchSections();
@@ -69,7 +62,6 @@ export default function StorefrontBuilder() {
     const [removed] = newSections.splice(index, 1);
     newSections.splice(targetIndex, 0, removed);
 
-    // Prepare for API
     const orders = newSections.map((s, i) => ({ id: s._id, order: i + 1 }));
     setSections(newSections);
 
@@ -82,119 +74,199 @@ export default function StorefrontBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] p-8">
-      <div className="max-w-6xl mx-auto space-y-12">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-3">
-              <Layout className="w-8 h-8 text-[var(--accent)]" /> 
-              Storefront Builder
-            </h1>
-            <p className="text-[var(--text-secondary)] font-medium">
-              Manage your Amazon-style dynamic homepage blocks.
-            </p>
-          </div>
-          <button 
-            onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
-            className="bg-[var(--accent)] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-[var(--accent)]/30 hover:scale-105 transition-all"
-          >
-            <Plus className="w-5 h-5" /> Add New Section
-          </button>
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
+      <div className="max-w-[1400px] mx-auto space-y-16">
+        
+        {/* Dynamic Header */}
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 animate-in fade-in slide-in-from-top-10 duration-700">
+           <div className="flex items-center gap-6">
+              <div className="size-16 rounded-[22px] bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] text-white flex items-center justify-center shadow-xl shadow-[var(--accent)]/30 border border-white/20">
+                 <Layers className="size-8" />
+              </div>
+              <div className="space-y-1">
+                 <h1 className="text-4xl font-black text-[var(--text-primary)] tracking-tighter leading-none">Storefront <span className="text-[var(--accent)]">Architect</span></h1>
+                 <div className="flex items-center gap-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-40">System Topology Control</p>
+                    <div className="h-1 w-1 rounded-full bg-[var(--glass-border)]" />
+                    <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">{sections.length} Active Nodes</span>
+                 </div>
+              </div>
+           </div>
+
+           <div className="flex items-center gap-4">
+              <button 
+                onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
+                className="h-14 px-8 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-4 hover:scale-[1.03] active:scale-95 shadow-2xl transition-all group"
+              >
+                 <Plus className="size-4 group-hover:rotate-90 transition-transform duration-300" /> Construct New Sector
+              </button>
+           </div>
         </div>
 
-        {/* Section List */}
-        {loading ? (
-          <div className="flex justify-center p-20">
-            <div className="w-12 h-12 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {sections.map((section, index) => (
-              <div 
-                key={section._id} 
-                className={`group glass-panel rounded-3xl border border-[var(--glass-border)] p-6 flex items-center gap-6 hover:border-[var(--accent)]/30 transition-all ${!section.is_active ? 'opacity-60 grayscale-[0.2]' : ''}`}
-              >
-                {/* Drag Handle & Ordering */}
-                <div className="flex flex-col items-center gap-2">
-                  <button onClick={() => handleMove(index, -1)} disabled={index === 0} className="p-1 hover:text-[var(--accent)] disabled:opacity-20">
-                    <ChevronUp className="w-6 h-6" />
-                  </button>
-                  <GripVertical className="w-6 h-6 opacity-20" />
-                  <button onClick={() => handleMove(index, 1)} disabled={index === sections.length - 1} className="p-1 hover:text-[var(--accent)] disabled:opacity-20">
-                    <ChevronDown className="w-6 h-6" />
-                  </button>
-                </div>
-
-                {/* Section Info */}
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-md">
-                      {section.type}
-                    </span>
-                    <h3 className="text-xl font-bold text-[var(--text-primary)]">
-                      {section.title || section.type.replace('_', ' ')}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-[var(--text-secondary)] font-medium">
-                    {section.data?.length || 0} items configured • {section.is_active ? 'Live' : 'Hidden'}
-                  </p>
-                </div>
-
-                {/* Status & Actions */}
-                <div className="flex items-center gap-3">
-                  {section.scheduled_start && (
-                    <div className="flex items-center gap-2 text-[var(--text-secondary)] text-xs border border-[var(--glass-border)] px-3 py-2 rounded-xl">
-                      <Clock className="w-4 h-4" /> 
-                      Scheduled
-                    </div>
-                  )}
-
-                  <button 
-                    onClick={() => handleToggle(section._id, section.is_active)}
-                    className={`p-3 rounded-2xl border border-[var(--glass-border)] transition-all ${section.is_active ? 'text-green-500 bg-green-500/10' : 'text-slate-400'}`}
-                  >
-                    {section.is_active ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-                  </button>
-
-                  <button 
-                    onClick={() => { setEditingSection(section); setIsFormOpen(true); }}
-                    className="p-3 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-all"
-                  >
-                    <Settings2 className="w-6 h-6" />
-                  </button>
-
-                  <button 
-                    onClick={() => handleDelete(section._id)}
-                    className="p-3 rounded-2xl border border-[var(--glass-border)] hover:bg-red-500/10 hover:text-red-500 transition-all"
-                  >
-                    <Trash2 className="w-6 h-6" />
-                  </button>
-                </div>
+        {/* Main Architect View */}
+        <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
+           {loading ? (
+             [...Array(3)].map((_, i) => (
+                <div key={i} className="h-64 rounded-[2.5rem] bg-[var(--bg-primary)]/20 border border-[var(--glass-border)] animate-pulse" />
+             ))
+           ) : sections.length === 0 ? (
+              <div className="py-40 text-center glass-panel rounded-[3rem] border border-[var(--glass-border)] space-y-6">
+                 <div className="size-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto opacity-20">
+                    <Store className="size-10" />
+                 </div>
+                 <div className="space-y-1">
+                    <h3 className="text-2xl font-black opacity-30 uppercase tracking-widest">No Sectors Synchronized</h3>
+                    <p className="text-xs font-medium opacity-20 uppercase tracking-[0.2em]">Deploy your first storefront node to begin layout architecturing.</p>
+                 </div>
               </div>
-            ))}
-          </div>
-        )}
+           ) : (
+             sections.map((section, index) => (
+                <div 
+                  key={section._id} 
+                  className={`group relative glass-panel rounded-[2.5rem] bg-[var(--bg-primary)]/40 border-[1.5px] border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all duration-500 flex flex-col lg:flex-row overflow-hidden shadow-sm hover:shadow-2xl ${!section.is_active ? 'opacity-40 grayscale-50 backdrop-grayscale' : ''}`}
+                >
+                   {/* Status vertical band */}
+                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${section.is_active ? 'bg-[var(--accent)] shadow-[2px_0_15px_var(--accent)]/30' : 'bg-[var(--glass-border)]'}`} />
 
-        {/* Summary / Stats */}
+                   {/* 1. Sector Control (Side) */}
+                   <div className="p-6 md:p-8 lg:w-80 border-b lg:border-b-0 lg:border-r border-[var(--glass-border)] bg-white/5 flex lg:flex-col items-center justify-between gap-6 shrink-0 backdrop-blur-md">
+                      <div className="flex lg:flex-col items-center lg:items-start gap-4 lg:gap-6 w-full">
+                         <div className="size-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] shadow-xl relative overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                            <div className="absolute inset-0 bg-[var(--accent)]/5 animate-pulse" />
+                            {section.type === 'hero' && <Grid className="size-6 relative" />}
+                            {section.type === 'categories' && <List className="size-6 relative" />}
+                            {section.type === 'stores' && <Store className="size-6 relative" />}
+                            {section.type === 'featured_products' && <Sparkles className="size-6 relative" />}
+                            {section.type === 'trending' && <Activity className="size-6 relative" />}
+                            {(!section.type || !['hero', 'categories', 'stores', 'featured_products', 'trending'].includes(section.type)) && <Package className="size-6 relative" />}
+                         </div>
+
+                         <div className="flex-1 lg:w-full space-y-1">
+                            <div className="flex items-center gap-2">
+                               <span className="text-[8px] font-black uppercase tracking-[0.2em] bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg shadow-[var(--accent)]/20">
+                                  {section.type.replace('_', ' ')}
+                               </span>
+                               <span className={`text-[8px] font-bold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} uppercase tracking-widest`}>
+                                  {section.is_active ? 'Online' : 'Offline'}
+                               </span>
+                            </div>
+                            <h3 className="text-xl font-black text-[var(--text-primary)] leading-tight tracking-tight uppercase truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
+                            <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">{section.data?.length || 0} Linked Elements</p>
+                         </div>
+                      </div>
+
+                      <div className="flex lg:w-full items-center justify-between gap-4">
+                         <div className="flex items-center gap-1.5 p-1.5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)] shadow-inner">
+                            <button onClick={() => handleMove(index, -1)} disabled={index === 0} className="size-8 rounded-lg flex items-center justify-center hover:bg-white/10 hover:text-[var(--accent)] disabled:opacity-0 transition-all">
+                               <ChevronUp className="size-4" />
+                            </button>
+                            <div className="h-4 w-px bg-[var(--glass-border)]" />
+                            <button onClick={() => handleMove(index, 1)} disabled={index === sections.length - 1} className="size-8 rounded-lg flex items-center justify-center hover:bg-white/10 hover:text-[var(--accent)] disabled:opacity-0 transition-all">
+                               <ChevronDown className="size-4" />
+                            </button>
+                         </div>
+
+                         <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleToggle(section._id, section.is_active)}
+                              className={`size-10 rounded-xl border border-[var(--glass-border)] flex items-center justify-center transition-all shadow-lg ${section.is_active ? 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white' : 'text-white/20 hover:bg-emerald-500/20 hover:text-emerald-500'}`}
+                            >
+                               <CheckCircle2 className="size-5" />
+                            </button>
+                            <button 
+                              onClick={() => { setEditingSection(section); setIsFormOpen(true); }}
+                              className="size-10 rounded-xl border border-[var(--glass-border)] bg-white/5 text-white/40 hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-lg flex items-center justify-center"
+                            >
+                               <Settings2 className="size-5" />
+                            </button>
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* 2. Visual Content Preview (Main Body) */}
+                   <div className="flex-1 p-6 md:p-8 overflow-x-auto no-scrollbar relative min-h-[220px]">
+                      <div className="flex items-center gap-6 pb-2 min-w-full lg:min-w-0">
+                         {section.data && section.data.length > 0 ? (
+                            section.data.map((item, idx) => (
+                               <div key={idx} className="w-[180px] md:w-[220px] shrink-0 space-y-4 group/preview relative">
+                                  <div className="aspect-[16/10] rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] overflow-hidden shadow-lg group-hover/preview:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 relative">
+                                     {item.image_url ? (
+                                       <img src={item.image_url} alt="" className="size-full object-cover group-hover/preview:scale-110 transition-transform duration-700" />
+                                     ) : item.category_name ? (
+                                       <div className="size-full flex flex-col items-center justify-center gap-2 opacity-20">
+                                          <Tag className="size-8" />
+                                          <span className="text-[8px] font-black uppercase tracking-[0.2em]">Category Mapping</span>
+                                       </div>
+                                     ) : (
+                                       <div className="size-full flex flex-col items-center justify-center gap-2 opacity-10">
+                                          <ImageIcon className="size-8" />
+                                       </div>
+                                     )}
+                                     
+                                     {/* Quick badge */}
+                                     <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between translate-y-4 opacity-0 group-hover/preview:translate-y-0 group-hover/preview:opacity-100 transition-all duration-300">
+                                        <span className="text-[8px] font-black text-white uppercase tracking-widest truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || 'NODE'}</span>
+                                        <ArrowRight className="size-3 text-[var(--accent)]" />
+                                     </div>
+                                  </div>
+                                  
+                                  <div className="px-1 space-y-1">
+                                     <div className="flex items-center justify-between">
+                                        <h4 className="text-[11px] font-black text-[var(--text-primary)] uppercase tracking-tight truncate max-w-[140px]">{item.headline || item.category_name || item.product_name || 'Unnamed Element'}</h4>
+                                        {item.tag && <span className="text-[8px] font-bold text-[var(--accent)]">{item.tag}</span>}
+                                     </div>
+                                     {item.subtext && <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 truncate leading-none">{item.subtext}</p>}
+                                  </div>
+                               </div>
+                            ))
+                         ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-20 space-y-3">
+                               <Grid className="size-8" />
+                               <p className="text-[10px] font-black uppercase tracking-[0.3em]">No Dynamic Objects Linked</p>
+                            </div>
+                         )}
+                      </div>
+
+                      {/* Delete Trigger overlay (right top) */}
+                      <button 
+                         onClick={() => handleDelete(section._id)}
+                         className="absolute top-6 right-6 size-10 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-300 flex items-center justify-center shadow-xl backdrop-blur-md opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                      >
+                         <Trash2 className="size-5" />
+                      </button>
+                   </div>
+                </div>
+             ))
+           )}
+        </div>
+
+        {/* Global Deployment Stats */}
         {!loading && sections.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
-            <div className="glass-panel p-8 rounded-3xl border border-[var(--glass-border)] text-center space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)]">Sections</p>
-              <h4 className="text-5xl font-black text-[var(--text-primary)]">{sections.length}</h4>
-            </div>
-            <div className="glass-panel p-8 rounded-3xl border border-[var(--glass-border)] text-center space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-green-500">Active</p>
-              <h4 className="text-5xl font-black text-[var(--text-primary)]">{sections.filter(s => s.is_active).length}</h4>
-            </div>
-            <div className="glass-panel p-8 rounded-3xl border border-[var(--glass-border)] text-center space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Scheduled</p>
-              <h4 className="text-5xl font-black text-[var(--text-primary)]">{sections.filter(s => s.scheduled_start).length}</h4>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-16 border-t border-[var(--glass-border)] animate-in fade-in slide-in-from-bottom-10 duration-1000">
+             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
+                <span className="text-[10px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.3em]">Total Coverage</span>
+                <span className="text-4xl font-black text-[var(--text-primary)] tracking-tighter">{sections.length}</span>
+                <div className="h-1 w-8 bg-[var(--accent)] rounded-full mt-2" />
+             </div>
+             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
+                <span className="text-[10px] font-black text-emerald-500 opacity-40 uppercase tracking-[0.3em]">Live Manifest</span>
+                <span className="text-4xl font-black text-emerald-500 tracking-tighter">{sections.filter(s => s.is_active).length}</span>
+                <div className="h-1 w-8 bg-emerald-500 rounded-full mt-2" />
+             </div>
+             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
+                <span className="text-[10px] font-black text-rose-500 opacity-40 uppercase tracking-[0.3em]">Inactive Nodes</span>
+                <span className="text-4xl font-black text-rose-500 tracking-tighter">{sections.filter(s => !s.is_active).length}</span>
+                <div className="h-1 w-8 bg-rose-500 rounded-full mt-2" />
+             </div>
+             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
+                <span className="text-[10px] font-black text-blue-500 opacity-40 uppercase tracking-[0.3em]">Complexity Score</span>
+                <span className="text-4xl font-black text-blue-500 tracking-tighter">{sections.reduce((acc, s) => acc + (s.data?.length || 0), 0)}</span>
+                <div className="h-1 w-8 bg-blue-500 rounded-full mt-2" />
+             </div>
           </div>
         )}
 
-        {/* Modal Overlay Component */}
+        {/* Structural Management Overlay */}
         {isFormOpen && (
           <SectionForm 
             section={editingSection} 
@@ -202,9 +274,8 @@ export default function StorefrontBuilder() {
             onSuccess={() => { setIsFormOpen(false); fetchSections(); }}
           />
         )}
+
       </div>
     </div>
   );
 }
-
-
