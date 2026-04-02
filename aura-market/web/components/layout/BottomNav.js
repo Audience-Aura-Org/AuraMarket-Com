@@ -49,7 +49,7 @@ export default function BottomNav() {
   return (
     <>
       <div className="h-[72px] sm:hidden pointer-events-none" />
-      <nav className="fixed bottom-0 left-0 right-0 w-full z-50 sm:hidden backdrop-blur-[32px] bg-[var(--bg-primary)]/80 border-t border-[var(--glass-border)] shadow-[0_-12px_40px_rgba(0,0,0,0.12)] transition-all duration-500 rounded-t-[24px] overflow-hidden">
+      <nav className="fixed bottom-0 left-0 right-0 w-full z-50 sm:hidden backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] transition-all duration-500 rounded-t-[32px] overflow-hidden">
         <div className="flex items-center justify-around h-[70px] pb-2 pt-1 relative w-full px-1">
           {menu.map((item) => {
             const Icon = item.icon;
