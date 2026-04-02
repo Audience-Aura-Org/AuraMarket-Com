@@ -65,6 +65,9 @@ function ShopContent() {
 
   // Memoize the fetcher to stabilize the dependency graph
   const fetchProducts = useCallback(async (targetPage = page) => {
+    // Provide immediate feedback by setting loading
+    setLoading(true);
+
     // Clear any existing pending fetch to avoid overwhelming the server
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
@@ -88,7 +91,6 @@ function ShopContent() {
         return;
       }
 
-      setLoading(true);
       try {
         const res = await api.get('/products', { params });
         if (res.data.success) {
@@ -108,7 +110,7 @@ function ShopContent() {
 
   useEffect(() => {
     fetchProducts(page);
-  }, [page, activeCategoryName, activePrice, sortBy]);
+  }, [page, activeCategoryName, activePrice, sortBy, search]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -168,9 +170,30 @@ function ShopContent() {
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 font-[var(--font-poppins)]">
         <div className="flex flex-col w-full min-h-[calc(100vh-140px)] relative">
         
-        {/* PREMIUM CATEGORY NAVIGATION (Chips) */}
-        <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 md:py-4 px-4 md:px-6 lg:px-12 sticky top-[56px] md:top-[72px] z-30 shadow-sm backdrop-blur-xl bg-[var(--bg-primary)]/80">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full relative">
+        {/* SEARCH HEADER */}
+        <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] px-4 md:px-6 lg:px-12 py-3 sticky top-[56px] md:top-[72px] z-40 backdrop-blur-xl shadow-sm flex justify-center">
+          <div className="relative w-full max-w-6xl">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
+              placeholder="Search for products..."
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+            />
+            <button
+              onClick={() => { setPage(1); fetchProducts(1); }}
+              className="absolute right-1.5 top-1.5 h-[calc(100%-12px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center"
+            >
+              <Search className="size-3.5" />
+            </button>
+          </div>
+        </div>
+
+
+        {/* CATEGORY CHIPS */}
+        <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-12 sticky top-[96px] md:top-[116px] z-30 shadow-sm backdrop-blur-xl bg-[var(--bg-primary)]/90">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
              {breadcrumb.length > 0 ? (
                <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
                  <Home className="size-3 lg:size-3.5" /> Home

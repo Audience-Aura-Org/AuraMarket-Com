@@ -116,29 +116,33 @@ export default function TopNav() {
         </div>
         
         {/* Search Bar - Desktop */}
-        <div className="hidden md:flex flex-1 max-w-xl mx-4 relative group">
-          <div className="w-full flex items-center bg-white/5 rounded-2xl px-4 py-2 border border-white/10 focus-within:border-[var(--accent)]/50 focus-within:bg-white/10 transition-all">
-            <Search className="text-[var(--nav-text)]/40 size-4 group-focus-within:text-[var(--accent)] transition-colors" />
-            <input 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={handleSearch}
-              className="bg-transparent border-none focus:ring-0 text-[var(--nav-text)] text-xs w-full placeholder:text-[var(--nav-text)]/30 outline-none pl-3 font-bold" 
-              placeholder="Search premium nodes..." 
-              type="text"
-            />
+        {pathname !== '/shop' && (
+          <div className="hidden md:flex flex-1 max-w-xl mx-4 relative group">
+            <div className="w-full flex items-center bg-white/5 rounded-2xl px-4 py-2 border border-white/10 focus-within:border-[var(--accent)]/50 focus-within:bg-white/10 transition-all">
+              <Search className="text-[var(--nav-text)]/40 size-4 group-focus-within:text-[var(--accent)] transition-colors" />
+              <input 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={handleSearch}
+                className="bg-transparent border-none focus:ring-0 text-[var(--nav-text)] text-xs w-full placeholder:text-[var(--nav-text)]/30 outline-none pl-3 font-bold" 
+                placeholder="Search premium nodes..." 
+                type="text"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Actions Section */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           {/* Mobile Search Toggle */}
-          <button 
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="md:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:bg-[var(--accent)]/10 transition-all"
-          >
-            <Search className="size-5" />
-          </button>
+          {pathname !== '/shop' && (
+            <button 
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="md:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:bg-[var(--accent)]/10 transition-all"
+            >
+              <Search className="size-5" />
+            </button>
+          )}
 
           <button 
             onClick={toggleTheme}
