@@ -231,22 +231,21 @@ function ShopContent() {
       </div>
 
       <div className="flex w-full min-h-[calc(100vh-140px)]">
+        {/* Mobile Overlay Background */}
+        {isFilterOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[50]" 
+            onClick={() => setIsFilterOpen(false)}
+          />
+        )}
+
         {/* ── SIDEBAR (Desktop & Mobile Drawer) ── */}
         <aside className={`
-          fixed inset-0 z-[60] lg:relative lg:inset-auto lg:z-10
-          w-72 flex-shrink-0 bg-[var(--bg-primary)] flex-col py-6 px-0 lg:sticky top-0 lg:top-[125px] h-full lg:h-[calc(100vh-125px)] overflow-hidden transition-transform duration-300 lg:translate-x-0
+          fixed inset-y-0 left-0 z-[60] lg:relative lg:inset-auto lg:z-10
+          w-[280px] flex-shrink-0 bg-[var(--bg-primary)] flex-col py-6 px-0 lg:sticky top-[125px] h-full lg:h-[calc(100vh-125px)] overflow-hidden transition-transform duration-300 lg:translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.1)] lg:shadow-none
           ${isFilterOpen ? 'translate-x-0 flex' : '-translate-x-full lg:flex'}
           lg:border-r lg:border-[var(--glass-border)]
         `}>
-          {/* Mobile Overlay Background */}
-          {isFilterOpen && (
-            <div 
-              className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm -z-10" 
-              onClick={() => setIsFilterOpen(false)}
-            />
-          )}
-
-          {/* Mobile sidebar header */}
           <div className="lg:hidden flex items-center justify-between px-6 mb-6">
              <h2 className="text-xl font-black text-[var(--accent)]">FILTERS</h2>
              <button onClick={() => setIsFilterOpen(false)} className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">
@@ -378,22 +377,22 @@ function ShopContent() {
         {/* ── MAIN CONTENT ── */}
         <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden pt-[1px]">
           {/* Results Info + Sort */}
-          <div className="px-4 md:px-6 lg:px-12 py-4 md:py-6 border-b border-[var(--glass-border)] flex flex-col md:flex-row items-center justify-between gap-4 bg-[var(--bg-primary)]/50 backdrop-blur-sm">
-            <div className="text-center md:text-left">
-              <p className="text-xs font-medium text-[var(--text-secondary)]">
-                Showing <span className="text-[var(--text-primary)] font-black">{products.length}</span> results
+          <div className="px-4 md:px-6 lg:px-12 py-3 md:py-4 border-b border-[var(--glass-border)] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-[var(--bg-primary)]/80 backdrop-blur-xl z-30 font-[var(--font-poppins)]">
+            <div className="flex flex-col text-left w-full md:w-auto">
+              <p className="text-[11px] md:text-xs font-medium text-[var(--text-secondary)] tracking-tight">
+                Showing <span className="text-[var(--text-primary)] font-semibold">{products.length}</span> results
                 {activeCategoryName !== 'All' && (
-                  <> in <span className="text-[var(--accent)] font-black uppercase tracking-widest"> {activeCategoryName}</span></>
+                  <> in <span className="text-[var(--text-primary)] font-semibold"> {activeCategoryName}</span></>
                 )}
               </p>
               {/* Breadcrumb trail in main area */}
               {breadcrumb.length > 0 && (
-                <div className="flex items-center gap-1 mt-1 justify-center md:justify-start overflow-x-auto no-scrollbar whitespace-nowrap">
-                  <button onClick={() => handleBreadcrumbClick(-1)} className="text-[9px] font-black text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors uppercase tracking-widest">All</button>
+                <div className="flex items-center gap-1.5 mt-0.5 overflow-x-auto no-scrollbar whitespace-nowrap hidden md:flex">
+                  <button onClick={() => handleBreadcrumbClick(-1)} className="text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">All</button>
                   {breadcrumb.map((crumb, idx) => (
                     <span key={crumb._id} className="flex items-center gap-1">
-                      <ChevronRight className="size-2.5 text-[var(--glass-border)]" />
-                      <button onClick={() => handleBreadcrumbClick(idx)} className={`text-[9px] font-black uppercase tracking-widest transition-colors ${idx === breadcrumb.length - 1 ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
+                      <ChevronRight className="size-3 text-[var(--glass-border)]" />
+                      <button onClick={() => handleBreadcrumbClick(idx)} className={`text-[10px] transition-colors ${idx === breadcrumb.length - 1 ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                         {crumb.name}
                       </button>
                     </span>
@@ -402,27 +401,41 @@ function ShopContent() {
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full md:w-auto">
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                <span className="text-[10px] font-black text-[var(--text-secondary)] tracking-widest uppercase shrink-0">Sort By</span>
+            {/* Sort & View Toggle */}
+            <div className="flex items-center justify-between w-full md:w-auto gap-3 border-t md:border-t-0 border-[var(--glass-border)] pt-3 md:pt-0 mt-1 md:mt-0">
+              
+              {/* Filter Button for Mobile */}
+              <button 
+                onClick={() => setIsFilterOpen(true)}
+                className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-md text-[10px] font-medium text-[var(--text-primary)] shadow-sm shrink-0"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                Filters
+              </button>
+
+              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                <span className="text-[10px] font-medium text-[var(--text-secondary)] whitespace-nowrap hidden lg:block">Sort by:</span>
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value)}
-                  className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-lg py-2 px-4 text-[10px] font-black tracking-widest outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all cursor-pointer text-[var(--text-primary)] min-w-[140px]"
+                  className="bg-transparent border border-[var(--glass-border)] rounded-md py-1.5 px-3 text-[11px] font-medium text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all cursor-pointer hover:bg-[var(--bg-secondary)]/50 appearance-none pr-7 bg-no-repeat bg-[right_0.5rem_top_50%] bg-[length:0.65rem] shadow-sm max-w-[120px] sm:max-w-none text-ellipsis"
+                  style={{ backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23999%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")` }}
                 >
-                  <option value="-createdAt">NEWEST ARRIVALS</option>
-                  <option value="price">PRICE: LOW TO HIGH</option>
-                  <option value="-price">PRICE: HIGH TO LOW</option>
-                  <option value="-rating">AVG. REVIEWS</option>
+                  <option value="-createdAt">Newest Arrivals</option>
+                  <option value="price">Price: Low to High</option>
+                  <option value="-price">Price: High to Low</option>
+                  <option value="-rating">Highest Rated</option>
                 </select>
               </div>
-              <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)]" />
-              <div className="flex items-center gap-1.5 p-1 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--glass-border)] self-end sm:self-auto">
-                <button onClick={() => setViewMode('grid')} className={`size-8 rounded-md flex items-center justify-center shadow-sm transition-colors ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}>
-                  <LayoutGrid className="size-4" />
+              
+              <div className="h-4 w-px bg-[var(--glass-border)] hidden sm:block" />
+              
+              <div className="flex items-center gap-1 bg-[var(--bg-secondary)] rounded-md p-0.5 border border-[var(--glass-border)] shrink-0">
+                <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-[4px] transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
+                  <LayoutGrid className="size-3.5" />
                 </button>
-                <button onClick={() => setViewMode('list')} className={`size-8 rounded-md flex items-center justify-center shadow-sm transition-colors ${viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}>
-                  <List className="size-4" />
+                <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-[4px] transition-all flex items-center justify-center ${viewMode === 'list' ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
+                  <List className="size-3.5" />
                 </button>
               </div>
             </div>
