@@ -404,15 +404,6 @@ function ShopContent() {
             {/* Sort & View Toggle */}
             <div className="flex items-center justify-between w-full md:w-auto gap-3 border-t md:border-t-0 border-[var(--glass-border)] pt-3 md:pt-0 mt-1 md:mt-0">
               
-              {/* Filter Button for Mobile */}
-              <button 
-                onClick={() => setIsFilterOpen(true)}
-                className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-md text-[10px] font-medium text-[var(--text-primary)] shadow-sm shrink-0"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                Filters
-              </button>
-
               <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                 <span className="text-[10px] font-medium text-[var(--text-secondary)] whitespace-nowrap hidden lg:block">Sort by:</span>
                 <select
