@@ -48,10 +48,9 @@ export default function BottomNav() {
 
   return (
     <>
-      <div className="h-20 sm:hidden" />
-      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden px-3 pb-3 pt-2 bg-gradient-to-t from-[var(--bg-primary)] via-[var(--bg-primary)]/85 to-transparent">
-        <div className="glass-panel backdrop-blur-2xl rounded-2xl p-2 shadow-xl border border-[var(--glass-border)] transition-colors duration-500 bg-[var(--bg-primary)]/85">
-          <div className="flex items-center justify-around h-14 relative">
+      <div className="h-[72px] sm:hidden shrink-0" />
+      <nav className="fixed bottom-0 left-0 right-0 w-full z-50 sm:hidden backdrop-blur-[32px] bg-[var(--bg-primary)]/60 border-t border-[var(--glass-border)] shadow-[0_-8px_30px_rgba(0,0,0,0.04)] transition-colors duration-500">
+        <div className="flex items-center justify-around h-[70px] pb-2 pt-1 relative w-full px-1">
           {menu.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
@@ -67,7 +66,7 @@ export default function BottomNav() {
                 <div className={`p-1.5 rounded-xl transition-all duration-300 relative ${
                   isActive ? 'bg-[var(--accent)]/10 scale-105 shadow-lg shadow-[var(--accent)]/10' : ''
                 }`}>
-                  <Icon className={`size-4.5 transition-all ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                  <Icon className={`size-5 transition-all ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
                   {isActive && (
                     <div className="absolute -top-1 -right-1 size-1.5 bg-[var(--accent)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent)]"></div>
                   )}
@@ -78,7 +77,6 @@ export default function BottomNav() {
               </Link>
             );
           })}
-        </div>
         </div>
       </nav>
     </>

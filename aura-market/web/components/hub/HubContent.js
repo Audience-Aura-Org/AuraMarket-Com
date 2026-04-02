@@ -183,7 +183,7 @@ export default function HubContent() {
   }, [inbox, searchTerm]);
 
   return (
-    <div className="flex flex-1 h-[calc(100vh-64px)] overflow-hidden bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)]">
+    <div className="flex flex-1 min-h-screen bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)]">
       {/* Background Ambience */}
       <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
          <div className="absolute top-[-10%] left-[-10%] size-96 bg-[var(--accent)] blur-[100px] rounded-full" />
@@ -191,9 +191,10 @@ export default function HubContent() {
       </div>
 
       {/* ── MOBILE VIEW: TABBED INTERFACE ────────────────────────────────────── */}
-      <div className="md:hidden flex flex-col w-full h-full relative z-10">
-         {/* Top Tab Bar */}
-         <div className="flex bg-[var(--bg-primary)] border-b border-[var(--glass-border)] p-1 gap-1 m-4 rounded-2xl shadow-lg">
+      <div className="md:hidden flex flex-col w-full relative z-10">
+         {/* Sticky Tab Bar */}
+         <div className="sticky top-[56px] z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-2.5 shadow-sm">
+            <div className="flex bg-[var(--bg-secondary)] p-1 gap-1 rounded-2xl">
             <button 
                onClick={() => setActiveTab('chats')}
                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
@@ -208,9 +209,10 @@ export default function HubContent() {
                <LayoutGrid className="size-4" />
                Feed
             </button>
+            </div>
          </div>
 
-         <div className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar">
+         <div className="flex-1 overflow-y-auto px-4 pb-40 no-scrollbar min-h-screen">
             <AnimatePresence mode="wait">
                {activeTab === 'chats' ? (
                   <motion.div 
@@ -250,7 +252,7 @@ export default function HubContent() {
       </div>
 
       {/* ── DESKTOP VIEW: 3-COLUMN LAYOUT ───────────────────────────────────── */}
-      <div className="hidden md:flex w-full h-full relative z-10 container mx-auto gap-8 px-6 py-8">
+      <div className="hidden md:flex w-full h-[calc(100vh-72px)] relative z-10 container mx-auto gap-8 px-6 py-8">
          {/* Sidebar: Chat List */}
          <div className="w-[350px] flex flex-col gap-6">
             <div className="flex flex-col gap-2">

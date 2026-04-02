@@ -23,10 +23,8 @@ export default function DiscoveryPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-primary)]">
-      <div className="flex-1 overflow-hidden relative">
-         <HubContent />
-      </div>
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      <HubContent />
     </div>
   );
 }

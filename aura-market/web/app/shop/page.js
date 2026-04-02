@@ -166,81 +166,10 @@ function ShopContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 font-[var(--font-poppins)]">
-      {/* Search Header */}
-      <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-20 sticky top-[64px] md:top-[72px] z-40 transition-all">
-        
-        {/* Mobile Layout */}
-        <div className="md:hidden flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-[var(--accent)]">
-              <MapPin className="size-3" /> AURA HUB
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black text-[var(--text-primary)] tracking-widest">ORDERS</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input 
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    trackSearch(search);
-                    setPage(1);
-                    fetchProducts(1);
-                  }
-                }}
-                placeholder="Search products..."
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl py-2.5 pl-3.5 pr-12 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
-              />
-              <button onClick={() => { setPage(1); fetchProducts(1); }} className="absolute right-1 top-1 h-[calc(100%-8px)] px-3 text-[var(--text-primary)] bg-[var(--bg-primary)] shadow-sm rounded-lg border border-[var(--glass-border)]">
-                <Search className="size-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden md:flex flex-wrap items-center gap-4 lg:gap-8">
-          <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-[var(--accent)] whitespace-nowrap">
-            <MapPin className="size-3" /> DELIVER TO AURA HUB
-          </div>
-          
-          <div className="flex-1 relative">
-            <input 
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  trackSearch(search);
-                  setPage(1);
-                  fetchProducts(1);
-                }
-              }}
-              placeholder="Search for products..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
-            />
-            <button onClick={() => { setPage(1); fetchProducts(1); }} className="absolute right-1.5 top-1.5 h-[calc(100%-12px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center">
-              <Search className="size-3.5" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-6 ml-auto">
-            <div className="flex flex-col items-end">
-              <span className="text-[8px] font-bold text-[var(--text-secondary)] tracking-widest leading-none">MY</span>
-              <span className="text-[10px] font-bold text-[var(--text-primary)] tracking-wider">ORDERS</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
         <div className="flex flex-col w-full min-h-[calc(100vh-140px)] relative">
         
         {/* PREMIUM CATEGORY NAVIGATION (Chips) */}
-        <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 md:py-4 px-4 md:px-6 lg:px-12 sticky top-[124px] md:top-[125px] z-30 shadow-sm backdrop-blur-xl bg-[var(--bg-primary)]/80">
+        <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-3 md:py-4 px-4 md:px-6 lg:px-12 sticky top-[56px] md:top-[72px] z-30 shadow-sm backdrop-blur-xl bg-[var(--bg-primary)]/80">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full relative">
              {breadcrumb.length > 0 ? (
                <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
