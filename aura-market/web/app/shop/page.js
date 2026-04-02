@@ -171,7 +171,7 @@ function ShopContent() {
         <div className="flex flex-col w-full min-h-[calc(100vh-140px)] relative">
         
         {/* SEARCH COMPONENT (Scrolls Away) */}
-        <div className="px-4 md:px-6 lg:px-12 py-6 bg-[var(--bg-primary)] flex justify-center border-b border-[var(--glass-border)]/50">
+        <div className="px-4 md:px-6 lg:px-12 py-1.5 bg-[var(--bg-primary)] flex justify-center border-b border-[var(--glass-border)]/50">
           <div className="relative w-full max-w-6xl">
             <input
               type="text"
@@ -179,19 +179,19 @@ function ShopContent() {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
               placeholder="Search for products..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-1.5 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
             />
             <button
               onClick={() => { setPage(1); fetchProducts(1); }}
-              className="absolute right-1.5 top-1.5 h-[calc(100%-12px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-bold"
+              className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-bold"
             >
-              <Search className="size-3.5" />
+              <Search className="size-3" />
             </button>
           </div>
         </div>
 
         {/* STICKY CATEGORY NAV (Stays Fixed on Scroll) */}
-        <div className="sticky top-[56px] md:top-[72px] z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-12 shadow-sm transition-all">
+        <div className="sticky top-[56px] md:top-[72px] z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] py-1 px-4 md:px-6 lg:px-12 shadow-sm transition-all">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
              {breadcrumb.length > 0 ? (
                <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
