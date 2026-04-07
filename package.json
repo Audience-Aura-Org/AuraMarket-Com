@@ -10,6 +10,9 @@
     "aura-market/backend",
     "aura-market"
   ],
+  "dependencies": {
+    "next": "^16.1.6"
+  },
   "scripts": {
     "install:all": "npm install",
     "web:build": "npm run build -w aura-market/web",
