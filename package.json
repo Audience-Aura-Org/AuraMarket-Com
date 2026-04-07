@@ -1,9 +1,19 @@
 {
   "name": "aura-market-monorepo",
   "version": "4.0.0",
+  "private": true,
+  "workspaces": [
+    "aura-market/web",
+    "aura-market/backend",
+    "aura-market"
+  ],
   "scripts": {
-    "build": "cd aura-market/web && npm install && npm run build",
-    "start": "cd aura-market/web && (test -d .next || npm run build) && npm start",
-    "deploy": "cd aura-market/web && npm install && npm run build && npm start"
+    "install:all": "npm install",
+    "web:build": "npm run build -w aura-market/web",
+    "web:start": "npm run start -w aura-market/web",
+    "web:dev": "npm run dev -w aura-market/web",
+    "deploy": "npm run install:all && npm run web:build && npm run web:start",
+    "start": "npm run web:build && npm run web:start",
+    "build": "npm run web:build"
   }
 }

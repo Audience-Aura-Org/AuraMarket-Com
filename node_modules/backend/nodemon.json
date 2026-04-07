@@ -1,0 +1,4 @@
+{
+  "ignore": ["uploads/*", "node_modules", ".git"],
+  "delay": "2500"
+}

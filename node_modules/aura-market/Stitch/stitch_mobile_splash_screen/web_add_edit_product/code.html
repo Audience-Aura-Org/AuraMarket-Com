@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Add Product</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#120812",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "sans-serif"],
+                        "body": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(242, 13, 242, 0.1) 0%, rgba(242, 13, 242, 0.02) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(242, 13, 242, 0.2);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(242, 13, 242, 0.3);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
+<div class="flex min-h-screen relative">
+<!-- Sidebar -->
+<aside class="w-72 fixed h-full glass-panel border-r border-primary/10 flex flex-col p-6 z-50">
+<div class="flex items-center gap-3 mb-10 px-2">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-slate-100">Aura Market</h1>
+<p class="text-[10px] uppercase tracking-widest text-primary font-bold">Premium Admin</p>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">dashboard</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/20 border border-primary/30 text-white" href="#">
+<span class="material-symbols-outlined text-primary">inventory_2</span>
+<span class="font-medium">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">shopping_cart</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Orders</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">group</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Customers</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">analytics</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Analytics</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-primary/10 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-primary/10 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">settings</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Settings</span>
+</a>
+<button class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">visibility</span>
+<span>View Store</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 ml-72 p-10 relative">
+<!-- Background Orbs -->
+<div class="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -z-10"></div>
+<div class="fixed bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] -z-10"></div>
+<header class="flex justify-between items-end mb-10">
+<div>
+<h2 class="text-4xl font-extrabold text-white tracking-tight mb-2">Create Product</h2>
+<p class="text-slate-400 font-body">List a new item in the premium liquid marketplace.</p>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-3 rounded-xl glass-panel text-slate-300 font-semibold hover:bg-white/5 transition-colors">Discard</button>
+<button class="px-8 py-3 rounded-xl bg-primary text-white font-bold shadow-xl shadow-primary/30 hover:scale-[1.02] transition-transform">Publish Product</button>
+</div>
+</header>
+<div class="grid grid-cols-12 gap-8">
+<!-- Left Column: Primary Details -->
+<div class="col-span-8 space-y-8">
+<!-- Basic Info -->
+<section class="liquid-glass rounded-xl p-8 space-y-6">
+<div class="flex items-center gap-2 border-b border-primary/10 pb-4 mb-2">
+<span class="material-symbols-outlined text-primary">edit_note</span>
+<h3 class="text-lg font-bold text-white uppercase tracking-wider">Product Details</h3>
+</div>
+<div class="space-y-4">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-300 ml-1">Product Name</label>
+<input class="w-full bg-background-dark/50 border border-primary/20 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 focus:ring-primary focus:border-primary transition-all" placeholder="e.g. Aura Cyber Sneakers 2024" type="text"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-300 ml-1">Description</label>
+<textarea class="w-full bg-background-dark/50 border border-primary/20 rounded-xl px-4 py-4 text-white placeholder:text-slate-600 focus:ring-primary focus:border-primary transition-all resize-none" placeholder="Describe the craftsmanship, materials, and soul of your product..." rows="6"></textarea>
+</div>
+</div>
+</section>
+<!-- Media Upload -->
+<section class="liquid-glass rounded-xl p-8">
+<div class="flex items-center justify-between border-b border-primary/10 pb-4 mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">image</span>
+<h3 class="text-lg font-bold text-white uppercase tracking-wider">Media Assets</h3>
+</div>
+<span class="text-xs text-slate-500 font-body">Max 5MB per image</span>
+</div>
+<div class="grid grid-cols-4 gap-4">
+<div class="col-span-4 border-2 border-dashed border-primary/30 rounded-xl p-12 flex flex-col items-center justify-center bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer group">
+<div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-3xl">cloud_upload</span>
+</div>
+<p class="text-slate-200 font-bold">Drop your product images here</p>
+<p class="text-slate-500 text-sm mt-1">or click to browse from device</p>
+</div>
+<!-- Image Placeholders -->
+<div class="aspect-square rounded-xl bg-background-dark/40 border border-primary/10 flex items-center justify-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-cover bg-center opacity-40" data-alt="Abstract vibrant neon pattern background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDRizrCexU5EhwXvnVi1zMocVotMRkNUTClQj-BBYdqnHTdow9LkAa5hCyQ8iTqHGv0RNa73zzjTleLCZuCn1ZBdGNfNdZRodd2GMFGwtsT69yo2vF8kFxe0Euu0uawJTL1hNMnJQKjyP3hL4Qd113Z9KIQFF8lcyrrFHM9hHgDD0mPQvchL3uMp4ovz7VcdYWI4PHfYwXDTfi0a3vJlBQOcbEKU1tWyyow0EILEeIHROcbM7CFIgoNmY8cT5A5OHNER-CPDhN7W1U')"></div>
+<button class="relative z-10 p-1 bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+<div class="aspect-square rounded-xl bg-background-dark/40 border border-primary/10 border-dashed flex items-center justify-center group cursor-pointer hover:border-primary/40">
+<span class="material-symbols-outlined text-slate-600 group-hover:text-primary transition-colors">add</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Stats & Settings -->
+<div class="col-span-4 space-y-8">
+<!-- Pricing & Inventory -->
+<section class="liquid-glass rounded-xl p-8 space-y-6">
+<div class="flex items-center gap-2 border-b border-primary/10 pb-4">
+<span class="material-symbols-outlined text-primary">payments</span>
+<h3 class="text-lg font-bold text-white uppercase tracking-wider">Inventory</h3>
+</div>
+<div class="space-y-4">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-300 ml-1">Base Price ($)</label>
+<input class="w-full bg-background-dark/50 border border-primary/20 rounded-xl px-4 py-3 text-white focus:ring-primary focus:border-primary transition-all" placeholder="0.00" type="number"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-300 ml-1">Stock Quantity</label>
+<input class="w-full bg-background-dark/50 border border-primary/20 rounded-xl px-4 py-3 text-white focus:ring-primary focus:border-primary transition-all" placeholder="0" type="number"/>
+</div>
+</div>
+</section>
+<!-- Organization -->
+<section class="liquid-glass rounded-xl p-8 space-y-6">
+<div class="flex items-center gap-2 border-b border-primary/10 pb-4">
+<span class="material-symbols-outlined text-primary">sell</span>
+<h3 class="text-lg font-bold text-white uppercase tracking-wider">Organization</h3>
+</div>
+<div class="space-y-4">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-300 ml-1">Category</label>
+<select class="w-full bg-background-dark/50 border border-primary/20 rounded-xl px-4 py-3 text-white focus:ring-primary focus:border-primary appearance-none">
+<option>Select Category</option>
+<option>Electronics</option>
+<option>Apparel</option>
+<option>Digital Art</option>
+<option>Lifestyle</option>
+</select>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-300 ml-1">Tags</label>
+<div class="flex flex-wrap gap-2 p-3 bg-background-dark/50 border border-primary/20 rounded-xl min-h-[50px]">
+<span class="px-3 py-1 bg-primary/20 border border-primary/40 rounded-full text-xs text-white flex items-center gap-1">
+                                        Limited <span class="material-symbols-outlined text-[12px] cursor-pointer">close</span>
+</span>
+<span class="px-3 py-1 bg-primary/20 border border-primary/40 rounded-full text-xs text-white flex items-center gap-1">
+                                        Cyberpunk <span class="material-symbols-outlined text-[12px] cursor-pointer">close</span>
+</span>
+<input class="bg-transparent border-none p-0 text-xs text-slate-300 focus:ring-0 w-20" placeholder="Add..." type="text"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Promotion -->
+<section class="liquid-glass rounded-xl p-8">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">star</span>
+</div>
+<div>
+<h4 class="text-white font-bold leading-none">Featured Item</h4>
+<p class="text-[10px] text-slate-500 mt-1 uppercase tracking-tighter">Boost visibility</p>
+</div>
+</div>
+<!-- Toggle -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-14 h-7 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-primary after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary/20 border border-white/5"></div>
+</label>
+</div>
+<p class="mt-4 text-xs text-slate-400 font-body leading-relaxed">
+                            Featuring this product will place it on the storefront hero slider and highlight it in search results.
+                        </p>
+</section>
+</div>
+</div>
+</main>
+</div>
+</body></html>

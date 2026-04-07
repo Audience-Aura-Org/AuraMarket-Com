@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Chat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Poppins:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#221022",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "Poppins", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-bubble-received {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-bubble-sent {
+            background: rgba(242, 13, 242, 0.2);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(242, 13, 242, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex h-screen w-full flex-col overflow-hidden max-w-md mx-auto border-x border-primary/10">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 flex items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md p-4 border-b border-primary/10">
+<div class="flex items-center gap-3 w-full">
+<button class="text-slate-900 dark:text-slate-100 hover:bg-primary/10 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex items-center gap-3 flex-1">
+<div class="relative">
+<div class="size-10 rounded-full bg-primary/20 bg-cover bg-center border border-primary/30" data-alt="Vendor profile avatar showing a stylish woman" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRcJLv00nyNpzEs4_Ti3qqtHPkx_0JUoaI9f7UidE1q8XzdgYoZu1ERssa5Y1Ha7DfLVTGqqAdyDdAKoq4Cu-bI0iOEJYjbDZzqK8RmzRI5v4L_LjTZy1KhtqfLKaI5PqwlH7pD1IiyAyZ_D5FCez72pWaZgHLYnBRzcD8KCY-7r2IfIq5GiJKfjAZ5tjKiA4OdKZGYW-desrE5JYNRsmvo7p4xa_b2V0UvGyWrq6uhaiMoPHmFneLvsA2xswj74Pca5THKBeurBE')"></div>
+<div class="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-background-dark rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<h2 class="text-base font-bold leading-none">Aura Boutique</h2>
+<span class="text-[11px] text-primary font-medium">Online now</span>
+</div>
+</div>
+<button class="text-slate-900 dark:text-slate-100 hover:bg-primary/10 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Chat Area -->
+<main class="flex-1 overflow-y-auto p-4 space-y-6">
+<div class="flex justify-center">
+<p class="text-[11px] font-semibold uppercase tracking-widest text-primary/60 bg-primary/5 px-3 py-1 rounded-full">Today, 10:42 AM</p>
+</div>
+<!-- Received Message -->
+<div class="flex items-end gap-2 group">
+<div class="size-8 shrink-0 rounded-full bg-primary/20 bg-cover bg-center" data-alt="Vendor boutique logo" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCBS3zTgTKhA8INK3m1iONtZQ9UIIqA9lPVJsw35mHa3rqkTsDpxPEIv-X9Gn22hqsDAAwh0qD26HirVjMtL3OZ_ovDEd0eTdcDck4M0lS53vcN9-GIb7FmNvwCI1ozYmFs31aSW85g5BxJflI8z-XYPVZ264X39KiXWl8oNW66HFz-m1E9WgBjQRn8yTEdpoBzVgBL1u3BIRzR4wb9bQUaT_LoeOdn_CDRhv_yzGonxCkjLi3515Qr8EWzAOqwosCjo4GwPecncTY')"></div>
+<div class="flex flex-col gap-1.5 max-w-[80%]">
+<div class="glass-bubble-received p-4 rounded-2xl rounded-bl-none">
+<p class="text-sm leading-relaxed">Hello! I saw you were looking at our latest collection. Do you have any questions about the sizing of the Silk Midi Dress?</p>
+</div>
+<span class="text-[10px] text-slate-500 ml-1">10:42 AM</span>
+</div>
+</div>
+<!-- Product Card Shared -->
+<div class="flex justify-start pl-10 max-w-[85%]">
+<div class="w-full glass-bubble-received overflow-hidden rounded-2xl border border-primary/20">
+<div class="aspect-video w-full bg-cover bg-center" data-alt="Emerald green silk midi dress display" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRDqGsUOzMG15IhSOsTufAzujbfrkRFvhiM20vveIePHQhsdoIVTalYhVMohdHv3o0SXpWe1t7y55Vfgm-7I3sCTcthJ_PEYH8Lhr4n8SQmPVTGTtth8izYPuNcDISuwNaLVmUtDrHFYNIRh208QsQavWff7wd4DenRDHGK-gPGGAmYIR_djtp9docUC22WujProLQVWCEKU2aB9REZ9UvvyXFPg2PxgmwRE2hOJS5GLKA-BFKF8dHRhg5uAY0tl-0SzKzGRbUlBQ')"></div>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex flex-col gap-1">
+<h3 class="text-sm font-bold">Silk Midi Dress</h3>
+<p class="text-primary text-sm font-semibold">$120.00</p>
+</div>
+<button class="w-full bg-primary text-white py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity">
+                            View Product Details
+                        </button>
+</div>
+</div>
+</div>
+<!-- Sent Message -->
+<div class="flex items-end gap-2 justify-end">
+<div class="flex flex-col gap-1.5 items-end max-w-[80%]">
+<div class="glass-bubble-sent p-4 rounded-2xl rounded-br-none text-slate-100">
+<p class="text-sm leading-relaxed">Yes, is the medium true to size? Also, do you have it in emerald green?</p>
+</div>
+<div class="flex items-center gap-1 mr-1">
+<span class="text-[10px] text-slate-500">10:45 AM</span>
+<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1">done_all</span>
+</div>
+</div>
+<div class="size-8 shrink-0 rounded-full bg-primary/40 flex items-center justify-center text-[10px] font-bold text-white">YOU</div>
+</div>
+<!-- Received Message -->
+<div class="flex items-end gap-2">
+<div class="size-8 shrink-0 rounded-full bg-primary/20 bg-cover bg-center" data-alt="Vendor boutique logo" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAzF_IqDL0EWELoVa0mbZwDXQxw3eudedp1ra_kKqGo430ydHRGu2N6woZzcKOpJv8wj-FdF6oPqy6lpUmZMJC0niwHa2xa-_ABIgT8fXGLp5HFPXFRmQ6pGqL9vFySS9ipdSdD448QQE6gv5-PTtDk3yPHRiqY90luDEdF0rU9u9ljZTBuLYwaF_PMtEnIkwBFemWCaoMxkHLqpk1KFclgmWejt6YZ-MxMnxrTPEZE3Twb8i4TVCbPd36aP71jIVbSeLjdvRcBVIg')"></div>
+<div class="flex flex-col gap-1.5 max-w-[80%]">
+<div class="glass-bubble-received p-4 rounded-2xl rounded-bl-none">
+<p class="text-sm leading-relaxed">The medium runs slightly large, I'd recommend sizing down if you prefer a slim fit. And yes, emerald green is currently in stock!</p>
+</div>
+<span class="text-[10px] text-slate-500 ml-1">10:46 AM</span>
+</div>
+</div>
+</main>
+<!-- Input Area -->
+<footer class="p-4 bg-background-light dark:bg-background-dark/95 border-t border-primary/10 backdrop-blur-xl">
+<div class="flex items-center gap-2">
+<button class="size-10 flex items-center justify-center text-primary hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<div class="flex-1 relative">
+<input class="w-full bg-primary/5 border border-primary/20 rounded-full py-3 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-slate-100 placeholder:text-slate-500" placeholder="Type a message..." type="text"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary">
+<span class="material-symbols-outlined text-xl">mood</span>
+</button>
+</div>
+<button class="size-12 flex items-center justify-center bg-primary text-white rounded-full shadow-lg shadow-primary/30 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+<!-- Bottom Indicator for Mobile -->
+<div class="h-1 w-24 bg-primary/20 mx-auto mt-6 rounded-full"></div>
+</footer>
+</div>
+</body></html>
