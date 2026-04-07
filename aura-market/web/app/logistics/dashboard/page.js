@@ -10,10 +10,14 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
+import Pagination from '@/components/common/Pagination';
+
 function LogisticsDashboardContent() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -132,7 +136,8 @@ function LogisticsDashboardContent() {
     }
   };
 
-
+  const totalPages = Math.ceil(shipments.length / itemsPerPage);
+  const currentShipments = shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (!mounted) return null;
 
@@ -146,6 +151,7 @@ function LogisticsDashboardContent() {
   if (!profile) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4 lg:p-10">
+         {/* ... onboarding form (kept same) ... */}
          <div className="max-w-xl w-full space-y-8 lg:space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
             <div className="flex flex-col items-center text-center gap-4">
                <div className="size-16 lg:size-20 rounded-[28px] lg:rounded-[32px] bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20 shadow-xl">
@@ -245,7 +251,7 @@ function LogisticsDashboardContent() {
         </div>
       </header>
 
-        <div className="p-4 lg:p-10 space-y-6 lg:space-y-10 pb-32">
+        <div className="p-4 lg:p-10 space-y-6 lg:space-y-10 pb-10">
           {/* Stats Grid Matrix */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
             {stats.map((stat) => (
@@ -274,7 +280,7 @@ function LogisticsDashboardContent() {
                   <div className="p-10 text-center opacity-30">
                      <p className="text-[10px] font-black uppercase tracking-widest">No active transmissions detected</p>
                   </div>
-                ) : shipments.map(s => (
+                ) : currentShipments.map(s => (
                   <div key={s._id} onClick={() => openUpdateModal(s)} className="flex items-center justify-between p-4 rounded-[20px] bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group/item hover:border-indigo-500/30 transition-all cursor-pointer hover:bg-[var(--bg-secondary)]/50">
                     <div className="flex items-center gap-4">
                       <div className={`size-10 rounded-xl flex items-center justify-center bg-[var(--bg-primary)]/80 shadow-inner border border-[var(--glass-border)] shadow-sm group-hover/item:scale-110 transition-transform ${
@@ -306,6 +312,14 @@ function LogisticsDashboardContent() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-8">
+                 <Pagination 
+                   currentPage={currentPage} 
+                   totalPages={totalPages} 
+                   onPageChange={setCurrentPage} 
+                 />
               </div>
             </div>
 

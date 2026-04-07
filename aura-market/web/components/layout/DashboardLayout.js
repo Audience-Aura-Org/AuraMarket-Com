@@ -28,7 +28,7 @@ export default function DashboardLayout({ children, role, hideSidebar = false })
           />
         )}
         
-        <main className="flex-1 overflow-y-auto no-scrollbar relative">
+        <main className="flex-1 overflow-y-auto no-scrollbar relative pb-20 sm:pb-0">
           {children}
         </main>
       </div>

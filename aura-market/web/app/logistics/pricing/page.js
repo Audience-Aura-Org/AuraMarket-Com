@@ -10,6 +10,8 @@ import { toast } from 'react-hot-toast';
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 
+import Pagination from '@/components/common/Pagination';
+
 export default function LogisticsPricingPage() {
   const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
@@ -26,6 +28,8 @@ export default function LogisticsPricingPage() {
   const [newPrice, setNewPrice] = useState('');
   const [tableSelections, setTableSelections] = useState([]);
   const [bulkUpdatePrice, setBulkUpdatePrice] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     setMounted(true);
@@ -105,6 +109,10 @@ export default function LogisticsPricingPage() {
     }
   };
 
+  const filtered = profile.quartier_prices.filter(q => q.quartier.toLowerCase().includes(searchTerm.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentPrices = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   if (!mounted) return null;
 
   return (
@@ -169,11 +177,11 @@ export default function LogisticsPricingPage() {
                 </div>
 
                 <div className="lg:col-span-8 flex flex-col gap-4 lg:gap-6">
-                   <div className="glass-panel rounded-[28px] lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl relative">
+                   <div className="glass-panel rounded-[28px] lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl relative min-h-[500px] flex flex-col">
                       <div className="p-5 lg:p-8 border-b border-[var(--glass-border)] flex flex-col md:flex-row md:items-center justify-between gap-4">
                          <div className="flex items-center gap-4 flex-1">
                             <SearchIcon className="size-4 opacity-20" />
-                            <input placeholder="Search zone network..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none text-[10px] lg:text-xs font-black uppercase tracking-widest w-full" />
+                            <input placeholder="Search zone network..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="bg-transparent border-none outline-none text-[10px] lg:text-xs font-black uppercase tracking-widest w-full" />
                          </div>
                          <p className="text-[8px] lg:text-[10px] font-black uppercase opacity-40 tracking-[0.2em]">{profile.quartier_prices.length} Active Nodes</p>
                       </div>
@@ -189,7 +197,7 @@ export default function LogisticsPricingPage() {
                             </div>
                          </div>
                       )}
-                      <div className="max-h-[300px] lg:max-h-[500px] overflow-x-auto no-scrollbar">
+                      <div className="flex-1 overflow-x-auto no-scrollbar">
                          <table className="w-full text-left border-collapse">
                                <thead className="sticky top-0 bg-[var(--bg-secondary)]/95 backdrop-blur-xl z-10">
                                <tr>
@@ -211,7 +219,7 @@ export default function LogisticsPricingPage() {
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-[var(--glass-border)]/10">
-                                {profile.quartier_prices.filter(q => q.quartier.toLowerCase().includes(searchTerm.toLowerCase())).map((q, idx) => (
+                                {currentPrices.map((q, idx) => (
                                   <tr key={idx} className={`hover:bg-[var(--accent)]/5 transition-all group ${tableSelections.includes(q.quartier) ? 'bg-[var(--accent)]/5' : ''}`}>
                                      <td className="px-6 lg:px-8 py-4 lg:py-5 border-none">
                                         <div 
@@ -246,21 +254,29 @@ export default function LogisticsPricingPage() {
                                 ))}
                              </tbody>
                           </table>
-                       </div>
-                    </div>
-                    <div className="flex justify-center pt-2 lg:pt-4">
-                       <button 
-                         onClick={handleSave} 
-                         disabled={saving} 
-                         className="w-full md:w-auto px-8 lg:px-12 py-4 lg:py-5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl lg:rounded-[24px] font-black text-[9px] lg:text-[10px] tracking-[0.3em] uppercase shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-40"
-                       >
-                          {saving ? <Loader2 className="size-4 animate-spin" /> : <SaveIcon className="size-4" />}
-                          Sync Matrix with AURA Network
-                       </button>
-                    </div>
-                 </div>
-              </div>
-           </section>
+                      </div>
+
+                      <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 mt-auto">
+                         <Pagination 
+                           currentPage={currentPage}
+                           totalPages={totalPages}
+                           onPageChange={setCurrentPage}
+                         />
+                      </div>
+                   </div>
+                   <div className="flex justify-center pt-2 lg:pt-4">
+                      <button 
+                        onClick={handleSave} 
+                        disabled={saving} 
+                        className="w-full md:w-auto px-8 lg:px-12 py-4 lg:py-5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl lg:rounded-[24px] font-black text-[9px] lg:text-[10px] tracking-[0.3em] uppercase shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-40"
+                      >
+                         {saving ? <Loader2 className="size-4 animate-spin" /> : <SaveIcon className="size-4" />}
+                         Sync Matrix with AURA Network
+                      </button>
+                   </div>
+                </div>
+             </div>
+          </section>
         </div>
     </>
   );

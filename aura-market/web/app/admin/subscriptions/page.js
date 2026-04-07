@@ -7,15 +7,16 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import RoleSidebar from '@/components/layout/RoleSidebar';
+import Pagination from '@/components/common/Pagination';
 
 export const dynamic = 'force-dynamic';
 
 const mockSubs = [
-  { vendor: 'Nova Boutique', id: '#VND-8821', plan: 'Premium', renewal: 'Oct 24, 2027', billing: 'Yearly Billing', payment: 'paid' },
-  { vendor: 'Luxe Interior', id: '#VND-4102', plan: 'Pro', renewal: 'Nov 02, 2027', billing: 'Monthly Billing', payment: 'pending' },
-  { vendor: 'Base Apparel', id: '#VND-1055', plan: 'Basic', renewal: 'Oct 20, 2027', billing: 'Monthly Billing', payment: 'overdue' },
-  { vendor: 'Glow Cosmetics', id: '#VND-9922', plan: 'Premium', renewal: 'Dec 15, 2027', billing: 'Yearly Billing', payment: 'paid' },
-  { vendor: 'Zenith Tech', id: '#VND-3341', plan: 'Pro', renewal: 'Oct 30, 2027', billing: 'Monthly Billing', payment: 'paid' },
+  { vendor: 'Nova Boutique', id: '#VND-8821', plan: 'Premium', renewal: 'Oct 24, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-10-24' },
+  { vendor: 'Luxe Interior', id: '#VND-4102', plan: 'Pro', renewal: 'Nov 02, 2027', billing: 'Monthly Billing', payment: 'pending', createdAt: '2023-11-02' },
+  { vendor: 'Base Apparel', id: '#VND-1055', plan: 'Basic', renewal: 'Oct 20, 2027', billing: 'Monthly Billing', payment: 'overdue', createdAt: '2023-10-20' },
+  { vendor: 'Glow Cosmetics', id: '#VND-9922', plan: 'Premium', renewal: 'Dec 15, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-12-15' },
+  { vendor: 'Zenith Tech', id: '#VND-3341', plan: 'Pro', renewal: 'Oct 30, 2027', billing: 'Monthly Billing', payment: 'paid', createdAt: '2023-10-30' },
 ];
 
 const PLAN_BADGE = {
@@ -33,6 +34,8 @@ const PAYMENT_DOT = {
 export default function AdminSubscriptionsPage() {
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const load = async () => {
@@ -46,6 +49,9 @@ export default function AdminSubscriptionsPage() {
     };
     load();
   }, []);
+
+  const totalPages = Math.ceil(subs.length / itemsPerPage);
+  const currentSubs = subs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
@@ -119,7 +125,7 @@ export default function AdminSubscriptionsPage() {
                   <tbody className="divide-y divide-[var(--glass-border)]">
                     {loading ? [...Array(5)].map((_, i) => (
                       <tr key={i}><td colSpan={5} className="px-6 py-5"><div className="h-8 bg-white/5 rounded-xl animate-pulse" /></td></tr>
-                    )) : subs.map((s, i) => (
+                    )) : currentSubs.map((s, i) => (
                       <tr key={i} className="group hover:bg-[var(--accent)]/5 transition-colors">
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
@@ -158,14 +164,12 @@ export default function AdminSubscriptionsPage() {
                 </table>
               </div>
 
-              <div className="p-6 border-t border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/50">
-                <p className="text-[10px] text-[var(--text-secondary)] font-black tracking-widest uppercase">Showing 1 to {subs.length} of 1,284 vendors</p>
-                <div className="flex items-center gap-2">
-                  <button disabled className="p-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
-                  <button className="px-3 py-1.5 bg-[var(--accent)] text-white rounded-xl text-[10px] font-black tracking-widest shadow-md shadow-[var(--accent)]/20 uppercase transition-all">1</button>
-                  <button className="px-3 py-1.5 bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] rounded-xl text-[10px] font-black tracking-widest border border-[var(--glass-border)] hover:text-[var(--text-primary)] uppercase transition-all">2</button>
-                  <button className="p-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
-                </div>
+              <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+                <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
               </div>
             </div>
 
@@ -181,15 +185,15 @@ export default function AdminSubscriptionsPage() {
               </div>
               <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-8 flex items-center gap-6 glass-panel">
                 <div className="flex-1">
-                  <h3 className="text-lg font-black tracking-widest text-[var(--text-primary)] mb-2 uppercase">Churn Prediction</h3>
-                  <p className="text-sm text-[var(--text-secondary)] mb-6 font-bold">Based on payment delays and account activity in the last 30 days.</p>
-                  <div className="flex items-end gap-2">
-                    <span className="text-4xl font-black text-[var(--text-primary)] tracking-tighter">2.4%</span>
-                    <span className="text-emerald-600 text-[10px] font-black mb-2 flex items-center gap-1 uppercase tracking-widest">
-                      <TrendingDown className="w-3 h-3" /> 0.8%
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-[var(--text-secondary)] tracking-[0.2em] font-black mt-1 uppercase opacity-60">Stable Outlook</p>
+                   <h3 className="text-lg font-black tracking-widest text-[var(--text-primary)] mb-2 uppercase">Churn Prediction</h3>
+                   <p className="text-sm text-[var(--text-secondary)] mb-6 font-bold">Based on payment delays and account activity in the last 30 days.</p>
+                   <div className="flex items-end gap-2">
+                      <span className="text-4xl font-black text-[var(--text-primary)] tracking-tighter">2.4%</span>
+                      <span className="text-emerald-600 text-[10px] font-black mb-2 flex items-center gap-1 uppercase tracking-widest">
+                         <TrendingDown className="w-3 h-3" /> 0.8%
+                      </span>
+                   </div>
+                   <p className="text-[10px] text-[var(--text-secondary)] tracking-[0.2em] font-black mt-1 uppercase opacity-60">Stable Outlook</p>
                 </div>
                 <div className="w-24 h-24 rounded-full border-4 border-[var(--accent)]/10 flex items-center justify-center relative flex-shrink-0">
                   <div className="absolute inset-0 rounded-full border-4 border-[var(--accent)] border-t-transparent border-r-transparent -rotate-45 shadow-[0_0_15px_rgba(242,13,242,0.1)]" />
@@ -243,5 +247,3 @@ function TierBar({ label, pct, color }) {
     </div>
   );
 }
-
-

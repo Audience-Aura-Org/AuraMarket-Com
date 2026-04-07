@@ -9,11 +9,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import Pagination from '@/components/common/Pagination';
+
 export default function AdminDisputes() {
   const [mounted, setMounted] = useState(false);
   const [disputes, setDisputes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [actioning, setActioning] = useState(null);
   const [selectedCase, setSelectedCase] = useState(null);
   const [caseShipment, setCaseShipment] = useState(null);
@@ -81,6 +85,9 @@ export default function AdminDisputes() {
     return d.status === activeTab.toLowerCase();
   });
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentDisputes = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   if (!mounted) return null;
 
   return (
@@ -113,9 +120,9 @@ export default function AdminDisputes() {
                   {selectedCase.evidence_urls?.length > 0 ? (
                      <div className="grid grid-cols-2 gap-3">
                         {selectedCase.evidence_urls.map((url, i) => (
-                          <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative group">
-                             <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform cursor-pointer" onClick={() => window.open(url, '_blank')} />
-                          </div>
+                           <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative group">
+                              <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform cursor-pointer" onClick={() => window.open(url, '_blank')} />
+                           </div>
                         ))}
                      </div>
                   ) : (
@@ -210,7 +217,7 @@ export default function AdminDisputes() {
              {['All', 'Investigating', 'Resolved'].map(tab => (
                <button 
                  key={tab}
-                 onClick={() => setActiveTab(tab)} 
+                 onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
                  className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
                >
                  {tab}
@@ -258,7 +265,7 @@ export default function AdminDisputes() {
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--glass-border)]/50">
-                     {filtered.map(d => (
+                     {currentDisputes.map(d => (
                        <tr 
                          key={d._id} 
                          onClick={() => openCase(d)}
@@ -318,21 +325,27 @@ export default function AdminDisputes() {
                            </td>
                        </tr>
                      ))}
-                     {filtered.length === 0 && !loading && (
-                       <tr>
-                          <td colSpan={5} className="px-8 py-20 lg:py-32 text-center">
-                             <div className="flex flex-col items-center gap-4 lg:gap-6 opacity-20">
-                                <Scale className="size-10 lg:size-16" />
-                                <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-widest leading-relaxed">System scan complete.<br/>No active disputes detected.</p>
-                             </div>
-                          </td>
-                       </tr>
-                     )}
-                  </tbody>
-               </table>
-            </div>
-         </div>
-      </div>
+                   </tbody>
+                </table>
+                {currentDisputes.length === 0 && !loading && (
+                   <div className="px-8 py-20 lg:py-32 text-center border-t border-[var(--glass-border)]/50">
+                      <div className="flex flex-col items-center gap-4 lg:gap-6 opacity-20">
+                         <Scale className="size-10 lg:size-16" />
+                         <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-widest leading-relaxed">System scan complete.<br/>No active disputes detected.</p>
+                      </div>
+                   </div>
+                )}
+             </div>
+             
+             <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+                <Pagination 
+                   currentPage={currentPage}
+                   totalPages={totalPages}
+                   onPageChange={setCurrentPage}
+                />
+             </div>
+          </div>
+       </div>
     </div>
   );
 }

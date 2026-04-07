@@ -23,6 +23,7 @@ const {
   getUser,
   updateProfile,
   changePassword,
+  getAdminInfo,
 } = require('../controllers/auth.controller');
 
 const { protect } = require('../middleware/auth.middleware');
@@ -34,6 +35,7 @@ router.post('/verify-2fa', verify2FALogin);
 
 // ── Private Routes (JWT required) ─────────────
 router.get('/me', protect, getMe);
+router.get('/admin-info', protect, getAdminInfo);
 router.get('/users/:id', protect, getUser);
 router.patch('/update-profile', protect, updateProfile);
 router.patch('/change-password', protect, changePassword);

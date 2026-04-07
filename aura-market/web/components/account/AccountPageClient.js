@@ -16,6 +16,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
+import Pagination from '@/components/common/Pagination';
 
 const TABS = [
   { id: 'general', label: 'General', icon: User, roles: ['customer', 'vendor', 'admin', 'logistics'] },
@@ -44,6 +45,13 @@ export default function AccountPageClient() {
     const tabUrl = searchParams.get('tab');
     if (tabUrl && TABS.some((t) => t.id === tabUrl)) setActiveTab(tabUrl);
   }, [searchParams]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
@@ -658,14 +666,15 @@ export default function AccountPageClient() {
                      </button>
                    </header>
 
-                   <div className="space-y-4">
+                    <div className="space-y-4">
                       {orders.length === 0 ? (
                         <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-xl text-center space-y-6">
                             <ShoppingBag className="size-16 opacity-10" />
                             <p className="text-sm font-black uppercase tracking-widest opacity-40">No Order Records Synchronized</p>
                         </div>
                       ) : (
-                        orders.map((o) => (
+                        <>
+                        {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((o) => (
                            <Link href={`/orders/${o._id}`} key={o._id} className="block p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 hover:shadow-2xl transition-all group overflow-hidden relative">
                               <div className="absolute top-0 right-0 size-24 bg-[var(--accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--accent)]/10 transition-all" />
                               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -693,7 +702,17 @@ export default function AccountPageClient() {
                                  </div>
                               </div>
                            </Link>
-                        ))
+                        ))}
+                        {orders.length > 0 && (
+                          <div className="pt-6">
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={Math.ceil(orders.length / itemsPerPage)}
+                              onPageChange={setCurrentPage}
+                            />
+                          </div>
+                        )}
+                        </>
                       )}
                    </div>
                 </div>
@@ -1017,8 +1036,9 @@ export default function AccountPageClient() {
                            <p className="text-sm font-black uppercase tracking-widest opacity-40">No connected vendor nodes detected</p>
                        </div>
                     ) : (
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {followedVendors.map(f => (
+                       <div className="space-y-6">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(f => (
                              <Link key={f._id} href={`/stores/${f.vendor_id?._id}`} className="group p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 transition-all flex items-center gap-6 shadow-xl">
                                 <div className="size-20 rounded-[28px] overflow-hidden border border-[var(--glass-border)] group-hover:border-[var(--accent)]/50 transition-all shadow-inner shrink-0 bg-[var(--bg-primary)]">
                                    <img src={f.vendor_id?.user_id?.branding?.logo || f.vendor_id?.user_id?.avatar} className="size-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
@@ -1032,6 +1052,14 @@ export default function AccountPageClient() {
                                 </div>
                              </Link>
                           ))}
+                         </div>
+                         {followedVendors.length > 0 && (
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={Math.ceil(followedVendors.length / itemsPerPage)}
+                              onPageChange={setCurrentPage}
+                            />
+                         )}
                        </div>
                     )}
                  </div>
@@ -1055,8 +1083,9 @@ export default function AccountPageClient() {
                            <p className="text-sm font-black uppercase tracking-widest opacity-40">No active subscribers in this frequency</p>
                        </div>
                     ) : (
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-32">
-                          {audience.map(a => (
+                       <div className="space-y-6 pb-32">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {audience.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(a => (
                              <div key={a._id} className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex items-center gap-6 shadow-xl">
                                 <div className="size-16 rounded-[24px] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0">
                                    <img src={a.user_id?.branding?.logo || a.user_id?.avatar} className="size-full object-cover" alt="" />
@@ -1069,6 +1098,14 @@ export default function AccountPageClient() {
                              </div>
                           ))}
                        </div>
+                       {audience.length > 0 && (
+                          <Pagination
+                            currentPage={currentPage}
+                            totalPages={Math.ceil(audience.length / itemsPerPage)}
+                            onPageChange={setCurrentPage}
+                          />
+                       )}
+                    </div>
                     )}
                  </div>
               )}
@@ -1100,7 +1137,7 @@ export default function AccountPageClient() {
                           </div>
 
                           <div className="space-y-4">
-                             {(govUsers || []).map(u => (
+                             {(govUsers || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(u => (
                                 <div key={u._id} className="p-6 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-between gap-6">
                                    <div className="flex items-center gap-4">
                                       <div className="size-12 rounded-2xl bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)]">
@@ -1133,6 +1170,13 @@ export default function AccountPageClient() {
                                 </div>
                              ))}
                           </div>
+                          {(govUsers || []).length > 0 && (
+                             <Pagination
+                               currentPage={currentPage}
+                               totalPages={Math.ceil((govUsers || []).length / itemsPerPage)}
+                               onPageChange={setCurrentPage}
+                             />
+                          )}
                        </div>
                     </SectionBox>
 

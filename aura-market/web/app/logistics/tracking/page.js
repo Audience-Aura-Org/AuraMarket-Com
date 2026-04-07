@@ -7,9 +7,13 @@ import { toast } from "react-hot-toast";
 
 export const dynamic = "force-dynamic";
 
+import Pagination from '@/components/common/Pagination';
+
 export default function LogisticsTrackingPage() {
   const [loading, setLoading] = useState(true);
   const [shipments, setShipments] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     const load = async () => {
@@ -25,6 +29,9 @@ export default function LogisticsTrackingPage() {
     };
     load();
   }, []);
+
+  const totalPages = Math.ceil(shipments.length / itemsPerPage);
+  const currentShipments = shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const grouped = useMemo(() => {
     return {
@@ -66,24 +73,36 @@ export default function LogisticsTrackingPage() {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4 lg:p-6">
-            <p className="mb-3 text-[10px] font-black uppercase tracking-widest opacity-60">Recent activity</p>
-            <div className="space-y-2">
-              {shipments.slice(0, 12).map((s) => (
-                <div key={s._id} className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] px-3 py-2">
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4 lg:p-6 min-h-[400px] flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Recent activity</p>
+               <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{shipments.length} Total Logs</p>
+            </div>
+            
+            <div className="space-y-2 flex-1">
+              {currentShipments.map((s) => (
+                <div key={s._id} className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] px-3 py-2 hover:bg-[var(--accent)]/5 transition-colors">
                   <div>
                     <p className="text-xs font-black">{s.tracking_code}</p>
                     <p className="text-[10px] font-black text-[var(--accent)] uppercase">
                       Order #{(s.order_id?._id || s.order_id || "").toString().slice(-8).toUpperCase()}
                     </p>
-                    <p className="text-[10px] font-bold opacity-60">
+                    <p className="text-[10px] font-bold opacity-60 truncate max-w-[200px]">
                       {s.delivery_address?.quartier || s.delivery_address?.city || "Unknown destination"}
                     </p>
                   </div>
-                  <span className="text-[10px] font-black uppercase">{(s.status || "").replace(/_/g, " ")}</span>
+                  <span className="text-[10px] font-black uppercase bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-2.5 py-1 rounded-lg">{(s.status || "").replace(/_/g, " ")}</span>
                 </div>
               ))}
-              {!shipments.length && <p className="text-[10px] font-black uppercase opacity-40">No shipment activity yet</p>}
+              {!shipments.length && <p className="text-[10px] font-black uppercase opacity-40 py-20 text-center">No shipment activity yet</p>}
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-[var(--glass-border)]/50">
+               <Pagination 
+                 currentPage={currentPage}
+                 totalPages={totalPages}
+                 onPageChange={setCurrentPage}
+               />
             </div>
           </div>
         </>

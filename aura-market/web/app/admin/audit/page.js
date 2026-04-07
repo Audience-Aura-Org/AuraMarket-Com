@@ -9,11 +9,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import Pagination from '@/components/common/Pagination';
+
 export default function AdminAuditLogs() {
   const [mounted, setMounted] = useState(false);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
 
   useEffect(() => {
     setMounted(true);
@@ -45,6 +49,9 @@ export default function AdminAuditLogs() {
       return log.target_type === activeFilter;
   });
 
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const currentLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   if (!mounted) return null;
 
   return (
@@ -68,7 +75,7 @@ export default function AdminAuditLogs() {
               {['all', 'product', 'user', 'dispute', 'transaction'].map(type => (
                 <button 
                   key={type}
-                  onClick={() => setActiveFilter(type)}
+                  onClick={() => { setActiveFilter(type); setCurrentPage(1); }}
                   className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeFilter === type ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-border)]'}`}
                 >
                   {type}
@@ -118,8 +125,8 @@ export default function AdminAuditLogs() {
                      <Loader2 className="w-10 h-10 animate-spin mb-4 text-[var(--accent)]" />
                      <p className="text-[10px] font-black uppercase tracking-widest">Decrypting Mutation Stream...</p>
                   </div>
-               ) : filteredLogs.length > 0 ? (
-                  filteredLogs.map(log => (
+               ) : currentLogs.length > 0 ? (
+                  currentLogs.map(log => (
                     <div key={log._id} className="p-8 hover:bg-[var(--accent)]/[0.02] transition-colors group flex items-start gap-8">
                         <div className="flex flex-col items-center gap-3 py-1">
                            <div className="size-10 rounded-full border border-[var(--glass-border)] overflow-hidden bg-[var(--bg-secondary)] shadow-sm">
@@ -174,6 +181,14 @@ export default function AdminAuditLogs() {
                      <p className="text-sm font-black uppercase tracking-[0.2em] leading-relaxed max-w-sm">No system mutations recorded in this vector.</p>
                   </div>
                )}
+            </div>
+
+            <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+               <Pagination 
+                   currentPage={currentPage}
+                   totalPages={totalPages}
+                   onPageChange={setCurrentPage}
+               />
             </div>
          </div>
       </div>

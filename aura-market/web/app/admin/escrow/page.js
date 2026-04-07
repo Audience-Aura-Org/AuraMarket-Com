@@ -11,12 +11,16 @@ import { toast } from 'react-hot-toast';
 
 export const dynamic = 'force-dynamic';
 
+import Pagination from '@/components/common/Pagination';
+
 export default function AdminEscrow() {
   const [mounted, setMounted] = useState(false);
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     setMounted(true);
@@ -81,6 +85,9 @@ export default function AdminEscrow() {
     }
   };
 
+  const totalPages = Math.ceil(logs.length / itemsPerPage);
+  const currentLogs = logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const heldTotal = stats.find(s => s._id === 'held')?.totalAmount || 0;
   const releasedTotal = stats.find(s => s._id === 'released')?.totalAmount || 0;
 
@@ -132,7 +139,7 @@ export default function AdminEscrow() {
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--glass-border)]/50">
-                     {logs.map(l => (
+                     {currentLogs.map(l => (
                        <tr key={l._id} className="hover:bg-[var(--accent)]/5 transition-colors group">
                           <td className="px-6 lg:px-8 py-4 lg:py-5">
                              <div className="flex items-center gap-3">
@@ -158,9 +165,9 @@ export default function AdminEscrow() {
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
                              <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-black uppercase tracking-[0.2em] border shrink-0 inline-block transition-all shadow-sm ${
-                               l.status === 'held' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
-                               l.status === 'released' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                               'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                l.status === 'held' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                                l.status === 'released' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                'bg-rose-500/10 text-rose-500 border-rose-500/20'
                              }`}>
                                 {l.status}
                              </span>
@@ -193,22 +200,19 @@ export default function AdminEscrow() {
                           </td>
                        </tr>
                      ))}
-                     {logs.length === 0 && !loading && (
-                       <tr>
-                          <td colSpan={6} className="px-8 py-20 lg:py-32 text-center">
-                             <div className="flex flex-col items-center gap-4 lg:gap-6 opacity-20">
-                                <History className="size-10 lg:size-16" />
-                                <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-widest leading-relaxed">System scan complete.<br/>Vault history clear.</p>
-                             </div>
-                          </td>
-                       </tr>
-                     )}
                   </tbody>
                </table>
             </div>
-         </div>
-      </div>
+
+            <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+               <Pagination 
+                   currentPage={currentPage}
+                   totalPages={totalPages}
+                   onPageChange={setCurrentPage}
+               />
+            </div>
+          </div>
+       </div>
     </>
   );
 }
-

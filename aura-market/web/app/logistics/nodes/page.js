@@ -8,10 +8,14 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+import Pagination from '@/components/common/Pagination';
+
 export default function LogisticsNodesPage() {
   const [loading, setLoading] = useState(true);
   const [firm, setFirm] = useState(null);
   const [zones, setZones] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     const load = async () => {
@@ -31,6 +35,9 @@ export default function LogisticsNodesPage() {
     };
     load();
   }, []);
+
+  const totalPages = Math.ceil(zones.length / itemsPerPage);
+  const currentZones = zones.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (loading) {
     return (
@@ -70,15 +77,27 @@ export default function LogisticsNodesPage() {
       </div>
 
       <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4 lg:p-6">
-        <p className="mb-3 text-[10px] font-black uppercase tracking-widest opacity-60">Available towns and quartiers</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-          {zones.slice(0, 24).map((z) => (
-            <div key={z._id} className="rounded-lg border border-[var(--glass-border)] px-3 py-2">
+        <div className="flex items-center justify-between mb-6">
+           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Available towns and quartiers</p>
+           <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{zones.length} Total Signals</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 min-h-[200px]">
+          {currentZones.map((z) => (
+            <div key={z._id} className="rounded-lg border border-[var(--glass-border)] px-3 py-2 hover:bg-[var(--accent)]/5 transition-colors">
               <p className="text-xs font-black uppercase">{z.name}</p>
               <p className="text-[10px] font-bold opacity-60 uppercase">{z.type}</p>
             </div>
           ))}
           {!zones.length && <p className="text-[10px] font-black uppercase opacity-40">No zones found</p>}
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-[var(--glass-border)]/50">
+           <Pagination 
+             currentPage={currentPage}
+             totalPages={totalPages}
+             onPageChange={setCurrentPage}
+           />
         </div>
       </div>
     </div>
