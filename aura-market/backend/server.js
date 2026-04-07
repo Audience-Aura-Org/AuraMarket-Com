@@ -63,8 +63,13 @@ app.set('io', io);
 // 7. Express Middleware
 // ─────────────────────────────────────────────
 app.use(cors({
-  origin: [WEB_CLIENT_URL, 'http://localhost:3000'],
+  origin: [
+    'https://space.audienceaura.org',
+    'http://localhost:3000',
+    process.env.WEB_CLIENT_URL,
+  ].filter(Boolean),
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -99,7 +104,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ─────────────────────────────────────────────
 // 9. API Routes
 // ─────────────────────────────────────────────
-app.use('/api/v1', require('./routes/v1.router'));
+app.use('/api', require('./routes/v1.router')); // Unified to /api
+app.use('/api/v1', require('./routes/v1.router')); // Fallback for stability
 
 
 // ─────────────────────────────────────────────
