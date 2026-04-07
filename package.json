@@ -2,6 +2,9 @@
   "name": "aura-market-monorepo",
   "version": "4.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "workspaces": [
     "aura-market/web",
     "aura-market/backend",
