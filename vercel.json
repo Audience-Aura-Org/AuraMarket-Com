@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build -w aura-market/web",
-  "outputDirectory": "aura-market/web/.next",
+  "buildCommand": "npm run build -w aura-market/web && cp -R aura-market/web/.next .next && cp -R aura-market/web/public public",
+  "outputDirectory": ".next",
   "framework": "nextjs"
 }
