@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Create Account</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#221022",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen relative overflow-x-hidden">
+<!-- Decorative background elements for Glassmorphism depth -->
+<div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full -z-10"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[150px] rounded-full -z-10"></div>
+<div class="relative flex flex-col min-h-screen w-full">
+<!-- Navigation -->
+<header class="flex items-center justify-between px-6 lg:px-20 py-6 border-b border-slate-200/10 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-3">
+<div class="text-primary">
+<span class="material-symbols-outlined text-4xl">polymer</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-extrabold tracking-tight">Aura Market</h2>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<nav class="flex items-center gap-8">
+<a class="hover:text-primary transition-colors text-sm font-semibold" href="#">Home</a>
+<a class="hover:text-primary transition-colors text-sm font-semibold" href="#">Features</a>
+<a class="hover:text-primary transition-colors text-sm font-semibold" href="#">Marketplace</a>
+</nav>
+<button class="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-primary/20">
+                    Login
+                </button>
+</div>
+</header>
+<main class="flex-1 flex items-center justify-center p-6 lg:p-12">
+<!-- Glassmorphic Form Container -->
+<div class="w-full max-w-2xl bg-white/5 dark:bg-slate-900/40 backdrop-blur-xl border border-white/10 dark:border-slate-700/30 rounded-xl p-8 lg:p-12 shadow-2xl relative overflow-hidden">
+<div class="mb-10">
+<h1 class="text-4xl lg:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                        Create Your Account
+                    </h1>
+<p class="text-slate-500 dark:text-slate-400 text-lg">Join the future of decentralized commerce.</p>
+</div>
+<form class="space-y-6">
+<!-- Full Name -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">person</span>
+<input class="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="John Doe" type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Email -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">mail</span>
+<input class="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="john@example.com" type="email"/>
+</div>
+</div>
+<!-- Phone -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">call</span>
+<input class="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="+1 (555) 000-0000" type="tel"/>
+</div>
+</div>
+</div>
+<!-- Password -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">lock</span>
+<input class="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-4 pl-12 pr-12 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600" placeholder="••••••••" type="password"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 cursor-pointer hover:text-white transition-colors">visibility</span>
+</div>
+</div>
+<!-- Role Selection (Segmented Control Style) -->
+<div class="flex flex-col gap-3">
+<label class="text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">Account Type</label>
+<div class="grid grid-cols-3 gap-3 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700/50">
+<button class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg bg-primary text-white transition-all" type="button">
+<span class="material-symbols-outlined text-xl">shopping_bag</span>
+<span class="text-xs font-bold">Customer</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg hover:bg-white/5 text-slate-400 transition-all" type="button">
+<span class="material-symbols-outlined text-xl">storefront</span>
+<span class="text-xs font-bold">Vendor</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg hover:bg-white/5 text-slate-400 transition-all" type="button">
+<span class="material-symbols-outlined text-xl">local_shipping</span>
+<span class="text-xs font-bold">Logistics</span>
+</button>
+</div>
+</div>
+<!-- Terms -->
+<label class="flex items-center gap-3 cursor-pointer group mt-4">
+<input class="w-5 h-5 rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary focus:ring-offset-slate-900" type="checkbox"/>
+<span class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">I agree to the <a class="text-primary underline underline-offset-4" href="#">Terms of Service</a> and Privacy Policy</span>
+</label>
+<!-- Submit Button -->
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl text-lg transition-all shadow-xl shadow-primary/30 mt-4 flex items-center justify-center gap-2 group" type="submit">
+                        Create Account
+                        <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<p class="text-center text-slate-500 text-sm">
+                        Already have an account? 
+                        <a class="text-primary font-bold hover:underline underline-offset-4" href="#">Sign In</a>
+</p>
+</form>
+</div>
+</main>
+<footer class="p-8 text-center text-slate-500 text-xs border-t border-white/5">
+            © 2024 Aura Market Ecosystem. All rights reserved.
+        </footer>
+</div>
+<!-- Image for decorative context (hidden but present for requirements) -->
+<div class="hidden">
+<img alt="Decorative Gradient" data-alt="Abstract vibrant violet and pink digital patterns" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8UEl57itX4LCqkjDDfWNVtIuEu4hMUznCH48Oojyj5vZbI9NbzNCYYtC_kGZK_HrA431UsYAN0-_NFbiFDD0QLUTzjV2DtnHyRCz79jUehP0WsOdOBU02M25xIBXie2TrbVHNYa8Bbe1u1EV6J_M903tpNAXJ9KCuLvbUBkgtbGiY0-GQuPvwlfeiURO_6IZ6eMxbaeQoagZLZF0MC1jVzP_Vgh4fehbdOy6eFUdyacYgg49ZWhL8zZ9NGwhBnDBZcNu_7Q_Hsx4"/>
+</div>
+</body></html>

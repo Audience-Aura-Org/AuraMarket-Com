@@ -1,0 +1,20 @@
+﻿[dotenv@17.3.1] injecting env (20) from .env -- tip: ΓÜÖ∩╕Å  load multiple .env files with { path: ['.env.local', '.env'] }
+LOG: 2026-03-27T07:35:22.362Z | TO: logistics1@auramarket.com | ROLE: logistics | STATUS: sent
+LOG: 2026-03-27T07:35:21.490Z | TO: ashoctavia118@gmail.com | ROLE: vendor | STATUS: sent
+LOG: 2026-03-27T07:35:21.483Z | TO: brandonasah11@gmail.com | ROLE: customer | STATUS: sent
+LOG: 2026-03-27T06:39:06.428Z | TO: brandonasah11@gmail.com | ROLE: customer | STATUS: sent
+LOG: 2026-03-27T06:39:06.258Z | TO: logistics1@auramarket.com | ROLE: logistics | STATUS: sent
+LOG: 2026-03-27T06:39:05.767Z | TO: ashoctavia118@gmail.com | ROLE: vendor | STATUS: sent
+LOG: 2026-03-27T06:25:46.046Z | TO: logistics1@auramarket.com | ROLE: logistics | STATUS: failed
+LOG: 2026-03-27T06:25:45.774Z | TO: ashoctavia118@gmail.com | ROLE: vendor | STATUS: failed
+LOG: 2026-03-27T06:25:45.771Z | TO: brandonasah11@gmail.com | ROLE: customer | STATUS: failed
+LOG: 2026-03-26T22:07:33.243Z | TO: logistics1@auramarket.com | ROLE: logistics | STATUS: failed
+LOG: 2026-03-26T22:07:33.063Z | TO: asahkuches@gmail.com | ROLE: vendor | STATUS: failed
+LOG: 2026-03-26T22:07:33.054Z | TO: brandonasah11@gmail.com | ROLE: customer | STATUS: failed
+LOG: 2026-03-26T21:25:26.858Z | TO: brandonasah11@gmail.com | ROLE: customer | STATUS: sent
+LOG: 2026-03-26T21:25:26.548Z | TO: logistics1@auramarket.com | ROLE: logistics | STATUS: sent
+LOG: 2026-03-26T21:25:26.541Z | TO: ashoctavia118@gmail.com | ROLE: vendor | STATUS: sent
+LOG: 2026-03-26T19:54:25.437Z | TO: asahkuches@gmail.com | ROLE: vendor | STATUS: sent
+LOG: 2026-03-26T19:54:22.596Z | TO: brandonasah11@gmail.com | ROLE: customer | STATUS: sent
+LOG: 2026-03-26T19:49:20.995Z | TO: ashoctavia118@gmail.com | ROLE: vendor | STATUS: sent
+LOG: 2026-03-26T19:34:51.022Z | TO: ashoctavia118@gmail.com | ROLE: vendor | STATUS: sent

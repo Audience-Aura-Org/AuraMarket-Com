@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market | Vendor Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#0a050a",
+                        "glass": "rgba(255, 255, 255, 0.03)",
+                        "glass-border": "rgba(255, 255, 255, 0.08)",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "sans-serif"],
+                        "sans": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .liquid-bg {
+            background: radial-gradient(circle at 0% 0%, rgba(242, 13, 242, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 100% 100%, rgba(138, 43, 226, 0.15) 0%, transparent 50%);
+        }
+        .sidebar-item-active {
+            background: linear-gradient(90deg, rgba(242, 13, 242, 0.2) 0%, transparent 100%);
+            border-left: 3px solid #f20df2;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen liquid-bg">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-72 glass-card border-r border-glass-border flex flex-col h-full z-20">
+<div class="p-8 flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-[0_0_20px_rgba(242,13,242,0.4)]">
+<span class="material-symbols-outlined fill-1">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-slate-100">Aura Market</h1>
+<p class="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">Vendor Premium</p>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg sidebar-item-active group" href="#">
+<span class="material-symbols-outlined text-primary">dashboard</span>
+<span class="font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">inventory_2</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Products</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">shopping_cart</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Orders</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">account_balance_wallet</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Wallet</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">analytics</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Analytics</span>
+</a>
+<div class="pt-8 pb-2 px-4">
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Preferences</p>
+</div>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">settings</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Settings</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">help</span>
+<span class="font-medium text-slate-300 group-hover:text-white">Support</span>
+</a>
+</nav>
+<div class="p-6">
+<div class="glass-card p-4 rounded-xl border border-primary/20 bg-primary/5">
+<p class="text-xs text-slate-400 mb-2">Current Plan</p>
+<p class="text-sm font-bold text-slate-100 flex items-center justify-between">
+                        Pro Vendor 
+                        <span class="text-[10px] bg-primary text-white px-2 py-0.5 rounded-full">Active</span>
+</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-hidden relative">
+<!-- Background Blob -->
+<div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full -z-10"></div>
+<div class="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full -z-10"></div>
+<!-- Top Header -->
+<header class="h-20 flex items-center justify-between px-10 glass-card border-b border-glass-border">
+<div class="flex items-center gap-4">
+<h2 class="text-xl font-semibold text-slate-100">Overview</h2>
+<div class="h-4 w-px bg-slate-700"></div>
+<p class="text-slate-400 text-sm">Welcome back, <span class="text-slate-200">Alex</span></p>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-slate-400 text-lg">search</span>
+<input class="bg-white/5 border border-glass-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary w-64 transition-all" placeholder="Search data..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<button class="size-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-background-dark"></span>
+</button>
+<button class="size-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all">
+<span class="material-symbols-outlined">mail</span>
+</button>
+</div>
+<div class="flex items-center gap-3 pl-4 border-l border-slate-700">
+<div class="text-right">
+<p class="text-sm font-semibold text-slate-100">Alex Rivera</p>
+<p class="text-[10px] text-primary">Store Manager</p>
+</div>
+<img class="size-10 rounded-full border border-primary/40 object-cover p-0.5" data-alt="User profile avatar of store manager" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB5_7BiTyMc7SkU4fTFWnnKligsZzVRqXbX81dYiM6qmL0OaGzI7zvrc-GbjTXoeEQrNa33G5W6BIzMcDtfp74uZN-0hYXxthja6XaNSfEx2E-r1s__bjUxK4iq7rDX83F9FLUJGrI806LRCSKwRks7sbiuw2eEvtNMsSqp-GPlcFTRSL7vTyfAmhkaTkvG63Q2Cp3Kyzahe7mBO4Nb-lK2xKFeCiAeN1hxsKYuKdT3vigCuEvo4Ibxzbot3c5oTbRBq55EHJ1TLo"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="flex-1 overflow-y-auto p-10 space-y-8">
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="glass-card p-6 rounded-xl hover:translate-y-[-4px] transition-all duration-300 group">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+<span class="material-symbols-outlined text-2xl">payments</span>
+</div>
+<span class="text-emerald-400 text-xs font-bold bg-emerald-400/10 px-2 py-1 rounded-full">+14.2%</span>
+</div>
+<p class="text-slate-400 text-sm font-medium">Total Sales</p>
+<h3 class="text-2xl font-bold text-slate-100 mt-1">$24,840.50</h3>
+<div class="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="bg-emerald-500 h-full w-[70%]" style="box-shadow: 0 0 8px #10b981;"></div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-xl hover:translate-y-[-4px] transition-all duration-300 group">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">shopping_bag</span>
+</div>
+<span class="text-primary text-xs font-bold bg-primary/10 px-2 py-1 rounded-full">+8.5%</span>
+</div>
+<p class="text-slate-400 text-sm font-medium">Active Orders</p>
+<h3 class="text-2xl font-bold text-slate-100 mt-1">42</h3>
+<div class="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[55%]" style="box-shadow: 0 0 8px #f20df2;"></div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-xl hover:translate-y-[-4px] transition-all duration-300 group">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+<span class="material-symbols-outlined text-2xl">category</span>
+</div>
+<span class="text-blue-400 text-xs font-bold bg-blue-400/10 px-2 py-1 rounded-full">+3.1%</span>
+</div>
+<p class="text-slate-400 text-sm font-medium">Total Products</p>
+<h3 class="text-2xl font-bold text-slate-100 mt-1">1,204</h3>
+<div class="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="bg-blue-500 h-full w-[85%]" style="box-shadow: 0 0 8px #3b82f6;"></div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-xl hover:translate-y-[-4px] transition-all duration-300 group">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+<span class="material-symbols-outlined text-2xl">wallet</span>
+</div>
+<button class="text-slate-300 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</div>
+<p class="text-slate-400 text-sm font-medium">Wallet Balance</p>
+<h3 class="text-2xl font-bold text-slate-100 mt-1">$8,210.15</h3>
+<div class="mt-4 flex gap-2">
+<button class="flex-1 bg-primary hover:bg-primary/80 text-white text-[10px] font-bold py-1.5 rounded transition-all">WITHDRAW</button>
+<button class="flex-1 glass-card hover:bg-white/10 text-white text-[10px] font-bold py-1.5 rounded transition-all">VIEW HISTORY</button>
+</div>
+</div>
+</div>
+<!-- Middle Section: Growth Chart & Recent Orders -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Sales Performance Chart (Placeholder UI) -->
+<div class="lg:col-span-2 glass-card rounded-xl p-8">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h3 class="text-lg font-bold text-slate-100">Sales Growth</h3>
+<p class="text-sm text-slate-400">Monthly revenue trends</p>
+</div>
+<select class="bg-white/5 border border-glass-border text-slate-300 text-xs rounded-lg px-3 py-1.5 focus:outline-none">
+<option>Last 6 Months</option>
+<option>Last Year</option>
+</select>
+</div>
+<!-- Visual representation of a chart -->
+<div class="relative h-64 w-full flex items-end gap-2 pt-10">
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="w-full border-t border-slate-400 h-px"></div>
+<div class="w-full border-t border-slate-400 h-px"></div>
+<div class="w-full border-t border-slate-400 h-px"></div>
+<div class="w-full border-t border-slate-400 h-px"></div>
+</div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-lg transition-all h-[40%]" title="Jan"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-lg transition-all h-[65%]" title="Feb"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-lg transition-all h-[50%]" title="Mar"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-lg transition-all h-[85%]" title="Apr"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t-lg transition-all h-[70%]" title="May"></div>
+<div class="flex-1 bg-primary hover:bg-primary/80 rounded-t-lg transition-all h-[95%]" style="box-shadow: 0 0 20px rgba(242,13,242,0.3);" title="Jun"></div>
+</div>
+<div class="flex justify-between mt-4 px-2 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
+<span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+</div>
+</div>
+<!-- Recent Orders List -->
+<div class="glass-card rounded-xl p-6 flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-bold text-slate-100">Recent Orders</h3>
+<button class="text-primary text-xs font-semibold hover:underline">View All</button>
+</div>
+<div class="space-y-5 flex-1">
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="size-10 rounded-full glass-card overflow-hidden border border-glass-border">
+<img class="size-full object-cover" data-alt="Customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDW0q2B46VXXXzc59FoiHQe9zsevvbhT5Lu8XkJHVCl62DA97uNcGuvlF_EdfoLefSgIJHXaT6ooOcgBPRflr_7hayCqjir76gTb0JqDqh-X52MP8AhBCz81S546PRESwPFH0CGBzMDGmzi64LUmb4FHEn-3RSaEcSOtXJzMt7eXeA6ht4cBrglsv2z3JpH0DzyOweRhiQwgxzcWSn6zXUr6Ew7ihf4_i-vOlrdCUTYL9cHzKejIpUgdg8P7cDl0Ho_0Wyd5_KV77Q"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-200 truncate">Sofa Lounge Chair</p>
+<p class="text-[10px] text-slate-500">Order #89210 • 2 mins ago</p>
+</div>
+<p class="text-sm font-bold text-slate-100">$240</p>
+</div>
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="size-10 rounded-full glass-card overflow-hidden border border-glass-border">
+<img class="size-full object-cover" data-alt="Customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWsSgaFPGb8pND8xvoYsNbAhUm3miOvdpYO-BLv0rbtEKbecGTTwAWOBuewWEF0qLyZOv5QsRpSpqNVFi-9DVupQogxz_xDcGph1sP3LA2humSd69QYropwAHvrnHd2ZnMHhCixCDml7KNalIUiA1kfbad-TDgH29Ra5_pJQrv6mAbjUbqZuc9hgYlA4VFVQL38AsRXaHDeAgRIzZNqSnbnUOb79T-DmL_gGjPd4pp9EFkadORB1EHX_HP2DU8-obvKuX8il5Rkuw"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-200 truncate">Ceramic Vase Set</p>
+<p class="text-[10px] text-slate-500">Order #89209 • 15 mins ago</p>
+</div>
+<p class="text-sm font-bold text-slate-100">$85</p>
+</div>
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="size-10 rounded-full glass-card overflow-hidden border border-glass-border">
+<img class="size-full object-cover" data-alt="Customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_GGUtO-5pL61cuTZD5M-Y3NGaXW6xGYC_XzVdFip42J1f09oG3fSEAfyNQN0xqhHtOI0SlcrY0hM_dlkiELOpUzZS6hOfDsRtwDU8ww4ZUr4-OSUx-tZ8uSGG-6eFwNzI8t02MISWXH3Aq0NDo5J2hKlGhMhaIAttcm0sBIEg2IYEm4YAPTQt_YqD0HJI2HfAEaAyxwRk_mC0_dxmztg8RCtFyIQQo0Yj0MpFEWSmjPmTpBdR_87Ht5Eh2yQD4oubY1Vr4oTmHUg"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-200 truncate">Oak Dining Table</p>
+<p class="text-[10px] text-slate-500">Order #89208 • 1 hour ago</p>
+</div>
+<p class="text-sm font-bold text-slate-100">$1,120</p>
+</div>
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="size-10 rounded-full glass-card overflow-hidden border border-glass-border">
+<img class="size-full object-cover" data-alt="Customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjNluc6CFjZ88Yz3512kEBwbNuTooxk3wvp_XbfrFZrFp9W8ZYOHbkwSOlyaZl-h6ML4DjYyBZRihbnvOkLqTCfnwhdvySLIiiWYEz-lI7sZFqyWb9ltnyoUpe5uj0oJGJYzEly4zSF_ROLjDblvzNFJw-uKjvjxdNqVc_ySmupU5xplUWhubBR3Rjrm0k45sZdi-9WwVhcUkAk45JXMzJp66nqeeC_DIdDBQXh2YgrXTsOe8V9putF4dM18bqVP-FXVq2p-b9HZI"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-200 truncate">Smart Lighting Kit</p>
+<p class="text-[10px] text-slate-500">Order #89207 • 2 hours ago</p>
+</div>
+<p class="text-sm font-bold text-slate-100">$150</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Detailed Order Status Table -->
+<div class="glass-card rounded-xl overflow-hidden">
+<div class="p-6 border-b border-glass-border flex justify-between items-center">
+<h3 class="text-lg font-bold text-slate-100">Live Order Tracking</h3>
+<div class="flex gap-2">
+<button class="bg-primary/10 text-primary text-[10px] px-3 py-1 rounded-full font-bold">ALL</button>
+<button class="text-slate-400 text-[10px] px-3 py-1 rounded-full font-bold hover:bg-white/5">PROCESSING</button>
+<button class="text-slate-400 text-[10px] px-3 py-1 rounded-full font-bold hover:bg-white/5">SHIPPED</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-[10px] uppercase tracking-widest text-slate-500 bg-white/5">
+<th class="px-6 py-4 font-bold">Product</th>
+<th class="px-6 py-4 font-bold">SKU</th>
+<th class="px-6 py-4 font-bold">Customer</th>
+<th class="px-6 py-4 font-bold">Status</th>
+<th class="px-6 py-4 font-bold">Amount</th>
+<th class="px-6 py-4 font-bold text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-glass-border">
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-6 py-4 flex items-center gap-3">
+<div class="size-8 rounded bg-slate-800 overflow-hidden">
+<img class="size-full object-cover" data-alt="Product thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLojgnDiX8uHQPPWGuZC3bUjEIJGpJB5IweDOZoEQHNfTN7WibRamFFexGpc6SL4jA0xKCoXR0bI_krSigAs8m2pdb9RxF2tc2oUZg0Sxjq1sHndJnyfrcPFQei08dgiTQZO-R8Ewlsk97otcBRO8bFsb80yjAdc-ky1OLwEKhIhxxruiHxMYI3HedvKU7MYQB8LMvRzq1v3h2cHqybZDkNULm48xTVl6qbQhrLhd_XTqqUiTYVII9kUUX6Cbqmn3F32oJaYq_1WE"/>
+</div>
+<span class="text-sm text-slate-200 font-medium">Minimalist Desk Lamp</span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-400">AM-28491-LT</td>
+<td class="px-6 py-4 text-sm text-slate-300">Marcos G.</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-bold bg-primary/20 text-primary uppercase">
+<span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
+                                            Processing
+                                        </span>
+</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-100">$45.00</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-6 py-4 flex items-center gap-3">
+<div class="size-8 rounded bg-slate-800 overflow-hidden">
+<img class="size-full object-cover" data-alt="Product thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALH7Z4XpESoR_aXQknlo3jCyI68EnM8VXwO2bh4D_ZlWtDaztuBHq24rohPEbk56Ktp4MOVTxiqA51-5j4NSVmB3tRDdxpfJoFwDLqCrxtZFqTh3K0wo04r58JbhaRLRQSXTOkN1HADhjux4BLVzxRoVqlGTLGDDWbm7HgrnhoeG09IiNihFgZTpu2xoCzwo5dgCwq8Nh_Gg2zpQzCZ4mvIge-Nvqoe_ixT6d2PLfbGNUo1mqdNLbePJ43ZPzGKxGT2y9XS1IsSZo"/>
+</div>
+<span class="text-sm text-slate-200 font-medium">Leather Studio Bag</span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-400">AM-10423-AC</td>
+<td class="px-6 py-4 text-sm text-slate-300">Julia Chen</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 uppercase">
+<span class="size-1.5 rounded-full bg-blue-500"></span>
+                                            Shipped
+                                        </span>
+</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-100">$189.00</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-6 py-4 flex items-center gap-3">
+<div class="size-8 rounded bg-slate-800 overflow-hidden">
+<img class="size-full object-cover" data-alt="Product thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqtec1QYekISsIshWfHopvJ6Jxq6OwNB3Gk8XjpbRxEgR2o2OdGPvD4LA_Y4H7jxFpsRsaDkAJ_Fkjhyup4wAzUnPUbbL6hGhfJi_cM7E1iLo_QVvfGl-WwewvFPOtciG2KRcWv-x4h1NI1eHAMKhwumcQUKMlOCj4u_p5MfWnKe0BrptOm19TGNE6zp1AUeqNcMU9dvotKpV-AAYtzOM6p7veUh65_eHhCW_uf2hssFzYO4eWTHdkL-Ns4o5kLe-sIW9rYrrj3iI"/>
+</div>
+<span class="text-sm text-slate-200 font-medium">Walnut Headphone Stand</span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-400">AM-77215-HP</td>
+<td class="px-6 py-4 text-sm text-slate-300">Tom Wilson</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 uppercase">
+<span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                            Delivered
+                                        </span>
+</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-100">$64.50</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">more_horiz</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market Admin - Subscriptions</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#0a050a",
+                        "glass-dark": "rgba(34, 16, 34, 0.6)",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "sans-serif"],
+                        "sans": ["Poppins", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background: radial-gradient(circle at 0% 0%, #221022 0%, #0a050a 50%, #1a081a 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .liquid-accent {
+            background: linear-gradient(135deg, #f20df2 0%, #7e22ce 100%);
+            filter: blur(40px);
+            opacity: 0.15;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="font-display text-slate-100 antialiased overflow-x-hidden">
+<!-- Liquid Glass Background Accents -->
+<div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] liquid-accent rounded-full"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] liquid-accent rounded-full" style="background: linear-gradient(135deg, #7e22ce 0%, #f20df2 100%);"></div>
+<div class="relative flex h-screen w-full overflow-hidden">
+<!-- Sidebar -->
+<aside class="hidden lg:flex w-72 flex-col glass border-r border-white/5 p-6 gap-8">
+<div class="flex items-center gap-3 px-2">
+<div class="size-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-[0_0_20px_rgba(242,13,242,0.4)]">
+<span class="material-symbols-outlined fill-1">diamond</span>
+</div>
+<div>
+<h2 class="text-xl font-bold tracking-tight text-white leading-none">Aura Market</h2>
+<span class="text-xs text-primary/80 font-medium">Admin Console</span>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">storefront</span>
+<span class="text-sm font-medium">Vendors</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-sm font-medium">Subscriptions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-sm font-medium">Transactions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+<div class="my-4 border-t border-white/5"></div>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-slate-400" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="mt-auto glass p-4 rounded-2xl flex items-center gap-3 border border-white/10">
+<div class="size-10 rounded-full bg-slate-800 bg-cover bg-center" data-alt="Admin user profile avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDR56sZfGUvwQR-QAKsmb0K4Gf6Ap04LF1oL2QVNtnZoBYxUWb9oMXeLLTKEHIwAZW6kELARKGTMwFjaweoylpiVFPvoxctIu0TYdTrOA0yQxWhkL-FMh_rs3rzuHJgwHVHrEu7QDYL2KrdybYS2BtW6zzGy9fx04cqhHFWkPGMcWsXeAKCEn2EB0OjrVJ8vImURi5cTpTUpxowybDhEO-CERbmo0o9iNwsFeouxmRlUZ7b2BUDfCnF7cdZxnSZ_eXfVQ9f9Kbt2X0')"></div>
+<div class="flex-1 overflow-hidden">
+<p class="text-sm font-semibold truncate text-white">Alex Rivera</p>
+<p class="text-xs text-slate-400 truncate">Senior Admin</p>
+</div>
+<button class="text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-xl">logout</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-y-auto">
+<!-- Header -->
+<header class="h-20 flex items-center justify-between px-8 border-b border-white/5 glass sticky top-0 z-10">
+<div class="flex items-center gap-4 lg:hidden">
+<button class="text-white"><span class="material-symbols-outlined">menu</span></button>
+<h2 class="text-lg font-bold text-white leading-tight tracking-tight">Aura Market Admin</h2>
+</div>
+<div class="hidden md:flex items-center glass bg-white/5 rounded-full px-4 py-2 border border-white/10 w-96">
+<span class="material-symbols-outlined text-slate-400 text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm text-white w-full placeholder:text-slate-500" placeholder="Search vendors, plans, or invoices..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="glass p-2 rounded-full text-slate-300 hover:text-primary transition-colors border border-white/10">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="glass p-2 rounded-full text-slate-300 hover:text-primary transition-colors border border-white/10">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-px bg-white/10 mx-2"></div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-medium text-slate-400">Status</p>
+<p class="text-xs font-bold text-green-400">System Live</p>
+</div>
+<div class="size-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div>
+</div>
+</div>
+</header>
+<div class="p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
+<!-- Page Title -->
+<div>
+<h1 class="text-3xl font-extrabold text-white tracking-tight">Subscription Management</h1>
+<p class="text-slate-400 mt-1">Real-time overview of your vendor ecosystem and recurring revenue.</p>
+</div>
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Stat Card 1 -->
+<div class="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-primary/20 blur-3xl rounded-full group-hover:bg-primary/30 transition-colors"></div>
+<div class="flex items-center justify-between mb-4">
+<div class="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+<span class="material-symbols-outlined fill-1">group</span>
+</div>
+<span class="text-green-400 text-sm font-bold flex items-center">
+<span class="material-symbols-outlined text-base mr-1">trending_up</span>+12.5%
+                            </span>
+</div>
+<p class="text-slate-400 text-sm font-medium">Active Subscriptions</p>
+<h3 class="text-3xl font-bold text-white mt-1 tracking-tight">1,284</h3>
+<p class="text-xs text-slate-500 mt-2">v.s. 1,141 last month</p>
+</div>
+<!-- Stat Card 2 -->
+<div class="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-blue-500/10 blur-3xl rounded-full group-hover:bg-blue-500/20 transition-colors"></div>
+<div class="flex items-center justify-between mb-4">
+<div class="size-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">
+<span class="material-symbols-outlined fill-1">account_balance_wallet</span>
+</div>
+<span class="text-green-400 text-sm font-bold flex items-center">
+<span class="material-symbols-outlined text-base mr-1">trending_up</span>+8.2%
+                            </span>
+</div>
+<p class="text-slate-400 text-sm font-medium">Monthly Revenue</p>
+<h3 class="text-3xl font-bold text-white mt-1 tracking-tight">$45,200</h3>
+<p class="text-xs text-slate-500 mt-2">v.s. $41,750 last month</p>
+</div>
+<!-- Stat Card 3 -->
+<div class="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-orange-500/10 blur-3xl rounded-full group-hover:bg-orange-500/20 transition-colors"></div>
+<div class="flex items-center justify-between mb-4">
+<div class="size-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
+<span class="material-symbols-outlined fill-1">history</span>
+</div>
+<span class="text-orange-400 text-sm font-bold flex items-center">
+<span class="material-symbols-outlined text-base mr-1">warning</span>Due
+                            </span>
+</div>
+<p class="text-slate-400 text-sm font-medium">Expiring Soon</p>
+<h3 class="text-3xl font-bold text-white mt-1 tracking-tight">48</h3>
+<p class="text-xs text-slate-500 mt-2">Next 7 days</p>
+</div>
+</div>
+<!-- Vendor Subscription Table Section -->
+<div class="glass rounded-3xl border border-white/10 overflow-hidden flex flex-col">
+<div class="p-6 border-b border-white/5 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<h2 class="text-xl font-bold text-white">Vendor Subscription Overview</h2>
+<span class="bg-primary/20 text-primary text-[10px] uppercase font-black px-2 py-0.5 rounded-full">Live Data</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 glass bg-white/5 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/10 transition-all">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+                                Filter
+                            </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary rounded-xl text-white text-sm font-bold shadow-[0_4px_15px_rgba(242,13,242,0.3)] hover:scale-[1.02] transition-transform">
+<span class="material-symbols-outlined text-sm">add</span>
+                                Add Subscription
+                            </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-white/5">
+<th class="px-6 py-4">Vendor Name</th>
+<th class="px-6 py-4">Plan Type</th>
+<th class="px-6 py-4">Renewal Date</th>
+<th class="px-6 py-4">Payment Status</th>
+<th class="px-6 py-4 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-xl glass bg-slate-800 flex items-center justify-center font-bold text-primary border border-white/10">N</div>
+<div>
+<p class="text-sm font-bold text-white">Nova Boutique</p>
+<p class="text-xs text-slate-500">ID: #VND-8821</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                                            Premium
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-medium text-slate-300">Oct 24, 2024</p>
+<p class="text-[10px] text-slate-500 uppercase">Yearly Billing</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-green-500"></span>
+<span class="text-sm font-medium text-slate-300">Paid</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="text-slate-500 hover:text-white transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-xl glass bg-slate-800 flex items-center justify-center font-bold text-blue-400 border border-white/10">L</div>
+<div>
+<p class="text-sm font-bold text-white">Luxe Interior</p>
+<p class="text-xs text-slate-500">ID: #VND-4102</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                            Pro
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-medium text-slate-300">Nov 02, 2024</p>
+<p class="text-[10px] text-slate-500 uppercase">Monthly Billing</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-orange-500"></span>
+<span class="text-sm font-medium text-slate-300">Pending</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="text-slate-500 hover:text-white transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-xl glass bg-slate-800 flex items-center justify-center font-bold text-slate-400 border border-white/10">B</div>
+<div>
+<p class="text-sm font-bold text-white">Base Apparel</p>
+<p class="text-xs text-slate-500">ID: #VND-1055</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                                            Basic
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-medium text-slate-300">Oct 20, 2024</p>
+<p class="text-[10px] text-slate-500 uppercase">Monthly Billing</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-red-500 animate-pulse"></span>
+<span class="text-sm font-medium text-slate-300 font-bold">Overdue</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="text-slate-500 hover:text-white transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-xl glass bg-slate-800 flex items-center justify-center font-bold text-primary border border-white/10">G</div>
+<div>
+<p class="text-sm font-bold text-white">Glow Cosmetics</p>
+<p class="text-xs text-slate-500">ID: #VND-9922</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                                            Premium
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-medium text-slate-300">Dec 15, 2024</p>
+<p class="text-[10px] text-slate-500 uppercase">Yearly Billing</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-green-500"></span>
+<span class="text-sm font-medium text-slate-300">Paid</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="text-slate-500 hover:text-white transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-xl glass bg-slate-800 flex items-center justify-center font-bold text-blue-400 border border-white/10">Z</div>
+<div>
+<p class="text-sm font-bold text-white">Zenith Tech</p>
+<p class="text-xs text-slate-500">ID: #VND-3341</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                            Pro
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-medium text-slate-300">Oct 30, 2024</p>
+<p class="text-[10px] text-slate-500 uppercase">Monthly Billing</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-green-500"></span>
+<span class="text-sm font-medium text-slate-300">Paid</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="text-slate-500 hover:text-white transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-6 border-t border-white/5 flex items-center justify-between">
+<p class="text-xs text-slate-500 font-medium tracking-wide">Showing 1 to 5 of 1,284 vendors</p>
+<div class="flex items-center gap-2">
+<button class="glass p-2 rounded-xl text-slate-400 border border-white/10 hover:text-white disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="bg-primary/20 text-primary px-3 py-1 rounded-lg text-xs font-bold border border-primary/30">1</button>
+<button class="glass px-3 py-1 rounded-lg text-xs font-bold border border-white/10 text-slate-400 hover:text-white transition-colors">2</button>
+<button class="glass px-3 py-1 rounded-lg text-xs font-bold border border-white/10 text-slate-400 hover:text-white transition-colors">3</button>
+<span class="text-slate-600 px-1">...</span>
+<button class="glass p-2 rounded-xl text-slate-400 border border-white/10 hover:text-white">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Plan Distribution Insights -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+<div class="glass p-8 rounded-3xl border border-white/10">
+<h3 class="text-lg font-bold text-white mb-6">Plan Tier Distribution</h3>
+<div class="flex flex-col gap-4">
+<div>
+<div class="flex justify-between text-xs font-bold mb-1">
+<span class="text-slate-400 uppercase">Premium</span>
+<span class="text-primary">42%</span>
+</div>
+<div class="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(242,13,242,0.5)]" style="width: 42%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs font-bold mb-1">
+<span class="text-slate-400 uppercase">Pro</span>
+<span class="text-blue-400">35%</span>
+</div>
+<div class="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 rounded-full" style="width: 35%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs font-bold mb-1">
+<span class="text-slate-400 uppercase">Basic</span>
+<span class="text-slate-200">23%</span>
+</div>
+<div class="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-slate-400 rounded-full" style="width: 23%"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="glass p-8 rounded-3xl border border-white/10 flex items-center gap-6">
+<div class="flex-1">
+<h3 class="text-lg font-bold text-white mb-2">Churn Prediction</h3>
+<p class="text-sm text-slate-400 mb-6">Based on payment delays and account activity in the last 30 days.</p>
+<div class="flex items-end gap-2">
+<span class="text-4xl font-black text-white">2.4%</span>
+<span class="text-green-400 text-xs font-bold mb-2 flex items-center">
+<span class="material-symbols-outlined text-xs mr-0.5">arrow_downward</span>0.8%
+                                </span>
+</div>
+<p class="text-[10px] text-slate-500 uppercase mt-1 tracking-widest font-bold">Stable Outlook</p>
+</div>
+<div class="size-24 rounded-full border-4 border-primary/20 flex items-center justify-center relative">
+<div class="absolute inset-0 rounded-full border-4 border-primary border-t-transparent border-r-transparent -rotate-45 shadow-[0_0_15px_rgba(242,13,242,0.3)]"></div>
+<span class="material-symbols-outlined text-primary text-3xl">query_stats</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

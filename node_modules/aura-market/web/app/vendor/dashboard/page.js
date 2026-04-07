@@ -1,0 +1,367 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/hooks/useAuth';
+import Link from 'next/link';
+import api from '@/services/api';
+
+export default function VendorDashboard() {
+  const { user, token, logout } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [pendingEscrow, setPendingEscrow] = useState(0);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!mounted) {
+      return;
+    }
+
+    // Get token from Zustand state or localStorage directly (in case hydration is slow)
+    let authToken = token;
+    if (!authToken && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('aura-auth-storage');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          authToken = parsed?.state?.token;
+
+        }
+      } catch (e) {
+        console.error('[VendorDashboard] Failed to parse localStorage:', e);
+      }
+    }
+
+
+    
+    if (!authToken) {
+      setError(null);
+      return;
+    }
+
+    setError(null);
+
+    const fetchData = async () => {
+      try {
+        // Verify vendor profile first
+
+        const vendorRes = await api.get('/vendor/me');
+
+        
+        if (!vendorRes.data.success) {
+          setError('Vendor profile not found or unauthorized.');
+          return;
+        }
+
+        // Fetch products, orders and finance data in parallel
+
+        const [productsRes, ordersRes, walletRes, vendorProfileRes] = await Promise.all([
+          api.get('/vendor/products'),
+          api.get('/vendor/orders'),
+          api.get('/wallet'),
+          api.get('/vendor/me'),
+        ]);
+
+        if (isMounted) {
+          if (productsRes.data.success) {
+            const prods = productsRes.data.data.products || [];
+
+            setProducts(prods);
+          }
+          if (ordersRes.data.success) {
+            const ordrs = ordersRes.data.data.orders || [];
+
+            setOrders(ordrs);
+          }
+          if (walletRes.data.success) {
+            setWalletBalance(walletRes.data.data.balance || 0);
+            setPendingEscrow(walletRes.data.data.pending_escrow || 0);
+          }
+          if (vendorProfileRes.data.success) {
+            setPendingEscrow(vendorProfileRes.data.data.escrow_balance || 0);
+          }
+        }
+      } catch (err) {
+        console.error('[VendorDashboard] Error:', err.response?.status, err.response?.data?.message || err.message);
+        if (isMounted) {
+          setError(err.response?.data?.message || err.message || 'Failed to fetch data');
+        }
+      }
+    };
+
+    fetchData();
+    const timer = setInterval(fetchData, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [token, mounted]);
+
+  const paidOrders = orders.filter((o) => o.payment_status === 'paid');
+  const completedOrders = orders.filter((o) => ['delivered', 'completed'].includes(o.order_status));
+  const openOrders = orders.filter((o) => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status));
+  const totalSales = paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+  const recentPaid = paidOrders.slice(0, 5).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+
+  const stats = [
+    { label: 'Total Sales', value: `${totalSales.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedOrders.length} done` },
+    { label: 'Open Orders', value: String(openOrders.length || 0), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total` },
+    { label: 'Products', value: String(products.length || 0), icon: 'category', color: 'blue', pct: `${products.filter((p) => Number(p.stock || 0) > 0).length} in stock` },
+    { label: 'Available', value: `${walletBalance.toLocaleString()} XAF`, icon: 'account_balance_wallet', color: 'purple', pct: null },
+  ];
+
+  const colorMap = {
+    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', bar: 'bg-emerald-500', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-600', glow: '#10b981', w: '70%' },
+    primary: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: 'bg-[var(--accent)]', badgeBg: 'bg-[var(--accent)]/10', badgeText: 'text-[var(--accent)]', glow: 'var(--accent)', w: '55%' },
+    blue: { bg: 'bg-indigo-600/10', text: 'text-indigo-600', bar: 'bg-indigo-600', badgeBg: 'bg-indigo-600/10', badgeText: 'text-indigo-600', glow: '#4f46e5', w: '85%' },
+    purple: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: '', badgeBg: '', badgeText: '', glow: 'var(--accent)', w: '60%' },
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <div className="relative min-h-full bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500 overflow-x-hidden">
+        {/* Background blobs */}
+        <div className="absolute top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
+        <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
+
+        {/* Top Header */}
+        <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-2 min-w-0 text-[var(--text-primary)]">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
+            <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
+            <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
+            <p className="hidden md:block text-[var(--text-secondary)] text-[10px] font-black tracking-[0.18em] uppercase opacity-60">Status: <span className="text-[var(--text-primary)]">Online</span></p>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="relative hidden lg:flex items-center group">
+              <span className="material-symbols-outlined absolute left-4 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
+              <input 
+                className="glass-panel border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-widest uppercase" 
+                placeholder="Search..." 
+                type="text" 
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="size-9 sm:size-10 rounded-xl glass-panel flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all relative border border-[var(--glass-border)] group">
+                <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">notifications</span>
+                <span className="absolute top-3.5 right-3.5 size-2.5 bg-[var(--accent)] rounded-full border-2 border-[var(--bg-primary)] shadow-[0_0_8px_var(--accent)]" />
+              </button>
+              <button className="hidden sm:flex size-10 rounded-xl glass-panel items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all border border-[var(--glass-border)] group">
+                <span className="material-symbols-outlined text-2xl group-hover:rotate-12 transition-transform">mail</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-3 sm:gap-4 pl-3 sm:pl-4 border-l border-[var(--glass-border)]/30">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
+                <p className="text-[10px] text-[var(--accent)] font-black tracking-widest uppercase opacity-80">Store Owner</p>
+              </div>
+              <div className="size-9 sm:size-10 rounded-xl border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-black text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
+                {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-6 no-scrollbar relative z-10">
+          {error && (
+            <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold">Authentication / Authorization Error</p>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href="/login" className="text-sm font-black bg-red-600 text-white px-3 py-1 rounded">Sign In</Link>
+                  <button onClick={() => logout()} className="text-sm font-black border border-red-600 text-red-600 px-3 py-1 rounded">Clear Session</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map((stat, idx) => {
+              const c = colorMap[stat.color];
+              return (
+                <div key={stat.label} className="glass-panel p-5 rounded-[24px] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-sm hover:shadow-xl group">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={`size-10 rounded-xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner`}>
+                      <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">{stat.icon}</span>
+                    </div>
+                    {stat.pct ? (
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${c.badgeBg} ${c.badgeText} tracking-widest uppercase`}>{stat.pct}</span>
+                    ) : (
+                      <Link href="/wallet" className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+                        <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
+                      </Link>
+                    )}
+                  </div>
+                  <p className="text-[var(--text-secondary)] text-[9px] font-black tracking-widest uppercase opacity-40 mb-1">{stat.label}</p>
+                  <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tight font-mono">{stat.value}</h3>
+                  {stat.color !== 'purple' ? (
+                    <div className="mt-4 h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden shadow-inner">
+                      <div className={`${c.bar} h-full transition-all duration-1000`} style={{ width: c.w, boxShadow: `0 0 10px ${c.glow}` }} />
+                    </div>
+                  ) : (
+                    <div className="mt-4 flex gap-2">
+                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[8px] font-black py-2 rounded-lg shadow-lg shadow-[var(--accent)]/20 transition-all uppercase tracking-widest active:scale-95 text-center">Withdraw</Link>
+                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[8px] font-black py-2 rounded-lg transition-all text-center border border-[var(--glass-border)] uppercase tracking-widest active:scale-95 flex items-center justify-center">Wallet</Link>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+            <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)] mb-2">Finance</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-xl border border-[var(--glass-border)] p-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Available</p>
+                <p className="font-black text-[var(--text-primary)]">{walletBalance.toLocaleString()} XAF</p>
+              </div>
+              <div className="rounded-xl border border-[var(--glass-border)] p-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">In Escrow</p>
+                <p className="font-black text-[var(--text-primary)]">{pendingEscrow.toLocaleString()} XAF</p>
+              </div>
+              <div className="rounded-xl border border-[var(--glass-border)] p-3">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Recent Paid</p>
+                <p className="font-black text-[var(--text-primary)]">{recentPaid.toLocaleString()} XAF</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Middle: Chart + Orders */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Sales Chart */}
+            <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase">Sales Growth</h3>
+                  <p className="text-[8px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest">Monthly sales trends</p>
+                </div>
+                <select className="bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] text-[8px] font-black rounded-lg px-2 py-1 focus:outline-none uppercase tracking-widest">
+                  <option>Last 6 Months</option>
+                  <option>Last Year</option>
+                </select>
+              </div>
+              <div className="relative h-48 w-full flex items-end gap-1.5 pt-8">
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
+                  {[0,1,2,3].map(i => <div key={i} className="w-full border-t border-[var(--text-secondary)] h-px" />)}
+                </div>
+                {[40, 65, 50, 85, 70, 95].map((h, i) => (
+                  <div key={i} className={`flex-1 rounded-t-md transition-all cursor-crosshair ${i === 5 ? 'bg-[var(--accent)] hover:bg-[var(--accent)]/80' : 'bg-[var(--accent)]/20 hover:bg-[var(--accent)]/40'}`}
+                    style={{ height: `${h}%` }}
+                    title={['Jan','Feb','Mar','Apr','May','Jun'][i]}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between mt-3 px-1 text-[8px] font-black text-[var(--text-secondary)] tracking-widest uppercase opacity-40">
+                {['Jan','Feb','Mar','Apr','May','Jun'].map(m => <span key={m}>{m}</span>)}
+              </div>
+            </div>
+
+            {/* Recent Orders */}
+            <div className="glass-panel rounded-xl p-6 flex flex-col border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-[var(--text-primary)]">Recent Orders</h3>
+                <Link href="/vendor/orders" className="text-[var(--accent)] text-xs font-semibold hover:underline">View All</Link>
+              </div>
+              <div className="space-y-5 flex-1">
+                {orders.slice(0, 4).map((order, i) => (
+                   <div key={order._id || i} className="flex items-center gap-4 group cursor-pointer">
+                    <div className="size-10 rounded-full glass-panel overflow-hidden border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] font-bold text-sm bg-[var(--bg-secondary)]">
+                      {order.user_id?.name?.[0] || order.customer?.[0] || 'C'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{order.items?.[0]?.product_id?.name || 'Order Item'}</p>
+                      <p className="text-[10px] text-[var(--text-secondary)]">
+                        #{order._id?.slice(-5) || i} • {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : '—'}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{order.total_price ? `${Number(order.total_price).toLocaleString()} XAF` : '—'}</p>
+                  </div>
+                ))}
+                {orders.length === 0 && (
+                  <div className="flex-1 flex items-center justify-center text-[var(--text-secondary)] text-sm italic">No orders yet</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Live Order Tracking Table */}
+          <div className="glass-panel rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
+            <div className="p-6 border-b border-[var(--glass-border)] flex justify-between items-center">
+              <h3 className="text-base font-black text-[var(--text-primary)] tracking-tight uppercase">Active Orders</h3>
+              <div className="flex gap-2">
+                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase">ALL</button>
+                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase hover:bg-[var(--accent)]/5">PROCESSING</button>
+                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase hover:bg-[var(--accent)]/5">SHIPPED</button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] tracking-widest text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50">
+                    <th className="px-6 py-4 font-bold">Product</th>
+                    <th className="px-6 py-4 font-bold">Order ID</th>
+                    <th className="px-6 py-4 font-bold">Customer</th>
+                    <th className="px-6 py-4 font-bold">Status</th>
+                    <th className="px-6 py-4 font-bold">Amount</th>
+                    <th className="px-6 py-4 font-bold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--glass-border)]">
+                  {orders.slice(0, 5).map((order, i) => {
+                    const status = order.status || 'processing';
+                    const statusStyles = {
+                      processing: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',
+                      shipped: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+                      delivered: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+                    };
+                    return (
+                      <tr key={order._id || i} className="hover:bg-[var(--accent)]/5 transition-colors">
+                        <td className="px-6 py-4 flex items-center gap-3">
+                          <div className="size-8 rounded bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] font-bold text-xs">
+                            {order.items?.[0]?.product_id?.name?.[0] || 'P'}
+                          </div>
+                          <span className="text-sm text-[var(--text-primary)] font-medium">{order.items?.[0]?.product_id?.name || 'Product'}</span>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-[var(--text-secondary)]">#{order._id?.slice(-6) || i}</td>
+                        <td className="px-6 py-4 text-sm text-[var(--text-primary)]">{order.user_id?.name || '—'}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-bold ${statusStyles[status] || statusStyles.processing}`}>
+                            <span className="size-1.5 rounded-full bg-current animate-pulse" />
+                            {status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-[var(--text-primary)]">{order.total_price ? `${Number(order.total_price).toLocaleString()} XAF` : '—'}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                            <span className="material-symbols-outlined">more_horiz</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {orders.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)] italic">No orders to display.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+    </div>
+  );
+}
