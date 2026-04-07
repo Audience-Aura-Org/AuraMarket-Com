@@ -92,8 +92,10 @@ export default function TopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[var(--nav-bg)] border-b border-[var(--nav-border)] px-4 md:px-6 py-3 md:py-4 w-full transition-all duration-300">
-      <div className="max-w-[1920px] mx-auto flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
+      {/* iOS Dynamic Island / notch safe-area spacer */}
+      <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
+      <div className="max-w-[1920px] mx-auto flex items-center justify-between gap-4 px-4 md:px-6 py-3 md:py-4">
         
         {/* Logo Section */}
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">

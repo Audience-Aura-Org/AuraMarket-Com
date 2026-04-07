@@ -7,11 +7,15 @@ import { toast } from 'react-hot-toast';
 
 export const dynamic = 'force-dynamic';
 
+import Pagination from '@/components/common/Pagination';
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: '', verification_status: '', password: '' });
@@ -19,6 +23,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
+    setCurrentPage(1);
   }, [roleFilter]);
 
   const fetchUsers = async () => {
@@ -49,6 +54,9 @@ export default function AdminUsersPage() {
     u.name?.toLowerCase().includes(search.toLowerCase()) || 
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const currentUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleEditClick = (user) => {
     setEditingUser(user);
@@ -93,9 +101,9 @@ export default function AdminUsersPage() {
             <input
               type="text"
               placeholder="Find node..."
-              className="bg-transparent border-none outline-none text-[9px] font-black uppercase tracking-widest w-48"
+              className="bg-transparent border-none outline-none text-[9px] font-black uppercase tracking-widest w-48 text-[var(--text-primary)]"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             />
           </div>
         </div>
@@ -115,16 +123,16 @@ export default function AdminUsersPage() {
         </div>
       </header>
 
-      <div className="p-4 lg:p-6 space-y-6 pb-32">
+      <div className="p-4 lg:p-10 space-y-8 lg:space-y-12 pb-20">
         {/* Mobile Search */}
         <div className="md:hidden flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
           <Search className="size-3.5 text-[var(--text-secondary)] opacity-40" />
           <input
             type="text"
             placeholder="Search stores..."
-            className="bg-transparent border-none outline-none text-[9px] font-black uppercase tracking-widest w-full"
+            className="bg-transparent border-none outline-none text-[9px] font-black uppercase tracking-widest w-full text-[var(--text-primary)]"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
           />
         </div>
 
@@ -134,8 +142,8 @@ export default function AdminUsersPage() {
               <p className="text-[9px] font-black uppercase tracking-[0.4em]">Accessing Identity Vault...</p>
            </div>
         ) : (
-           <div className="grid grid-cols-1 gap-4">
-              {filteredUsers.map(u => (
+           <div className="grid grid-cols-1 gap-4 min-h-[600px]">
+              {currentUsers.map(u => (
                 <div key={u._id} className="group p-4 lg:p-6 glass-panel border border-[var(--glass-border)] hover:border-[var(--accent)]/30 rounded-[24px] lg:rounded-[32px] bg-[var(--bg-primary)]/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 lg:gap-8 hover:shadow-xl">
                   <div className="flex items-center gap-4 lg:gap-6">
                     <div className="size-12 lg:size-16 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
@@ -185,9 +193,9 @@ export default function AdminUsersPage() {
                           </button>
                         )}
                         <button 
-                           onClick={() => handleEditClick(u)}
-                           className="size-10 lg:size-12 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all hover:shadow-md"
-                           title="Advanced Config"
+                         onClick={() => handleEditClick(u)}
+                         className="size-10 lg:size-12 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all hover:shadow-md"
+                         title="Advanced Config"
                         >
                            <MoreVertical className="size-4 lg:size-5" />
                         </button>
@@ -195,6 +203,12 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
               ))}
+
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={totalPages} 
+                onPageChange={setCurrentPage} 
+              />
 
               {filteredUsers.length === 0 && (
                  <div className="py-20 text-center opacity-30">

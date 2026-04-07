@@ -12,7 +12,10 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   const { unreadCount, unreadMessages } = useNotifications();
 
   return (
-    <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-[var(--nav-bg)] border-b border-[var(--nav-border)] text-[var(--nav-text)] sticky top-0 z-[190] transition-colors duration-500">
+    <header className="lg:hidden bg-[var(--nav-bg)] border-b border-[var(--nav-border)] text-[var(--nav-text)] sticky top-0 z-[190] transition-colors duration-500">
+      {/* iOS Dynamic Island / notch safe-area spacer */}
+      <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
+      <div className="h-14 flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
         <button 
           onClick={toggleSidebar}
@@ -72,6 +75,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           )}
         </div>
       </div>
+      </div>{/* end h-14 row */}
     </header>
   );
 }

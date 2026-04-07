@@ -139,7 +139,7 @@ export default function VendorDashboard() {
           <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
             <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
             <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-            <p className="hidden md:block text-[var(--text-secondary)] text-[10px] font-black tracking-[0.18em] uppercase opacity-60">Status: <span className="text-[var(--text-primary)]">Active</span></p>
+            <p className="hidden md:block text-[var(--text-secondary)] text-[10px] font-black tracking-[0.18em] uppercase opacity-60">Status: <span className="text-[var(--text-primary)]">Online</span></p>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="relative hidden lg:flex items-center group">
@@ -246,7 +246,7 @@ export default function VendorDashboard() {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase">Sales Growth</h3>
-                  <p className="text-[8px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest">Monthly resonance trends</p>
+                  <p className="text-[8px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest">Monthly sales trends</p>
                 </div>
                 <select className="bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] text-[8px] font-black rounded-lg px-2 py-1 focus:outline-none uppercase tracking-widest">
                   <option>Last 6 Months</option>
@@ -300,7 +300,7 @@ export default function VendorDashboard() {
           {/* Live Order Tracking Table */}
           <div className="glass-panel rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
             <div className="p-6 border-b border-[var(--glass-border)] flex justify-between items-center">
-              <h3 className="text-base font-black text-[var(--text-primary)] tracking-tight uppercase">Live Flow Control</h3>
+              <h3 className="text-base font-black text-[var(--text-primary)] tracking-tight uppercase">Active Orders</h3>
               <div className="flex gap-2">
                 <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase">ALL</button>
                 <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase hover:bg-[var(--accent)]/5">PROCESSING</button>

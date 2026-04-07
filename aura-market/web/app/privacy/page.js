@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, ArrowLeft, Lock, Eye, FileText } from 'lucide-react';
+import { Shield, ArrowLeft, Lock, Eye, FileText, RefreshCw, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function PrivacyPolicy() {
@@ -64,6 +64,26 @@ export default function PrivacyPolicy() {
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     At any time, you may request the full extraction or permanent erasure of your Aura profile. Your digital sovereignty is our priority.
+                 </p>
+              </section>
+
+              <section className="flex flex-col gap-4">
+                 <div className="flex items-center gap-3 text-[var(--text-primary)]">
+                    <RefreshCw className="size-5 text-[var(--accent)]" />
+                    <h3 className="text-lg font-black uppercase tracking-tight">Session Persistence</h3>
+                 </div>
+                 <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
+                    We use definitive session tokens (cookies) to maintain your secure node connection. These are encrypted with your terminal signature to prevent unauthorized relay.
+                 </p>
+              </section>
+
+              <section className="flex flex-col gap-4">
+                 <div className="flex items-center gap-3 text-[var(--text-primary)]">
+                    <Globe className="size-5 text-[var(--accent)]" />
+                    <h3 className="text-lg font-black uppercase tracking-tight">Global Alignment</h3>
+                 </div>
+                 <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
+                    Our protocol is designed to exceed the requirements of regional data protection acts (GDPR, CCPA). We operate as a decentralized data custodian.
                  </p>
               </section>
 

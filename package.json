@@ -2,7 +2,8 @@
   "name": "aura-market-monorepo",
   "version": "4.0.0",
   "scripts": {
-    "build": "node diagnose.js",
-    "start": "node standalone/server.js"
+    "build": "cd aura-market/web && npm install && npm run build",
+    "start": "cd aura-market/web && (test -d .next || npm run build) && npm start",
+    "deploy": "cd aura-market/web && npm install && npm run build && npm start"
   }
 }

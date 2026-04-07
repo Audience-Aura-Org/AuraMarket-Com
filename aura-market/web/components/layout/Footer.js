@@ -10,9 +10,8 @@ const NAV = [
     label: 'Shop',
     links: [
       { name: 'Discovery Hub', href: '/discovery' },
-      { name: 'Collections', href: '/shop' },
+      { name: 'Collections', href: '/collections' },
       { name: 'Verified Brands', href: '/brands' },
-      { name: 'Signature Drops', href: '/search' },
     ],
   },
   {
@@ -20,16 +19,15 @@ const NAV = [
     links: [
       { name: 'Global Merchants', href: '/vendors' },
       { name: 'Global Logistics', href: '/logistics' },
-      { name: 'Support Hub', href: '/help' },
-      { name: 'Network Status', href: '/api-status' },
+      { name: 'Help Hub', href: '/help' },
     ],
   },
   {
     label: 'Legal',
     links: [
       { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Market Rules', href: '/terms' },
-      { name: 'Cookie Policy', href: '/privacy' },
+      { name: 'Market Rules', href: '/rules' },
+      { name: 'Cookie Policy', href: '/cookies' },
     ],
   },
 ];
@@ -45,8 +43,9 @@ export default function Footer() {
   useEffect(() => { setMounted(true); }, []);
   if (!mounted) return null;
 
+  const isDashboard = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics');
   const isChatPage = pathname?.startsWith('/messages') || pathname?.startsWith('/chat') || pathname?.startsWith('/admin/messages');
-  if (isChatPage) return null;
+  if (isChatPage || isDashboard) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();

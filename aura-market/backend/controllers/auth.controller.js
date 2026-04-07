@@ -335,4 +335,21 @@ const getUser = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, verify2FALogin, getMe, getUser, updateProfile, changePassword };
+// ─────────────────────────────────────────────
+// @route   GET /api/auth/admin-info
+// @desc    Get the primary platform admin for support/contact
+// @access  Private
+// ─────────────────────────────────────────────
+const getAdminInfo = async (req, res, next) => {
+  try {
+    const admin = await User.findOne({ role: 'admin' }).select('name avatar role branding');
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin node not found.' });
+    }
+    res.status(200).json({ success: true, data: { admin } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, verify2FALogin, getMe, getUser, updateProfile, changePassword, getAdminInfo };

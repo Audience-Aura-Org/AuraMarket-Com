@@ -10,6 +10,8 @@ import { toast } from 'react-hot-toast';
 
 export const dynamic = 'force-dynamic';
 
+import Pagination from '@/components/common/Pagination';
+
 export default function AdminApprovals() {
   const [activeTab, setActiveTab] = useState('Vendors');
   const [mounted, setMounted] = useState(false);
@@ -17,10 +19,13 @@ export default function AdminApprovals() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioning, setActioning] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     setMounted(true);
     fetchData();
+    setCurrentPage(1);
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -73,6 +78,9 @@ export default function AdminApprovals() {
       setActioning(null);
     }
   };
+
+  const totalPages = activeTab === 'Vendors' ? Math.ceil(vendors.length / itemsPerPage) : Math.ceil(products.length / itemsPerPage);
+  const currentData = activeTab === 'Vendors' ? vendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) : products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (!mounted) return null;
 
@@ -139,7 +147,7 @@ export default function AdminApprovals() {
                         </tr>
                      </thead>
                      <tbody className="divide-y divide-[var(--glass-border)]">
-                        {activeTab === 'Vendors' ? vendors.map(v => (
+                        {activeTab === 'Vendors' ? currentData.map(v => (
                           <tr key={v._id} className="hover:bg-[var(--accent)]/5 transition-all group">
                              <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
@@ -187,7 +195,7 @@ export default function AdminApprovals() {
                                 </div>
                              </td>
                           </tr>
-                        )) : products.map(p => (
+                        )) : currentData.map(p => (
                           <tr key={p._id} className="hover:bg-[var(--accent)]/5 transition-all group">
                              <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
@@ -245,6 +253,14 @@ export default function AdminApprovals() {
                         )}
                      </tbody>
                   </table>
+               </div>
+               
+               <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+                  <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
                </div>
             </div>
          </div>

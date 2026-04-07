@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
+import Pagination from '@/components/common/Pagination';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,8 @@ export default function VendorWalletPage() {
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -117,6 +120,9 @@ export default function VendorWalletPage() {
 
   const totalIn = transactions.filter(t => ['deposit', 'refund', 'payout'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
   const totalOut = transactions.filter(t => ['withdrawal', 'payment'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
+
+  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  const currentTransactions = transactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <DashboardLayout role={user?.role || 'customer'}>
@@ -361,7 +367,7 @@ export default function VendorWalletPage() {
                     </div>
                   ) : (
                     <div className="divide-y divide-[var(--glass-border)]">
-                      {transactions.map((tx, i) => {
+                      {currentTransactions.map((tx, i) => {
                         const config = TX_ICONS[tx.type] || TX_ICONS.payment;
                         const TxIcon = config.Icon;
                         const isCredit = ['+'].includes(config.sign) || ['deposit','refund','payout'].includes(tx.type);
@@ -395,6 +401,16 @@ export default function VendorWalletPage() {
                       })}
                     </div>
                   )}
+                  
+                  {totalPages > 1 && (
+                    <div className="p-6 border-t border-[var(--glass-border)]">
+                      <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -404,5 +420,3 @@ export default function VendorWalletPage() {
     </DashboardLayout>
   );
 }
-
-

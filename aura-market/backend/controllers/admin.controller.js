@@ -470,12 +470,34 @@ const getLogisticsEarningsReport = async (req, res, next) => {
     const vendorTotals = await Order.aggregate([
       { $match: { payment_status: { $in: ['paid', 'pending'] }, order_status: { $ne: 'cancelled' } } },
       { $group: { _id: '$vendor_id', total_orders: { $sum: 1 }, gross_sales: { $sum: '$total_amount' } } },
+      {
+        $lookup: {
+          from: 'vendors',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'vendor_info'
+        }
+      },
+      { $unwind: { path: '$vendor_info', preserveNullAndEmptyArrays: true } },
+      { $project: { _id: 1, total_orders: 1, gross_sales: 1, store_name: '$vendor_info.store_name' } },
       { $sort: { gross_sales: -1 } },
     ]);
+
     const logisticsTotals = await Shipment.aggregate([
       { $group: { _id: '$logistics_id', total_shipments: { $sum: 1 }, total_shipping_value: { $sum: '$price' } } },
+      {
+        $lookup: {
+          from: 'logisticscompanies',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'firm_info'
+        }
+      },
+      { $unwind: { path: '$firm_info', preserveNullAndEmptyArrays: true } },
+      { $project: { _id: 1, total_shipments: 1, total_shipping_value: 1, company_name: '$firm_info.company_name' } },
       { $sort: { total_shipping_value: -1 } },
     ]);
+
     res.status(200).json({ success: true, data: { vendors: vendorTotals, logistics_partners: logisticsTotals } });
   } catch (error) {
     next(error);
@@ -526,12 +548,89 @@ const getAdvancedAnalytics = async (req, res, next) => {
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // 1. Sales Over Time (Existing)
     const salesOverTime = await Order.aggregate([
       { $match: { createdAt: { $gte: thirtyDaysAgo }, order_status: { $ne: 'cancelled' } } },
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, dailyRevenue: { $sum: "$total_amount" }, orderCount: { $sum: 1 } } },
       { $sort: { "_id": 1 } }
     ]);
-    res.status(200).json({ success: true, data: { sales_over_time: salesOverTime } });
+
+    // 2. Top Vendors by Revenue
+    const topVendors = await Order.aggregate([
+      { $match: { order_status: { $ne: 'cancelled' } } },
+      { $group: { _id: '$vendor_id', revenue: { $sum: '$total_amount' }, orders: { $sum: 1 } } },
+      { $sort: { revenue: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: 'vendors',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'vendor'
+        }
+      },
+      { $unwind: '$vendor' },
+      { $project: { _id: 1, revenue: 1, orders: 1, store_name: '$vendor.store_name' } }
+    ]);
+
+    // 3. Top Products
+    const topProducts = await Product.find({ status: 'active' })
+      .sort({ purchase_count: -1, view_count: -1 })
+      .limit(10)
+      .select('name price purchase_count view_count stock category');
+
+    // 4. Role-Based User Breakdown
+    const roleBreakdown = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]);
+
+    // 5. Product Category Distribution
+    const categoryStats = await Product.aggregate([
+      { $group: { _id: '$category', count: { $sum: 1 }, totalValue: { $sum: '$price' } } }
+    ]);
+
+    // 6. Order Status Matrix
+    const orderMatrix = await Order.aggregate([
+      { $group: { _id: '$order_status', count: { $sum: 1 }, total_volume: { $sum: '$total_amount' } } }
+    ]);
+
+    // 7. Global Financial Integrity (Total platform flow)
+    const totalRevenue = await Order.aggregate([
+      { $match: { payment_status: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$total_amount' } } }
+    ]);
+
+    const totalEscrow = await Order.aggregate([
+      { $match: { payment_status: 'pending' } },
+      { $group: { _id: null, total: { $sum: '$total_amount' } } }
+    ]);
+
+    // 8. Platform Summary Additions
+    const liveShipments = await Shipment.countDocuments({ status: { $in: ['pending', 'picked_up', 'in_transit'] } });
+    const stockAlerts = await Product.countDocuments({ stock: { $lte: 5 }, status: 'active' });
+
+    res.status(200).json({ 
+      success: true, 
+      data: { 
+        sales_over_time: salesOverTime,
+        top_vendors: topVendors,
+        top_products: topProducts,
+        role_breakdown: roleBreakdown,
+        category_stats: categoryStats,
+        order_matrix: orderMatrix,
+        payout_intel: {
+          total_revenue: totalRevenue[0]?.total || 0,
+          total_escrow: totalEscrow[0]?.total || 0
+        },
+        platform_summary: {
+          total_users: await User.countDocuments(),
+          total_vendors: await Vendor.countDocuments(),
+          live_shipments: liveShipments,
+          stock_alerts: stockAlerts
+        }
+      } 
+    });
   } catch (error) {
     next(error);
   }

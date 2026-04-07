@@ -12,6 +12,8 @@ import { useAuthStore } from '@/hooks/useAuth';
 
 export const dynamic = 'force-dynamic';
 
+import Pagination from '@/components/common/Pagination';
+
 export default function AdminReviewsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -19,6 +21,8 @@ export default function AdminReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const fetchAllReviews = useCallback(async () => {
     try {
@@ -64,6 +68,9 @@ export default function AdminReviewsPage() {
            (r.comment && r.comment.toLowerCase().includes(search.toLowerCase()));
   });
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentReviews = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   if (user?.role !== 'admin') return null;
 
   return (
@@ -92,7 +99,7 @@ export default function AdminReviewsPage() {
                 type="text" 
                 placeholder="Scan by User, Product, or Keyword..." 
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                 className="w-full bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-3.5 text-xs font-bold focus:border-[var(--accent)] outline-none transition-all shadow-sm"
               />
             </div>
@@ -111,70 +118,78 @@ export default function AdminReviewsPage() {
            <div className="glass-panel rounded-[24px] lg:rounded-[32px] border border-[var(--glass-border)] overflow-hidden bg-[var(--bg-primary)]/40 shadow-sm">
               <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[800px]">
-                   <thead>
-                      <tr className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/60 text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
-                         <th className="px-8 py-5">Customer</th>
-                         <th className="px-8 py-5">Product</th>
-                         <th className="px-8 py-5">Rating</th>
-                         <th className="px-8 py-5">Comment</th>
-                         <th className="px-8 py-5 text-right">Actions</th>
-                      </tr>
-                   </thead>
-                   <tbody className="divide-y divide-[var(--glass-border)]/50">
-                      {filtered.map(r => (
-                        <tr key={r._id} className="hover:bg-[var(--bg-primary)]/60 transition-colors group">
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-3">
-                                 <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {r.user_id?.avatar ? <img src={r.user_id.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-40" />}
-                                 </div>
-                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold truncate">{r.user_id?.name || 'Anonymous'}</p>
-                                    <p className="text-[10px] text-[var(--text-secondary)] truncate">{r.user_id?.email || 'No email'}</p>
-                                 </div>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-3 max-w-[200px]">
-                                 <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {(() => {
-                                       const imgObj = r.product_id?.images?.[0];
-                                       const imgSrc = typeof imgObj === 'string' ? imgObj : imgObj?.url;
-                                       return imgSrc ? <img src={imgSrc} className="size-full object-cover" /> : <Package className="size-5 opacity-40" />;
-                                    })()}
-                                 </div>
-                                 <p className="text-xs font-bold truncate">{r.product_id?.name || 'Deleted Product'}</p>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="flex items-center gap-1">
-                                 {[...Array(5)].map((_, i) => (
-                                   <Star key={i} className={`size-3 ${i < r.rating ? 'text-amber-500 fill-amber-500 shadow-[0_0_8px_#f59e0b44]' : 'text-[var(--text-secondary)] opacity-10'}`} />
-                                 ))}
-                                 <span className="ml-2 text-xs font-black text-[var(--text-secondary)]">{r.rating}.0</span>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6">
-                              <div className="max-w-[300px]">
-                                 <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic line-clamp-2">"{r.comment}"</p>
-                              </div>
-                           </td>
-                           <td className="px-8 py-6 text-right">
-                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <button 
-                                   onClick={() => handleDelete(r._id)}
-                                   disabled={deletingId === r._id}
-                                   className="size-10 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 shadow-sm"
-                                   title="Delete Review"
-                                 >
-                                    {deletingId === r._id ? <RefreshCw className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-                                 </button>
-                              </div>
-                           </td>
-                        </tr>
-                      ))}
-                   </tbody>
-                </table>
+                    <thead>
+                       <tr className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/60 text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
+                          <th className="px-8 py-5">Customer</th>
+                          <th className="px-8 py-5">Product</th>
+                          <th className="px-8 py-5">Rating</th>
+                          <th className="px-8 py-5">Comment</th>
+                          <th className="px-8 py-5 text-right">Actions</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--glass-border)]/50">
+                       {currentReviews.map(r => (
+                         <tr key={r._id} className="hover:bg-[var(--bg-primary)]/60 transition-colors group">
+                            <td className="px-8 py-6">
+                               <div className="flex items-center gap-3">
+                                  <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                                     {r.user_id?.avatar ? <img src={r.user_id.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-40" />}
+                                  </div>
+                                  <div className="min-w-0">
+                                     <p className="text-sm font-bold truncate">{r.user_id?.name || 'Anonymous'}</p>
+                                     <p className="text-[10px] text-[var(--text-secondary)] truncate">{r.user_id?.email || 'No email'}</p>
+                                  </div>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6">
+                               <div className="flex items-center gap-3 max-w-[200px]">
+                                  <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                                     {(() => {
+                                        const imgObj = r.product_id?.images?.[0];
+                                        const imgSrc = typeof imgObj === 'string' ? imgObj : imgObj?.url;
+                                        return imgSrc ? <img src={imgSrc} className="size-full object-cover" /> : <Package className="size-5 opacity-40" />;
+                                     })()}
+                                  </div>
+                                  <p className="text-xs font-bold truncate">{r.product_id?.name || 'Deleted Product'}</p>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6">
+                               <div className="flex items-center gap-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star key={i} className={`size-3 ${i < r.rating ? 'text-amber-500 fill-amber-500 shadow-[0_0_8px_#f59e0b44]' : 'text-[var(--text-secondary)] opacity-10'}`} />
+                                  ))}
+                                  <span className="ml-2 text-xs font-black text-[var(--text-secondary)]">{r.rating}.0</span>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6">
+                               <div className="max-w-[300px]">
+                                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic line-clamp-2">"{r.comment}"</p>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button 
+                                    onClick={() => handleDelete(r._id)}
+                                    disabled={deletingId === r._id}
+                                    className="size-10 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 shadow-sm"
+                                    title="Delete Review"
+                                  >
+                                     {deletingId === r._id ? <RefreshCw className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                                  </button>
+                               </div>
+                            </td>
+                         </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+              
+              <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+                 <Pagination 
+                   currentPage={currentPage}
+                   totalPages={totalPages}
+                   onPageChange={setCurrentPage}
+                 />
               </div>
            </div>
          )}

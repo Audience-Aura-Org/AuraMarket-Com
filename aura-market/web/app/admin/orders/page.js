@@ -29,12 +29,16 @@ const PAYMENT_STATUS = {
   refunded: { label: 'Refunded', color: 'text-sky-500',    bg: 'bg-sky-500/10' },
 };
 
+import Pagination from '@/components/common/Pagination';
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [logisticsFirms, setLogisticsFirms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [expanded, setExpanded] = useState(null);
   const [savingOrderId, setSavingOrderId] = useState(null);
   const [orderEdits, setOrderEdits] = useState({});
@@ -52,7 +56,10 @@ export default function AdminOrdersPage() {
     }
   }, [activeTab]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => { 
+    fetchOrders(); 
+    setCurrentPage(1);
+  }, [fetchOrders]);
 
   useEffect(() => {
     const fetchLogistics = async () => {
@@ -106,6 +113,9 @@ export default function AdminOrdersPage() {
     );
   });
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const totalRevenue = filtered.reduce((s, o) => s + (o.total_amount || 0), 0);
 
   const tabs = ['all', 'placed', 'processing', 'shipped', 'delivered', 'cancelled', 'refund_pending'];
@@ -124,7 +134,7 @@ export default function AdminOrdersPage() {
         </div>
       </header>
 
-      <div className="p-4 lg:p-8 space-y-6 pb-32">
+      <div className="p-4 lg:p-8 space-y-6 pb-20">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
@@ -146,12 +156,12 @@ export default function AdminOrdersPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               placeholder="Search ID, Customer, Store..."
               className="w-full pl-11 pr-4 py-3.5 lg:py-4 rounded-2xl lg:rounded-3xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/30 transition-all text-sm font-bold glass-panel"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-rose-500 transition-colors">
+              <button onClick={() => { setSearch(''); setCurrentPage(1); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-rose-500 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -161,7 +171,7 @@ export default function AdminOrdersPage() {
             {tabs.map(tab => (
               <button
                 key={tab}
-                onClick={() => { setActiveTab(tab); setExpanded(null); }}
+                onClick={() => { setActiveTab(tab); setExpanded(null); setCurrentPage(1); }}
                 className={`h-9 px-4 lg:px-6 rounded-xl lg:rounded-full text-[8px] lg:text-[9px] font-black tracking-widest flex-shrink-0 transition-all uppercase whitespace-nowrap ${
                   activeTab === tab
                     ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
@@ -175,7 +185,7 @@ export default function AdminOrdersPage() {
         </div>
 
         {/* Orders Table/List */}
-        <div className="space-y-4">
+        <div className="space-y-8">
           {loading ? (
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
@@ -188,8 +198,9 @@ export default function AdminOrdersPage() {
               <h3 className="text-sm lg:text-lg font-black uppercase tracking-widest">No matching orders detected</h3>
             </div>
           ) : (
-            <div className="space-y-3 lg:space-y-4">
-              {filtered.map(order => {
+            <div className="space-y-12">
+              <div className="space-y-3 lg:space-y-4 min-h-[600px]">
+                {currentOrders.map(order => {
                 const statusKey = order.order_status || 'placed';
                 const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.placed;
                 const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
@@ -406,6 +417,13 @@ export default function AdminOrdersPage() {
                   </div>
                 );
               })}
+              </div>
+
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={totalPages} 
+                onPageChange={setCurrentPage} 
+              />
             </div>
           )}
         </div>

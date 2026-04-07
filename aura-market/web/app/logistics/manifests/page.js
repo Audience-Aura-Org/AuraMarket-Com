@@ -9,12 +9,17 @@ import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
 
 export const dynamic = "force-dynamic";
 
+import Pagination from '@/components/common/Pagination';
+
 export default function LogisticsManifestsPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [shipments, setShipments] = useState([]);
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
   const [updateData, setUpdateData] = useState({
     status: "pending",
     note: "",
@@ -40,6 +45,9 @@ export default function LogisticsManifestsPage() {
   useEffect(() => {
     fetchShipments();
   }, []);
+
+  const totalPages = Math.ceil(shipments.length / itemsPerPage);
+  const currentShipments = shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const openModal = (shipment) => {
     setSelectedShipment(shipment);
@@ -74,11 +82,16 @@ export default function LogisticsManifestsPage() {
 
   return (
     <div className="p-4 lg:p-10 space-y-6">
-      <div>
-        <h1 className="text-lg lg:text-2xl font-black uppercase tracking-tight">Shipment Manifests</h1>
-        <p className="text-[10px] lg:text-xs font-bold uppercase tracking-wider opacity-60">
-          Assigned tickets for your logistics company
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg lg:text-2xl font-black uppercase tracking-tight">Shipment Manifests</h1>
+          <p className="text-[10px] lg:text-xs font-bold uppercase tracking-wider opacity-60">
+            Assigned tickets for your logistics company
+          </p>
+        </div>
+        <div className="hidden lg:flex px-4 py-1.5 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 text-[9px] font-black tracking-widest uppercase">
+           {shipments.length} Total Assignments
+        </div>
       </div>
 
       {loading ? (
@@ -86,7 +99,17 @@ export default function LogisticsManifestsPage() {
           <Loader2 className="size-6 animate-spin text-[var(--accent)]" />
         </div>
       ) : (
-        <ShipmentList shipments={shipments} onSelectShipment={openModal} />
+        <div className="space-y-6">
+          <ShipmentList shipments={currentShipments} onSelectShipment={openModal} />
+          
+          <div className="glass-panel p-6 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 mt-6">
+             <Pagination 
+               currentPage={currentPage}
+               totalPages={totalPages}
+               onPageChange={setCurrentPage}
+             />
+          </div>
+        </div>
       )}
 
       <ShipmentStatusModal
