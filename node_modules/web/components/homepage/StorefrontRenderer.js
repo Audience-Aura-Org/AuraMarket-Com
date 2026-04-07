@@ -52,7 +52,7 @@ export default function StorefrontRenderer({ sections }) {
         if (!content) return null;
 
         return (
-          <div key={section._id || index} className={`${isFullWidth ? 'w-full mb-2' : 'max-w-[1400px] mx-auto py-2'}`}>
+          <div key={section._id || index} className={`${isFullWidth ? 'w-full mb-2' : 'max-w-7xl 2xl:max-w-[1600px] mx-auto py-2 px-4 md:px-6'}`}>
             {content}
           </div>
         );

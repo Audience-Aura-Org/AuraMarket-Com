@@ -15,11 +15,8 @@
   },
   "scripts": {
     "install:all": "npm install",
-    "web:build": "npm run build -w aura-market/web",
-    "web:start": "npm run start -w aura-market/web",
-    "web:dev": "npm run dev -w aura-market/web",
-    "deploy": "npm run install:all && npm run web:build && npm run web:start",
-    "start": "npm run web:build && npm run web:start",
-    "build": "npm run web:build"
+    "build": "npm run build -w aura-market/web",
+    "start": "npm run start -w aura-market/web",
+    "dev": "npm run dev -w aura-market/web"
   }
 }
