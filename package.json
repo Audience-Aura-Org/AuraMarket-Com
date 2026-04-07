@@ -11,7 +11,26 @@
     "aura-market"
   ],
   "dependencies": {
-    "next": "^16.1.6"
+    "next": "^16.1.6",
+    "@tailwindcss/postcss": "^4.2.2",
+    "autoprefixer": "^10.4.27",
+    "axios": "^1.13.6",
+    "framer-motion": "^12.36.0",
+    "lightningcss": "^1.32.0",
+    "lucide-react": "^0.577.0",
+    "postcss": "^8.5.8",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-hot-toast": "^2.6.0",
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.2.2",
+    "zustand": "^5.0.11"
+  },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
+    "@tailwindcss/oxide-linux-x64-musl": "4.2.2",
+    "lightningcss-linux-x64-gnu": "^1.32.0",
+    "lightningcss-linux-x64-musl": "^1.32.0"
   },
   "scripts": {
     "install:all": "npm install",
