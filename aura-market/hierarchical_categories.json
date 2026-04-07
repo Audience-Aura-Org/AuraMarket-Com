@@ -1,0 +1,4543 @@
+[
+  {
+    "name": "Books",
+    "children": [
+      {
+        "name": "Printed Books",
+        "children": [
+          {
+            "name": "Fiction",
+            "children": []
+          },
+          {
+            "name": "Non-Fiction",
+            "children": []
+          },
+          {
+            "name": "Children\u2019s Books",
+            "children": []
+          },
+          {
+            "name": "Graphic Novels",
+            "children": []
+          },
+          {
+            "name": "Poetry",
+            "children": []
+          },
+          {
+            "name": "Biographies",
+            "children": []
+          },
+          {
+            "name": "Self-Help",
+            "children": []
+          },
+          {
+            "name": "Cookbooks",
+            "children": []
+          },
+          {
+            "name": "Religious & Spiritual",
+            "children": []
+          },
+          {
+            "name": "Reference Books",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Kindle eBooks",
+        "children": [
+          {
+            "name": "Best Sellers",
+            "children": []
+          },
+          {
+            "name": "New Releases",
+            "children": []
+          },
+          {
+            "name": "Free eBooks",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Audiobooks",
+        "children": [
+          {
+            "name": "Fiction",
+            "children": []
+          },
+          {
+            "name": "Non-Fiction",
+            "children": []
+          },
+          {
+            "name": "Self-Help",
+            "children": []
+          },
+          {
+            "name": "Business & Finance",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Textbooks",
+        "children": [
+          {
+            "name": "K-12",
+            "children": []
+          },
+          {
+            "name": "College & University",
+            "children": []
+          },
+          {
+            "name": "Professional & Technical",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Magazines",
+        "children": [
+          {
+            "name": "Fashion & Lifestyle",
+            "children": []
+          },
+          {
+            "name": "Technology",
+            "children": []
+          },
+          {
+            "name": "Health & Fitness",
+            "children": []
+          },
+          {
+            "name": "Business & Finance",
+            "children": []
+          },
+          {
+            "name": "Hobbies & Crafts",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Electronics",
+    "children": [
+      {
+        "name": "Televisions",
+        "children": [
+          {
+            "name": "Smart TVs",
+            "children": []
+          },
+          {
+            "name": "4K Ultra HD TVs",
+            "children": []
+          },
+          {
+            "name": "OLED TVs",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Computers & Accessories",
+        "children": [
+          {
+            "name": "Laptops",
+            "children": []
+          },
+          {
+            "name": "Desktops",
+            "children": []
+          },
+          {
+            "name": "Monitors",
+            "children": []
+          },
+          {
+            "name": "Keyboards & Mice",
+            "children": []
+          },
+          {
+            "name": "Printers & Scanners",
+            "children": []
+          },
+          {
+            "name": "External Storage",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Smartphones",
+        "children": [
+          {
+            "name": "Android Phones",
+            "children": []
+          },
+          {
+            "name": "iPhones",
+            "children": []
+          },
+          {
+            "name": "Refurbished Phones",
+            "children": []
+          },
+          {
+            "name": "Phone Cases & Covers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Cameras & Photography",
+        "children": [
+          {
+            "name": "DSLR Cameras",
+            "children": []
+          },
+          {
+            "name": "Mirrorless Cameras",
+            "children": []
+          },
+          {
+            "name": "Action Cameras",
+            "children": []
+          },
+          {
+            "name": "Lenses",
+            "children": []
+          },
+          {
+            "name": "Tripods",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Wearable Technology",
+        "children": [
+          {
+            "name": "Smartwatches",
+            "children": []
+          },
+          {
+            "name": "Fitness Trackers",
+            "children": []
+          },
+          {
+            "name": "VR Headsets",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Headphones & Audio Devices",
+        "children": [
+          {
+            "name": "Wireless Earbuds",
+            "children": []
+          },
+          {
+            "name": "Over-Ear Headphones",
+            "children": []
+          },
+          {
+            "name": "Noise-Canceling Headphones",
+            "children": []
+          },
+          {
+            "name": "Speakers",
+            "children": []
+          },
+          {
+            "name": "Soundbars",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Smart Home Devices",
+        "children": [
+          {
+            "name": "Smart Thermostats",
+            "children": []
+          },
+          {
+            "name": "Smart Lights",
+            "children": []
+          },
+          {
+            "name": "Smart Plugs",
+            "children": []
+          },
+          {
+            "name": "Smart Locks",
+            "children": []
+          },
+          {
+            "name": "Security Cameras",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Gaming Consoles & Accessories",
+        "children": [
+          {
+            "name": "PlayStation",
+            "children": []
+          },
+          {
+            "name": "Xbox",
+            "children": []
+          },
+          {
+            "name": "Nintendo Switch",
+            "children": []
+          },
+          {
+            "name": "Gaming Headsets",
+            "children": []
+          },
+          {
+            "name": "Controllers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Earbuds",
+        "children": [
+          {
+            "name": "Wireless",
+            "children": []
+          },
+          {
+            "name": "Wired",
+            "children": []
+          },
+          {
+            "name": "Noise-Canceling",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "AC",
+        "children": [
+          {
+            "name": "Split AC",
+            "children": []
+          },
+          {
+            "name": "Window AC",
+            "children": []
+          },
+          {
+            "name": "Portable AC",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Fridges",
+        "children": [
+          {
+            "name": "Single Door",
+            "children": []
+          },
+          {
+            "name": "Double Door",
+            "children": []
+          },
+          {
+            "name": "Side-by-Side",
+            "children": []
+          },
+          {
+            "name": "Mini Fridges",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Microwaves",
+        "children": [
+          {
+            "name": "Solo Microwaves",
+            "children": []
+          },
+          {
+            "name": "Grill Microwaves",
+            "children": []
+          },
+          {
+            "name": "Convection Microwaves",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Mobile Accessories",
+        "children": [
+          {
+            "name": "Chargers",
+            "children": []
+          },
+          {
+            "name": "Power Banks",
+            "children": []
+          },
+          {
+            "name": "Screen Protectors",
+            "children": []
+          },
+          {
+            "name": "Cables",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Radios",
+        "children": [
+          {
+            "name": "Portable Radios",
+            "children": []
+          },
+          {
+            "name": "AM/FM Radios",
+            "children": []
+          },
+          {
+            "name": "Internet Radios",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Speakers",
+        "children": [
+          {
+            "name": "Bluetooth Speakers",
+            "children": []
+          },
+          {
+            "name": "Home Theater Systems",
+            "children": []
+          },
+          {
+            "name": "Portable Speakers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Telephones",
+        "children": [
+          {
+            "name": "Cordless Phones",
+            "children": []
+          },
+          {
+            "name": "Landline Phones",
+            "children": []
+          },
+          {
+            "name": "VoIP Phones",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Ipads",
+        "children": [
+          {
+            "name": "iPad Pro",
+            "children": []
+          },
+          {
+            "name": "iPad Air",
+            "children": []
+          },
+          {
+            "name": "iPad Mini",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Headsets",
+        "children": [
+          {
+            "name": "Gaming Headsets",
+            "children": []
+          },
+          {
+            "name": "Office Headsets",
+            "children": []
+          },
+          {
+            "name": "Wireless Headsets",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Electronic Watches",
+        "children": [
+          {
+            "name": "Digital Watches",
+            "children": []
+          },
+          {
+            "name": "Analog Watches",
+            "children": []
+          },
+          {
+            "name": "Hybrid Watches",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Power Banks",
+        "children": [
+          {
+            "name": "Solar Power Banks",
+            "children": []
+          },
+          {
+            "name": "High-Capacity Power Banks",
+            "children": []
+          },
+          {
+            "name": "Compact Power Banks",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Home & Kitchen",
+    "children": [
+      {
+        "name": "Furniture",
+        "children": [
+          {
+            "name": "Living Room Furniture",
+            "children": []
+          },
+          {
+            "name": "Bedroom Furniture",
+            "children": []
+          },
+          {
+            "name": "Dining Room Furniture",
+            "children": []
+          },
+          {
+            "name": "Office Furniture",
+            "children": []
+          },
+          {
+            "name": "Outdoor Furniture",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Bedding & Bath",
+        "children": [
+          {
+            "name": "Bed Sheets",
+            "children": []
+          },
+          {
+            "name": "Pillows",
+            "children": []
+          },
+          {
+            "name": "Comforters",
+            "children": []
+          },
+          {
+            "name": "Towels",
+            "children": []
+          },
+          {
+            "name": "Bath Mats",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Kitchen Appliances",
+        "children": [
+          {
+            "name": "Blenders",
+            "children": []
+          },
+          {
+            "name": "Coffee Makers",
+            "children": []
+          },
+          {
+            "name": "Toasters",
+            "children": []
+          },
+          {
+            "name": "Air Fryers",
+            "children": []
+          },
+          {
+            "name": "Food Processors",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Home D\u00e9cor",
+        "children": [
+          {
+            "name": "Wall Art",
+            "children": []
+          },
+          {
+            "name": "Mirrors",
+            "children": []
+          },
+          {
+            "name": "Clocks",
+            "children": []
+          },
+          {
+            "name": "Vases",
+            "children": []
+          },
+          {
+            "name": "Candles",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Storage & Organization",
+        "children": [
+          {
+            "name": "Storage Bins",
+            "children": []
+          },
+          {
+            "name": "Shelving Units",
+            "children": []
+          },
+          {
+            "name": "Closet Organizers",
+            "children": []
+          },
+          {
+            "name": "Drawer Organizers",
+            "children": []
+          },
+          {
+            "name": "Shoe Racks",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Home Improvement",
+        "children": [
+          {
+            "name": "Tools",
+            "children": []
+          },
+          {
+            "name": "Paint",
+            "children": []
+          },
+          {
+            "name": "Hardware",
+            "children": []
+          },
+          {
+            "name": "Lighting",
+            "children": []
+          },
+          {
+            "name": "Plumbing",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Utility Hooks",
+        "children": [
+          {
+            "name": "Wall Hooks",
+            "children": []
+          },
+          {
+            "name": "Over-the-Door Hooks",
+            "children": []
+          },
+          {
+            "name": "Adhesive Hooks",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Carpet",
+        "children": [
+          {
+            "name": "Area Rugs",
+            "children": []
+          },
+          {
+            "name": "Runners",
+            "children": []
+          },
+          {
+            "name": "Door Mats",
+            "children": []
+          },
+          {
+            "name": "Carpet Tiles",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Home & Kitchen Accessories",
+        "children": [
+          {
+            "name": "Kitchen Utensils",
+            "children": []
+          },
+          {
+            "name": "Cutting Boards",
+            "children": []
+          },
+          {
+            "name": "Cookware",
+            "children": []
+          },
+          {
+            "name": "Bakeware",
+            "children": []
+          },
+          {
+            "name": "Tableware",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Clothing, Shoes & Jewelry",
+    "children": [
+      {
+        "name": "Men\u2019s Fashion",
+        "children": [
+          {
+            "name": "Mens Clothing",
+            "children": [
+              {
+                "name": "T-Shirts",
+                "children": []
+              },
+              {
+                "name": "Jeans",
+                "children": []
+              },
+              {
+                "name": "Jackets",
+                "children": []
+              },
+              {
+                "name": "Suits",
+                "children": []
+              },
+              {
+                "name": "Hoodies",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Trousers",
+            "children": [
+              {
+                "name": "Chinos",
+                "children": []
+              },
+              {
+                "name": "Cargo Pants",
+                "children": []
+              },
+              {
+                "name": "Dress Pants",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Shirts",
+            "children": [
+              {
+                "name": "Casual Shirts",
+                "children": []
+              },
+              {
+                "name": "Formal Shirts",
+                "children": []
+              },
+              {
+                "name": "Polo Shirts",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Mens Shoes",
+            "children": [
+              {
+                "name": "Sneakers",
+                "children": []
+              },
+              {
+                "name": "Boots",
+                "children": []
+              },
+              {
+                "name": "Loafers",
+                "children": []
+              },
+              {
+                "name": "Sandals",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Mens Slippers",
+            "children": [
+              {
+                "name": "Indoor Slippers",
+                "children": []
+              },
+              {
+                "name": "Outdoor Slippers",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Men's Watches",
+            "children": [
+              {
+                "name": "Analog Watches",
+                "children": []
+              },
+              {
+                "name": "Digital Watches",
+                "children": []
+              },
+              {
+                "name": "Luxury Watches",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Women\u2019s Fashion",
+        "children": [
+          {
+            "name": "Womens Clothing",
+            "children": [
+              {
+                "name": "Dresses",
+                "children": []
+              },
+              {
+                "name": "Tops",
+                "children": []
+              },
+              {
+                "name": "Skirts",
+                "children": []
+              },
+              {
+                "name": "Jeans",
+                "children": []
+              },
+              {
+                "name": "Jackets",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Womens Shoes",
+            "children": [
+              {
+                "name": "Heels",
+                "children": []
+              },
+              {
+                "name": "Flats",
+                "children": []
+              },
+              {
+                "name": "Boots",
+                "children": []
+              },
+              {
+                "name": "Sandals",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Women's Bags",
+            "children": [
+              {
+                "name": "Handbags",
+                "children": []
+              },
+              {
+                "name": "Totes",
+                "children": []
+              },
+              {
+                "name": "Clutches",
+                "children": []
+              },
+              {
+                "name": "Backpacks",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Kids\u2019 & Baby Clothing",
+            "children": [
+              {
+                "name": "Childrens Clothing",
+                "children": []
+              },
+              {
+                "name": "Childrens Shoes",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Shoes",
+            "children": [
+              {
+                "name": "Athletic Shoes",
+                "children": []
+              },
+              {
+                "name": "Casual Shoes",
+                "children": []
+              },
+              {
+                "name": "Formal Shoes",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Watches",
+            "children": [
+              {
+                "name": "Analog Watches",
+                "children": []
+              },
+              {
+                "name": "Digital Watches",
+                "children": []
+              },
+              {
+                "name": "Smartwatches",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Handbags & Accessories",
+            "children": [
+              {
+                "name": "Wallets",
+                "children": []
+              },
+              {
+                "name": "Belts",
+                "children": []
+              },
+              {
+                "name": "Scarves",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Jewelry",
+            "children": [
+              {
+                "name": "Necklaces",
+                "children": []
+              },
+              {
+                "name": "Bracelets",
+                "children": []
+              },
+              {
+                "name": "Earrings",
+                "children": []
+              },
+              {
+                "name": "Rings",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Belts",
+            "children": [
+              {
+                "name": "Leather Belts",
+                "children": []
+              },
+              {
+                "name": "Fabric Belts",
+                "children": []
+              },
+              {
+                "name": "Reversible Belts",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Hair Pins",
+            "children": [
+              {
+                "name": "Bobby Pins",
+                "children": []
+              },
+              {
+                "name": "Hair Clips",
+                "children": []
+              },
+              {
+                "name": "Hair Barrettes",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Purses",
+            "children": [
+              {
+                "name": "Crossbody Bags",
+                "children": []
+              },
+              {
+                "name": "Shoulder Bags",
+                "children": []
+              },
+              {
+                "name": "Mini Bags",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Beauty & Personal Care",
+    "children": [
+      {
+        "name": "Skincare",
+        "children": [
+          {
+            "name": "Skin Care Products",
+            "children": [
+              {
+                "name": "Cleansers",
+                "children": []
+              },
+              {
+                "name": "Moisturizers",
+                "children": []
+              },
+              {
+                "name": "Serums",
+                "children": []
+              },
+              {
+                "name": "Face Masks",
+                "children": []
+              },
+              {
+                "name": "Sunscreen",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Hair Care",
+        "children": [
+          {
+            "name": "Hair Products",
+            "children": [
+              {
+                "name": "Shampoo",
+                "children": []
+              },
+              {
+                "name": "Conditioner",
+                "children": []
+              },
+              {
+                "name": "Hair Masks",
+                "children": []
+              },
+              {
+                "name": "Styling Products",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Makeup",
+        "children": [
+          {
+            "name": "Make-up Products",
+            "children": [
+              {
+                "name": "Foundation",
+                "children": []
+              },
+              {
+                "name": "Lipstick",
+                "children": []
+              },
+              {
+                "name": "Eyeshadow",
+                "children": []
+              },
+              {
+                "name": "Mascara",
+                "children": []
+              },
+              {
+                "name": "Blush",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Fragrances",
+        "children": [
+          {
+            "name": "Perfumes",
+            "children": [
+              {
+                "name": "Eau de Parfum",
+                "children": []
+              },
+              {
+                "name": "Eau de Toilette",
+                "children": []
+              },
+              {
+                "name": "Body Sprays",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Men\u2019s Grooming",
+        "children": [
+          {
+            "name": "Shaving Cream",
+            "children": []
+          },
+          {
+            "name": "Razors",
+            "children": []
+          },
+          {
+            "name": "Beard Care",
+            "children": []
+          },
+          {
+            "name": "Aftershave",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Oral Care",
+        "children": [
+          {
+            "name": "Toothpastes",
+            "children": [
+              {
+                "name": "Whitening Toothpaste",
+                "children": []
+              },
+              {
+                "name": "Sensitive Toothpaste",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Mouth Wash",
+            "children": [
+              {
+                "name": "Antiseptic Mouthwash",
+                "children": []
+              },
+              {
+                "name": "Fluoride Mouthwash",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Bath & Body",
+        "children": [
+          {
+            "name": "Soaps",
+            "children": [
+              {
+                "name": "Bar Soap",
+                "children": []
+              },
+              {
+                "name": "Liquid Soap",
+                "children": []
+              },
+              {
+                "name": "Body Wash",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Sunscreen",
+            "children": [
+              {
+                "name": "SPF 30",
+                "children": []
+              },
+              {
+                "name": "SPF 50",
+                "children": []
+              },
+              {
+                "name": "Water-Resistant Sunscreen",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Razors",
+            "children": [
+              {
+                "name": "Disposable Razors",
+                "children": []
+              },
+              {
+                "name": "Safety Razors",
+                "children": []
+              },
+              {
+                "name": "Electric Razors",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Shaving Cream",
+            "children": [
+              {
+                "name": "Foam",
+                "children": []
+              },
+              {
+                "name": "Gel",
+                "children": []
+              },
+              {
+                "name": "Cream",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Deodorant",
+            "children": [
+              {
+                "name": "Roll-On",
+                "children": []
+              },
+              {
+                "name": "Spray",
+                "children": []
+              },
+              {
+                "name": "Stick",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Lotion",
+            "children": [
+              {
+                "name": "Body Lotion",
+                "children": []
+              },
+              {
+                "name": "Hand Cream",
+                "children": []
+              },
+              {
+                "name": "Foot Cream",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Nail Products",
+            "children": [
+              {
+                "name": "Nail Polish",
+                "children": []
+              },
+              {
+                "name": "Nail Polish Remover",
+                "children": []
+              },
+              {
+                "name": "Nail Care Kits",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Spa Products",
+            "children": [
+              {
+                "name": "Bath Salts",
+                "children": []
+              },
+              {
+                "name": "Essential Oils",
+                "children": []
+              },
+              {
+                "name": "Face Masks",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Personal Care",
+        "children": [
+          {
+            "name": "Hair Dryers",
+            "children": []
+          },
+          {
+            "name": "Straighteners",
+            "children": []
+          },
+          {
+            "name": "Electric Toothbrushes",
+            "children": []
+          },
+          {
+            "name": "Trimmers",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Health, Household & Baby Care",
+    "children": [
+      {
+        "name": "Medical Supplies & Equipment",
+        "children": [
+          {
+            "name": "Hospital Beds",
+            "children": [
+              {
+                "name": "Manual Hospital Beds",
+                "children": []
+              },
+              {
+                "name": "Electric Hospital Beds",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Oxygen Tanks",
+            "children": [
+              {
+                "name": "Portable Oxygen Tanks",
+                "children": []
+              },
+              {
+                "name": "Home Oxygen Concentrators",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Wheel Chairs",
+            "children": [
+              {
+                "name": "Manual Wheelchairs",
+                "children": []
+              },
+              {
+                "name": "Electric Wheelchairs",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Household Supplies",
+        "children": [
+          {
+            "name": "Cleaning Products",
+            "children": []
+          },
+          {
+            "name": "Laundry Detergents",
+            "children": []
+          },
+          {
+            "name": "Dishwashing Liquids",
+            "children": []
+          },
+          {
+            "name": "Trash Bags",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Baby & Child Care",
+        "children": [
+          {
+            "name": "Baby Products",
+            "children": [
+              {
+                "name": "Diapers",
+                "children": []
+              },
+              {
+                "name": "Baby Wipes",
+                "children": []
+              },
+              {
+                "name": "Baby Food",
+                "children": []
+              },
+              {
+                "name": "Baby Formula",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Travel Gears",
+            "children": [
+              {
+                "name": "Strollers",
+                "children": []
+              },
+              {
+                "name": "Car Seats",
+                "children": []
+              },
+              {
+                "name": "Baby Carriers",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Car Seats & Accessories",
+        "children": [
+          {
+            "name": "Infant Car Seats",
+            "children": []
+          },
+          {
+            "name": "Convertible Car Seats",
+            "children": []
+          },
+          {
+            "name": "Booster Seats",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Health & Baby Care",
+        "children": [
+          {
+            "name": "Bathing",
+            "children": [
+              {
+                "name": "Baby Bath Tubs",
+                "children": []
+              },
+              {
+                "name": "Bath Seats",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Nursery",
+            "children": [
+              {
+                "name": "Furniture",
+                "children": []
+              },
+              {
+                "name": "Infant & Toddler Beds",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Health Care",
+            "children": [
+              {
+                "name": "Thermometers",
+                "children": []
+              },
+              {
+                "name": "First Aid Kits",
+                "children": []
+              },
+              {
+                "name": "Blood Pressure Monitors",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Wellness & Relaxation",
+            "children": [
+              {
+                "name": "Aromatherapy",
+                "children": []
+              },
+              {
+                "name": "Massagers",
+                "children": []
+              },
+              {
+                "name": "Yoga Mats",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Vitamins & Supplements",
+            "children": [
+              {
+                "name": "Multivitamins",
+                "children": []
+              },
+              {
+                "name": "Protein Supplements",
+                "children": []
+              },
+              {
+                "name": "Herbal Supplements",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Energy Supplements",
+            "children": [
+              {
+                "name": "Energy Drinks",
+                "children": []
+              },
+              {
+                "name": "Energy Bars",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Glucose",
+            "children": [
+              {
+                "name": "Glucose Tablets",
+                "children": []
+              },
+              {
+                "name": "Glucose Monitors",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Sports & Outdoors",
+    "children": [
+      {
+        "name": "Exercise & Fitness",
+        "children": [
+          {
+            "name": "Treadmills",
+            "children": []
+          },
+          {
+            "name": "Dumbbells",
+            "children": []
+          },
+          {
+            "name": "Yoga Mats",
+            "children": []
+          },
+          {
+            "name": "Resistance Bands",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Outdoor Recreation",
+        "children": [
+          {
+            "name": "Tents",
+            "children": []
+          },
+          {
+            "name": "Sleeping Bags",
+            "children": []
+          },
+          {
+            "name": "Camping Stoves",
+            "children": []
+          },
+          {
+            "name": "Hiking Boots",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Team Sports",
+        "children": [
+          {
+            "name": "Soccer Balls",
+            "children": []
+          },
+          {
+            "name": "Basketballs",
+            "children": []
+          },
+          {
+            "name": "Volleyballs",
+            "children": []
+          },
+          {
+            "name": "Baseball Gloves",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Camping & Hiking",
+        "children": [
+          {
+            "name": "Backpacks",
+            "children": []
+          },
+          {
+            "name": "Camping Chairs",
+            "children": []
+          },
+          {
+            "name": "Portable Grills",
+            "children": []
+          },
+          {
+            "name": "Water Bottles",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Cycling",
+        "children": [
+          {
+            "name": "Bicycles",
+            "children": []
+          },
+          {
+            "name": "Helmets",
+            "children": []
+          },
+          {
+            "name": "Bike Locks",
+            "children": []
+          },
+          {
+            "name": "Bike Lights",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Fishing & Hunting",
+        "children": [
+          {
+            "name": "Fishing Rods",
+            "children": []
+          },
+          {
+            "name": "Tackle Boxes",
+            "children": []
+          },
+          {
+            "name": "Hunting Knives",
+            "children": []
+          },
+          {
+            "name": "Binoculars",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Bikes",
+        "children": [
+          {
+            "name": "Mountain Bikes",
+            "children": []
+          },
+          {
+            "name": "Road Bikes",
+            "children": []
+          },
+          {
+            "name": "Hybrid Bikes",
+            "children": []
+          },
+          {
+            "name": "Kids Bikes",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Automotive",
+    "children": [
+      {
+        "name": "Car Care",
+        "children": [
+          {
+            "name": "Car Wash Kits",
+            "children": []
+          },
+          {
+            "name": "Wax & Polish",
+            "children": []
+          },
+          {
+            "name": "Interior Cleaners",
+            "children": []
+          },
+          {
+            "name": "Tire Shine",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Replacement Parts",
+        "children": [
+          {
+            "name": "Spare Parts",
+            "children": [
+              {
+                "name": "Brake Pads",
+                "children": []
+              },
+              {
+                "name": "Air Filters",
+                "children": []
+              },
+              {
+                "name": "Spark Plugs",
+                "children": []
+              },
+              {
+                "name": "Windshield Wipers",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Motorcycle & Powersports",
+        "children": [
+          {
+            "name": "Helmets",
+            "children": []
+          },
+          {
+            "name": "Jackets",
+            "children": []
+          },
+          {
+            "name": "Gloves",
+            "children": []
+          },
+          {
+            "name": "Boots",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Tools & Equipment",
+        "children": [
+          {
+            "name": "Wrenches",
+            "children": []
+          },
+          {
+            "name": "Screwdrivers",
+            "children": []
+          },
+          {
+            "name": "Jacks",
+            "children": []
+          },
+          {
+            "name": "Diagnostic Tools",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Tires & Wheels",
+        "children": [
+          {
+            "name": "All-Season Tires",
+            "children": []
+          },
+          {
+            "name": "Winter Tires",
+            "children": []
+          },
+          {
+            "name": "Alloy Wheels",
+            "children": []
+          },
+          {
+            "name": "Steel Wheels",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Car Electronics",
+        "children": [
+          {
+            "name": "GPS Navigation",
+            "children": []
+          },
+          {
+            "name": "Dash Cams",
+            "children": []
+          },
+          {
+            "name": "Car Stereos",
+            "children": []
+          },
+          {
+            "name": "Backup Cameras",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Cars",
+        "children": [
+          {
+            "name": "Sedans",
+            "children": []
+          },
+          {
+            "name": "SUVs",
+            "children": []
+          },
+          {
+            "name": "Trucks",
+            "children": []
+          },
+          {
+            "name": "Electric Vehicles",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Toys & Games",
+    "children": [
+      {
+        "name": "Action Figures",
+        "children": [
+          {
+            "name": "Superheroes",
+            "children": []
+          },
+          {
+            "name": "Movie Characters",
+            "children": []
+          },
+          {
+            "name": "Anime Figures",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Board Games",
+        "children": [
+          {
+            "name": "Strategy Games",
+            "children": []
+          },
+          {
+            "name": "Party Games",
+            "children": []
+          },
+          {
+            "name": "Family Games",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Dolls & Accessories",
+        "children": [
+          {
+            "name": "Barbie Dolls",
+            "children": []
+          },
+          {
+            "name": "Baby Dolls",
+            "children": []
+          },
+          {
+            "name": "Dollhouses",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Puzzles",
+        "children": [
+          {
+            "name": "Jigsaw Puzzles",
+            "children": []
+          },
+          {
+            "name": "3D Puzzles",
+            "children": []
+          },
+          {
+            "name": "Brain Teasers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Outdoor Play",
+        "children": [
+          {
+            "name": "Swing Sets",
+            "children": []
+          },
+          {
+            "name": "Trampolines",
+            "children": []
+          },
+          {
+            "name": "Playhouses",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Educational Toys",
+        "children": [
+          {
+            "name": "STEM Toys",
+            "children": []
+          },
+          {
+            "name": "Building Blocks",
+            "children": []
+          },
+          {
+            "name": "Science Kits",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Toys",
+        "children": [
+          {
+            "name": "Remote Control Toys",
+            "children": []
+          },
+          {
+            "name": "Stuffed Animals",
+            "children": []
+          },
+          {
+            "name": "Toy Cars",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Grocery & Gourmet Food",
+    "children": [
+      {
+        "name": "Beverages",
+        "children": [
+          {
+            "name": "Drinks",
+            "children": [
+              {
+                "name": "Soft Drinks",
+                "children": []
+              },
+              {
+                "name": "Energy Drinks",
+                "children": []
+              },
+              {
+                "name": "Flavored Water",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Liquor",
+            "children": [
+              {
+                "name": "Whisky",
+                "children": []
+              },
+              {
+                "name": "Wine",
+                "children": []
+              },
+              {
+                "name": "Beer",
+                "children": []
+              },
+              {
+                "name": "Juice",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Snacks",
+        "children": [
+          {
+            "name": "Chips",
+            "children": []
+          },
+          {
+            "name": "Popcorn",
+            "children": []
+          },
+          {
+            "name": "Nuts",
+            "children": []
+          },
+          {
+            "name": "Crackers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Pantry Staples",
+        "children": [
+          {
+            "name": "Rice",
+            "children": []
+          },
+          {
+            "name": "Pasta",
+            "children": []
+          },
+          {
+            "name": "Flour",
+            "children": []
+          },
+          {
+            "name": "Sugar",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Specialty Diets",
+        "children": [
+          {
+            "name": "Gluten-Free",
+            "children": []
+          },
+          {
+            "name": "Organic",
+            "children": []
+          },
+          {
+            "name": "Vegan",
+            "children": []
+          },
+          {
+            "name": "Keto",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Fresh Produce",
+        "children": [
+          {
+            "name": "Fruits",
+            "children": [
+              {
+                "name": "Apples",
+                "children": []
+              },
+              {
+                "name": "Bananas",
+                "children": []
+              },
+              {
+                "name": "Oranges",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Vegetables",
+            "children": [
+              {
+                "name": "Tomatoes",
+                "children": []
+              },
+              {
+                "name": "Potatoes",
+                "children": []
+              },
+              {
+                "name": "Carrots",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Perishables",
+        "children": [
+          {
+            "name": "Butter",
+            "children": [
+              {
+                "name": "Salted Butter",
+                "children": []
+              },
+              {
+                "name": "Unsalted Butter",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Chicken",
+            "children": [
+              {
+                "name": "Whole Chicken",
+                "children": []
+              },
+              {
+                "name": "Chicken Breasts",
+                "children": []
+              },
+              {
+                "name": "Chicken Thighs",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Meat",
+            "children": [
+              {
+                "name": "Beef",
+                "children": []
+              },
+              {
+                "name": "Pork",
+                "children": []
+              },
+              {
+                "name": "Lamb",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Milk",
+            "children": [
+              {
+                "name": "Whole Milk",
+                "children": []
+              },
+              {
+                "name": "Skim Milk",
+                "children": []
+              },
+              {
+                "name": "Almond Milk",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Non-perishables",
+        "children": [
+          {
+            "name": "Canned Foods",
+            "children": [
+              {
+                "name": "Canned Vegetables",
+                "children": []
+              },
+              {
+                "name": "Canned Fruits",
+                "children": []
+              },
+              {
+                "name": "Canned Meats",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Dried Goods",
+            "children": [
+              {
+                "name": "Beans",
+                "children": []
+              },
+              {
+                "name": "Lentils",
+                "children": []
+              },
+              {
+                "name": "Rice",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Grains",
+            "children": [
+              {
+                "name": "Quinoa",
+                "children": []
+              },
+              {
+                "name": "Barley",
+                "children": []
+              },
+              {
+                "name": "Oats",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Soups",
+            "children": [
+              {
+                "name": "Canned Soups",
+                "children": []
+              },
+              {
+                "name": "Dry Soup Mixes",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Tea Bags",
+            "children": [
+              {
+                "name": "Black Tea",
+                "children": []
+              },
+              {
+                "name": "Green Tea",
+                "children": []
+              },
+              {
+                "name": "Herbal Tea",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Fruits and Vegetables",
+        "children": [
+          {
+            "name": "Fresh Fruits",
+            "children": [
+              {
+                "name": "Berries",
+                "children": []
+              },
+              {
+                "name": "Melons",
+                "children": []
+              },
+              {
+                "name": "Citrus Fruits",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Fresh Vegetables",
+            "children": [
+              {
+                "name": "Leafy Greens",
+                "children": []
+              },
+              {
+                "name": "Root Vegetables",
+                "children": []
+              },
+              {
+                "name": "Squash",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Granulated Sugar",
+        "children": [
+          {
+            "name": "White Sugar",
+            "children": []
+          },
+          {
+            "name": "Brown Sugar",
+            "children": []
+          },
+          {
+            "name": "Powdered Sugar",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Meats",
+        "children": [
+          {
+            "name": "Fresh Meats",
+            "children": [
+              {
+                "name": "Steaks",
+                "children": []
+              },
+              {
+                "name": "Ground Beef",
+                "children": []
+              },
+              {
+                "name": "Pork Chops",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Processed Meats",
+            "children": [
+              {
+                "name": "Sausages",
+                "children": []
+              },
+              {
+                "name": "Bacon",
+                "children": []
+              },
+              {
+                "name": "Deli Meats",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Pasta",
+        "children": [
+          {
+            "name": "Spaghetti",
+            "children": []
+          },
+          {
+            "name": "Penne",
+            "children": []
+          },
+          {
+            "name": "Fusilli",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Peanut Butter",
+        "children": [
+          {
+            "name": "Creamy",
+            "children": []
+          },
+          {
+            "name": "Crunchy",
+            "children": []
+          },
+          {
+            "name": "Natural",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Potato Chips",
+        "children": [
+          {
+            "name": "Regular",
+            "children": []
+          },
+          {
+            "name": "Flavored",
+            "children": []
+          },
+          {
+            "name": "Baked",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Sauces",
+        "children": [
+          {
+            "name": "Pasta Sauce",
+            "children": []
+          },
+          {
+            "name": "BBQ Sauce",
+            "children": []
+          },
+          {
+            "name": "Hot Sauce",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Soups & Stews",
+        "children": [
+          {
+            "name": "Chicken Noodle Soup",
+            "children": []
+          },
+          {
+            "name": "Beef Stew",
+            "children": []
+          },
+          {
+            "name": "Vegetable Soup",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Syrup and Honey",
+        "children": [
+          {
+            "name": "Maple Syrup",
+            "children": []
+          },
+          {
+            "name": "Honey",
+            "children": []
+          },
+          {
+            "name": "Agave Syrup",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Exotic Foods",
+        "children": [
+          {
+            "name": "International Snacks",
+            "children": []
+          },
+          {
+            "name": "Specialty Cheeses",
+            "children": []
+          },
+          {
+            "name": "Gourmet Chocolates",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Pet Supplies",
+    "children": [
+      {
+        "name": "Dog Supplies",
+        "children": [
+          {
+            "name": "Dog Food",
+            "children": []
+          },
+          {
+            "name": "Dog Toys",
+            "children": []
+          },
+          {
+            "name": "Dog Beds",
+            "children": []
+          },
+          {
+            "name": "Dog Collars",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Cat Supplies",
+        "children": [
+          {
+            "name": "Cat Food",
+            "children": []
+          },
+          {
+            "name": "Cat Litter",
+            "children": []
+          },
+          {
+            "name": "Cat Toys",
+            "children": []
+          },
+          {
+            "name": "Cat Trees",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Fish & Aquatic Pets",
+        "children": [
+          {
+            "name": "Fish Food",
+            "children": []
+          },
+          {
+            "name": "Aquariums",
+            "children": []
+          },
+          {
+            "name": "Filters",
+            "children": []
+          },
+          {
+            "name": "Decorations",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Bird Supplies",
+        "children": [
+          {
+            "name": "Bird Cages",
+            "children": []
+          },
+          {
+            "name": "Bird Food",
+            "children": []
+          },
+          {
+            "name": "Bird Toys",
+            "children": []
+          },
+          {
+            "name": "Perches",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Small Animals & Reptiles",
+        "children": [
+          {
+            "name": "Hamster Cages",
+            "children": []
+          },
+          {
+            "name": "Reptile Food",
+            "children": []
+          },
+          {
+            "name": "Heat Lamps",
+            "children": []
+          },
+          {
+            "name": "Habitats",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Tools & Home Improvement",
+    "children": [
+      {
+        "name": "Power & Hand Tools",
+        "children": [
+          {
+            "name": "Drills",
+            "children": []
+          },
+          {
+            "name": "Saws",
+            "children": []
+          },
+          {
+            "name": "Screwdrivers",
+            "children": []
+          },
+          {
+            "name": "Wrenches",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Lighting & Ceiling Fans",
+        "children": [
+          {
+            "name": "LED Lights",
+            "children": []
+          },
+          {
+            "name": "Chandeliers",
+            "children": []
+          },
+          {
+            "name": "Ceiling Fans",
+            "children": []
+          },
+          {
+            "name": "Lamps",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Kitchen & Bath Fixtures",
+        "children": [
+          {
+            "name": "Faucets",
+            "children": []
+          },
+          {
+            "name": "Sinks",
+            "children": []
+          },
+          {
+            "name": "Showerheads",
+            "children": []
+          },
+          {
+            "name": "Toilets",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Hardware",
+        "children": [
+          {
+            "name": "Nails",
+            "children": []
+          },
+          {
+            "name": "Screws",
+            "children": []
+          },
+          {
+            "name": "Hinges",
+            "children": []
+          },
+          {
+            "name": "Locks",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Smart Home",
+        "children": [
+          {
+            "name": "Smart Thermostats",
+            "children": []
+          },
+          {
+            "name": "Smart Locks",
+            "children": []
+          },
+          {
+            "name": "Smart Lights",
+            "children": []
+          },
+          {
+            "name": "Security Cameras",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Building Supplies",
+        "children": [
+          {
+            "name": "Lumber",
+            "children": []
+          },
+          {
+            "name": "Drywall",
+            "children": []
+          },
+          {
+            "name": "Insulation",
+            "children": []
+          },
+          {
+            "name": "Roofing",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Construction Services",
+        "children": [
+          {
+            "name": "Remodeling",
+            "children": []
+          },
+          {
+            "name": "Plumbing",
+            "children": []
+          },
+          {
+            "name": "Electrical",
+            "children": []
+          },
+          {
+            "name": "Landscaping",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Solar Panel Suppliers",
+        "children": [
+          {
+            "name": "Solar Panels",
+            "children": []
+          },
+          {
+            "name": "Inverters",
+            "children": []
+          },
+          {
+            "name": "Mounting Systems",
+            "children": []
+          },
+          {
+            "name": "Batteries",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Industrial & Scientific",
+    "children": [
+      {
+        "name": "Lab & Scientific Products",
+        "children": [
+          {
+            "name": "Microscopes",
+            "children": []
+          },
+          {
+            "name": "Lab Glassware",
+            "children": []
+          },
+          {
+            "name": "Chemicals",
+            "children": []
+          },
+          {
+            "name": "Lab Coats",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Janitorial & Sanitation Supplies",
+        "children": [
+          {
+            "name": "Cleaning Chemicals",
+            "children": []
+          },
+          {
+            "name": "Mops & Brooms",
+            "children": []
+          },
+          {
+            "name": "Trash Cans",
+            "children": []
+          },
+          {
+            "name": "Cleaning Carts",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Professional Medical Supplies",
+        "children": [
+          {
+            "name": "Surgical Instruments",
+            "children": []
+          },
+          {
+            "name": "Medical Gloves",
+            "children": []
+          },
+          {
+            "name": "Disinfectants",
+            "children": []
+          },
+          {
+            "name": "First Aid Kits",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Occupational Health & Safety Products",
+        "children": [
+          {
+            "name": "Safety Glasses",
+            "children": []
+          },
+          {
+            "name": "Hard Hats",
+            "children": []
+          },
+          {
+            "name": "Respirators",
+            "children": []
+          },
+          {
+            "name": "Safety Vests",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Power Transmission Products",
+        "children": [
+          {
+            "name": "Bearings",
+            "children": []
+          },
+          {
+            "name": "Belts",
+            "children": []
+          },
+          {
+            "name": "Chains",
+            "children": []
+          },
+          {
+            "name": "Gears",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Musical Instruments",
+    "children": [
+      {
+        "name": "Guitars",
+        "children": [
+          {
+            "name": "Acoustic Guitars",
+            "children": []
+          },
+          {
+            "name": "Electric Guitars",
+            "children": []
+          },
+          {
+            "name": "Bass Guitars",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Keyboards & MIDI",
+        "children": [
+          {
+            "name": "Digital Pianos",
+            "children": []
+          },
+          {
+            "name": "Synthesizers",
+            "children": []
+          },
+          {
+            "name": "MIDI Controllers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Recording Equipment",
+        "children": [
+          {
+            "name": "Microphones",
+            "children": []
+          },
+          {
+            "name": "Audio Interfaces",
+            "children": []
+          },
+          {
+            "name": "Studio Monitors",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "DJ & Karaoke",
+        "children": [
+          {
+            "name": "DJ Controllers",
+            "children": []
+          },
+          {
+            "name": "Karaoke Machines",
+            "children": []
+          },
+          {
+            "name": "Mixers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Band & Orchestra",
+        "children": [
+          {
+            "name": "Violins",
+            "children": []
+          },
+          {
+            "name": "Trumpets",
+            "children": []
+          },
+          {
+            "name": "Drums",
+            "children": []
+          },
+          {
+            "name": "Flutes",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Office Products",
+    "children": [
+      {
+        "name": "Office Supplies",
+        "children": [
+          {
+            "name": "Paper",
+            "children": []
+          },
+          {
+            "name": "Pens",
+            "children": []
+          },
+          {
+            "name": "Staplers",
+            "children": []
+          },
+          {
+            "name": "Scissors",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Printers & Accessories",
+        "children": [
+          {
+            "name": "Inkjet Printers",
+            "children": []
+          },
+          {
+            "name": "Laser Printers",
+            "children": []
+          },
+          {
+            "name": "Toner Cartridges",
+            "children": []
+          },
+          {
+            "name": "Printer Paper",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Office Furniture & Lighting",
+        "children": [
+          {
+            "name": "Desks",
+            "children": []
+          },
+          {
+            "name": "Chairs",
+            "children": []
+          },
+          {
+            "name": "Filing Cabinets",
+            "children": []
+          },
+          {
+            "name": "Desk Lamps",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "School Supplies",
+        "children": [
+          {
+            "name": "Books and School Supplies",
+            "children": [
+              {
+                "name": "Notebooks",
+                "children": []
+              },
+              {
+                "name": "Binders",
+                "children": []
+              },
+              {
+                "name": "Folders",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Erasers",
+            "children": [
+              {
+                "name": "Pencil Erasers",
+                "children": []
+              },
+              {
+                "name": "Block Erasers",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Pencils",
+            "children": [
+              {
+                "name": "Mechanical Pencils",
+                "children": []
+              },
+              {
+                "name": "Wooden Pencils",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Pens",
+            "children": [
+              {
+                "name": "Ballpoint Pens",
+                "children": []
+              },
+              {
+                "name": "Gel Pens",
+                "children": []
+              },
+              {
+                "name": "Fountain Pens",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "School Bags",
+            "children": [
+              {
+                "name": "Backpacks",
+                "children": []
+              },
+              {
+                "name": "Messenger Bags",
+                "children": []
+              },
+              {
+                "name": "Tote Bags",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Sharpener",
+            "children": [
+              {
+                "name": "Pencil Sharpeners",
+                "children": []
+              },
+              {
+                "name": "Manual Sharpeners",
+                "children": []
+              },
+              {
+                "name": "Electric Sharpeners",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Calendars, Planners & Organizers",
+            "children": [
+              {
+                "name": "Wall Calendars",
+                "children": []
+              },
+              {
+                "name": "Desk Planners",
+                "children": []
+              },
+              {
+                "name": "Organizer Bins",
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Garden & Outdoor",
+    "children": [
+      {
+        "name": "Grills & Outdoor Cooking",
+        "children": [
+          {
+            "name": "Gas Grills",
+            "children": []
+          },
+          {
+            "name": "Charcoal Grills",
+            "children": []
+          },
+          {
+            "name": "Smokers",
+            "children": []
+          },
+          {
+            "name": "Outdoor Pizza Ovens",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Patio Furniture & Accessories",
+        "children": [
+          {
+            "name": "Patio Chairs",
+            "children": []
+          },
+          {
+            "name": "Patio Tables",
+            "children": []
+          },
+          {
+            "name": "Umbrellas",
+            "children": []
+          },
+          {
+            "name": "Outdoor Cushions",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Gardening & Lawn Care",
+        "children": [
+          {
+            "name": "Lawn Mowers",
+            "children": []
+          },
+          {
+            "name": "Garden Tools",
+            "children": []
+          },
+          {
+            "name": "Planters",
+            "children": []
+          },
+          {
+            "name": "Soil & Fertilizers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Outdoor D\u00e9cor",
+        "children": [
+          {
+            "name": "Garden Statues",
+            "children": []
+          },
+          {
+            "name": "Outdoor Lighting",
+            "children": []
+          },
+          {
+            "name": "Fountains",
+            "children": []
+          },
+          {
+            "name": "Wind Chimes",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Plants, Seeds & Bulbs",
+        "children": [
+          {
+            "name": "Flower Seeds",
+            "children": []
+          },
+          {
+            "name": "Vegetable Seeds",
+            "children": []
+          },
+          {
+            "name": "Bulbs",
+            "children": []
+          },
+          {
+            "name": "Potted Plants",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Baby",
+    "children": [
+      {
+        "name": "Strollers",
+        "children": [
+          {
+            "name": "Lightweight Strollers",
+            "children": []
+          },
+          {
+            "name": "Jogging Strollers",
+            "children": []
+          },
+          {
+            "name": "Travel Systems",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Car Seats",
+        "children": [
+          {
+            "name": "Infant Car Seats",
+            "children": []
+          },
+          {
+            "name": "Convertible Car Seats",
+            "children": []
+          },
+          {
+            "name": "Booster Seats",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Nursery Furniture",
+        "children": [
+          {
+            "name": "Cribs",
+            "children": []
+          },
+          {
+            "name": "Changing Tables",
+            "children": []
+          },
+          {
+            "name": "Rocking Chairs",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Diapering",
+        "children": [
+          {
+            "name": "Diapers",
+            "children": []
+          },
+          {
+            "name": "Wipes",
+            "children": []
+          },
+          {
+            "name": "Diaper Bags",
+            "children": []
+          },
+          {
+            "name": "Changing Pads",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Feeding",
+        "children": [
+          {
+            "name": "Bottles",
+            "children": []
+          },
+          {
+            "name": "High Chairs",
+            "children": []
+          },
+          {
+            "name": "Baby Food",
+            "children": []
+          },
+          {
+            "name": "Formula",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Baby Clothing & Accessories",
+        "children": [
+          {
+            "name": "Onesies",
+            "children": []
+          },
+          {
+            "name": "Sleepers",
+            "children": []
+          },
+          {
+            "name": "Socks",
+            "children": []
+          },
+          {
+            "name": "Hats",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Arts, Crafts & Sewing",
+    "children": [
+      {
+        "name": "Fabric",
+        "children": [
+          {
+            "name": "FABRIC",
+            "children": [
+              {
+                "name": "Cotton",
+                "children": []
+              },
+              {
+                "name": "Silk",
+                "children": []
+              },
+              {
+                "name": "Polyester",
+                "children": []
+              },
+              {
+                "name": "Linen",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Lace",
+            "children": [
+              {
+                "name": "Chantilly Lace",
+                "children": []
+              },
+              {
+                "name": "Guipure Lace",
+                "children": []
+              },
+              {
+                "name": "Embroidered Lace",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Rappa",
+            "children": [
+              {
+                "name": "Ribbon",
+                "children": []
+              },
+              {
+                "name": "Twill Tape",
+                "children": []
+              },
+              {
+                "name": "Bias Tape",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "School Uniform Materials",
+            "children": [
+              {
+                "name": "Polyester Blends",
+                "children": []
+              },
+              {
+                "name": "Cotton Blends",
+                "children": []
+              }
+            ]
+          },
+          {
+            "name": "Traditional Clothing",
+            "children": [
+              {
+                "name": "Sarees",
+                "children": []
+              },
+              {
+                "name": "Kimonos",
+                "children": []
+              },
+              {
+                "name": "Abayas",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Sewing Machines",
+        "children": [
+          {
+            "name": "Mechanical Sewing Machines",
+            "children": []
+          },
+          {
+            "name": "Electronic Sewing Machines",
+            "children": []
+          },
+          {
+            "name": "Embroidery Machines",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Scrapbooking",
+        "children": [
+          {
+            "name": "Albums",
+            "children": []
+          },
+          {
+            "name": "Stickers",
+            "children": []
+          },
+          {
+            "name": "Decorative Paper",
+            "children": []
+          },
+          {
+            "name": "Adhesives",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Knitting & Crochet",
+        "children": [
+          {
+            "name": "Yarn",
+            "children": []
+          },
+          {
+            "name": "Knitting Needles",
+            "children": []
+          },
+          {
+            "name": "Crochet Hooks",
+            "children": []
+          },
+          {
+            "name": "Patterns",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Painting, Drawing & Art Supplies",
+        "children": [
+          {
+            "name": "Paints",
+            "children": []
+          },
+          {
+            "name": "Brushes",
+            "children": []
+          },
+          {
+            "name": "Canvases",
+            "children": []
+          },
+          {
+            "name": "Sketchbooks",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Appliances",
+    "children": [
+      {
+        "name": "Refrigerators",
+        "children": [
+          {
+            "name": "Single Door",
+            "children": []
+          },
+          {
+            "name": "Double Door",
+            "children": []
+          },
+          {
+            "name": "Side-by-Side",
+            "children": []
+          },
+          {
+            "name": "Mini Fridges",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Washing Machines",
+        "children": [
+          {
+            "name": "Top Load",
+            "children": []
+          },
+          {
+            "name": "Front Load",
+            "children": []
+          },
+          {
+            "name": "Portable Washers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Air Conditioners",
+        "children": [
+          {
+            "name": "Window AC",
+            "children": []
+          },
+          {
+            "name": "Split AC",
+            "children": []
+          },
+          {
+            "name": "Portable AC",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Vacuum Cleaners",
+        "children": [
+          {
+            "name": "Upright Vacuums",
+            "children": []
+          },
+          {
+            "name": "Canister Vacuums",
+            "children": []
+          },
+          {
+            "name": "Robotic Vacuums",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Dishwashers",
+        "children": [
+          {
+            "name": "Built-In Dishwashers",
+            "children": []
+          },
+          {
+            "name": "Portable Dishwashers",
+            "children": []
+          },
+          {
+            "name": "Countertop Dishwashers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Kitchen Appliances",
+        "children": [
+          {
+            "name": "Blenders",
+            "children": []
+          },
+          {
+            "name": "Coffee Makers",
+            "children": []
+          },
+          {
+            "name": "Toasters",
+            "children": []
+          },
+          {
+            "name": "Air Fryers",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Video Games",
+    "children": [
+      {
+        "name": "Gaming Consoles",
+        "children": [
+          {
+            "name": "PlayStation",
+            "children": []
+          },
+          {
+            "name": "Xbox",
+            "children": []
+          },
+          {
+            "name": "Nintendo Switch",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "PC Gaming Accessories",
+        "children": [
+          {
+            "name": "Gaming Keyboards",
+            "children": []
+          },
+          {
+            "name": "Gaming Mice",
+            "children": []
+          },
+          {
+            "name": "Gaming Headsets",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Virtual Reality Headsets",
+        "children": [
+          {
+            "name": "Oculus Rift",
+            "children": []
+          },
+          {
+            "name": "HTC Vive",
+            "children": []
+          },
+          {
+            "name": "PlayStation VR",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Game Controllers",
+        "children": [
+          {
+            "name": "Xbox Controllers",
+            "children": []
+          },
+          {
+            "name": "PlayStation Controllers",
+            "children": []
+          },
+          {
+            "name": "Nintendo Switch Controllers",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Gaming Merchandise",
+        "children": [
+          {
+            "name": "T-Shirts",
+            "children": []
+          },
+          {
+            "name": "Posters",
+            "children": []
+          },
+          {
+            "name": "Collectibles",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Movies & TV",
+    "children": [
+      {
+        "name": "DVDs & Blu-ray",
+        "children": [
+          {
+            "name": "New Releases",
+            "children": []
+          },
+          {
+            "name": "Classic Movies",
+            "children": []
+          },
+          {
+            "name": "TV Series",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Streaming Devices",
+        "children": [
+          {
+            "name": "Roku",
+            "children": []
+          },
+          {
+            "name": "Amazon Fire Stick",
+            "children": []
+          },
+          {
+            "name": "Apple TV",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Movie Collectibles",
+        "children": [
+          {
+            "name": "Action Figures",
+            "children": []
+          },
+          {
+            "name": "Posters",
+            "children": []
+          },
+          {
+            "name": "Prop Replicas",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Home Theater Systems",
+        "children": [
+          {
+            "name": "Soundbars",
+            "children": []
+          },
+          {
+            "name": "Surround Sound Systems",
+            "children": []
+          },
+          {
+            "name": "Projectors",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Music",
+    "children": [
+      {
+        "name": "Vinyl Records",
+        "children": [
+          {
+            "name": "New Releases",
+            "children": []
+          },
+          {
+            "name": "Classic Albums",
+            "children": []
+          },
+          {
+            "name": "Limited Editions",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "CDs",
+        "children": [
+          {
+            "name": "Pop",
+            "children": []
+          },
+          {
+            "name": "Rock",
+            "children": []
+          },
+          {
+            "name": "Jazz",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Digital Music Downloads",
+        "children": [
+          {
+            "name": "MP3s",
+            "children": []
+          },
+          {
+            "name": "FLAC",
+            "children": []
+          },
+          {
+            "name": "Streaming Subscriptions",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Musical Instruments",
+        "children": [
+          {
+            "name": "Guitars",
+            "children": []
+          },
+          {
+            "name": "Keyboards",
+            "children": []
+          },
+          {
+            "name": "Drums",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Smart Home",
+    "children": [
+      {
+        "name": "Smart Speakers & Displays",
+        "children": [
+          {
+            "name": "Amazon Echo",
+            "children": []
+          },
+          {
+            "name": "Google Nest",
+            "children": []
+          },
+          {
+            "name": "Apple HomePod",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Smart Lighting",
+        "children": [
+          {
+            "name": "Smart Bulbs",
+            "children": []
+          },
+          {
+            "name": "Smart Light Strips",
+            "children": []
+          },
+          {
+            "name": "Smart Switches",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Security Cameras",
+        "children": [
+          {
+            "name": "Indoor Cameras",
+            "children": []
+          },
+          {
+            "name": "Outdoor Cameras",
+            "children": []
+          },
+          {
+            "name": "Doorbell Cameras",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Smart Thermostats",
+        "children": [
+          {
+            "name": "Nest Thermostat",
+            "children": []
+          },
+          {
+            "name": "Ecobee",
+            "children": []
+          },
+          {
+            "name": "Honeywell",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Home Automation",
+        "children": [
+          {
+            "name": "Smart Plugs",
+            "children": []
+          },
+          {
+            "name": "Smart Locks",
+            "children": []
+          },
+          {
+            "name": "Smart Hubs",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Handmade & Personalized Gifts",
+    "children": [
+      {
+        "name": "Custom Jewelry",
+        "children": [
+          {
+            "name": "Engraved Necklaces",
+            "children": []
+          },
+          {
+            "name": "Personalized Bracelets",
+            "children": []
+          },
+          {
+            "name": "Custom Rings",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Handmade Home D\u00e9cor",
+        "children": [
+          {
+            "name": "Custom Wall Art",
+            "children": []
+          },
+          {
+            "name": "Handmade Candles",
+            "children": []
+          },
+          {
+            "name": "Personalized Pillows",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Personalized Clothing",
+        "children": [
+          {
+            "name": "Custom T-Shirts",
+            "children": []
+          },
+          {
+            "name": "Embroidered Hats",
+            "children": []
+          },
+          {
+            "name": "Monogrammed Bags",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Art & Collectibles",
+        "children": [
+          {
+            "name": "Paintings",
+            "children": []
+          },
+          {
+            "name": "Sculptures",
+            "children": []
+          },
+          {
+            "name": "Limited Edition Prints",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Subscription Services",
+    "children": [
+      {
+        "name": "Amazon Prime",
+        "children": [
+          {
+            "name": "Prime Video",
+            "children": []
+          },
+          {
+            "name": "Prime Music",
+            "children": []
+          },
+          {
+            "name": "Prime Reading",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Kindle Unlimited",
+        "children": [
+          {
+            "name": "eBooks",
+            "children": []
+          },
+          {
+            "name": "Audiobooks",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Audible",
+        "children": [
+          {
+            "name": "Audiobooks",
+            "children": []
+          },
+          {
+            "name": "Original Podcasts",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Amazon Music Unlimited",
+        "children": [
+          {
+            "name": "Streaming Music",
+            "children": []
+          },
+          {
+            "name": "Offline Listening",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Luggage & Travel Gear",
+    "children": [
+      {
+        "name": "Suitcases",
+        "children": [
+          {
+            "name": "Carry-On Luggage",
+            "children": []
+          },
+          {
+            "name": "Checked Luggage",
+            "children": []
+          },
+          {
+            "name": "Hardside Luggage",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Backpacks",
+        "children": [
+          {
+            "name": "Daypacks",
+            "children": []
+          },
+          {
+            "name": "Travel Backpacks",
+            "children": []
+          },
+          {
+            "name": "Laptop Backpacks",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Travel Accessories",
+        "children": [
+          {
+            "name": "Packing Cubes",
+            "children": []
+          },
+          {
+            "name": "Travel Pillows",
+            "children": []
+          },
+          {
+            "name": "Luggage Tags",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Duffel Bags",
+        "children": [
+          {
+            "name": "Gym Bags",
+            "children": []
+          },
+          {
+            "name": "Travel Duffels",
+            "children": []
+          },
+          {
+            "name": "Sports Duffels",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Watches & Smartwatches",
+    "children": [
+      {
+        "name": "Luxury Watches",
+        "children": [
+          {
+            "name": "Rolex",
+            "children": []
+          },
+          {
+            "name": "Omega",
+            "children": []
+          },
+          {
+            "name": "Tag Heuer",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Sports Watches",
+        "children": [
+          {
+            "name": "Garmin",
+            "children": []
+          },
+          {
+            "name": "Fitbit",
+            "children": []
+          },
+          {
+            "name": "Polar",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Smartwatches",
+        "children": [
+          {
+            "name": "Apple Watch",
+            "children": []
+          },
+          {
+            "name": "Samsung Galaxy Watch",
+            "children": []
+          },
+          {
+            "name": "Fitbit Versa",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Industrial & Business Supplies",
+    "children": [
+      {
+        "name": "Safety Equipment",
+        "children": [
+          {
+            "name": "Hard Hats",
+            "children": []
+          },
+          {
+            "name": "Safety Glasses",
+            "children": []
+          },
+          {
+            "name": "Gloves",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Workwear",
+        "children": [
+          {
+            "name": "Coveralls",
+            "children": []
+          },
+          {
+            "name": "Safety Boots",
+            "children": []
+          },
+          {
+            "name": "High-Visibility Clothing",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Heavy Machinery Accessories",
+        "children": [
+          {
+            "name": "Excavator Attachments",
+            "children": []
+          },
+          {
+            "name": "Forklift Attachments",
+            "children": []
+          },
+          {
+            "name": "Tractor Implements",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Collectibles & Memorabilia",
+    "children": [
+      {
+        "name": "Sports Memorabilia",
+        "children": [
+          {
+            "name": "Autographed Jerseys",
+            "children": []
+          },
+          {
+            "name": "Trading Cards",
+            "children": []
+          },
+          {
+            "name": "Trophies",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Movie & TV Collectibles",
+        "children": [
+          {
+            "name": "Autographed Posters",
+            "children": []
+          },
+          {
+            "name": "Prop Replicas",
+            "children": []
+          },
+          {
+            "name": "Limited Edition Box Sets",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Limited Edition Items",
+        "children": [
+          {
+            "name": "Collectible Coins",
+            "children": []
+          },
+          {
+            "name": "Rare Books",
+            "children": []
+          },
+          {
+            "name": "Exclusive Art Prints",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Scientific & Laboratory Equipment",
+    "children": [
+      {
+        "name": "Microscopes",
+        "children": [
+          {
+            "name": "Compound Microscopes",
+            "children": []
+          },
+          {
+            "name": "Stereo Microscopes",
+            "children": []
+          },
+          {
+            "name": "Digital Microscopes",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Lab Instruments",
+        "children": [
+          {
+            "name": "Centrifuges",
+            "children": []
+          },
+          {
+            "name": "Spectrophotometers",
+            "children": []
+          },
+          {
+            "name": "Autoclaves",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "Chemicals & Reagents",
+        "children": [
+          {
+            "name": "Acids",
+            "children": []
+          },
+          {
+            "name": "Solvents",
+            "children": []
+          },
+          {
+            "name": "Buffers",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]

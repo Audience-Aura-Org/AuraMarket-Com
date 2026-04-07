@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .liquid-glass {
+            background: rgba(236, 91, 19, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(236, 91, 19, 0.1);
+        }
+        .liquid-glass-input {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(236, 91, 19, 0.2);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full max-w-md mx-auto flex-col overflow-x-hidden pb-20">
+<!-- Top App Bar -->
+<div class="sticky top-0 z-50 flex items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md p-4 pb-4 justify-between border-b border-primary/10">
+<div class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center">Edit Product</h2>
+<div class="flex w-10 items-center justify-end">
+<p class="text-primary text-base font-bold leading-normal tracking-wide shrink-0 cursor-pointer">Save</p>
+</div>
+</div>
+<!-- Content Area -->
+<div class="px-4 py-6 flex flex-col gap-8">
+<!-- Image Upload Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-semibold">Product Media</h3>
+<span class="text-xs text-primary font-medium px-2 py-1 bg-primary/10 rounded-lg">Up to 5 images</span>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<div class="aspect-square rounded-xl bg-primary/5 border-2 border-dashed border-primary/30 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-primary/10 transition-all">
+<span class="material-symbols-outlined text-primary text-3xl">add_a_photo</span>
+<span class="text-[10px] uppercase font-bold tracking-tighter text-primary">Add main</span>
+</div>
+<div class="aspect-square rounded-xl bg-center bg-no-repeat bg-cover liquid-glass overflow-hidden relative group" data-alt="Modern minimal white wrist watch" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAVT931e7rRcumVE0hyCNwg40Lo2dPgQxN7jFxXh-NCuVygf__gLabdTC8SPZHsotXieWRO8Cc2A3zAFX35gPZ_-lx8nT9zExgUM8tfHZWgJyyVQmxQ1-oCiqHNaMyuSTazSgBsVS7tvhPzxqHSzJAl5lTEumX3e_1xN3LMXpsk5-j9YNfBqWg9VMP-tKCwRLJvl7uD5erEAbpAWHBxozhOb9oEW37Bi7_FdfH7GbIQ4OQWGVv1NNsxWgf7mAtrw6R97jiEabOKYCI");'>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+<span class="material-symbols-outlined text-white">delete</span>
+</div>
+</div>
+<div class="aspect-square rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400">image</span>
+</div>
+</div>
+</section>
+<!-- Basic Info Form -->
+<section class="flex flex-col gap-5">
+<label class="flex flex-col gap-2">
+<span class="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Product Name</span>
+<input class="liquid-glass-input w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border-primary/20 h-14 px-4 text-base font-normal" placeholder="e.g. Minimalist Watch" type="text" value="Premium Aura Timepiece"/>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Description</span>
+<textarea class="liquid-glass-input w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border-primary/20 min-h-[120px] p-4 text-base font-normal resize-none" placeholder="Describe your product benefits...">Crafted for the modern minimalist, the Aura Timepiece blends elegance with functional design. Features a 40mm brushed steel case and sapphire crystal.</textarea>
+</label>
+<div class="grid grid-cols-2 gap-4">
+<label class="flex flex-col gap-2">
+<span class="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Price ($)</span>
+<input class="liquid-glass-input w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border-primary/20 h-14 px-4 text-base font-normal" placeholder="0.00" type="number" value="149.00"/>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Stock</span>
+<input class="liquid-glass-input w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border-primary/20 h-14 px-4 text-base font-normal" placeholder="0" type="number" value="24"/>
+</label>
+</div>
+<label class="flex flex-col gap-2">
+<span class="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">Category</span>
+<div class="relative">
+<select class="liquid-glass-input w-full appearance-none rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border-primary/20 h-14 px-4 text-base font-normal">
+<option>Accessories</option>
+<option>Electronics</option>
+<option>Apparel</option>
+<option>Home Decor</option>
+</select>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+<span class="material-symbols-outlined text-slate-400">expand_more</span>
+</div>
+</div>
+</label>
+</section>
+<!-- Toggles & Settings -->
+<section class="liquid-glass p-4 rounded-2xl flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-base font-semibold text-slate-900 dark:text-slate-100">Featured Product</span>
+<span class="text-xs text-slate-500">Show on the home screen carousel</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="h-[1px] bg-primary/10 w-full"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-base font-semibold text-slate-900 dark:text-slate-100">Track Inventory</span>
+<span class="text-xs text-slate-500">Auto-update stock on purchase</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</section>
+<!-- Danger Zone -->
+<button class="flex items-center justify-center gap-2 p-4 text-red-500 font-semibold border border-red-500/20 rounded-xl hover:bg-red-500/5 transition-colors">
+<span class="material-symbols-outlined">delete</span>
+<span>Delete Product</span>
+</button>
+</div>
+<!-- Sticky Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-primary/10 max-w-md mx-auto">
+<button class="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 active:scale-[0.98] transition-all">
+                Update Product
+            </button>
+</div>
+</div>
+</body></html>

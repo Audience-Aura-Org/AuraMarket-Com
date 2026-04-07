@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Vendor Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#160d08",
+                        "glass": "rgba(255, 255, 255, 0.03)",
+                        "glass-border": "rgba(255, 255, 255, 0.1)",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(236, 91, 19, 0.1), rgba(255, 255, 255, 0.02));
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .chart-glow {
+            filter: drop-shadow(0 0 8px rgba(236, 91, 19, 0.4));
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+<header class="sticky top-0 z-20 liquid-glass px-4 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h1 class="text-lg font-bold leading-tight">Vendor Insights</h1>
+<p class="text-xs text-slate-400">Aura Market Pro</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="size-10 flex items-center justify-center rounded-full bg-glass text-slate-100">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="size-10 flex items-center justify-center rounded-full bg-glass text-slate-100 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full"></span>
+</button>
+</div>
+</header>
+<main class="flex-1 pb-24">
+<!-- Time Filter -->
+<div class="px-4 py-6">
+<div class="flex bg-glass p-1 rounded-xl gap-1">
+<button class="flex-1 py-2 text-sm font-medium rounded-lg bg-primary text-white shadow-lg shadow-primary/20">Week</button>
+<button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-400 hover:bg-white/5 transition-colors">Month</button>
+<button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-400 hover:bg-white/5 transition-colors">Year</button>
+</div>
+</div>
+<!-- Key Stats -->
+<div class="px-4 grid grid-cols-2 gap-4">
+<div class="liquid-glass p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-16 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all"></div>
+<span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Revenue</span>
+<div class="flex items-baseline gap-1">
+<span class="text-2xl font-bold">$12,840</span>
+<span class="text-[10px] text-emerald-400 font-bold">+12%</span>
+</div>
+<div class="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-primary w-[75%] rounded-full"></div>
+</div>
+</div>
+<div class="liquid-glass p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-16 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all"></div>
+<span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Orders</span>
+<div class="flex items-baseline gap-1">
+<span class="text-2xl font-bold">482</span>
+<span class="text-[10px] text-primary font-bold">+5.2%</span>
+</div>
+<div class="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-primary w-[60%] rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Revenue Growth Chart -->
+<div class="px-4 mt-6">
+<div class="liquid-glass rounded-3xl p-6">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-base font-bold">Revenue Growth</h3>
+<p class="text-xs text-slate-400">Weekly performance index</p>
+</div>
+<span class="material-symbols-outlined text-slate-500">more_horiz</span>
+</div>
+<div class="h-40 w-full relative mb-4">
+<svg class="w-full h-full chart-glow" viewbox="0 0 400 120">
+<defs>
+<lineargradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#ec5b13" stop-opacity="0.4"></stop>
+<stop offset="100%" stop-color="#ec5b13" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,100 Q50,90 80,40 T160,50 T240,20 T320,60 T400,10 L400,120 L0,120 Z" fill="url(#chartGradient)"></path>
+<path d="M0,100 Q50,90 80,40 T160,50 T240,20 T320,60 T400,10" fill="none" stroke="#ec5b13" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+</div>
+<div class="flex justify-between text-[10px] text-slate-500 font-bold px-1">
+<span>MON</span>
+<span>TUE</span>
+<span>WED</span>
+<span>THU</span>
+<span>FRI</span>
+<span>SAT</span>
+<span>SUN</span>
+</div>
+</div>
+</div>
+<!-- Top Products -->
+<div class="px-4 mt-6">
+<h3 class="text-base font-bold mb-4 px-1">Top Performing Products</h3>
+<div class="flex flex-col gap-3">
+<div class="liquid-glass p-3 rounded-2xl flex items-center gap-4">
+<div class="size-14 rounded-xl overflow-hidden bg-slate-800">
+<img class="w-full h-full object-cover opacity-80" data-alt="Minimalist white wristwatch on dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIeC2-JRdYlKno-lhNzXVWVVsL2iZMKgQRiShaukqSlTv5pLoncCD4hHLrfIyfzQfpyC2VQnWc2ZYFGe0ihvGXD4QHmfHZNlRGcPeGGLpfacWehY7RIj5sGisX5x_Wpyqp8ryYeCB1dzeTLPUpO7hQEw9EvUFlbX_xncMOnwo1O8NLyLxZJeNmzN67_Kx7AcaqhsKY3h_0BkUveFIGmgySrcsc50Mi31vSaCz36PjW2POqVZZQH-JMMMrVt_ClEXPkce3Uvf0TJNs"/>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-semibold">Aura Watch S2</h4>
+<p class="text-xs text-slate-400">124 sales this week</p>
+</div>
+<div class="text-right">
+<div class="text-sm font-bold text-primary">$4,280</div>
+<div class="text-[10px] text-emerald-400 font-medium">↑ 18%</div>
+</div>
+</div>
+<div class="liquid-glass p-3 rounded-2xl flex items-center gap-4">
+<div class="size-14 rounded-xl overflow-hidden bg-slate-800">
+<img class="w-full h-full object-cover opacity-80" data-alt="High-end wireless headphones in matte black" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhK-4m0B_Blv7csuyBkEubMQ1eunDlXpVaTMxRKJCbBuplClI2eS5vfc_W8YK_k1BFGqtnczHrDyU9ww9gaaazxnlxUEdpPxE3St1w_5v-Gv70hjLWW1ye1V3nNlsZYdYsi490LMM_M17PaXWlzVvowgnJinW0gIrRFdve4Mbow8_BmPO4C2bEP5yJHy8XeRtssmYurluAF6h0R3JMfk8Zc11GHYtOK2dCj_rYxeLziku6NCtV-TdAlT0RhMBZnJxDQUKBZVkGixk"/>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-semibold">Sonic Buds Pro</h4>
+<p class="text-xs text-slate-400">98 sales this week</p>
+</div>
+<div class="text-right">
+<div class="text-sm font-bold text-primary">$2,150</div>
+<div class="text-[10px] text-emerald-400 font-medium">↑ 12%</div>
+</div>
+</div>
+<div class="liquid-glass p-3 rounded-2xl flex items-center gap-4">
+<div class="size-14 rounded-xl overflow-hidden bg-slate-800">
+<img class="w-full h-full object-cover opacity-80" data-alt="Vibrant red athletic sneakers" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOuIMwGHVGru9sV56BxvgJSThFAxw3J4m07bSXAae8zuMllCFLyeTtfQSlofoqE1YD2tsIGPq5qwWgi_KYlqVtjlvnSUnXU2RLYtkJq85CXvGGNTx9RqkOavFm85JAesys4KSdlQRJHq1K-I4Xq6ZGoSdzcR-H5ZKx-sN73f9XD_UoRd3KKz-FoRMSDS5FLVpbEo1pvNoGSxr0kbl_6B1Uwa-uMOxpdfR8o29yd9XUNd1FgDGOt-yGtXKK4ztvzA07Ha47dkxnOMU"/>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-semibold">Aura Run Max</h4>
+<p class="text-xs text-slate-400">65 sales this week</p>
+</div>
+<div class="text-right">
+<div class="text-sm font-bold text-primary">$1,840</div>
+<div class="text-[10px] text-primary font-medium">↓ 2%</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sales Performance (Bar Chart Style) -->
+<div class="px-4 mt-6">
+<div class="liquid-glass rounded-3xl p-6">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-base font-bold">Sales Performance</h3>
+<div class="flex gap-1">
+<div class="size-2 rounded-full bg-primary"></div>
+<div class="size-2 rounded-full bg-white/10"></div>
+</div>
+</div>
+<div class="flex items-end justify-between h-32 gap-3 mb-2 px-1">
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full bg-primary/20 rounded-t-lg transition-all hover:bg-primary/40" style="height: 40%"></div>
+<span class="text-[10px] font-bold text-slate-500">W1</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full bg-primary/20 rounded-t-lg transition-all hover:bg-primary/40" style="height: 65%"></div>
+<span class="text-[10px] font-bold text-slate-500">W2</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full bg-primary rounded-t-lg shadow-lg shadow-primary/20" style="height: 90%"></div>
+<span class="text-[10px] font-bold text-primary">W3</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-2">
+<div class="w-full bg-primary/20 rounded-t-lg transition-all hover:bg-primary/40" style="height: 55%"></div>
+<span class="text-[10px] font-bold text-slate-500">W4</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 z-30 liquid-glass border-t-0 rounded-t-3xl px-6 pb-6 pt-3 flex justify-between items-center">
+<a class="flex flex-col items-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-semibold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-[10px] font-semibold">Store</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">analytics</span>
+<span class="text-[10px] font-semibold">Insights</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-[10px] font-semibold">Payouts</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-semibold">Config</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,8 @@
+﻿[dotenv@17.3.1] injecting env (20) from .env -- tip: ΓÜÖ∩╕Å  specify custom .env file path with { path: '/custom/path/.env' }
+FAILED_LOGS:
+FAILED: logistics1@auramarket.com | ERR: Connection timeout
+FAILED: ashoctavia118@gmail.com | ERR: Connection timeout
+FAILED: brandonasah11@gmail.com | ERR: Connection timeout
+FAILED: logistics1@auramarket.com | ERR: Connection timeout
+FAILED: asahkuches@gmail.com | ERR: Connection timeout
+FAILED: brandonasah11@gmail.com | ERR: Connection timeout

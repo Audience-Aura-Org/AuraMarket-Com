@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#120812", // Slightly deeper than config for better glass contrast
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"],
+                        "poppins": ["Poppins"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(242, 13, 242, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(242, 13, 242, 0.1);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-poppins text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative max-w-md mx-auto min-h-screen flex flex-col pb-24">
+<!-- Header -->
+<div class="sticky top-0 z-50 glass-panel px-6 py-6 flex items-center justify-between">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-semibold tracking-tight">Settings</h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+<!-- Profile Section -->
+<div class="px-6 py-8">
+<div class="glass-card rounded-lg p-6 flex items-center gap-4">
+<div class="relative">
+<div class="w-20 h-20 rounded-full border-2 border-primary p-1">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="User profile portrait of a woman" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBS81n4g4Ck9Euq9aKzI5f15SHgcWI8bZOl8jdKFE3bM4zWUfltB84yi4hBG55u0ri31MjwYs15LV6nfAHYRIGPKcDP-ejHidi1IQKusGCLFuj5-DHfuosOl9bXx00yEddgDHFA8tFQtArDIq8xWn4GukzyWpwnO2yxqD-7dONozB_4xIDlUWYpSak1TaJvOJCFlAaKq1wHWw6dsBKGY7V38q0f31kKZ_c0av9wOmAQYFXxo5z3LaYsux2pd1P2SMSuKYtZKrZNuDY')"></div>
+</div>
+<div class="absolute bottom-0 right-0 bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center border-2 border-background-dark">
+<span class="material-symbols-outlined text-xs">edit</span>
+</div>
+</div>
+<div>
+<h2 class="text-lg font-bold">Elena Vance</h2>
+<p class="text-sm text-slate-500 dark:text-slate-400">Premium Member</p>
+<div class="mt-2 inline-flex items-center px-2 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                        Aura Level 12
+                    </div>
+</div>
+</div>
+</div>
+<!-- Settings List -->
+<div class="px-6 space-y-8">
+<!-- Account Section -->
+<section>
+<h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Account Settings</h3>
+<div class="glass-card rounded-lg overflow-hidden divide-y divide-white/5">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">person</span>
+<span class="text-sm font-medium">Personal Information</span>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">credit_card</span>
+<span class="text-sm font-medium">Payment Methods</span>
+</div>
+<span class="text-xs text-slate-500 mr-2">Visa **** 4242</span>
+<span class="material-symbols-outlined text-slate-500 text-sm">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Appearance Section -->
+<section>
+<h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Preferences</h3>
+<div class="glass-card rounded-lg overflow-hidden divide-y divide-white/5">
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">dark_mode</span>
+<span class="text-sm font-medium">Dark Mode</span>
+</div>
+<div class="w-12 h-6 bg-primary rounded-full relative p-1 flex items-center justify-end">
+<div class="w-4 h-4 bg-white rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<span class="text-sm font-medium">Notifications</span>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Security Section -->
+<section>
+<h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Privacy &amp; Security</h3>
+<div class="glass-card rounded-lg overflow-hidden divide-y divide-white/5">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">shield</span>
+<span class="text-sm font-medium">Privacy Center</span>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">lock</span>
+<span class="text-sm font-medium">Two-Factor Auth</span>
+</div>
+<span class="text-xs text-primary font-bold mr-2">ON</span>
+<span class="material-symbols-outlined text-slate-500 text-sm">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Logout -->
+<button class="w-full py-4 rounded-lg border border-red-500/30 text-red-500 font-semibold text-sm bg-red-500/5 hover:bg-red-500/10 mb-8">
+                Sign Out of Aura Market
+            </button>
+</div>
+<!-- Bottom Navigation Bar (Fixed) -->
+<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-4 pb-4">
+<div class="glass-panel rounded-full flex items-center justify-around p-2 border-primary/20">
+<a class="flex flex-col items-center p-2 text-slate-400 hover:text-primary" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center p-2 text-slate-400 hover:text-primary" href="#">
+<span class="material-symbols-outlined">storefront</span>
+<span class="text-[10px] font-medium mt-1">Market</span>
+</a>
+<a class="flex flex-col items-center p-2 text-slate-400 hover:text-primary" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="text-[10px] font-medium mt-1">Cart</span>
+</a>
+<a class="flex flex-col items-center p-2 text-primary" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-medium mt-1">Settings</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Decorative Gradients for Glass Effect background -->
+<div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
+<div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/10 blur-[150px] rounded-full"></div>
+</div>
+</body></html>

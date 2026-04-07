@@ -1,0 +1,186 @@
+<html class="dark"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#f20df2",
+            "background-light": "#f8f5f8",
+            "background-dark": "#221022",
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans"],
+            "poppins": ["Poppins"]
+          },
+          borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .glass {
+      background: rgba(242, 13, 242, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(242, 13, 242, 0.1);
+    }
+    .glass-darker {
+      background: rgba(15, 7, 15, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(242, 13, 242, 0.2);
+    }
+    .status-line {
+      position: absolute;
+      left: 19px;
+      top: 24px;
+      bottom: 24px;
+      width: 2px;
+      background: rgba(242, 13, 242, 0.2);
+    }
+    .status-line-active {
+      position: absolute;
+      left: 19px;
+      top: 24px;
+      height: 66%;
+      width: 2px;
+      background: #f20df2;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-poppins text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="max-w-md mx-auto min-h-screen relative overflow-hidden flex flex-col">
+<!-- Background Decor -->
+<div class="absolute top-[-10%] right-[-10%] w-64 h-64 bg-primary/20 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[-5%] left-[-10%] w-80 h-80 bg-primary/10 rounded-full blur-[120px]"></div>
+<!-- Header -->
+<header class="relative z-10 px-6 pt-12 pb-6 flex items-center justify-between">
+<button class="w-12 h-12 flex items-center justify-center rounded-full glass border-primary/20">
+<span class="material-icons text-primary">arrow_back_ios_new</span>
+</button>
+<h1 class="text-xl font-semibold tracking-tight">Track Order</h1>
+<button class="w-12 h-12 flex items-center justify-center rounded-full glass border-primary/20">
+<span class="material-icons text-primary">more_vert</span>
+</button>
+</header>
+<!-- Map View -->
+<section class="relative z-10 px-6 mb-6">
+<div class="h-64 rounded-lg overflow-hidden relative shadow-2xl shadow-primary/10 border border-primary/20">
+<img class="w-full h-full object-cover" data-alt="Dark stylized city map with tracking route" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPvQ_9alNrD2GOWVj4m44rMhcw90GpL9lD7iIOJLXfWjQIWggs6bWZnz2gTB5PJTfbwG09la14gqa1BAz9QlL4LIxxcb5M6DCxRBjHtbVHl8F92VZTx0-IdohiotZEm4Gl4NCmVItqPFvWYJLFYBz09jvBL_wu6xL5bIMJJjT_KBTZ_c8O68qkNqMhSk4ngneBiJZ5cS8oC68MD6qp7EGcLELQK-PDkr85uJdzB9fM_G04o5flz6djTpp_ua6lgx46fRHKwrmNuMM"/>
+<div class="absolute inset-0 bg-background-dark/30 pointer-events-none"></div>
+<!-- Map Floating Labels -->
+<div class="absolute top-4 left-4 glass px-3 py-1 rounded-full flex items-center gap-2 border border-primary/30">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<span class="text-xs font-medium">On the way</span>
+</div>
+<!-- Custom Marker -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+<div class="relative">
+<div class="w-12 h-12 bg-primary/40 rounded-full flex items-center justify-center animate-ping absolute"></div>
+<div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center relative z-10 shadow-lg shadow-primary/50">
+<span class="material-icons text-white">local_shipping</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Content Card -->
+<section class="relative z-10 flex-grow px-6">
+<div class="glass-darker rounded-lg p-6 mb-6">
+<!-- Order Header Info -->
+<div class="flex justify-between items-start mb-6 border-b border-primary/10 pb-4">
+<div>
+<p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Tracking Number</p>
+<h2 class="text-lg font-bold text-primary">#AUR-8829410</h2>
+</div>
+<div class="text-right">
+<p class="text-xs text-slate-400 uppercase tracking-widest mb-1">Estimated Arrival</p>
+<h2 class="text-lg font-bold">24 Oct, 2023</h2>
+</div>
+</div>
+<!-- Status Timeline -->
+<div class="relative">
+<div class="status-line"></div>
+<div class="status-line-active"></div>
+<!-- Status Items -->
+<div class="space-y-8">
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40">
+<span class="material-icons text-sm text-white">check</span>
+</div>
+<div>
+<h4 class="font-semibold text-sm">Ordered</h4>
+<p class="text-xs text-slate-400">Oct 20, 2023 • 09:42 AM</p>
+</div>
+</div>
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 border-4 border-background-dark">
+<span class="material-icons text-sm text-white">check</span>
+</div>
+<div>
+<h4 class="font-semibold text-sm text-primary">Shipped</h4>
+<p class="text-xs text-slate-400">Oct 21, 2023 • 02:15 PM</p>
+</div>
+</div>
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 border-4 border-background-dark">
+<span class="material-icons text-sm text-white">local_shipping</span>
+</div>
+<div>
+<h4 class="font-semibold text-sm">Out for Delivery</h4>
+<p class="text-xs text-slate-400">Currently in your area</p>
+</div>
+</div>
+<div class="flex items-center gap-4 relative z-10 opacity-40">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-icons text-sm text-primary/40">home</span>
+</div>
+<div>
+<h4 class="font-semibold text-sm">Delivered</h4>
+<p class="text-xs text-slate-400">Expected by 6:00 PM</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Courier Contact -->
+<div class="glass flex items-center justify-between p-4 rounded-lg mb-8">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full border-2 border-primary overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Courier profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAES-InnQ3y5Bu5ZjDxEqx4QuX07fylRW_ga3RE7AwjBhrdrg0rtglCE1XyFAVM8D0FLGsW6ZmBPeivGbB8qPUxgMpVo2y-ARyJH0IrSOQqzWRK_IvPXbkY-5thEOmcP-O-oDkuUOVrwZaYLgW6Pv5kmoObo_-rqkNKuybzK5zNfrQR_uqGI-UWwwtcRyQayxROrsL68218ZODB12Hqio1jYlK2a1GCLQ12WOrKdTnuz_DyANfHTXmGnh9qBeSbCFjmDPgCbeX5ZIs"/>
+</div>
+<div>
+<h3 class="font-medium text-sm">Marcus Avery</h3>
+<p class="text-xs text-slate-400">Aura Delivery Partner</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-icons text-lg">chat_bubble</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-icons text-lg">call</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Bottom Action -->
+<div class="px-6 pb-10">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg shadow-xl shadow-primary/20 transition-all active:scale-95">
+        View Order Details
+      </button>
+</div>
+</div>
+</body></html>
