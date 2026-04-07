@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd aura-market/web && npm install && npm run build",
-  "outputDirectory": "aura-market/web/.next",
-  "installCommand": "npm install",
-  "framework": "nextjs"
-}
