@@ -64,6 +64,7 @@ app.set('io', io);
 // ─────────────────────────────────────────────
 app.use(cors({
   origin: [
+    'https://aura-market-com.vercel.app',
     'https://space.audienceaura.org',
     'http://localhost:3000',
     process.env.WEB_CLIENT_URL,
