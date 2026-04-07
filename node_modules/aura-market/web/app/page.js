@@ -6,6 +6,7 @@ import api from '@/services/api';
 import StorefrontRenderer from '@/components/homepage/StorefrontRenderer';
 import { useAuthStore } from '@/hooks/useAuth';
 import HubContent from '@/components/hub/HubContent';
+import { Sparkles, ArrowRight, Layout, ShoppingBag, Zap } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
