@@ -56,8 +56,8 @@ export default function Hero({ data, config }) {
             </div>
 
             {/* Premium Content Card */}
-            <div className="absolute inset-0 z-20 flex items-center justify-start max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 md:px-20">
-              <div className={`w-full sm:max-w-2xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0'}`}>
+            <div className="absolute inset-0 z-20 flex items-center justify-start max-w-6xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-8 md:px-20">
+              <div className={`w-full sm:max-w-xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0'}`}>
                 <div className="liquid-glass p-6 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2.5rem] space-y-4 md:space-y-6">
                   <div className="flex items-center gap-3 text-[var(--accent)] font-black text-[8px] md:text-[10px] uppercase tracking-[0.3em] mb-1 md:mb-2">
                     <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />

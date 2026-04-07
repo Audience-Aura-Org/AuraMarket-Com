@@ -67,22 +67,22 @@ html {
 
 /* Standard Desktop Scaling (Amazon-like comfort) */
 @media (min-width: 1024px) {
-  html { font-size: 15px; }
+  html { font-size: 14px; }
 }
 
 /* Large Desktop Scaling */
 @media (min-width: 1440px) {
-  html { font-size: 14px; }
+  html { font-size: 13px; }
 }
 
-/* Ultra-wide / 4K Scaling - The User's 80% Zoom Equivalent */
+/* Ultra-wide / 4K Scaling - The User's 80% Zoom Equivalent Plus Extra */
 @media (min-width: 1920px) {
-  html { font-size: 13.5px; }
+  html { font-size: 12px; }
 }
 
 /* 5K Scaling */
 @media (min-width: 2560px) {
-  html { font-size: 13px; }
+  html { font-size: 11px; }
 }
 
 body {
