@@ -143,7 +143,7 @@ const formatProducts = (products = []) => {
     <tr>
       <td>${p.name || 'Product'}</td>
       <td class="number">${p.quantity || 1}</td>
-      <td class="amount">₦${((p.price || 0) * (p.quantity || 1)).toLocaleString()}</td>
+      <td class="amount">XAF ${((p.price || 0) * (p.quantity || 1)).toLocaleString()}</td>
     </tr>`).join('');
   return `
     <table class="table-products">
@@ -205,7 +205,7 @@ const orderPlaced = ({ order, customer }) => {
       </div>
       <div class="card-row">
         <span class="card-label">Order Total</span>
-        <span class="card-value">₦${(order.total_amount || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
       </div>
     </div>
     
@@ -216,7 +216,7 @@ const orderPlaced = ({ order, customer }) => {
     <p style="margin-top: 20px; font-size: 13px; color: #888888;">You'll receive a tracking number once your order ships.</p>
   `;
   const html = wrap(subject, '✅ Order Confirmed', body);
-  return { subject, html, text: `Order #${ref} confirmed. Total: ₦${(order.total_amount || 0).toLocaleString()}.` };
+  return { subject, html, text: `Order #${ref} confirmed. Total: XAF ${(order.total_amount || 0).toLocaleString()}.` };
 };
 
 /* ─── PAYMENT CONFIRMED (Customer) ─── */
@@ -234,7 +234,7 @@ const paymentConfirmed = ({ order, customer }) => {
       </div>
       <div class="card-row">
         <span class="card-label">Amount Paid</span>
-        <span class="card-value">₦${(order.total_amount || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
       </div>
       <div class="card-divider"></div>
       <div class="card-row">
@@ -305,7 +305,7 @@ const refundApproved = ({ order, customer }) => {
       </div>
       <div class="card-row">
         <span class="card-label">Refunded Amount</span>
-        <span class="card-value">₦${(order.total_amount || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
       </div>
       <div class="card-divider"></div>
       <div class="card-row">
@@ -335,7 +335,7 @@ const orderCompleted = ({ order, vendor }) => {
       </div>
       <div class="card-row">
         <span class="card-label">Amount</span>
-        <span class="card-value">₦${(order.total_amount || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
       </div>
       <div class="card-divider"></div>
       <div class="card-row">
@@ -365,7 +365,7 @@ const newOrderForVendor = ({ order, vendor }) => {
       </div>
       <div class="card-row">
         <span class="card-label">Order Total</span>
-        <span class="card-value">₦${(order.total_amount || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
       </div>
       <div class="card-divider"></div>
       <div class="card-row">
@@ -403,7 +403,7 @@ const shipmentAssigned = ({ shipment, order, firm }) => {
       <div class="card-divider"></div>
       <div class="card-row">
         <span class="card-label">Delivery Fee</span>
-        <span class="card-value">₦${(shipment.price || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(shipment.price || 0).toLocaleString()}</span>
       </div>
     </div>
     
@@ -428,7 +428,7 @@ const refundRequested = ({ order, vendor, reason }) => {
       </div>
       <div class="card-row">
         <span class="card-label">Amount</span>
-        <span class="card-value">₦${(order.total_amount || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
       </div>
       <div class="card-divider"></div>
       <div class="card-row">
