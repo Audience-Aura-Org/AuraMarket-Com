@@ -72,10 +72,9 @@ export default function CartSidebar() {
         transition-all duration-300 ease-in-out overflow-hidden
         border-l border-[var(--glass-border)]
         bg-[var(--bg-primary)]/60 backdrop-blur-xl
-        sticky top-[64px] self-start
+        fixed right-0 top-[64px] bottom-0
         ${open ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-l-0'}
       `}
-      style={{ height: 'calc(100vh - 64px)' }}
     >
       {/* Inner content — fixed width, full height, never scrolls itself */}
       <div className="w-[260px] flex flex-col h-full overflow-hidden">
