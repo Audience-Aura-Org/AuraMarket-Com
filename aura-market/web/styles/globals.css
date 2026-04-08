@@ -11,10 +11,6 @@
   --color-text-primary: var(--text-primary);
   --color-card-bg: var(--card-bg);
   --font-display: "Poppins", sans-serif;
-  
-  /* Responsive Breakpoints & Constraints */
-  --site-max-width: 1440px;
-  --header-max-width: 1800px;
 }
 
 :root {
@@ -52,37 +48,13 @@
 }
 
 /* Rest of the file remains as before but ensuring no italics */
-/* Smart Scaling Engine - Prevents "too large" feel on high-res monitors */
 html {
   font-size: 16px;
-  transition: background-color 0.3s ease, color 0.3s ease, font-size 0.2s ease;
+  zoom: 0.7;
+  transform-origin: top left;
+  transition: background-color 0.3s ease, color 0.3s ease;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
-}
-
-/* Tablet Scaling */
-@media (min-width: 768px) and (max-width: 1023px) {
-  html { font-size: 15.5px; }
-}
-
-/* Standard Desktop Scaling (Amazon-like comfort) */
-@media (min-width: 1024px) {
-  html { font-size: 14px; }
-}
-
-/* Large Desktop Scaling */
-@media (min-width: 1440px) {
-  html { font-size: 13px; }
-}
-
-/* Ultra-wide / 4K Scaling - The User's 80% Zoom Equivalent Plus Extra */
-@media (min-width: 1920px) {
-  html { font-size: 12px; }
-}
-
-/* 5K Scaling */
-@media (min-width: 2560px) {
-  html { font-size: 11px; }
 }
 
 body {
@@ -118,12 +90,12 @@ header.bg-\[var\(--nav-bg\)\] [class*="bg-[var(--bg-primary)]"] {
 }
 
 @media (max-width: 640px) {
-  html { font-size: 15px; } /* Slightly smaller for mobile to fit more content gracefully */
+  html { font-size: 15px; }
   input, textarea, select { font-size: 16px !important; }
-  h1 { font-size: 1.25rem; line-height: 1.1; letter-spacing: -0.02em; }
-  h2 { font-size: 1.1rem; line-height: 1.1; }
-  h3 { font-size: 1rem; line-height: 1.1; }
-  h4, h5, h6 { font-size: 0.9rem; line-height: 1.1; }
+  h1 { font-size: 18px; line-height: 1.1; letter-spacing: -0.02em; }
+  h2 { font-size: 16px; line-height: 1.1; }
+  h3 { font-size: 14px; line-height: 1.1; }
+  h4, h5, h6 { font-size: 13px; line-height: 1.1; }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
 }

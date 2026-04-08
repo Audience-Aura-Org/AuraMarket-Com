@@ -10,8 +10,9 @@ const NAV = [
     label: 'Shop',
     links: [
       { name: 'Discovery Hub', href: '/discovery' },
-      { name: 'Collections', href: '/collections' },
+      { name: 'Collections', href: '/shop' },
       { name: 'Verified Brands', href: '/brands' },
+      { name: 'Signature Drops', href: '/search' },
     ],
   },
   {
@@ -19,15 +20,16 @@ const NAV = [
     links: [
       { name: 'Global Merchants', href: '/vendors' },
       { name: 'Global Logistics', href: '/logistics' },
-      { name: 'Help Hub', href: '/help' },
+      { name: 'Support Hub', href: '/help' },
+      { name: 'Network Status', href: '/api-status' },
     ],
   },
   {
     label: 'Legal',
     links: [
       { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Market Rules', href: '/rules' },
-      { name: 'Cookie Policy', href: '/cookies' },
+      { name: 'Market Rules', href: '/terms' },
+      { name: 'Cookie Policy', href: '/privacy' },
     ],
   },
 ];
@@ -43,9 +45,8 @@ export default function Footer() {
   useEffect(() => { setMounted(true); }, []);
   if (!mounted) return null;
 
-  const isDashboard = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics');
   const isChatPage = pathname?.startsWith('/messages') || pathname?.startsWith('/chat') || pathname?.startsWith('/admin/messages');
-  if (isChatPage || isDashboard) return null;
+  if (isChatPage) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -62,7 +63,7 @@ export default function Footer() {
       <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
 
       {/* Main body */}
-      <div className="max-w-6xl 2xl:max-w-[1440px] mx-auto px-6 md:px-12 lg:px-20 py-16">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-20 py-16">
 
         {/* ── TOP ROW: Brand left, newsletter right ─────────────────────────── */}
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-0 justify-between mb-16">

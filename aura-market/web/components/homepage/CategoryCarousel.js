@@ -6,7 +6,7 @@ export default function CategoryCarousel({ title, data }) {
   if (!data?.length) return null;
 
   return (
-    <section className="py-4 px-6 max-w-6xl 2xl:max-w-[1440px] mx-auto">
+    <section className="py-4 px-6 max-w-7xl mx-auto">
       <div className="flex items-end justify-between mb-6">
         <div>
           <h2 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
