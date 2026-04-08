@@ -40,9 +40,19 @@ async function handleRequest(request, params, method) {
       headers,
     };
 
-    if (method !== 'GET' && method !== 'HEAD') {
-      const body = await request.text();
-      if (body) options.body = body;
+    // Handle Body for mutation requests (POST/PUT/PATCH)
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'DELETE') {
+      const contentType = request.headers.get('content-type') || '';
+      
+      // For multipart/form-data (uploads), we must forward the raw body stream
+      if (contentType.includes('multipart/form-data')) {
+        options.body = await request.formData();
+        // Browser sets boundary automatically, so we let the backend handle it
+        headers.delete('content-type'); 
+      } else {
+        const body = await request.arrayBuffer();
+        if (body.byteLength > 0) options.body = body;
+      }
     }
 
     console.log(`[Bridge] ${method} -> ${BACKEND_URL}`);
@@ -52,12 +62,14 @@ async function handleRequest(request, params, method) {
       console.warn(`[Bridge Error] Backend returned ${response.status} for ${path}`);
     }
 
-    const data = await response.text();
+    // Capture the raw buffer or text from backend
+    const resContentType = response.headers.get('Content-Type') || 'application/json';
+    const responseData = await response.arrayBuffer();
 
-    return new NextResponse(data, {
+    return new NextResponse(responseData, {
       status: response.status,
       headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
+        'Content-Type': resContentType,
       },
     });
   } catch (error) {
