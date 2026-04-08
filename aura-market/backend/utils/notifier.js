@@ -23,15 +23,28 @@ const transporter = nodemailer.createTransport({
   tls: { rejectUnauthorized: false } // Crucial for Titan SMTP stability on cloud nodes
 });
 
+const LOGO_URL = 'https://aura-market-com.vercel.app/logo-white.png';
+
+// App brand colors for notifier fallback
+const COLORS = {
+  accent: '#f20df2',
+  accentLight: '#f472b6',
+  accentGlow: 'rgba(242, 13, 242, 0.12)',
+  bgPrimary: '#ffffff',
+  bgSecondary: '#f8f5f8',
+  textPrimary: '#0f172a',
+  textSecondary: '#64748b',
+};
+
 /**
- * Signal Template: Standard Order/Status Email
+ * Signal Template: Standard Order/Status Email (Updated with app colors)
  */
 const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink) => {
   // Safely map products - handle both direct product array and nested products
   const productList = (orderDetails?.products || []).map(p => {
     const productName = p.name || p.product?.name || 'Product';
     const productQty = p.quantity || 1;
-    return `<li style="margin-bottom: 8px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">${productName} <span style="color: #888; font-weight: 500;">×${productQty}</span></li>`;
+    return `<li style="margin-bottom: 10px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif; color: ${COLORS.textSecondary}; border-bottom: 1px solid ${COLORS.accentGlow}; padding-bottom: 10px;">${productName} <span style="color: ${COLORS.textSecondary}; font-weight: 500;">×${productQty}</span></li>`;
   }).join('');
   
   const totalAmount = orderDetails?.total_amount || 0;
@@ -43,42 +56,66 @@ const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; background: ${COLORS.accentGlow}; }
+    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 16px; }
+    .email-container { max-width: 100%; width: 100%; background: ${COLORS.bgPrimary}; }
+    .header { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 32px; text-align: center; position: relative; }
+    .header::before { content: ''; position: absolute; top: -30%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+    .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .header-logo { height: 36px; }
+    .header-title { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin: 0; font-family: 'Poppins', sans-serif; }
+    .content { padding: 40px 32px; font-family: 'Poppins', sans-serif; }
+    .content h2 { font-size: 24px; color: ${COLORS.textPrimary}; margin-bottom: 20px; font-weight: 800; font-family: 'Poppins', sans-serif; }
+    .content p { font-size: 15px; color: ${COLORS.textSecondary}; margin-bottom: 16px; line-height: 1.7; font-family: 'Poppins', sans-serif; }
+    .card { background: ${COLORS.bgPrimary}; border: 1px solid ${COLORS.accentGlow}; border-radius: 16px; padding: 24px; margin: 24px 0; box-shadow: 0 4px 20px rgba(242,13,242,0.08); }
+    .card h3 { margin-top: 0; margin-bottom: 16px; color: ${COLORS.textPrimary}; font-weight: 800; font-family: 'Poppins', sans-serif; }
+    .card ul { padding-left: 0; list-style: none; margin: 0 0 16px 0; }
+    .card-total { display: flex; justify-content: space-between; font-weight: 700; color: ${COLORS.textPrimary}; font-size: 16px; font-family: 'Poppins', sans-serif; align-items: center; border-top: 1px solid ${COLORS.accentGlow}; padding-top: 16px; margin-top: 16px; }
+    .card-total-amount { color: ${COLORS.accent}; font-size: 18px; }
+    .btn { display: inline-block; background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); color: #fff; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; font-family: 'Poppins', sans-serif; box-shadow: 0 4px 20px rgba(242,13,242,0.3); }
+    .footer { background: ${COLORS.textPrimary}; padding: 32px; text-align: center; font-family: 'Poppins', sans-serif; }
+    .footer p { font-size: 13px; color: rgba(255,255,255,0.7); margin: 6px 0; font-family: 'Poppins', sans-serif; }
+    .footer-brand { font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 8px !important; }
+  </style>
 </head>
 <body>
-  <div style="font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.1); border: 1px solid rgba(233,69,96,0.1);">
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #e94560 0%, #d4365a 100%); padding: 40px 30px; color: white; text-align: center; position: relative; overflow: hidden;">
-      <div style="position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; transform: translate(100px, -50px);"></div>
-      <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; position: relative; z-index: 1; font-family: 'Poppins', sans-serif;">${title}</h1>
-    </div>
-    
-    <!-- Content -->
-    <div style="padding: 40px 30px;">
-      <p style="font-size: 16px; color: #333; margin-bottom: 20px; line-height: 1.8; font-family: 'Poppins', sans-serif;">${message}</p>
+  <div class="email-wrapper">
+    <div class="email-container">
+      <div class="header">
+        <div class="header-content">
+          <img src="${LOGO_URL}" alt="Aura Market" class="header-logo" onerror="this.style.display='none'" />
+          <h1 class="header-title">Aura Market</h1>
+        </div>
+      </div>
       
-      ${orderDetails ? `
-        <div style="background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%); border: 1.5px solid #e8e8e8; padding: 24px; border-radius: 10px; margin: 24px 0;">
-          <h3 style="margin-top: 0; margin-bottom: 16px; color: #1d1d1f; font-weight: 800; font-family: 'Poppins', sans-serif;">Order Details</h3>
-          <ul style="padding-left: 0; list-style: none; margin: 0 0 16px 0;">${productList}</ul>
-          <div style="border-top: 1.5px solid #f0f0f0; padding-top: 16px; margin-top: 16px;">
-            <p style="margin: 0; display: flex; justify-content: space-between; font-weight: 700; color: #1d1d1f; font-size: 16px; font-family: 'Poppins', sans-serif; align-items: center;">
+      <div class="content">
+        <h2>${title}</h2>
+        <p>${message}</p>
+        
+        ${orderDetails ? `
+          <div class="card">
+            <h3>Order Details</h3>
+            <ul>${productList}</ul>
+            <div class="card-total">
               <span>Total:</span>
-              <span style="color: #e94560; font-size: 18px;">XAF ${totalAmount.toLocaleString()}</span>
-            </p>
+              <span class="card-total-amount">XAF ${totalAmount.toLocaleString()}</span>
+            </div>
           </div>
-        </div>
-      ` : ''}
+        ` : ''}
+        
+        ${emailLink ? `
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="${emailLink}" class="btn">View Details</a>
+          </div>
+        ` : ''}
+      </div>
       
-      ${emailLink ? `
-        <div style="margin-top: 30px; text-align: center;">
-          <a href="${emailLink}" style="display: inline-block; background: linear-gradient(135deg, #e94560 0%, #d4365a 100%); color: #fff; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; font-family: 'Poppins', sans-serif; box-shadow: 0 4px 12px rgba(233,69,96,0.3);">View Details on Aura</a>
-        </div>
-      ` : ''}
-    </div>
-    
-    <!-- Footer -->
-    <div style="background: linear-gradient(135deg, #f5f5f7 0%, #fafafa 100%); padding: 24px 30px; text-align: center; border-top: 1.5px solid #e8e8e8;">
-      <p style="margin: 0; font-size: 12px; color: #888; font-family: 'Poppins', sans-serif;">Aura Market Protocol — Secure Transaction Channel</p>
+      <div class="footer">
+        <p class="footer-brand">Aura Market</p>
+        <p>Questions? <a href="mailto:support@auramarket.com" style="color: ${COLORS.accentLight}; text-decoration: none; font-weight: 700;">support@auramarket.com</a></p>
+        <p>© ${new Date().getFullYear()} Aura Market • Audience Aura Org</p>
+      </div>
     </div>
   </div>
 </body>
