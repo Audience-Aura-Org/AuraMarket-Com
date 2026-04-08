@@ -252,7 +252,7 @@ export default function HubContent() {
       </div>
 
       {/* ── DESKTOP VIEW: 3-COLUMN LAYOUT ───────────────────────────────────── */}
-      <div className="hidden md:flex w-[90%] h-[calc(100vh-72px)] relative z-10 mx-auto gap-8 px-6 py-8">
+      <div className="hidden md:flex w-[90%] h-[calc(100vh-72px)] relative z-10 mx-auto gap-8 px-6 py-8 pr-72">
          {/* Sidebar: Chat List */}
          <div className="w-[350px] flex flex-col gap-6">
             <div className="flex flex-col gap-2">
