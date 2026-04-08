@@ -14,7 +14,7 @@ export default function CartSidebar() {
   const [items, setItems] = useState(cartStore.getItems());
 
   // Pages where the sidebar should never appear
-  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat'];
+  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat', '/discovery', '/onboarding'];
   const shouldHide = hidden.some(r => pathname?.startsWith(r));
 
   useEffect(() => {
