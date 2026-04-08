@@ -77,7 +77,7 @@ export default function CartSidebar() {
       `}
     >
       {/* Inner content — fixed width, full height, never scrolls itself */}
-      <div className="w-[260px] flex flex-col h-full overflow-hidden">
+      <div className="w-[260px] flex flex-col h-full overflow-hidden justify-between">
 
         {/* Header */}
         <div className="px-5 pt-6 pb-4 border-b border-[var(--glass-border)] shrink-0">
@@ -137,7 +137,7 @@ export default function CartSidebar() {
         </div>
 
         {/* Footer / CTA — ALWAYS at bottom */}
-        <div className="px-4 pb-6 pt-4 border-t border-[var(--glass-border)] shrink-0 space-y-3 bg-[var(--bg-primary)]/80 backdrop-blur-sm shadow-lg shadow-black/10">
+        <div className="px-4 py-4 border-t border-[var(--glass-border)] shrink-0 space-y-3 bg-[var(--bg-primary)]/95 backdrop-blur-md shadow-lg shadow-black/20 mt-auto">
           {/* Subtotal */}
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Subtotal</span>
