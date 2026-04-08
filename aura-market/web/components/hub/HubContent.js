@@ -117,6 +117,8 @@ export default function HubContent() {
         }
       } catch (err) {
         console.error('Inbox fetch failed:', err);
+        // Fallback to empty inbox if endpoint doesn't exist
+        setInbox([]);
       } finally {
         setLoadingInbox(false);
       }
@@ -194,7 +196,7 @@ export default function HubContent() {
   ];
 
   return (
-    <div className="flex flex-1 min-h-screen bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)]">
+    <div className="flex flex-1 min-h-[calc(100vh-57px)] bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)] pb-20 md:pb-0">
       {/* Background Ambience */}
       <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
          <div className="absolute top-[-10%] left-[-10%] size-96 bg-[var(--accent)] blur-[100px] rounded-full" />
