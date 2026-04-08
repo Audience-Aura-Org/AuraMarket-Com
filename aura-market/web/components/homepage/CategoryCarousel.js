@@ -37,7 +37,7 @@ export default function CategoryCarousel({ title, data }) {
                   {cat.category_name}
                 </span>
               </div>
-            </Link>
+            </div>
             <p className="mt-4 text-center font-bold text-[var(--text-primary)] opacity-80 group-hover:opacity-100 transition-opacity truncate whitespace-nowrap px-2">
               {cat.category_name}
             </p>
