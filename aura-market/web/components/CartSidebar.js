@@ -137,8 +137,8 @@ export default function CartSidebar() {
           ))}
         </div>
 
-        {/* Footer / CTA */}
-        <div className="px-4 pb-6 pt-4 border-t border-[var(--glass-border)] shrink-0 space-y-3">
+        {/* Footer / CTA — ALWAYS at bottom */}
+        <div className="px-4 pb-6 pt-4 border-t border-[var(--glass-border)] shrink-0 space-y-3 bg-[var(--bg-primary)]/80 backdrop-blur-sm shadow-lg shadow-black/10">
           {/* Subtotal */}
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Subtotal</span>
