@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MessageCircle, LayoutGrid, Search, 
-  Loader2, Star, Heart, Bell, 
-  List, Check, ChevronRight, Home, Folder, Users
+  Loader2, Heart, Bell, 
+  List, Check, ChevronRight, Home, Folder, Users, ArrowLeft
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -28,11 +28,12 @@ export default function HubContent() {
   const [sortBy, setSortBy] = useState('-createdAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
   
-  // Category filters
+  // Category filters - like Shop page
   const [categories, setCategories] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeCategoryName, setActiveCategoryName] = useState('All');
   const [breadcrumb, setBreadcrumb] = useState([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
   const resultsAnchor = useRef(null);
 
   // Real-time incoming message updates
@@ -103,9 +104,12 @@ export default function HubContent() {
   useEffect(() => {
     const fetchInbox = async () => {
       try {
-        // Fetch active chats
-        const chatRes = await api.get('/chat');
-        const activeChats = chatRes.data.activeChats || [];
+        // Fetch active chats from /messages endpoint
+        const chatRes = await api.get('/messages');
+        let activeChats = [];
+        if (chatRes.data.success) {
+          activeChats = chatRes.data.data || [];
+        }
         
         // Fetch followed vendors
         let followedVendors = [];
@@ -113,14 +117,12 @@ export default function HubContent() {
           const followRes = await api.get('/follows');
           followedVendors = followRes.data?.data?.follows || [];
         } catch (e) {
-          // Endpoint might not exist
           console.log('Follows endpoint not available');
         }
         
         // Combine and deduplicate
         const allChats = [...activeChats];
         
-        // Add followed vendors that aren't already in chats
         followedVendors.forEach(vendor => {
           const vendorId = vendor.vendor_id?._id || vendor.vendor_id;
           if (!allChats.some(c => (c.partner?._id || c.partner)?.toString() === vendorId?.toString())) {
@@ -151,7 +153,7 @@ export default function HubContent() {
     try {
       setLoadingFeed(true);
       const params = { page: p, limit: 24 };
-      if (activeCategory && activeCategory !== 'All') params.category = activeCategory;
+      if (activeCategory) params.category = activeCategoryName;
       if (sortBy) params.sort = sortBy;
       if (searchTerm) params.search = searchTerm;
       
@@ -174,7 +176,7 @@ export default function HubContent() {
       setPage(1);
       fetchFeed(1);
     }
-  }, [activeCategory, sortBy, searchTerm]);
+  }, [activeCategory]);
 
   useEffect(() => {
     if (activeTab === 'feed' && page > 1) {
@@ -182,31 +184,46 @@ export default function HubContent() {
     }
   }, [page]);
 
+  // Category navigation - like Shop page
+  const currentLevel = breadcrumb.length === 0 ? categories : breadcrumb[breadcrumb.length - 1].children || [];
+
   const handleCategoryClick = (cat) => {
     if (cat.children && cat.children.length > 0) {
       setBreadcrumb(prev => [...prev, cat]);
-      setActiveCategory(cat.name);
+      setActiveCategory(cat._id);
+      setActiveCategoryName(cat.name);
     } else {
-      setActiveCategory(cat.name);
+      setActiveCategory(cat._id);
+      setActiveCategoryName(cat.name);
     }
   };
 
-  const handleBreadcrumbClick = (idx) => {
-    if (idx === -1) {
-      setBreadcrumb([]);
-      setActiveCategory('All');
-    } else {
-      const newBreadcrumb = breadcrumb.slice(0, idx + 1);
+  const handleBackClick = () => {
+    if (breadcrumb.length > 0) {
+      const newBreadcrumb = breadcrumb.slice(0, -1);
       setBreadcrumb(newBreadcrumb);
-      setActiveCategory(newBreadcrumb[newBreadcrumb.length - 1].name);
+      if (newBreadcrumb.length > 0) {
+        const last = newBreadcrumb[newBreadcrumb.length - 1];
+        setActiveCategory(last._id);
+        setActiveCategoryName(last.name);
+      } else {
+        setActiveCategory(null);
+        setActiveCategoryName('All');
+      }
     }
   };
 
-  const currentLevel = breadcrumb.length === 0 ? categories : breadcrumb[breadcrumb.length - 1].children || [];
+  const handleHomeClick = () => {
+    setBreadcrumb([]);
+    setActiveCategory(null);
+    setActiveCategoryName('All');
+  };
 
   const filteredInbox = useMemo(() => {
-    return inbox.filter(c => c.partner?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           c.partner?.store_name?.toLowerCase().includes(searchTerm.toLowerCase()));
+    return inbox.filter(c => 
+      c.partner?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.partner?.store_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   }, [inbox, searchTerm]);
 
   const SORT_OPTIONS = [
@@ -224,7 +241,7 @@ export default function HubContent() {
          <div className="absolute bottom-[-10%] right-[-10%] size-96 bg-[var(--accent-light)] blur-[100px] rounded-full" />
       </div>
 
-      {/* ── MOBILE VIEW: TABBED INTERFACE ────────────────────────────────────── */}
+      {/* ── MOBILE VIEW ────────────────────────────────────── */}
       <div className="md:hidden flex flex-col w-full relative z-10">
          {/* Sticky Tab Bar */}
          <div className="sticky top-[56px] z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-2.5 shadow-sm">
@@ -286,45 +303,36 @@ export default function HubContent() {
                      exit={{ opacity: 0, x: -10 }}
                      className="space-y-3 pt-4"
                    >
-                      {/* Search */}
-                      <div className="relative mb-2">
-                        <input
-                          type="text"
-                          value={searchTerm}
-                          onChange={e => setSearchTerm(e.target.value)}
-                          placeholder="Search products..."
-                          className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-12 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
-                        />
-                        <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-bold">
-                          <Search className="size-3" />
-                        </button>
-                      </div>
-                      
-                      {/* Category Chips */}
+                      {/* Category Chips - like Shop */}
                       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-                        {isCategoriesLoading ? (
-                          [...Array(6)].map((_, i) => (
-                            <div key={i} className="shrink-0 w-20 h-8 rounded-full bg-[var(--bg-primary)] animate-pulse border border-[var(--glass-border)]/30"></div>
-                          ))
-                        ) : (
-                          <>
-                            <button 
-                              onClick={() => { setActiveCategory('All'); setBreadcrumb([]); }}
-                              className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] font-medium shadow-sm ${activeCategory === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
-                            >
-                              All
-                            </button>
-                            {currentLevel.map(cat => (
-                              <button
-                                key={cat._id}
-                                onClick={() => handleCategoryClick(cat)}
-                                className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] font-medium shadow-sm ${activeCategory === cat.name ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
-                              >
-                                {cat.name}
-                              </button>
-                            ))}
-                          </>
+                        {/* Back Button */}
+                        {breadcrumb.length > 0 && (
+                          <button 
+                            onClick={handleBackClick}
+                            className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--text-primary)] transition-all"
+                          >
+                            <ArrowLeft className="size-3" />
+                          </button>
                         )}
+                        
+                        {/* Home Button */}
+                        <button 
+                          onClick={handleHomeClick}
+                          className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        >
+                          All
+                        </button>
+                        
+                        {/* Category Chips */}
+                        {currentLevel.map(cat => (
+                          <button
+                            key={cat._id}
+                            onClick={() => handleCategoryClick(cat)}
+                            className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] font-medium shadow-sm ${activeCategory === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
                       </div>
                       
                       {/* Sort & View Toggle */}
@@ -361,13 +369,17 @@ export default function HubContent() {
                         </div>
                       </div>
                       
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-1">Calibrated Discovery</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-1">
+                        {activeCategoryName === 'All' ? 'Calibrated Discovery' : activeCategoryName}
+                      </p>
                       {loadingFeed ? (
                          <div className="grid grid-cols-2 gap-3">
                            {[1,2,3,4,5,6].map(i => (
                              <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-[var(--glass-border)]" />
                            ))}
                          </div>
+                      ) : feed.length === 0 ? (
+                        <EmptyPlaceholder icon={Search} text="No products in this category" />
                       ) : (
                         <div className={viewMode === 'grid' ? "grid grid-cols-2 gap-3 mb-6" : "flex flex-col gap-4 mb-6"}>
                           {feed.map(product => <ProductCard key={product._id} product={product} layout={viewMode} />)}
@@ -392,7 +404,7 @@ export default function HubContent() {
       {/* ── DESKTOP VIEW ────────────────────────────────────────────────────── */}
       <div className="hidden md:flex flex-1 w-full relative z-10">
         
-        {/* ── LEFT SIDEBAR: Inbox ─────────────────────────────────────────── */}
+        {/* ── LEFT SIDEBAR ─────────────────────────────────────────── */}
         <div className="w-80 border-r border-[var(--glass-border)] flex flex-col bg-[var(--bg-primary)]/50 backdrop-blur-sm">
           {/* Header */}
           <div className="sticky top-0 z-20 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] p-5">
@@ -446,7 +458,7 @@ export default function HubContent() {
               ) : (
                 <div className="p-3 space-y-1">
                   {filteredInbox.length === 0 ? (
-                    <EmptyPlaceholder icon={Users} text="No messages yet. Follow vendors to chat!" />
+                    <EmptyPlaceholder icon={Users} text="No messages yet." />
                   ) : (
                     <>
                       {/* Messages Section */}
@@ -472,96 +484,57 @@ export default function HubContent() {
                 </div>
               )
             ) : (
-              <div className="p-4 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-3 ml-1">Categories</p>
+              <div className="p-4 space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-3 ml-1">
+                  {activeCategoryName === 'All' ? 'Categories' : activeCategoryName}
+                </p>
+                
+                {/* Navigation Buttons */}
+                <div className="flex items-center gap-2 mb-2">
+                  {breadcrumb.length > 0 && (
+                    <button 
+                      onClick={handleBackClick}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+                    >
+                      <ArrowLeft className="size-3" /> Back
+                    </button>
+                  )}
+                  <button 
+                    onClick={handleHomeClick}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-[11px] font-medium ${activeCategoryName === 'All' ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  >
+                    <Home className="size-4" /> All
+                  </button>
+                </div>
+                
+                {/* Category List - replaces one step at a time */}
                 {isCategoriesLoading ? (
                   [...Array(8)].map((_, i) => (
                     <div key={i} className="h-10 rounded-xl bg-[var(--bg-secondary)] animate-pulse border border-[var(--glass-border)]/30"></div>
                   ))
                 ) : (
-                  <>
-                    {/* Breadcrumb Navigation */}
-                    {breadcrumb.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <button 
-                          onClick={() => handleBreadcrumbClick(-1)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
-                        >
-                          <Home className="size-3" /> Home
-                        </button>
-                        {breadcrumb.map((crumb, idx) => (
-                          <div key={crumb._id} className="flex items-center gap-2">
-                            <ChevronRight className="size-3 text-[var(--glass-border)]" />
-                            <button 
-                              onClick={() => handleBreadcrumbClick(idx)} 
-                              className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all ${
-                                idx === breadcrumb.length - 1 && !currentLevel.length
-                                  ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20'
-                                  : 'border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                              }`}
-                            >
-                              {crumb.name}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Category List */}
-                    {currentLevel.length > 0 ? (
-                      currentLevel.map(cat => (
-                        <button 
-                          key={cat._id}
-                          onClick={() => handleCategoryClick(cat)}
-                          className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === cat.name ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <Folder className="size-4" />
-                            {cat.name}
-                          </span>
-                          {cat.children?.length > 0 && (
-                            <ChevronRight className="size-3 text-[var(--glass-border)]" />
-                          )}
-                        </button>
-                      ))
-                    ) : activeCategory !== 'All' ? (
-                      <div className="text-center py-6 text-[11px] text-[var(--text-secondary)]/60">
-                        No subcategories
-                      </div>
-                    ) : (
-                      <>
-                        <button 
-                          onClick={() => { setActiveCategory('All'); setBreadcrumb([]); }}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === 'All' ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
-                        >
-                          <Home className="size-4" />
-                          All Products
-                        </button>
-                        {categories.map(cat => (
-                          <button 
-                            key={cat._id}
-                            onClick={() => handleCategoryClick(cat)}
-                            className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === cat.name ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
-                          >
-                            <span className="flex items-center gap-3">
-                              <Folder className="size-4" />
-                              {cat.name}
-                            </span>
-                            {cat.children?.length > 0 && (
-                              <ChevronRight className="size-3 text-[var(--glass-border)]" />
-                            )}
-                          </button>
-                        ))}
-                      </>
-                    )}
-                  </>
+                  currentLevel.map(cat => (
+                    <button 
+                      key={cat._id}
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === cat._id ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Folder className="size-4" />
+                        {cat.name}
+                      </span>
+                      {cat.children?.length > 0 && (
+                        <ChevronRight className="size-3 text-[var(--glass-border)]" />
+                      )}
+                    </button>
+                  ))
                 )}
               </div>
             )}
           </div>
         </div>
 
-        {/* ── MAIN CONTENT: Discovery Feed ────────────────────────────────── */}
+        {/* ── MAIN CONTENT ────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto no-scrollbar" ref={resultsAnchor}>
           {activeTab === 'feed' && (
             <>
@@ -572,7 +545,7 @@ export default function HubContent() {
                   {/* Results Count */}
                   <p className="text-[11px] font-medium text-[var(--text-secondary)] shrink-0">
                     <span className="text-[var(--text-primary)] font-semibold">{feed.length}</span> products
-                    {activeCategory !== 'All' && <span> in <span className="text-[var(--text-primary)] font-semibold">{activeCategory}</span></span>}
+                    {activeCategoryName !== 'All' && <span> in <span className="text-[var(--text-primary)] font-semibold">{activeCategoryName}</span></span>}
                   </p>
 
                   {/* Sort Dropdown */}
@@ -624,7 +597,7 @@ export default function HubContent() {
                       <Search className="size-8 text-[var(--text-secondary)]/50" />
                     </div>
                     <h3 className="text-xl font-black text-[var(--text-primary)] mb-2">No Products Found</h3>
-                    <p className="text-sm text-[var(--text-secondary)]">Try adjusting your filters.</p>
+                    <p className="text-sm text-[var(--text-secondary)]">Select a category from the sidebar</p>
                   </div>
                 ) : (
                   <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8" : "flex flex-col gap-4 mb-8 max-w-5xl"}>
