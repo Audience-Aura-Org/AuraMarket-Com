@@ -252,9 +252,9 @@ export default function HubContent() {
       </div>
 
       {/* ── DESKTOP VIEW: 3-COLUMN LAYOUT ───────────────────────────────────── */}
-      <div className="hidden md:flex w-full h-[calc(100vh-72px)] relative z-10 container mx-auto gap-8 px-6 py-8">
+      <div className="hidden md:flex w-full h-[calc(100vh-72px)] relative z-10 container mx-auto gap-6 px-6 py-8">
          {/* Sidebar: Chat List */}
-         <div className="w-[350px] flex flex-col gap-6">
+         <div className="w-[280px] flex flex-col gap-6">
             <div className="flex flex-col gap-2">
                <h2 className="text-3xl font-black uppercase tracking-tighter">THE HUB</h2>
                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)] opacity-80">Operational Pulse</p>
@@ -310,7 +310,7 @@ export default function HubContent() {
                   </div>
                ) : (
                   <>
-                    <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
                        {feed.map(product => <ProductCard key={product._id} product={product} />)}
                     </div>
 
