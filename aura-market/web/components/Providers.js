@@ -19,8 +19,8 @@ export default function Providers({ children }) {
         <PWAInstallBanner />
         <OnboardingWatcher />
         <TopNav />
-        <div className="flex flex-row items-stretch w-full">
-          <main className="flex-1 flex flex-col min-h-screen min-w-0">
+        <div className="flex w-full items-stretch flex-1">
+          <main className="flex-1flex flex-col min-h-screen min-w-0">
             {children}
             <Footer />
           </main>
