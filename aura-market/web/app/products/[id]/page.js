@@ -120,21 +120,19 @@ export default function ProductDetailsPage() {
   const handleBuyNow = async () => {
     if (!user) { router.push('/login'); return; }
     if (!product.vendor_id) { showToast('Vendor info missing.', 'error'); return; }
-    setBuyingNow(true);
+    
+    // Add to cart and go directly to checkout
     try {
-      const res = await api.post('/orders', {
-        vendor_id: product.vendor_id._id || product.vendor_id,
-        products: [{ product_id: id, quantity }],
-        payment_method: 'wallet',
-        shipping_method: 'standard',
-      });
-      const orderId = res.data.data?.order?._id;
-      router.push(`/checkout?order=${orderId}`);
+      trackCart(product);
+      cartStore.addItem(product, quantity);
+      
+      // Sync with server quietly
+      await api.post('/cart', { product_id: id, quantity }).catch(() => {});
+      
+      // Go directly to checkout without creating order first
+      router.push('/checkout');
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Could not place order. Try again.';
-      showToast(msg, 'error');
-    } finally {
-      setBuyingNow(false);
+      showToast('Failed to proceed. Try again.', 'error');
     }
   };
 
