@@ -567,8 +567,25 @@ const createOrdersFromCart = async (req, res, next) => {
         for (const orderId of createdOrderIds) {
           const o = await Order.findById(orderId);
           const v = await Vendor.findById(o.vendor_id);
-          sendNotification(req.app, v.user_id, { title: 'New Order Received', message: `Order #${o._id.toString().slice(-6)} received (POD).`, type: 'order_status', sendEmail: true });
-          sendNotification(req.app, req.user._id, { title: 'Order Placed', message: `Your order segment #${o._id.toString().slice(-6)} is confirmed.`, type: 'order_status', sendEmail: true });
+          // Provide full order details and a link so notifier builds a styled HTML email
+          const orderForEmail = o.toObject();
+          sendNotification(req.app, v.user_id, {
+            title: 'New Order Received',
+            message: `Order #${o._id.toString().slice(-6)} received (POD).`,
+            type: 'order_status',
+            sendEmail: true,
+            orderDetails: orderForEmail,
+            emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders/${o._id}`
+          });
+
+          sendNotification(req.app, req.user._id, {
+            title: 'Order Placed',
+            message: `Your order segment #${o._id.toString().slice(-6)} is confirmed.`,
+            type: 'order_status',
+            sendEmail: true,
+            orderDetails: orderForEmail,
+            emailLink: `${process.env.WEB_CLIENT_URL}/orders/${o._id}`
+          });
         }
       });
     }
