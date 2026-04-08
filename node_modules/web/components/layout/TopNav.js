@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle, ChevronRight } from 'lucide-react';
 import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
@@ -23,6 +23,21 @@ export default function TopNav() {
   const [search, setSearch] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [cartCount, setCartCount] = useState(cartStore.getCount());
+
+  const [categories, setCategories] = useState([]);
+  const [isCatOpen, setIsCatOpen] = useState(false);
+
+  // ─── Fetch Categories ───────────────────────────────────────────────────────
+  useEffect(() => {
+    api.get('/categories/tree').then(res => {
+      if (res.data?.success) setCategories(res.data.data.slice(0, 8)); // Top 8 for nav
+    }).catch(() => {});
+  }, []);
+
+  const handleCategoryClick = (name) => {
+    router.push(`/shop?category=${encodeURIComponent(name)}`);
+    setIsCatOpen(false);
+  }
 
   // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
@@ -112,6 +127,42 @@ export default function TopNav() {
           
           <nav className="hidden xl:flex items-center gap-7">
             <Link href="/shop" className={`text-[9px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/shop' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Shop</Link>
+            
+            {/* Categories Dropdown */}
+            <div className="relative group/cat">
+              <button 
+                className={`text-[9px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase flex items-center gap-1.5 ${pathname === '/shop' && !search ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}
+              >
+                Categories
+                <ChevronRight className="size-2.5 rotate-90 opacity-40 group-hover/cat:rotate-0 transition-transform" />
+              </button>
+              
+              <div className="absolute top-full left-0 pt-4 opacity-0 pointer-events-none group-hover/cat:opacity-100 group-hover/cat:pointer-events-auto transition-all">
+                <div className="w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl p-2.5 backdrop-blur-xl">
+                   {categories.length > 0 ? (
+                     <div className="flex flex-col gap-0.5">
+                       {categories.map(cat => (
+                         <button 
+                           key={cat._id}
+                           onClick={() => handleCategoryClick(cat.name)}
+                           className="w-full text-left px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all flex items-center justify-between group/item"
+                         >
+                           {cat.name}
+                           <ChevronRight className="size-3 opacity-0 group-hover/item:opacity-40 transition-all" />
+                         </button>
+                       ))}
+                       <div className="h-px bg-[var(--glass-border)] my-1.5 mx-2" />
+                       <Link href="/shop" className="w-full text-left px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all">
+                         View All Nodes
+                       </Link>
+                     </div>
+                   ) : (
+                     <p className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">Syncing Taxonomy...</p>
+                   )}
+                </div>
+              </div>
+            </div>
+
             <Link href="/stores" className={`text-[9px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/stores' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Stores</Link>
             <Link href="/discovery" className={`text-[9px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/discovery' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Discovery</Link>
           </nav>
