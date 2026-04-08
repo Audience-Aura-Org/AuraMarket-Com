@@ -110,10 +110,10 @@ export default function HubContent() {
   useEffect(() => {
     const fetchInbox = async () => {
       try {
-        const res = await api.get('/messages');
+        const res = await api.get('/chat');
         if (res.data.success) {
-          setInbox(res.data.data || []);
-          try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(res.data.data || [])); } catch (_) {}
+          setInbox(res.data.activeChats || []);
+          try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(res.data.activeChats || [])); } catch (_) {}
         }
       } catch (err) {
         console.error('Inbox fetch failed:', err);
