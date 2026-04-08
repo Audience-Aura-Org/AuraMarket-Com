@@ -26,9 +26,14 @@ async function handleRequest(request, params, method) {
   const BACKEND_URL = `http://13.51.198.119:5000/api/v1/${path}${searchParams}`;
 
   try {
-    const headers = new Headers(request.headers);
-    headers.delete('host');
-    headers.delete('connection');
+    const headers = new Headers();
+    // Inherit critical headers from the frontend request
+    if (request.headers.get('authorization')) headers.set('authorization', request.headers.get('authorization'));
+    if (request.headers.get('content-type')) headers.set('content-type', request.headers.get('content-type'));
+    
+    // Explicitly identify as the Vercel frontend to satisfy Backend CORS
+    headers.set('Origin', 'https://aura-market-com.vercel.app');
+    headers.set('Host', '13.51.198.119:5000');
 
     const options = {
       method,
@@ -40,7 +45,13 @@ async function handleRequest(request, params, method) {
       if (body) options.body = body;
     }
 
+    console.log(`[Bridge] ${method} -> ${BACKEND_URL}`);
     const response = await fetch(BACKEND_URL, options);
+    
+    if (!response.ok) {
+      console.warn(`[Bridge Error] Backend returned ${response.status} for ${path}`);
+    }
+
     const data = await response.text();
 
     return new NextResponse(data, {
@@ -50,11 +61,11 @@ async function handleRequest(request, params, method) {
       },
     });
   } catch (error) {
-    console.error('[API Proxy Error]:', error);
+    console.error('[API Proxy Critical Failure]:', error);
     return NextResponse.json({ 
       success: false, 
       message: 'Secure Bridge Handshake Failed', 
-      error: error.message 
-    }, { status: 500 });
+      detail: error.message 
+    }, { status: 502 });
   }
 }
