@@ -37,7 +37,7 @@ export default function FloatingCart() {
     <>
       {/* Desktop Floating Cart (Right Edge) */}
       <div className="hidden md:flex fixed top-1/3 right-6 z-40 animate-fade-in group w-14 hover:w-[320px] transition-all duration-500 overflow-hidden shadow-2xl shadow-[var(--accent)]/10 will-change-transform rounded-[1.5rem]">
-         <div className="w-full bg-[var(--bg-primary)]/95 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[1.5rem] p-4 flex flex-col gap-4 min-h-[220px]">
+         <div className="w-full bg-[var(--bg-primary)]/95 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[1.5rem] p-4 flex flex-col gap-4 min-h-[220px] max-h-[70vh]">
             
             {/* Expanded Header */}
             <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-[288px] mb-2 whitespace-nowrap">
@@ -59,7 +59,8 @@ export default function FloatingCart() {
             </div>
 
             {/* Expanded Content List */}
-            <div className="space-y-4 max-h-[35vh] overflow-y-auto w-[288px] no-scrollbar opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+            <div className="flex-1 overflow-y-auto w-[288px] no-scrollbar opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100 min-h-0">
+               <div className="space-y-4">
                {items.map((item, i) => (
                  <div key={item.id || i} className="flex items-center gap-3 pb-3 border-b border-[var(--glass-border)] last:border-0 last:pb-0">
                     <div className="w-12 h-12 rounded-xl bg-[var(--bg-secondary)] overflow-hidden shrink-0 border border-[var(--glass-border)]">
@@ -76,10 +77,11 @@ export default function FloatingCart() {
                     </div>
                  </div>
                ))}
+               </div>
             </div>
             
             {/* Expanded Footer / Actions */}
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 pt-2 border-t border-[var(--glass-border)] w-[288px] mt-auto">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 pt-2 border-t border-[var(--glass-border)] w-[288px] shrink-0 bg-[var(--bg-primary)]/80 backdrop-blur-sm shadow-lg shadow-black/10 -mx-4 -mb-4 px-4 py-4">
                <div className="flex justify-between items-center mb-3 pr-2">
                  <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Estimated Total</span>
                  <span className="font-black text-lg text-[var(--text-primary)]">{totalPrice.toLocaleString()} XAF</span>

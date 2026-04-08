@@ -75,12 +75,15 @@ const sendNotification = async (app, recipientId, data) => {
         const subs = await PushSubscription.find({ user_id: recipientId });
 
         if (subs.length > 0) {
+          // Use relative URLs for PWA notifications so they open correctly in the app context
+          // This fixes the issue where PWA notifications were opening in localhost instead of production
+          const notificationUrl = metadata?.link || '/discovery';
           const payload = JSON.stringify({
             title,
             body: message,
             icon: '/logo-white.png', 
             tag: type === 'message' ? `msg-${recipientId}` : `alert-${recipientId}-${Date.now()}`,
-            data: { url: emailLink || (metadata?.link) || '/discovery' }
+            data: { url: notificationUrl }
           });
 
           await Promise.allSettled(subs.map(sub => 

@@ -382,9 +382,9 @@ export default function ProductDetailsPage() {
                     <button 
                       onClick={handleAddToCart}
                       disabled={addingToCart || product.stock === 0}
-                      className="flex-1 h-14 sm:h-20 flex items-center justify-center gap-3 bg-[var(--accent)] text-white font-black uppercase tracking-[0.2em] text-[11px] sm:text-[13px] rounded-2xl sm:rounded-[1.5rem] hover:bg-[var(--accent)]/90 transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95 disabled:opacity-50"
+                      className="flex-1 h-16 sm:h-20 flex items-center justify-center gap-3 bg-[var(--accent)] text-white font-black uppercase tracking-[0.2em] text-[12px] sm:text-[13px] rounded-2xl sm:rounded-[1.5rem] hover:bg-[var(--accent)]/90 transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95 disabled:opacity-50"
                     >
-                      {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
+                      {addingToCart ? <Loader2 className="w-6 h-6 animate-spin" /> : <ShoppingBag className="w-6 h-6" />}
                       {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                     </button>
                  </div>

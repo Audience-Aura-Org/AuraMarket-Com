@@ -39,7 +39,7 @@ export default function Hero({ data, config }) {
 
   return (
     <section className="relative w-full overflow-hidden group select-none">
-      <div className="relative h-[320px] md:h-[420px] bg-[#0a050c]">
+      <div className="relative h-[400px] md:h-[520px] bg-[#0a050c]">
         {data.map((banner, i) => (
           <div 
             key={i} 
@@ -56,19 +56,19 @@ export default function Hero({ data, config }) {
             </div>
 
             {/* Premium Content Card */}
-            <div className="absolute inset-0 z-20 flex items-center justify-start max-w-6xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-8 md:px-20">
-              <div className={`w-full sm:max-w-xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0'}`}>
-                <div className="liquid-glass p-4 sm:p-6 md:p-8 rounded-[1rem] sm:rounded-[1.5rem] space-y-3 md:space-y-4">
-                  <div className="flex items-center gap-3 text-[var(--accent)] font-black text-[7.5px] md:text-[9px] uppercase tracking-[0.3em] mb-1">
-                    <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 animate-pulse" />
+            <div className="absolute inset-0 z-20 flex items-center justify-start px-4 sm:px-8 md:px-20">
+              <div className={`w-full sm:max-w-2xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0 hidden'}`}>
+                <div className="liquid-glass p-6 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2.5rem] space-y-4 md:space-y-6">
+                  <div className="flex items-center gap-3 text-[var(--accent)] font-black text-[8px] md:text-[10px] uppercase tracking-[0.3em] mb-1 md:mb-2">
+                    <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
                     <span>Exclusive Release</span>
                   </div>
                   
-                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl uppercase">
+                  <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl">
                     {banner.headline}
                   </h1>
                   
-                  <p className="text-xs md:text-base text-white/80 font-medium leading-relaxed max-w-lg line-clamp-2 sm:line-clamp-none">
+                  <p className="text-sm md:text-lg text-white/80 font-medium leading-relaxed max-w-lg line-clamp-3 sm:line-clamp-none">
                     {banner.subtext}
                   </p>
                   

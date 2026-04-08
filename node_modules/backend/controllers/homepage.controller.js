@@ -15,6 +15,7 @@ const Vendor = require('../models/Vendor.model');
 const getHomepage = async (req, res, next) => {
   try {
     const now = new Date();
+    console.log('[homepage] GET /api/v1/homepage - fetching sections at', now.toISOString());
     
     // Fetch active sections within their scheduled dates
     const sections = await HomepageSection.find({
@@ -39,6 +40,7 @@ const getHomepage = async (req, res, next) => {
       select: 'store_name description rating verified user_id',
       populate: { path: 'store user_id', select: 'logo banner branding avatar' }
     });
+    console.log('[homepage] fetched sections count:', sections.length);
 
     res.status(200).json({
       success: true,

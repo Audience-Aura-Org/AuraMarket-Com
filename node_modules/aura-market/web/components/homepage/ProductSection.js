@@ -21,7 +21,7 @@ export default function ProductSection({ title, subtitle, data, config }) {
         <div className="h-1 w-16 bg-[var(--accent)] mt-4 rounded-full" />
       </div>
 
-      <div className={`grid ${isCarousel ? 'flex overflow-x-auto no-scrollbar pb-8 snap-x' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'} gap-4 md:gap-6`}>
+      <div className={`grid ${isCarousel ? 'flex overflow-x-auto no-scrollbar pb-8 snap-x' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'} gap-3 md:gap-5`}>
         {data.map((item, i) => {
           const p = item.product_id;
           if (!p) return null;

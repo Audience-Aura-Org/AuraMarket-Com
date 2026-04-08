@@ -92,9 +92,18 @@ export const cartStore = {
 
   /**
    * Ingest a raw cart object from any API response and broadcast updates.
+   * Only applies changes if no mutations are pending (prevents race conditions).
    */
   setCart(rawCart) {
     if (!rawCart) return;
+    
+    // If mutations are still pending, don't overwrite state with server response
+    // The final response when _pendingOps reaches 0 will update properly
+    if (_pendingOps > 0) {
+      _raw = rawCart;
+      return;
+    }
+    
     _raw = rawCart;
     _items = parseItems(rawCart.items || []);
     notify();
@@ -189,6 +198,12 @@ export const cartStore = {
   endMutation() {
     _pendingOps = Math.max(0, _pendingOps - 1);
     if (typeof window !== 'undefined') window.__AURA_PENDING_CART = _pendingOps;
+    
+    // If all mutations are done and we have cached server state, apply it
+    if (_pendingOps === 0 && _raw) {
+      _items = parseItems(_raw.items || []);
+      notify();
+    }
   },
 
   rollback(prevItems) {

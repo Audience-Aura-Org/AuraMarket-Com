@@ -114,53 +114,53 @@ export default function ProductCard({ product }) {
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/40 via-transparent to-transparent opacity-40" />
 
         {/* Floating Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
           {category && (
-            <div className="px-1.5 py-0.5 rounded-md bg-[var(--bg-primary)]/80 backdrop-blur-md text-[7px] font-black tracking-widest text-[var(--accent)] border border-[var(--glass-border)] shadow-sm">
+            <div className="px-2 py-1 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-md text-[8px] font-black tracking-widest text-[var(--accent)] border border-[var(--glass-border)] shadow-sm">
               {category}
             </div>
           )}
         </div>
 
         {/* Rating Floating */}
-        <div className="absolute bottom-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
-           <div className="flex items-center gap-1 bg-[var(--bg-primary)]/90 backdrop-blur-xl px-1.5 py-0.5 rounded-md border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[8px] shadow-sm">
-              <Star className="w-2 h-2 fill-[var(--accent)] text-[var(--accent)]" />
+        <div className="absolute bottom-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
+           <div className="flex items-center gap-1 bg-[var(--bg-primary)]/90 backdrop-blur-xl px-2 py-1 rounded-lg border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] shadow-sm">
+              <Star className="w-2.5 h-2.5 fill-[var(--accent)] text-[var(--accent)]" />
               <span>{rating || '4.8'}</span>
            </div>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="p-4.5 flex flex-col flex-1 gap-3 relative z-10">
-        <div className="space-y-2">
+      <div className="p-4 flex flex-col flex-1 gap-3 relative z-10">
+        <div className="space-y-3">
           <Link href={`/products/${productId}`} className="block relative z-20">
-            <h3 className="text-sm sm:text-base font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
+            <h3 className="!text-[12px] sm:!text-[14px] font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
               {name}
             </h3>
           </Link>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm sm:text-base font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-secondary)]">
-               <span className="flex items-center gap-0.5"><ShoppingCart className="w-2.5 h-2.5 text-emerald-500" /> {product.purchase_count || 0}</span>
-               <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5 text-[var(--accent)]" /> {product.view_count || 0}</span>
+            <span className="text-[12px] sm:text-[14px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
+            <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)]">
+               <span className="flex items-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-500" /> {product.purchase_count || 0}</span>
+               <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
             </div>
           </div>
           
           <div className="flex justify-between items-center -mt-1">
             <Link 
               href={`/stores/${vendor_id?._id || ''}`}
-              className="flex items-center gap-1 group/vendor"
+              className="flex items-center gap-1.5 group/vendor"
             >
-              <div className="size-3.5 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)]">
+              <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)]">
                 <img 
                   src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
                   className="size-full object-cover"
                   alt="Store"
                 />
               </div>
-              <span className="text-[10px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[90px]">
+              <span className="text-[9px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[80px]">
                 {vendor_id?.store_name || 'Verified Node'}
               </span>
             </Link>
@@ -171,23 +171,23 @@ export default function ProductCard({ product }) {
         <div className="pt-2 flex items-center gap-2 mt-auto relative z-20 focus-within:z-30">
           <button 
             onClick={handleBuyNow}
-            className="flex-1 h-11 bg-[var(--accent)] text-white text-xs sm:text-[10px] font-black tracking-[0.1em] rounded-xl flex items-center justify-center hover:bg-[var(--accent)]/80 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95"
+            className="flex-1 h-9 bg-[var(--accent)] text-white text-[10px] sm:text-[9px] font-black tracking-widest rounded-xl flex items-center justify-center hover:bg-[var(--accent)]/80 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95"
           >
             BUY NOW
           </button>
           
           <div className="flex items-center gap-1.5">
             {user?._id !== vendorUserId && (
-              <Link href={`/messages?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-11 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
-                <MessageSquare className="size-5" />
+              <Link href={`/messages?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
+                <MessageSquare className="size-4" />
               </Link>
             )}
             <button 
               onClick={handleAddToCart}
               disabled={adding}
-              className="size-11 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md disabled:opacity-50"
+              className="size-9 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md disabled:opacity-50"
             >
-              <Plus className={`size-5 ${adding ? 'animate-spin' : ''}`} />
+              <Plus className={`size-4 ${adding ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>

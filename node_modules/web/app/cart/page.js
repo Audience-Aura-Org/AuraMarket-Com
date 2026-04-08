@@ -107,9 +107,8 @@ export default function CartPage() {
   const removeCoupon = () => { setCoupon(null); setCouponCode(''); setCouponError(''); };
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const delivery = 2500;
   const discount = coupon ? (coupon.type === 'percent' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount) : 0;
-  const total = subtotal + delivery - discount;
+  const total = subtotal - discount;
 
   if (loading) return (
     <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
@@ -247,10 +246,6 @@ export default function CartPage() {
                 <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
                   <span>Subtotal</span>
                   <span className="text-[var(--text-primary)] font-mono font-bold">{subtotal.toLocaleString()} XAF</span>
-                </div>
-                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
-                  <span>Logistics</span>
-                  <span className="text-[var(--text-primary)] font-mono font-bold">{delivery.toLocaleString()} XAF</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-wide uppercase">
