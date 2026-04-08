@@ -254,7 +254,7 @@ export default function HubContent() {
       {/* ── DESKTOP VIEW: 3-COLUMN LAYOUT ───────────────────────────────────── */}
       <div className="hidden md:flex w-full h-[calc(100vh-72px)] relative z-10 container mx-auto gap-6 px-6 py-8">
          {/* Sidebar: Chat List */}
-         <div className="w-[280px] flex flex-col gap-6">
+         <div className="w-[240px] flex flex-col gap-6">
             <div className="flex flex-col gap-2">
                <h2 className="text-3xl font-black uppercase tracking-tighter">THE HUB</h2>
                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)] opacity-80">Operational Pulse</p>
@@ -276,7 +276,7 @@ export default function HubContent() {
                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Synchronized Conversations</span>
                   <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                </div>
-               <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+               <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar" style={{ scrollbarGutter: 'stable' }}>
                   {loadingInbox ? (
                      <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div>
                   ) : filteredInbox.length === 0 ? (
@@ -303,7 +303,7 @@ export default function HubContent() {
                </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-4 space-y-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto pr-4 space-y-4 no-scrollbar" style={{ scrollbarGutter: 'stable' }}>
                 {loadingFeed ? (
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                      {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 bg-[var(--bg-primary)]/40 animate-pulse rounded-[32px] border border-[var(--glass-border)]" />)}
