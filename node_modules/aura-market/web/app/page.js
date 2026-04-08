@@ -15,6 +15,7 @@ export default function LandingPage() {
   const { user, isAuthenticated } = useAuthStore();
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function LandingPage() {
         }
       } catch (err) {
         console.error('Failed to fetch homepage:', err);
+        setError(err.message || 'System Response Failure');
       } finally {
         setLoading(false);
       }
@@ -41,6 +43,29 @@ export default function LandingPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
          <div className="w-12 h-12 border-2 border-[var(--accent)]/20 border-t-[var(--accent)] rounded-full animate-spin shadow-2xl" />
+      </div>
+    );
+  }
+
+  // Debug View for Blank Page issues
+  if (error && !sections.length) {
+    return (
+      <div className="min-h-screen bg-[#0a050c] flex items-center justify-center p-10">
+         <div className="liquid-glass p-12 rounded-[2.5rem] max-w-xl w-full border border-red-500/20 text-center">
+            <Zap className="size-16 text-red-500 mx-auto mb-6 animate-pulse" />
+            <h1 className="text-4xl font-black text-white italic mb-4 uppercase tracking-tighter">NODE_FAILURE</h1>
+            <p className="text-red-500/60 font-black text-[10px] tracking-widest uppercase mb-6">{error}</p>
+            <p className="text-white/40 text-sm font-medium leading-relaxed mb-8">
+               Our secure tunnel to the master node (AWS) is currently offline or refusing the handshake. 
+               Verifying linked protocol...
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-white text-black px-10 py-4 rounded-2xl font-black text-[10px] tracking-widest uppercase hover:bg-red-500 hover:text-white transition-all shadow-2xl"
+            >
+               Force Recalibration
+            </button>
+         </div>
       </div>
     );
   }

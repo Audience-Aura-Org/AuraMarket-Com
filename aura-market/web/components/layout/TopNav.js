@@ -95,38 +95,38 @@ export default function TopNav() {
     <header className="sticky top-0 z-50 bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
-      <div className="max-w-6xl 2xl:max-w-[1536px] mx-auto flex items-center justify-between gap-4 px-4 md:px-6 py-2 md:py-2.5">
+      <div className="max-w-6xl 2xl:max-w-[1536px] mx-auto flex items-center justify-between gap-4 px-4 md:px-6 py-1.5 md:py-2">
         
         {/* Logo Section */}
-        <div className="flex items-center gap-4 lg:gap-12 shrink-0">
-          <Link href="/" className="flex items-center gap-2 md:gap-3 group">
+        <div className="flex items-center gap-4 lg:gap-10 shrink-0">
+          <Link href="/" className="flex items-center gap-2 md:gap-2.5 group">
             <img
               src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'}
               alt="Aura Market"
-              className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-5 md:h-6 w-auto object-contain group-hover:scale-105 transition-transform"
             />
-            <h1 className="text-lg md:text-xl font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
+            <h1 className="text-base md:text-lg font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
               Aura<span className="text-[var(--accent)]">Market</span>
             </h1>
           </Link>
           
-          <nav className="hidden xl:flex items-center gap-8">
-            <Link href="/shop" className={`text-[10px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/shop' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Shop</Link>
-            <Link href="/stores" className={`text-[10px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/stores' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Stores</Link>
-            <Link href="/discovery" className={`text-[10px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/discovery' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Discovery</Link>
+          <nav className="hidden xl:flex items-center gap-7">
+            <Link href="/shop" className={`text-[9px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/shop' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Shop</Link>
+            <Link href="/stores" className={`text-[9px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/stores' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Stores</Link>
+            <Link href="/discovery" className={`text-[9px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase ${pathname === '/discovery' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)]'}`}>Discovery</Link>
           </nav>
         </div>
         
         {/* Search Bar - Desktop */}
         {pathname !== '/shop' && (
-          <div className="hidden md:flex flex-1 max-w-xl mx-4 relative group">
-            <div className="w-full flex items-center bg-white/5 rounded-2xl px-4 py-2 border border-white/10 focus-within:border-[var(--accent)]/50 focus-within:bg-white/10 transition-all">
-              <Search className="text-[var(--nav-text)]/40 size-4 group-focus-within:text-[var(--accent)] transition-colors" />
+          <div className="hidden md:flex flex-1 max-w-lg mx-4 relative group">
+            <div className="w-full flex items-center bg-white/5 rounded-xl px-4 py-1.5 border border-white/10 focus-within:border-[var(--accent)]/50 focus-within:bg-white/10 transition-all">
+              <Search className="text-[var(--nav-text)]/40 size-3.5 group-focus-within:text-[var(--accent)] transition-colors" />
               <input 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={handleSearch}
-                className="bg-transparent border-none focus:ring-0 text-[var(--nav-text)] text-xs w-full placeholder:text-[var(--nav-text)]/30 outline-none pl-3 font-bold" 
+                className="bg-transparent border-none focus:ring-0 text-[var(--nav-text)] text-[11px] w-full placeholder:text-[var(--nav-text)]/30 outline-none pl-2.5 font-bold" 
                 placeholder="Search premium nodes..." 
                 type="text"
               />
@@ -148,25 +148,25 @@ export default function TopNav() {
 
           <button 
             onClick={toggleTheme}
-            className="hidden sm:flex p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
+            className="hidden sm:flex p-1.5 md:p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]"
           >
-            {theme === 'light' ? <Moon className="size-5" /> : <Sun className="size-5" />}
+            {theme === 'light' ? <Moon className="size-4" /> : <Sun className="size-4" />}
           </button>
           
-          <Link href="/chat" className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
-            <MessageCircle className="size-5" />
+          <Link href="/chat" className="relative p-1.5 md:p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
+            <MessageCircle className="size-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </Link>
 
           <div className="relative group/cart">
-            <Link href="/cart" className="relative p-2 md:p-2.5 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
-              <ShoppingCart className="size-5" />
+            <Link href="/cart" className="relative p-1.5 md:p-2 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
+              <ShoppingCart className="size-4" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-[var(--accent)] text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none">
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
