@@ -100,39 +100,37 @@ export default function HubContent() {
       .finally(() => setIsCategoriesLoading(false));
   }, []);
 
-  // Fetch inbox + followed vendors
+  // Fetch inbox + followed vendors - optimized with parallel requests
   useEffect(() => {
     const fetchInbox = async () => {
       try {
-        // Fetch active chats from /chat endpoint
-        console.log('Fetching /chat...');
-        const chatRes = await api.get('/chat');
-        console.log('/chat response:', chatRes.data);
+        // Fetch both in parallel for faster loading
+        const [chatRes, followRes] = await Promise.all([
+          api.get('/chat').catch(() => ({ data: {} })),
+          api.get('/users/followed-vendors').catch(() => ({ data: {} }))
+        ]);
         
+        // Process active chats
         let activeChats = [];
-        if (chatRes.data && chatRes.data.success) {
+        if (chatRes.data?.success) {
           activeChats = chatRes.data.data?.activeChats || chatRes.data.data || [];
         }
-        console.log('Active chats:', activeChats);
         
-        // Fetch followed vendors
+        // Process followed vendors
         let followedVendors = [];
-        try {
-          const followRes = await api.get('/follows');
-          console.log('/follows response:', followRes.data);
-          followedVendors = followRes.data?.data?.follows || [];
-        } catch (e) {
-          console.log('Follows endpoint not available:', e.message);
+        if (followRes.data?.success) {
+          followedVendors = followRes.data.data || [];
         }
         
-        // Combine and deduplicate
+        // Combine and deduplicate - followed vendors always show
         const allChats = [...activeChats];
         
         followedVendors.forEach(vendor => {
-          const vendorId = vendor.vendor_id?._id || vendor.vendor_id;
-          if (!allChats.some(c => (c.partner?._id || c.partner)?.toString() === vendorId?.toString())) {
+          const vendorData = vendor.vendor_id || vendor;
+          const vendorId = vendorData?._id || vendorData;
+          if (vendorId && !allChats.some(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString())) {
             allChats.push({
-              partner: vendor.vendor_id,
+              partner: vendorData,
               snippet: 'Tap to start a conversation',
               date: null,
               read_status: true,
@@ -141,11 +139,9 @@ export default function HubContent() {
           }
         });
         
-        console.log('All chats combined:', allChats);
         setInbox(allChats);
-        try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(allChats)); } catch (_) {}
       } catch (err) {
-        console.error('Inbox fetch failed:', err.message, err.response?.data);
+        console.error('Inbox fetch failed:', err.message);
         setInbox([]);
       } finally {
         setLoadingInbox(false);
