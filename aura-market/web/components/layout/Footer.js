@@ -78,7 +78,7 @@ export default function Footer() {
                 <span className="block text-sm md:text-base font-black uppercase tracking-tighter text-[var(--text-primary)]">
                   Aura<span className="text-[var(--accent)]">Market</span>
                 </span>
-                <span className="block text-[6px] md:text-[7px] font-bold tracking-[0.35em] text-[var(--text-secondary)] opacity-40 mt-0.5 uppercase">
+                <span className="hidden md:block text-[6px] md:text-[7px] font-bold tracking-[0.35em] text-[var(--text-secondary)] opacity-40 mt-0.5 uppercase">
                   Definitive Revision
                 </span>
               </div>
@@ -87,8 +87,8 @@ export default function Footer() {
             <p className="hidden md:block text-[12px] md:text-[13px] text-[var(--text-secondary)] leading-relaxed">
               The world's most precise multi-vendor ecosystem. Liquid-glass aesthetics for global commerce.
             </p>
-            {/* Trust badges */}
-            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+            {/* Trust badges — hidden on mobile */}
+            <div className="hidden md:flex items-center gap-2 md:gap-3 flex-wrap">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
                 <Zap className="size-3" />
                 <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Live</span>
