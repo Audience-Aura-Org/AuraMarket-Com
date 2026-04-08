@@ -13,6 +13,14 @@ aura-market/.git_disabled/
 # aura-market/backend/uploads is now version-controlled for deployment stability 
 !aura-market/backend/uploads/**
 
+# Environment files (should not be version controlled)
+.env
+.env.*
+aura-market/.env
+aura-market/.env.*
+aura-market/backend/.env
+aura-market/backend/.env.*
+
 # Sub-directory package lock files (only root lock file is canonical for Vercel)
 aura-market/package-lock.json
 aura-market/web/package-lock.json

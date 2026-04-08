@@ -5,7 +5,7 @@
  */
 
 const WEB_URL = process.env.WEB_CLIENT_URL || 'https://auramarket.com';
-const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-frontend.s3.eu-north-1.amazonaws.com/logo-white.png';
+const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/logo-white.png';
 
 // App brand colors
 const COLORS = {
@@ -31,16 +31,16 @@ const wrap = (title, heading, body) => `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: ${COLORS.accentGlow}; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif; color: ${COLORS.textPrimary}; line-height: 1.6; font-size: 16px; padding: 0; }
     
-    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 40px 20px; }
+    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 16px; }
     .email-container { max-width: 100%; width: 100%; background: ${COLORS.bgPrimary}; border-radius: 0; overflow: hidden; }
     
-    .header { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 40px 32px; text-align: center; position: relative; }
-    .header::before { content: ''; position: absolute; top: -50%; right: -20%; width: 400px; height: 400px; background: rgba(255,255,255,0.1); border-radius: 50%; }
-    .header::after { content: ''; position: absolute; bottom: -30%; left: -10%; width: 300px; height: 300px; background: rgba(255,255,255,0.08); border-radius: 50%; }
-    .header-content { position: relative; z-index: 1; }
-    .header-logo { height: 50px; margin-bottom: 16px; }
-    .header-title { color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 0; font-family: 'Poppins', sans-serif; }
-    .header-subtitle { color: rgba(255,255,255,0.9); font-size: 12px; letter-spacing: 3px; text-transform: uppercase; margin-top: 8px; font-weight: 600; font-family: 'Poppins', sans-serif; }
+    .header { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 32px; text-align: center; position: relative; }
+    .header::before { content: ''; position: absolute; top: -30%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+    .header::after { content: ''; position: absolute; bottom: -20%; left: -5%; width: 150px; height: 150px; background: rgba(255,255,255,0.08); border-radius: 50%; }
+    .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .header-logo { height: 36px; }
+    .header-title { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin: 0; font-family: 'Poppins', sans-serif; }
+    .header-subtitle { display: none; }
     
     .content { padding: 40px 32px; }
     .content h2 { font-size: 24px; color: ${COLORS.textPrimary}; margin-bottom: 20px; font-weight: 800; letter-spacing: -0.5px; font-family: 'Poppins', sans-serif; }
