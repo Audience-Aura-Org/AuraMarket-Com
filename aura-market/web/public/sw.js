@@ -106,7 +106,12 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   if (event.action === 'close') return;
 
-  const urlToOpen = event.notification.data?.url || '/';
+  let urlToOpen = event.notification.data?.url || '/';
+  
+  // Ensure we have an absolute URL for reliable cross-device opening
+  if (!urlToOpen.startsWith('http')) {
+    urlToOpen = self.location.origin + (urlToOpen.startsWith('/') ? '' : '/') + urlToOpen;
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {

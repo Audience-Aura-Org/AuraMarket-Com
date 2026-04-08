@@ -27,24 +27,35 @@ const transporter = nodemailer.createTransport({
  * Signal Template: Standard Order/Status Email
  */
 const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink) => {
-  const items = orderDetails?.products?.map(p => `<li>${p.name} x ${p.quantity}</li>`).join('') || '';
+  const items = orderDetails?.products?.map(p => `<li style="margin-bottom: 8px; font-family: 'Poppins', sans-serif;">${p.name} <span style="color: #666;">×${p.quantity}</span></li>`).join('') || '';
   return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px;">
-      <h1 style="color: #0a0a0a; border-bottom: 2px solid #0a0a0a; padding-bottom: 10px;">${title}</h1>
-      <p style="font-size: 16px; color: #333;">${message}</p>
-      ${orderDetails ? `
-        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Order Details</h3>
-          <ul style="padding-left: 20px;">${items}</ul>
-          <p><strong>Total:</strong> ${orderDetails.total_amount?.toLocaleString()} XAF</p>
-        </div>
-      ` : ''}
-      ${emailLink ? `
-        <div style="margin-top: 30px; text-align: center;">
-          <a href="${emailLink}" style="background: #0a0a0a; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Details on Aura</a>
-        </div>
-      ` : ''}
-      <p style="margin-top: 40px; font-size: 12px; color: #999; text-align: center;">Aura Market Protocol — Secure Transaction Channel</p>
+    <div style="font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.1); border: 1px solid rgba(233,69,96,0.1);">
+      <div style="background: linear-gradient(135deg, #e94560 0%, #d4365a 100%); padding: 40px 30px; color: white; text-align: center;">
+        <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">${title}</h1>
+      </div>
+      <div style="padding: 40px 30px;">
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px; line-height: 1.8;">${message}</p>
+        ${orderDetails ? `
+          <div style="background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%); border: 1.5px solid #e8e8e8; padding: 24px; border-radius: 10px; margin: 24px 0;">
+            <h3 style="margin-top: 0; margin-bottom: 16px; color: #1d1d1f; font-weight: 800;">Order Details</h3>
+            <ul style="padding-left: 0; list-style: none; margin-bottom: 16px;">${items}</ul>
+            <div style="border-top: 1.5px solid #f0f0f0; padding-top: 16px; margin-top: 16px;">
+              <p style="margin: 0; display: flex; justify-content: space-between; font-weight: 700; color: #1d1d1f; font-size: 16px;">
+                <span>Total:</span>
+                <span style="color: #e94560;">XAF ${orderDetails.total_amount?.toLocaleString()}</span>
+              </p>
+            </div>
+          </div>
+        ` : ''}
+        ${emailLink ? `
+          <div style="margin-top: 30px; text-align: center;">
+            <a href="${emailLink}" style="display: inline-block; background: linear-gradient(135deg, #e94560 0%, #d4365a 100%); color: #fff; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 14px; letter-spacing: 0.5px;">View Details on Aura</a>
+          </div>
+        ` : ''}
+      </div>
+      <div style="background: linear-gradient(135deg, #f5f5f7 0%, #fafafa 100%); padding: 24px 30px; text-align: center; border-top: 1.5px solid #e8e8e8;">
+        <p style="margin: 0; font-size: 12px; color: #888; font-family: 'Poppins', sans-serif;">Aura Market Protocol — Secure Transaction Channel</p>
+      </div>
     </div>
   `;
 };
