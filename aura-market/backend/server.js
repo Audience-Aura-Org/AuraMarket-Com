@@ -117,9 +117,24 @@ app.use(errorHandler);
 // ─────────────────────────────────────────────
 // 11. Start Server
 // ─────────────────────────────────────────────
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  let ipAddress = 'localhost';
+  
+  for (const [name, addrs] of Object.entries(interfaces)) {
+    for (const addr of addrs) {
+      if (addr.family === 'IPv4' && !addr.internal) {
+        ipAddress = addr.address;
+        break;
+      }
+    }
+  }
+  
   console.log(`\n🚀 Aura Market server running in ${NODE_ENV} mode on port ${PORT}`);
-  console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
+  console.log(`   Access locally: http://localhost:${PORT}/api/health`);
+  console.log(`   Access from other devices: http://${ipAddress}:${PORT}/api/health`);
+  console.log(`   All interfaces: http://0.0.0.0:${PORT}/api/health\n`);
 });
 
 // ─────────────────────────────────────────────
