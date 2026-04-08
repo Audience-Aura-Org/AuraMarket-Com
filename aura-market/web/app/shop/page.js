@@ -350,8 +350,8 @@ function ShopContent() {
           {/* Product Grid */}
           <div className="p-3 md:p-6 lg:p-10">
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6">
-                {[1,2,3,4,5,6,7,8,9,10].map(i => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-6">
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(i => (
                   <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-[var(--glass-border)]" />
                 ))}
               </div>
@@ -377,7 +377,7 @@ function ShopContent() {
               </div>
             ) : (
               <>
-                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
+                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-5 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
                   {products.map(product => (
                     <ProductCard key={product._id} product={product} layout={viewMode} />
                   ))}
