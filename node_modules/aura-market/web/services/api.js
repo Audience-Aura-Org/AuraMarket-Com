@@ -2,15 +2,19 @@ import axios from 'axios';
 
 
 const getBaseURL = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== 'undefined') {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocal) return `http://localhost:5000/api/v1`;
+    if (isLocal) {
+       return process.env.NEXT_PUBLIC_API_URL || `http://localhost:5000/api/v1`;
+    }
     
-    // In production, use a relative path to leverage the Next.js API Bridge.
+    // In production (Vercel), ALWAYS use the Next.js Bridge (/api/v1).
+    // This bypasses protocol blocks and ensures cross-domain handshake success.
     return '/api/v1';
   }
-  return 'http://localhost:5000/api/v1';
+  
+  // Server-side default
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 };
 
 const api = axios.create({
