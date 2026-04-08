@@ -7,9 +7,8 @@ const getBaseURL = () => {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isLocal) return `http://localhost:5000/api/v1`;
     
-    // In production, use a relative path to leverage the Vercel Proxy in vercel.json.
-    // This allows HTTPS -> HTTP communication securely.
-    return `/api/v1`;
+    // In production, use a relative path to leverage the Next.js API Bridge.
+    return '/api/v1';
   }
   return 'http://localhost:5000/api/v1';
 };
@@ -48,8 +47,13 @@ const normalizeAssetUrls = (value) => {
   return value;
 };
 
-// Interceptor to attach JWT token to requests
+// Interceptor to attach JWT token and normalize URLs
 api.interceptors.request.use((config) => {
+  // Normalize URL to ensure it doesn't conflict with baseURL
+  if (config.url?.startsWith('/')) {
+    config.url = config.url.substring(1);
+  }
+
   if (typeof window !== 'undefined') {
     let token = null;
 
