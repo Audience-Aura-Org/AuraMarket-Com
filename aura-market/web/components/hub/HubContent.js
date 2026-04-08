@@ -3,20 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MessageCircle, LayoutGrid, Search, 
-  Loader2, Store, MapPin, Star, 
-  ArrowUpRight, ShoppingBag, Send,
-  User, Bell, Command, MoreVertical,
-  Heart, Users, ShoppingCart, Zap,
-  Plus, ShieldCheck, MessageSquare, Clock,
-  Truck, Package, CheckCircle, AlertCircle, Globe, Trash2,
-  List, Check, ChevronRight, Home, Folder
+  Loader2, Star, Heart, Bell, 
+  List, Check, ChevronRight, Home, Folder, Users
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'react-hot-toast';
 import ProductCard from '@/components/ProductCard';
 import socketService from '@/services/socket';
 
@@ -106,18 +99,45 @@ export default function HubContent() {
       .finally(() => setIsCategoriesLoading(false));
   }, []);
 
-  // Fetch inbox
+  // Fetch inbox + followed vendors
   useEffect(() => {
     const fetchInbox = async () => {
       try {
-        const res = await api.get('/chat');
-        if (res.data.success) {
-          setInbox(res.data.activeChats || []);
-          try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(res.data.activeChats || [])); } catch (_) {}
+        // Fetch active chats
+        const chatRes = await api.get('/chat');
+        const activeChats = chatRes.data.activeChats || [];
+        
+        // Fetch followed vendors
+        let followedVendors = [];
+        try {
+          const followRes = await api.get('/follows');
+          followedVendors = followRes.data?.data?.follows || [];
+        } catch (e) {
+          // Endpoint might not exist
+          console.log('Follows endpoint not available');
         }
+        
+        // Combine and deduplicate
+        const allChats = [...activeChats];
+        
+        // Add followed vendors that aren't already in chats
+        followedVendors.forEach(vendor => {
+          const vendorId = vendor.vendor_id?._id || vendor.vendor_id;
+          if (!allChats.some(c => (c.partner?._id || c.partner)?.toString() === vendorId?.toString())) {
+            allChats.push({
+              partner: vendor.vendor_id,
+              snippet: 'Tap to start a conversation',
+              date: null,
+              read_status: true,
+              isFollowed: true
+            });
+          }
+        });
+        
+        setInbox(allChats);
+        try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(allChats)); } catch (_) {}
       } catch (err) {
         console.error('Inbox fetch failed:', err);
-        // Fallback to empty inbox if endpoint doesn't exist
         setInbox([]);
       } finally {
         setLoadingInbox(false);
@@ -185,7 +205,8 @@ export default function HubContent() {
   const currentLevel = breadcrumb.length === 0 ? categories : breadcrumb[breadcrumb.length - 1].children || [];
 
   const filteredInbox = useMemo(() => {
-    return inbox.filter(c => c.partner?.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+    return inbox.filter(c => c.partner?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           c.partner?.store_name?.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [inbox, searchTerm]);
 
   const SORT_OPTIONS = [
@@ -248,11 +269,11 @@ export default function HubContent() {
                          <Search className="size-3" />
                        </button>
                      </div>
-                     <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-2 ml-2">Followed Nodes</p>
+                     <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
                      {loadingInbox ? (
                         <div className="flex flex-col items-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
                      ) : filteredInbox.length === 0 ? (
-                        <EmptyPlaceholder icon={MessageCircle} text="No active signals detected." />
+                        <EmptyPlaceholder icon={MessageCircle} text="No messages yet. Follow vendors to chat!" />
                      ) : (
                         filteredInbox.map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)
                      )}
@@ -422,11 +443,32 @@ export default function HubContent() {
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="size-6 animate-spin text-[var(--accent)]" />
                 </div>
-              ) : filteredInbox.length === 0 ? (
-                <EmptyPlaceholder icon={MessageCircle} text="No active signals." />
               ) : (
                 <div className="p-3 space-y-1">
-                  {filteredInbox.map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}
+                  {filteredInbox.length === 0 ? (
+                    <EmptyPlaceholder icon={Users} text="No messages yet. Follow vendors to chat!" />
+                  ) : (
+                    <>
+                      {/* Messages Section */}
+                      {filteredInbox.filter(c => !c.isFollowed).length > 0 && (
+                        <>
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-2 ml-2 mt-2">Messages</p>
+                          {filteredInbox.filter(c => !c.isFollowed).map(chat => (
+                            <ChatLink key={chat.partner?._id || chat.id} chat={chat} />
+                          ))}
+                        </>
+                      )}
+                      {/* Followed Section */}
+                      {filteredInbox.filter(c => c.isFollowed).length > 0 && (
+                        <>
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-2 ml-2 mt-4">Followed Vendors</p>
+                          {filteredInbox.filter(c => c.isFollowed).map(chat => (
+                            <ChatLink key={chat.partner?._id || chat.id} chat={chat} />
+                          ))}
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
               )
             ) : (
@@ -438,23 +480,80 @@ export default function HubContent() {
                   ))
                 ) : (
                   <>
-                    <button 
-                      onClick={() => { setActiveCategory('All'); setBreadcrumb([]); }}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === 'All' ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
-                    >
-                      <Home className="size-4" />
-                      All Products
-                    </button>
-                    {categories.map(cat => (
-                      <button 
-                        key={cat._id}
-                        onClick={() => handleCategoryClick(cat)}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === cat.name ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
-                      >
-                        <Folder className="size-4" />
-                        {cat.name}
-                      </button>
-                    ))}
+                    {/* Breadcrumb Navigation */}
+                    {breadcrumb.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <button 
+                          onClick={() => handleBreadcrumbClick(-1)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+                        >
+                          <Home className="size-3" /> Home
+                        </button>
+                        {breadcrumb.map((crumb, idx) => (
+                          <div key={crumb._id} className="flex items-center gap-2">
+                            <ChevronRight className="size-3 text-[var(--glass-border)]" />
+                            <button 
+                              onClick={() => handleBreadcrumbClick(idx)} 
+                              className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all ${
+                                idx === breadcrumb.length - 1 && !currentLevel.length
+                                  ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20'
+                                  : 'border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                              }`}
+                            >
+                              {crumb.name}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Category List */}
+                    {currentLevel.length > 0 ? (
+                      currentLevel.map(cat => (
+                        <button 
+                          key={cat._id}
+                          onClick={() => handleCategoryClick(cat)}
+                          className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === cat.name ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <Folder className="size-4" />
+                            {cat.name}
+                          </span>
+                          {cat.children?.length > 0 && (
+                            <ChevronRight className="size-3 text-[var(--glass-border)]" />
+                          )}
+                        </button>
+                      ))
+                    ) : activeCategory !== 'All' ? (
+                      <div className="text-center py-6 text-[11px] text-[var(--text-secondary)]/60">
+                        No subcategories
+                      </div>
+                    ) : (
+                      <>
+                        <button 
+                          onClick={() => { setActiveCategory('All'); setBreadcrumb([]); }}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === 'All' ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
+                        >
+                          <Home className="size-4" />
+                          All Products
+                        </button>
+                        {categories.map(cat => (
+                          <button 
+                            key={cat._id}
+                            onClick={() => handleCategoryClick(cat)}
+                            className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-medium ${activeCategory === cat.name ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
+                          >
+                            <span className="flex items-center gap-3">
+                              <Folder className="size-4" />
+                              {cat.name}
+                            </span>
+                            {cat.children?.length > 0 && (
+                              <ChevronRight className="size-3 text-[var(--glass-border)]" />
+                            )}
+                          </button>
+                        ))}
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -585,7 +684,7 @@ function ChatLink({ chat }) {
   const partner = chat.partner;
   const partnerId = partner?._id || partner;
   const partnerName = partner?.name || partner?.store_name || 'Unknown';
-  const avatar = partner?.avatar || partner?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${partnerName}&backgroundColor=var(--accent)`;
+  const avatar = partner?.avatar || partner?.branding?.logo || partner?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${partnerName}&backgroundColor=var(--accent)`;
   
   const handleClick = () => {
     if (partnerId) router.push(`/messages?vendorId=${partnerId}`);
@@ -594,7 +693,7 @@ function ChatLink({ chat }) {
   return (
     <button
       onClick={handleClick}
-      className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--bg-secondary)] transition-all group text-left"
+      className={`w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-[var(--bg-secondary)] transition-all group text-left ${chat.isFollowed ? 'border border-dashed border-[var(--glass-border)]' : ''}`}
     >
       <div className="relative shrink-0">
         <div className="size-11 rounded-xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
@@ -603,6 +702,11 @@ function ChatLink({ chat }) {
         {!chat.read_status && (
           <div className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)]" />
         )}
+        {chat.isFollowed && (
+          <div className="absolute -bottom-1 -right-1 size-5 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] flex items-center justify-center">
+            <Heart className="size-2.5 text-white fill-white" />
+          </div>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -610,10 +714,10 @@ function ChatLink({ chat }) {
             {partnerName}
           </p>
           <span className="text-[10px] text-[var(--text-secondary)]/60 shrink-0">
-            {formatTime(chat.date)}
+            {chat.isFollowed ? 'Followed' : formatTime(chat.date)}
           </span>
         </div>
-        <p className={`text-[11px] truncate ${!chat.read_status ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}`}>
+        <p className={`text-[11px] truncate ${chat.isFollowed ? 'text-[var(--accent)] font-medium' : (!chat.read_status ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]')}`}>
           {chat.snippet}
         </p>
       </div>
