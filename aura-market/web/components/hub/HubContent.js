@@ -116,28 +116,36 @@ export default function HubContent() {
           activeChats = chatRes.data.data?.activeChats || chatRes.data.data || [];
         }
         
-        // Process followed vendors
+        // Process followed vendors - handle different response structures
         let followedVendors = [];
-        if (followRes.data?.success) {
-          followedVendors = followRes.data.data || [];
+        if (followRes.data?.success && followRes.data?.data) {
+          // Handle both array and object response
+          followedVendors = Array.isArray(followRes.data.data) 
+            ? followRes.data.data 
+            : followRes.data.data.follows || followRes.data.data.vendors || [];
         }
+        
+        // Ensure it's an array
+        followedVendors = Array.isArray(followedVendors) ? followedVendors : [];
         
         // Combine and deduplicate - followed vendors always show
         const allChats = [...activeChats];
         
-        followedVendors.forEach(vendor => {
-          const vendorData = vendor.vendor_id || vendor;
-          const vendorId = vendorData?._id || vendorData;
-          if (vendorId && !allChats.some(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString())) {
-            allChats.push({
-              partner: vendorData,
-              snippet: 'Tap to start a conversation',
-              date: null,
-              read_status: true,
-              isFollowed: true
-            });
-          }
-        });
+        if (followedVendors.length > 0) {
+          followedVendors.forEach(vendor => {
+            const vendorData = vendor?.vendor_id || vendor;
+            const vendorId = vendorData?._id || vendorData;
+            if (vendorId && !allChats.some(c => (c.partner?._id || c.partner)?.toString() === vendorId.toString())) {
+              allChats.push({
+                partner: vendorData,
+                snippet: 'Tap to start a conversation',
+                date: null,
+                read_status: true,
+                isFollowed: true
+              });
+            }
+          });
+        }
         
         setInbox(allChats);
       } catch (err) {
