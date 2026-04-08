@@ -418,9 +418,14 @@ const getHubFeed = async (req, res, next) => {
     const followedVendorIds = follows.map(f => f.vendor_id);
     const categoryIds = user.liked_categories || [];
 
+    const sort = req.query.sort || '-createdAt';
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const skip = (page - 1) * limit;
+
     // Get products from followed vendors
     let followedProducts = [];
-    if (followedVendorIds.length > 0) {
+    if (followedVendorIds.length > 0 && page === 1) {
       followedProducts = await Product.find({ 
         status: 'active',
         vendor_id: { $in: followedVendorIds }
@@ -430,8 +435,8 @@ const getHubFeed = async (req, res, next) => {
         select: 'store_name rating verified pickup_address user_id average_response_time',
         populate: { path: 'store', select: 'logo' }
       })
-      .sort({ createdAt: -1 })
-      .limit(15);
+      .sort(sort)
+      .limit(10);
     }
 
     // Get recommended products from liked categories (excluding followed vendors)
@@ -439,7 +444,33 @@ const getHubFeed = async (req, res, next) => {
     if (followedVendorIds.length > 0) {
       query.vendor_id = { $nin: followedVendorIds };
     }
-    if (categoryIds.length > 0) {
+    
+    // Support category filter from query params or user preferences
+    if (req.query.category) {
+      const targetCategoryName = req.query.category;
+      const targetCategory = await Category.findOne({ name: targetCategoryName });
+      
+      if (targetCategory) {
+        const allCategories = await Category.find();
+        let validCategoryNames = [targetCategoryName];
+        let toCheck = [targetCategory._id.toString()];
+        let foundNew = true;
+        
+        while (foundNew) {
+          foundNew = false;
+          for(let i=0; i < allCategories.length; i++) {
+            if (allCategories[i].parent_id && toCheck.includes(allCategories[i].parent_id.toString()) && !validCategoryNames.includes(allCategories[i].name)) {
+              validCategoryNames.push(allCategories[i].name);
+              toCheck.push(allCategories[i]._id.toString());
+              foundNew = true;
+            }
+          }
+        }
+        query.category = { $in: validCategoryNames };
+      } else {
+        query.category = targetCategoryName;
+      }
+    } else if (categoryIds.length > 0) {
       query.category = { $in: categoryIds };
     }
 
@@ -449,10 +480,13 @@ const getHubFeed = async (req, res, next) => {
         select: 'store_name rating verified pickup_address user_id average_response_time',
         populate: { path: 'store', select: 'logo' }
       })
-      .sort({ createdAt: -1 })
-      .limit(20);
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
 
-    if (products.length < 5) {
+    const total = await Product.countDocuments(query);
+
+    if (products.length < 5 && page === 1) {
       const excludeIds = products.map(p => p._id);
       const recommended = await Product.find({ status: 'active', _id: { $nin: excludeIds } })
       .populate({
@@ -470,6 +504,11 @@ const getHubFeed = async (req, res, next) => {
 
     res.status(200).json({ 
       success: true, 
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+      },
       data: { 
         followedProducts,
         products 

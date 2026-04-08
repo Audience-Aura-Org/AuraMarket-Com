@@ -162,14 +162,14 @@ export default function HubContent() {
   const fetchFeed = async (p = 1) => {
     try {
       setLoadingFeed(true);
-      const res = await api.get('/products/hub');
+      const categoryParam = activeCategoryName !== 'All' ? `&category=${encodeURIComponent(activeCategoryName)}` : '';
+      const sortParam = `&sort=${sortBy}`;
+      const res = await api.get(`/products/hub?page=${p}&limit=20${categoryParam}${sortParam}`);
+      
       if (res.data.success) {
         // Combine followed products + recommended products
         const followed = res.data.data.followedProducts || [];
         const recommended = res.data.data.products || [];
-        
-        // If user has no followed vendors, just show recommended
-        // If user has followed vendors, show followed first then recommended
         const allFeed = [...followed, ...recommended];
         
         // Remove duplicates
@@ -177,8 +177,23 @@ export default function HubContent() {
           index === self.findIndex((t) => t._id === item._id)
         );
         
-        setFeed(uniqueFeed);
-        setTotalPages(1); // Single page since we load all at once
+        if (p === 1) {
+          setFeed(uniqueFeed);
+        } else {
+          setFeed(prev => {
+            const combined = [...prev, ...uniqueFeed];
+            return combined.filter((item, index, self) => 
+              index === self.findIndex((t) => t._id === item._id)
+            );
+          });
+        }
+        
+        // Use pagination data if provided by backend, else fallback to simple logic
+        if (res.data.pagination) {
+          setTotalPages(res.data.pagination.pages);
+        } else {
+          setTotalPages(uniqueFeed.length < 20 ? p : p + 1);
+        }
       }
     } catch (err) {
       console.error('Feed failure:', err);
@@ -192,7 +207,7 @@ export default function HubContent() {
       setPage(1);
       fetchFeed(1);
     }
-  }, [activeCategory]);
+  }, [activeCategory, activeTab, sortBy]);
 
   useEffect(() => {
     if (activeTab === 'feed' && page > 1) {

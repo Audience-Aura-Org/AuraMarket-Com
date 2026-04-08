@@ -36,91 +36,27 @@ const COLORS = {
   textSecondary: '#64748b',
 };
 
+const templates = require('./emailTemplates');
+
 /**
  * Signal Template: Standard Order/Status Email (Updated with app colors)
+ * This now uses the shared premium templates to ensure consistency.
  */
 const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink) => {
-  // Safely map products - handle both direct product array and nested products
-  const productList = (orderDetails?.products || []).map(p => {
-    const productName = p.name || p.product?.name || 'Product';
-    const productQty = p.quantity || 1;
-    return `<li style="margin-bottom: 10px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif; color: ${COLORS.textSecondary}; border-bottom: 1px solid ${COLORS.accentGlow}; padding-bottom: 10px;">${productName} <span style="color: ${COLORS.textSecondary}; font-weight: 500;">×${productQty}</span></li>`;
-  }).join('');
-  
-  const totalAmount = orderDetails?.total_amount || 0;
-  
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { margin: 0; padding: 0; background: ${COLORS.accentGlow}; }
-    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 40px 16px; }
-    .email-container { max-width: 600px; width: 100%; margin: 0 auto; background: ${COLORS.bgPrimary}; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-    .header { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 32px; text-align: center; position: relative; }
-    .header::before { content: ''; position: absolute; top: -30%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
-    .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 12px; }
-    .header-logo { height: 36px; }
-    .header-title { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin: 0; font-family: 'Poppins', sans-serif; }
-    .content { padding: 40px 32px; font-family: 'Poppins', sans-serif; }
-    .content h2 { font-size: 24px; color: ${COLORS.textPrimary}; margin-bottom: 20px; font-weight: 800; font-family: 'Poppins', sans-serif; }
-    .content p { font-size: 15px; color: ${COLORS.textSecondary}; margin-bottom: 16px; line-height: 1.7; font-family: 'Poppins', sans-serif; }
-    .card { background: ${COLORS.bgPrimary}; border: 1px solid ${COLORS.accentGlow}; border-radius: 16px; padding: 24px; margin: 24px 0; box-shadow: 0 4px 20px rgba(242,13,242,0.08); }
-    .card h3 { margin-top: 0; margin-bottom: 16px; color: ${COLORS.textPrimary}; font-weight: 800; font-family: 'Poppins', sans-serif; }
-    .card ul { padding-left: 0; list-style: none; margin: 0 0 16px 0; }
-    .card-total { display: flex; justify-content: space-between; font-weight: 700; color: ${COLORS.textPrimary}; font-size: 16px; font-family: 'Poppins', sans-serif; align-items: center; border-top: 1px solid ${COLORS.accentGlow}; padding-top: 16px; margin-top: 16px; }
-    .card-total-amount { color: ${COLORS.accent}; font-size: 18px; }
-    .btn { display: inline-block; background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); color: #fff; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; font-family: 'Poppins', sans-serif; box-shadow: 0 4px 20px rgba(242,13,242,0.3); }
-    .footer { background: ${COLORS.textPrimary}; padding: 32px; text-align: center; font-family: 'Poppins', sans-serif; }
-    .footer p { font-size: 13px; color: rgba(255,255,255,0.7); margin: 6px 0; font-family: 'Poppins', sans-serif; }
-    .footer-brand { font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 8px !important; }
-  </style>
-</head>
-<body>
-  <div class="email-wrapper">
-    <div class="email-container">
-      <div class="header">
-        <div class="header-content">
-          <img src="${LOGO_URL}" alt="Aura Market" class="header-logo" onerror="this.style.display='none'" />
-          <h1 class="header-title">Aura Market</h1>
-        </div>
-      </div>
-      
-      <div class="content">
-        <h2>${title}</h2>
-        <p>${message}</p>
-        
-        ${orderDetails ? `
-          <div class="card">
-            <h3>Order Details</h3>
-            <ul>${productList}</ul>
-            <div class="card-total">
-              <span>Total:</span>
-              <span class="card-total-amount">XAF ${totalAmount.toLocaleString()}</span>
-            </div>
-          </div>
-        ` : ''}
-        
-        ${emailLink ? `
-          <div style="text-align: center; margin-top: 24px;">
-            <a href="${emailLink}" class="btn">View Details</a>
-          </div>
-        ` : ''}
-      </div>
-      
-      <div class="footer">
-        <p class="footer-brand">Aura Market</p>
-        <p>Questions? <a href="mailto:support@auramarket.com" style="color: ${COLORS.accentLight}; text-decoration: none; font-weight: 700;">support@auramarket.com</a></p>
-        <p>© ${new Date().getFullYear()} Aura Market • Audience Aura Org</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-  `;
+  // If we have full order details, use the premium order template
+  if (orderDetails && (role === 'customer' || role === 'user')) {
+    const templateData = templates.orderPlaced({ 
+      order: orderDetails, 
+      customer: { name: orderDetails.customer_name || 'Valued Customer' } 
+    });
+    return templateData.html;
+  }
+
+  // Fallback to a styled generic notification using the shared wrapper
+  return templates.wrap(title, title, `
+    <p>${message}</p>
+    ${emailLink ? `<div style="text-align: center; margin-top: 32px;"><a href="${emailLink}" class="btn">View Details</a></div>` : ''}
+  `);
 };
 
 const sendNotification = async (app, recipientId, data) => {

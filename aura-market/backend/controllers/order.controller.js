@@ -196,13 +196,15 @@ const createOrder = async (req, res, next) => {
           });
 
           // 2. Notify Customer
+          const customerEmailTemplate = templates.orderPlaced({ order: createdOrder, customer: req.user });
           sendNotification(req.app, req.user._id, {
-            title: 'Order Confirmed (POD)',
+            title: customerEmailTemplate.subject,
             message: `Your Pay-on-Delivery order #${createdOrder._id.toString().slice(-6).toUpperCase()} has been successfully recorded.`,
             type: 'order_status',
             metadata: { order_id: createdOrder._id, link: `/orders/${createdOrder._id}` },
             sendEmail: true,
             emailLink: `${process.env.WEB_CLIENT_URL}/orders/${createdOrder._id}`,
+            emailTemplate: customerEmailTemplate,
             orderDetails: orderWithVendor,
             role: 'customer'
           });
