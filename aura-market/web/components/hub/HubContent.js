@@ -105,19 +105,24 @@ export default function HubContent() {
     const fetchInbox = async () => {
       try {
         // Fetch active chats from /chat endpoint
+        console.log('Fetching /chat...');
         const chatRes = await api.get('/chat');
+        console.log('/chat response:', chatRes.data);
+        
         let activeChats = [];
-        if (chatRes.data.success) {
-          activeChats = chatRes.data.data?.activeChats || [];
+        if (chatRes.data && chatRes.data.success) {
+          activeChats = chatRes.data.data?.activeChats || chatRes.data.data || [];
         }
+        console.log('Active chats:', activeChats);
         
         // Fetch followed vendors
         let followedVendors = [];
         try {
           const followRes = await api.get('/follows');
+          console.log('/follows response:', followRes.data);
           followedVendors = followRes.data?.data?.follows || [];
         } catch (e) {
-          console.log('Follows endpoint not available');
+          console.log('Follows endpoint not available:', e.message);
         }
         
         // Combine and deduplicate
@@ -136,10 +141,11 @@ export default function HubContent() {
           }
         });
         
+        console.log('All chats combined:', allChats);
         setInbox(allChats);
         try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(allChats)); } catch (_) {}
       } catch (err) {
-        console.error('Inbox fetch failed:', err);
+        console.error('Inbox fetch failed:', err.message, err.response?.data);
         setInbox([]);
       } finally {
         setLoadingInbox(false);
