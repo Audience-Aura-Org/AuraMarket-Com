@@ -316,6 +316,7 @@ export default function HubContent() {
 
                     {/* Desktop Pagination */}
                     {pagination.totalPages > 1 && (
+                      <>
                       <div className="flex items-center justify-center gap-4 py-8 border-t border-[var(--glass-border)] mt-8">
                         <button 
                           disabled={page === 1}
@@ -359,6 +360,19 @@ export default function HubContent() {
                           className="px-4 py-2 rounded-xl border border-[var(--glass-border)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white disabled:opacity-30 transition-all"
                         >Last</button>
                       </div>
+
+                      {/* Simple Next Page Button */}
+                      {page < pagination.totalPages && (
+                        <div className="flex justify-center pt-8">
+                          <button 
+                            onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className="px-8 py-4 bg-[var(--accent)] text-white rounded-xl font-black text-sm uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/30"
+                          >
+                            Load More Products
+                          </button>
+                        </div>
+                      )}
+                      </>
                     )}
                   </>
                )}
