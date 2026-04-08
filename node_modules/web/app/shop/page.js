@@ -191,31 +191,34 @@ function ShopContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 font-[var(--font-poppins)]">
-        <div className="flex flex-col w-full min-h-[calc(100vh-140px)] relative">
-        
-        {/* SEARCH COMPONENT (Scrolls Away) */}
-        <div className="px-4 md:px-6 lg:px-12 py-2 bg-[var(--bg-primary)] flex justify-center border-b border-[var(--glass-border)]/50">
-          <div className="relative w-full max-w-6xl">
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
-              placeholder="Search for products..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
-            />
-            <button
-              onClick={() => { setPage(1); fetchProducts(1); }}
-              className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-bold"
-            >
-              <Search className="size-3" />
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30">
+        <div className="flex flex-col w-full min-h-screen relative">
 
-        {/* STICKY CATEGORY NAV (Stays Fixed on Scroll) */}
-        <div className="sticky top-[56px] md:top-[72px] z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] py-3 px-4 md:px-6 lg:px-12 shadow-sm transition-all">
+        {/* STICKY HEADER STACK: Search + Category bar — both pinned below TopNav */}
+        <div className="sticky top-[57px] md:top-[64px] z-40 bg-[var(--bg-primary)] shadow-sm">
+
+          {/* Search Bar */}
+          <div className="px-4 md:px-6 lg:px-12 py-2 flex justify-center border-b border-[var(--glass-border)]/50">
+            <div className="relative w-full max-w-6xl">
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
+                placeholder="Search for products..."
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+              />
+              <button
+                onClick={() => { setPage(1); fetchProducts(1); }}
+                className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-bold"
+              >
+                <Search className="size-3" />
+              </button>
+            </div>
+          </div>
+
+          {/* Category Chips */}
+          <div className="border-b border-[var(--glass-border)] py-2.5 px-4 md:px-6 lg:px-12 bg-[var(--bg-primary)]/95 backdrop-blur-xl">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
              {isCategoriesLoading ? (
                // Category Skeletons
@@ -265,6 +268,7 @@ function ShopContent() {
                ))}
               </>
              )}
+           </div>
           </div>
         </div>
 
@@ -344,9 +348,9 @@ function ShopContent() {
           </div>
 
           {/* Product Grid */}
-          <div className="p-4 md:p-6 lg:p-12">
+          <div className="p-3 md:p-6 lg:p-10">
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6">
                 {[1,2,3,4,5,6,7,8,9,10].map(i => (
                   <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-[var(--glass-border)]" />
                 ))}
@@ -373,7 +377,7 @@ function ShopContent() {
               </div>
             ) : (
               <>
-                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
+                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
                   {products.map(product => (
                     <ProductCard key={product._id} product={product} layout={viewMode} />
                   ))}
