@@ -104,11 +104,11 @@ export default function HubContent() {
   useEffect(() => {
     const fetchInbox = async () => {
       try {
-        // Fetch active chats from /messages endpoint
-        const chatRes = await api.get('/messages');
+        // Fetch active chats from /chat endpoint
+        const chatRes = await api.get('/chat');
         let activeChats = [];
         if (chatRes.data.success) {
-          activeChats = chatRes.data.data || [];
+          activeChats = chatRes.data.data?.activeChats || [];
         }
         
         // Fetch followed vendors
