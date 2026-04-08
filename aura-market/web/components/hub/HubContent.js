@@ -158,21 +158,27 @@ export default function HubContent() {
     fetchInbox();
   }, []);
 
-  // Fetch feed
+  // Fetch feed - get followed vendors products + recommendations
   const fetchFeed = async (p = 1) => {
     try {
       setLoadingFeed(true);
-      const params = { page: p, limit: 24 };
-      if (activeCategory) params.category = activeCategoryName;
-      if (sortBy) params.sort = sortBy;
-      if (searchTerm) params.search = searchTerm;
-      
-      const res = await api.get('/products/hub', { params });
+      const res = await api.get('/products/hub');
       if (res.data.success) {
-        const nextFeed = res.data.data.products || [];
-        if (p === 1) setFeed(nextFeed);
-        else setFeed(prev => [...prev, ...nextFeed]);
-        setTotalPages(res.data.data.pagination?.pages || 1);
+        // Combine followed products + recommended products
+        const followed = res.data.data.followedProducts || [];
+        const recommended = res.data.data.products || [];
+        
+        // If user has no followed vendors, just show recommended
+        // If user has followed vendors, show followed first then recommended
+        const allFeed = [...followed, ...recommended];
+        
+        // Remove duplicates
+        const uniqueFeed = allFeed.filter((item, index, self) => 
+          index === self.findIndex((t) => t._id === item._id)
+        );
+        
+        setFeed(uniqueFeed);
+        setTotalPages(1); // Single page since we load all at once
       }
     } catch (err) {
       console.error('Feed failure:', err);

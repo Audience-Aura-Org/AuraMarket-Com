@@ -415,16 +415,30 @@ const getHubFeed = async (req, res, next) => {
     const Follow = require('../models/Follow.model');
     const user = await User.findById(req.user._id);
     const follows = await Follow.find({ user_id: req.user._id });
-    const vendorIds = follows.map(f => f.vendor_id);
+    const followedVendorIds = follows.map(f => f.vendor_id);
     const categoryIds = user.liked_categories || [];
 
-    let query = { status: 'active' };
-
-    // Discovery Logic: Focus on preferred categories BUT exclude already followed vendors
-    if (vendorIds.length > 0) {
-      query.vendor_id = { $nin: vendorIds };
+    // Get products from followed vendors
+    let followedProducts = [];
+    if (followedVendorIds.length > 0) {
+      followedProducts = await Product.find({ 
+        status: 'active',
+        vendor_id: { $in: followedVendorIds }
+      })
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name rating verified pickup_address user_id average_response_time',
+        populate: { path: 'store', select: 'logo' }
+      })
+      .sort({ createdAt: -1 })
+      .limit(15);
     }
-    
+
+    // Get recommended products from liked categories (excluding followed vendors)
+    let query = { status: 'active' };
+    if (followedVendorIds.length > 0) {
+      query.vendor_id = { $nin: followedVendorIds };
+    }
     if (categoryIds.length > 0) {
       query.category = { $in: categoryIds };
     }
@@ -454,7 +468,13 @@ const getHubFeed = async (req, res, next) => {
       products = [...products, ...recommended];
     }
 
-    res.status(200).json({ success: true, data: { products } });
+    res.status(200).json({ 
+      success: true, 
+      data: { 
+        followedProducts,
+        products 
+      } 
+    });
   } catch (error) {
     next(error);
   }
