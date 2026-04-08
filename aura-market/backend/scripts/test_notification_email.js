@@ -7,7 +7,7 @@ require('dotenv').config({ path: '../.env' });
 const mongoose = require('mongoose');
 const { sendNotification } = require('../utils/notifier');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/aura_market';
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/aura_market';
 const TEST_EMAIL = process.argv[2] || 'brandonasah11@gmail.com';
 
 const mockApp = {
@@ -79,6 +79,8 @@ async function sendTestNotification() {
 
     console.log(`\n✅ Test notification dispatched successfully!`);
     console.log(`📧 Email will be sent to: ${TEST_EMAIL}`);
+    console.log(`⏱️  Waiting for 15 seconds for background processes...`);
+    await new Promise(resolve => setTimeout(resolve, 15000));
     console.log(`⏱️  Check your inbox (may take a few moments to arrive)`);
 
   } catch (err) {

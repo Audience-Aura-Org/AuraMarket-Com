@@ -31,8 +31,8 @@ const wrap = (title, heading, body) => `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: ${COLORS.accentGlow}; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif; color: ${COLORS.textPrimary}; line-height: 1.6; font-size: 16px; padding: 0; }
     
-    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 16px; }
-    .email-container { max-width: 100%; width: 100%; background: ${COLORS.bgPrimary}; border-radius: 0; overflow: hidden; }
+    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 40px 16px; }
+    .email-container { max-width: 600px; width: 100%; margin: 0 auto; background: ${COLORS.bgPrimary}; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
     
     .header { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 32px; text-align: center; position: relative; }
     .header::before { content: ''; position: absolute; top: -30%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }

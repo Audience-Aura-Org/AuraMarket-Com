@@ -58,8 +58,8 @@ const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink) => {
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { margin: 0; padding: 0; background: ${COLORS.accentGlow}; }
-    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 16px; }
-    .email-container { max-width: 100%; width: 100%; background: ${COLORS.bgPrimary}; }
+    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 40px 16px; }
+    .email-container { max-width: 600px; width: 100%; margin: 0 auto; background: ${COLORS.bgPrimary}; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
     .header { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 32px; text-align: center; position: relative; }
     .header::before { content: ''; position: absolute; top: -30%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
     .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 12px; }
