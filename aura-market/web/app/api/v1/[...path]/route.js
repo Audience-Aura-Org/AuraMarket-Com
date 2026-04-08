@@ -14,6 +14,10 @@ export async function PUT(request, { params }) {
   return handleRequest(request, params, 'PUT');
 }
 
+export async function PATCH(request, { params }) {
+  return handleRequest(request, params, 'PATCH');
+}
+
 export async function DELETE(request, { params }) {
   return handleRequest(request, params, 'DELETE');
 }
@@ -40,8 +44,8 @@ async function handleRequest(request, params, method) {
       headers,
     };
 
-    // Handle Body for mutation requests (POST/PUT/PATCH)
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'DELETE') {
+    // Handle Body for mutation requests (POST/PUT/PATCH/DELETE)
+    if (!['GET', 'HEAD'].includes(method)) {
       const contentType = request.headers.get('content-type') || '';
       
       // For multipart/form-data (uploads), we must forward the raw body stream
