@@ -1,23 +1,54 @@
 /**
  * utils/storage.js
- * Multi-environment Storage Engine (Cloudinary with Local Fallback)
- * 🚀 Fixes the issue where Render wipes uploaded files on every deploy.
+ * Multi-environment Storage Engine (S3 > Cloudinary > Local Fallback)
+ * 🚀 Persistent storage for Vercel/AWS deployments
  */
 const { 
   CLOUDINARY_CLOUD_NAME, 
   CLOUDINARY_API_KEY, 
-  CLOUDINARY_API_SECRET 
+  CLOUDINARY_API_SECRET,
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+  AWS_REGION,
+  AWS_S3_BUCKET,
+  AWS_S3_ENABLED
 } = require('../config/env');
 
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// 1. Cloudinary Integration (Persistent)
+// 1. AWS S3 Integration (Most Persistent)
 let engine;
-const useCloudinary = CLOUDINARY_CLOUD_NAME && CLOUDINARY_CLOUD_NAME !== 'your_cloud_name';
+const useS3 = AWS_S3_ENABLED && AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY && AWS_S3_BUCKET;
 
-if (useCloudinary) {
+if (useS3) {
+  const AWS = require('aws-sdk');
+  const multerS3 = require('multer-s3');
+
+  const s3 = new AWS.S3({
+    accessKeyId: AWS_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SECRET_ACCESS_KEY,
+    region: AWS_REGION
+  });
+
+  engine = multerS3({
+    s3: s3,
+    bucket: AWS_S3_BUCKET,
+    metadata: (req, file, cb) => {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: (req, file, cb) => {
+      const subFolder = req.body.type || 'general';
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const fileName = `${subFolder}/${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`;
+      cb(null, fileName);
+    }
+  });
+  console.log('✅ [Storage] AWS S3 Persistent Node CALIBRATED.');
+}
+// 2. Cloudinary Integration (Persistent)
+else if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_CLOUD_NAME !== 'your_cloud_name') {
   const cloudinary = require('cloudinary').v2;
   const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
@@ -39,9 +70,10 @@ if (useCloudinary) {
       }
     }
   });
-  console.log('✅ [Storage] External Persistent Node (Cloudinary) CALIBRATED.');
-} else {
-  // 2. Local Storage Implementation (Ephemeral — files lost on Render deploy)
+  console.log('✅ [Storage] Cloudinary Persistent Node CALIBRATED.');
+}
+else {
+  // 3. Local Storage Implementation (Ephemeral — files lost on Vercel/AWS deploy)
   const baseDir = path.join(__dirname, '..', 'uploads');
   if (!fs.existsSync(baseDir)) {
      fs.mkdirSync(baseDir, { recursive: true });
@@ -50,7 +82,7 @@ if (useCloudinary) {
 
   engine = multer.diskStorage({
     destination: (req, file, cb) => {
-      // 📂 Dynamic Sub-folder Logic: organizes by 'type' from req.body (pre-populated by frontend reordering)
+      // 📂 Dynamic Sub-folder Logic: organizes by 'type' from req.body
       const subFolder = req.body.type || 'general';
       const finalPath = path.join(baseDir, subFolder);
       
@@ -72,7 +104,7 @@ if (useCloudinary) {
       cb(null, name);
     }
   });
-  console.warn('⚠️  [Storage] Using Ephemeral Local Storage (No Cloudinary detected).');
+  console.warn('⚠️  [Storage] Using Ephemeral Local Storage (No S3 or Cloudinary detected).');
 }
 
 // ── Master Multer Configuration ───────────────────────────────────────────
