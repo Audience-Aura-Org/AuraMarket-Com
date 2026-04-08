@@ -66,7 +66,7 @@ export default function Footer() {
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 xl:px-20 py-12 md:py-16">
 
         {/* ── TOP ROW: Brand left, newsletter right ─────────────────────────── */}
-        <div className="hidden md:flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-0 justify-between mb-16">
+        <div className="flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-0 justify-between mb-16">
 
           {/* Brand block */}
           <div className="flex flex-col gap-4 md:gap-6 w-full md:max-w-xs">
@@ -83,7 +83,8 @@ export default function Footer() {
                 </span>
               </div>
             </button>
-            <p className="text-[12px] md:text-[13px] text-[var(--text-secondary)] leading-relaxed">
+            {/* Description — hidden on mobile */}
+            <p className="hidden md:block text-[12px] md:text-[13px] text-[var(--text-secondary)] leading-relaxed">
               The world's most precise multi-vendor ecosystem. Liquid-glass aesthetics for global commerce.
             </p>
             {/* Trust badges */}
@@ -99,8 +100,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Newsletter block */}
-          <div className="flex flex-col gap-3 md:gap-4 w-full md:max-w-sm lg:max-w-md lg:text-right">
+          {/* Newsletter block — hidden on mobile */}
+          <div className="hidden md:flex flex-col gap-3 md:gap-4 w-full md:max-w-sm lg:max-w-md lg:text-right">
             <div>
               <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)] mb-2 md:mb-1">Stay in the loop</p>
               <h3 className="text-xl md:text-2xl font-black text-[var(--text-primary)] tracking-tight leading-tight">
