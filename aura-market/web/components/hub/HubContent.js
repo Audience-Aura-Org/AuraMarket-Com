@@ -110,7 +110,7 @@ export default function HubContent() {
   useEffect(() => {
     const fetchInbox = async () => {
       try {
-        const res = await api.get('/messages/inbox');
+        const res = await api.get('/messages');
         if (res.data.success) {
           setInbox(res.data.data || []);
           try { sessionStorage.setItem('aura_hub_inbox', JSON.stringify(res.data.data || [])); } catch (_) {}
