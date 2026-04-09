@@ -64,7 +64,7 @@ const wrap = (title, heading, body) => `
     .badge-refunded { background: #e2e3e5; color: #404245; }
     .badge-failed { background: #f8d7da; color: #842029; }
     
-    .btn { display: inline-block; background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); color: #ffffff !important; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 800; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin: 24px 0; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(242,13,242,0.3); border: none; cursor: pointer; font-family: 'Poppins', sans-serif; }
+    .btn { display: inline-block; background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); color: #ffffff !important; text-decoration: none; padding: 12px 32px; border-radius: 12px; font-weight: 600; font-size: 15px; text-transform: capitalize; margin: 24px 0; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(242,13,242,0.3); border: none; cursor: pointer; font-family: 'Poppins', sans-serif; }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(242,13,242,0.4); }
     
     .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 14px; font-family: 'Poppins', sans-serif; border-radius: 12px; overflow: hidden; }
@@ -402,12 +402,14 @@ const newOrderForVendor = ({ order, vendor }) => {
 };
 
 /* ─── SHIPMENT ASSIGNED (Logistics) ─── */
-const shipmentAssigned = ({ shipment, order, firm }) => {
+const shipmentAssigned = ({ shipment, order, logistics, firm }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
-  const track = shipment.tracking_code;
+  const track = shipment?.tracking_code || `ORD-${ref}`;
   const subject = `📦 New Shipment Assigned — ${track}`;
+  const firmInfo = logistics || firm || {};
+  
   const body = `
-    <p>Hi <strong>${firm.company_name || 'Logistics Partner'}</strong>,</p>
+    <p>Hi <strong>${firmInfo.company_name || 'Logistics Partner'}</strong>,</p>
     <p>A new delivery assignment has been created for your company. Please pick up and deliver according to the details below.</p>
     
     <div class="card">
@@ -422,7 +424,7 @@ const shipmentAssigned = ({ shipment, order, firm }) => {
       <div class="card-divider"></div>
       <div class="card-row">
         <span class="card-label">Delivery Fee</span>
-        <span class="card-value">XAF ${(shipment.price || 0).toLocaleString()}</span>
+        <span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span>
       </div>
     </div>
     

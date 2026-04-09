@@ -28,7 +28,7 @@ const ADMIN_NAV = [
   { icon: 'forum',          label: 'System Comms',     href: '/admin/messages' },
   { icon: 'how_to_reg',     label: 'Vendor KYC',       href: '/admin/approvals' },
   { icon: 'gavel',          label: 'Disputes',         href: '/admin/disputes' },
-  { icon: 'account_balance',label: 'Escrow',           href: '/admin/escrow' },
+  { icon: 'account_balance_wallet',label: 'Withdrawals',    href: '/admin/withdrawals' },
   { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
   { icon: 'payments',       label: 'Logistics Earnings',href: '/admin/logistics/earnings' },
   { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },
@@ -99,7 +99,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         onClick={onClose}
       />
 
-      <aside className={`fixed lg:static inset-y-0 left-0 w-[88vw] max-w-72 lg:w-72 bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[200] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 w-[88vw] max-w-[240px] lg:w-[240px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[200] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo Area */}
         <div className="p-5 flex items-center justify-between border-b border-[var(--glass-border)] opacity-90">
           <div className="flex items-center gap-3 min-w-0">

@@ -221,18 +221,8 @@ const modifyShipmentStatus = async (req, res, next) => {
     }
 
     // ─────────────────────────────────────────────
-    // Send status update to customer
+    // NOTE: Email to customer is sent below with the proper template
     // ─────────────────────────────────────────────
-    await sendNotification(req.app, order.customer_id, {
-      title: 'Package Update',
-      message: `Your package status from ${firm?.company_name || 'Logistic Partner'} has been updated to: ${status.replace(/_/g, ' ')}.`,
-      type: 'order_status',
-      metadata: { order_id: order._id, link: `/orders/${order._id}` },
-      sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
-      orderDetails: order,
-      role: 'customer'
-    });
 
     // If order is completed (via auto-release logic above), notify the logistics partner
     if (order.order_status === 'completed' || order.order_status === 'delivered') {

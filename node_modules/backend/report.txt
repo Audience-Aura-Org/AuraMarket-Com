@@ -1,3 +1,0 @@
-﻿[dotenv@17.3.1] injecting env (20) from .env -- tip: ≡ƒ¢í∩╕Å auth for agents: https://vestauth.com
-EMAIL_REPORT: zeroxerxes8@gmail.com -> logistics1@auramarket.com
-EMAIL_REPORT: logistics2@auramarket.com -> logistics2@auramarket.com

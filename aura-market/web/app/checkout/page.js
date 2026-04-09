@@ -244,9 +244,9 @@ function CheckoutContent() {
                email: formData.email,
                phone: formData.phone
             },
-            escrow_enabled: formData.escrowEnabled,
-            payment_method: isPayOnDelivery ? 'pay_on_delivery' : (formData.escrowEnabled ? 'escrow' : 'wallet'),
-            shipping_method: formData.logistics_company_id ? 'logistics_partner' : 'vendor_managed',
+            escrow_enabled: formData.paymentMethod === 'wallet' && formData.escrowEnabled,
+            payment_method: isPayOnDelivery ? 'pay_on_delivery' : (formData.paymentMethod === 'eversend' ? 'eversend' : (formData.escrowEnabled ? 'escrow' : 'wallet')),
+            shipping_method: 'logistics_partner',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
          });
@@ -310,7 +310,7 @@ function CheckoutContent() {
       if (isPayOnDelivery) {
         toast.success("Order placed. Payment will be settled on delivery.");
       } else {
-        toast.success(formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
+        toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
       }
       
       // Clear cart immediately across all components
@@ -537,47 +537,33 @@ function CheckoutContent() {
                        <div className="pt-4 space-y-4">
                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Payment Strategy</label>
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <button 
-                               onClick={() => setFormData({...formData, escrowEnabled: true, paymentMethod: 'wallet'})}
-                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                              >
-                                 <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                       <ShieldCheck className={`size-5 ${formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                       <span className="text-[10px] font-black uppercase tracking-tighter">Aura Escrow</span>
-                                    </div>
-                                    {formData.paymentMethod === 'wallet' && formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                 </div>
-                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Funds secured in wallet until you verify order.</p>
-                              </button>
+                               <button 
+                                onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
+                                className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                               >
+                                  <div className="flex items-center justify-between mb-4">
+                                     <div className="flex items-center gap-2">
+                                        <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">Mobile Money / Card</span>
+                                     </div>
+                                     {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                  </div>
+                                  <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct deposit via Eversend secure gateway.</p>
+                               </button>
 
-                              <button 
-                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
-                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                              >
-                                 <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                       <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                       <span className="text-[10px] font-black uppercase tracking-tighter">Mobile Money / Card</span>
-                                    </div>
-                                    {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                 </div>
-                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct deposit via Eversend secure gateway.</p>
-                              </button>
-
-                              <button 
-                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'wallet'})}
-                               className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' && !formData.escrowEnabled ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
-                              >
-                                 <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                       <CreditCard className={`size-5 ${formData.paymentMethod === 'wallet' && !formData.escrowEnabled ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                       <span className="text-[10px] font-black uppercase tracking-tighter">Direct Wallet</span>
-                                    </div>
-                                    {formData.paymentMethod === 'wallet' && !formData.escrowEnabled && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                 </div>
-                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Immediate settlement from your Aura Wallet balance.</p>
-                              </button>
+                               <button 
+                                onClick={() => setFormData({...formData, paymentMethod: 'wallet', escrowEnabled: formData.escrowEnabled})}
+                                className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                               >
+                                  <div className="flex items-center justify-between mb-4">
+                                     <div className="flex items-center gap-2">
+                                        <CreditCard className={`size-5 ${formData.paymentMethod === 'wallet' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">Aura Wallet</span>
+                                     </div>
+                                     {formData.paymentMethod === 'wallet' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                  </div>
+                                  <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Immediate settlement from your Aura Wallet balance.</p>
+                               </button>
 
                               <button
                                onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'pay_on_delivery'})}
@@ -593,6 +579,24 @@ function CheckoutContent() {
                                  <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Payment is settled when logistics confirms delivery.</p>
                               </button>
                            </div>
+
+                           {formData.paymentMethod === 'wallet' && (
+                              <div className="mt-4 p-6 rounded-[32px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500 hover:border-[var(--accent)]/30 transition-all cursor-pointer"
+                                   onClick={() => setFormData({...formData, escrowEnabled: !formData.escrowEnabled})}>
+                                 <div className="flex items-center gap-4">
+                                    <div className={`size-12 rounded-2xl flex items-center justify-center transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] opacity-40 border border-[var(--glass-border)]'}`}>
+                                       <ShieldCheck className="size-6" />
+                                    </div>
+                                    <div>
+                                       <p className={`text-[11px] font-black uppercase tracking-widest ${formData.escrowEnabled ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>Aura Escrow Protection</p>
+                                       <p className="text-[9px] text-[var(--text-secondary)] font-medium opacity-60 mt-1 uppercase tracking-tighter">Secure funds until delivery confirmation</p>
+                                    </div>
+                                 </div>
+                                 <div className={`w-12 h-6 rounded-full flex items-center p-1 transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--text-secondary)]/20'}`}>
+                                    <div className={`size-4 bg-white rounded-full shadow-sm transition-transform transform ${formData.escrowEnabled ? 'translate-x-[24px]' : 'translate-x-0'}`} />
+                                 </div>
+                              </div>
+                           )}
 
                            {formData.paymentMethod === 'eversend' && (
                               <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -658,12 +662,12 @@ function CheckoutContent() {
                          </div>
                          <div className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex flex-col justify-between">
                             <div className="flex items-center gap-4">
-                               {formData.paymentMethod === 'pay_on_delivery'
-                                  ? <Truck className="size-10 text-emerald-500" />
-                                  : (formData.escrowEnabled ? <ShieldCheck className="size-10 text-emerald-500" /> : <CreditCard className="size-10 text-emerald-500" />)}
+                              {formData.paymentMethod === 'pay_on_delivery'
+                                 ? <Truck className="size-10 text-emerald-500" />
+                                 : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? <ShieldCheck className="size-10 text-emerald-500" /> : <CreditCard className="size-10 text-emerald-500" />)}
                                <div>
-                                  <p className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">{formData.paymentMethod === 'pay_on_delivery' ? 'Pay on Delivery' : (formData.escrowEnabled ? 'Escrow Active' : 'Direct Payout')}</p>
-                                  <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">{formData.paymentMethod === 'pay_on_delivery' ? 'Payment after delivery confirmation' : (formData.escrowEnabled ? 'Handshake secured' : 'Direct transfer protocol')}</p>
+                                  <p className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">{formData.paymentMethod === 'pay_on_delivery' ? 'Pay on Delivery' : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Escrow Secured' : 'Direct Payout')}</p>
+                                  <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">{formData.paymentMethod === 'pay_on_delivery' ? 'Payment after delivery confirmation' : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Handshake secured' : 'Immediate transfer protocol')}</p>
                                </div>
                             </div>
                              {selectedLogistics && (
@@ -687,15 +691,15 @@ function CheckoutContent() {
                           </div>
                       </div>
 
-                      <div className={`${formData.escrowEnabled ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} border p-8 rounded-[40px] flex items-start gap-6 relative overflow-hidden`}>
-                         <div className={`absolute inset-y-0 left-0 w-1.5 ${formData.escrowEnabled ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
-                         {formData.escrowEnabled ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
+                      <div className={`${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} border p-8 rounded-[40px] flex items-start gap-6 relative overflow-hidden`}>
+                         <div className={`absolute inset-y-0 left-0 w-1.5 ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
+                         {formData.escrowEnabled && formData.paymentMethod === 'wallet' ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
                          <div className="space-y-2">
-                            <h5 className={`text-[10px] font-black uppercase tracking-[0.2em] ${formData.escrowEnabled ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
+                            <h5 className={`text-[10px] font-black uppercase tracking-[0.2em] ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
                             <p className="text-xs font-medium text-[var(--text-secondary)]">
                                {formData.paymentMethod === 'pay_on_delivery'
                                  ? <>By executing this order, payment stays pending and is completed on delivery confirmation for test logistics flow.</>
-                                 : formData.escrowEnabled 
+                                 : formData.escrowEnabled && formData.paymentMethod === 'wallet'
                                  ? <>By executing this order, you authorize the platform to hold <span className="text-[var(--text-primary)] font-black">{(totalAmount).toLocaleString()} XAF</span> in Escrow vault.</>
                                  : <>By executing this order, you authorize the immediate transfer of <span className="text-[var(--text-primary)] font-black">{(totalAmount).toLocaleString()} XAF</span> to the vendor's wallet.</>
                                }

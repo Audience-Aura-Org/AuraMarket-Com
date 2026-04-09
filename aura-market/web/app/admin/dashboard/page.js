@@ -72,7 +72,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="p-4 lg:p-10 space-y-8">
+      <div className="max-w-7xl mx-auto w-full p-4 lg:p-10 space-y-8">
         {/* Admin Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {loading ? (
@@ -132,21 +132,27 @@ export default function AdminDashboard() {
                      <span className="material-symbols-outlined">query_stats</span>
                   </div>
                 </div>
-                <div className="h-64 flex flex-col items-center justify-center bg-[var(--bg-secondary)]/50 rounded-[32px] border border-[var(--glass-border)] text-[var(--text-secondary)] font-black tracking-[0.5em] text-[10px] uppercase shadow-inner relative z-10 gap-4">
-                    <div className="flex items-center gap-6">
-                       <div className="flex flex-col items-center gap-2">
-                          <span className="text-[var(--text-primary)] text-xl font-mono">{stats?.active_products || 0}</span>
-                          <span className="opacity-40">Products</span>
-                       </div>
-                       <div className="w-px h-10 bg-[var(--glass-border)]" />
-                       <div className="flex flex-col items-center gap-2">
-                           <span className="text-[var(--accent)] text-xl font-mono">{stats?.orders || 0}</span>
-                           <span className="opacity-40">Orders</span>
-                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-4 opacity-30 animate-pulse">
-                       <Sparkles className="size-4" /> Updating system data...
-                    </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+                   {[
+                     { label: 'Live Nodes', value: stats?.online_users || 0, icon: 'wifi', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                     { label: 'Active Today', value: stats?.active_users_24h || 0, icon: 'bolt', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                     { label: 'Products Map', value: stats?.active_products || 0, icon: 'hub', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+                     { label: 'Order Volume', value: stats?.orders || 0, icon: 'rebase_edit', color: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]/10' },
+                   ].map((item, idx) => (
+                     <div key={idx} className="flex flex-col items-center p-6 bg-[var(--bg-secondary)]/50 rounded-[24px] border border-[var(--glass-border)] shadow-inner group/item hover:bg-[var(--bg-primary)] transition-all">
+                        <div className={`p-2.5 rounded-xl ${item.bg} ${item.color} mb-4 group-hover/item:scale-110 transition-transform`}>
+                           <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                        </div>
+                        <span className="text-[var(--text-primary)] text-2xl font-black font-mono leading-none tracking-tighter mb-2">{item.value}</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">{item.label}</span>
+                     </div>
+                   ))}
+                </div>
+
+                <div className="flex items-center justify-center gap-2 mt-10 opacity-30 animate-pulse relative z-10">
+                   <Sparkles className="size-4" /> 
+                   <span className="text-[9px] font-black uppercase tracking-[0.3em]">Synchronizing system telemetry...</span>
                 </div>
              </section>
           </div>

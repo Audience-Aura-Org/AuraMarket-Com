@@ -260,11 +260,10 @@ const payDirectly = async (req, res, next) => {
     const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
     const vendorUser    = await User.findById(vendorAccount.user_id).session(session);
 
-    // Transfer Funds
-    user.wallet_balance        -= order.total_amount;
-    vendorUser.wallet_balance  += order.total_amount;
-    
+    // Transfer Funds directly to Vendor (No Escrow)
+    user.wallet_balance -= order.total_amount;
     await user.save({ session });
+    vendorUser.wallet_balance += order.total_amount; 
     await vendorUser.save({ session });
 
     // Log Transactions
@@ -280,9 +279,9 @@ const payDirectly = async (req, res, next) => {
       user_id:     vendorUser._id,
       type:        'payout',
       amount:      order.total_amount,
-      reference:   `DR-REC-${Date.now()}`,
+      reference:   `EP-${Date.now()}`,
       status:      'completed',
-      description: `Direct Payment Received (Order #${order._id.toString().slice(-6).toUpperCase()})`,
+      description: `Incoming Direct Payment (Order #${order._id.toString().slice(-6).toUpperCase()})`,
       order_id:    order._id
     }], { session });
 
@@ -396,16 +395,33 @@ const getOrderById = async (req, res, next) => {
 };
 
 const updateOrderStatus = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { order_status, tracking_number } = req.body;
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
 
     if (order_status) order.order_status = order_status;
     if (tracking_number) order.tracking_number = tracking_number;
-    await order.save();
+    await order.save({ session });
 
-    await sendNotification(req.app, order.customer_id, {
+    // ── AUTO-RELEASE ESCROW ON DELIVERY ──
+    if (order_status === 'delivered') {
+      const { releaseFundsInternal } = require('../services/payment.service');
+      await releaseFundsInternal(order._id, session, req.app);
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Notify Customer about status
+    sendNotification(req.app, order.customer_id, {
       title: 'Order Status Updated',
       message: `Your Order #${order._id.toString().slice(-6).toUpperCase()} is now ${order_status || 'updated'}.`,
       type: 'order_status',
@@ -415,7 +431,11 @@ const updateOrderStatus = async (req, res, next) => {
     });
 
     res.status(200).json({ success: true, message: 'Order status updated.', data: { order } });
-  } catch (error) { next(error); }
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    next(error);
+  }
 };
 
 const requestRefund = async (req, res, next) => {
@@ -588,6 +608,24 @@ const createOrdersFromCart = async (req, res, next) => {
             orderDetails: orderForEmail,
             emailLink: `${process.env.WEB_CLIENT_URL}/orders/${o._id}`
           });
+
+          // 3. Notify Logistics Partner if segment is assigned
+          if (o.shipping_method === 'logistics_partner' && o.logistics_company_id) {
+            const logisticsComp = await LogisticsCompany.findById(o.logistics_company_id);
+            if (logisticsComp) {
+              sendNotification(req.app, logisticsComp.user_id, {
+                title: 'New Shipment Assigned (Bulk POD)',
+                message: `Order #${o._id.toString().slice(-6).toUpperCase()} is ready for processing.`,
+                type: 'system_alert',
+                metadata: { order_id: o._id, link: '/logistics/dashboard' },
+                sendEmail: true,
+                overrideEmail: logisticsComp.contact_email,
+                emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+                orderDetails: orderForEmail,
+                role: 'logistics'
+              });
+            }
+          }
         }
       });
     }

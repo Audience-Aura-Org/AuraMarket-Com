@@ -20,8 +20,9 @@ export default function BottomNav() {
 
   const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages') || pathname?.startsWith('/admin/messages');
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register');
+  const isRolePage = pathname?.startsWith('/wallet') || pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics');
 
-  if (!mounted || isChatPage || isAuthPage) return null;
+  if (!mounted || isChatPage || isAuthPage || isRolePage) return null;
 
   const menu = [
     { label: "Discover", href: "/discovery", icon: Compass },

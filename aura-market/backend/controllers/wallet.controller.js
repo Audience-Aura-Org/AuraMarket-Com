@@ -189,8 +189,12 @@ const processWithdrawal = async (req, res, next) => {
       const user = await User.findById(transaction.user_id).session(session);
       user.wallet_balance += transaction.amount;
       await user.save({ session });
+    } else if (action === 'hold') {
+      // For now, hold just confirms it's pending but perhaps we add a flag
+      transaction.status = 'pending';
+      transaction.description += ' (On Hold by Admin)';
     } else {
-      throw new Error("Invalid action. Use 'approve' or 'reject'.");
+      throw new Error("Invalid action. Use 'approve', 'reject', or 'hold'.");
     }
 
     // Audit Log
@@ -208,9 +212,24 @@ const processWithdrawal = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Notify User
+    setImmediate(async () => {
+        try {
+            await sendNotification(req.app, transaction.user_id, {
+                title: `Withdrawal ${action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Held'}`,
+                message: `Your withdrawal of ${transaction.amount.toLocaleString()} XAF has been ${action === 'approve' ? 'processed' : action === 'reject' ? 'rejected and refunded' : 'placed on hold'}.`,
+                type: 'wallet_update',
+                metadata: { transaction_id: transaction._id, link: '/wallet' },
+                sendEmail: true
+            });
+        } catch (notifierErr) {
+            console.error('Withdrawal Notifier Error:', notifierErr);
+        }
+    });
+
     res.status(200).json({
       success: true,
-      message: `Withdrawal successfully ${action}ed.`,
+      message: `Withdrawal successfully ${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'held'}.`,
       data: { transaction },
     });
   } catch (error) {
@@ -309,11 +328,28 @@ const payOrderWithWallet = async (req, res, next) => {
   }
 };
 
+const getAllWithdrawals = async (req, res, next) => {
+  try {
+    const { status } = req.query;
+    const query = { type: 'withdrawal' };
+    if (status && status !== 'all') query.status = status;
+
+    const withdrawals = await Transaction.find(query)
+      .populate('user_id', 'name email phone avatar')
+      .sort('-createdAt');
+
+    res.status(200).json({ success: true, count: withdrawals.length, data: { withdrawals } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getWalletBalance,
   getTransactionHistory,
   initiateDeposit,
   requestWithdrawal,
   processWithdrawal,
+  getAllWithdrawals,
   payOrderWithWallet,
 };

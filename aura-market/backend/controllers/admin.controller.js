@@ -144,11 +144,20 @@ const getPlatformAnalytics = async (req, res, next) => {
       { $group: { _id: null, totalHeldFunds: { $sum: '$amount' } } }
     ]);
     const totalHeldFunds = escrowStats.length > 0 ? escrowStats[0].totalHeldFunds : 0;
+
+    // Presence Metrics
+    const onlineUsers = await User.countDocuments({ is_online: true });
+    const active24h = await User.countDocuments({ 
+      last_seen: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
+    });
+
     res.status(200).json({
       success: true,
       data: {
         stats: {
           users: totalUsers,
+          online_users: onlineUsers,
+          active_users_24h: active24h,
           vendors: totalVendors,
           pending_vendors: pendingKYC,
           products: totalProducts,

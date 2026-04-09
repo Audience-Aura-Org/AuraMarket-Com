@@ -35,12 +35,22 @@ const templates = require('./emailTemplates');
  */
 const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink) => {
   // If we have full order details, use the premium order template
-  if (orderDetails && (role === 'customer' || role === 'user')) {
-    const templateData = templates.orderPlaced({ 
-      order: orderDetails, 
-      customer: { name: orderDetails.customer_name || 'Valued Customer' } 
-    });
-    return templateData.html;
+  if (orderDetails) {
+    if (role === 'customer' || role === 'user') {
+      const templateData = templates.orderPlaced({ 
+        order: orderDetails, 
+        customer: { name: orderDetails.customer_name || 'Valued Customer' } 
+      });
+      return templateData.html;
+    }
+    
+    if (role === 'logistics') {
+      const templateData = templates.shipmentAssigned({ 
+        order: orderDetails,
+        logistics: { company_name: 'Logistics Partner' } // Generic label, notifier will fetch contact_email
+      });
+      return templateData.html;
+    }
   }
 
   // Fallback to a styled generic notification using the shared wrapper
