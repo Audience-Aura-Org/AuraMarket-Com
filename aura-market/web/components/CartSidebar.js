@@ -72,8 +72,8 @@ export default function CartSidebar() {
         transition-all duration-500 ease-in-out overflow-hidden
         border-l border-[var(--glass-border)]
         bg-[var(--bg-primary)]/60 backdrop-blur-xl
-        fixed top-[64px] bottom-0 right-0 z-[60]
-        ${open ? 'w-[260px] opacity-100 pointer-events-auto border-l-opacity-100' : 'w-0 opacity-0 pointer-events-none border-l-opacity-0'}
+        h-[calc(100vh-64px)]
+        ${open ? 'w-[260px] opacity-100' : 'w-0 opacity-0 pointer-events-none'}
       `}
     >
       {/* Inner content — fixed width, full height, never scrolls itself */}

@@ -477,4 +477,5 @@ module.exports = {
   newOrderForVendor,
   shipmentAssigned,
   refundRequested,
+  wrap,
 };

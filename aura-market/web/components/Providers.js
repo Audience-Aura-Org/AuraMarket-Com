@@ -19,12 +19,12 @@ export default function Providers({ children }) {
         <PWAInstallBanner />
         <OnboardingWatcher />
         <TopNav />
-        <CartSidebar />
         <div className="flex w-full items-stretch flex-1">
           <main className="flex-1 flex flex-col min-h-screen min-w-0">
             {children}
             <Footer />
           </main>
+          <CartSidebar />
         </div>
         <BottomNav />
       </SocketProvider>

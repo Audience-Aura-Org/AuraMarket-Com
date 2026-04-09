@@ -1,11 +1,10 @@
 const webPush = require('web-push');
-const nodemailer = require('nodemailer');
 const Notification = require('../models/Notification.model');
 const User = require('../models/User.model');
 const { 
-  EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, 
-  VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY 
+  VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, EMAIL_USER 
 } = require('../config/env');
+const { sendEmail: dispatchEmail } = require('./emailService');
 
 // ── VAPID Keys Calibration ──────────────────────────────────────────────────
 // These keys must match the ones in pwa-helper.js on the frontend
@@ -14,15 +13,7 @@ const VAPID_PRIV = VAPID_PRIVATE_KEY || 'aQU1zExyXuDZTuBlsHmI6iQwrVCvShRCGLR7GOY
 
 webPush.setVapidDetails('mailto:info@audienceaura.org', VAPID_PUB, VAPID_PRIV);
 
-// ── SMTP Transporter for Signals ─────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-  host: EMAIL_HOST,
-  port: EMAIL_PORT,
-  secure: EMAIL_PORT == 465, // true for 465, false for 587 (STARTTLS)
-  auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-  tls: { rejectUnauthorized: false } // Crucial for Titan SMTP stability on cloud nodes
-});
-
+// ── Signal Constants ─────────────────────────────────────────────────────────
 const LOGO_URL = 'https://aura-market-com.vercel.app/logo-white.png';
 
 // App brand colors for notifier fallback
@@ -127,24 +118,25 @@ const sendNotification = async (app, recipientId, data) => {
           }
           
           if (targetEmail) {
-            const info = await transporter.sendMail({
-              from: `"Aura Market" <${EMAIL_USER}>`,
+            const success = await dispatchEmail({
               to: targetEmail,
               subject: title,
               text: message,
-              html: emailTemplate?.html || buildOrderEmailHtml(title, message, orderDetails, role, emailLink)
+              html: emailTemplate?.html || buildOrderEmailHtml(title, message, orderDetails, role, emailLink),
+              role: role || 'user'
             });
 
-            await EmailLog.create({
-              recipient_email: targetEmail,
-              recipient_user_id: recipientId,
-              subject: title || 'Aura Signal',
-              message_preview: message ? message.substring(0, 100) : '',
-              role: role || 'user',
-              status: 'sent',
-              message_id: info.messageId
-            });
-            console.log(`📧 Email Signal Delivered via SMTP: ${info.messageId}`);
+            if (success) {
+              await EmailLog.create({
+                recipient_email: targetEmail,
+                recipient_user_id: recipientId,
+                subject: title || 'Aura Signal',
+                message_preview: message ? message.substring(0, 100) : '',
+                role: role || 'user',
+                status: 'sent'
+              });
+              console.log(`📧 Email Signal Delivered via Shared Service to ${targetEmail}`);
+            }
           }
         } catch (err) {
           console.error('❌ Email Signal Dispatch Error:', err.message);

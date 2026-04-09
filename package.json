@@ -7,8 +7,7 @@
   },
   "workspaces": [
     "aura-market/web",
-    "aura-market/backend",
-    "aura-market"
+    "aura-market/backend"
   ],
   "dependencies": {
     "next": "^16.1.6",
