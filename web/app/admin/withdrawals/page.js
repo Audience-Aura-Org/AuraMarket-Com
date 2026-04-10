@@ -14,6 +14,7 @@ import Pagination from '@/components/common/Pagination';
 
 export default function AdminWithdrawalsPage() {
   const { user } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
@@ -35,8 +36,13 @@ export default function AdminWithdrawalsPage() {
   };
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !user) return;
     fetchWithdrawals();
-  }, [filter]);
+  }, [filter, mounted, user]);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
