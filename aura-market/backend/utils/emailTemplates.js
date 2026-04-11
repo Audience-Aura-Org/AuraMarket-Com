@@ -468,6 +468,47 @@ const refundRequested = ({ order, vendor, reason }) => {
   return { subject, html, text: `Refund requested for Order #${ref}.` };
 };
 
+/* ─── WITHDRAWAL STATUS (Customer/Vendor) ─── */
+const withdrawalStatusUpdate = ({ transaction, user, action }) => {
+  const amount = transaction.amount || 0;
+  const statusText = action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'On Hold';
+  const subject = `💳 Withdrawal ${statusText} — ${amount.toLocaleString()} XAF`;
+  const statusBadge = action === 'approve' ? 'completed' : action === 'reject' ? 'failed' : 'pending';
+  
+  const messages = {
+    'approve': 'Your withdrawal has been successfully processed and funds have been transferred to your account.',
+    'reject': 'Your withdrawal has been rejected. The funds have been refunded to your wallet.',
+    'hold': 'Your withdrawal is currently under review and has been placed on hold. Please check back later for updates.'
+  };
+  
+  const msg = messages[action] || messages['hold'];
+  
+  const body = `
+    <p>Hi <strong>${user.name || 'Valued User'}</strong>,</p>
+    <p>${msg}</p>
+    
+    <div class="card">
+      <div class="card-row">
+        <span class="card-label">Amount</span>
+        <span class="card-value">XAF ${amount.toLocaleString()}</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">Status</span>
+        <span class="card-value">${badge(statusBadge)}</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-row">
+        <span class="card-label">Reference</span>
+        <span class="card-value" style="font-family: monospace;">${transaction.reference || transaction._id.toString().slice(-6).toUpperCase()}</span>
+      </div>
+    </div>
+    
+    <a href="${WEB_URL}/wallet" class="btn">View Wallet</a>
+  `;
+  const html = wrap(subject, `💳 Withdrawal ${statusText}`, body);
+  return { subject, html, text: `Withdrawal ${statusText}: XAF ${amount.toLocaleString()}` };
+};
+
 module.exports = {
   welcomeEmail,
   passwordReset,
@@ -479,5 +520,6 @@ module.exports = {
   newOrderForVendor,
   shipmentAssigned,
   refundRequested,
+  withdrawalStatusUpdate,
   wrap,
 };

@@ -226,12 +226,20 @@ const modifyShipmentStatus = async (req, res, next) => {
 
     // If order is completed (via auto-release logic above), notify the logistics partner
     if (order.order_status === 'completed' || order.order_status === 'delivered') {
+      const recipient = await User.findById(firm.user_id).select('name email');
+      const deliveryTemplate = templates.shipmentStatusChanged({
+        shipment,
+        order,
+        recipient: { name: firm.company_name || 'Logistics Partner' },
+        status: 'delivered'
+      });
       await sendNotification(req.app, firm.user_id, {
-        title: 'Shipment Successfully Closed',
+        title: deliveryTemplate.subject,
         message: `Shipment for Order #${order._id.toString().slice(-6).toUpperCase()} is confirmed delivered and settled.`,
         type: 'system_alert',
         metadata: { order_id: order._id, shipment_id: shipment._id },
         sendEmail: true,
+        emailTemplate: deliveryTemplate,
         overrideEmail: firm.contact_email,
         emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard?shipmentId=${shipment._id}`,
         orderDetails: order.toObject(),

@@ -408,42 +408,60 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
       // ── Dispatch notifications in background (Post-Commit handled by app logic or setImmediate)
       setImmediate(async () => {
          try {
-           // A. Notify Vendor
-           if (vendor) {
-              await sendNotification(app, vendor.user_id, {
-                title: 'Order Paid & Confirmed',
-                message: `Payment received for order #${order._id.toString().slice(-6).toUpperCase()} from ${user.name}.`,
-                type: 'order_status',
-                metadata: { order_id: order._id, link: '/vendor/orders' },
-                sendEmail: true,
-                orderDetails: orderForNotify,
-                role: 'vendor'
-              });
-           }
-
-           // B. Notify Customer
+           // A. Notify Customer with payment confirmation template
+           const customerPaymentTemplate = templates.paymentConfirmed({
+             order: orderForNotify,
+             customer: user
+           });
            await sendNotification(app, user._id, {
-             title: 'Order Payment Confirmed',
+             title: customerPaymentTemplate.subject,
              message: `Your payment for order #${order._id.toString().slice(-6).toUpperCase()} has been verified.`,
              type: 'order_status',
              metadata: { order_id: order._id, link: '/orders' },
              sendEmail: true,
+             emailTemplate: customerPaymentTemplate,
              orderDetails: orderForNotify,
              role: 'customer'
            });
+
+           // B. Notify Vendor about new order
+           const vendorOrderTemplate = templates.newOrderForVendor({
+             order: orderForNotify,
+             vendor: vendor
+           });
+           if (vendor) {
+              await sendNotification(app, vendor.user_id, {
+                title: vendorOrderTemplate.subject,
+                message: `Payment received for order #${order._id.toString().slice(-6).toUpperCase()} from ${user.name}.`,
+                type: 'order_status',
+                metadata: { order_id: order._id, link: '/vendor/orders' },
+                sendEmail: true,
+                emailTemplate: vendorOrderTemplate,
+                orderDetails: orderForNotify,
+                role: 'vendor'
+              });
+           }
 
            // C. Notify Logistics Partner if applicable
            if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
              const quartier = order.shipping_address?.quartier;
              if (quartier) {
                const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
+               const shipment = await Shipment.findOne({ order_id: order._id });
                if (logisticsFirm) {
+                 const logisticsTemplate = templates.shipmentAssigned({
+                   shipment: shipment || { tracking_code: order._id.toString().slice(-6).toUpperCase() },
+                   order: orderForNotify,
+                   logistics: logisticsFirm
+                 });
                  await sendNotification(app, logisticsFirm.user_id, {
-                   title: 'New Shipment Assigned',
+                   title: logisticsTemplate.subject,
                    message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
                    type: 'system_alert',
                    metadata: { order_id: order._id, link: '/logistics/dashboard' },
                    sendEmail: true,
+                   emailTemplate: logisticsTemplate,
+                   overrideEmail: logisticsFirm.contact_email,
                    role: 'logistics'
                  });
                }
