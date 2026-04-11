@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import api from '@/services/api';
-import { ArrowRight, Plus, Minus, Trash2, Package, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Plus, Minus, Trash2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import cartStore from '@/services/cartStore';
 
@@ -12,22 +12,31 @@ export default function CartSidebar() {
   const { user } = useAuthStore();
   const pathname = usePathname();
   const [items, setItems] = useState(cartStore.getItems());
+  const [deletingIds, setDeletingIds] = useState(new Set());
+  const navRef = useRef(null);
+  const [navHeight, setNavHeight] = useState(65);
 
-  // Pages where the sidebar should never appear
   const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat', '/discovery', '/onboarding'];
   const shouldHide = hidden.some(r => pathname?.startsWith(r));
 
+  // Measure actual TopNav height so we position correctly
   useEffect(() => {
-    // Subscribe to store updates
+    const measure = () => {
+      const nav = document.querySelector('header');
+      if (nav) setNavHeight(nav.offsetHeight);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  useEffect(() => {
     const unsub = cartStore.subscribe(({ items: newItems }) => {
       setItems(newItems);
     });
-
-    // Fetch fresh data on mount if user is logged in
     if (user?._id && !shouldHide) {
       cartStore.refresh();
     }
-
     return unsub;
   }, [user?._id, shouldHide]);
 
@@ -36,9 +45,7 @@ export default function CartSidebar() {
     cartStore.optimisticUpdateQty(itemId, delta);
     try {
       const res = await api.patch('/cart/item', { item_id: itemId, quantity_delta: delta });
-      if (res.data?.success) {
-        cartStore.setCart(res.data.data.cart);
-      }
+      if (res.data?.success) cartStore.setCart(res.data.data.cart);
     } catch {
       cartStore.refresh();
     } finally {
@@ -47,17 +54,24 @@ export default function CartSidebar() {
   };
 
   const removeItem = async (itemId) => {
+    // Prevent duplicate delete calls for the same item
+    if (deletingIds.has(itemId)) return;
+
+    setDeletingIds(prev => new Set([...prev, itemId]));
     cartStore.startMutation();
     const prev = cartStore.optimisticRemove(itemId);
     try {
       const res = await api.delete('/cart/item', { data: { item_id: itemId } });
-      if (res.data?.success) {
-        cartStore.setCart(res.data.data.cart);
-      }
+      if (res.data?.success) cartStore.setCart(res.data.data.cart);
     } catch {
       cartStore.rollback(prev);
     } finally {
       cartStore.endMutation();
+      setDeletingIds(current => {
+        const next = new Set(current);
+        next.delete(itemId);
+        return next;
+      });
     }
   };
 
@@ -66,99 +80,119 @@ export default function CartSidebar() {
   const open = !shouldHide && items.length > 0;
 
   return (
-    <aside
-      className={`
-        hidden lg:flex flex-col flex-shrink-0
-        transition-all duration-500 ease-in-out overflow-hidden
-        border-l border-[var(--glass-border)]
-        bg-[var(--bg-primary)]/60 backdrop-blur-xl
-        fixed right-0 top-0 bottom-0 mt-[64px] h-[calc(100vh-64px)]
-        ${open ? 'w-[260px] opacity-100' : 'w-0 opacity-0 pointer-events-none'}
-      `}
-    >
-      {/* Inner content — fixed width, full height, never scrolls */}
-      <div className="w-[260px] flex flex-col h-full overflow-hidden justify-between">
+    <>
+      {/* Width placeholder — reserves space in the flex layout to push content left */}
+      <div
+        className={`
+          hidden lg:block flex-shrink-0
+          transition-all duration-500 ease-in-out
+          ${open ? 'w-[260px]' : 'w-0'}
+        `}
+        aria-hidden="true"
+      />
 
-        {/* Header */}
-        <div className="px-5 pt-6 pb-4 border-b border-[var(--glass-border)] shrink-0">
+      {/* Actual fixed sidebar — spans from bottom of TopNav to bottom of screen */}
+      <aside
+        style={{ top: `${navHeight}px` }}
+        className={`
+          hidden lg:flex flex-col
+          fixed right-0 bottom-0
+          w-[260px]
+          border-l border-[var(--glass-border)]
+          bg-[var(--bg-primary)]
+          transition-all duration-500 ease-in-out
+          z-40
+          ${open ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}
+        `}
+      >
+        {/* ── HEADER ─────────────────────────── */}
+        <div className="px-4 py-3 border-b border-[var(--glass-border)] shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-4 h-4 text-[var(--accent)]" />
-              <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)]">Your Stash</h2>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">Stash</h3>
+            <div className="flex items-center gap-1 bg-[var(--accent)]/10 px-2 py-0.5 rounded-full border border-[var(--accent)]/20">
+              <span className="text-[9px] font-black text-[var(--accent)]">{totalQty}</span>
             </div>
-            <span className="text-[9px] font-black bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-0.5 rounded-full">
-              {totalQty} {totalQty === 1 ? 'item' : 'items'}
-            </span>
           </div>
         </div>
 
-        {/* Items list — NO SCROLLING, just stacks items */}
-        <div className="flex-1 px-4 py-4 space-y-3 no-scrollbar min-h-0 overflow-hidden">
-          {items.map(it => (
-            <div key={it.id || it.productId} className="flex items-center gap-3 group border-b border-[var(--glass-border)] pb-3 last:border-0 last:pb-0">
-              {/* Thumbnail */}
-              <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-sm">
-                {it.image
-                  ? <img src={it.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  : <Package className="w-4 h-4 m-auto opacity-20" />
-                }
-              </div>
+        {/* ── SCROLLABLE ITEMS ──────────────── */}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3 min-h-0">
+          {items.map(it => {
+            const itemId = it.id || it.productId;
+            const isDeleting = deletingIds.has(itemId);
+            return (
+              <div
+                key={itemId}
+                className={`flex flex-col gap-2 border-b border-[var(--glass-border)] pb-3 last:border-0 last:pb-0 transition-opacity ${isDeleting ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Thumbnail */}
+                  <div className="size-10 rounded-lg overflow-hidden border border-[var(--glass-border)] shrink-0">
+                    <img src={it.image} className="size-full object-cover" alt={it.name} />
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[10px] font-black text-[var(--text-primary)] truncate leading-tight uppercase">{it.name}</h4>
+                    <span className="text-[9px] font-black text-[var(--accent)]">{(it.price * it.quantity).toLocaleString()} XAF</span>
+                  </div>
+                  {/* Remove */}
+                  <button
+                    onClick={() => removeItem(itemId)}
+                    disabled={isDeleting}
+                    className="size-6 rounded-lg hover:bg-red-500/10 text-[var(--text-secondary)] hover:text-red-500 transition-all shrink-0 flex items-center justify-center disabled:cursor-not-allowed"
+                  >
+                    {isDeleting
+                      ? <Loader2 className="size-3 animate-spin" />
+                      : <Trash2 className="size-3.5" />
+                    }
+                  </button>
+                </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black text-[var(--text-primary)] truncate leading-snug uppercase tracking-wider">{it.name}</p>
-                <p className="text-[11px] font-black text-[var(--accent)] mt-0.5">{(it.price * it.quantity).toLocaleString()} XAF</p>
+                {/* Qty controls */}
+                <div className="flex items-center">
+                  <div className="flex items-center bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] p-0.5">
+                    <button
+                      onClick={() => updateQty(itemId, -1)}
+                      className="size-5 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+                    >
+                      <Minus className="size-2.5" />
+                    </button>
+                    <span className="text-[9px] font-black px-2 text-[var(--text-primary)] min-w-[20px] text-center">{it.quantity}</span>
+                    <button
+                      onClick={() => updateQty(itemId, 1)}
+                      className="size-5 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+                    >
+                      <Plus className="size-2.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              {/* Controls */}
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => updateQty(it.id, -1)}
-                  className="size-6 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors shadow-sm"
-                >
-                  <Minus className="w-2 h-2" />
-                </button>
-                <span className="text-[10px] font-black w-4 text-center text-[var(--text-primary)]">{it.quantity}</span>
-                <button
-                  onClick={() => updateQty(it.id, 1)}
-                  className="size-6 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors shadow-sm"
-                >
-                  <Plus className="w-2 h-2" />
-                </button>
-                <button
-                  onClick={() => removeItem(it.id)}
-                  className="size-6 ml-0.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shadow-sm"
-                >
-                  <Trash2 className="w-2.5 h-2.5" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Footer / CTA — ALWAYS at bottom */}
-        <div className="px-4 py-4 border-t border-[var(--glass-border)] shrink-0 space-y-3 bg-[var(--bg-primary)]/95 backdrop-blur-md shadow-lg shadow-black/20 mt-auto">
-          {/* Subtotal */}
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Subtotal</span>
-            <span className="text-base font-black text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
+        {/* ── FOOTER: ALWAYS AT BOTTOM ─────── */}
+        <div className="shrink-0 px-4 py-4 border-t border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[0_-8px_32px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Subtotal</span>
+            <span className="text-sm font-black text-[var(--text-primary)] tracking-tighter">{subtotal.toLocaleString()} XAF</span>
           </div>
-
-          {/* Buttons */}
-          <Link
-            href="/checkout"
-            className="w-full py-3 bg-[var(--accent)] text-white rounded-xl font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
-          >
-            Checkout <ArrowRight className="w-3 h-3" />
-          </Link>
-          <Link
-            href="/cart"
-            className="w-full py-2.5 border border-[var(--glass-border)] rounded-xl font-black text-[10px] tracking-widest uppercase flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/30 transition-all"
-          >
-            Full Cart View
-          </Link>
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/checkout"
+              className="w-full py-3 bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-lg shadow-[var(--accent)]/20 flex items-center justify-center gap-2"
+            >
+              Checkout <ArrowRight className="size-3" />
+            </Link>
+            <Link
+              href="/cart"
+              className="w-full py-2.5 bg-white/5 border border-[var(--glass-border)] text-[var(--text-primary)] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all flex items-center justify-center"
+            >
+              Full Cart View
+            </Link>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

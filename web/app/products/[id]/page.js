@@ -256,9 +256,14 @@ export default function ProductDetailsPage() {
            <div className="flex items-center gap-3 md:gap-4">
               <button 
                 onClick={handleWishlist} 
-                className={`p-2.5 md:p-3 rounded-xl transition-all border shadow-sm ${wishlisted ? 'bg-red-50 border-red-100 text-red-500 dark:bg-red-500/10 dark:border-red-500/20' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'}`}
+                disabled={wishlistLoading}
+                className={`p-3 md:p-4 rounded-2xl transition-all border shadow-xl flex items-center justify-center group/heart ${
+                  wishlisted 
+                    ? 'bg-red-500 text-white border-red-500 shadow-red-500/20' 
+                    : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-red-500 hover:border-red-500/40 hover:bg-red-500/5 hover:-translate-y-1'
+                }`}
               >
-                 <Heart className={`w-3.5 h-3.5 md:w-4 md:h-4 ${wishlisted ? 'fill-current' : ''}`} />
+                 <Heart className={`w-4 h-4 md:w-5 md:h-5 transition-transform duration-300 ${wishlisted ? 'fill-current scale-110' : 'group-hover/heart:scale-125'} ${wishlistLoading ? 'animate-pulse' : ''}`} />
               </button>
               <button className="p-2.5 md:p-3 rounded-xl transition-all border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] shadow-sm">
                  <Share2 className="w-3.5 h-3.5 md:w-4 md:h-4" />

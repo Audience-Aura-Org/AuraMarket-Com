@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap, Eye } from 'lucide-react';
-import { trackAction } from '@/services/tracking';
+import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap, Eye, Heart } from 'lucide-react';
+import { trackAction, trackWishlist } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
@@ -21,7 +21,25 @@ export default function ProductCard({ product }) {
   
   const { user } = useAuthStore();
   const [adding, setAdding] = useState(false);
+  const [wishlisted, setWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const [toast, setToast] = useState(null);
+
+  const handleWishlist = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { showToast("Login to wishlist", "error"); return; }
+    setWishlistLoading(true);
+    try {
+      const res = await api.post('/wishlist/toggle', { product_id: productId });
+      setWishlisted(res.data.data?.wishlisted ?? !wishlisted);
+      if (res.data.data?.wishlisted) trackWishlist(product);
+    } catch { 
+      setWishlisted(!wishlisted);
+    } finally { 
+      setWishlistLoading(false); 
+    }
+  };
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -114,12 +132,24 @@ export default function ProductCard({ product }) {
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/40 via-transparent to-transparent opacity-40" />
 
         {/* Floating Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+        <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-10">
           {category && (
             <div className="px-2 py-1 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-md text-[8px] font-black tracking-widest text-[var(--accent)] border border-[var(--glass-border)] shadow-sm">
               {category}
             </div>
           )}
+          
+          <button 
+            onClick={handleWishlist}
+            disabled={wishlistLoading}
+            className={`size-8 rounded-xl flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl ${
+              wishlisted 
+                ? 'bg-red-500 text-white border-red-500 shadow-red-500/20' 
+                : 'bg-[var(--bg-primary)]/80 text-[var(--text-secondary)] border-[var(--glass-border)] hover:text-red-500 hover:scale-110'
+            }`}
+          >
+            <Heart className={`size-4 ${wishlisted ? 'fill-current' : ''} ${wishlistLoading ? 'animate-pulse' : ''}`} />
+          </button>
         </div>
 
         {/* Rating Floating */}

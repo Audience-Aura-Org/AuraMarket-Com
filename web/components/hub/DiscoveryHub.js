@@ -15,6 +15,7 @@ import api from '@/services/api';
 import cartStore from '@/services/cartStore';
 import socketService from '@/services/socket';
 import Link from 'next/link';
+import Pagination from '@/components/common/Pagination';
 
 const TABS = [
   { id: 'chats', icon: MessageCircle, label: 'Chats' },
@@ -24,15 +25,18 @@ const TABS = [
   { id: 'wishlist', icon: HeartIcon, label: 'Wishlist' },
 ];
 
-// Normalize partner identifier across varied shapes
-function getPartnerId(partner) {
+// Normalize identifier to always target the USER ID for consistent deduplication
+function getPartnerUserId(partner) {
   if (!partner) return null;
   if (typeof partner === 'string') return partner;
-  if (partner._id) return partner._id?.toString();
-  if (partner.id) return partner.id?.toString();
-  if (partner.user_id && partner.user_id._id) return partner.user_id._id.toString();
-  if (partner.vendor_id && partner.vendor_id._id) return partner.vendor_id._id.toString();
-  return null;
+  const uid = partner.user_id?._id || partner.user_id || partner._id || partner.id;
+  return uid ? uid.toString() : null;
+}
+
+// Support consistent name resolution: Store Name > Name
+function getDisplayName(partner) {
+  if (!partner) return 'Unknown';
+  return partner.store_name || partner.name || partner.user_id?.name || 'Aura User';
 }
 export default function DiscoveryHub() {
   const { user } = useAuthStore();
@@ -71,7 +75,7 @@ export default function DiscoveryHub() {
                   <Icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''} transition-transform`} />
                   {tab.id === 'chats' && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[var(--bg-primary)]" />}
                 </div>
-                <span className={`text-[9px] font-bold mt-1 ${isActive ? 'text-[var(--accent)]' : 'opacity-50'}`}>{tab.label}</span>
+                <span className={`text-[8px] font-black mt-1 ${isActive ? 'text-[var(--accent)]' : 'opacity-50 uppercase tracking-widest'}`}>{tab.label}</span>
               </button>
             );
           })}
@@ -177,7 +181,7 @@ function DiscoveryContent({ user }) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search products..."
-            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-12 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-12 text-[10px] focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
           />
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
         </div>
@@ -234,7 +238,7 @@ function DiscoveryContent({ user }) {
                 <button
                   key={cat._id}
                   onClick={() => handleCategoryClick(cat)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full border transition-all text-[10px] font-medium shadow-sm ${
+                  className={`shrink-0 px-3 py-1.5 rounded-full border transition-all text-[9px] font-bold shadow-sm ${
                     activeCategoryId === cat._id 
                       ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' 
                       : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'
@@ -377,11 +381,11 @@ function ProductCard({ product, onClick }) {
 
       {/* Product Info */}
       <div className="p-3 space-y-2">
-        <h3 className="text-sm font-bold text-[var(--text-primary)] line-clamp-2 uppercase">{product.name}</h3>
+        <h3 className="text-[11px] font-bold text-[var(--text-primary)] line-clamp-2 uppercase leading-tight">{product.name}</h3>
         
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-lg font-black text-[var(--accent)]">{product.price?.toLocaleString()}</span>
+            <span className="text-base font-black text-[var(--accent)]">{product.price?.toLocaleString()}</span>
             <span className="text-[10px] text-[var(--text-secondary)] ml-1">XAF</span>
           </div>
           {product.rating > 0 && (
@@ -580,12 +584,12 @@ function ChatsContent({ user }) {
       if (res.data.success) {
         let chatList = res.data.data.activeChats || res.data.data || [];
         
-        // Deduplicate by normalized partner ID - keep only one chat per partner
+        // Deduplicate by normalized USER ID - keep only one chat per partner
         const seen = new Set();
         const deduped = chatList.filter(chat => {
-          const vendorId = getPartnerId(chat.partner) || JSON.stringify(chat.partner || chat);
-          if (seen.has(vendorId)) return false;
-          seen.add(vendorId);
+          const partnerUserId = getPartnerUserId(chat.partner);
+          if (!partnerUserId || seen.has(partnerUserId)) return false;
+          seen.add(partnerUserId);
           return true;
         });
         
@@ -611,7 +615,7 @@ function ChatsContent({ user }) {
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
       if (senderId !== currentUserId) {
         setChats(prev => prev.map(chat => {
-          const pid = getPartnerId(chat.partner);
+          const pid = getPartnerUserId(chat.partner);
           if (pid && pid === senderId) return { ...chat, snippet: msg.text, date: new Date().toISOString(), read_status: false };
           return chat;
         }));
@@ -655,7 +659,7 @@ function ChatsContent({ user }) {
         )}
         
         {chats.map((chat, i) => (
-          <ChatItem key={getPartnerId(chat.partner) || `chat-${i}`} chat={chat} />
+          <ChatItem key={getPartnerUserId(chat.partner) || `chat-${i}`} chat={chat} />
         ))}
 
         {/* Section Header: Followed Vendors (WhatsApp-style contacts) */}
@@ -666,11 +670,13 @@ function ChatsContent({ user }) {
             </div>
             {followedVendors.map((vendor, i) => {
               const vendorData = vendor.vendor_id || vendor;
-              const vid = getPartnerId(vendorData);
-              const isAlreadyChatting = chats.some(c => getPartnerId(c.partner) === vid);
+              const vUserId = getPartnerUserId(vendorData);
+              const isAlreadyChatting = chats.some(c => getPartnerUserId(c.partner) === vUserId);
+              
               if (isAlreadyChatting) return null;
+              
               return (
-                <FollowedVendorItem key={vid || `follow-${i}`} vendor={vendorData} />
+                <FollowedVendorItem key={vUserId || `follow-${i}`} vendor={vendorData} />
               );
             })}
           </>
@@ -707,85 +713,84 @@ function ChatsContent({ user }) {
 
 function ChatItem({ chat }) {
   const partner = chat.partner || {};
-  const name = partner.name || partner.store_name || 'Unknown';
-  const avatar = partner.avatar || partner.branding?.logo;
+  const name = getDisplayName(partner);
+  const avatar = partner.avatar || partner.branding?.logo || partner.logo?.url;
   const isUnread = !chat.read_status;
-  const partnerId = getPartnerId(partner) || partner._id || partner;
+  const partnerId = getPartnerUserId(partner);
 
   return (
     <Link href={`/chat?vendorId=${partnerId}`} className={`flex items-center gap-3 p-3 hover:bg-[var(--accent)]/5 cursor-pointer border-b border-[var(--glass-border)]/50 ${isUnread ? 'bg-[var(--accent)]/5' : ''}`}>
       {/* Avatar */}
-      <div className="relative">
-        <div className="w-10 h-10 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 border-[var(--glass-border)]">
+      <div className="relative shrink-0">
+        <div className="w-10 h-10 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 border-[var(--glass-border)] shadow-sm">
           {avatar ? (
             <img src={avatar} className="w-full h-full object-cover" alt={name} />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-xl font-black text-[var(--accent)]">
+            <div className="w-full h-full flex items-center justify-center text-sm font-black text-[var(--accent)]">
               {name[0]?.toUpperCase() || '?'}
             </div>
           )}
         </div>
         {partner.isOnline && (
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[var(--bg-primary)]" />
+          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[var(--bg-primary)]" />
         )}
       </div>
 
       {/* Chat Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className={`font-bold truncate text-sm ${isUnread ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+        <div className="flex items-center justify-between mb-0.5">
+          <h3 className={`font-bold truncate text-[13px] ${isUnread ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
             {name}
           </h3>
-          <span className="text-[9px] text-[var(--text-secondary)] shrink-0">
+          <span className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 shrink-0">
             {chat.date ? new Date(chat.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
           </span>
         </div>
-        <p className={`text-xs truncate ${isUnread ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
+        <p className={`text-[10px] truncate ${isUnread ? 'font-bold text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
           {chat.snippet || 'Tap to start chatting'}
         </p>
       </div>
 
       {/* Unread Indicator */}
       {isUnread && (
-        <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] shrink-0" />
+        <div className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse shrink-0" />
       )}
     </Link>
   );
 }
 
-// Followed Vendor as WhatsApp Contact
+// Followed Vendor as WhatsApp Contact - Now identical to ChatItem
 function FollowedVendorItem({ vendor }) {
-  const name = vendor.store_name || vendor.name || 'Vendor';
-  // Logo is nested under vendor.user_id.branding.logo
-  const avatar = vendor.user_id?.branding?.logo || vendor.user_id?.avatar || vendor.avatar || vendor.logo;
-  const vendorId = vendor._id;
+  const name = getDisplayName(vendor);
+  const avatar = vendor.user_id?.branding?.logo || vendor.user_id?.avatar || vendor.avatar || vendor.logo?.url || vendor.logo;
+  const partnerId = getPartnerUserId(vendor);
   
   return (
-    <Link href={`/chat?vendorId=${vendorId}`} className="flex items-center gap-3 p-3 hover:bg-[var(--accent)]/5 cursor-pointer border-b border-[var(--glass-border)]/50">
+    <Link href={`/chat?vendorId=${partnerId}`} className="flex items-center gap-3 p-3 hover:bg-[var(--accent)]/5 cursor-pointer border-b border-[var(--glass-border)]/50">
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 border-[var(--glass-border)]">
-        {avatar ? (
-          <img src={avatar} className="w-full h-full object-cover" alt={name} />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-xl font-black text-[var(--accent)]">
-            {name[0]?.toUpperCase() || 'V'}
-          </div>
-        )}
+      <div className="shrink-0">
+        <div className="w-10 h-10 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 border-[var(--glass-border)] shadow-sm">
+          {avatar ? (
+            <img src={avatar} className="w-full h-full object-cover" alt={name} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-sm font-black text-[var(--accent)]">
+              {name[0]?.toUpperCase() || 'V'}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Vendor Info */}
       <div className="flex-1 min-w-0">
-        <h3 className="font-bold truncate text-[var(--text-primary)]">
-          {name}
-        </h3>
-        <p className="text-sm text-[var(--text-secondary)] opacity-60 truncate">
+        <div className="flex items-center justify-between mb-0.5">
+          <h3 className="font-bold truncate text-[13px] text-[var(--text-primary)]">
+            {name}
+          </h3>
+          <MessageCircle className="w-3 h-3 text-[var(--accent)] opacity-30" />
+        </div>
+        <p className="text-[10px] text-[var(--text-secondary)] opacity-60 truncate">
           Tap to start chatting
         </p>
-      </div>
-
-      {/* Chat Icon */}
-      <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
-        <MessageCircle className="w-5 h-5" />
       </div>
     </Link>
   );
@@ -821,12 +826,15 @@ function OrdersContent({ user }) {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
+    setLoading(true);
     try {
       const res = await api.get('/orders/my-orders');
       if (res.data.success) {
@@ -849,10 +857,10 @@ function OrdersContent({ user }) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-black text-[var(--text-primary)] uppercase">Order <span className="text-[var(--accent)]">Matrix</span></h2>
-            <p className="text-[10px] text-[var(--text-secondary)] opacity-60 mt-2 max-w-sm">Historical and active transaction records synchronized with the platform.</p>
+            <p className="text-[10px] text-[var(--text-secondary)] opacity-60 mt-1 max-w-sm">Historical and active transaction records synchronized with the platform.</p>
           </div>
-          <button onClick={fetchOrders} className="w-10 h-10 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--accent)] transition-all">
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          <button onClick={fetchOrders} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--accent)] transition-all">
+            <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -860,47 +868,46 @@ function OrdersContent({ user }) {
       {loading ? (
         <div className="p-6 space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 bg-[var(--bg-primary)] rounded-3xl animate-pulse border border-[var(--glass-border)]" />
+            <div key={i} className="h-24 bg-[var(--bg-primary)]/40 rounded-3xl animate-pulse border border-[var(--glass-border)]" />
           ))}
         </div>
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-center p-8">
-          <Package className="w-16 h-16 text-[var(--text-secondary)]/30 mb-4" />
-          <p className="text-[var(--text-secondary)] font-semibold">No Order Records Synchronized</p>
-          <p className="text-[10px] text-[var(--text-secondary)] opacity-60 mt-2">Your purchased items will appear here</p>
+          <Package className="size-16 text-[var(--text-secondary)]/10 mb-4" />
+          <p className="text-[var(--text-secondary)] font-bold text-sm tracking-widest uppercase opacity-40">No Order Records Synchronized</p>
+          <p className="text-[9px] text-[var(--text-secondary)] opacity-40 mt-2">Your purchased items will appear here after checkout.</p>
         </div>
       ) : (
         <div className="p-6 space-y-4">
-          {orders.map((order) => (
-            <motion.div
-              key={order._id}
-              onClick={() => router.push(`/orders/${order._id}`)}
-              className="p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 hover:shadow-2xl transition-all cursor-pointer group overflow-hidden relative"
-              whileHover={{ scale: 1.02 }}
+          {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => (
+            <Link 
+              href={`/orders/${order._id}`} 
+              key={order._id} 
+              className="block p-6 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 hover:shadow-2xl transition-all group overflow-hidden relative"
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--accent)]/10 transition-all" />
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+              <div className="absolute top-0 right-0 size-24 bg-[var(--accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--accent)]/10 transition-all" />
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                 {/* Product & Info */}
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-16 h-16 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex-shrink-0 overflow-hidden">
-                    {order.items?.[0]?.product_id?.images?.[0]?.url ? (
-                      <img src={order.items[0].product_id.images[0].url} alt={order.items[0].product_id.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Package className="w-6 h-6 text-[var(--accent)]/30" />
-                      </div>
-                    )}
+                <div className="flex items-center gap-5 flex-1 min-w-0">
+                  <div className="size-14 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex-shrink-0 overflow-hidden shadow-inner">
+                    <img 
+                      src={order.products?.[0]?.image || '/placeholder.png'} 
+                      alt="" 
+                      className="size-full object-cover" 
+                    />
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-black uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors line-clamp-1 text-[var(--text-primary)]">
-                      {order.items?.[0]?.product_id?.name || 'Encrypted Order'}
+                    <h4 className="text-[13px] font-black uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors line-clamp-1 text-[var(--text-primary)]">
+                      {order.products?.[0]?.name || 'Encrypted Order'}
                     </h4>
                     <div className="flex items-center gap-3 mt-1.5 grayscale group-hover:grayscale-0 transition-all opacity-40 group-hover:opacity-100">
                       <span className="text-[9px] font-black uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString()}</span>
-                      <div className="w-1 h-1 rounded-full bg-[var(--accent)]" />
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${order.order_status === 'delivered' ? 'text-emerald-500' : order.order_status === 'shipped' ? 'text-blue-500' : order.order_status === 'cancelled' ? 'text-red-500' : 'text-[var(--accent)]'}`}>
+                      <div className="size-1 rounded-full bg-[var(--accent)]" />
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${
+                        order.order_status === 'delivered' ? 'text-emerald-500' : 
+                        order.order_status === 'cancelled' ? 'text-rose-500' : 'text-[var(--accent)]'
+                      }`}>
                         {order.order_status}
                       </span>
                     </div>
@@ -908,18 +915,28 @@ function OrdersContent({ user }) {
                 </div>
 
                 {/* Amount & Icon */}
-                <div className="flex items-center justify-between sm:justify-end gap-6 pt-4 sm:pt-0 border-t sm:border-t-0 border-[var(--glass-border)]">
+                <div className="flex items-center justify-between md:justify-end gap-8 pt-4 md:pt-0 border-t md:border-t-0 border-[var(--glass-border)]">
                   <div className="text-right">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mb-1">Vault Value</p>
-                    <p className="text-lg font-black font-mono text-[var(--text-primary)]">{order.total_amount?.toLocaleString() || 0} <span className="text-xs">XAF</span></p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-30 mb-0.5">Vault Value</p>
+                    <p className="text-xl font-black font-mono text-[var(--text-primary)]">{order.total_amount?.toLocaleString() || 0} <span className="text-xs">XAF</span></p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
-                    <ChevronRight className="w-5 h-5" />
+                  <div className="size-9 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
+                    <ChevronRight className="size-4" />
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </Link>
           ))}
+
+          {orders.length > itemsPerPage && (
+            <div className="pt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(orders.length / itemsPerPage)}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
       )}
     </motion.div>
@@ -974,7 +991,7 @@ function WishlistContent({ user }) {
           </Link>
         </div>
       ) : (
-        <div className="p-4 grid grid-cols-2 gap-4">
+        <div className="p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 lg:gap-4">
           {wishlist.map((item) => {
             const product = item.product_id || item;
             return (
