@@ -70,34 +70,34 @@ export default function VendorAnalyticsPage() {
 
   return (
     <DashboardLayout role="vendor">
-      <div className="w-full min-h-screen">
+      <div className="flex-1 flex flex-col overflow-hidden">
         
         {/* Page Header */}
-        <div className="hidden md:block px-4 md:px-8 py-6 border-b border-[var(--glass-border)]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
-                <Activity className="w-6 h-6 text-[var(--accent)]" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black text-[var(--text-primary)]">Analytics</h1>
-                <p className="text-sm text-[var(--text-secondary)] opacity-60">Your business performance</p>
-              </div>
+        <header className="hidden md:flex items-center justify-between px-4 md:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
+              <Activity className="w-6 h-6 text-[var(--accent)]" />
             </div>
-            <div className="flex items-center gap-3">
-              <select 
-                value={range} 
-                onChange={(e) => setRange(e.target.value)}
-                className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-xs font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
-              >
-                <option value="7">Last 7 Days</option>
-                <option value="30">Last 30 Days</option>
-                <option value="all">All Time</option>
-              </select>
+            <div>
+              <h1 className="text-2xl font-black text-[var(--text-primary)]">Analytics</h1>
+              <p className="text-sm text-[var(--text-secondary)] opacity-60">Your business performance</p>
             </div>
           </div>
-        </div>
+          <div className="flex items-center gap-3">
+            <select 
+              value={range} 
+              onChange={(e) => setRange(e.target.value)}
+              className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-xs font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+            >
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+        </header>
 
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 md:px-8 py-8 space-y-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-40">
             <div className="size-14 rounded-full border-4 border-[var(--accent)]/10 border-t-[var(--accent)] animate-spin" />
@@ -248,6 +248,10 @@ export default function VendorAnalyticsPage() {
 
           </div>
         )}
+          </div>
+        )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
