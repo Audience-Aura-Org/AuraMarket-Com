@@ -213,4 +213,7 @@ export default function AdminVendorsPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
