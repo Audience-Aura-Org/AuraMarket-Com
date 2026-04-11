@@ -50,13 +50,11 @@
 /* Rest of the file remains as before but ensuring no italics */
 html {
   font-size: 16px;
+  zoom: 0.7;
   -webkit-text-size-adjust: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
-  width: 100%;
-  margin: 0;
-  padding: 0;
 }
 
 body {
@@ -97,6 +95,7 @@ header.bg-\[var\(--nav-bg\)\] [class*="bg-[var(--bg-primary)]"] {
 @media (max-width: 640px) {
   html { 
     font-size: 14px; 
+    zoom: 0.8;
   }
   input, textarea, select { font-size: 16px !important; }
   h1 { font-size: 18px; line-height: 1.1; letter-spacing: -0.02em; }
