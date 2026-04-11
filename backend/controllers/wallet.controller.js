@@ -215,19 +215,12 @@ const processWithdrawal = async (req, res, next) => {
     // Notify User
     setImmediate(async () => {
         try {
-            const withdrawalTemplate = templates.withdrawalStatusUpdate({
-              transaction,
-              user: { name: transaction.user_id?.name || 'Valued User' },
-              action
-            });
             await sendNotification(req.app, transaction.user_id, {
-                title: withdrawalTemplate.subject,
+                title: `Withdrawal ${action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Held'}`,
                 message: `Your withdrawal of ${transaction.amount.toLocaleString()} XAF has been ${action === 'approve' ? 'processed' : action === 'reject' ? 'rejected and refunded' : 'placed on hold'}.`,
                 type: 'wallet_update',
                 metadata: { transaction_id: transaction._id, link: '/wallet' },
-                sendEmail: true,
-                emailTemplate: withdrawalTemplate,
-                role: 'customer'
+                sendEmail: true
             });
         } catch (notifierErr) {
             console.error('Withdrawal Notifier Error:', notifierErr);
@@ -306,19 +299,12 @@ const payOrderWithWallet = async (req, res, next) => {
           const v = await Vendor.findById(order.vendor_id).session(session);
           orderWithVendor.vendor_id = v;
 
-          const shipment = await Shipment.findOne({ order_id: order._id });
-          const logisticsTemplate = templates.shipmentAssigned({
-            shipment: shipment || { tracking_code: order._id.toString().slice(-6).toUpperCase() },
-            order,
-            logistics: logisticsFirm
-          });
           await sendNotification(req.app, logisticsFirm.user_id, {
-            title: logisticsTemplate.subject,
+            title: 'New Shipment Assigned',
             message: `You have a new shipment for order #${order._id.toString().slice(-6).toUpperCase()}.`,
             type: 'system_alert',
             metadata: { order_id: order._id, link: '/logistics/dashboard' },
             sendEmail: true,
-            emailTemplate: logisticsTemplate,
             emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
             orderDetails: orderWithVendor,
             role: 'logistics'

@@ -600,16 +600,13 @@ const createOrdersFromCart = async (req, res, next) => {
             emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders/${o._id}`
           });
 
-          const customerEmailTemplate = templates.orderPlaced({ order: orderForEmail, customer: req.user });
           sendNotification(req.app, req.user._id, {
-            title: customerEmailTemplate.subject,
-            message: `Your order #${o._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
+            title: 'Order Placed',
+            message: `Your order segment #${o._id.toString().slice(-6)} is confirmed.`,
             type: 'order_status',
             sendEmail: true,
-            emailTemplate: customerEmailTemplate,
             orderDetails: orderForEmail,
-            emailLink: `${process.env.WEB_CLIENT_URL}/orders/${o._id}`,
-            role: 'customer'
+            emailLink: `${process.env.WEB_CLIENT_URL}/orders/${o._id}`
           });
 
           // 3. Notify Logistics Partner if segment is assigned
