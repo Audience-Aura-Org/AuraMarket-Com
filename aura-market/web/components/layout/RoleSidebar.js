@@ -99,7 +99,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         onClick={onClose}
       />
 
-      <aside className={`fixed inset-y-0 left-0 w-[88vw] max-w-[240px] lg:w-[240px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col h-full z-[220] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 w-[88vw] max-w-[270px] lg:w-[240px] bg-[var(--bg-primary)]/80 backdrop-blur-xl border-r border-[var(--glass-border)]/50 flex flex-col h-full z-[220] transition-transform duration-500 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
         {/* Logo Area */}
         <div className="p-5 flex items-center justify-between border-b border-[var(--glass-border)] opacity-90">
           <div className="flex items-center gap-3 min-w-0">
@@ -111,7 +111,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                />
             </div>
             <div className="flex flex-col min-w-0">
-               <h1 className="text-[10px] font-black tracking-tight text-[var(--text-primary)] leading-none uppercase whitespace-nowrap overflow-hidden text-ellipsis">Aura <span className="text-[var(--accent)]">Market</span></h1>
+               <h1 className="text-[9px] font-black tracking-tight text-[var(--text-primary)] leading-none uppercase whitespace-nowrap overflow-hidden text-ellipsis">Aura <span className="text-[var(--accent)]">Market</span></h1>
                <p className="text-[7px] font-black tracking-[0.08em] uppercase opacity-50 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>
