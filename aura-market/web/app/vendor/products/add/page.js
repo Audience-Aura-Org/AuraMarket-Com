@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import CategoryPicker from '@/components/CategoryPicker';
 
 export const dynamic = 'force-dynamic';
@@ -64,8 +63,6 @@ export default function AddProductPage() {
     <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
-
-      <RoleSidebar role="vendor" />
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
         {/* Header */}

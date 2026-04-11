@@ -6,7 +6,6 @@ import {
   MoreVertical, Plus, Filter, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import api from '@/services/api';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import Pagination from '@/components/common/Pagination';
 
 export const dynamic = 'force-dynamic';
@@ -57,8 +56,6 @@ export default function AdminSubscriptionsPage() {
     <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-
-      <RoleSidebar role="admin" />
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
         <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)] text-[var(--text-primary)]">

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Package, ShieldCheck, Box, Search, Loader2, Ban, Eye, Building2, MoreVertical, Star, CheckCircle } from 'lucide-react';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
@@ -17,7 +16,6 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const itemsPerPage = 9;
 
   useEffect(() => {
@@ -58,19 +56,10 @@ export default function AdminProductsPage() {
   const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="flex h-screen bg-[var(--bg-secondary)]">
-      <RoleSidebar role="admin" isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 lg:h-20 flex items-center justify-between px-4 lg:px-6 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
-          <div className="flex items-center gap-4 flex-1">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
-            >
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-            <h2 className="text-lg lg:text-2xl font-black text-[var(--text-primary)] tracking-tight uppercase">Platform <span className="text-[var(--accent)]">Assets</span></h2>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <header className="h-16 lg:h-20 flex items-center justify-between px-4 lg:px-6 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
+        <div className="flex items-center gap-4 flex-1">
+          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Global <span className="text-[var(--accent)]">Assets</span></h2>
             <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
             <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
               <Search className="size-4 text-[var(--text-secondary)] opacity-40" />
