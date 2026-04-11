@@ -55,6 +55,8 @@ html {
   transition: background-color 0.3s ease, color 0.3s ease;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 body {
@@ -66,6 +68,7 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  overscroll-behavior: contain;
   background-image:
     radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 50%),
     radial-gradient(circle at 100% 100%, var(--accent-glow) 0%, transparent 50%);
