@@ -59,7 +59,7 @@ export default function VendorDisputesPage() {
       <div className="w-full min-h-screen">
         
         {/* Page Header */}
-        <div className="px-4 md:px-8 py-6 border-b border-[var(--glass-border)]">
+        <div className="hidden md:block px-4 md:px-8 py-6 border-b border-[var(--glass-border)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center">
