@@ -83,6 +83,10 @@ const wrap = (title, heading, body) => `
     
     .highlight { background: ${COLORS.accentGlow}; border-left: 4px solid ${COLORS.accent}; padding: 20px; margin: 24px 0; border-radius: 0 12px 12px 0; font-family: 'Poppins', sans-serif; }
     .highlight p { margin: 0; font-size: 14px; color: ${COLORS.textSecondary}; line-height: 1.7; font-family: 'Poppins', sans-serif; }
+    
+    .qr-container { text-align: center; margin: 32px 0; padding: 24px; background: ${COLORS.bgSecondary}; border-radius: 20px; border: 2px dashed ${COLORS.accentGlow}; }
+    .qr-image { width: 160px; height: 160px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .qr-text { font-size: 13px; color: ${COLORS.textSecondary}; font-weight: 500; font-family: 'Poppins', sans-serif; }
   </style>
 </head>
 <body>
@@ -200,8 +204,18 @@ const badge = (status) => {
   return `<span class="status-badge ${getBadgeClass(status)}">${label}</span>`;
 };
 
+const qrSection = (qrCode) => {
+  if (!qrCode) return '';
+  return `
+    <div class="qr-container">
+      <img src="${qrCode}" alt="Scan to Track" class="qr-image" />
+      <p class="qr-text">Scan this code to track your order on your mobile device</p>
+    </div>
+  `;
+};
+
 /* ─── ORDER PLACED (Customer) ─── */
-const orderPlaced = ({ order, customer }) => {
+const orderPlaced = ({ order, customer, qrCode }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `✅ Order Confirmed — #${ref}`;
   const body = `
@@ -228,9 +242,11 @@ const orderPlaced = ({ order, customer }) => {
       </div>
     </div>
     
+    ${qrSection(qrCode)}
+    
     ${formatProducts(order.products || [])}
     
-    <a href="${WEB_URL}/orders" class="btn">View Order</a>
+    <a href="${WEB_URL}/orders" class="btn">View Order Details</a>
     
     <p style="margin-top: 20px; font-size: 13px; color: #888888;">You'll receive a tracking number once your order ships.</p>
   `;
@@ -239,7 +255,7 @@ const orderPlaced = ({ order, customer }) => {
 };
 
 /* ─── PAYMENT CONFIRMED (Customer) ─── */
-const paymentConfirmed = ({ order, customer }) => {
+const paymentConfirmed = ({ order, customer, qrCode }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `💳 Payment Confirmed — #${ref}`;
   const body = `
@@ -262,7 +278,9 @@ const paymentConfirmed = ({ order, customer }) => {
       </div>
     </div>
     
-    <a href="${WEB_URL}/orders" class="btn">Track Order</a>
+    ${qrSection(qrCode)}
+    
+    <a href="${WEB_URL}/orders" class="btn">Track Your Order</a>
   `;
   const html = wrap(subject, '💳 Payment Received', body);
   return { subject, html, text: `Payment confirmed for Order #${ref}.` };
@@ -468,6 +486,35 @@ const refundRequested = ({ order, vendor, reason }) => {
   return { subject, html, text: `Refund requested for Order #${ref}.` };
 };
 
+/* ─── ORDER STATUS UPDATED (Customer) ─── */
+const orderStatusUpdated = ({ order, customer, qrCode }) => {
+  const ref = order._id.toString().slice(-6).toUpperCase();
+  const subject = `📋 Order Update — #${ref}`;
+  const status = order.order_status || 'updated';
+  
+  const body = `
+    <p>Hi <strong>${customer.name || 'Valued Customer'}</strong>,</p>
+    <p>Your order status has been updated to <strong>${status.replace(/_/g, ' ').toUpperCase()}</strong>.</p>
+    
+    <div class="card">
+      <div class="card-row">
+        <span class="card-label">Order Reference</span>
+        <span class="card-value">#${ref}</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">New Status</span>
+        <span class="card-value">${badge(status)}</span>
+      </div>
+    </div>
+    
+    ${qrSection(qrCode)}
+    
+    <a href="${WEB_URL}/orders" class="btn">View Order Details</a>
+  `;
+  const html = wrap(subject, '📋 Order Update', body);
+  return { subject, html, text: `Order #${ref} status updated to ${status}.` };
+};
+
 module.exports = {
   welcomeEmail,
   passwordReset,
@@ -479,5 +526,6 @@ module.exports = {
   newOrderForVendor,
   shipmentAssigned,
   refundRequested,
+  orderStatusUpdated,
   wrap,
 };
