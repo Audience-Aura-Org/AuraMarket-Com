@@ -7,3 +7,6 @@ backend/.env
 
 # Ignore legacy nested workspace build artifacts
 /aura-market/web/.next/
+
+# Ignore all node_modules at any depth
+**/node_modules/
