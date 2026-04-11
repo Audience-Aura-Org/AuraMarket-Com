@@ -1,26 +1,9 @@
-# Root dependencies
-node_modules/
+backend/.env
 
-# Workspace dependencies
-aura-market/**/node_modules/
-aura-market/**/.next/
-aura-market/**/dist/
-aura-market/**/build/
-aura-market/**/.expo/
-aura-market/.git_disabled/
+# Ignore Next.js build artifacts and local dev files
+/web/.next/
+/web/node_modules/
+/web/.env.local
 
-# Specific exceptions
-# aura-market/backend/uploads is now version-controlled for deployment stability 
-!aura-market/backend/uploads/**
-
-# Environment files (should not be version controlled)
-.env
-.env.*
-aura-market/.env
-aura-market/.env.*
-aura-market/backend/.env
-aura-market/backend/.env.*
-
-# Sub-directory package lock files (only root lock file is canonical for Vercel)
-aura-market/package-lock.json
-aura-market/web/package-lock.json
+# Ignore legacy nested workspace build artifacts
+/aura-market/web/.next/

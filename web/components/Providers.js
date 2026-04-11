@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { ThemeProvider } from '@/context/ThemeContext';
 import SocketProvider from '@/components/SocketProvider';
 import CartSidebar from '@/components/CartSidebar';
@@ -10,15 +11,14 @@ import Footer from '@/components/layout/Footer';
 
 import PWAInit from '@/components/PWAInit';
 import PWAInstallBanner from '@/components/layout/PWAInstallBanner';
-import { usePathname } from 'next/navigation';
 
 export default function Providers({ children }) {
   const pathname = usePathname();
   
-  // Hide footer and bottom nav on dashboard pages
-  const isDashboardPage = pathname?.startsWith('/vendor') || 
-                          pathname?.startsWith('/admin') || 
-                          pathname?.startsWith('/logistics');
+  // Check if we're on a dashboard route (admin/vendor) - these have their own layout with footer
+  const isDashboardRoute = pathname?.startsWith('/admin') || 
+                          pathname?.startsWith('/vendor') || 
+                          pathname === '/wallet';
   
   return (
     <ThemeProvider>
@@ -26,15 +26,15 @@ export default function Providers({ children }) {
         <PWAInit />
         <PWAInstallBanner />
         <OnboardingWatcher />
-        {!isDashboardPage && <TopNav />}
-        <CartSidebar />
+        {!isDashboardRoute && <TopNav />}
         <div className="flex w-full items-stretch flex-1">
-          <main className="flex-1 flex flex-col min-h-screen min-w-0">
+          <main className={`flex-1 flex flex-col min-h-screen min-w-0 ${isDashboardRoute ? '' : ''}`}>
             {children}
-            {!isDashboardPage && <Footer />}
+            {!isDashboardRoute && <Footer />}
           </main>
+          {!isDashboardRoute && <CartSidebar />}
         </div>
-        {!isDashboardPage && <BottomNav />}
+        {!isDashboardRoute && <BottomNav />}
       </SocketProvider>
     </ThemeProvider>
   );

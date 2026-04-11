@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#f20df2",
+                "background-light": "#f8f5f8",
+                "background-dark": "#221022",
+              },
+              fontFamily: {
+                "display": ["Plus Jakarta Sans"],
+                "poppins": ["Poppins"]
+              },
+              borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+            },
+          },
+        }
+      </script>
+<style>
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gradient-mesh {
+            background-color: #221022;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(242, 13, 242, 0.3) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.3) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(242, 13, 242, 0.2) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(76, 29, 149, 0.4) 0px, transparent 50%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display overflow-hidden">
+<div class="relative flex h-screen w-full flex-col items-center justify-center gradient-mesh overflow-hidden">
+<!-- Decorative Background Elements -->
+<div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/20 blur-[150px] rounded-full"></div>
+<!-- Main Splash Container -->
+<div class="relative z-10 flex flex-col items-center">
+<!-- Glassmorphism Logo -->
+<div class="mb-12 relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary to-purple-500 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+<div class="liquid-glass relative w-32 h-32 rounded-xl flex items-center justify-center shadow-2xl overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+<span class="material-symbols-outlined text-6xl text-white/90 drop-shadow-lg" style="font-variation-settings: 'FILL' 1, 'wght' 300;">
+                        auto_awesome
+                    </span>
+<!-- Internal Glass Reflection -->
+<div class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+</div>
+</div>
+<!-- Brand Content -->
+<div class="text-center px-6">
+<h1 class="font-poppins text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+                    Aura <span class="text-primary">Market</span>
+</h1>
+<p class="text-slate-600 dark:text-slate-400 text-lg font-medium tracking-wide max-w-xs mx-auto">
+                    Elevate Your Shopping Experience
+                </p>
+</div>
+<!-- Loading Indicator Container -->
+<div class="mt-24 w-64 px-4">
+<div class="flex items-center justify-between mb-2">
+<p class="text-xs font-semibold uppercase tracking-widest text-primary/80 dark:text-primary">Synchronizing</p>
+<p class="text-xs font-bold text-slate-500">75%</p>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full w-3/4 shadow-[0_0_15px_rgba(242,13,242,0.5)]"></div>
+</div>
+</div>
+</div>
+<!-- Footer Branding -->
+<div class="absolute bottom-12 flex flex-col items-center gap-2">
+<div class="flex items-center gap-2 opacity-60">
+<span class="material-symbols-outlined text-sm text-slate-900 dark:text-slate-300">verified_user</span>
+<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900 dark:text-slate-300">Secure Neural Gateway</p>
+</div>
+</div>
+<!-- Abstract Liquid Overlay (Subtle) -->
+<div class="absolute inset-0 pointer-events-none opacity-30 mix-blend-overlay" data-alt="Abstract fluid liquid texture with subtle highlights" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBA_5rR8z-7zYGwR26ju9Kl0VbJSwZtNGrrhvC4Cb4EJ4c0N8nmDCyiWsoNnFMU4awz-bYYMTjt1MsfDtnI5Jt-k7lsW7SSdl0DcRfYneeMG5DLSrETarAufkqsJDo9NESyjeDPeTwyNUSvbfFGzPc7tcFf3iZo4flN5INZp6V2erFo38MAJuQZoZXCeeG_666zYcHEMJub_xSgvYNNeLCGQpsW8nuR3ErbF1SeZEjqqXyszUftHq3KGdbhRt7wg1pjLam1DOsc-6U');">
+</div>
+</div>
+</body></html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Poppins:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#f20df2",
+                "background-light": "#f8f5f8",
+                "background-dark": "#120812",
+              },
+              fontFamily: {
+                "display": ["Poppins", "Plus Jakarta Sans", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+            },
+          },
+        }
+      </script>
+<style>
+        .glass {
+            background: rgba(242, 13, 242, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(242, 13, 242, 0.1);
+        }
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(242, 13, 242, 0.1) 0%, rgba(242, 13, 242, 0.05) 50%, rgba(242, 13, 242, 0.2) 100%);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .bg-blur-blob {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(242, 13, 242, 0.4) 0%, rgba(242, 13, 242, 0) 70%);
+            filter: blur(60px);
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 overflow-x-hidden">
+<div class="relative min-h-screen">
+<!-- Background Decorative Elements -->
+<div class="bg-blur-blob top-[-100px] left-[-100px]"></div>
+<div class="bg-blur-blob bottom-[20%] right-[-50px] opacity-50"></div>
+<!-- Navigation -->
+<header class="sticky top-0 z-50 px-6 py-4">
+<nav class="max-w-7xl mx-auto flex items-center justify-between glass rounded-full px-8 py-3">
+<div class="flex items-center gap-3">
+<div class="bg-primary p-2 rounded-full">
+<span class="material-symbols-outlined text-white">flare</span>
+</div>
+<span class="text-xl font-bold tracking-tight">Aura Market</span>
+</div>
+<div class="hidden md:flex items-center gap-10">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Marketplace</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Vendors</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Features</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">About</a>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-6 py-2 text-sm font-semibold hover:bg-white/5 rounded-full transition-all">Login</button>
+<button class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full text-sm font-semibold shadow-lg shadow-primary/20 transition-all">Register</button>
+</div>
+</nav>
+</header>
+<!-- Hero Section -->
+<main class="max-w-7xl mx-auto px-6 pt-12 pb-24">
+<div class="grid lg:grid-cols-2 gap-16 items-center">
+<div class="flex flex-col gap-8">
+<div class="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-2 rounded-full w-fit">
+<span class="material-symbols-outlined text-primary text-sm">auto_awesome</span>
+<span class="text-primary text-xs font-bold uppercase tracking-widest">The Future of Commerce</span>
+</div>
+<h1 class="text-6xl md:text-7xl font-extrabold leading-[1.1] tracking-tight">
+                        Experience <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-fuchsia-400">Liquid</span> Shopping.
+                    </h1>
+<p class="text-lg text-slate-600 dark:text-slate-400 max-w-lg leading-relaxed">
+                        Aura Market introduces a premium multi-vendor ecosystem wrapped in a stunning liquid-glass interface. Curated collections from elite vendors, globally delivered.
+                    </p>
+<div class="flex flex-wrap gap-4 pt-4">
+<button class="bg-primary text-white px-10 py-4 rounded-full font-bold text-lg shadow-2xl shadow-primary/40 flex items-center gap-3 hover:scale-105 transition-transform">
+                            Explore Market <span class="material-symbols-outlined">shopping_cart</span>
+</button>
+<button class="glass px-10 py-4 rounded-full font-bold text-lg flex items-center gap-3 hover:bg-white/10 transition-all">
+                            Be a Vendor <span class="material-symbols-outlined">storefront</span>
+</button>
+</div>
+<div class="flex items-center gap-6 pt-6">
+<div class="flex -space-x-4">
+<div class="w-12 h-12 rounded-full border-4 border-background-dark bg-slate-800 flex items-center justify-center overflow-hidden">
+<img alt="User 1" class="w-full h-full object-cover" data-alt="Close up portrait of smiling woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIiqDql23F4oXzQrSESqb26HnEl18ISbRPrEdr4T2x6kPxkdW2Mr96qHZLyRUAQuKplY2DVT44unYYJ-Wmhq6TpKhwk8auQVRXY5N-Xd-1axRdEJUYDfrNhC2WpbstP8okCCKAWBLDy_5sl7OqJJLVFG5gnplIQu7FZCThOnyDaPTFgcHGvGbvnypMhZ9oieDXG2OdifbQpQ0_VK1HOAKKtzxEFftKJICwbGbeH80c34WHo4vi3RCCCi7BOwajBs0Nd6s2Yy5N_HM"/>
+</div>
+<div class="w-12 h-12 rounded-full border-4 border-background-dark bg-slate-800 flex items-center justify-center overflow-hidden">
+<img alt="User 2" class="w-full h-full object-cover" data-alt="Close up portrait of professional man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiFOjLb7ZLDGo5gW2TLaL822UU8jQRIAyqSLzLfndB9Oyojclo9TGZQd817umQTgzgLwY0d_4fAS5g0tDSfQpiITegfqFy8YJ_n72yzcai9_37zAMNyoiYiO3d2663_AaGF6Z25y4T3Nj9vnhUCDi1Bk431sDl9HVaGi2Ww8jMrXXDKM1Ryd2dOWFdc4u7wysdqdbyGh-DMZuj3OnAxh-cHHnuBrKcL6yZZiY7OgRyowxvGg6XNLxh_mvEg8qUGx1ln0SHpKyI-xI"/>
+</div>
+<div class="w-12 h-12 rounded-full border-4 border-background-dark bg-slate-800 flex items-center justify-center overflow-hidden">
+<img alt="User 3" class="w-full h-full object-cover" data-alt="Candid portrait of laughing woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBx4xEacNCm24OYbGhTUZMxvtvA26SE16xt7z3m-4PyIEymCJFkcccKyLKcm32sh9Z5nPLO5IjOm0AOs9qMM-hFkror19qkXPIv1nKgq493G96_FLiJ9ks9r-8Uwgr978GNxvetDm-HOTISTmDFbBT0kqTj1vO94BWH4922QSwI5x5kTI8EIxU1Vfr8D5TcI6P8v9wHeerrLoIy4x1PdKvg9ly_xXdZbYJHirre1Vbk8aPAPrlNldLJM71tiAN9vjOn4cg1M-aDDe8"/>
+</div>
+</div>
+<p class="text-sm font-medium"><span class="text-primary">12k+</span> Elite shoppers joined this week</p>
+</div>
+</div>
+<!-- Visual Assets Column -->
+<div class="relative @container">
+<div class="liquid-glass rounded-xl aspect-square w-full relative overflow-hidden flex items-center justify-center group">
+<!-- Abstract "Floating" Asset Placeholder -->
+<div class="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/5"></div>
+<div class="relative z-10 w-2/3 h-2/3 bg-white/5 rounded-xl border border-white/20 shadow-2xl backdrop-blur-md flex items-center justify-center flex-col p-8 gap-4 transform transition-all duration-700 hover:scale-105">
+<div class="w-full h-48 rounded-lg bg-gradient-to-tr from-primary/30 to-fuchsia-500/20 overflow-hidden relative group">
+<img class="w-full h-full object-cover mix-blend-overlay group-hover:scale-110 transition-transform duration-500" data-alt="Sleek modern red athletic sneakers product shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVjR8n30xASDoJ8l38lhURCGbelUqMFG1hzSniTTbwZ6qk0Ygg4wg2Ld7EW6dLDS9NUQ972__IX0hic_KyDFdF-BFsY30RY-I85-xXitvfY05PBVb3XnRiQ9IF1SwEU2VQiUBcjCOOuFjVyxYAFQSDvDdmMhnVLFIGNheUGtMZdWmpF2-u7LOKgYK4TH5_u7St3lgZUDWF8kLbzItMegajT5Ku1GcUPMuXrAZt6UC1SFHVp40R8cjRjo3tvSwY3xWr3B8HC9E5t9c"/>
+<div class="absolute top-4 right-4 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
+<span class="text-xs font-bold">$120</span>
+</div>
+</div>
+<div class="w-full space-y-2">
+<div class="h-4 w-3/4 bg-white/20 rounded-full"></div>
+<div class="h-4 w-1/2 bg-white/10 rounded-full"></div>
+</div>
+<button class="w-full bg-primary py-3 rounded-lg text-white font-bold text-sm">Add to Collection</button>
+</div>
+<!-- Secondary Floating Card -->
+<div class="absolute bottom-10 -right-4 w-48 h-24 glass rounded-lg border border-white/10 p-4 flex items-center gap-3 shadow-xl backdrop-blur-xl">
+<div class="bg-green-500/20 p-2 rounded-full">
+<span class="material-symbols-outlined text-green-500">verified</span>
+</div>
+<div>
+<p class="text-xs font-bold">Secure Escrow</p>
+<p class="text-[10px] opacity-60 text-slate-400">Transaction Protected</p>
+</div>
+</div>
+<!-- Third Floating Card -->
+<div class="absolute top-20 -left-8 w-40 h-16 glass rounded-lg border border-white/10 p-3 flex items-center gap-3 shadow-xl backdrop-blur-xl">
+<div class="bg-primary/20 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary text-sm">flash_on</span>
+</div>
+<div>
+<p class="text-xs font-bold">Fast Ship</p>
+<p class="text-[10px] opacity-60 text-slate-400">Global Logistics</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Features Section -->
+<section class="max-w-7xl mx-auto px-6 py-24 relative">
+<div class="text-center mb-16 space-y-4">
+<h2 class="text-4xl md:text-5xl font-black tracking-tight">Marketplace <span class="text-primary">Ecosystem</span></h2>
+<p class="text-slate-500 max-w-2xl mx-auto">Powerful features designed to provide the ultimate high-end shopping and selling experience.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- Feature 1 -->
+<div class="glass p-8 rounded-xl border border-white/5 hover:border-primary/20 transition-all group">
+<div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white">blur_on</span>
+</div>
+<h3 class="text-xl font-bold mb-3">Glassmorphism Engine</h3>
+<p class="text-slate-400 text-sm leading-relaxed">Experience a visually stunning interface that prioritizes clarity and depth through modern blurs.</p>
+</div>
+<!-- Feature 2 -->
+<div class="glass p-8 rounded-xl border border-white/5 hover:border-primary/20 transition-all group">
+<div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white">diversity_1</span>
+</div>
+<h3 class="text-xl font-bold mb-3">Multi-Vendor Harmony</h3>
+<p class="text-slate-400 text-sm leading-relaxed">Seamlessly browse across hundreds of premium vendors with a unified checkout and support system.</p>
+</div>
+<!-- Feature 3 -->
+<div class="glass p-8 rounded-xl border border-white/5 hover:border-primary/20 transition-all group">
+<div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-white">encrypted</span>
+</div>
+<h3 class="text-xl font-bold mb-3">Smart Contract Trust</h3>
+<p class="text-slate-400 text-sm leading-relaxed">Advanced escrow and verification layers ensure every transaction is 100% secure and authentic.</p>
+</div>
+</div>
+</section>
+<!-- Categories Grid -->
+<section class="max-w-7xl mx-auto px-6 py-24">
+<div class="flex items-end justify-between mb-12">
+<div>
+<h2 class="text-3xl font-bold mb-2">Curated Drops</h2>
+<p class="text-slate-400">Handpicked collections from our most prestigious vendors.</p>
+</div>
+<button class="text-primary font-bold flex items-center gap-2 hover:underline">
+                    View All Categories <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="group relative rounded-xl overflow-hidden aspect-[4/5] cursor-pointer">
+<img alt="Tech" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="Elegant luxury high-tech footwear on abstract background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApLmu38H3HONrRlWC_mB9kURiBTBtm4FBRS6iiAA61t_kOqgqN9dKHuhC9ereyrM5oC5SjmeliMryn_zN_NkVCGNbAu7IEMKxqYhQZwkaGTKRsy7T2BF7s6wng3QS4utm0LKc9Pa7RAjAWgKbmtQy7rD8OW524CGRk94wwXHP0BfCxsEGy4tuD1uyhyfEEK_Wy5f_duywhQjcLgkkaGSirVlLsYSxhJk70zoJbkjnQYN7c9piQwlCgaY503O08rdwlwDBNJ6KaLo4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-sm text-primary font-bold uppercase tracking-widest mb-1">Elite</p>
+<h4 class="text-xl font-bold">Tech Essentials</h4>
+</div>
+</div>
+<div class="group relative rounded-xl overflow-hidden aspect-[4/5] cursor-pointer">
+<img alt="Decor" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="Minimalist white luxury wristwatch on neutral surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNthir3hs0glsFwhkZyixCJTN2FXuNNQwA_YnP6cz8bzSOYpFHv2oMGMRGFQjiGn8ixwhm7aZEv8SaVrZa8WonRCQyaUtFd1SiC82htskyVNSSKhI_yEXC44S8WPlZ4YKR5fdlaOGdnE1c-7QZWJm-oSV8u2zPQot1NyTFYp5Pq70RZjFNcy7E16XOmCmE0lFRSFMJtqko4HWlRG6VDzEAtCUZkc46qHf8DQn0vcOjX0OpSTkf4-sHvm6eOt09kgh0MMg7vNErZjk"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-sm text-primary font-bold uppercase tracking-widest mb-1">Aesthetic</p>
+<h4 class="text-xl font-bold">Home Decor</h4>
+</div>
+</div>
+<div class="group relative rounded-xl overflow-hidden aspect-[4/5] cursor-pointer">
+<img alt="Fashion" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="Vibrant modern street style fashion photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATa6PNkCnKg5SaY__hGBJLEihobO3tfCwLs2Lnjib-csIWVmTQTXJ5mjZJYB-5G-RIImmFNrixITyy9pt0FjlbuYibfr3ypeXHBMXrZue2wIE9FFilZzSs6VRhNLUnTbPLLU0uYSeHe2RT5SgcjSan6ggEfulmU6YfK8OilAsB48ssXxiAhoYj55QZbE1EHeXPMW-7Br-uMKCzuN3VQmIAc8doNI1wkHkhfauY-j94--sXJ2KggE2_JVsZHkG_t-bgP3xYhCg18Fg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-sm text-primary font-bold uppercase tracking-widest mb-1">Trend</p>
+<h4 class="text-xl font-bold">Fashion Forward</h4>
+</div>
+</div>
+<div class="group relative rounded-xl overflow-hidden aspect-[4/5] cursor-pointer">
+<img alt="Wellness" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="Premium organic wellness and skincare products" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCW_ylwnCc2i2-BzE0AVwJtNEGQnX4Ty9bodjXKe5aezo3xeoqXi2AuYfHE8vXhsVI68nrvzSADYuvrsYlI0y6_-XbPhgAdY4fL02JqgTm09QRC1LCzPX9vzSICFHZ__MOI3CwXMK8lAJOzLRxsdKmcf2wqZ-Uzsv4wsTgKCr4UgSRcwkgPcFADdy_g2SZVJPlFnwF_SwIH0fe0X0jjBxwqyZTLK5LEBbB4rCcdUMmr_RD5gzZzvtVbVTcGX5wnu14dRR1MbP2SlRI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-sm text-primary font-bold uppercase tracking-widest mb-1">Mindful</p>
+<h4 class="text-xl font-bold">Wellness</h4>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="max-w-7xl mx-auto px-6 py-24">
+<div class="liquid-glass rounded-xl p-12 md:p-24 text-center relative overflow-hidden">
+<div class="bg-blur-blob top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-20"></div>
+<div class="relative z-10 max-w-2xl mx-auto space-y-8">
+<h2 class="text-4xl md:text-6xl font-black leading-tight">Ready to step into the <span class="text-primary">Aura</span>?</h2>
+<p class="text-lg text-slate-400">Join our community today for exclusive early access to limited edition drops and premium vendor rewards.</p>
+<div class="flex flex-col sm:flex-row gap-4 justify-center">
+<button class="bg-primary text-white px-12 py-4 rounded-full font-bold text-lg hover:scale-105 transition-transform">Create Free Account</button>
+<button class="glass px-12 py-4 rounded-full font-bold text-lg hover:bg-white/10 transition-all border border-white/20">Talk to Support</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="max-w-7xl mx-auto px-6 py-12 border-t border-white/5">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="bg-primary/20 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary">flare</span>
+</div>
+<span class="text-lg font-bold">Aura Market</span>
+</div>
+<div class="flex gap-8 text-sm text-slate-500 font-medium">
+<a class="hover:text-primary" href="#">Privacy Policy</a>
+<a class="hover:text-primary" href="#">Terms of Service</a>
+<a class="hover:text-primary" href="#">API Docs</a>
+<a class="hover:text-primary" href="#">Help Center</a>
+</div>
+<div class="flex gap-4">
+<a class="w-10 h-10 glass rounded-full flex items-center justify-center hover:bg-primary/20 transition-all" href="#">
+<span class="material-symbols-outlined text-sm">public</span>
+</a>
+<a class="w-10 h-10 glass rounded-full flex items-center justify-center hover:bg-primary/20 transition-all" href="#">
+<span class="material-symbols-outlined text-sm">alternate_email</span>
+</a>
+</div>
+</div>
+<p class="text-center text-slate-600 text-[10px] mt-12 uppercase tracking-widest">© 2024 Aura Multi-Vendor Marketplace. All rights reserved.</p>
+</footer>
+</div>
+</body></html>

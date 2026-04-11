@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle, Wallet } from 'lucide-react';
 import { useTheme } from "@/context/ThemeContext";
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
@@ -43,42 +43,27 @@ export default function TopNav() {
       }
     };
 
-    // Initial fetch
     fetchCounts();
     
-    // Subscribe to cart changes — this includes quantity tracking across all items
+    // Subscribe to cart changes
     const unsubCart = cartStore.subscribe(({ count }) => {
       setCartCount(count);
     });
     
     // Socket listeners for unread count
-    const handleMsg = (msg) => {
-      if (!window.location.pathname.startsWith('/chat') && !window.location.pathname.startsWith('/messages')) {
-        setUnreadCount(prev => Math.max(0, prev + 1));
+    const handleMsg = () => {
+      if (!window.location.pathname.startsWith('/chat')) {
+        setUnreadCount(prev => prev + 1);
       }
     };
     
-    const handleReadSync = () => {
-      // Re-sync unread count when messages are marked as read
-      fetchCounts();
-    };
-    
     socketService.on('receive_message', handleMsg);
-    socketService.on('messages_read', handleReadSync);
-    socketService.on('sent_message_echo', handleMsg);
-
-    // Listen for cart updates from other tabs/windows
-    const handleCartUpdate = () => {
-      cartStore.refresh();
-    };
-    window.addEventListener('cart-updated', handleCartUpdate);
+    socketService.on('messages_read', fetchCounts);
 
     return () => {
       unsubCart();
       socketService.off('receive_message', handleMsg);
-      socketService.off('messages_read', handleReadSync);
-      socketService.off('sent_message_echo', handleMsg);
-      window.removeEventListener('cart-updated', handleCartUpdate);
+      socketService.off('messages_read', fetchCounts);
     };
   }, [user?._id]);
 
@@ -87,13 +72,14 @@ export default function TopNav() {
     if (pathname?.startsWith('/chat')) setUnreadCount(0);
   }, [pathname]);
 
-  // Hide on auth, admin, vendor, logistics, and full-screen chat pages
+  // Hide on auth, admin, vendor, logistics, wallet, and full-screen chat pages
   if (
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/vendor') ||
     pathname?.startsWith('/logistics') ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/messages') ||
+    pathname?.startsWith('/wallet') ||
     pathname === '/login' ||
     pathname === '/register'
   ) return null;
@@ -108,7 +94,7 @@ export default function TopNav() {
 
   return (
     <header className="sticky top-0 z-50 bg-[var(--nav-bg)] border-b border-[var(--nav-border)] px-4 md:px-6 py-3 md:py-4 w-full transition-all duration-300">
-      <div className="section-inner flex items-center justify-between gap-4">
+      <div className="max-w-[1920px] mx-auto flex items-center justify-between gap-4">
         
         {/* Logo Section */}
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
@@ -131,29 +117,33 @@ export default function TopNav() {
         </div>
         
         {/* Search Bar - Desktop */}
-        <div className="hidden md:flex flex-1 max-w-xl mx-4 relative group">
-          <div className="w-full flex items-center bg-white/5 rounded-2xl px-4 py-2 border border-white/10 focus-within:border-[var(--accent)]/50 focus-within:bg-white/10 transition-all">
-            <Search className="text-[var(--nav-text)]/40 size-4 group-focus-within:text-[var(--accent)] transition-colors" />
-            <input 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={handleSearch}
-              className="bg-transparent border-none focus:ring-0 text-[var(--nav-text)] text-xs w-full placeholder:text-[var(--nav-text)]/30 outline-none pl-3 font-bold" 
-              placeholder="Search premium nodes..." 
-              type="text"
-            />
+        {pathname !== '/shop' && (
+          <div className="hidden md:flex flex-1 max-w-xl mx-4 relative group">
+            <div className="w-full flex items-center bg-white/5 rounded-2xl px-4 py-2 border border-white/10 focus-within:border-[var(--accent)]/50 focus-within:bg-white/10 transition-all">
+              <Search className="text-[var(--nav-text)]/40 size-4 group-focus-within:text-[var(--accent)] transition-colors" />
+              <input 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={handleSearch}
+                className="bg-transparent border-none focus:ring-0 text-[var(--nav-text)] text-xs w-full placeholder:text-[var(--nav-text)]/30 outline-none pl-3 font-bold" 
+                placeholder="Search premium nodes..." 
+                type="text"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Actions Section */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           {/* Mobile Search Toggle */}
-          <button 
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="md:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:bg-[var(--accent)]/10 transition-all"
-          >
-            <Search className="size-5" />
-          </button>
+          {pathname !== '/shop' && (
+            <button 
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="md:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:bg-[var(--accent)]/10 transition-all"
+            >
+              <Search className="size-5" />
+            </button>
+          )}
 
           <button 
             onClick={toggleTheme}
@@ -162,6 +152,10 @@ export default function TopNav() {
             {theme === 'light' ? <Moon className="size-5" /> : <Sun className="size-5" />}
           </button>
           
+          <Link href="/wallet" className={`relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)] ${pathname === '/wallet' ? 'text-[var(--accent)] border-[var(--accent)]/30 bg-[var(--accent)]/5' : ''}`}>
+            <Wallet className="size-5" />
+          </Link>
+
           <Link href="/chat" className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
             <MessageCircle className="size-5" />
             {unreadCount > 0 && (

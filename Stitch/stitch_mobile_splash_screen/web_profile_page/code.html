@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-panel {
+            background: rgba(34, 22, 16, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(236, 91, 19, 0.2);
+        }
+        .liquid-bg {
+            background: linear-gradient(135deg, #f8f6f6 0%, #ffe8db 50%, #f8f6f6 100%);
+        }
+        .dark .liquid-bg {
+            background: linear-gradient(135deg, #221610 0%, #3d2418 50%, #221610 100%);
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-300">
+<div class="relative min-h-screen w-full flex flex-col liquid-bg overflow-x-hidden">
+<header class="sticky top-0 z-50 glass-panel border-b border-white/20 px-4 md:px-20 py-3 flex items-center justify-between gap-4">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-3xl font-bold">flare</span>
+<h2 class="text-xl font-bold tracking-tight">Aura Market</h2>
+</div>
+<div class="hidden md:flex items-center gap-1 bg-white/30 dark:bg-black/20 rounded-xl px-3 py-1.5 border border-white/20">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-48 placeholder:text-slate-500" placeholder="Search items..." type="text"/>
+</div>
+</div>
+<nav class="hidden lg:flex items-center gap-8 text-sm font-medium">
+<a class="hover:text-primary transition-colors" href="#">Shop</a>
+<a class="hover:text-primary transition-colors" href="#">Explore</a>
+<a class="hover:text-primary transition-colors" href="#">Deals</a>
+<a class="hover:text-primary transition-colors" href="#">Support</a>
+</nav>
+<div class="flex items-center gap-3">
+<button class="p-2 rounded-xl bg-white/40 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-xl bg-white/40 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 transition-all">
+<span class="material-symbols-outlined">shopping_bag</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary overflow-hidden shadow-lg bg-center bg-cover" data-alt="User profile avatar close up" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAcO3ZMAoegnxywOrGKtb33aMxtYUxp4papSAt_yvs9gtTXno4Fb3Vq5tHkueCLYvC4glwrhDk6t1nX4-kztPUTJCWXY07M5YBiUXsp6gUpm88aenqFOb1nkY-tkxcUNdOP9U_SGiAVv3otZ72We-XLLsIhllcqmySObepOFnScRmL7ExWl-4vggxqSYy_SH45e1rwm6tROrxJ5XexbEaBb0SB_A0bhL4QiHpEZrOC9iVXcFLK5CHjF6qt_yaAtTxUHRsjO54eM87k')"></div>
+</div>
+</header>
+<main class="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
+<div class="glass-panel rounded-3xl p-6 md:p-8 mb-8 overflow-hidden relative">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+<div class="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-2xl -ml-10 -mb-10"></div>
+<div class="relative flex flex-col md:flex-row items-center md:items-end gap-6">
+<div class="relative group">
+<div class="size-32 md:size-40 rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-center bg-cover" data-alt="Alex Rivera professional profile headshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBtu53ofb1rcx2F-EhCL1nwD155JS_-PZI2kXYjT8eevVWLy5qCyQ6wntM3GHAbETNh4odhJhQ_wMtmY-Erlmuh1_0Jpi3HKGbrMzXrHlRocT_CKsCA6YZPRUdxm-nmDtrYouwvHJu43GuPPKuWWYkVzJY-CQt-cpci_FUJ5c8xeQXSfN38Wlyb4vLhWywdFM6Nlr7GpYB4j2Oh2QffU2VXZejEVPnjpbZ6ES9cEB1GfFwVuZa4tiFKZ01aHOSEqbWYU-vDn0txby0')"></div>
+<button class="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-xl shadow-lg hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<div class="flex-1 text-center md:text-left">
+<h1 class="text-3xl font-bold">Alex Rivera</h1>
+<p class="text-slate-600 dark:text-slate-400 font-medium">alex.rivera@aura.io</p>
+<div class="flex flex-wrap justify-center md:justify-start gap-4 mt-3">
+<span class="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider">Pro Member</span>
+<span class="text-sm text-slate-500">Joined Oct 2023</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2.5 rounded-xl bg-white/50 dark:bg-white/10 border border-white/40 font-semibold text-sm hover:bg-white/80 transition-all">Edit Profile</button>
+<button class="px-6 py-2.5 rounded-xl bg-primary text-white shadow-lg shadow-primary/30 font-semibold text-sm hover:brightness-110 transition-all">Upgrade Plan</button>
+</div>
+</div>
+<div class="mt-10 flex gap-6 md:gap-10 border-b border-slate-200 dark:border-white/10">
+<a class="pb-4 border-b-2 border-primary text-primary font-semibold text-sm" href="#">Account Details</a>
+<a class="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium text-sm transition-all" href="#">Addresses</a>
+<a class="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium text-sm transition-all" href="#">Security</a>
+<a class="pb-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium text-sm transition-all" href="#">Billing</a>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-2 space-y-8">
+<section class="glass-panel rounded-3xl p-6 md:p-8">
+<h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">person</span>
+                            Personal Information
+                        </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">First Name</label>
+<input class="w-full bg-white/30 dark:bg-black/20 border border-white/40 dark:border-white/10 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" type="text" value="Alex"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Last Name</label>
+<input class="w-full bg-white/30 dark:bg-black/20 border border-white/40 dark:border-white/10 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" type="text" value="Rivera"/>
+</div>
+<div class="space-y-2 md:col-span-2">
+<label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+<input class="w-full bg-white/30 dark:bg-black/20 border border-white/40 dark:border-white/10 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" type="email" value="alex.rivera@aura.io"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Phone Number</label>
+<input class="w-full bg-white/30 dark:bg-black/20 border border-white/40 dark:border-white/10 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" type="tel" value="+1 (555) 000-1234"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Location</label>
+<div class="relative">
+<input class="w-full bg-white/30 dark:bg-black/20 border border-white/40 dark:border-white/10 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" type="text" value="San Francisco, CA"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">location_on</span>
+</div>
+</div>
+</div>
+<div class="mt-8 flex justify-end">
+<button class="bg-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Save Changes</button>
+</div>
+</section>
+<section class="glass-panel rounded-3xl p-6 md:p-8">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">home</span>
+                                Saved Addresses
+                            </h3>
+<button class="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+                                Add New
+                            </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="p-5 rounded-2xl bg-white/50 dark:bg-white/5 border border-primary/30">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">Primary</span>
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary">more_vert</span>
+</div>
+<h4 class="font-bold">Home</h4>
+<p class="text-sm text-slate-600 dark:text-slate-400 mt-1">123 Aura Street, Suite 500<br/>San Francisco, CA 94103</p>
+</div>
+<div class="p-5 rounded-2xl bg-white/20 dark:bg-white/5 border border-white/40 dark:border-white/10">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-slate-200 dark:bg-white/10 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Work</span>
+<span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary">more_vert</span>
+</div>
+<h4 class="font-bold">Aura HQ</h4>
+<p class="text-sm text-slate-600 dark:text-slate-400 mt-1">456 Innovation Drive<br/>Mountain View, CA 94043</p>
+</div>
+</div>
+</section>
+</div>
+<div class="space-y-8">
+<section class="glass-panel rounded-3xl p-6">
+<h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">security</span>
+                            Security
+                        </h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 rounded-2xl bg-white/30 dark:bg-white/5 border border-white/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">vibration</span>
+<div class="flex flex-col">
+<span class="text-sm font-bold">2FA Auth</span>
+<span class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Enabled</span>
+</div>
+</div>
+<div class="w-10 h-5 bg-primary/20 rounded-full relative">
+<div class="absolute right-0.5 top-0.5 size-4 bg-primary rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 rounded-2xl bg-white/30 dark:bg-white/5 border border-white/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">fingerprint</span>
+<div class="flex flex-col">
+<span class="text-sm font-bold">Biometrics</span>
+<span class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">On Mobile</span>
+</div>
+</div>
+<div class="w-10 h-5 bg-slate-300 dark:bg-white/20 rounded-full relative">
+<div class="absolute left-0.5 top-0.5 size-4 bg-white rounded-full"></div>
+</div>
+</div>
+<button class="w-full mt-2 text-sm font-bold text-primary hover:bg-primary/10 py-2 rounded-xl transition-colors">Change Password</button>
+</div>
+</section>
+<section class="glass-panel rounded-3xl p-6 overflow-hidden relative">
+<div class="absolute -top-10 -right-10 size-32 bg-primary/20 rounded-full blur-2xl"></div>
+<h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">verified_user</span>
+                            Trust Badge
+                        </h3>
+<div class="flex flex-col items-center text-center p-4">
+<div class="size-20 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-4xl text-primary">workspace_premium</span>
+</div>
+<p class="text-sm font-bold">Verified Buyer</p>
+<p class="text-xs text-slate-500 mt-1">Your account is fully verified for safe transactions.</p>
+</div>
+</section>
+<section class="glass-panel rounded-3xl p-6">
+<h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">settings</span>
+                            Preferences
+                        </h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium">Newsletter</span>
+<input checked="" class="rounded border-slate-300 text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium">Order Updates</span>
+<input checked="" class="rounded border-slate-300 text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium">Profile Public</span>
+<input class="rounded border-slate-300 text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<footer class="mt-12 py-8 px-4 border-t border-slate-200 dark:border-white/10 glass-panel">
+<div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 text-primary/60">
+<span class="material-symbols-outlined">flare</span>
+<p class="text-sm font-bold">Aura Market © 2024</p>
+</div>
+<div class="flex gap-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
+<a class="hover:text-primary" href="#">Privacy Policy</a>
+<a class="hover:text-primary" href="#">Terms of Use</a>
+<a class="hover:text-primary" href="#">Cookie Settings</a>
+</div>
+</div>
+</footer>
+</div>
+</body></html>

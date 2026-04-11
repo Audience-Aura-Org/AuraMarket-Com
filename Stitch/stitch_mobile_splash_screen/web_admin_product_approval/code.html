@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market Admin - Product Approvals</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#120812",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-darker {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(242, 13, 242, 0.1);
+        }
+        .liquid-accent {
+            background: linear-gradient(135deg, #f20df2 0%, #7e22ce 100%);
+            box-shadow: 0 0 20px rgba(242, 13, 242, 0.3);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(242, 13, 242, 0.2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Background Liquid Orbs -->
+<div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="layout-container flex h-full grow flex-col z-10">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-primary/10 px-6 py-4 glass sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-10 flex items-center justify-center rounded-xl liquid-accent text-white">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight">Aura Market</h2>
+</div>
+<div class="hidden md:flex items-center gap-1">
+<label class="flex items-center min-w-40 h-10 w-64 glass-darker rounded-full px-4 border-none">
+<span class="material-symbols-outlined text-primary/60 mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400" placeholder="Search products, vendors..." type="text"/>
+</label>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-6 text-sm font-medium">
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-primary border-b-2 border-primary pb-1" href="#">Approvals</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">Vendors</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">Analytics</a>
+</nav>
+<div class="flex gap-3">
+<button class="size-10 flex items-center justify-center glass rounded-full hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</button>
+<button class="size-10 flex items-center justify-center glass rounded-full hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined text-primary">settings</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/30" data-alt="User profile avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCQUAN5BnuRmLcGsKqzc1IzXwEKm5Nhsq1pdr7Z6sGZN_sU_WDd69vJUbL16PsXH2GetiPWhydNB8tlb1i_UjDJW9ZOH5lY-qPs4hy3lQmLZ1gGX45Hbhg72gbqnKKXwSb1B6PLgDkFhmL_S8x308_SApltYNN0TRH6vt2wufs4gu7hEoL7ms1sGyQSMFJWbjK7A2dc85K12ROm-pjCZm7dPB6zd3F94-tIgwfI_Q63c0g8vpA3agFJraM0emgYLmysHQAO0HLLl4U");'></div>
+</div>
+</header>
+<main class="flex flex-1 p-6 gap-6 h-[calc(100vh-80px)]">
+<!-- Sidebar Control Panel -->
+<div class="hidden xl:flex w-72 flex-col gap-6">
+<div class="glass p-6 rounded-xl flex flex-col gap-6">
+<div>
+<h3 class="text-xs font-bold uppercase tracking-widest text-primary mb-4">Queues</h3>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20" href="#">
+<span class="material-symbols-outlined">pending_actions</span>
+<span class="font-medium">Pending Review</span>
+<span class="ml-auto bg-primary text-white text-[10px] px-2 py-0.5 rounded-full">24</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-slate-400" href="#">
+<span class="material-symbols-outlined">check_circle</span>
+<span>Approved</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-slate-400" href="#">
+<span class="material-symbols-outlined">cancel</span>
+<span>Rejected</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-slate-400" href="#">
+<span class="material-symbols-outlined">priority_high</span>
+<span>High Priority</span>
+</a>
+</nav>
+</div>
+<div class="pt-4 border-t border-white/5">
+<h3 class="text-xs font-bold uppercase tracking-widest text-primary mb-4">Actions</h3>
+<button class="w-full liquid-accent text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity mb-3">
+<span class="material-symbols-outlined text-lg">refresh</span>
+                                Refresh Queue
+                            </button>
+<button class="w-full glass py-3 rounded-xl font-medium text-slate-300 flex items-center justify-center gap-2 hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-lg">ios_share</span>
+                                Export Report
+                            </button>
+</div>
+</div>
+<div class="glass p-6 rounded-xl mt-auto">
+<div class="flex items-center gap-3 mb-2">
+<div class="size-2 rounded-full bg-green-500 animate-pulse"></div>
+<p class="text-xs font-medium text-slate-400 uppercase tracking-tighter">System Health</p>
+</div>
+<p class="text-xs text-slate-500">All services operational. Product analysis AI is active.</p>
+</div>
+</div>
+<!-- Main Content Area: Table -->
+<div class="flex-1 flex flex-col gap-6 overflow-hidden">
+<div class="flex items-end justify-between px-2">
+<div>
+<h1 class="text-3xl font-bold tracking-tight text-white">Product Approvals</h1>
+<p class="text-slate-400 mt-1">Review new vendor submissions for the marketplace.</p>
+</div>
+<div class="flex gap-3">
+<div class="flex glass p-1 rounded-full">
+<button class="px-4 py-1.5 rounded-full text-xs font-bold bg-primary text-white">List</button>
+<button class="px-4 py-1.5 rounded-full text-xs font-bold text-slate-400">Grid</button>
+</div>
+</div>
+</div>
+<div class="flex-1 glass rounded-xl overflow-hidden flex flex-col">
+<div class="overflow-y-auto flex-1">
+<table class="w-full border-collapse text-left">
+<thead class="sticky top-0 glass-darker z-20">
+<tr>
+<th class="px-6 py-4 text-xs font-bold text-primary uppercase tracking-wider">Product</th>
+<th class="px-6 py-4 text-xs font-bold text-primary uppercase tracking-wider">Vendor</th>
+<th class="px-6 py-4 text-xs font-bold text-primary uppercase tracking-wider">Category</th>
+<th class="px-6 py-4 text-xs font-bold text-primary uppercase tracking-wider">Price</th>
+<th class="px-6 py-4 text-xs font-bold text-primary uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<!-- Row 1 -->
+<tr class="hover:bg-primary/5 transition-colors group cursor-pointer">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-lg bg-cover bg-center border border-white/10" data-alt="Futuristic neon headphones product thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuADGXZQbKFtQ6q79uvFNhDOaDJurGprXQi6eUd4fcoVw5sBy3i44fHBYuDT4JqbLA2y3Eex2rQUp6q3rzUR7UetVaiVVEVnJRfPGD-ZBBBytDzxPKtvzlJcmly8rO3xICmXpw4G57f4uF2YZDdJ5RjHe53y5LdMBl54N8ZXCPRWmhxBCFUyxV_A9HH8hYzA4jVHOL3xKwt4br6RpSNGOLqJwtWLpuOUSyprxDYksFkCQqy6KVRmt7-xVUDY00QQ9ud7-ZYuF9upjug");'></div>
+<div>
+<p class="font-semibold text-white">Aura Sound G1</p>
+<p class="text-xs text-slate-500 tracking-tight">ID: #AS-9921</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-slate-200">Vortex Tech</span>
+<span class="text-[10px] text-primary font-bold uppercase">Gold Vendor</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">Electronics</span>
+</td>
+<td class="px-6 py-4">
+<span class="font-bold text-white">$129.00</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 rounded-lg bg-green-500/20 text-green-500 hover:bg-green-500 hover:text-white transition-all">
+<span class="material-symbols-outlined">check</span>
+</button>
+<button class="p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-primary/5 transition-colors group cursor-pointer bg-primary/10 border-l-4 border-primary">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-lg bg-cover bg-center border border-white/10" data-alt="Ethereal silk wrap apparel product thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAkSZ4ERCfIFAS_4O1ndAEv5mBeDsQZ29ldeSXoFJbDBqBPYyxgyPn8IZc8VvgCG59ssqAyvNSJTSV5WiZzww9VUFvUR5sQvWsvN0-_gyKojNxMHRnuYQJe5YjI02vNPJ5xjjvr5MCkqsoBATIG9EaWoTdX-hM-OjeXxcjebzJA_lHzNejj9K9kKa9iK3dwY9-V5nEQWiRL3_OcQsVAr17K9eAGsG4CZriIhLj5Ka_pi-TVldPzhhJhvBbhd5lGu7BL4jHJeE5Bfqo");'></div>
+<div>
+<p class="font-semibold text-white">Ethereal Wrap</p>
+<p class="text-xs text-slate-500 tracking-tight">ID: #EW-4432</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-200">Loom &amp; Thread</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">Apparel</span>
+</td>
+<td class="px-6 py-4 font-bold text-white">$45.00</td>
+<td class="px-6 py-4">
+<div class="flex justify-end gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-500 font-bold text-xs hover:bg-green-500 hover:text-white transition-all">Approve</button>
+<button class="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white transition-all">Reject</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-primary/5 transition-colors group cursor-pointer">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-lg bg-cover bg-center border border-white/10" data-alt="Modern smart watch device thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBvJWEMRQRa40rx4Kb5Lgh48u9feb_KiPmxneEDVTEbkO1T8SVmcVYj_tp0WPMdqK2We7PT8FmRBABbLCh9FUivQ1BKQLjHjGa7VwU8bVxWyG0O2xtnaYx55naA-fP04jOnAhS5KIVpy03xfp5xU--wdSWxVWtm_HLn-H-cJcLOMMtFbCsOhcyHY1PBOYrX1Ae78_V-Hexv05us2yl48_w36LNV8lelNO6cnrTDmb83Jozr4KwaOBz8YmspWYHPhDvRT1HqV2Xqil0");'></div>
+<div>
+<p class="font-semibold text-white">Nova Sync X1</p>
+<p class="text-xs text-slate-500 tracking-tight">ID: #NX-1100</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-200">Future Wear</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">Gadgets</span>
+</td>
+<td class="px-6 py-4 font-bold text-white">$199.00</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 rounded-lg bg-green-500/20 text-green-500 hover:bg-green-500 hover:text-white transition-all">
+<span class="material-symbols-outlined">check</span>
+</button>
+<button class="p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-primary/5 transition-colors group cursor-pointer">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-lg bg-cover bg-center border border-white/10" data-alt="Organic tea blend packaging thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCYhd3AcFdJtXcMLN6jDuKpRFY_7edJJYu9Z0YXqVDOvhjK41hMDLZcBMRHvsHWCB_Xbj4vTdFi9YuWWflAE4KOkfgvgyQRyAACcMkWjpE0NQWs-Dx3UwiGH-EIe-zn0GVuuDJmb_wjCsDTDEkusryiOAO4zeaO_q1gaq9hvVI34KqFFD9_Pm_jVgiQNG9s6SulpeNUNwljOK3Gm8wLECtCenEMQzla4DF2ShzUiqpmTPS3Nm4GXY_WU8lV1QPLkj_rx8RCQzzVqmU");'></div>
+<div>
+<p class="font-semibold text-white">Zen Brew Tea</p>
+<p class="text-xs text-slate-500 tracking-tight">ID: #ZB-8821</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-200">Green Leaf</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">Food &amp; Bev</span>
+</td>
+<td class="px-6 py-4 font-bold text-white">$24.00</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 rounded-lg bg-green-500/20 text-green-500 hover:bg-green-500 hover:text-white transition-all">
+<span class="material-symbols-outlined">check</span>
+</button>
+<button class="p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-500 font-medium">
+<p>Showing 4 of 24 pending products</p>
+<div class="flex gap-2">
+<button class="size-8 glass rounded-full flex items-center justify-center opacity-50 cursor-not-allowed">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="size-8 glass rounded-full flex items-center justify-center hover:bg-primary/10 hover:text-primary">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Detail View Sidebar -->
+<div class="hidden 2xl:flex w-96 flex-col gap-6">
+<div class="glass flex-1 rounded-xl p-6 overflow-y-auto">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-white">Detailed View</h3>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/30 uppercase">Selected</span>
+</div>
+<div class="aspect-square rounded-xl bg-cover bg-center mb-6 border border-white/10" data-alt="High resolution detailed view of the Ethereal Wrap fabric texture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCmCvoj4MOmLCkpi0cfBEe64n9qfWk6PhyErztDnlK_iKs4a6ze5A27tPYLRvFeNcZsaqntx3Skl8g-0BGBgb0kN0N8wrKCjESTNI7cVe9xX3ggTFwtkcKPsjdo7wUL8LYig4Tl_X8ETKty2t2RD0cGsdAp1ZnQtUZqsqPV6Z461wIkAgIyJdPg2TjbVockHw4MjikFa0Exbwe4065BIHtC-LVRz-CMy0Asv3aifVRTTrYgqUJ2HcinK4FbPS41cJDoJU_Sy7n7sEU");'></div>
+<div class="space-y-6">
+<div>
+<h2 class="text-xl font-bold text-white mb-1">Ethereal Wrap</h2>
+<p class="text-sm text-primary font-medium">Loom &amp; Thread Co.</p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="glass-darker p-3 rounded-lg">
+<p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Price</p>
+<p class="text-lg font-bold text-white">$45.00</p>
+</div>
+<div class="glass-darker p-3 rounded-lg">
+<p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Commission</p>
+<p class="text-lg font-bold text-green-400">12%</p>
+</div>
+</div>
+<div>
+<h4 class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Description</h4>
+<p class="text-sm text-slate-400 leading-relaxed">
+                                    Hand-crafted from sustainable lotus silk, the Ethereal Wrap offers a weightless, breathable layer perfect for transitional seasons. Features a holographic weave that catches light at different angles.
+                                </p>
+</div>
+<div>
+<h4 class="text-xs font-bold uppercase tracking-widest text-primary mb-3">Specifications</h4>
+<div class="space-y-2">
+<div class="flex justify-between text-xs py-2 border-b border-white/5">
+<span class="text-slate-500">Material</span>
+<span class="text-slate-200">Lotus Silk</span>
+</div>
+<div class="flex justify-between text-xs py-2 border-b border-white/5">
+<span class="text-slate-500">Weight</span>
+<span class="text-slate-200">120g</span>
+</div>
+<div class="flex justify-between text-xs py-2">
+<span class="text-slate-500">SKU</span>
+<span class="text-slate-200">LT-EW-SLK-001</span>
+</div>
+</div>
+</div>
+<div class="pt-6 border-t border-white/5 grid grid-cols-2 gap-3">
+<button class="bg-red-500/10 text-red-500 border border-red-500/20 py-3 rounded-xl font-bold text-sm hover:bg-red-500 hover:text-white transition-all">Reject Product</button>
+<button class="liquid-accent text-white py-3 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">Approve Now</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

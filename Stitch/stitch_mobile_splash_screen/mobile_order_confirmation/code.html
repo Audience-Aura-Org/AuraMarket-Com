@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market - Order Confirmed</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#120812", // Slightly deeper than 221022 for better contrast
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "Poppins", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .liquid-glass {
+            background: rgba(242, 13, 242, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(242, 13, 242, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .celebratory-gradient {
+            background: radial-gradient(circle at top right, rgba(242, 13, 242, 0.4), transparent),
+                        radial-gradient(circle at bottom left, rgba(242, 13, 242, 0.2), transparent);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-full min-h-screen w-full flex-col celebratory-gradient overflow-x-hidden">
+<!-- Top App Bar -->
+<div class="flex items-center p-4 pb-2 justify-between">
+<button class="text-slate-100 flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+<h2 class="text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">Order Confirmed</h2>
+</div>
+<!-- Success Animation/Icon Area -->
+<div class="flex flex-col items-center justify-center pt-8 pb-4">
+<div class="size-24 rounded-full bg-primary/20 flex items-center justify-center mb-6 ring-4 ring-primary/30">
+<div class="size-16 rounded-full bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(242,13,242,0.6)]">
+<span class="material-symbols-outlined text-white text-4xl font-bold">check</span>
+</div>
+</div>
+<h1 class="text-slate-100 tracking-tight text-4xl font-extrabold leading-tight px-4 text-center">Success!</h1>
+<p class="text-slate-300 text-base font-normal leading-relaxed pb-3 pt-2 px-8 text-center max-w-md">Your order has been placed successfully. We're getting it ready for you!</p>
+</div>
+<!-- Order Card with Liquid Glass effect -->
+<div class="p-6 @container">
+<div class="flex flex-col items-stretch justify-start rounded-xl liquid-glass overflow-hidden">
+<div class="w-full h-48 bg-center bg-no-repeat bg-cover" data-alt="Modern lifestyle shopping items in purple lighting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAPQn4j59NTod5oqruq8oAH0XONT79baDXd00MadVXFJWz1wiB86Ade2sxZlQoQxgyEKU72NP7ei6t8LZA3HEjiBf8x98uuX5gN4ExBNZ5LYCE5RB5A42xpyoKsTB9PoCrNO8_YcurHqfVgYw3qCvLbiB3lUyvJDbkTZxLcX1OyQoerUKf-EwpXGqLnqzN9WgDnyTIpxR_ZEIfE--noLiCuT8FAv73EHYs0XRE6BULaDW-UFMyB_vaWD4l1IL0dbOmHhaR4C_9joFA");'>
+</div>
+<div class="flex w-full grow flex-col items-stretch justify-center gap-2 p-6">
+<div class="flex justify-between items-center">
+<p class="text-slate-100 text-xl font-bold leading-tight tracking-tight">Order #AM-92834</p>
+<span class="bg-primary/30 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Processing</span>
+</div>
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<p class="text-primary/90 text-sm font-semibold leading-normal">Est. Delivery: Oct 24, 2023</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Order Details List -->
+<div class="px-6 space-y-1">
+<div class="flex justify-between items-center py-3 border-b border-primary/10">
+<p class="text-slate-400 text-sm font-medium">Order ID</p>
+<p class="text-slate-100 text-sm font-bold">#AM-92834</p>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-primary/10">
+<p class="text-slate-400 text-sm font-medium">Estimated Arrival</p>
+<p class="text-slate-100 text-sm font-bold">Oct 24, 2023</p>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-primary/10">
+<p class="text-slate-400 text-sm font-medium">Shipping Method</p>
+<p class="text-slate-100 text-sm font-bold">Express Delivery</p>
+</div>
+<div class="flex justify-between items-center py-3">
+<p class="text-slate-400 text-sm font-medium">Payment Method</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">credit_card</span>
+<p class="text-slate-100 text-sm font-bold">Aura Pay (**** 4242)</p>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="mt-auto p-6 flex flex-col gap-3">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95">
+<span class="material-symbols-outlined">local_shipping</span>
+                Track Order
+            </button>
+<button class="w-full bg-primary/10 hover:bg-primary/20 text-primary font-bold py-4 rounded-xl border border-primary/30 transition-all active:scale-95">
+                Back to Home
+            </button>
+</div>
+<!-- Spacing for bottom nav if needed -->
+<div class="h-8"></div>
+</div>
+</body></html>

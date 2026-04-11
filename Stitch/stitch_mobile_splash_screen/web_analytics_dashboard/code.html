@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Market | Web Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20df2",
+                        "background-light": "#f8f5f8",
+                        "background-dark": "#120812",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "sans-serif"],
+                        "sans": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .liquid-gradient {
+            background: linear-gradient(135deg, rgba(242, 13, 242, 0.15) 0%, rgba(18, 8, 18, 0) 50%, rgba(242, 13, 242, 0.05) 100%);
+        }
+        .chart-line {
+            filter: drop-shadow(0px 0px 8px rgba(242, 13, 242, 0.6));
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased selection:bg-primary/30">
+<div class="flex h-screen overflow-hidden liquid-gradient">
+<!-- Sidebar Navigation -->
+<aside class="w-72 h-full flex flex-col border-r border-white/5 bg-background-dark/40 backdrop-blur-xl shrink-0">
+<div class="p-8 flex items-center gap-3">
+<div class="size-10 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(242,13,242,0.4)]">
+<span class="material-symbols-outlined text-white text-2xl">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-white">Aura</h1>
+<p class="text-[10px] uppercase tracking-[0.2em] text-primary font-bold">Analytics Pro</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium">Overview</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-[24px]">analytics</span>
+<span class="font-medium">Market Trends</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-[24px]">storefront</span>
+<span class="font-medium">Vendors</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-[24px]">category</span>
+<span class="font-medium">Categories</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-[24px]">group</span>
+<span class="font-medium">Customers</span>
+</a>
+</nav>
+<div class="p-6">
+<div class="glass p-4 rounded-2xl border-primary/20">
+<p class="text-xs text-slate-400 mb-2 font-medium">System Status</p>
+<div class="flex items-center gap-2">
+<div class="size-2 bg-green-500 rounded-full animate-pulse"></div>
+<span class="text-sm font-semibold text-white">Live Operations</span>
+</div>
+</div>
+<button class="mt-6 flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white w-full transition-all">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium">Settings</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto scrollbar-hide">
+<!-- Header Section -->
+<header class="sticky top-0 z-10 glass border-b-0 px-8 py-6 flex items-center justify-between bg-background-dark/20">
+<div>
+<h2 class="text-3xl font-bold text-white tracking-tight">Market Analytics</h2>
+<p class="text-slate-400 text-sm mt-1">Detailed performance metrics for your marketplace ecosystem</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="glass rounded-full px-4 py-2 flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 text-xl">calendar_month</span>
+<select class="bg-transparent border-none text-sm font-medium text-slate-200 focus:ring-0 cursor-pointer">
+<option>Last 30 Days</option>
+<option>Last 7 Days</option>
+<option>Custom Range</option>
+</select>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white font-bold py-2.5 px-6 rounded-full transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+<span class="material-symbols-outlined text-xl">file_download</span>
+                        Export
+                    </button>
+</div>
+</header>
+<div class="p-8 space-y-8">
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="glass p-6 rounded-3xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all"></div>
+<p class="text-slate-400 text-sm font-medium">Total Revenue</p>
+<h3 class="text-3xl font-bold text-white mt-2">$2,845,120</h3>
+<div class="flex items-center gap-2 mt-4 text-green-400 text-sm font-semibold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+12.4%</span>
+</div>
+</div>
+<div class="glass p-6 rounded-3xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+<p class="text-slate-400 text-sm font-medium">Active Users</p>
+<h3 class="text-3xl font-bold text-white mt-2">48.6k</h3>
+<div class="flex items-center gap-2 mt-4 text-green-400 text-sm font-semibold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+8.2%</span>
+</div>
+</div>
+<div class="glass p-6 rounded-3xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-all"></div>
+<p class="text-slate-400 text-sm font-medium">Conversion Rate</p>
+<h3 class="text-3xl font-bold text-white mt-2">3.82%</h3>
+<div class="flex items-center gap-2 mt-4 text-red-400 text-sm font-semibold">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+<span>-0.4%</span>
+</div>
+</div>
+<div class="glass p-6 rounded-3xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
+<p class="text-slate-400 text-sm font-medium">Avg Order Value</p>
+<h3 class="text-3xl font-bold text-white mt-2">$142.50</h3>
+<div class="flex items-center gap-2 mt-4 text-green-400 text-sm font-semibold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+4.1%</span>
+</div>
+</div>
+</div>
+<!-- Main Charts Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Revenue Growth Chart -->
+<div class="lg:col-span-2 glass p-8 rounded-3xl">
+<div class="flex items-center justify-between mb-8">
+<h4 class="text-xl font-bold text-white">Revenue Growth</h4>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-xs text-slate-400">Current</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-slate-600"></div>
+<span class="text-xs text-slate-400">Previous</span>
+</div>
+</div>
+</div>
+<div class="h-64 relative">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 100">
+<!-- Area Gradient -->
+<defs>
+<lineargradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#f20df2" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#f20df2" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,80 Q10,75 20,60 T40,65 T60,30 T80,45 T100,20 V100 H0 Z" fill="url(#chartGradient)"></path>
+<!-- Lines -->
+<path class="chart-line" d="M0,80 Q10,75 20,60 T40,65 T60,30 T80,45 T100,20" fill="none" stroke="#f20df2" stroke-linecap="round" stroke-width="2"></path>
+<path d="M0,85 Q10,82 20,70 T40,75 T60,50 T80,60 T100,40" fill="none" stroke="#475569" stroke-dasharray="4 2" stroke-linecap="round" stroke-width="1.5"></path>
+</svg>
+<div class="absolute bottom-0 w-full flex justify-between text-[10px] text-slate-500 pt-4 font-bold uppercase tracking-wider">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+</div>
+</div>
+<!-- User Acquisition -->
+<div class="glass p-8 rounded-3xl">
+<h4 class="text-xl font-bold text-white mb-8">Acquisition</h4>
+<div class="flex flex-col items-center justify-center space-y-8">
+<div class="relative size-48">
+<svg class="size-full transform -rotate-90" viewbox="0 0 100 100">
+<circle cx="50" cy="50" fill="none" r="40" stroke="rgba(255,255,255,0.05)" stroke-width="12"></circle>
+<circle cx="50" cy="50" fill="none" r="40" stroke="#f20df2" stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-linecap="round" stroke-width="12"></circle>
+<circle cx="50" cy="50" fill="none" r="40" stroke="#8b5cf6" stroke-dasharray="251.2" stroke-dashoffset="210" stroke-linecap="round" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-3xl font-bold text-white">75%</span>
+<span class="text-[10px] text-slate-400 uppercase font-bold">Mobile</span>
+</div>
+</div>
+<div class="w-full space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">smartphone</span>
+<span class="text-sm font-medium text-slate-300">Mobile Users</span>
+</div>
+<span class="text-sm font-bold text-white">36.2k</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-purple-500">desktop_windows</span>
+<span class="text-sm font-medium text-slate-300">Desktop Users</span>
+</div>
+<span class="text-sm font-bold text-white">12.4k</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Row: Vendors & Categories -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Top Vendors List -->
+<div class="glass p-8 rounded-3xl">
+<div class="flex items-center justify-between mb-6">
+<h4 class="text-xl font-bold text-white">Top Performing Vendors</h4>
+<a class="text-primary text-sm font-semibold hover:underline" href="#">View All</a>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all group">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-xl overflow-hidden glass border-white/10">
+<img class="w-full h-full object-cover" data-alt="Brand logo minimalist design" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgMfHcb0nNBGDBnIC3udICvOpa8Vc4xdzXFgPFnfIdr3k8p-xEKGUV9g3Kasf6N-3K7igHFk-2-zjvdG5FPjFk6hFfCrBZC9QOdjzq9N-QSE2L0kxeAjMLBAVfAajM6lVFFHpzK88Z1_1ugZdywSsg7im8PJr2QQ3HQ6RIqjdo5sG57EKGvNAWqtPrd4AIHW18puoSWJIi20kOT9YxC4GSP9SB9OR04oD6_oM4t63D7uqFULzzph6XDC2PkGVd3n62OJiFcEnAGpA"/>
+</div>
+<div>
+<p class="text-white font-bold">Velocity Studios</p>
+<p class="text-xs text-slate-400">Digital Assets &amp; UI Kits</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-white font-bold">$124,500</p>
+<p class="text-[10px] text-green-400 font-bold">+18% growth</p>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-xl overflow-hidden glass border-white/10">
+<img class="w-full h-full object-cover" data-alt="Luxury boutique product photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5NVjqT0JXyZL8KobVdkPKzdYVQuM_qOBFSImXwA7xQQNIZw6wTOmaC0uKex73Nc966l6_br-fEmUFcucvFhp4qYufOZdOQGXQspM2swNcZ33XIzsJ3IoFyXnYsEAXj3hut6nA59uw9E6Z2aeynDlmkTEaICy-od8DRhMBxjCUlT1Ttl5cakw7D3WXRtmnitl7Y05ZOaQb8SegTrSrQm1w4qlCqF6GK6KRQpOeyqWuuehH1qTXlDSUyhLsysjnI_v1wYyR7vahtSg"/>
+</div>
+<div>
+<p class="text-white font-bold">Luxe Collective</p>
+<p class="text-xs text-slate-400">Premium Lifestyle</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-white font-bold">$98,200</p>
+<p class="text-[10px] text-green-400 font-bold">+12% growth</p>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-xl overflow-hidden glass border-white/10">
+<img class="w-full h-full object-cover" data-alt="Abstract creative agency brand mark" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKbHdDy5sZ9zrNNdc30keVQmExK8t5HcLTitdf-JehepRupA5VvoISwChmAp1E_RTwG_74skYpxkYz-xArkaodK5SxtCfAFHJklydHW9lCUnzM_6GLPTwUbKKM2FIXgRqxWenJ5O2iZL8dfA1sDRirunF8MKb9NsQtOjR6JelEvv-aGlyQeUOPlfAGkhwxykAH4dnr4nMAr_QcySwU5i4FaD5Wft-PxYmE6uQnpinMhTyYTlNVuuvqGf-ERgqrIX_zNYHSNyGP7uk"/>
+</div>
+<div>
+<p class="text-white font-bold">Pixel &amp; Paper</p>
+<p class="text-xs text-slate-400">Design Resources</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-white font-bold">$84,700</p>
+<p class="text-[10px] text-slate-400 font-bold">+0% growth</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Top Categories -->
+<div class="glass p-8 rounded-3xl">
+<h4 class="text-xl font-bold text-white mb-6">Market Share by Category</h4>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="text-slate-300">Software &amp; SaaS</span>
+<span class="text-white font-bold">42%</span>
+</div>
+<div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(242,13,242,0.5)]" style="width: 42%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="text-slate-300">E-commerce Tools</span>
+<span class="text-white font-bold">28%</span>
+</div>
+<div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-purple-500 rounded-full" style="width: 28%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="text-slate-300">Design Assets</span>
+<span class="text-white font-bold">18%</span>
+</div>
+<div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 rounded-full" style="width: 18%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="text-slate-300">Others</span>
+<span class="text-white font-bold">12%</span>
+</div>
+<div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-slate-600 rounded-full" style="width: 12%"></div>
+</div>
+</div>
+<div class="pt-4 border-t border-white/5 flex gap-4">
+<div class="flex-1 glass p-4 rounded-2xl flex flex-col items-center">
+<span class="text-[10px] text-slate-400 uppercase font-bold">Best Selling</span>
+<span class="text-white font-bold mt-1">SaaS Templates</span>
+</div>
+<div class="flex-1 glass p-4 rounded-2xl flex flex-col items-center">
+<span class="text-[10px] text-slate-400 uppercase font-bold">Trending</span>
+<span class="text-white font-bold mt-1">AI Plugins</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer class="p-8 text-center">
+<p class="text-slate-500 text-sm">© 2024 Aura Market Analytics • Privacy Policy • Support Center</p>
+</footer>
+</main>
+</div>
+</body></html>
