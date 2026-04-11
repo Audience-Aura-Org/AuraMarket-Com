@@ -1,0 +1,8 @@
+{
+  "name": "aura-market-monorepo-bridge",
+  "private": true,
+  "scripts": {
+    "install": "npm install --prefix ../web",
+    "build": "npm run build --prefix ../web"
+  }
+}
