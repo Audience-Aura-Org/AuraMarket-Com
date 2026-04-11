@@ -19,6 +19,7 @@ const Transaction    = require('../models/Transaction.model');
 const Coupon         = require('../models/Coupon.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const mongoose       = require('mongoose');
+const qrcode         = require('qrcode');
 
 const { sendNotification }    = require('../utils/notifier');
 const { sendEmail }           = require('../utils/emailService');
@@ -196,16 +197,25 @@ const createOrder = async (req, res, next) => {
           });
 
           // 2. Notify Customer
-          const customerEmailTemplate = templates.orderPlaced({ order: createdOrder, customer: req.user });
+          const trackingLink = `${process.env.WEB_CLIENT_URL}/orders/${createdOrder._id}`;
+          const qrCodeDataUrl = await qrcode.toDataURL(trackingLink);
+          
+          const customerEmailTemplate = templates.orderPlaced({ 
+            order: createdOrder, 
+            customer: req.user,
+            qrCode: qrCodeDataUrl 
+          });
+
           sendNotification(req.app, req.user._id, {
             title: customerEmailTemplate.subject,
-            message: `Your Pay-on-Delivery order #${createdOrder._id.toString().slice(-6).toUpperCase()} has been successfully recorded.`,
+            message: `Your Order #${createdOrder._id.toString().slice(-6).toUpperCase()} has been successfully recorded.`,
             type: 'order_status',
             metadata: { order_id: createdOrder._id, link: `/orders/${createdOrder._id}` },
             sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/orders/${createdOrder._id}`,
+            emailLink: trackingLink,
             emailTemplate: customerEmailTemplate,
             orderDetails: orderWithVendor,
+            qrCode: qrCodeDataUrl,
             role: 'customer'
           });
 
@@ -421,13 +431,26 @@ const updateOrderStatus = async (req, res, next) => {
     session.endSession();
 
     // Notify Customer about status
+    const customer = await User.findById(order.customer_id);
+    const trackingLink = `${process.env.WEB_CLIENT_URL}/orders/${order._id}`;
+    const qrCodeDataUrl = await qrcode.toDataURL(trackingLink);
+    
+    const customerEmailTemplate = templates.orderStatusUpdated({ 
+      order, 
+      customer, 
+      qrCode: qrCodeDataUrl 
+    });
+
     sendNotification(req.app, order.customer_id, {
-      title: 'Order Status Updated',
-      message: `Your Order #${order._id.toString().slice(-6).toUpperCase()} is now ${order_status || 'updated'}.`,
+      title: customerEmailTemplate.subject,
+      message: `Your Order #${order._id.toString().slice(-6).toUpperCase()} status is now ${order_status || 'updated'}.`,
       type: 'order_status',
-      metadata: { order_id: order._id, link: '/orders' },
+      metadata: { order_id: order._id, link: `/orders/${order._id}` },
       sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/orders`
+      emailTemplate: customerEmailTemplate,
+      emailLink: trackingLink,
+      qrCode: qrCodeDataUrl,
+      orderDetails: order.toObject()
     });
 
     res.status(200).json({ success: true, message: 'Order status updated.', data: { order } });
@@ -456,13 +479,21 @@ const requestRefund = async (req, res, next) => {
     await order.save();
 
     const vendor = await Vendor.findById(order.vendor_id);
+    const vendorEmailTemplate = templates.refundRequested({ 
+      order, 
+      vendor, 
+      reason 
+    });
+
     sendNotification(req.app, vendor.user_id, {
-      title: 'Refund Requested',
+      title: vendorEmailTemplate.subject,
       message: `A refund has been requested for Order #${order._id.toString().slice(-6)}.`,
       type: 'system_alert',
       metadata: { order_id: order._id, link: '/vendor/orders' },
       sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`
+      emailTemplate: vendorEmailTemplate,
+      emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders`,
+      role: 'vendor'
     });
 
     res.status(200).json({ success: true, message: 'Refund request submitted.', data: { order } });
@@ -492,13 +523,18 @@ const approveRefund = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
 
+    const customer = await User.findById(order.customer_id);
+    const customerEmailTemplate = templates.refundApproved({ order, customer });
+
     sendNotification(req.app, order.customer_id, {
-      title: 'Refund Approved',
+      title: customerEmailTemplate.subject,
       message: `Your refund for Order #${order._id.toString().slice(-6)} has been approved.`,
       type: 'wallet_update',
       metadata: { order_id: order._id, link: `/orders/${order._id}` },
       sendEmail: true,
-      emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`
+      emailTemplate: customerEmailTemplate,
+      emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
+      role: 'customer'
     });
 
     res.status(200).json({ success: true, message: 'Refund approved.' });
@@ -600,16 +636,25 @@ const createOrdersFromCart = async (req, res, next) => {
             emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders/${o._id}`
           });
 
-          const customerEmailTemplate = templates.orderPlaced({ order: o, customer: req.user });
+          const trackingLink = `${process.env.WEB_CLIENT_URL}/orders/${o._id}`;
+          const qrCodeDataUrl = await qrcode.toDataURL(trackingLink);
+
+          const customerEmailTemplate = templates.orderPlaced({ 
+            order: o, 
+            customer: req.user,
+            qrCode: qrCodeDataUrl
+          });
+
           sendNotification(req.app, req.user._id, {
             title: customerEmailTemplate.subject,
-            message: `Your order segment #${o._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
+            message: `Your order #${o._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
             type: 'order_status',
             metadata: { order_id: o._id, link: `/orders/${o._id}` },
             sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/orders/${o._id}`,
+            emailLink: trackingLink,
             emailTemplate: customerEmailTemplate,
             orderDetails: orderForEmail,
+            qrCode: qrCodeDataUrl,
             role: 'customer'
           });
 
