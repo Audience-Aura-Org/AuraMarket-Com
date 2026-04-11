@@ -97,14 +97,14 @@ export default function VendorAnalyticsPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4 md:px-8 py-8 space-y-8">
+          <div className="p-4 lg:p-10 space-y-8 pb-32">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-40">
             <div className="size-14 rounded-full border-4 border-[var(--accent)]/10 border-t-[var(--accent)] animate-spin" />
             <p className="mt-6 text-[var(--text-secondary)] font-bold text-xs uppercase tracking-widest opacity-40">Loading...</p>
           </div>
         ) : (
-          <div className="w-full px-4 md:px-8 py-8 space-y-8">
+          <div className="p-4 lg:p-10 space-y-8 pb-32">
             
             {/* Main Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
