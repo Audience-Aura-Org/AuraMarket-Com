@@ -50,11 +50,13 @@
 /* Rest of the file remains as before but ensuring no italics */
 html {
   font-size: 16px;
-  zoom: 0.7;
-  transform-origin: top left;
+  -webkit-text-size-adjust: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
@@ -62,6 +64,9 @@ body {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
   background-image:
     radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 50%),
@@ -91,8 +96,7 @@ header.bg-\[var\(--nav-bg\)\] [class*="bg-[var(--bg-primary)]"] {
 
 @media (max-width: 640px) {
   html { 
-    zoom: 0.8;
-    font-size: 15px; 
+    font-size: 14px; 
   }
   input, textarea, select { font-size: 16px !important; }
   h1 { font-size: 18px; line-height: 1.1; letter-spacing: -0.02em; }

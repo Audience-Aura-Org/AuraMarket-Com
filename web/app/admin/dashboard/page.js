@@ -48,7 +48,7 @@ export default function AdminDashboard() {
   if (!mounted) return null;
 
   return (
-    <div className="w-full min-h-screen px-4 md:px-8 py-8 space-y-8">
+    <div className="w-full min-h-screen px-3 md:px-8 py-8 space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
           [...Array(4)].map((_, i) => (

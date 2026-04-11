@@ -232,7 +232,7 @@ function LogisticsDashboardContent() {
 
   return (
     <>
-      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-2xl shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
+      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-3 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-2xl shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-2xl font-black text-[var(--text-primary)] tracking-tighter uppercase">Transit <span className="text-[var(--accent)]">Control</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
@@ -251,7 +251,7 @@ function LogisticsDashboardContent() {
         </div>
       </header>
 
-        <div className="p-4 lg:p-10 space-y-6 lg:space-y-10 pb-10">
+        <div className="p-3 lg:p-10 space-y-6 lg:space-y-10 pb-10">
           {/* Stats Grid Matrix */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
             {stats.map((stat) => (
