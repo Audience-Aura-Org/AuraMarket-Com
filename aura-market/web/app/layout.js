@@ -24,12 +24,6 @@ export const metadata = {
     title: 'Aura Market',
     statusBarStyle: 'black-translucent',
     capable: true,
-    startupImage: [
-      {
-        url: '/icon-512.png',
-        media: '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)',
-      },
-    ],
   },
   icons: {
     icon: [
@@ -40,9 +34,7 @@ export const metadata = {
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
   },
-  formatDetection: {
-    telephone: false,
-  },
+
 };
 
 export const viewport = {
