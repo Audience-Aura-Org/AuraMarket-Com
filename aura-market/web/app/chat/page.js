@@ -515,7 +515,7 @@ function ChatContent() {
                           {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                         </span>
                       </div>
-                      <p className={`!text-[10px] font-bold uppercase tracking-widest truncate whitespace-nowrap mt-1 ${!chat.read_status ? 'text-[var(--text-primary)] opacity-90' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                      <p className={`!text-[10px] truncate whitespace-nowrap mt-1 ${!chat.read_status ? 'font-medium text-[var(--text-primary)] opacity-90' : 'text-[var(--text-secondary)] opacity-40'}`}>
                         {chat.snippet || 'No messages yet'}
                       </p>
                     </div>

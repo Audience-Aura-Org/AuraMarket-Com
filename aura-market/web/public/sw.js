@@ -3,12 +3,12 @@
  * Robust background push handling with redundant notification suppression.
  */
 
-const CACHE_NAME = 'aura-cache-v6'; // Bumped version
+const CACHE_NAME = 'aura-cache-v7'; // Bumped: icon files updated
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/logo-white.png',
-  '/logo-black.png'
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 // ── Install: Cache static shell assets ─────────────────────────────────────────

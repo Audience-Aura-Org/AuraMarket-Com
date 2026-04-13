@@ -13,37 +13,53 @@ export default function PWAInstallBanner() {
 
   useEffect(() => {
     let timerId;
-    
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    // Check if already running as installed PWA (standalone mode or previously installed flag)
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      localStorage.getItem('pwa_installed') === 'true';
+
     if (isStandalone) return;
 
+    // Permanently hide after install via appinstalled event
+    const handleAppInstalled = () => {
+      localStorage.setItem('pwa_installed', 'true');
+      setIsVisible(false);
+      if (timerId) clearTimeout(timerId);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
     const ua = window.navigator.userAgent;
-    const isIOSDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isIOSDevice =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const desktopCheck = window.innerWidth > 1024;
-    
+
     setIsIOS(isIOSDevice);
     setIsDesktop(desktopCheck);
+
+    // Use localStorage so the dismissed state survives page refreshes
+    const isDismissed = localStorage.getItem('pwa_banner_dismissed') === 'true';
 
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
-      if (!dismissed) {
+      if (!isDismissed) {
         timerId = setTimeout(() => setIsVisible(true), 3000);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    if (isIOSDevice) {
-      const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
-      if (!dismissed) {
-        timerId = setTimeout(() => setIsVisible(true), 3000);
-      }
+    // iOS devices never fire beforeinstallprompt — show manually
+    if (isIOSDevice && !isDismissed) {
+      timerId = setTimeout(() => setIsVisible(true), 3000);
     }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
       if (timerId) clearTimeout(timerId);
     };
   }, []);
@@ -57,6 +73,11 @@ export default function PWAInstallBanner() {
     }
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choice) => {
+      if (choice.outcome === 'accepted') {
+        localStorage.setItem('pwa_installed', 'true');
+      }
+    });
     setDeferredPrompt(null);
     setIsVisible(false);
   };
@@ -64,15 +85,16 @@ export default function PWAInstallBanner() {
   const dismiss = (e) => {
     e.stopPropagation();
     setIsVisible(false);
-    sessionStorage.setItem('pwa_banner_dismissed', 'true');
+    // Use localStorage so it persists across sessions
+    localStorage.setItem('pwa_banner_dismissed', 'true');
   };
 
   if (!isVisible) return null;
 
   return (
     <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-6 duration-700 ${
-      isDesktop 
-        ? 'bottom-6 right-6 w-80' 
+      isDesktop
+        ? 'bottom-6 right-6 w-80'
         : 'bottom-20 left-3 right-3 max-w-sm mx-auto'
     }`}>
       <div
@@ -83,8 +105,8 @@ export default function PWAInstallBanner() {
         <div className="absolute inset-x-0 bottom-0 h-[1.5px] bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-50" />
 
         {/* Logo */}
-        <div className="size-10 rounded-xl bg-black flex items-center justify-center p-2 shadow-lg ring-1 ring-white/10 shrink-0 group-hover:rotate-6 transition-all">
-          <img src="/logo-white.png" alt="Aura" className="size-full object-contain filter drop-shadow-[0_0_5px_var(--accent)]" />
+        <div className="size-10 rounded-xl bg-[#0d0d0d] flex items-center justify-center overflow-hidden shadow-lg ring-1 ring-white/10 shrink-0 transition-all">
+          <img src="/icon-192.png" alt="Aura" className="size-full object-cover" />
         </div>
 
         {/* Text */}

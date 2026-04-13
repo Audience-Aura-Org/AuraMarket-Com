@@ -12,6 +12,7 @@ const LogisticsCompany = require('../models/LogisticsCompany.model');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const logisticsService = require('../services/logistics.service');
+const PlatformSettings = require('../models/PlatformSettings.model');
 const { sendNotification } = require('../utils/notifier');
 
 // Helper to generate a unique transaction reference
@@ -284,8 +285,74 @@ const payOrderWithWallet = async (req, res, next) => {
     // 3. Mark order as Paid
     order.payment_status = 'paid';
     
-    // Auto-progress order_status ONLY if no Escrow is involved
-    order.order_status = 'processing'; 
+    // 4. Handle Funds (Escrow vs Direct)
+    const settings = await PlatformSettings.getSettings();
+    const platformFee = (order.total_amount * settings.commission_rate) / 100;
+    const vendorPayout = order.total_amount - platformFee;
+
+    if (order.escrow_enabled) {
+      // Create Escrow Record (Held)
+      await Escrow.create([{
+        order_id: order._id,
+        vendor_id: order.vendor_id,
+        customer_id: order.customer_id,
+        amount: order.total_amount,
+        status: 'held'
+      }], { session });
+
+      // Log pending payout for Vendor
+      const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+      await Transaction.create([{
+        user_id: vendorRecord.user_id,
+        type: 'payout',
+        amount: vendorPayout,
+        reference: `PAYOUT-PEND-${order._id.toString().slice(-6).toUpperCase()}`,
+        status: 'pending',
+        description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow)`,
+        order_id: order._id,
+      }], { session });
+
+      order.order_status = 'placed'; // Reset to placed while in escrow? 
+      // Actually, if paid, it should be processing.
+      order.order_status = 'processing';
+    } else {
+      // Direct Payout (No Escrow)
+      const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+      const vendorUser = await User.findById(vendorRecord.user_id).session(session);
+      
+      // Transfer to Vendor
+      vendorUser.wallet_balance += vendorPayout;
+      await vendorUser.save({ session });
+
+      // Transfer Fee to Platform
+      settings.platform_wallet_balance += platformFee;
+      await settings.save({ session });
+
+      // Log completed payout for Vendor
+      await Transaction.create([{
+        user_id: vendorUser._id,
+        type: 'payout',
+        amount: vendorPayout,
+        reference: `PAYOUT-DIRECT-${order._id.toString().slice(-6).toUpperCase()}`,
+        status: 'completed',
+        description: `Direct payout for Order #${order._id.toString().slice(-6).toUpperCase()} (No Escrow)`,
+        order_id: order._id,
+      }], { session });
+
+      // Log Platform Revenue
+      await Transaction.create([{
+        user_id: vendorUser._id, // Linked to vendor for trace
+        type: 'payment',
+        amount: platformFee,
+        reference: `REV-DIR-${Date.now()}`,
+        status: 'completed',
+        description: `Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
+        order_id: order._id,
+      }], { session });
+
+      order.order_status = 'processing';
+    }
+
     await order.save({ session });
 
     // Auto-create shipment tickets when logistics delivery is selected

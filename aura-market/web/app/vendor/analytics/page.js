@@ -97,7 +97,7 @@ export default function VendorAnalyticsPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4 lg:p-10 space-y-6 lg:space-y-10 pb-32">
+          <div className="px-4 md:px-8 py-8 space-y-6 lg:space-y-10 pb-32">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-40">
             <div className="size-14 rounded-full border-4 border-[var(--accent)]/10 border-t-[var(--accent)] animate-spin" />

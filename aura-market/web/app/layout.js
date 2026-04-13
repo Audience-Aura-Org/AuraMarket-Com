@@ -24,15 +24,24 @@ export const metadata = {
     title: 'Aura Market',
     statusBarStyle: 'black-translucent',
     capable: true,
+    startupImage: [
+      {
+        url: '/icon-512.png',
+        media: '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)',
+      },
+    ],
   },
   icons: {
     icon: [
-      { url: '/logo-black.png', media: '(prefers-color-scheme: light)' },
-      { url: '/logo-white.png', media: '(prefers-color-scheme: dark)' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/logo-white.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 

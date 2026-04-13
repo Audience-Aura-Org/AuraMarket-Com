@@ -25,7 +25,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         </button>
         <div className="flex items-center gap-2 min-w-0">
            <img 
-             src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'} 
+             src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'} 
              alt="Aura" 
              className="h-4.5 w-auto shrink-0"
            />
