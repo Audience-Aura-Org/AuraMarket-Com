@@ -249,6 +249,7 @@ export default function VendorAnalyticsPage() {
           </div>
         )}
         </div>
+        </div>
       </div>
     </DashboardLayout>
   );
