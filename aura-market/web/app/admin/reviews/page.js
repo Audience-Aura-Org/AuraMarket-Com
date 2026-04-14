@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -9,8 +11,6 @@ import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import { useAuthStore } from '@/hooks/useAuth';
-
-export const dynamic = 'force-dynamic';
 
 import Pagination from '@/components/common/Pagination';
 

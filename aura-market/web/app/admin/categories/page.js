@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ChevronRight, ChevronDown, Folder, Search, Save, X } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
-
-export const dynamic = 'force-dynamic';
 
 export default function AdminCategories() {
   const { user } = useAuthStore();

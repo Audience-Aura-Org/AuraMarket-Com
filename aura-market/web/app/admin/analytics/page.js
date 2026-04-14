@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
@@ -13,8 +15,6 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
-
-export const dynamic = 'force-dynamic';
 
 export default function GlobalIntelligenceHub() {
   const [mounted, setMounted] = useState(false);

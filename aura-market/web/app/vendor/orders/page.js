@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -11,8 +13,6 @@ import Link from 'next/link';
 import api from '@/services/api';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import { useAuthStore } from '@/hooks/useAuth';
-
-export const dynamic = 'force-dynamic';
 
 const STATUS_CONFIG = {
   placed:         { label: 'Placed',     color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  Icon: Clock },

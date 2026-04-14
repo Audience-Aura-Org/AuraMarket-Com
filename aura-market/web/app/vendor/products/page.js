@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
@@ -7,8 +9,6 @@ import { ShoppingCart, Zap, Package, TrendingUp, AlertCircle, Eye } from 'lucide
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
-
-export const dynamic = 'force-dynamic';
 
 import Pagination from '@/components/common/Pagination';
 

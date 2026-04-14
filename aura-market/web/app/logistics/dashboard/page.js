@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
 import { Truck, Package, CheckCircle, AlertCircle, Bell, Building, Globe, MapPin, Smartphone, Mail, Loader2, ArrowUpRight } from 'lucide-react';
@@ -7,8 +9,6 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
 
 import Pagination from '@/components/common/Pagination';
 

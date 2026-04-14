@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -8,8 +10,6 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Pagination from '@/components/common/Pagination';
-
-export const dynamic = 'force-dynamic';
 
 export default function VendorRatingsPage() {
   const user = useAuthStore((s) => s.user);

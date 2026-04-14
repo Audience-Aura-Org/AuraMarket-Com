@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
@@ -10,8 +12,6 @@ import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
-
-export const dynamic = 'force-dynamic';
 
 const TX_ICONS = {
   deposit:    { Icon: ArrowDownLeft,  color: 'text-emerald-500', bg: 'bg-emerald-500/10' },

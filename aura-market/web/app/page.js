@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -6,8 +8,6 @@ import api from '@/services/api';
 import StorefrontRenderer from '@/components/homepage/StorefrontRenderer';
 import { useAuthStore } from '@/hooks/useAuth';
 import HubContent from '@/components/hub/HubContent';
-
-export const dynamic = 'force-dynamic';
 
 export default function LandingPage() {
   const router = useRouter();

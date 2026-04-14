@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
@@ -7,8 +9,6 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
-
-export const dynamic = 'force-dynamic';
 
 const mockSubs = [
   { vendor: 'Nova Boutique', id: '#VND-8821', plan: 'Premium', renewal: 'Oct 24, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-10-24' },

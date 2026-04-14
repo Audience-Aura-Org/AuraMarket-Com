@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Store, Star, ArrowRight, ShieldCheck, Users, Search, Filter } from 'lucide-react';
 import api from '@/services/api';
 import { vendorService } from '@/services/vendor';
-
-export const dynamic = 'force-dynamic';
 
 export default function StoresDirectoryPage() {
   const [stores, setStores] = useState([]);

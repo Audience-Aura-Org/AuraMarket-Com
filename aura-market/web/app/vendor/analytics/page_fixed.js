@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
@@ -11,8 +13,6 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-
-export const dynamic = 'force-dynamic';
 
 export default function VendorAnalyticsPage() {
   const user = useAuthStore((s) => s.user);

@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
-
-export const dynamic = "force-dynamic";
 
 import Pagination from '@/components/common/Pagination';
 

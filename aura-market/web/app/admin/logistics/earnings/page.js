@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
 import { 
@@ -8,8 +10,6 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
-
-export const dynamic = "force-dynamic";
 
 export default function AdminLogisticsEarningsPage() {
   const [loading, setLoading] = useState(true);

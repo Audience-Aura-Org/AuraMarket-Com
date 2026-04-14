@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
@@ -8,8 +10,6 @@ import {
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
-
-export const dynamic = 'force-dynamic';
 
 import Pagination from '@/components/common/Pagination';
 
