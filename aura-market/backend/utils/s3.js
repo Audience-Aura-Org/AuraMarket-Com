@@ -24,7 +24,10 @@ if (AWS_S3_ENABLED) {
 }
 
 function buildPublicUrl(bucket, region, key) {
-  return `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`;
+  // Encode only the filename part, not folder slashes
+  const parts = key.split('/');
+  const encodedKey = parts.map(p => encodeURIComponent(p)).join('/');
+  return `https://${bucket}.s3.${region}.amazonaws.com/${encodedKey}`;
 }
 
 async function uploadToS3(fileBuffer, fileName, folder = 'uploads', contentType = 'application/octet-stream') {
@@ -34,47 +37,50 @@ async function uploadToS3(fileBuffer, fileName, folder = 'uploads', contentType 
 
   const timestamp = Date.now();
   const randomSuffix = Math.round(Math.random() * 1e9);
-  const fileKey = `${folder}/${timestamp}-${randomSuffix}-${fileName}`;
+  const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const fileKey = `${folder}/${timestamp}-${randomSuffix}-${safeFileName}`;
 
   const params = {
     Bucket: process.env.AWS_S3_BUCKET,
     Key: fileKey,
     Body: fileBuffer,
     ContentType: contentType,
+    // NOTE: No ACL here — use bucket policy for public access.
+    // Adding ACL: 'public-read' fails on buckets with Block Public ACLs enabled.
     Metadata: {
       'Uploaded-At': new Date().toISOString(),
-      'Original-Name': fileName,
+      'Original-Name': safeFileName,
     },
   };
 
   try {
-    // Use the managed Upload helper (handles multipart uploads for large files)
     const parallelUpload = new Upload({
       client: s3Client,
       params,
     });
 
-    const result = await parallelUpload.done();
+    await parallelUpload.done();
 
     const url = buildPublicUrl(process.env.AWS_S3_BUCKET, REGION, fileKey);
-
     console.log(`✅ [S3] File uploaded successfully: ${fileKey}`);
-    return {
-      success: true,
-      url,
-      key: fileKey,
-      bucket: process.env.AWS_S3_BUCKET,
-      result,
-    };
+    return { success: true, url, key: fileKey, bucket: process.env.AWS_S3_BUCKET };
   } catch (error) {
-    console.error(`❌ [S3] Upload failed for ${fileKey}:`, error.message || error);
+    // Log full error for diagnosis (code, requestId, etc.)
+    console.error(`❌ [S3] Upload failed for ${fileKey}:`, {
+      code: error.Code || error.code || error.name,
+      message: error.message,
+      statusCode: error.$metadata?.httpStatusCode,
+      requestId: error.$metadata?.requestId,
+    });
     throw error;
   }
 }
 
-async function uploadMultipleToS3(fileBuffers, fileNames, folder = 'uploads', contentType = 'application/octet-stream') {
+async function uploadMultipleToS3(fileBuffers, fileNames, folder = 'uploads', contentTypes = []) {
   if (!s3Client) throw new Error('S3 is not enabled or not configured');
-  const uploads = fileBuffers.map((buffer, index) => uploadToS3(buffer, fileNames[index], folder, contentType));
+  const uploads = fileBuffers.map((buffer, index) => 
+    uploadToS3(buffer, fileNames[index], folder, contentTypes[index] || 'application/octet-stream')
+  );
   return Promise.all(uploads);
 }
 

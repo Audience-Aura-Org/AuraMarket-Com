@@ -19,7 +19,12 @@ const uploadSingle = async (req, res) => {
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
       const folder = req.body.type || 'general';
-      const s3Result = await uploadToS3(req.file.buffer, req.file.originalname, folder);
+      const s3Result = await uploadToS3(
+        req.file.buffer,
+        req.file.originalname,
+        folder,
+        req.file.mimetype  // Pass correct MIME type so S3 serves images properly
+      );
       fileUrl = s3Result.url;
       uploadMethod = 'S3';
       console.log(`✅ [API] S3 upload successful: ${fileUrl}`);
@@ -57,11 +62,15 @@ const uploadSingle = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(`❌ [API] Upload failed:`, err.message);
+    const errorCode = err.Code || err.code || err.name || 'UnknownError';
+    const s3Status = err.$metadata?.httpStatusCode;
+    console.error(`❌ [API] Upload failed [${errorCode}]:`, err.message);
     res.status(500).json({
       success: false,
       message: 'Upload failed',
-      error: err.message
+      error: err.message,
+      code: errorCode,
+      ...(s3Status && { s3Status }),
     });
   }
 };
@@ -80,8 +89,9 @@ const uploadMultiple = async (req, res) => {
       const folder = req.body.type || 'others';
       const fileBuffers = req.files.map(f => f.buffer);
       const fileNames = req.files.map(f => f.originalname);
+      const contentTypes = req.files.map(f => f.mimetype);
       
-      const s3Results = await uploadMultipleToS3(fileBuffers, fileNames, folder);
+      const s3Results = await uploadMultipleToS3(fileBuffers, fileNames, folder, contentTypes);
       s3Results.forEach(result => {
         urls.push({
           url: result.url,
@@ -93,6 +103,7 @@ const uploadMultiple = async (req, res) => {
     }
     // Fallback: Cloudinary or Local
     else {
+      // ... (rest of local/cloudinary logic)
       req.files.forEach(file => {
         let fileUrl = '';
         
@@ -127,11 +138,15 @@ const uploadMultiple = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(`❌ [API] Batch upload failed:`, err.message);
+    const errorCode = err.Code || err.code || err.name || 'UnknownError';
+    const s3Status = err.$metadata?.httpStatusCode;
+    console.error(`❌ [API] Batch upload failed [${errorCode}]:`, err.message);
     res.status(500).json({
       success: false,
       message: 'Batch upload failed',
-      error: err.message
+      error: err.message,
+      code: errorCode,
+      ...(s3Status && { s3Status }),
     });
   }
 };
