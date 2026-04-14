@@ -12,6 +12,7 @@ const StockWatch = require('../models/StockWatch.model');
 const Category = require('../models/Category.model');
 const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
+const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
 
 // ─────────────────────────────────────────────
 // @route   POST /api/products
@@ -26,7 +27,8 @@ const createProduct = async (req, res, next) => {
       const protocol = req.protocol;
       const host = req.get('host');
       req.files.forEach(file => {
-        imageUrls.push({ url: `${protocol}://${host}/uploads/${file.filename}` });
+        const url = file.path || file.location || file.url || `${protocol}://${host}/uploads/${file.filename}`;
+        imageUrls.push({ url });
       });
     }
 
@@ -143,11 +145,24 @@ const getProducts = async (req, res, next) => {
     const products = await query;
     const total = await Product.countDocuments(parsedQuery);
 
+    // Normalize nested media URLs for vendor users and store assets
+    const productsPlain = products.map(p => {
+      const obj = (p && typeof p.toObject === 'function') ? p.toObject() : p;
+      try {
+        if (obj.vendor_id && obj.vendor_id.user_id) normalizeUserMedia(obj.vendor_id.user_id);
+        if (obj.vendor_id && obj.vendor_id.store) {
+          if (obj.vendor_id.store.logo) obj.vendor_id.store.logo = normalizeMediaUrl(obj.vendor_id.store.logo);
+          if (obj.vendor_id.store.banner) obj.vendor_id.store.banner = normalizeMediaUrl(obj.vendor_id.store.banner);
+        }
+      } catch (err) {}
+      return obj;
+    });
+
     const responseData = {
       success: true,
-      count: products.length,
+      count: productsPlain.length,
       pagination: { total, page, pages: Math.ceil(total / limit) },
-      data: { products },
+      data: { products: productsPlain },
     };
 
     await cache.set(cacheKey, responseData, 60);
@@ -175,7 +190,14 @@ const getProductById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
-    res.status(200).json({ success: true, data: { product } });
+    const prodObj = (product && typeof product.toObject === 'function') ? product.toObject() : product;
+    if (prodObj.vendor_id && prodObj.vendor_id.user_id) normalizeUserMedia(prodObj.vendor_id.user_id);
+    if (prodObj.vendor_id && prodObj.vendor_id.store) {
+      if (prodObj.vendor_id.store.logo) prodObj.vendor_id.store.logo = normalizeMediaUrl(prodObj.vendor_id.store.logo);
+      if (prodObj.vendor_id.store.banner) prodObj.vendor_id.store.banner = normalizeMediaUrl(prodObj.vendor_id.store.banner);
+    }
+
+    res.status(200).json({ success: true, data: { product: prodObj } });
   } catch (error) {
     next(error);
   }
@@ -203,7 +225,8 @@ const updateProduct = async (req, res, next) => {
       const protocol = req.protocol;
       const host = req.get('host');
       req.files.forEach(file => {
-        finalImages.push({ url: `${protocol}://${host}/uploads/${file.filename}` });
+        const url = file.path || file.location || file.url || `${protocol}://${host}/uploads/${file.filename}`;
+        finalImages.push({ url });
       });
     }
 
