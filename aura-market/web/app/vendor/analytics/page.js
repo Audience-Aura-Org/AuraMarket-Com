@@ -1,8 +1,10 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
-import { 
-  TrendingUp, TrendingDown, Package, 
+import {
+  TrendingUp, TrendingDown, Package,
   DollarSign, BarChart3, Calendar, Download,
   ShoppingBag, Users, ArrowUpRight, Star,
   Activity, Zap, Filter, ArrowDownLeft, ArrowUpLeft
@@ -11,8 +13,6 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-
-export const dynamic = 'force-dynamic';
 
 export default function VendorAnalyticsPage() {
   const user = useAuthStore((s) => s.user);
@@ -183,7 +183,9 @@ export default function VendorAnalyticsPage() {
               </div>
               
               <div className="space-y-4">
-                {statusBreakdown.map(({ label, count, color }) => (
+                {statusBreakdown.map(({ label, count, color }) => {
+                  const widthPercent = orders.length > 0 ? (count / orders.length) * 100 : 0;
+                  return (
                   <div key={label} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">{label}</span>
@@ -191,12 +193,13 @@ export default function VendorAnalyticsPage() {
                     </div>
                     <div className="h-2 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                       <div 
-                        className={`h-full ${color} transition-all duration-700`}
-                        style={{ width: `${orders.length > 0 ? (count / orders.length) * 100 : 0}%` }}
+                        className={'h-full ' + color + ' transition-all duration-700'}
+                        style={{ width: widthPercent + '%' }}
                       />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
