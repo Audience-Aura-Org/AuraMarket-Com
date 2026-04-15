@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { 
@@ -6,8 +8,6 @@ import {
   Copy, Share2, PlusCircle, MinusCircle 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-export const dynamic = 'force-dynamic';
 
 export default function RewardsPage() {
   const router = useRouter();

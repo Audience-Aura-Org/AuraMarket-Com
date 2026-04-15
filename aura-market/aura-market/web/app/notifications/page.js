@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
@@ -11,8 +13,6 @@ import api from '@/services/api';
 import { useNotifications } from '@/hooks/useNotifications';
 import { notificationService } from '@/services/notifications';
 import Pagination from '@/components/common/Pagination';
-
-export const dynamic = 'force-dynamic';
 
 // Mapped to the backend enum
 const ICON_MAP = {

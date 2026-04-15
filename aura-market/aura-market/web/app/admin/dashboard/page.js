@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { TrendingUp, Users, Store, Sparkles, Package } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
-
-export const dynamic = 'force-dynamic';
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();

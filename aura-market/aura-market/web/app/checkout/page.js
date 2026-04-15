@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -14,8 +16,6 @@ import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
-
-export const dynamic = 'force-dynamic';
 
 function CheckoutContent() {
   const router = useRouter();

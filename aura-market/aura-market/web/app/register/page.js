@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Lock, Phone, ArrowRight, UserCircle, Store, Truck } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
-
-export const dynamic = 'force-dynamic';
 
 export default function RegisterPage() {
   const router = useRouter();

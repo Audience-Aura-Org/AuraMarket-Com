@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { 
@@ -9,8 +11,6 @@ import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import api from '@/services/api';
 import { trackSearch } from '@/services/tracking';
-
-export const dynamic = 'force-dynamic';
 
 const PRICE_RANGES = [
   { id: 'under-5000', name: 'Under 5,000 XAF', min: 0, max: 5000 },

@@ -7,8 +7,16 @@ const { uploadToS3, uploadMultipleToS3, isS3Enabled } = require('../utils/s3');
 
 const uploadSingle = async (req, res) => {
   console.log(`📡 [API] Upload triggered - S3 Enabled: ${isS3Enabled()}`);
+  console.log(`📦 [API] File received:`, {
+    filename: req.file?.filename,
+    originalname: req.file?.originalname,
+    mimetype: req.file?.mimetype,
+    size: req.file?.size,
+    hasBuffer: !!req.file?.buffer,
+  });
   
   if (!req.file) {
+    console.error('❌ [API] No file provided in request');
     return res.status(400).json({ success: false, message: 'Please upload a file' });
   }
 
@@ -19,7 +27,8 @@ const uploadSingle = async (req, res) => {
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
       const folder = req.body.type || 'general';
-      const s3Result = await uploadToS3(req.file.buffer, req.file.originalname, folder);
+      console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
+      const s3Result = await uploadToS3(req.file.buffer, req.file.originalname, folder, req.file.mimetype);
       fileUrl = s3Result.url;
       uploadMethod = 'S3';
       console.log(`✅ [API] S3 upload successful: ${fileUrl}`);
@@ -57,17 +66,23 @@ const uploadSingle = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(`❌ [API] Upload failed:`, err.message);
+    console.error(`❌ [API] Upload failed:`, err);
+    console.error(`❌ [API] Error stack:`, err.stack);
     res.status(500).json({
       success: false,
       message: 'Upload failed',
-      error: err.message
+      error: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 };
 
 const uploadMultiple = async (req, res) => {
+  console.log(`📡 [API] Batch upload triggered - S3 Enabled: ${isS3Enabled()}`);
+  console.log(`📦 [API] Files received:`, req.files?.length || 0);
+  
   if (!req.files || req.files.length === 0) {
+    console.error('❌ [API] No files provided in request');
     return res.status(400).json({ success: false, message: 'Please upload files' });
   }
 
@@ -80,8 +95,10 @@ const uploadMultiple = async (req, res) => {
       const folder = req.body.type || 'others';
       const fileBuffers = req.files.map(f => f.buffer);
       const fileNames = req.files.map(f => f.originalname);
+      const mimetypes = req.files.map(f => f.mimetype);
       
-      const s3Results = await uploadMultipleToS3(fileBuffers, fileNames, folder);
+      console.log(`🚀 [API] Uploading ${fileNames.length} files to S3 with folder: ${folder}`);
+      const s3Results = await uploadMultipleToS3(fileBuffers, fileNames, folder, mimetypes);
       s3Results.forEach(result => {
         urls.push({
           url: result.url,
@@ -127,11 +144,13 @@ const uploadMultiple = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(`❌ [API] Batch upload failed:`, err.message);
+    console.error(`❌ [API] Batch upload failed:`, err);
+    console.error(`❌ [API] Error stack:`, err.stack);
     res.status(500).json({
       success: false,
       message: 'Batch upload failed',
-      error: err.message
+      error: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 };

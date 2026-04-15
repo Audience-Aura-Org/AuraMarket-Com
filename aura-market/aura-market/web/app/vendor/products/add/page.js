@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useRef } from 'react';
 import { 
@@ -8,8 +10,6 @@ import {
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import CategoryPicker from '@/components/CategoryPicker';
-
-export const dynamic = 'force-dynamic';
 
 export default function AddProductPage() {
   const router = useRouter();

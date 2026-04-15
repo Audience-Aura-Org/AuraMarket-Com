@@ -134,43 +134,6 @@ export default function VendorDashboard() {
         <div className="absolute top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
-        {/* Top Header */}
-        <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-2 min-w-0 text-[var(--text-primary)]">
-          <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
-            <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
-            <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-            <p className="hidden md:block text-[var(--text-secondary)] text-[10px] font-black tracking-[0.18em] uppercase opacity-60">Status: <span className="text-[var(--text-primary)]">Online</span></p>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="relative hidden lg:flex items-center group">
-              <span className="material-symbols-outlined absolute left-4 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
-              <input 
-                className="glass-panel border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-widest uppercase" 
-                placeholder="Search..." 
-                type="text" 
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="size-9 sm:size-10 rounded-xl glass-panel flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all relative border border-[var(--glass-border)] group">
-                <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">notifications</span>
-                <span className="absolute top-3.5 right-3.5 size-2.5 bg-[var(--accent)] rounded-full border-2 border-[var(--bg-primary)] shadow-[0_0_8px_var(--accent)]" />
-              </button>
-              <button className="hidden sm:flex size-10 rounded-xl glass-panel items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all border border-[var(--glass-border)] group">
-                <span className="material-symbols-outlined text-2xl group-hover:rotate-12 transition-transform">mail</span>
-              </button>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-4 pl-3 sm:pl-4 border-l border-[var(--glass-border)]/30">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
-                <p className="text-[10px] text-[var(--accent)] font-black tracking-widest uppercase opacity-80">Store Owner</p>
-              </div>
-              <div className="size-9 sm:size-10 rounded-xl border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-black text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
-                {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
-              </div>
-            </div>
-          </div>
-        </header>
-
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 space-y-6 no-scrollbar relative z-10">
           {error && (
             <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">

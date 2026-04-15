@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import Image from 'next/image';
 import { Camera, Palette, CloudUpload, Sparkles, CheckCircle2, LayoutGrid, Layers, Info } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-
-export const dynamic = 'force-dynamic';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 

@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
@@ -13,8 +15,6 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
-
-export const dynamic = 'force-dynamic';
 
 export default function GlobalIntelligenceHub() {
   const [mounted, setMounted] = useState(false);
@@ -41,11 +41,23 @@ export default function GlobalIntelligenceHub() {
     try {
       const res = await api.get('/admin/analytics/advanced');
       if (res.data?.success) {
+        console.log('[Admin Analytics] Data received:', {
+          sales_over_time_count: res.data.data?.sales_over_time?.length || 0,
+          top_vendors_count: res.data.data?.top_vendors?.length || 0,
+          platform_summary: res.data.data?.platform_summary
+        });
         setData(res.data.data);
+      } else {
+        console.warn('[Admin Analytics] API returned success:false');
+        toast.error('Analytics data unavailable');
       }
     } catch (err) {
-      console.error('Failed to sync intelligence:', err);
-      toast.error('Global Grid Synchronization Offline');
+      console.error('[Admin Analytics] API Error:', {
+        status: err.response?.status,
+        message: err.response?.data?.message || err.message,
+        stack: err.stack
+      });
+      toast.error(`Failed to load analytics: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -54,7 +66,7 @@ export default function GlobalIntelligenceHub() {
   if (!mounted) return null;
 
   return (
-    <div className="w-full min-h-full p-4 lg:p-8 space-y-6 lg:space-y-8">
+    <div className="w-full min-h-full p-4 md:p-8 lg:px-8 space-y-6 lg:space-y-8">
         
         {/* Tab Navigation */}
         <div className="flex flex-wrap items-center justify-between gap-4">

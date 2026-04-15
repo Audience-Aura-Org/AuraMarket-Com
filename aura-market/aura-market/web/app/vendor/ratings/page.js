@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -6,10 +8,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import Pagination from '@/components/common/Pagination';
-
-export const dynamic = 'force-dynamic';
 
 export default function VendorRatingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -60,11 +59,9 @@ export default function VendorRatingsPage() {
   if (user?.role !== 'vendor') return null;
 
   return (
-    <DashboardLayout role="vendor">
-      <div className="w-full min-h-screen">
-        
+    <div className="w-full">
         {/* Page Header */}
-        <div className="hidden md:block px-4 md:px-8 py-6 border-b border-[var(--glass-border)]">
+        <div className="hidden md:block px-4 md:px-8 lg:px-8 py-6 border-b border-[var(--glass-border)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
@@ -81,8 +78,7 @@ export default function VendorRatingsPage() {
           </div>
         </div>
 
-        <div className="px-4 md:px-8 py-8">
-          
+        <div className="px-4 md:px-8 lg:px-8 py-8">
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20">
@@ -199,6 +195,5 @@ export default function VendorRatingsPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
   );
 }

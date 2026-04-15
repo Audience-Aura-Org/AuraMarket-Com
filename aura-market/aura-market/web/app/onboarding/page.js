@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,8 +13,6 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-
-export const dynamic = 'force-dynamic';
 
 const STEPS = [
   { id: 'vendors', title: 'Discover Nodes', icon: Users, desc: 'Follow at least 2 vendors to synchronize with their frequency.' },

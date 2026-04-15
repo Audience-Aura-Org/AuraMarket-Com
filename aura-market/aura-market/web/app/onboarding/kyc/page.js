@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import {
@@ -7,8 +9,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-
-export const dynamic = 'force-dynamic';
 
 export default function KYCPage() {
    const router = useRouter();

@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { CheckCircle as CheckIcon, MapPin as MapPinIcon, Search as SearchIcon, Plus, Trash2, Save as SaveIcon, Loader2, ArrowLeft } from 'lucide-react';
@@ -6,8 +8,6 @@ import { useAuthStore } from '@/hooks/useAuth';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
-
-export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 
 import Pagination from '@/components/common/Pagination';

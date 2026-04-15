@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -11,8 +13,6 @@ import {
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-
-export const dynamic = 'force-dynamic';
 
 import Pagination from '@/components/common/Pagination';
 

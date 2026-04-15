@@ -27,7 +27,9 @@ async function handleRequest(request, params, method) {
   const path = pathParts.path.join('/');
   const searchParams = new URL(request.url).search;
   
-  const BACKEND_URL = `http://13.51.198.119:5000/api/v1/${path}${searchParams}`;
+  // Use environment variable for backend URL, fallback to production default
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://13.51.198.119:5000';
+  const BACKEND_URL = `${backendUrl}/api/v1/${path}${searchParams}`;
 
   try {
     const headers = new Headers();
@@ -35,9 +37,11 @@ async function handleRequest(request, params, method) {
     if (request.headers.get('authorization')) headers.set('authorization', request.headers.get('authorization'));
     if (request.headers.get('content-type')) headers.set('content-type', request.headers.get('content-type'));
     
-    // Explicitly identify as the Vercel frontend to satisfy Backend CORS
-    headers.set('Origin', 'https://aura-market-com.vercel.app');
-    headers.set('Host', '13.51.198.119:5000');
+    // Set appropriate origin and host headers based on environment
+    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://aura-market-com.vercel.app';
+    const backendHost = new URL(backendUrl).host;
+    headers.set('Origin', frontendUrl);
+    headers.set('Host', backendHost);
 
     const options = {
       method,

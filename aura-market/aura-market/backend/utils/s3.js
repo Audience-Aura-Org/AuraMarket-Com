@@ -1,34 +1,34 @@
 /**
  * utils/s3.js
- * Direct AWS S3 upload handler with fallback support
+ * AWS SDK v3 implementation for S3 uploads (uses @aws-sdk/client-s3 and @aws-sdk/lib-storage)
  */
 
-const AWS = require('aws-sdk');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { Upload } = require('@aws-sdk/lib-storage');
 require('dotenv').config();
 
 const { AWS_S3_ENABLED } = require('../config/env');
 
-let s3Instance = null;
+const REGION = process.env.AWS_REGION || 'us-east-1';
 
-// Initialize S3 if enabled
+let s3Client = null;
 if (AWS_S3_ENABLED) {
-  s3Instance = new AWS.S3({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION,
+  s3Client = new S3Client({
+    region: REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
   });
-  console.log('✅ [S3] AWS S3 client initialized and ready for uploads');
+  console.log('✅ [S3] AWS SDK v3 client initialized and ready for uploads');
 }
 
-/**
- * Upload a single file to S3
- * @param {Buffer} fileBuffer - File content as buffer
- * @param {string} fileName - Original file name
- * @param {string} folder - S3 folder path (default: 'uploads')
- * @returns {Promise} S3 upload result with Location (public URL)
- */
-async function uploadToS3(fileBuffer, fileName, folder = 'uploads') {
-  if (!s3Instance) {
+function buildPublicUrl(bucket, region, key) {
+  return `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`;
+}
+
+async function uploadToS3(fileBuffer, fileName, folder = 'uploads', contentType = 'application/octet-stream') {
+  if (!s3Client) {
     throw new Error('S3 is not enabled or not configured. Check AWS_S3_ENABLED in .env');
   }
 
@@ -40,8 +40,7 @@ async function uploadToS3(fileBuffer, fileName, folder = 'uploads') {
     Bucket: process.env.AWS_S3_BUCKET,
     Key: fileKey,
     Body: fileBuffer,
-    ContentType: 'application/octet-stream', // Will be overridden by multer
-    // Note: ACL disabled - use bucket policy for public access instead
+    ContentType: contentType,
     Metadata: {
       'Uploaded-At': new Date().toISOString(),
       'Original-Name': fileName,
@@ -49,45 +48,41 @@ async function uploadToS3(fileBuffer, fileName, folder = 'uploads') {
   };
 
   try {
-    const result = await s3Instance.upload(params).promise();
+    // Use the managed Upload helper (handles multipart uploads for large files)
+    const parallelUpload = new Upload({
+      client: s3Client,
+      params,
+    });
+
+    const result = await parallelUpload.done();
+
+    const url = buildPublicUrl(process.env.AWS_S3_BUCKET, REGION, fileKey);
+
     console.log(`✅ [S3] File uploaded successfully: ${fileKey}`);
     return {
       success: true,
-      url: result.Location, // Public S3 URL
-      key: result.Key, // S3 object key
-      bucket: result.Bucket,
-      eTag: result.ETag,
+      url,
+      key: fileKey,
+      bucket: process.env.AWS_S3_BUCKET,
+      result,
     };
   } catch (error) {
-    console.error(`❌ [S3] Upload failed for ${fileKey}:`, error.message);
+    console.error(`❌ [S3] Upload failed for ${fileKey}:`, error.message || error);
     throw error;
   }
 }
 
-/**
- * Upload multiple files to S3
- * @param {Array<Buffer>} fileBuffers - Array of file buffers
- * @param {Array<string>} fileNames - Array of file names
- * @param {string} folder - S3 folder path
- * @returns {Promise<Array>} Array of S3 upload results
- */
-async function uploadMultipleToS3(fileBuffers, fileNames, folder = 'uploads') {
-  if (!s3Instance) {
-    throw new Error('S3 is not enabled or not configured');
-  }
-
-  const uploads = fileBuffers.map((buffer, index) =>
-    uploadToS3(buffer, fileNames[index], folder)
-  );
-
+async function uploadMultipleToS3(fileBuffers, fileNames, folder = 'uploads', mimetypes = []) {
+  if (!s3Client) throw new Error('S3 is not enabled or not configured');
+  const uploads = fileBuffers.map((buffer, index) => {
+    const mimetype = mimetypes[index] || 'application/octet-stream';
+    return uploadToS3(buffer, fileNames[index], folder, mimetype);
+  });
   return Promise.all(uploads);
 }
 
-/**
- * Check if S3 is enabled
- */
 function isS3Enabled() {
-  return AWS_S3_ENABLED && s3Instance !== null;
+  return AWS_S3_ENABLED && s3Client !== null;
 }
 
 module.exports = {

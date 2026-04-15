@@ -23,29 +23,77 @@ let engine;
 const useS3 = AWS_S3_ENABLED && AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY && AWS_S3_BUCKET;
 
 if (useS3) {
-  const AWS = require('aws-sdk');
-  const multerS3 = require('multer-s3');
+  // Implement a lightweight multer storage engine that uploads directly
+  // to S3 using AWS SDK v3 (@aws-sdk/client-s3 + @aws-sdk/lib-storage).
+  const { S3Client } = require('@aws-sdk/client-s3');
+  const { Upload } = require('@aws-sdk/lib-storage');
 
-  const s3 = new AWS.S3({
-    accessKeyId: AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_SECRET_ACCESS_KEY,
-    region: AWS_REGION
-  });
-
-  engine = multerS3({
-    s3: s3,
-    bucket: AWS_S3_BUCKET,
-    metadata: (req, file, cb) => {
-      cb(null, { fieldName: file.fieldname });
+  const s3Client = new S3Client({
+    region: AWS_REGION,
+    credentials: {
+      accessKeyId: AWS_ACCESS_KEY_ID,
+      secretAccessKey: AWS_SECRET_ACCESS_KEY,
     },
-    key: (req, file, cb) => {
-      const subFolder = req.body.type || 'general';
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const fileName = `${subFolder}/${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`;
-      cb(null, fileName);
-    }
   });
-  console.log('✅ [Storage] AWS S3 Persistent Node CALIBRATED.');
+
+  class MulterS3V3 {
+    constructor(opts) {
+      this.client = opts.client;
+      this.bucket = opts.bucket;
+      this.getKey = opts.getKey;
+      this.getMetadata = opts.getMetadata;
+    }
+
+    _handleFile(req, file, cb) {
+      (async () => {
+        try {
+          const subFolder = req.body.type || 'general';
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const filename = `${subFolder}/${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`;
+
+          const parallelUpload = new Upload({
+            client: this.client,
+            params: {
+              Bucket: this.bucket,
+              Key: filename,
+              Body: file.stream,
+              ContentType: file.mimetype,
+              Metadata: this.getMetadata ? this.getMetadata(req, file) : undefined,
+            },
+          });
+
+          const result = await parallelUpload.done();
+
+          const region = AWS_REGION || 'us-east-1';
+          const url = `https://${this.bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(filename)}`;
+
+          // Provide multer-compatible file properties
+          cb(null, {
+            path: url,
+            size: result?.$metadata?.httpStatusCode === 200 ? undefined : undefined,
+            filename: filename.split('/').pop(),
+            key: filename,
+            location: url,
+          });
+        } catch (err) {
+          cb(err);
+        }
+      })();
+    }
+
+    _removeFile(req, file, cb) {
+      // No-op: we don't delete objects here. Implement if needed.
+      cb(null);
+    }
+  }
+
+  engine = new MulterS3V3({
+    client: s3Client,
+    bucket: AWS_S3_BUCKET,
+    getMetadata: (req, file) => ({ fieldName: file.fieldname }),
+  });
+
+  console.log('✅ [Storage] AWS S3 Persistent Node CALIBRATED (v3).');
 }
 // 2. Cloudinary Integration (Persistent)
 else if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_CLOUD_NAME !== 'your_cloud_name') {

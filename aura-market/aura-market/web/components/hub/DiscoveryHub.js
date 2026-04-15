@@ -381,7 +381,7 @@ function ProductCard({ product, onClick }) {
 
       {/* Product Info */}
       <div className="p-3 space-y-2">
-        <h3 className="text-[11px] font-bold text-[var(--text-primary)] line-clamp-2 uppercase leading-tight">{product.name}</h3>
+        <h3 className="text-xs font-semibold text-[var(--text-primary)] line-clamp-2 leading-tight">{product.name}</h3>
         
         <div className="flex items-center justify-between">
           <div>
@@ -746,7 +746,7 @@ function ChatItem({ chat }) {
             {chat.date ? new Date(chat.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
           </span>
         </div>
-        <p className={`text-[10px] truncate ${isUnread ? 'font-bold text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
+        <p className={`text-[10px] truncate ${isUnread ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
           {chat.snippet || 'Tap to start chatting'}
         </p>
       </div>

@@ -63,7 +63,7 @@ export default function Footer() {
       <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
 
       {/* Main body */}
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-12 xl:px-20 py-12 md:py-16">
+      <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 xl:px-20 py-12 md:py-16 w-full">
 
         {/* ── TOP ROW: Brand left, newsletter right ─────────────────────────── */}
         <div className="flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-0 justify-between mb-16">

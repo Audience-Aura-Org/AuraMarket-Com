@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { 
@@ -9,8 +11,6 @@ import {
   MonitorPlay
 } from 'lucide-react';
 import SectionForm from '../storefront/components/SectionForm';
-
-export const dynamic = 'force-dynamic';
 
 export default function AdminHomepagePage() {
   const [sections, setSections] = useState([]);

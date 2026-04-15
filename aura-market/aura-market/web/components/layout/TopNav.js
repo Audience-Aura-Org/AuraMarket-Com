@@ -93,8 +93,10 @@ export default function TopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[var(--nav-bg)] border-b border-[var(--nav-border)] px-4 md:px-6 py-3 md:py-4 w-full transition-all duration-300">
-      <div className="max-w-[1920px] mx-auto flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-[100] bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
+      {/* iOS Dynamic Island / notch safe-area spacer */}
+      <div className="w-full bg-[var(--nav-bg)]" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
+      <div className="px-4 md:px-6 py-3 md:py-4 max-w-[1920px] mx-auto flex items-center justify-between gap-4">
         
         {/* Logo Section */}
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
@@ -152,9 +154,11 @@ export default function TopNav() {
             {theme === 'light' ? <Moon className="size-5" /> : <Sun className="size-5" />}
           </button>
           
-          <Link href="/wallet" className={`relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)] ${pathname === '/wallet' ? 'text-[var(--accent)] border-[var(--accent)]/30 bg-[var(--accent)]/5' : ''}`}>
-            <Wallet className="size-5" />
-          </Link>
+          {user && (
+            <Link href="/wallet" className={`relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)] ${pathname === '/wallet' ? 'text-[var(--accent)] border-[var(--accent)]/30 bg-[var(--accent)]/5' : ''}`}>
+              <Wallet className="size-5" />
+            </Link>
+          )}
 
           <Link href="/chat" className="relative p-2 md:p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[var(--accent)]/10 transition-all text-[var(--nav-text)]">
             <MessageCircle className="size-5" />

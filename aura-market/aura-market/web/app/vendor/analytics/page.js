@@ -10,7 +10,6 @@ import {
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,21 +68,19 @@ export default function VendorAnalyticsPage() {
   if (user?.role !== 'vendor' || !user.onboarded) return null;
 
   return (
-    <DashboardLayout role="vendor">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        
+    <div className="w-full">
         {/* Page Header */}
-        <header className="hidden md:flex items-center justify-between px-4 md:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
-              <Activity className="w-6 h-6 text-[var(--accent)]" />
+        <div className="hidden md:block px-4 md:px-8 lg:px-8 py-6 border-b border-[var(--glass-border)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
+                <Activity className="w-6 h-6 text-[var(--accent)]" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black text-[var(--text-primary)]">Analytics</h1>
+                <p className="text-sm text-[var(--text-secondary)] opacity-60">Your business performance</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-[var(--text-primary)]">Analytics</h1>
-              <p className="text-sm text-[var(--text-secondary)] opacity-60">Your business performance</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
             <select 
               value={range} 
               onChange={(e) => setRange(e.target.value)}
@@ -94,10 +91,9 @@ export default function VendorAnalyticsPage() {
               <option value="all">All Time</option>
             </select>
           </div>
-        </header>
+        </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 lg:p-10 space-y-6 lg:space-y-10 pb-32">
+        <div className="space-y-6 lg:space-y-10 pb-32 px-4 md:px-8 lg:px-8 py-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-40">
             <div className="size-14 rounded-full border-4 border-[var(--accent)]/10 border-t-[var(--accent)] animate-spin" />
@@ -250,6 +246,5 @@ export default function VendorAnalyticsPage() {
         )}
         </div>
       </div>
-    </DashboardLayout>
   );
 }
