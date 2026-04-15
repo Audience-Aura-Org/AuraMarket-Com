@@ -27,8 +27,17 @@ const uploadSingle = async (req, res) => {
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
       const folder = req.body.type || 'general';
+<<<<<<< HEAD:aura-market/aura-market/backend/controllers/upload.controller.js
       console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
       const s3Result = await uploadToS3(req.file.buffer, req.file.originalname, folder, req.file.mimetype);
+=======
+      const s3Result = await uploadToS3(
+        req.file.buffer,
+        req.file.originalname,
+        folder,
+        req.file.mimetype  // Pass correct MIME type so S3 serves images properly
+      );
+>>>>>>> a07a77e22386a75511535efb9fad69a6ba107da1:aura-market/backend/controllers/upload.controller.js
       fileUrl = s3Result.url;
       uploadMethod = 'S3';
       console.log(`✅ [API] S3 upload successful: ${fileUrl}`);
@@ -66,13 +75,24 @@ const uploadSingle = async (req, res) => {
       }
     });
   } catch (err) {
+<<<<<<< HEAD:aura-market/aura-market/backend/controllers/upload.controller.js
     console.error(`❌ [API] Upload failed:`, err);
     console.error(`❌ [API] Error stack:`, err.stack);
+=======
+    const errorCode = err.Code || err.code || err.name || 'UnknownError';
+    const s3Status = err.$metadata?.httpStatusCode;
+    console.error(`❌ [API] Upload failed [${errorCode}]:`, err.message);
+>>>>>>> a07a77e22386a75511535efb9fad69a6ba107da1:aura-market/backend/controllers/upload.controller.js
     res.status(500).json({
       success: false,
       message: 'Upload failed',
       error: err.message,
+<<<<<<< HEAD:aura-market/aura-market/backend/controllers/upload.controller.js
       details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+=======
+      code: errorCode,
+      ...(s3Status && { s3Status }),
+>>>>>>> a07a77e22386a75511535efb9fad69a6ba107da1:aura-market/backend/controllers/upload.controller.js
     });
   }
 };
@@ -95,10 +115,16 @@ const uploadMultiple = async (req, res) => {
       const folder = req.body.type || 'others';
       const fileBuffers = req.files.map(f => f.buffer);
       const fileNames = req.files.map(f => f.originalname);
+<<<<<<< HEAD:aura-market/aura-market/backend/controllers/upload.controller.js
       const mimetypes = req.files.map(f => f.mimetype);
       
       console.log(`🚀 [API] Uploading ${fileNames.length} files to S3 with folder: ${folder}`);
       const s3Results = await uploadMultipleToS3(fileBuffers, fileNames, folder, mimetypes);
+=======
+      const contentTypes = req.files.map(f => f.mimetype);
+      
+      const s3Results = await uploadMultipleToS3(fileBuffers, fileNames, folder, contentTypes);
+>>>>>>> a07a77e22386a75511535efb9fad69a6ba107da1:aura-market/backend/controllers/upload.controller.js
       s3Results.forEach(result => {
         urls.push({
           url: result.url,
@@ -110,6 +136,7 @@ const uploadMultiple = async (req, res) => {
     }
     // Fallback: Cloudinary or Local
     else {
+      // ... (rest of local/cloudinary logic)
       req.files.forEach(file => {
         let fileUrl = '';
         
@@ -144,13 +171,24 @@ const uploadMultiple = async (req, res) => {
       }
     });
   } catch (err) {
+<<<<<<< HEAD:aura-market/aura-market/backend/controllers/upload.controller.js
     console.error(`❌ [API] Batch upload failed:`, err);
     console.error(`❌ [API] Error stack:`, err.stack);
+=======
+    const errorCode = err.Code || err.code || err.name || 'UnknownError';
+    const s3Status = err.$metadata?.httpStatusCode;
+    console.error(`❌ [API] Batch upload failed [${errorCode}]:`, err.message);
+>>>>>>> a07a77e22386a75511535efb9fad69a6ba107da1:aura-market/backend/controllers/upload.controller.js
     res.status(500).json({
       success: false,
       message: 'Batch upload failed',
       error: err.message,
+<<<<<<< HEAD:aura-market/aura-market/backend/controllers/upload.controller.js
       details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+=======
+      code: errorCode,
+      ...(s3Status && { s3Status }),
+>>>>>>> a07a77e22386a75511535efb9fad69a6ba107da1:aura-market/backend/controllers/upload.controller.js
     });
   }
 };

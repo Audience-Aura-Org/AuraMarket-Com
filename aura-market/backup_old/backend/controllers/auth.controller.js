@@ -10,6 +10,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
+const { normalizeUserMedia } = require('../utils/media');
 
 let otplibAuthenticator;
 const getAuthenticator = async () => {
@@ -34,12 +35,14 @@ const sendTokenResponse = (user, statusCode, res) => {
   const token = signToken(user._id);
 
   // Remove password from output (extra safety)
-  user.password = undefined;
+  const userObj = (user && typeof user.toObject === 'function') ? user.toObject() : { ...user };
+  if (userObj.password) userObj.password = undefined;
+  normalizeUserMedia(userObj);
 
   res.status(statusCode).json({
     success: true,
     token,
-    data: { user },
+    data: { user: userObj },
   });
 };
 
@@ -207,11 +210,10 @@ const getMe = async (req, res, next) => {
   try {
     // req.user is set by the protect middleware
     const user = await User.findById(req.user._id);
+    const userObj = user ? (typeof user.toObject === 'function' ? user.toObject() : user) : null;
+    normalizeUserMedia(userObj);
 
-    res.status(200).json({
-      success: true,
-      data: { user },
-    });
+    res.status(200).json({ success: true, data: { user: userObj } });
   } catch (error) {
     next(error);
   }
@@ -238,11 +240,10 @@ const updateProfile = async (req, res, next) => {
       runValidators: true, // run schema validators on update
     });
 
-    res.status(200).json({
-      success: true,
-      message: 'Profile updated successfully.',
-      data: { user },
-    });
+    const userObj = user ? (typeof user.toObject === 'function' ? user.toObject() : user) : null;
+    normalizeUserMedia(userObj);
+
+    res.status(200).json({ success: true, message: 'Profile updated successfully.', data: { user: userObj } });
   } catch (error) {
     next(error);
   }
@@ -329,7 +330,9 @@ const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
-    res.status(200).json({ success: true, data: { user } });
+    const userObj = user ? (typeof user.toObject === 'function' ? user.toObject() : user) : null;
+    normalizeUserMedia(userObj);
+    res.status(200).json({ success: true, data: { user: userObj } });
   } catch (error) {
     next(error);
   }
@@ -346,7 +349,9 @@ const getAdminInfo = async (req, res, next) => {
     if (!admin) {
       return res.status(404).json({ success: false, message: 'Admin node not found.' });
     }
-    res.status(200).json({ success: true, data: { admin } });
+    const adminObj = admin ? (typeof admin.toObject === 'function' ? admin.toObject() : admin) : null;
+    normalizeUserMedia(adminObj);
+    res.status(200).json({ success: true, data: { admin: adminObj } });
   } catch (error) {
     next(error);
   }

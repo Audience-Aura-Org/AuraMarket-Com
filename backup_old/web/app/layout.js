@@ -27,14 +27,13 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/logo-black.png', media: '(prefers-color-scheme: light)' },
+      { url: '/logo-white.png', media: '(prefers-color-scheme: dark)' },
     ],
     apple: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/logo-white.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-
 };
 
 export const viewport = {
