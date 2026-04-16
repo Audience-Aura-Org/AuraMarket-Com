@@ -146,9 +146,9 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       className="group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer"
     >
       {/* 1. Vendor Header - ELITE SYNCED */}
-      <div className="p-3 flex items-center justify-between gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
+      <div className="p-2 md:p-3 flex items-center justify-between gap-1.5 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
          <Link href={`/shop?vendorId=${vendorId}`} className="flex items-center gap-2 min-w-0 flex-1 group/vendor" onClick={e => e.stopPropagation()}>
-            <div className="size-6 rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
+            <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
               <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
             </div>
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -161,7 +161,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
            <button 
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }}
               disabled={followLoading}
-              className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-sm border ${
+              className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[7px] md:text-[8px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-sm border ${
                 isFollowing 
                 ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
                 : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'
@@ -195,37 +195,37 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       </div>
 
       {/* 3. Info & Actions */}
-      <div className="p-3.5 flex flex-col flex-1 gap-3">
-        <div className="space-y-1">
+      <div className="p-2 md:p-3.5 flex flex-col flex-1 gap-2 md:gap-3">
+        <div className="space-y-0.5 md:space-y-1">
           <Link href={`/products/${productId}`} className="block">
-            <h3 className="text-[9px] md:text-[11px] font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
+            <h3 className="text-[8px] md:text-[11px] font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
           </Link>
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-black text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
+            <span className="text-[10px] md:text-[12px] font-black text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
             <div className="flex items-center gap-1 opacity-30">
                <Star className="size-2 fill-[var(--accent)] text-[var(--accent)]" />
-               <span className="text-[8px] font-bold text-[var(--text-secondary)]">{rating || '4.8'}</span>
+               <span className="text-[7px] md:text-[8px] font-bold text-[var(--text-secondary)]">{rating || '4.8'}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 mt-auto">
+        <div className="flex items-center gap-1 md:gap-1.5 mt-auto">
           <button 
              onClick={(e) => { e.stopPropagation(); window.location.href = `/products/${productId}`; }}
-             className="flex-1 h-8 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] font-black tracking-widest rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
+             className="flex-1 h-6 md:h-8 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[7px] md:text-[9px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
           >
             VIEW
           </button>
           
           <button 
              onClick={handleChat}
-             className="size-8 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"
+             className="size-6 md:size-8 rounded-lg md:rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"
           >
-            <MessageSquare className="size-3.5" />
+            <MessageSquare className="size-3 md:size-3.5" />
           </button>
           
-          <button onClick={handleAddToCart} disabled={addingToCart} className="size-8 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95">
-            <Plus className={`size-4 ${addingToCart ? 'animate-spin' : ''}`} />
+          <button onClick={handleAddToCart} disabled={addingToCart} className="size-6 md:size-8 rounded-lg md:rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95">
+            <Plus className={`size-3 md:size-4 ${addingToCart ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
