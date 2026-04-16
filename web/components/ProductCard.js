@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   ShoppingCart, Star, Plus, ShieldCheck, 
   MessageSquare, Zap, Eye, Heart, 
-  UserPlus, UserCheck, Compass 
+  UserPlus, UserCheck, Compass, Check
 } from 'lucide-react';
 import { trackAction, trackWishlist } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -96,7 +96,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                   <div className="size-5 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                     <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
                   </div>
-                  <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest truncate">{vendor_id?.store_name || 'Verified Node'}</span>
+                  <span className="text-[8px] font-black text-[var(--accent)] uppercase tracking-widest truncate">{vendor_id?.store_name || 'Verified Node'}</span>
                 </Link>
                 {user?._id !== vendorUserId && (
                   <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`text-[8px] font-black tracking-tighter ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
@@ -106,7 +106,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
              </div>
 
             <Link href={`/products/${productId}`} className="block">
-              <h3 className="text-sm md:text-lg font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors">{name}</h3>
+              <h3 className="text-xs md:text-sm font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{name}</h3>
             </Link>
             <div className="flex items-center gap-4">
               <p className="text-[14px] md:text-[18px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
@@ -152,7 +152,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
-              <h4 className="text-[9px] font-black text-[var(--text-primary)] truncate uppercase tracking-widest leading-none mb-0.5">{vendor_id?.store_name || 'Verified Node'}</h4>
+              <h4 className="text-[8px] md:text-[8.5px] font-black text-[var(--text-primary)] truncate uppercase tracking-widest leading-none mb-0.5">{vendor_id?.store_name || 'Verified Node'}</h4>
               {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
             </div>
          </Link>
@@ -198,7 +198,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       <div className="p-3.5 flex flex-col flex-1 gap-3">
         <div className="space-y-1">
           <Link href={`/products/${productId}`} className="block">
-            <h3 className="text-[11px] font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
+            <h3 className="text-[9px] md:text-[11px] font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
           </Link>
           <div className="flex items-center justify-between">
             <span className="text-[12px] font-black text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
