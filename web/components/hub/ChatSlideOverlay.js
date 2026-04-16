@@ -176,8 +176,8 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
              </>
           ) : (
             <div>
-               <h3 className="font-black text-lg text-[var(--text-primary)] uppercase tracking-tighter">Operational Channels</h3>
-               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Procurement Pipeline</p>
+               <h3 className="font-black text-lg text-[var(--text-primary)] tracking-tight">Operational Channels</h3>
+               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-wide">Procurement Pipeline</p>
             </div>
           )}
         </div>
@@ -284,7 +284,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
           <div className="p-4 space-y-2">
              <div className="relative mb-6">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 opacity-30" />
-                <input type="text" placeholder="Search operational channels..." className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-10 pr-4 text-[10px] font-bold outline-none uppercase tracking-widest placeholder:opacity-40" />
+                <input type="text" placeholder="Search channels..." className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-10 pr-4 text-[10px] font-medium outline-none tracking-normal placeholder:opacity-40" />
              </div>
 
              {inboxLoading ? (
@@ -311,7 +311,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                     </div>
                     <div className="flex-1 min-w-0">
                        <div className="flex justify-between items-start mb-0.5">
-                          <h4 className="font-black text-xs md:text-sm text-[var(--text-primary)] truncate pr-2 uppercase tracking-tighter">{chat.partner?.store_name || chat.partner?.name}</h4>
+                          <h4 className="font-bold text-xs md:text-sm text-[var(--text-primary)] truncate pr-2 capitalize">{chat.partner?.store_name || chat.partner?.name}</h4>
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 whitespace-nowrap">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
                        </div>
                        <p className="text-xs text-[var(--text-secondary)] truncate opacity-60 leading-relaxed font-medium">{chat.snippet}</p>
