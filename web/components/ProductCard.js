@@ -147,14 +147,15 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     >
       {/* 1. Vendor Header - ELITE SYNCED */}
       <div className="p-2 md:p-3 flex items-center justify-between gap-1.5 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
-         <Link href={`/shop?vendorId=${vendorId}`} className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
+         <Link href={`/shop?vendorId=${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
             <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
               <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
             </div>
-            <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-              <h4 className="text-[8px] md:text-[8.5px] font-black text-[var(--text-primary)] truncate whitespace-nowrap uppercase tracking-widest leading-none mb-0.5">{vendor_id?.store_name || 'Verified Node'}</h4>
-              {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
-            </div>
+            <h4
+              className="text-[8px] md:text-[8.5px] font-black text-[var(--text-primary)] uppercase tracking-widest leading-none flex-1"
+              style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+            >{vendor_id?.store_name || 'Verified Node'}</h4>
+            {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
          </Link>
          
          {user?._id !== vendorUserId && (
