@@ -88,7 +88,7 @@ export default function OnboardingFlow() {
     }
 
     if (user.onboarded) {
-      router.replace('/discovery/hub');
+      router.replace('/discovery');
       return;
     }
 
@@ -125,7 +125,7 @@ export default function OnboardingFlow() {
         const hasLocation = !!user.onboarding_location?.city;
         const hasPhone = !!user.phone;
         if (!isVendor && hasFollows && hasCategories && hasLocation && hasPhone) {
-          router.replace('/discovery/hub');
+          router.replace('/discovery');
         }
       } catch (err) {
         toast.error('Failed to load onboarding data.');
@@ -185,7 +185,7 @@ export default function OnboardingFlow() {
   };
 
   const goBack = () => { setSearch(''); setStep(s => s - 1); };
-  const skip = () => { sessionStorage.setItem('onboarding_skipped', 'true'); router.push('/discovery/hub'); };
+  const skip = () => { sessionStorage.setItem('onboarding_skipped', 'true'); router.push('/discovery'); };
 
   const finish = async () => {
     setLoading(true);
@@ -211,7 +211,7 @@ export default function OnboardingFlow() {
         });
         if (res.data.success) {
           updateUser(res.data.data.user);
-          router.push('/discovery/hub');
+          router.push('/discovery');
         }
       }
     } catch (err) {
@@ -338,7 +338,7 @@ export default function OnboardingFlow() {
               </button>
             ) : (
               <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest text-emerald-400">
-                Safe Node
+                Safe Hub
               </div>
             )}
           </div>
@@ -353,8 +353,8 @@ export default function OnboardingFlow() {
               {currentStepMeta && <currentStepMeta.icon className={`size-6 ${colors.text}`} />}
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight">{currentStepMeta?.title}</h1>
-              <p className={`text-xs font-bold ${colors.text} opacity-80`}>{currentStepMeta?.subtitle}</p>
+              <h1 className="text-xl md:text-2xl font-black tracking-tight">{currentStepMeta?.title}</h1>
+              <p className={`text-[10px] md:text-xs font-bold ${colors.text} opacity-80`}>{currentStepMeta?.subtitle}</p>
             </div>
           </div>
         </div>
@@ -449,13 +449,13 @@ export default function OnboardingFlow() {
                               : <div className="size-full flex items-center justify-center"><Store className="size-5 opacity-20" /></div>
                             }
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-black text-sm truncate capitalize">{v.store_name}</p>
-                            {v.verified && <p className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Verified</p>}
-                          </div>
-                          <div className={`size-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${isFollowing ? 'bg-blue-500 text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
-                            {isSyncing ? <Loader2 className="size-4 animate-spin" /> : isFollowing ? <Check className="size-4" /> : <span className="text-[10px] font-black">+</span>}
-                          </div>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); !isSyncing && handleToggleFollow(v._id); }}
+                            className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-1.5 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
+                          >
+                            {isSyncing ? <Loader2 className="size-3 animate-spin" /> : isFollowing ? <Check className="size-3" /> : null}
+                            {isFollowing ? 'FOLLOWED' : 'FOLLOW'}
+                          </button>
                         </div>
                       );
                     })}
@@ -501,8 +501,8 @@ export default function OnboardingFlow() {
                           <Check className="size-3 text-white" />
                         </div>
                       )}
-                      <LayoutGrid className={`size-6 mb-2 ${sel ? 'text-rose-400' : 'text-[var(--text-secondary)] opacity-40'}`} />
-                      <p className="text-xs font-black leading-tight">{cat.name}</p>
+                      <LayoutGrid className={`size-5 md:size-6 mb-2 ${sel ? 'text-rose-400' : 'text-[var(--text-secondary)] opacity-40'}`} />
+                      <p className="text-[10px] md:text-xs font-black leading-tight">{cat.name}</p>
                     </button>
                   );
                 })}
@@ -642,7 +642,7 @@ export default function OnboardingFlow() {
                 className="w-full py-5 rounded-[2rem] bg-gradient-to-r from-[var(--accent)] to-blue-600 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 border border-white/20"
               >
                 {loading ? <Loader2 className="size-5 animate-spin" /> : isVendor && <Sparkles className="size-5" />}
-                {loading ? 'Finalizing Setup...' : isVendor ? 'Launch My Store' : 'Enter the Hub'}
+                {loading ? 'Finalizing Setup...' : isVendor ? 'Launch My Store' : 'Enter Discovery'}
               </button>
             </div>
           )}

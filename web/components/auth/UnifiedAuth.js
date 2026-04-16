@@ -185,8 +185,8 @@ export default function UnifiedAuth() {
         router.prefetch('/onboarding');
         router.push('/onboarding');
       } else {
-        router.prefetch('/discovery/hub');
-        router.push('/discovery/hub');
+        router.prefetch('/discovery');
+        router.push('/discovery');
       }
     }
   };

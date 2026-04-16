@@ -44,7 +44,7 @@ export default function LandingPage() {
         if (user.onboarded === false) {
           router.replace('/onboarding');
         } else {
-          router.replace('/discovery/hub');
+          router.replace('/discovery');
         }
       }
     }
