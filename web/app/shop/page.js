@@ -233,7 +233,7 @@ function ShopContent() {
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
                 placeholder="Search products..."
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-14 text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 md:py-2.5 pl-4 pr-12 text-[10px] md:text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
               />
               <button
                 onClick={() => { setPage(1); fetchProducts(1); }}
@@ -260,7 +260,7 @@ function ShopContent() {
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                      className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
                       All Products
                     </button>
@@ -269,9 +269,9 @@ function ShopContent() {
                  {breadcrumb.length > 0 && breadcrumb.map((crumb, idx) => (
                    <div key={crumb._id} className="flex items-center gap-2 shrink-0">
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
-                      <button 
+                       <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {crumb.name}
                       </button>
@@ -282,15 +282,15 @@ function ShopContent() {
 
                  {currentLevel.map(cat => (
                    <button
-                      key={cat._id}
-                      onClick={() => {
-                        if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
-                        else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
-                      }}
-                      className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
-                   >
-                     {cat.name}
-                   </button>
+                       key={cat._id}
+                       onClick={() => {
+                         if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
+                         else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
+                       }}
+                       className={`shrink-0 px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                    >
+                      {cat.name}
+                    </button>
                  ))}
                 </>
                )}
@@ -395,12 +395,12 @@ function ShopContent() {
           {/* Results Info & Action Bar */}
           <div className="px-4 md:px-6 lg:px-12 py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-3 bg-[var(--bg-secondary)]">
             
-            <div className="flex items-center gap-3">
-              <h3 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
+            <div className="flex items-center gap-2 md:gap-3">
+              <h3 className="text-sm md:text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
                 {activeCategoryName === 'All' ? 'Global Market' : activeCategoryName}
               </h3>
               <div className="h-4 w-px bg-[var(--glass-border)]" />
-              <p className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">
+              <p className="text-[9px] md:text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">
                 {products.length} Results
               </p>
             </div>
@@ -411,11 +411,11 @@ function ShopContent() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-black uppercase tracking-widest shadow-sm"
+                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm"
                 >
-                  <span className="text-[var(--text-secondary)] font-normal opacity-60">Price:</span> 
-                  {activePrice ? PRICE_RANGES.find(r => r.id === activePrice)?.name : 'Any'}
-                  <ChevronRight className={`size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
+                  <span className="text-[var(--text-secondary)] font-normal opacity-60 hidden sm:inline">Price:</span> 
+                  {activePrice ? PRICE_RANGES.find(r => r.id === activePrice)?.name : 'Price'}
+                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
                 </button>
                 
                 {isPriceOpen && (
@@ -436,11 +436,11 @@ function ShopContent() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-black uppercase tracking-widest shadow-sm"
+                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm"
                 >
-                  <span className="text-[var(--text-secondary)] font-normal opacity-60">Sort:</span> 
-                  {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
-                  <ChevronRight className={`size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
+                  <span className="text-[var(--text-secondary)] font-normal opacity-60 hidden sm:inline">Sort:</span> 
+                  {SORT_OPTIONS.find(s => s.value === sortBy)?.label.split(':')[0]}
+                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
                 </button>
                 
                 {isSortOpen && (
