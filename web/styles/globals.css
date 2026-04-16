@@ -93,10 +93,6 @@ i, em { font-style: normal !important; }
     zoom: 0.8;
   }
   input, textarea, select { font-size: 16px !important; }
-  h1 { font-size: 18px; line-height: 1.1; letter-spacing: -0.02em; }
-  h2 { font-size: 16px; line-height: 1.1; }
-  h3 { font-size: 14px; line-height: 1.1; }
-  h4, h5, h6 { font-size: 13px; line-height: 1.1; }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
 }
