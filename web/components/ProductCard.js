@@ -96,7 +96,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                   <div className="size-5 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                     <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
                   </div>
-                  <span className="text-[8px] font-black text-[var(--accent)] uppercase tracking-widest truncate">{vendor_id?.store_name || 'Verified Node'}</span>
+                  <span className="text-[8px] font-black text-[var(--accent)] uppercase tracking-widest truncate whitespace-nowrap block flex-1">{vendor_id?.store_name || 'Verified Node'}</span>
                 </Link>
                 {user?._id !== vendorUserId && (
                   <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`text-[8px] font-black tracking-tighter ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
@@ -151,8 +151,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             <div className="size-6 rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
               <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
             </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h4 className="text-[8px] md:text-[8.5px] font-black text-[var(--text-primary)] truncate uppercase tracking-widest leading-none mb-0.5">{vendor_id?.store_name || 'Verified Node'}</h4>
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <h4 className="text-[8px] md:text-[8.5px] font-black text-[var(--text-primary)] truncate whitespace-nowrap uppercase tracking-widest leading-none mb-0.5">{vendor_id?.store_name || 'Verified Node'}</h4>
               {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
             </div>
          </Link>
