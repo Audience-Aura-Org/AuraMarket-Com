@@ -393,14 +393,14 @@ function ShopContent() {
         <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden pt-[1px]">
           
           {/* Results Info & Action Bar */}
-          <div className="px-4 md:px-6 lg:px-12 py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-3 bg-[var(--bg-secondary)]">
+          <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
             
-            <div className="flex items-center gap-2 md:gap-3">
-              <h3 className="text-sm md:text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
+            <div className="flex items-center gap-1.5 md:gap-3">
+              <h3 className="text-[10px] md:text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
                 {activeCategoryName === 'All' ? 'Global Market' : activeCategoryName}
               </h3>
-              <div className="h-4 w-px bg-[var(--glass-border)]" />
-              <p className="text-[9px] md:text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">
+              <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
+              <p className="text-[8px] md:text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">
                 {products.length} Results
               </p>
             </div>
@@ -411,11 +411,10 @@ function ShopContent() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[8px] md:text-[9.5px] font-black uppercase tracking-wider shadow-sm"
                 >
-                  <span className="text-[var(--text-secondary)] font-normal opacity-60 hidden sm:inline">Price:</span> 
-                  {activePrice ? PRICE_RANGES.find(r => r.id === activePrice)?.name : 'Price'}
-                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
+                  Price
+                  <ChevronRight className={`size-2 md:size-2.5 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
                 </button>
                 
                 {isPriceOpen && (
@@ -436,11 +435,10 @@ function ShopContent() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-                  className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[8px] md:text-[9.5px] font-black uppercase tracking-wider shadow-sm"
                 >
-                  <span className="text-[var(--text-secondary)] font-normal opacity-60 hidden sm:inline">Sort:</span> 
-                  {SORT_OPTIONS.find(s => s.value === sortBy)?.label.split(':')[0]}
-                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
+                  Sort
+                  <ChevronRight className={`size-2 md:size-2.5 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
                 </button>
                 
                 {isSortOpen && (
@@ -456,12 +454,12 @@ function ShopContent() {
               </div>
               
               {/* VIEW MODE */}
-              <div className="flex bg-[var(--bg-primary)] rounded-2xl p-1 border border-[var(--glass-border)]">
-                <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
-                  <LayoutGrid className="size-4" />
+              <div className="flex bg-[var(--bg-primary)] rounded-lg md:rounded-2xl p-0.5 md:p-1 border border-[var(--glass-border)]">
+                <button onClick={() => setViewMode('grid')} className={`p-1.5 md:p-2.5 rounded-md md:rounded-xl transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                  <LayoutGrid className="size-3 md:size-4" />
                 </button>
-                <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
-                  <List className="size-4" />
+                <button onClick={() => setViewMode('list')} className={`p-1.5 md:p-2.5 rounded-md md:rounded-xl transition-all ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                  <List className="size-3 md:size-4" />
                 </button>
               </div>
             </div>
