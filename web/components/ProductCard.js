@@ -146,13 +146,13 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       className="group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer"
     >
       {/* 1. Vendor Header - ELITE SYNCED */}
-      <div className="p-2 md:p-3 flex items-center justify-between gap-1.5 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
+      <div className="p-1.5 sm:p-2 md:p-3 flex items-center justify-between gap-1 sm:gap-1.5 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
          <Link href={`/shop?vendorId=${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
             <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
               <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
             </div>
             <h4
-              className="text-[8px] md:text-[8.5px] font-black text-[var(--text-primary)] uppercase tracking-widest leading-none flex-1"
+              className="text-[7px] sm:text-[7.5px] md:text-[8.5px] font-black text-[var(--text-primary)] uppercase tracking-widest leading-none flex-1"
               style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
             >{vendor_id?.store_name || 'Verified Node'}</h4>
             {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
@@ -196,16 +196,16 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       </div>
 
       {/* 3. Info & Actions */}
-      <div className="p-2 md:p-3.5 flex flex-col flex-1 gap-2 md:gap-3">
+      <div className="p-1.5 sm:p-2 md:p-3.5 flex flex-col flex-1 gap-1.5 md:gap-3">
         <div className="space-y-0.5 md:space-y-1">
           <Link href={`/products/${productId}`} className="block">
-            <h3 className="text-[8px] md:text-[11px] font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
+            <h3 className="text-[6.5px] sm:text-[7.5px] md:text-[11px] font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight leading-tight">{name}</h3>
           </Link>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] md:text-[12px] font-black text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
+            <span className="text-[9px] sm:text-[10px] md:text-[12px] font-black text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
             <div className="flex items-center gap-1 opacity-30">
                <Star className="size-2 fill-[var(--accent)] text-[var(--accent)]" />
-               <span className="text-[7px] md:text-[8px] font-bold text-[var(--text-secondary)]">{rating || '4.8'}</span>
+               <span className="text-[6px] sm:text-[7px] md:text-[8px] font-bold text-[var(--text-secondary)]">{rating || '4.8'}</span>
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         <div className="flex items-center gap-1 md:gap-1.5 mt-auto">
           <button 
              onClick={(e) => { e.stopPropagation(); window.location.href = `/products/${productId}`; }}
-             className="flex-1 h-6 md:h-8 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[7px] md:text-[9px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
+             className="flex-1 h-6 md:h-8 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[6px] sm:text-[7px] md:text-[9px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
           >
             VIEW
           </button>
