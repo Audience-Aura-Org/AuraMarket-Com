@@ -249,10 +249,22 @@ export default function ProductDetailsPage() {
       <main className="w-full px-4 md:px-20 py-6 md:py-10 pt-20 md:pt-24 max-w-[1400px] mx-auto relative z-10 space-y-6 md:space-y-12">
         
         <div className="flex items-center justify-between">
-           <Link href="/shop" className="inline-flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group uppercase">
-             <ArrowLeft className="size-3.5 md:size-4 group-hover:-translate-x-1 transition-transform" />
-             <span className="text-[9px] md:text-[10px] font-black tracking-[0.2em]">{product.category_id?.name || 'Back to Products'}</span>
-           </Link>
+           <div className="flex items-center gap-2">
+              <button 
+                onClick={() => router.back()} 
+                className="size-10 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] transition-all group active:scale-90 shadow-sm"
+              >
+                 <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
+              </button>
+              <div className="h-4 w-px bg-[var(--glass-border)] mx-1" />
+              <Link 
+                href="/shop" 
+                className="px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[10px] font-black tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-all uppercase"
+              >
+                {product.category_id?.name || 'Market'}
+              </Link>
+           </div>
+           
            <div className="flex items-center gap-3 md:gap-4">
               <button 
                 onClick={handleWishlist} 

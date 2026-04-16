@@ -109,25 +109,25 @@ export default function Footer() {
               </h3>
             </div>
             {submitted ? (
-              <div className="flex items-center gap-2 p-3 md:p-4 rounded-xl md:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-center md:text-right justify-center md:justify-end">
+              <div className="flex items-center gap-2 p-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-center md:text-right justify-center md:justify-end">
                 <ShieldCheck className="size-4 shrink-0" />
-                <span className="text-xs md:text-sm font-bold">You're in. Welcome to Aura.</span>
+                <span className="text-xs md:text-sm font-bold uppercase tracking-widest">Aura Secured</span>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-2">
+              <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-2 relative">
                 <input
                   type="email"
                   placeholder="your@email.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="h-10 md:h-11 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 md:px-4 text-xs md:text-sm font-medium outline-none text-[var(--text-primary)] placeholder:opacity-30 focus:border-[var(--accent)]/50 transition-all min-w-0 flex-1"
+                  className="h-12 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-6 text-xs md:text-sm font-medium outline-none text-[var(--text-primary)] placeholder:opacity-30 focus:border-[var(--accent)]/50 transition-all min-w-0 flex-1"
                 />
                 <button
                   type="submit"
-                  className="h-10 md:h-11 px-4 md:px-5 rounded-lg md:rounded-xl bg-[var(--accent)] text-white font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shrink-0 hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95 whitespace-nowrap"
+                  className="h-10 md:h-12 px-6 md:px-8 rounded-full bg-[var(--accent)] text-white font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shrink-0 hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95 whitespace-nowrap"
                 >
                   <Send className="size-3 md:size-3.5" />
-                  <span>Join</span>
+                  <span>Join Ecosystem</span>
                 </button>
               </form>
             )}

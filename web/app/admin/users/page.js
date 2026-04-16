@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X, Phone } from 'lucide-react';
+import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X, Phone, Trash2 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
@@ -87,6 +87,20 @@ export default function AdminUsersPage() {
       toast.error(err.response?.data?.message || 'Failed to update user');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Are you absolutely sure you want to PURGE ${userName}? This action is irreversible and will delete associated business data.`)) return;
+    
+    try {
+      const res = await api.delete(`/admin/users/${userId}`);
+      if (res.data.success) {
+        toast.success(`${userName} has been removed from the platform.`);
+        setUsers(prev => prev.filter(u => u._id !== userId));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Purge failed. Node remains active.');
     }
   };
 
@@ -199,6 +213,13 @@ export default function AdminUsersPage() {
                         >
                            <MoreVertical className="size-4 lg:size-5" />
                         </button>
+                        <button 
+                          onClick={() => handleDeleteUser(u._id, u.name)}
+                          className="size-10 lg:size-12 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all hover:shadow-md"
+                          title="Purge Node"
+                         >
+                            <Trash2 className="size-4 lg:size-5" />
+                         </button>
                      </div>
                   </div>
                 </div>

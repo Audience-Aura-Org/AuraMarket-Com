@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -81,24 +81,24 @@ export default function GlobalIntelligenceHub() {
            </div>
 
            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex bg-[var(--bg-primary)] p-1 rounded-xl border border-[var(--glass-border)]">
-                 {['ecosystem', 'nodes', 'assets', 'finance'].map(tab => (
-                    <button 
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
-                    >
-                       {tab}
-                    </button>
-                 ))}
-              </div>
+            <div className="flex bg-[var(--bg-primary)] p-1 rounded-2xl border border-[var(--glass-border)]">
+               {['ecosystem', 'nodes', 'assets', 'finance'].map(tab => (
+                  <button 
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                  >
+                     {tab}
+                  </button>
+               ))}
+            </div>
               
-              <button 
-                onClick={fetchGlobalIntelligence}
-                className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all flex items-center justify-center"
-              >
-                 <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+               <button 
+                 onClick={fetchGlobalIntelligence}
+                 className="size-10 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all flex items-center justify-center shadow-sm active:scale-90"
+               >
+                  <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+               </button>
            </div>
         </div>
 
@@ -130,7 +130,7 @@ export default function GlobalIntelligenceHub() {
                                       className="w-full bg-gradient-to-t from-[var(--accent)]/20 to-[var(--accent)] group-hover/bar:brightness-125 transition-all rounded-t-lg shadow-inner"
                                       style={{ height: `${(day.dailyRevenue / Math.max(...data.sales_over_time.map(d=>d.dailyRevenue))) * 100}%` }}
                                     />
-                                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 scale-0 group-hover/bar:scale-100 transition-all bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[8px] font-black uppercase px-2 py-1 rounded-lg shadow-2xl z-20 pointer-events-none whitespace-nowrap">
+                                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 scale-0 group-hover/bar:scale-100 transition-all bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[8px] font-black uppercase px-3 py-1.5 rounded-full shadow-2xl z-20 pointer-events-none whitespace-nowrap">
                                        {day._id}: {day.dailyRevenue.toLocaleString()}
                                     </div>
                                  </div>
@@ -190,9 +190,9 @@ export default function GlobalIntelligenceHub() {
                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-[var(--text-primary)] mb-10">High-Performance Clusters (Vendors)</h3>
                       <div className="space-y-4">
                          {data.top_vendors.map((v, i) => (
-                            <div key={v._id} className="p-4 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-between group hover:bg-[var(--accent)]/5 transition-all">
+                            <div key={v._id} className="p-4 rounded-[1.5rem] bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-between group hover:bg-[var(--accent)]/5 transition-all">
                                <div className="flex items-center gap-4">
-                                  <div className="size-10 rounded-xl bg-[var(--bg-primary)] text-[10px] font-black flex items-center justify-center border border-[var(--glass-border)] italic group-hover:bg-[var(--accent)] group-hover:text-white transition-all">{i+1}</div>
+                                  <div className="size-10 rounded-2xl bg-[var(--bg-primary)] text-[10px] font-black flex items-center justify-center border border-[var(--glass-border)] italic group-hover:bg-[var(--accent)] group-hover:text-white transition-all">{i+1}</div>
                                   <p className="text-xs font-black text-[var(--text-primary)] uppercase">{v.store_name}</p>
                                </div>
                                <div className="text-right">
@@ -214,9 +214,9 @@ export default function GlobalIntelligenceHub() {
                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-[var(--text-primary)] mb-10">High-Velocity Assets</h3>
                       <div className="space-y-4">
                          {data.top_products.map((p, i) => (
-                            <div key={p._id} className="p-4 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-between group hover:bg-indigo-500/5 transition-colors">
+                            <div key={p._id} className="p-4 rounded-[1.5rem] bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-between group hover:bg-indigo-500/5 transition-colors">
                                <div className="flex items-center gap-4">
-                                  <div className="size-12 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden flex items-center justify-center p-1">
+                                  <div className="size-12 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden flex items-center justify-center p-1">
                                      <Box className="size-6 text-[var(--accent)]/40" />
                                   </div>
                                   <div>
@@ -243,7 +243,7 @@ export default function GlobalIntelligenceHub() {
                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-[var(--text-primary)] mb-10">Global Category Entropy</h3>
                       <div className="space-y-6">
                          {data.category_stats.map(cat => (
-                            <div key={cat._id} className="p-5 rounded-2xl bg-[var(--bg-secondary)]/30 border border-dashed border-[var(--glass-border)] flex items-center justify-between">
+                            <div key={cat._id} className="p-5 rounded-[1.5rem] bg-[var(--bg-secondary)]/30 border border-dashed border-[var(--glass-border)] flex items-center justify-between">
                                <div>
                                   <h4 className="text-xs font-black text-[var(--text-primary)] uppercase tracking-tighter">{cat._id || 'UNCATEGORIZED'}</h4>
                                   <p className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">{cat.count} Individual Assets</p>
@@ -301,7 +301,7 @@ export default function GlobalIntelligenceHub() {
                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-[var(--text-primary)] mb-10">Transactional State Matrix</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                          {data.order_matrix.map(status => (
-                            <div key={status._id} className="p-6 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] group hover:scale-105 transition-all">
+                            <div key={status._id} className="p-6 rounded-[1.5rem] bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] group hover:scale-105 transition-all">
                                <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">{status._id}</p>
                                <p className="text-xl font-black text-[var(--text-primary)] font-mono mb-1">{status.count}</p>
                                <p className="text-[10px] font-black text-[var(--accent)]">{(status.total_volume || 0).toLocaleString()} XAF</p>
@@ -347,8 +347,8 @@ function MiniMetric({ label, value, icon: Icon, color = 'indigo' }) {
   };
   
   return (
-    <div className="p-6 rounded-3xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] flex items-center gap-4 group hover:bg-[var(--bg-primary)] transition-all">
-      <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${colorMap[color] || colorMap.indigo}`}>
+    <div className="p-6 rounded-[2rem] bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] flex items-center gap-4 group hover:bg-[var(--bg-primary)] transition-all">
+      <div className={`size-10 rounded-2xl flex items-center justify-center shrink-0 ${colorMap[color] || colorMap.indigo}`}>
         <Icon className="size-5" />
       </div>
       <div className="min-w-0">

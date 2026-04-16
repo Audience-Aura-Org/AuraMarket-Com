@@ -46,7 +46,10 @@ export default function LogisticsDashboard() {
   // Derived Metrics
   const activeCount = shipments.filter(s => ['at_source', 'in_transit', 'arrived_at_destination'].includes(s.status)).length;
   const pendingCount = shipments.filter(s => s.status === 'pending').length;
-  const deliveredToday = shipments.filter(s => s.status === 'delivered').length;
+  const totalDelivered = shipments.filter(s => s.status === 'delivered').length;
+  const networkYield = shipments.length > 0 
+    ? ((totalDelivered / shipments.length) * 100).toFixed(1) 
+    : '100';
 
   if (user?.role !== 'logistics') return null;
 
@@ -89,9 +92,9 @@ export default function LogisticsDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Active Fleet', value: activeCount, sub: 'Shipments in transit', icon: Truck, color: 'blue' },
-            { label: 'Network Yield', value: '94.2%', sub: 'Ontime delivery', icon: Zap, color: 'amber' },
+            { label: 'Network Yield', value: `${networkYield}%`, sub: 'Success vs Failed', icon: Zap, color: 'amber' },
             { label: 'Pending Load', value: pendingCount, sub: 'Awaiting dispatch', icon: Clock, color: 'indigo' },
-            { label: 'Success Nodes', value: deliveredToday, sub: 'Last 24 hours', icon: CheckCircle2, color: 'emerald' }
+            { label: 'Total Delivered', value: totalDelivered, sub: 'Success finalization', icon: CheckCircle2, color: 'emerald' }
           ].map((stat, i) => (
             <motion.div
               key={i}

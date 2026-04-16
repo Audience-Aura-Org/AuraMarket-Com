@@ -702,6 +702,33 @@ const updateUserAdmin = async (req, res, next) => {
   }
 };
 
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    // Cascading deletion for business entities
+    if (user.role === 'vendor') {
+      const vendor = await Vendor.findOne({ user_id: user._id });
+      if (vendor) {
+        await Product.deleteMany({ vendor_id: vendor._id });
+        await require('../models/Store.model').findOneAndDelete({ vendor_id: vendor._id });
+        await Vendor.findByIdAndDelete(vendor._id);
+      }
+    } else if (user.role === 'logistics') {
+      await LogisticsCompany.findOneAndDelete({ user_id: user._id });
+    }
+
+    // Finally delete the user
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({ success: true, message: 'Account and associated metadata purged.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -734,4 +761,5 @@ module.exports = {
   addLogisticZone,
   getAdvancedAnalytics,
   getEmailLogs,
+  deleteUser,
 };

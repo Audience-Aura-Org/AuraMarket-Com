@@ -5,7 +5,7 @@ const Follow = require('../models/Follow.model');
 
 const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).populate('liked_categories');
+    const user = await User.findById(req.user._id).populate('liked_categories').lean();
     res.status(200).json({ success: true, data: { user } });
   } catch (error) {
     next(error);
@@ -89,7 +89,8 @@ const getFollowedVendors = async (req, res, next) => {
         select: 'store_name description rating verified follower_count user_id',
         populate: { path: 'user_id', select: 'avatar branding' }
       })
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .lean();
     res.status(200).json({ success: true, count: follows.length, data: { follows } });
   } catch (error) {
     next(error);
@@ -103,10 +104,10 @@ const getFollowedVendors = async (req, res, next) => {
  */
 const completeOnboarding = async (req, res, next) => {
   try {
-    const { liked_categories, location } = req.body;
+    const { liked_categories, location, phone } = req.body;
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { liked_categories, onboarding_location: location, onboarded: true },
+      { liked_categories, onboarding_location: location, phone, onboarded: true },
       { returnDocument: 'after', runValidators: true }
     );
     res.status(200).json({ success: true, message: 'Onboarding finalized. Welcome to the Hub.', data: { user } });

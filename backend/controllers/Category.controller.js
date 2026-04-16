@@ -9,6 +9,11 @@ exports.getAllCategories = async (req, res) => {
       .select('name parent_id slug icon')
       .lean();
 
+    // Fast path: skip heavy aggregations for high-throughput screens like onboarding
+    if (req.query.lite === 'true') {
+      return res.status(200).json({ success: true, data: categories });
+    }
+
     // 2. Aggregate metrics from products
     // Note: Product.category is currently a string (name) in the model, but we should match carefully
     const metrics = await Product.aggregate([

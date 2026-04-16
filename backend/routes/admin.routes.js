@@ -40,7 +40,8 @@ const {
   addLogisticZone,
   getAdvancedAnalytics,
   getEmailLogs,
-  getAllProducts
+  getAllProducts,
+  deleteUser
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
@@ -122,6 +123,7 @@ router.patch('/orders/:id', updateOrderAdmin);
 router.get('/users', getAllUsers);
 router.patch('/users/:id/status', updateUserStatus);
 router.patch('/users/:id', updateUserAdmin);
+router.delete('/users/:id', deleteUser);
 router.get('/vendors', getAllVendors);
 router.patch('/vendors/:id/status', updateVendorStatus);
 router.get('/products', getAllProducts);

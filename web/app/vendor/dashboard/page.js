@@ -145,17 +145,17 @@ export default function VendorDashboard() {
             <div className="relative hidden lg:flex items-center group">
               <span className="material-symbols-outlined absolute left-4 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
               <input 
-                className="glass-panel border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-widest uppercase" 
+                className="glass-panel border border-[var(--glass-border)] rounded-full py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-widest uppercase" 
                 placeholder="Search..." 
                 type="text" 
               />
             </div>
             <div className="flex items-center gap-2">
-              <button className="size-9 sm:size-10 rounded-xl glass-panel flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all relative border border-[var(--glass-border)] group">
+              <button className="size-9 sm:size-10 rounded-full glass-panel flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all relative border border-[var(--glass-border)] group">
                 <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">notifications</span>
                 <span className="absolute top-3.5 right-3.5 size-2.5 bg-[var(--accent)] rounded-full border-2 border-[var(--bg-primary)] shadow-[0_0_8px_var(--accent)]" />
               </button>
-              <button className="hidden sm:flex size-10 rounded-xl glass-panel items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all border border-[var(--glass-border)] group">
+              <button className="hidden sm:flex size-10 rounded-full glass-panel items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all border border-[var(--glass-border)] group">
                 <span className="material-symbols-outlined text-2xl group-hover:rotate-12 transition-transform">mail</span>
               </button>
             </div>
@@ -164,7 +164,7 @@ export default function VendorDashboard() {
                 <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
                 <p className="text-[10px] text-[var(--accent)] font-black tracking-widest uppercase opacity-80">Store Owner</p>
               </div>
-              <div className="size-9 sm:size-10 rounded-xl border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-black text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
+              <div className="size-9 sm:size-10 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-black text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
               </div>
             </div>
@@ -191,13 +191,13 @@ export default function VendorDashboard() {
             {stats.map((stat, idx) => {
               const c = colorMap[stat.color];
               return (
-                <div key={stat.label} className="glass-panel p-5 rounded-[24px] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-sm hover:shadow-xl group">
+                <div key={stat.label} className="glass-panel p-5 rounded-[2rem] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-sm hover:shadow-xl group">
                   <div className="flex justify-between items-start mb-4">
-                    <div className={`size-10 rounded-xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner`}>
+                    <div className={`size-10 rounded-2xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner`}>
                       <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">{stat.icon}</span>
                     </div>
                     {stat.pct ? (
-                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${c.badgeBg} ${c.badgeText} tracking-widest uppercase`}>{stat.pct}</span>
+                      <span className={`text-[8px] font-black px-3 py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-widest uppercase`}>{stat.pct}</span>
                     ) : (
                       <Link href="/wallet" className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                         <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
@@ -212,8 +212,8 @@ export default function VendorDashboard() {
                     </div>
                   ) : (
                     <div className="mt-4 flex gap-2">
-                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[8px] font-black py-2 rounded-lg shadow-lg shadow-[var(--accent)]/20 transition-all uppercase tracking-widest active:scale-95 text-center">Withdraw</Link>
-                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[8px] font-black py-2 rounded-lg transition-all text-center border border-[var(--glass-border)] uppercase tracking-widest active:scale-95 flex items-center justify-center">Wallet</Link>
+                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[8px] font-black py-2 rounded-full shadow-lg shadow-[var(--accent)]/20 transition-all uppercase tracking-widest active:scale-95 text-center">Withdraw</Link>
+                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[8px] font-black py-2 rounded-full transition-all text-center border border-[var(--glass-border)] uppercase tracking-widest active:scale-95 flex items-center justify-center">Wallet</Link>
                     </div>
                   )}
                 </div>
@@ -221,20 +221,20 @@ export default function VendorDashboard() {
             })}
           </div>
 
-          <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
-            <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)] mb-2">Finance</p>
+          <div className="glass-panel p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+            <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)] mb-4">Finance Intelligence</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-              <div className="rounded-xl border border-[var(--glass-border)] p-3">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Available</p>
-                <p className="font-black text-[var(--text-primary)]">{walletBalance.toLocaleString()} XAF</p>
+              <div className="rounded-2xl border border-[var(--glass-border)] p-4 bg-[var(--bg-secondary)]/20">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-50 mb-1">Available</p>
+                <p className="font-black text-[var(--text-primary)] text-lg">{walletBalance.toLocaleString()} XAF</p>
               </div>
-              <div className="rounded-xl border border-[var(--glass-border)] p-3">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">In Escrow</p>
-                <p className="font-black text-[var(--text-primary)]">{pendingEscrow.toLocaleString()} XAF</p>
+              <div className="rounded-2xl border border-[var(--glass-border)] p-4 bg-[var(--bg-secondary)]/20">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-50 mb-1">In Escrow</p>
+                <p className="font-black text-[var(--text-primary)] text-lg">{pendingEscrow.toLocaleString()} XAF</p>
               </div>
-              <div className="rounded-xl border border-[var(--glass-border)] p-3">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">Recent Paid</p>
-                <p className="font-black text-[var(--text-primary)]">{recentPaid.toLocaleString()} XAF</p>
+              <div className="rounded-2xl border border-[var(--glass-border)] p-4 bg-[var(--bg-secondary)]/20">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-50 mb-1">Recent Paid</p>
+                <p className="font-black text-[var(--text-primary)] text-lg">{recentPaid.toLocaleString()} XAF</p>
               </div>
             </div>
           </div>
@@ -242,13 +242,13 @@ export default function VendorDashboard() {
           {/* Middle: Chart + Orders */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Sales Chart */}
-            <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
-              <div className="flex justify-between items-center mb-4">
+            <div className="lg:col-span-2 glass-panel rounded-[2rem] p-6 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
+              <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase">Sales Growth</h3>
                   <p className="text-[8px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest">Monthly sales trends</p>
                 </div>
-                <select className="bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] text-[8px] font-black rounded-lg px-2 py-1 focus:outline-none uppercase tracking-widest">
+                <select className="bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] text-[8px] font-black rounded-full px-4 py-2 focus:outline-none uppercase tracking-widest">
                   <option>Last 6 Months</option>
                   <option>Last Year</option>
                 </select>
@@ -270,10 +270,10 @@ export default function VendorDashboard() {
             </div>
 
             {/* Recent Orders */}
-            <div className="glass-panel rounded-xl p-6 flex flex-col border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
+            <div className="glass-panel rounded-[2rem] p-6 flex flex-col border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-[var(--text-primary)]">Recent Orders</h3>
-                <Link href="/vendor/orders" className="text-[var(--accent)] text-xs font-semibold hover:underline">View All</Link>
+                <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight">Recent Activity</h3>
+                <Link href="/vendor/orders" className="text-[var(--accent)] text-[9px] font-black uppercase tracking-widest hover:underline">View All</Link>
               </div>
               <div className="space-y-5 flex-1">
                 {orders.slice(0, 4).map((order, i) => (
@@ -298,9 +298,9 @@ export default function VendorDashboard() {
           </div>
 
           {/* Live Order Tracking Table */}
-          <div className="glass-panel rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
+          <div className="glass-panel rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
             <div className="p-6 border-b border-[var(--glass-border)] flex justify-between items-center">
-              <h3 className="text-base font-black text-[var(--text-primary)] tracking-tight uppercase">Active Orders</h3>
+              <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase">Active Transmissions</h3>
               <div className="flex gap-2">
                 <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase">ALL</button>
                 <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase hover:bg-[var(--accent)]/5">PROCESSING</button>

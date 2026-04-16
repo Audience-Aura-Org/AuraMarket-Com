@@ -1,230 +1,234 @@
 "use client";
 
 import { useState } from 'react';
-
-import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingCart, Star, Plus, ShieldCheck, MessageSquare, Zap, Eye, Heart } from 'lucide-react';
+import { 
+  ShoppingCart, Star, Plus, ShieldCheck, 
+  MessageSquare, Zap, Eye, Heart, 
+  UserPlus, UserCheck, Compass 
+} from 'lucide-react';
 import { trackAction, trackWishlist } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
+import { useFollow } from '@/hooks/useFollow';
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
 
-export default function ProductCard({ product }) {
+/**
+ * ProductCard - Elite Nexus Version
+ * Standardized premium card used across Hub and Shop.
+ */
+export default function ProductCard({ product, layout = 'grid', onOpenChat = null, onClick = null }) {
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
-  
-  // Handle both string and object image formats
-  const rawImage = images && images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80';
-  const mainImage = typeof rawImage === 'string' ? rawImage : (rawImage.url || '/placeholder.png');
+  const vendorId = vendor_id?._id || vendor_id;
   
   const { user } = useAuthStore();
-  const [adding, setAdding] = useState(false);
+  const { isFollowing, toggleFollow, loading: followLoading } = useFollow(vendorId);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
-  const [toast, setToast] = useState(null);
+
+  // Handle both string and object image formats
+  const rawImage = images && images.length > 0 ? images[0] : null;
+  const mainImage = typeof rawImage === 'string' ? rawImage : (rawImage?.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80');
+
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
+    if (!user) { alert('Please login first'); return; }
+    setAddingToCart(true);
+    cartStore.addItem(product, 1);
+    api.post('/cart', { product_id: productId, quantity: 1 })
+      .finally(() => setAddingToCart(false));
+  };
 
   const handleWishlist = async (e) => {
-    e.preventDefault();
     e.stopPropagation();
-    if (!user) { showToast("Login to wishlist", "error"); return; }
+    if (!user) { alert('Please login to wishlist'); return; }
     setWishlistLoading(true);
     try {
-      const res = await api.post('/wishlist/toggle', { product_id: productId });
-      setWishlisted(res.data.data?.wishlisted ?? !wishlisted);
-      if (res.data.data?.wishlisted) trackWishlist(product);
-    } catch { 
+      await api.post('/wishlist/toggle', { product_id: productId });
       setWishlisted(!wishlisted);
+      if (!wishlisted) trackWishlist(product);
+    } catch { 
+      alert('Failed to update wishlist');
     } finally { 
       setWishlistLoading(false); 
     }
   };
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const { openChat } = useChat();
 
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
+  const handleChat = (e) => {
     e.stopPropagation();
-    
-    if (!user) {
-      showToast("Please login first", "error");
-      return;
-    }
-
-    if (!productId) {
-      showToast("Product error. Try again.", "error");
-      return;
-    }
-
-    setAdding(true);
-    
-    // OPTIMISTIC BROADCAST (Instant UI response)
-    cartStore.addItem(product, 1);
-
-    // Global feedback event (triggers beautiful background notification)
-    if (typeof window !== 'undefined') {
-       window.dispatchEvent(new CustomEvent('cart-item-added', { 
-         detail: { 
-           name: product.name, 
-           image: mainImage 
-         } 
-       }));
-    }
-    
-    try {
-      const payload = { 
-        product_id: productId.toString(), 
-        quantity: 1 
-      };
-      
-      const response = await api.post('/cart', payload);
-      cartStore.setCart(response.data.data.cart);
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || "Failed to add to cart";
-      showToast(errorMessage, "error");
-      cartStore.refresh();
-    } finally {
-      setAdding(false);
+    if (!user) { alert('Please login to chat'); return; }
+    if (vendorUserId) {
+      const vName = vendor_id?.store_name || 'Verified Store';
+      const vLogo = vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo;
+      openChat(vendorUserId, product, { 
+        store_name: vName, 
+        branding: { logo: vLogo } 
+      });
+    } else {
+       // Fallback for pages without vendor context
+       openChat(null);
     }
   };
 
-  const handleBuyNow = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user) {
-      window.location.href = '/login';
-      return;
-    }
-    // Redirect to checkout with this product
-    window.location.href = `/checkout?productId=${productId}&quantity=1`;
-  };
+  if (layout === 'list') {
+    return (
+      <div 
+        onClick={() => trackAction({ product_id: productId, action_type: 'view', category, vendor_id })}
+        className="group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-xl flex items-center gap-5 p-4 h-40 md:h-48 cursor-pointer"
+      >
+        <div className="relative h-full aspect-[4/5] shrink-0 rounded-2xl overflow-hidden bg-[var(--accent)]/5">
+          <img src={mainImage} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2 right-2 size-8 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/40 text-white border-white/10 hover:bg-red-500'}`}>
+            <Heart className={`size-4 ${wishlisted ? 'fill-current' : ''}`} />
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
+          <div className="space-y-2">
+             <div className="flex items-center justify-between gap-4">
+                <Link href={`/shop?vendorId=${vendorId}`} className="flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
+                  <div className="size-5 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+                    <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
+                  </div>
+                  <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest truncate">{vendor_id?.store_name || 'Verified Node'}</span>
+                </Link>
+                {user?._id !== vendorUserId && (
+                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`text-[8px] font-black tracking-tighter ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
+                    {isFollowing ? 'FOLLOWING' : '+ FOLLOW'}
+                  </button>
+                )}
+             </div>
+
+            <Link href={`/products/${productId}`} className="block">
+              <h3 className="text-sm md:text-lg font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors">{name}</h3>
+            </Link>
+            <div className="flex items-center gap-4">
+              <p className="text-[14px] md:text-[18px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
+              <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-40">
+                 <span className="flex items-center gap-1"><ShoppingCart className="size-3 text-emerald-500" /> {product.purchase_count || 0}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 mt-auto">
+            <button onClick={(e) => { e.stopPropagation(); window.location.href = `/checkout?productId=${productId}&quantity=1`; }} className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black tracking-widest rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95">BUY NOW</button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleChat} className="size-9 rounded-2xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+                <MessageSquare className="size-4.5" />
+              </button>
+              <button onClick={handleAddToCart} disabled={addingToCart} className="size-9 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm">
+                <Plus className={`size-4.5 ${addingToCart ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
-      onClick={() => trackAction({ product_id: productId, action_type: 'view', category, vendor_id: vendor_id?._id })}
-      className="group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl hover:shadow-[var(--accent)]/10 transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-md flex flex-col h-full"
+      onClick={(e) => {
+        if (onClick) {
+          e.preventDefault();
+          e.stopPropagation();
+          onClick(product);
+        } else {
+          trackAction({ product_id: productId, action_type: 'view', category, vendor_id });
+        }
+      }}
+      className="group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer"
     >
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-[10px] font-black uppercase tracking-widest transition-all animate-in fade-in slide-in-from-top-4 duration-300 ${
-          toast.type === 'error'
-            ? 'bg-red-500/10 border-red-500/20 text-red-500'
-            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
-        }`}>
-          <span className={`size-1.5 rounded-full ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse`} />
-          {toast.msg}
-        </div>
-      )}
+      {/* 1. Vendor Header - ELITE SYNCED */}
+      <div className="p-3 flex items-center justify-between gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
+         <Link href={`/shop?vendorId=${vendorId}`} className="flex items-center gap-2 min-w-0 flex-1 group/vendor" onClick={e => e.stopPropagation()}>
+            <div className="size-6 rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
+              <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h4 className="text-[9px] font-black text-[var(--text-primary)] truncate uppercase tracking-widest leading-none mb-0.5">{vendor_id?.store_name || 'Verified Node'}</h4>
+              {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
+            </div>
+         </Link>
+         
+         {user?._id !== vendorUserId && (
+           <button 
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }}
+              disabled={followLoading}
+              className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-sm border ${
+                isFollowing 
+                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
+                : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'
+              }`}
+           >
+              {isFollowing ? 'Following' : '+ Follow'}
+           </button>
+         )}
+      </div>
 
-      {/* Product Image Area */}
+      {/* 2. Photo Area */}
       <div className="relative aspect-square overflow-hidden bg-[var(--accent)]/5">
-        <img 
-          src={mainImage} 
-          alt={name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
+        <Link href={`/products/${productId}`} className="block h-full w-full" onClick={e => e.stopPropagation()}>
+          <img src={mainImage} alt={name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+        </Link>
         
-        {/* Glow Effect */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)]/40 via-transparent to-transparent opacity-40" />
+        {/* Wishlist Icon */}
+        <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>
+          <Heart className={`size-3.5 ${wishlisted ? 'fill-current' : ''}`} />
+        </button>
 
-        {/* Floating Badges */}
-        <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-10">
-          {category && (
-            <div className="px-2 py-1 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-md text-[8px] font-black tracking-widest text-[var(--accent)] border border-[var(--glass-border)] shadow-sm">
-              {category}
-            </div>
-          )}
-          
-          <button 
-            onClick={handleWishlist}
-            disabled={wishlistLoading}
-            className={`size-8 rounded-xl flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl ${
-              wishlisted 
-                ? 'bg-red-500 text-white border-red-500 shadow-red-500/20' 
-                : 'bg-[var(--bg-primary)]/80 text-[var(--text-secondary)] border-[var(--glass-border)] hover:text-red-500 hover:scale-110'
-            }`}
-          >
-            <Heart className={`size-4 ${wishlisted ? 'fill-current' : ''} ${wishlistLoading ? 'animate-pulse' : ''}`} />
-          </button>
-        </div>
-
-        {/* Rating Floating */}
-        <div className="absolute bottom-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300">
-           <div className="flex items-center gap-1 bg-[var(--bg-primary)]/90 backdrop-blur-xl px-2 py-1 rounded-lg border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] shadow-sm">
-              <Star className="w-2.5 h-2.5 fill-[var(--accent)] text-[var(--accent)]" />
-              <span>{rating || '4.8'}</span>
-           </div>
-        </div>
+        {/* Discovery Overlay */}
+        <Link 
+          href={`/shop?vendorId=${vendorId}`} 
+          onClick={e => e.stopPropagation()}
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[8px] font-black tracking-[0.2em] transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20"
+        >
+          <Compass className="size-3" />
+          DISCOVERY
+        </Link>
       </div>
 
-      {/* Content Area */}
-      <div className="p-4 flex flex-col flex-1 gap-3 relative z-10">
-        <div className="space-y-3">
-          <Link href={`/products/${productId}`} className="block relative z-20">
-            <h3 className="!text-[12px] sm:!text-[14px] font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">
-              {name}
-            </h3>
+      {/* 3. Info & Actions */}
+      <div className="p-3.5 flex flex-col flex-1 gap-3">
+        <div className="space-y-1">
+          <Link href={`/products/${productId}`} className="block">
+            <h3 className="text-[11px] font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
           </Link>
-          
           <div className="flex items-center justify-between">
-            <span className="text-[12px] sm:text-[14px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</span>
-            <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)]">
-               <span className="flex items-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-500" /> {product.purchase_count || 0}</span>
-               <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-[var(--accent)]" /> {product.view_count || 0}</span>
+            <span className="text-[12px] font-black text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
+            <div className="flex items-center gap-1 opacity-30">
+               <Star className="size-2 fill-[var(--accent)] text-[var(--accent)]" />
+               <span className="text-[8px] font-bold text-[var(--text-secondary)]">{rating || '4.8'}</span>
             </div>
-          </div>
-          
-          <div className="flex justify-between items-center -mt-1">
-            <Link 
-              href={`/stores/${vendor_id?._id || ''}`}
-              className="flex items-center gap-1.5 group/vendor"
-            >
-              <div className="size-4 rounded-full overflow-hidden bg-[var(--accent)]/5 border border-[var(--glass-border)]">
-                <img 
-                  src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'Aura'}&backgroundColor=var(--accent)`} 
-                  className="size-full object-cover"
-                  alt="Store"
-                />
-              </div>
-              <span className="text-[9px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[80px]">
-                {vendor_id?.store_name || 'Verified Node'}
-              </span>
-            </Link>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-2 flex items-center gap-2 mt-auto relative z-20 focus-within:z-30">
+        <div className="flex items-center gap-1.5 mt-auto">
           <button 
-            onClick={handleBuyNow}
-            className="flex-1 h-9 bg-[var(--accent)] text-white text-[10px] sm:text-[9px] font-black tracking-widest rounded-xl flex items-center justify-center hover:bg-[var(--accent)]/80 transition-all shadow-lg shadow-[var(--accent)]/20 active:scale-95"
+             onClick={(e) => { e.stopPropagation(); window.location.href = `/products/${productId}`; }}
+             className="flex-1 h-8 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] font-black tracking-widest rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
           >
-            BUY NOW
+            VIEW
           </button>
           
-          <div className="flex items-center gap-1.5">
-            {user?._id !== vendorUserId && (
-              <Link href={`/messages?vendorId=${vendorUserId || ''}&productId=${productId}`} className="size-9 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/10 transition-all">
-                <MessageSquare className="size-4" />
-              </Link>
-            )}
-            <button 
-              onClick={handleAddToCart}
-              disabled={adding}
-              className="size-9 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md disabled:opacity-50"
-            >
-              <Plus className={`size-4 ${adding ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          <button 
+             onClick={handleChat}
+             className="size-8 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"
+          >
+            <MessageSquare className="size-3.5" />
+          </button>
+          
+          <button onClick={handleAddToCart} disabled={addingToCart} className="size-8 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95">
+            <Plus className={`size-4 ${addingToCart ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
-      
-      {/* Hidden Link for SEO/Accessibility overlay */}
-      <Link href={`/products/${productId}`} className="absolute top-0 left-0 w-full h-[65%] z-0" aria-label={`View ${name}`} />
     </div>
   );
 }

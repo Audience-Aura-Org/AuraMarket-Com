@@ -68,10 +68,19 @@ export default function LogisticsAnalyticsPage() {
 
   // Stats
   const activeShipments = shipments.filter(s => ['at_source', 'in_transit', 'arrived_at_destination'].includes(s.status)).length;
+  const totalDelivered = shipments.filter(s => s.status === 'delivered').length;
   const deliverySuccess = shipments.length > 0 
-    ? Math.round((shipments.filter(s => s.status === 'delivered').length / shipments.length) * 100) 
-    : 0;
+    ? Math.round((totalDelivered / shipments.length) * 100) 
+    : 100;
   const pendingPickup = shipments.filter(s => s.status === 'pending').length;
+  const networkStatus = deliverySuccess > 90 ? 'Optimal' : deliverySuccess > 70 ? 'Stable' : 'Degraded';
+
+  // Calculate Efficiency Trend (Delivered last 7 days vs previous 7)
+  const histogramEfficiency = histogramData.slice(-7).reduce((acc, d) => acc + d.count, 0);
+  const prevEfficiency = histogramData.slice(-14, -7).reduce((acc, d) => acc + d.count, 0);
+  const efficiencyTrend = prevEfficiency > 0 
+    ? ((histogramEfficiency - prevEfficiency) / prevEfficiency * 100).toFixed(1)
+    : '0.0';
 
   if (user?.role !== 'logistics') return null;
 
@@ -81,7 +90,7 @@ export default function LogisticsAnalyticsPage() {
       <div className="hidden md:block px-4 md:px-8 lg:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20 shadow-sm transition-transform hover:rotate-3">
               <BarChart3 className="w-6 h-6 text-[var(--accent)]" />
             </div>
             <div>
@@ -95,8 +104,8 @@ export default function LogisticsAnalyticsPage() {
               <button
                 key={t}
                 onClick={() => setRange(t)}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
-                  range === t ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-white/5'
+                className={`px-5 py-2 rounded-full text-[10px] font-black uppercase transition-all tracking-widest ${
+                  range === t ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-white/5 border border-transparent hover:border-[var(--glass-border)]'
                 }`}
               >
                 {t}D
@@ -148,7 +157,7 @@ export default function LogisticsAnalyticsPage() {
                       initial={{ opacity: 0, scale: 0.9, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 px-4 py-2 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black whitespace-nowrap z-50 shadow-2xl"
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 px-4 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black whitespace-nowrap z-50 shadow-2xl border border-[var(--glass-border)]"
                     >
                       {d.count} SHIPMENTS
                       <span className="block text-[8px] font-bold opacity-60 uppercase">{d.label}</span>
@@ -168,18 +177,18 @@ export default function LogisticsAnalyticsPage() {
         {/* Intelligence Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Network Health', value: 'Optimal', sub: `${deliverySuccess}% Success`, icon: Shield, color: 'emerald' },
-            { label: 'Active Manifests', value: activeShipments, sub: 'In pipeline', icon: Activity, color: 'blue' },
-            { label: 'Inbound Load', value: pendingPickup, sub: 'Awaiting intake', icon: Truck, color: 'indigo' },
-            { label: 'Efficiency Yield', value: '+12.4%', sub: 'vs last window', icon: TrendingUp, color: 'amber' }
+            { label: 'Network Health', value: networkStatus, sub: `${deliverySuccess}% Success`, icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+            { label: 'Active Manifests', value: activeShipments, sub: 'In pipeline', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+            { label: 'Inbound Load', value: pendingPickup, sub: 'Awaiting intake', icon: Truck, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+            { label: 'Efficiency Yield', value: `${efficiencyTrend}%`, sub: 'vs last window', icon: TrendingUp, color: 'text-amber-500', bg: 'bg-amber-500/10' }
           ].map((stat, i) => (
             <motion.div
               key={i}
               whileHover={{ scale: 1.02 }}
-              className="p-6 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] group cursor-default"
+              className="p-6 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] group cursor-default shadow-sm hover:shadow-xl transition-all"
             >
-              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
+              <div className={`p-3 rounded-2xl ${stat.bg} w-fit mb-4 group-hover:scale-110 transition-transform shadow-inner`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
               <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-1">{stat.label}</p>
               <h4 className="text-3xl font-black tracking-tight mb-1">{stat.value}</h4>
@@ -190,7 +199,7 @@ export default function LogisticsAnalyticsPage() {
 
         {/* Regional Efficiency */}
         <div className="grid lg:grid-cols-2 gap-8">
-          <section className="p-8 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)]">
+          <section className="p-8 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-lg font-black">Regional Efficiency</h3>
@@ -223,7 +232,7 @@ export default function LogisticsAnalyticsPage() {
             </div>
           </section>
 
-          <section className="p-8 rounded-3xl bg-[var(--bg-secondary)]/10 border border-[var(--glass-border)] flex flex-col justify-center items-center text-center">
+          <section className="p-8 rounded-[2rem] bg-[var(--bg-secondary)]/10 border border-[var(--glass-border)] flex flex-col justify-center items-center text-center shadow-sm">
             <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-6">
               <Zap className="w-8 h-8 text-[var(--accent)]" />
             </div>
@@ -231,7 +240,7 @@ export default function LogisticsAnalyticsPage() {
             <p className="text-sm text-[var(--text-secondary)] opacity-60 mb-8 max-w-[280px]">
               Regional load in <span className="text-[var(--text-primary)] font-bold">Douala</span> is peaking. Reallocate assets to Node 04.
             </p>
-            <button className="px-8 py-3 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">
+            <button className="px-8 py-3 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 active:scale-95">
               Execute Rebalance
             </button>
           </section>

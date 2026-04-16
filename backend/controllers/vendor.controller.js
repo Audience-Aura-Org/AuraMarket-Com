@@ -266,17 +266,20 @@ const getPublicStores = async (req, res, next) => {
       query.store_name = { $regex: search, $options: 'i' };
     }
 
+    const sort = req.query.sort || '-createdAt';
+
     const total = await Vendor.countDocuments(query);
 
     // We fetch base Vendors and populate their Stores
     // Used for store directories and discovery feeds
     const stores = await Vendor.find(query)
-      .select('store_name rating verified description user_id follower_count')
+      .select('store_name rating verified description user_id follower_count createdAt')
       .populate('store', 'logo banner categories') // only fetch visible assets
       .populate('user_id', 'branding avatar') // fetch user-level branding for fallbacks
       .skip(startIndex)
       .limit(limit)
-      .sort('-createdAt'); 
+      .sort(sort)
+      .lean(); 
 
     res.status(200).json({
       success: true,

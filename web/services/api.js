@@ -19,6 +19,7 @@ const getBaseURL = () => {
 
 const api = axios.create({
   baseURL: getBaseURL(),
+  timeout: 10000, // 10s hard cap — prevents hanging requests
   headers: {
     'Content-Type': 'application/json',
   },
@@ -108,7 +109,7 @@ api.interceptors.response.use(
     if (!config) return Promise.reject(error);
 
     config.__retryCount = config.__retryCount || 0;
-    const MAX_RETRIES = 4;
+    const MAX_RETRIES = 2; // Reduced from 4 — fail fast, don't hang
 
     if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
       if (error.response) {

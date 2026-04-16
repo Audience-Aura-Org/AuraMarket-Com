@@ -24,6 +24,7 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const path = require('path');
+const compression = require('compression');
 
 // ─────────────────────────────────────────────
 // 3. Config imports
@@ -98,6 +99,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
 
+app.use(compression()); // Gzip all API responses
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

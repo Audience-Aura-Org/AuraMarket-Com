@@ -16,7 +16,7 @@
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
-  --nav-bg: rgba(10, 5, 15, 0.95); 
+  --nav-bg: rgba(10, 5, 15, 0.95);
   --nav-text: #f8fafc;
   --nav-border: rgba(255, 255, 255, 0.08);
   --component-bg: rgba(15, 23, 42, 0.04);
@@ -85,17 +85,7 @@ h1,h2,h3,h4,h5,h6 {
 
 i, em { font-style: normal !important; }
 
-/* Dashboard Header Automagic Color Override */
-header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-primary)]"] {
-  color: var(--nav-text) !important;
-}
-header.bg-\[var\(--nav-bg\)\] [class*="text-[var(--text-secondary)]"] {
-  color: var(--nav-text) !important;
-  opacity: 0.7 !important;
-}
-header.bg-\[var\(--nav-bg\)\] [class*="bg-[var(--bg-primary)]"] {
-  background-color: var(--nav-border) !important;
-}
+
 
 @media (max-width: 640px) {
   html { 

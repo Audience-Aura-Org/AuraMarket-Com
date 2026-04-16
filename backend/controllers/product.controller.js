@@ -328,6 +328,9 @@ const trackProductView = async (req, res, next) => {
       { upsert: true, returnDocument: 'after' }
     );
 
+    // 🚀 NEW: Pulse increment the actual product's view_count for real-time analytics
+    await Product.findByIdAndUpdate(req.params.id, { $inc: { view_count: 1 } });
+
     const viewCount = await RecentlyViewed.countDocuments({ user_id: req.user._id });
     if (viewCount > 20) {
       const oldest = await RecentlyViewed.find({ user_id: req.user._id }).sort({ viewed_at: 1 }).limit(1);
@@ -436,8 +439,15 @@ const getHubFeed = async (req, res, next) => {
   try {
     const User = require('../models/User.model');
     const Follow = require('../models/Follow.model');
-    const user = await User.findById(req.user._id);
-    const follows = await Follow.find({ user_id: req.user._id });
+    
+    // 1. Parallelize initial user and follow lookups
+    const [user, follows] = await Promise.all([
+      User.findById(req.user._id).lean(),
+      Follow.find({ user_id: req.user._id }).lean()
+    ]);
+    
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    
     const followedVendorIds = follows.map(f => f.vendor_id);
     const categoryIds = user.liked_categories || [];
 
@@ -446,50 +456,22 @@ const getHubFeed = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 20;
     const skip = (page - 1) * limit;
 
-    // Get products from followed vendors
-    let followedProducts = [];
-    if (followedVendorIds.length > 0 && page === 1) {
-      followedProducts = await Product.find({ 
-        status: 'active',
-        vendor_id: { $in: followedVendorIds }
-      })
-      .populate({
-        path: 'vendor_id',
-        select: 'store_name rating verified pickup_address user_id average_response_time',
-        populate: { path: 'store', select: 'logo' }
-      })
-      .sort(sort)
-      .limit(10);
-    }
-
-    // Get recommended products from liked categories (excluding followed vendors)
+    // 2. Prepare recommendation query
     let query = { status: 'active' };
     if (followedVendorIds.length > 0) {
       query.vendor_id = { $nin: followedVendorIds };
     }
     
-    // Support category filter from query params or user preferences
     if (req.query.category) {
       const targetCategoryName = req.query.category;
-      const targetCategory = await Category.findOne({ name: targetCategoryName });
+      const targetCategory = await Category.findOne({ name: targetCategoryName }).lean();
       
       if (targetCategory) {
-        const allCategories = await Category.find();
-        let validCategoryNames = [targetCategoryName];
-        let toCheck = [targetCategory._id.toString()];
-        let foundNew = true;
-        
-        while (foundNew) {
-          foundNew = false;
-          for(let i=0; i < allCategories.length; i++) {
-            if (allCategories[i].parent_id && toCheck.includes(allCategories[i].parent_id.toString()) && !validCategoryNames.includes(allCategories[i].name)) {
-              validCategoryNames.push(allCategories[i].name);
-              toCheck.push(allCategories[i]._id.toString());
-              foundNew = true;
-            }
-          }
-        }
-        query.category = { $in: validCategoryNames };
+        // Optimized category search: just get immediate subcategories for performance
+        const subCategories = await Category.find({ 
+          $or: [{ _id: targetCategory._id }, { parent_id: targetCategory._id }] 
+        }).select('name').lean();
+        query.category = { $in: subCategories.map(c => c.name) };
       } else {
         query.category = targetCategoryName;
       }
@@ -497,21 +479,49 @@ const getHubFeed = async (req, res, next) => {
       query.category = { $in: categoryIds };
     }
 
-    let products = await Product.find(query)
-      .populate({
-        path: 'vendor_id',
-        select: 'store_name rating verified pickup_address user_id average_response_time',
-        populate: { path: 'store', select: 'logo' }
-      })
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
+    // 3. Parallelize product fetching and counting
+    const followedProductsPromise = (followedVendorIds.length > 0 && page === 1)
+      ? Product.find({ status: 'active', vendor_id: { $in: followedVendorIds } })
+          .populate({
+            path: 'vendor_id',
+            select: 'store_name rating verified pickup_address user_id average_response_time',
+            populate: [
+              { path: 'store', select: 'logo' },
+              { path: 'user_id', select: 'avatar branding' }
+            ]
+          })
+          .sort(sort)
+          .limit(10)
+          .lean()
+      : Promise.resolve([]);
 
-    const total = await Product.countDocuments(query);
+    const [followedProducts, productsRaw, total] = await Promise.all([
+      followedProductsPromise,
+      Product.find(query)
+        .populate({
+          path: 'vendor_id',
+          select: 'store_name rating verified pickup_address user_id average_response_time',
+          populate: [
+            { path: 'store', select: 'logo' },
+            { path: 'user_id', select: 'avatar branding' }
+          ]
+        })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments(query)
+    ]);
 
+    let products = productsRaw;
+
+    // 4. Fallback for sparse results (Page 1)
     if (products.length < 5 && page === 1) {
-      const excludeIds = products.map(p => p._id);
-      const recommended = await Product.find({ status: 'active', _id: { $nin: excludeIds } })
+      const excludeIds = [...followedProducts, ...products].map(p => p._id);
+      const recommended = await Product.find({ 
+        status: 'active', 
+        _id: { $nin: excludeIds } 
+      })
       .populate({
         path: 'vendor_id',
         select: 'store_name rating verified pickup_address user_id average_response_time',
@@ -521,7 +531,8 @@ const getHubFeed = async (req, res, next) => {
         ]
       })
       .sort({ popularity_score: -1, createdAt: -1 })
-      .limit(10);
+      .limit(10)
+      .lean();
       products = [...products, ...recommended];
     }
 
@@ -530,7 +541,8 @@ const getHubFeed = async (req, res, next) => {
       pagination: {
         total,
         page,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / limit),
+        limit
       },
       data: { 
         followedProducts,

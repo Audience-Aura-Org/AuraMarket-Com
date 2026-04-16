@@ -1,5 +1,0 @@
-{
-  "root": "aura-market/web",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next"
-}

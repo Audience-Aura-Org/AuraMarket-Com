@@ -8,10 +8,13 @@ import {
   LayoutGrid, LogIn
 } from "lucide-react";
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
+import { MessageCircle } from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const { openChat } = useChat();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -27,7 +30,7 @@ export default function BottomNav() {
   const menu = [
     { label: "Discover", href: "/discovery", icon: Compass },
     { label: "Home", href: "/", icon: House },
-    { label: "Cart", href: "/cart", icon: ShoppingBag },
+    { label: "Chats", onClick: () => openChat(null), icon: MessageCircle },
     { label: "Shop", href: "/shop", icon: LayoutGrid },
   ];
 
@@ -56,27 +59,45 @@ export default function BottomNav() {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
 
-            return (
-              <Link 
-                key={item.label} 
-                href={item.href}
-                className={`flex flex-col items-center justify-center w-full h-full transition-all duration-300 ${
-                  isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                <div className={`p-1.5 rounded-xl transition-all duration-300 relative ${
-                  isActive ? 'bg-[var(--accent)]/10 scale-105 shadow-lg shadow-[var(--accent)]/10' : ''
-                }`}>
-                  <Icon className={`size-5 transition-all ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                  {isActive && (
-                    <div className="absolute -top-1 -right-1 size-1.5 bg-[var(--accent)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent)]"></div>
-                  )}
-                </div>
-                <span className={`mt-0.5 text-[10px] font-semibold tracking-tight leading-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
-                  {item.label}
-                </span>
-              </Link>
-            );
+              const itemContent = (
+                <>
+                  <div className={`p-1.5 rounded-xl transition-all duration-300 relative ${
+                    isActive ? 'bg-[var(--accent)]/10 scale-105 shadow-lg shadow-[var(--accent)]/10' : ''
+                  }`}>
+                    <Icon className={`size-5 transition-all ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                    {isActive && (
+                      <div className="absolute -top-1 -right-1 size-1.5 bg-[var(--accent)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent)]"></div>
+                    )}
+                  </div>
+                  <span className={`mt-0.5 text-[10px] font-semibold tracking-tight leading-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                    {item.label}
+                  </span>
+                </>
+              );
+
+              if (item.onClick) {
+                return (
+                  <button 
+                    key={item.label} 
+                    onClick={item.onClick}
+                    className="flex flex-col items-center justify-center w-full h-full transition-all duration-300 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  >
+                    {itemContent}
+                  </button>
+                );
+              }
+
+              return (
+                <Link 
+                  key={item.label} 
+                  href={item.href}
+                  className={`flex flex-col items-center justify-center w-full h-full transition-all duration-300 ${
+                    isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  {itemContent}
+                </Link>
+              );
           })}
         </div>
       </nav>

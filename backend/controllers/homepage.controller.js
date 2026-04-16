@@ -39,7 +39,9 @@ const getHomepage = async (req, res, next) => {
       path: 'data.vendor_id',
       select: 'store_name description rating verified user_id',
       populate: { path: 'store user_id', select: 'logo banner branding avatar' }
-    });
+    })
+    .lean();
+    
     console.log('[homepage] fetched sections count:', sections.length);
 
     res.status(200).json({

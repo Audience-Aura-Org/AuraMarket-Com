@@ -5,15 +5,21 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Search, MessageCircle, MoreVertical, 
   Send, Image as ImageIcon, Smile, 
-  CheckCheck, ArrowLeft, Phone, Video,
+  CheckCheck, Check, ArrowLeft, Phone, Video,
   ShieldCheck, Loader2, User, Package,
-  ExternalLink, X, LayoutGrid
+  ExternalLink, X, Plus, Mic, Menu,
+  Settings, UserPlus
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
-import Link from 'next/link';
 
+/**
+ * WhatsApp-Elite Messaging Page
+ * High-density operational pipeline with Multi-Product Context support.
+ * FULL DARK THEME (No Light Variables).
+ */
 function ChatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -26,145 +32,14 @@ function ChatContent() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [draftProduct, setDraftProduct] = useState(null);
+  const [contextProduct, setContextProduct] = useState(null);
   
   const scrollRef = useRef(null);
   const activeChatRef = useRef(null);
-  const userRef = useRef(null);
 
-  // Normalize partner identifier across varied shapes
-  const getPartnerId = (partner) => {
-    if (!partner) return null;
-    if (typeof partner === 'string') return partner;
-    if (partner._id) return partner._id?.toString();
-    if (partner.id) return partner.id?.toString();
-    if (partner.user_id && partner.user_id._id) return partner.user_id._id.toString();
-    if (partner.vendor_id && partner.vendor_id._id) return partner.vendor_id._id.toString();
-    return null;
-  };
-
-  // Socket Connection
-  useEffect(() => {
-    if (user?._id) {
-      socketService.connect(user._id);
-    }
-  }, [user]);
-
-  useEffect(() => { userRef.current = user; }, [user]);
   useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
 
-  // Register global socket handlers
-  useEffect(() => {
-    if (!user?._id) return;
-
-    if (!window._socketHandlerRef) {
-      window._socketHandlerRef = {};
-    }
-
-    if (window._socketHandlerRef[user._id]) {
-      return;
-    }
-
-    const handleIncoming = (msg) => {
-      try {
-        const currentUserId = userRef.current?._id?.toString();
-        const active = activeChatRef.current;
-        const activeId = active?._id?.toString();
-
-        const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
-        const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
-
-        setInbox(prev => {
-          const snippet = msg.text || (msg.product_reference?.name ? `📦 ${msg.product_reference.name}` : '');
-          const isUnread = receiverId === currentUserId;
-          
-          const partnerData = senderId === currentUserId ? msg.receiver_id : msg.sender_id;
-          const partnerId = getPartnerId(partnerData) || (senderId === currentUserId ? receiverId : senderId);
-          
-          if (!partnerId) return prev;
-          
-          const newEntry = { 
-            partner: partnerData || { _id: partnerId }, 
-            snippet, 
-            date: new Date().toISOString(), 
-            read_status: !isUnread 
-          };
-          
-          const existingIndex = prev.findIndex(c => getPartnerId(c.partner) === partnerId);
-          if (existingIndex > -1) {
-            const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], snippet: newEntry.snippet, date: newEntry.date, read_status: newEntry.read_status };
-            const item = updated.splice(existingIndex, 1)[0];
-            return [item, ...updated];
-          }
-          
-          // Add new entry and deduplicate by partnerId
-          const allChats = [newEntry, ...prev];
-          const seen = new Set();
-          const deduplicated = allChats.filter(c => {
-            const pid = getPartnerId(c.partner) || JSON.stringify(c.partner || c);
-            if (seen.has(pid)) return false;
-            seen.add(pid);
-            return true;
-          });
-          return deduplicated;
-        });
-
-        if (activeId) {
-          const belongsToActiveChat = (
-            (senderId === currentUserId && receiverId === activeId) ||
-            (senderId === activeId && receiverId === currentUserId)
-          );
-          
-          if (belongsToActiveChat) {
-            setMessages(prev => {
-              if (msg._id && prev.some(m => m._id?.toString() === msg._id?.toString())) {
-                return prev;
-              }
-              return [...prev, msg];
-            });
-
-            if (receiverId === currentUserId) {
-              api.patch(`/chat/read/${activeId}`).catch(() => {});
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[Chat] Socket handler error:', err);
-      }
-    };
-
-    const handleReadSync = ({ sender_id }) => {
-      if (!sender_id) return;
-      const sid = sender_id.toString();
-      setInbox(prev => prev.map(c => getPartnerId(c.partner) === sid ? { ...c, read_status: true } : c));
-    };
-
-    const handlePresence = ({ userId, isOnline, lastSeen }) => {
-      setInbox(prev => prev.map(c => getPartnerId(c.partner) === userId ? { ...c, partner: { ...c.partner, is_online: isOnline, last_seen: lastSeen } } : c));
-      setActiveChat(prev => prev?._id === userId ? { ...prev, is_online: isOnline, last_seen: lastSeen } : prev);
-    };
-
-    window._socketHandlerRef[user._id] = { handleIncoming, handleReadSync, handlePresence };
-
-    socketService.on('receive_message', handleIncoming);
-    socketService.on('sent_message_echo', handleIncoming);
-    socketService.on('messages_read', handleReadSync);
-    socketService.on('user_presence', handlePresence);
-
-    return () => {
-      socketService.off('receive_message', handleIncoming);
-      socketService.off('sent_message_echo', handleIncoming);
-      socketService.off('messages_read', handleReadSync);
-      socketService.off('user_presence', handlePresence);
-      
-      if (window._socketHandlerRef?.[user._id]) {
-        delete window._socketHandlerRef[user._id];
-      }
-    };
-  }, [user?._id]);
-
-  // Initial load
+  // ─── Initial Load ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token && !user?._id) {
       setLoading(false);
@@ -174,514 +49,327 @@ function ChatContent() {
     const initChat = async () => {
       setLoading(true);
       try {
-        const [inboxRes, followRes] = await Promise.all([
-           api.get('/chat'),
-           api.get('/vendors/following').catch(() => ({ data: { success: true, data: { following: [] } } }))
-        ]);
+        const inboxRes = await api.get('/chat');
+        if (inboxRes.data.success) {
+          const chats = inboxRes.data.data.activeChats || [];
+          setInbox(chats);
 
-        if (inboxRes.data.success && followRes.data.success) {
-           const activeChats = inboxRes.data.data.activeChats || [];
-           const following = followRes.data.data.following || [];
-           const combined = new Map();
+          const vendorId = searchParams.get('vendorId');
+          const productId = searchParams.get('productId');
 
-           // use getPartnerId helper declared above
+          if (vendorId) {
+            const existing = chats.find(c => (c.partner?._id || c.partner) === vendorId);
+            if (existing) {
+              setActiveChat(existing.partner);
+            } else {
+              const res = await api.get(`/users/profile/${vendorId}`).catch(() => null);
+              if (res?.data?.success) setActiveChat(res.data.data.user);
+            }
+          }
 
-           following.forEach(f => {
-              const partner = f.vendor_id?.user_id;
-              if (!partner) return;
-              const pid = getPartnerId(partner);
-              if (!pid) return;
-              combined.set(pid, {
-                partner: { ...partner, store_name: f.vendor_id?.store_name },
-                date: f.createdAt,
-                snippet: 'Node established. Ready for transmission.',
-                read_status: true
-              });
-           });
-
-           activeChats.forEach(c => {
-              const pid = getPartnerId(c.partner);
-              if (!pid) return;
-              // Only add if not already present from following, or if this has more recent/better data
-              const existing = combined.get(pid);
-              combined.set(pid, {
-                partner: c.partner,
-                date: c.date || existing?.date,
-                snippet: c.snippet || existing?.snippet,
-                read_status: c.read_status !== undefined ? c.read_status : existing?.read_status
-              });
-           });
-
-           const chats = Array.from(combined.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
-           setInbox(chats);
-
-           const vendorId = searchParams.get('vendorId');
-           const productId = searchParams.get('productId');
-           
-           const promises = [];
-           if (vendorId) {
-             const existing = chats.find(c => getPartnerId(c.partner) === vendorId.toString());
-             if (existing) {
-                setActiveChat(existing.partner);
-             } else {
-                promises.push(api.get(`/auth/users/${vendorId}`).then(res => {
-                  if (res.data.success) setActiveChat(res.data.data.user);
-                }).catch(() => api.get(`/users/${vendorId}`).then(res => {
-                  if (res.data.success) setActiveChat(res.data.data.user);
-                })));
-             }
-             
-             promises.push(api.get(`/chat/${vendorId}`).then(res => {
-                if (res.data.success && res.data.data.messages.length > 0) {
-                   setMessages(res.data.data.messages);
-                   if (res.data.data.messages.some(m => !m.read_status && m.receiver_id === user?._id)) {
-                     api.patch(`/chat/read/${vendorId}`).catch(() => {});
-                     socketService.emit('messages_read', { sender_id: vendorId });
-                   }
-                }
-             }));
-           }
-           
-           if (productId) {
-             promises.push(api.get(`/products/${productId}`).then(res => {
-               if (res.data.success) setDraftProduct(res.data.data.product);
-             }).catch(console.warn));
-           }
-
-           if (promises.length > 0) await Promise.allSettled(promises);
+          if (productId) {
+            api.get(`/products/${productId}`).then(res => {
+              if (res.data.success) setContextProduct(res.data.data.product || res.data.product);
+            }).catch(() => {});
+          }
         }
       } catch (err) {
-        console.error('Failed to load chat inbox', err);
+        console.error('Chat initialization failed', err);
       } finally {
         setLoading(false);
       }
     };
 
     initChat();
-  }, [searchParams, user?._id, token]);
+  }, [searchParams, user?._id]);
 
-  // Fetch conversation when activeChat changes
+  // ─── Conversation Handlers ─────────────────────────────────────────────────
   useEffect(() => {
     if (!activeChat) return;
+    const partnerId = activeChat._id || activeChat;
 
-    const activeId = activeChat._id.toString();
-    const currentFirstMsgPartner = messages[0] 
-      ? (
-          (messages[0].sender_id?._id || messages[0].sender_id)?.toString() === user?._id?.toString() 
-          ? (messages[0].receiver_id?._id || messages[0].receiver_id)?.toString() 
-          : (messages[0].sender_id?._id || messages[0].sender_id)?.toString()
-        ) 
-      : null;
-
-    if (messages.length > 0 && currentFirstMsgPartner === activeId) {
-       return; 
-    }
-
-    const fetchConversation = async () => {
-      setMessages([]);
+    const fetchConv = async () => {
       try {
-        const res = await api.get(`/chat/${activeId}`);
+        const res = await api.get(`/chat/${partnerId}`);
         if (res.data.success) {
-          setMessages(res.data.data.messages);
-          if (res.data.data.messages.some(m => !m.read_status && (m.receiver_id?._id || m.receiver_id) === user?._id)) {
-            api.patch(`/chat/read/${activeId}`).catch(err => console.error("Read sync failed", err));
-            socketService.emit('messages_read', { sender_id: activeId });
+          setMessages(res.data.data.messages || []);
+          if (res.data.data.messages.some(m => !m.read_status && m.receiver_id === user?._id)) {
+            api.patch(`/chat/read/${partnerId}`).catch(() => {});
           }
         }
-      } catch (err) {
-        console.error('Failed to fetch conversation', err);
-      }
+      } catch (err) { console.error(err); }
     };
+    fetchConv();
+  }, [activeChat, user?._id]);
 
-    fetchConversation();
-  }, [activeChat?._id, user?._id]);
-
-  // Scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  // Visibility Resume Sync
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && activeChatRef.current?._id) {
-        const activeId = activeChatRef.current._id.toString();
-        api.get(`/chat/${activeId}`).then(res => {
-          if (res.data.success) {
-            setMessages(res.data.data.messages);
-          }
-        }).catch(() => {});
+    if (!user?._id) return;
+    const handleInbound = (msg) => {
+      const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
+      const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
+      const currentActive = activeChatRef.current?._id?.toString();
+      if (currentActive && (senderId === currentActive || receiverId === currentActive)) {
+        setMessages(prev => {
+          if (prev.some(m => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
       }
+      api.get('/chat').then(res => { if (res.data.success) setInbox(res.data.data.activeChats || []); });
     };
+    socketService.on('receive_message', handleInbound);
+    return () => socketService.off('receive_message', handleInbound);
+  }, [user?._id]);
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    const hasPending = messages.some(m => m.pending);
-    if (!newMessage.trim() || !activeChat || sending || hasPending) return;
+  const handleSend = async (e) => {
+    if (e) e.preventDefault();
+    if (!newMessage.trim() || !activeChat || sending) return;
 
     setSending(true);
     const text = newMessage.trim();
-    const currentProductRef = draftProduct
-      ? {
-          _id: draftProduct._id,
-          name: draftProduct.name,
-          price: draftProduct.price,
-          images: draftProduct.images,
-        }
-      : null;
-    const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    const optimisticMsg = {
-      _id: tempId,
-      sender_id: user?._id,
-      receiver_id: activeChat._id,
+    const partnerId = activeChat._id || activeChat;
+
+    const optimistic = {
+      _id: `temp-${Date.now()}`,
       text,
+      sender_id: user?._id,
       createdAt: new Date().toISOString(),
-      pending: true,
-      product_reference: currentProductRef,
+      status: 'sending'
     };
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    setMessages(prev => [...prev, optimistic]);
     setNewMessage('');
 
     try {
-      const res = await api.post('/chat', {
-        receiver_id: activeChat._id,
+      const res = await api.post('/chat', { 
+        receiver_id: partnerId, 
         text,
-        product_reference: draftProduct ? draftProduct._id : (searchParams.get('productId') || null)
+        product_reference: contextProduct?._id
       });
-
       if (res.data.success) {
-        const serverMsg = res.data.data.message;
-        setMessages(prev => {
-          const withoutServer = prev.filter(m => m._id !== serverMsg._id);
-          return withoutServer.map(m => (m._id === tempId ? serverMsg : m));
-        });
-
-        setInbox(prev => {
-          const partnerId = getPartnerId(activeChat) || activeChat._id.toString();
-          const snippet = serverMsg.text || (serverMsg.product_reference && serverMsg.product_reference.name) || '';
-          const existing = prev.find(c => getPartnerId(c.partner) === partnerId);
-          const newEntry = { partner: activeChat, snippet, date: new Date().toISOString(), read_status: true };
-          
-          let result;
-          if (existing) {
-            // Update existing - remove old entry and add updated one at top
-            result = [ { ...existing, snippet: newEntry.snippet, date: newEntry.date, read_status: true }, ...prev.filter(c => getPartnerId(c.partner) !== partnerId) ];
-          } else {
-            // Add new entry
-            result = [ newEntry, ...prev ];
-          }
-          
-          // Deduplicate by partner ID in case any duplicates exist
-          const seen = new Set();
-          const deduplicated = result.filter(c => {
-            const pid = getPartnerId(c.partner) || JSON.stringify(c.partner || c);
-            if (seen.has(pid)) return false;
-            seen.add(pid);
-            return true;
-          });
-          return deduplicated;
-        });
-
-        if (draftProduct || searchParams.get('productId')) {
-          setDraftProduct(null);
-          const currentVendorId = (searchParams.get('vendorId') || activeChat?._id || '').toString();
-          router.replace(currentVendorId ? `/chat?vendorId=${currentVendorId}` : '/chat');
-        }
-      } else {
-        setMessages(prev => prev.map(m => m._id === tempId ? { ...m, pending: false, failed: true } : m));
+        setMessages(prev => prev.map(m => m._id === optimistic._id ? res.data.data.message : m));
       }
-    } catch (err) {
-      console.error('Failed to send message', err);
-      setMessages(prev => prev.map(m => m._id === tempId ? { ...m, pending: false, failed: true } : m));
+    } catch {
+      setMessages(prev => prev.map(m => m._id === optimistic._id ? { ...m, status: 'failed' } : m));
     } finally {
       setSending(false);
     }
   };
 
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
+
   const filteredInbox = useMemo(() => {
-    const filtered = inbox.filter(c => {
-      const name = (c.partner.store_name || c.partner.name || '').toLowerCase();
-      return name.includes(searchQuery.toLowerCase());
-    });
-    
-    // Additional safety deduplication
-    const seen = new Set();
-    return filtered.filter(c => {
-      const pid = getPartnerId(c.partner) || JSON.stringify(c.partner || c);
-      if (seen.has(pid)) return false;
-      seen.add(pid);
-      return true;
-    });
+    return inbox.filter(c => (c.partner?.store_name || c.partner?.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
   }, [inbox, searchQuery]);
 
-  const dashboardHref = user?.role === 'admin'
-    ? '/admin/dashboard'
-    : user?.role === 'vendor'
-      ? '/vendor/dashboard'
-      : user?.role === 'logistics'
-        ? '/logistics/dashboard'
-        : '/discovery';
+  const partnerName = activeChat?.store_name || activeChat?.branding?.store_name || activeChat?.name || 'User';
+  const partnerAvatar = activeChat?.branding?.logo || activeChat?.avatar || activeChat?.profile_picture;
 
-  const formatPresence = (partner) => {
-    if (partner?.is_online) return 'Online';
-    if (!partner?.last_seen) return 'Offline';
-    return `Last seen ${new Date(partner.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  };
+  // Track product context changes for thread rendering
+  let lastProductRef = null;
 
   return (
-    <div className="fixed inset-0 h-[100dvh] bg-[var(--bg-secondary)] flex transition-colors duration-500 overflow-hidden">
-      {/* Sidebar */}
-      <aside className={`w-full md:w-[350px] bg-[var(--bg-primary)] border-r border-[var(--glass-border)] flex flex-col min-h-0 ${activeChat ? 'hidden md:flex' : 'flex'} transition-colors relative z-20`}>
-        <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-primary)]/80 backdrop-blur-md">
-          <div className="flex flex-col">
-            <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-none">COMM <span className="text-[var(--accent)]">CENTER</span></h1>
-            <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.25em] mt-1.5 opacity-60 flex items-center gap-1.5 leading-none">
-               <span className={`size-2 rounded-full ${socketService.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
-               Operational Pipe
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push(dashboardHref)}
-              className="h-10 px-3 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] flex items-center justify-center gap-1.5 hover:text-[var(--text-primary)] transition-all shadow-sm"
-            >
-              <LayoutGrid className="w-4 h-4" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Dashboard</span>
-            </button>
-            <button className="size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--text-primary)] transition-all shadow-sm"><MoreVertical className="w-5 h-5" /></button>
-          </div>
-        </div>
-        
-        <div className="p-4">
-          <div className="relative group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 group-focus-within:text-[var(--accent)] transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search conversations..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all text-sm placeholder:opacity-60" 
-            />
-          </div>
+    <div className="fixed inset-0 flex bg-[#0c0c0c] text-[#e9edef] overflow-hidden">
+      {/* Sidebar Left */}
+      <aside className={`w-full md:w-[400px] border-r border-[#202c33] flex flex-col ${activeChat ? 'hidden md:flex' : 'flex'} z-20 bg-[#111b21]`}>
+        {/* Sidebar Header - FIXED BG */}
+        <div className="h-[64px] bg-[#202c33] px-4 flex items-center justify-between border-b border-[#111b21]">
+           <div className="size-10 rounded-full overflow-hidden bg-[#111b21] border border-white/10">
+              {user?.branding?.logo || user?.avatar ? <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt="" /> : <User className="m-auto mt-2 opacity-20" />}
+           </div>
+           <div className="flex items-center gap-5 text-[#aebac1]">
+              <MessageCircle className="size-5 cursor-pointer hover:text-white" />
+              <Settings className="size-5 cursor-pointer hover:text-white" />
+              <Menu className="size-5 cursor-pointer hover:text-white" />
+           </div>
         </div>
 
-        <div className="flex-1 min-h-0 px-3 pb-3">
-          <div className="h-full bg-[var(--bg-primary)]/40 rounded-[32px] border border-[var(--glass-border)] flex flex-col overflow-hidden backdrop-blur-xl">
-            <div className="px-4 py-3 border-b border-[var(--glass-border)] flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Synchronized Conversations</span>
-              <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 no-scrollbar">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center h-64 gap-4 opacity-40">
-                  <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
-                  <p className="text-xs font-semibold text-[var(--text-secondary)]">Loading messages...</p>
-                </div>
-              ) : filteredInbox.length === 0 ? (
-                <div className="py-16 text-center px-8 opacity-40">
-                  <MessageCircle className="w-10 h-10 text-[var(--text-secondary)]/30 mx-auto mb-3" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] leading-loose">
-                    No active connections.<br />Start a conversation.
-                  </p>
-                </div>
-              ) : (
-                filteredInbox.map((chat) => (
-                  <button
-                    key={chat.partner._id}
-                    onClick={() => setActiveChat(chat.partner)}
-                    className={`w-full p-4 rounded-2xl border flex items-center gap-4 transition-all relative group overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 ${activeChat?._id === chat.partner._id ? 'bg-[var(--bg-primary)] border-[var(--accent)]/40' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40'}`}
-                  >
-                    <div className="relative shrink-0">
-                      <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-bold text-base border border-[var(--glass-border)]">
-                         {chat.partner.branding?.logo || chat.partner.avatar 
-                           ? <img src={chat.partner.branding?.logo || chat.partner.avatar} className="w-full h-full object-cover" alt="Avatar" onError={(e) => { e.target.style.display='none'; }} /> 
-                           : chat.partner.name?.[0]?.toUpperCase()}
-                      </div>
-                      <div className={`absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--bg-primary)] ${chat.partner.is_online ? 'bg-emerald-500' : 'bg-[var(--text-secondary)]/30'}`} />
+        <div className="p-3">
+           <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#aebac1] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+              <input 
+                type="text" 
+                placeholder="Search or start new session" 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-[#202c33] border-none rounded-xl py-2.5 pl-12 pr-4 text-[13px] outline-none placeholder:text-[#aebac1]/40"
+              />
+           </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+           {loading ? (
+             <div className="flex justify-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
+           ) : (
+             filteredInbox.map(chat => (
+               <button key={chat.partner?._id} onClick={() => setActiveChat(chat.partner)} className={`w-full h-[72px] px-3 flex items-center gap-3 hover:bg-[#202c33] transition-all relative ${activeChat?._id === chat.partner?._id ? 'bg-[#2a3942]' : ''}`}>
+                 <div className="size-12 rounded-full overflow-hidden shrink-0 border border-white/5 bg-[#111b21]">
+                    {chat.partner?.branding?.logo || chat.partner?.avatar ? <img src={chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center bg-[var(--accent)] text-xs font-black">{chat.partner?.name?.[0]}</div>}
+                 </div>
+                 <div className="flex-1 border-b border-[#202c33] h-full flex flex-col justify-center min-w-0 pr-2 transition-all">
+                    <div className="flex justify-between items-center mb-0.5">
+                       <h3 className="font-medium text-[#e9edef] truncate pr-2 tracking-tight">{chat.partner?.store_name || chat.partner?.name}</h3>
+                       <span className="text-[10px] text-[#aebac1] opacity-70 uppercase tracking-tighter">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
                     </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="flex justify-between items-start mb-0.5">
-                        <h3 className="font-bold !text-[9px] text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors truncate whitespace-nowrap pr-2 max-w-[140px]">
-                          {chat.partner.store_name || chat.partner.name}
-                        </h3>
-                        <span className="!text-[8px] font-black text-[var(--text-secondary)] opacity-40 whitespace-nowrap uppercase">
-                          {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      <p className={`!text-[10px] truncate whitespace-nowrap mt-1 ${!chat.read_status ? 'font-medium text-[var(--text-primary)] opacity-90' : 'text-[var(--text-secondary)] opacity-40'}`}>
-                        {chat.snippet || 'No messages yet'}
-                      </p>
+                    <div className="flex justify-between items-center">
+                       <p className="text-[13px] text-[#aebac1] truncate opacity-60 font-medium">
+                         {chat.snippet || 'Operational Pipe established'}
+                       </p>
+                       {!chat.read_status && <div className="size-2 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]" />}
                     </div>
-                    {!chat.read_status && (
-                      <div className="absolute top-1/2 right-6 -translate-y-1/2 size-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                    )}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
+                 </div>
+               </button>
+             ))
+           )}
         </div>
       </aside>
 
       {/* Main Chat Area */}
-      <main className={`flex-1 flex flex-col min-h-0 bg-[var(--bg-primary)] transition-colors relative h-full ${activeChat ? 'flex' : 'hidden md:flex items-center justify-center'}`}>
-        
-        {activeChat ? (
+      <main className={`flex-1 flex flex-col h-full relative ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
+        {!activeChat ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#222e35] border-b-[6px] border-[var(--accent)]">
+             <div className="size-24 rounded-full bg-[#111b21] mb-6 flex items-center justify-center opacity-40 shadow-xl border border-white/5">
+                <MessageCircle className="size-12 text-[var(--accent)]" />
+             </div>
+             <h2 className="text-3xl font-light text-[#e9edef] opacity-80 mb-3 tracking-tighter">AURA OPS CENTER</h2>
+             <p className="max-w-md text-[#aebac1] text-sm leading-relaxed opacity-60">
+                Select a communication node to begin operational synchronization.<br/>
+                All data is encrypted via Liquid protocols.
+             </p>
+          </div>
+        ) : (
           <>
-            <div className="px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setActiveChat(null)} className="md:hidden size-9 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)]"><ArrowLeft className="w-5 h-5" /></button>
-                <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-bold text-base border border-[var(--glass-border)] overflow-hidden">
-                  {activeChat.branding?.logo || activeChat.avatar 
-                    ? <img src={activeChat.branding?.logo || activeChat.avatar} className="size-full object-cover rounded-full" alt="" onError={(e) => { e.target.style.display='none'; }} /> 
-                    : activeChat.name?.[0]?.toUpperCase()}
-                </div>
-                <div className="flex flex-col min-w-0 pr-2">
-                  <h2 className="!text-[11px] font-black text-[var(--text-primary)] leading-tight mb-0.5 truncate uppercase tracking-tight">{activeChat.store_name || activeChat.name}</h2>
-                  <div className="flex items-center gap-1.5 leading-none">
-                    <div className={`size-1.5 rounded-full ${activeChat.is_online ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]' : 'bg-[var(--text-secondary)]/30'}`} />
-                    <p className="!text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest">{formatPresence(activeChat)}</p>
+            {/* Conversations Header */}
+            <div className="h-[64px] bg-[#202c33] px-4 flex items-center justify-between shrink-0 shadow-md z-30">
+               <div className="flex items-center gap-4 min-w-0 cursor-pointer">
+                  <button onClick={() => setActiveChat(null)} className="md:hidden p-2 -ml-2"><ArrowLeft className="size-5" /></button>
+                  <div className="size-10 rounded-full overflow-hidden bg-[#111b21] border border-white/5 shrink-0">
+                     {partnerAvatar ? <img src={partnerAvatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center bg-[var(--accent)] text-xs font-black">{partnerName[0]}</div>}
                   </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="hidden lg:flex items-center pr-3 border-r border-[var(--glass-border)] mr-1">
-                   <p className="text-xs text-[var(--text-secondary)] opacity-80">Role: <span className="font-semibold text-[var(--text-primary)] capitalize">{activeChat.role || 'Partner'}</span></p>
-                </div>
-                <button className="size-10 rounded-full bg-[var(--bg-secondary)] hover:bg-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] transition-all"><Phone className="w-4 h-4" /></button>
-                <button className="size-10 rounded-full bg-[var(--bg-secondary)] hover:bg-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] transition-all"><Video className="w-4 h-4" /></button>
-                <button className="size-10 rounded-full bg-[var(--bg-secondary)] hover:bg-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] transition-all"><MoreVertical className="w-4 h-4" /></button>
-              </div>
+                  <div className="min-w-0">
+                     <h3 className="font-bold text-[#e9edef] truncate text-[15px] capitalize tracking-tighter leading-tight whitespace-nowrap">{partnerName}</h3>
+                     <div className="flex items-center gap-1.5 ">
+                        <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]" />
+                        <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest leading-none">Active Now</p>
+                     </div>
+                  </div>
+               </div>
+               <div className="flex items-center gap-7 text-[#aebac1]">
+                  <Search className="size-5 opacity-60 hover:opacity-100" />
+                  <Phone className="size-5 opacity-60 hover:opacity-100" />
+                  <Video className="size-5 opacity-60 hover:opacity-100" />
+                  <MoreVertical className="size-5 opacity-60 hover:opacity-100" />
+               </div>
             </div>
 
-            <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3 md:p-6 space-y-3 flex flex-col no-scrollbar relative z-10">
-              {messages.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 gap-3 mt-10">
-                  <div className="size-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-2">
-                    <MessageCircle className="w-8 h-8 text-[var(--text-secondary)]" />
-                  </div>
-                  <p className="text-sm font-medium text-[var(--text-secondary)]">Say hello!</p>
-                </div>
-              ) : (
-                messages.map((msg, i) => {
-                  const isMe = msg.sender_id === user?._id || msg.sender_id?._id === user?._id;
-                  return (
-                    <div key={msg._id || i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                      {msg.product_reference && (
-                        <div className={`mb-2 w-64 p-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden group`}>
-                           <div className="aspect-[4/3] rounded-xl overflow-hidden mb-2 relative bg-[var(--bg-primary)]">
-                              <img src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0]} alt="" className="size-full object-cover" />
-                              <div className="absolute top-2 right-2 flex gap-1">
-                                <Link href={`/products/${msg.product_reference._id}`} className="size-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-[var(--accent)] transition-colors">
-                                  <ExternalLink className="w-4 h-4" />
-                                </Link>
-                              </div>
-                           </div>
-                           <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-1">Product Attached</p>
-                           <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-1 truncate">{msg.product_reference.name}</h4>
-                           <div className="flex justify-between items-center">
-                              <span className="text-sm font-bold text-[var(--text-primary)]">{msg.product_reference.price?.toLocaleString()} XAF</span>
-                              <Link href={`/products/${msg.product_reference._id}`} className="text-[10px] font-semibold text-[var(--accent)] hover:underline">View</Link>
-                           </div>
-                        </div>
-                      )}
-                      
-                      <div className={`max-w-[80%] md:max-w-[70%] px-4 py-2.5 rounded-2xl text-[10px] relative group ${
-                        isMe 
-                        ? 'bg-[var(--accent)] text-white' 
-                        : 'bg-[var(--bg-secondary)] text-[var(--text-primary)]'
-                      }`}
-                      style={isMe ? { borderBottomRightRadius: '4px' } : { borderBottomLeftRadius: '4px' }}>
-                        <p className="min-w-[40px] break-words whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                        <div className={`flex items-center gap-1.5 opacity-60 mt-1 select-none ${isMe ? 'justify-end' : 'justify-start'}`}>
-                          <span className="text-[10px] whitespace-nowrap">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          {isMe && (
-                            msg.pending ? <Loader2 className="w-3 h-3 animate-spin" /> : msg.failed ? <span className="text-red-400 font-bold text-xs">!</span> : <CheckCheck className="w-3 h-3" />
-                          )}
-                        </div>
+            {/* Persistent Product Context Highlight */}
+            {contextProduct && (
+              <div className="bg-[#111b21] px-6 py-3 border-b border-[#202c33] flex items-center gap-4 z-20 shadow-lg">
+                 <div className="size-14 rounded-xl overflow-hidden bg-[#202c33] border border-white/5 shrink-0">
+                    <img src={contextProduct.images?.[0]?.url || contextProduct.images?.[0]} className="size-full object-cover" alt="" />
+                 </div>
+                 <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] mb-1">Current Subject</p>
+                    <h4 className="text-sm font-bold text-white truncate uppercase tracking-tighter">{contextProduct.name}</h4>
+                    <p className="text-xs font-black text-[#aebac1] opacity-60">{contextProduct.price?.toLocaleString()} XAF</p>
+                 </div>
+                 <button onClick={() => setContextProduct(null)} className="p-2 text-[#aebac1] hover:text-white opacity-40 hover:opacity-100 transition-all"><X className="size-5" /></button>
+              </div>
+            )}
+
+            {/* Message Pane */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-12 py-6 space-y-1 relative custom-scrollbar bg-[#0b141a]">
+               <div className="absolute inset-0 bg-[#0b141a]/98 pointer-events-none z-0" />
+               <div className="max-w-4xl mx-auto space-y-2 relative z-10">
+                  {messages.map((msg, i) => {
+                    const isOwn = (msg.sender_id?._id || msg.sender_id)?.toString() === user?._id?.toString();
+                    const currentRefId = (msg.product_reference?._id || msg.product_reference)?.toString();
+                    const showProductContext = currentRefId && currentRefId !== lastProductRef;
+                    lastProductRef = currentRefId;
+
+                    return (
+                      <div key={msg._id || i} className="space-y-4">
+                        {showProductContext && msg.product_reference && (
+                          <div className="flex justify-center my-6">
+                            <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-[#202c33] border border-white/5 shadow-xl animate-in fade-in slide-in-from-bottom-2">
+                               <div className="size-8 rounded-lg overflow-hidden border border-white/5 bg-[#111b21]">
+                                  <img src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=50&q=80'} className="size-full object-cover" alt="" />
+                               </div>
+                               <div className="min-w-0">
+                                  <p className="text-[8px] font-bold text-[var(--accent)] uppercase tracking-widest leading-none mb-1">Topic Change</p>
+                                  <h5 className="text-[11px] font-black text-[#e9edef] truncate max-w-[150px] uppercase tracking-tight">{msg.product_reference.name}</h5>
+                               </div>
+                            </div>
+                          </div>
+                        )}
+                        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[70%] px-4 py-2.5 rounded-xl shadow-sm relative text-[15px] leading-relaxed ${isOwn ? 'bg-[#005c4b] text-[#e9edef]' : 'bg-[#202c33] text-[#e9edef]'}`}>
+                            <p className="whitespace-pre-wrap">{msg.text}</p>
+                            <div className="flex items-center justify-end gap-1 mt-1.5 opacity-40 text-[10px]">
+                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {isOwn && (msg.status === 'sending' ? <Check className="size-3" /> : <CheckCheck className="size-3 text-[#53bdeb]" />)}
+                            </div>
+                          </div>
+                        </motion.div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })}
+               </div>
             </div>
 
-            <div className="px-3 py-2 bg-[var(--bg-primary)] border-t border-[var(--glass-border)] z-30 relative pb-[max(8px,env(safe-area-inset-bottom))]">
-              {draftProduct && (
-                <div className="absolute bottom-[100%] left-1/2 -translate-x-1/2 mb-4 bg-[var(--bg-secondary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-[1.5rem] p-3 flex gap-4 shadow-2xl w-[90%] max-w-sm items-center">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[var(--glass-border)] bg-[var(--bg-primary)]">
-                     {draftProduct.images?.[0] ? <img src={draftProduct.images[0].url || draftProduct.images[0]} className="w-full h-full object-cover" /> : <Package className="w-5 h-5 m-auto opacity-20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                     <p className="text-[9px] font-black uppercase text-[var(--accent)] tracking-widest leading-none mb-1">Drafting inquiry on</p>
-                     <p className="text-sm font-bold text-[var(--text-primary)] truncate leading-tight">{draftProduct.name}</p>
-                  </div>
-                  <button 
-                     onClick={() => {
-                       setDraftProduct(null);
-                       const currentVendorId = (searchParams.get('vendorId') || activeChat?._id || '').toString();
-                       router.replace(currentVendorId ? `/chat?vendorId=${currentVendorId}` : '/chat');
-                     }} 
-                     className="size-8 flex items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/10 border border-[var(--glass-border)] transition-colors shadow-sm"
-                  >
-                     <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-              <form onSubmit={handleSendMessage} className="bg-[var(--bg-secondary)] px-2 py-1.5 rounded-full flex items-center gap-1.5 w-full max-w-4xl mx-auto min-w-0">
-                <button type="button" className="hidden sm:flex size-10 shrink-0 rounded-full hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-colors items-center justify-center"><ImageIcon className="w-5 h-5" /></button>
-                <div className="hidden sm:block h-5 w-px bg-[var(--glass-border)]" />
-                <input 
-                  type="text" 
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..." 
-                  className="flex-1 bg-transparent border-none outline-none px-2 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:opacity-70 min-w-0"
-                />
-                <button type="button" className="hidden sm:flex size-10 shrink-0 rounded-full hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-colors items-center justify-center"><Smile className="w-5 h-5" /></button>
-                <button 
-                  type="submit"
-                  disabled={!newMessage.trim() || sending}
-                  className="size-9 sm:size-10 shrink-0 rounded-full bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors flex items-center justify-center disabled:opacity-40"
-                >
-                  {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4 -ml-0.5" />}
-                </button>
-              </form>
+            {/* Input Bar */}
+            <div className="bg-[#202c33] px-4 py-3 flex items-center gap-4 shrink-0">
+               <div className="flex items-center gap-5 text-[#aebac1]">
+                  <Smile className="size-6 cursor-pointer opacity-70 hover:opacity-100" />
+                  <Plus className="size-6 cursor-pointer opacity-70 hover:opacity-100" />
+               </div>
+               <form onSubmit={handleSend} className="flex-1">
+                  <input 
+                    type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Operational data synchronization..."
+                    className="w-full bg-[#2a3942] border-none rounded-2xl py-3 px-5 text-[15px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 text-[#e9edef] placeholder:text-[#aebac1]/30"
+                  />
+               </form>
+               <button onClick={handleSend} className="size-[48px] rounded-full flex items-center justify-center bg-[var(--accent)] text-white shadow-xl hover:scale-105 transition-all">
+                  {newMessage.trim() ? <Send className="size-5" /> : <Mic className="size-5" />}
+               </button>
             </div>
           </>
-        ) : (
-          <div className="flex flex-col items-center text-center p-8 space-y-6">
-            <div className="size-24 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
-              <MessageCircle className="size-10 text-[var(--text-secondary)]" />
-            </div>
-            <div className="space-y-2 max-w-sm">
-              <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Your Messages</h2>
-              <p className="text-[var(--text-secondary)] text-sm">
-                Select a conversation from the sidebar or start a new message to connect with a vendor or buyer.
-              </p>
-            </div>
-          </div>
         )}
       </main>
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      `}</style>
     </div>
   );
 }
 
-export default function ChatPage() {
+export default function RedChatPage() {
+  const { user, isLoading } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to login if not authenticated (after auth check completes)
+    if (!isLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isLoading, router]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-[#0c0c0c] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[var(--accent)]" size={32} />
+      </div>
+    );
+  }
+
+  // Only render if authenticated
+  if (!user) return null;
+
   return (
-    <Suspense fallback={<div className="fixed inset-0 bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-secondary)] text-sm">Loading...</div>}>
+    <Suspense fallback={<div className="fixed inset-0 bg-[#0c0c0c] flex items-center justify-center opacity-20"><Loader2 className="animate-spin" /></div>}>
       <ChatContent />
     </Suspense>
   );
 }
-
-const ShoppingBag = ({ className }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-);

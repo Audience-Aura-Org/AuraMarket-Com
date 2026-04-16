@@ -102,37 +102,37 @@ export default function CartPreview() {
   const subtotal = items.reduce((s, it) => s + (it.price * it.quantity), 0);
 
   return (
-    <div className="absolute right-0 top-full mt-3 w-80 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl p-3 transition-all duration-200 transform-gpu translate-y-1 z-50 md:opacity-0 md:pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:translate-y-0">
-      <h4 className="text-sm font-black mb-3">Cart Preview</h4>
+    <div className="absolute right-0 top-full mt-4 w-80 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] shadow-2xl p-4 transition-all duration-300 transform-gpu translate-y-2 z-50 md:opacity-0 md:pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:translate-y-0 backdrop-blur-xl">
+      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-[var(--text-secondary)]">Cart Preview</h4>
       {loading ? (
-        <div className="py-6 text-center text-[var(--text-secondary)]">Loading…</div>
+        <div className="py-8 text-center text-[var(--text-secondary)] font-bold text-xs">Syncing nodes…</div>
       ) : items.length === 0 ? (
-        <div className="py-6 text-center text-[var(--text-secondary)]">Your cart is empty</div>
+        <div className="py-10 text-center text-[var(--text-secondary)]">
+          <div className="text-xs font-bold opacity-40 uppercase tracking-widest">Inventory Empty</div>
+        </div>
       ) : (
-        <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-          {items.slice(0,6).map(it => (
-            <div key={it.id || it.productId} className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+          {items.slice(0,8).map(it => (
+            <div key={it.id || it.productId} className="flex items-center gap-3 group/item">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] group-hover/item:border-[var(--accent)]/30 transition-colors">
                 {it.image ? <img src={it.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[var(--glass-border)]" />}
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-black truncate">{it.name}</div>
-                <div className="text-[10px] text-[var(--text-secondary)]">{it.quantity} × {it.price.toLocaleString()} XAF</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-black truncate text-[var(--text-primary)] uppercase tracking-tight">{it.name}</div>
+                <div className="text-[10px] text-[var(--text-secondary)] font-bold mt-0.5 opacity-60 uppercase">{it.quantity} × {it.price.toLocaleString()} XAF</div>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => updateQty(it.id, -1)} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)]"><Minus className="w-3 h-3" /></button>
-                <button onClick={() => updateQty(it.id, 1)} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)]"><Plus className="w-3 h-3" /></button>
-                <button onClick={() => removeItem(it.id)} className="p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-red-500"><Trash2 className="w-3 h-3" /></button>
+              <div className="flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                <button onClick={() => removeItem(it.id)} className="p-1.5 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-3 h-3" /></button>
               </div>
             </div>
           ))}
-          <div className="pt-3 border-t border-[var(--glass-border)] mt-2 flex items-center justify-between">
-            <div className="text-[10px] text-[var(--text-secondary)] font-black">Subtotal</div>
-            <div className="font-black">{subtotal.toLocaleString()} XAF</div>
+          <div className="pt-4 border-t border-[var(--glass-border)] mt-4 flex items-center justify-between">
+            <div className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest">Subtotal</div>
+            <div className="font-black text-sm tracking-tighter">{subtotal.toLocaleString()} XAF</div>
           </div>
-          <div className="mt-3 flex gap-2">
-            <Link href="/cart" className="flex-1 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-sm text-center">View Cart</Link>
-            <Link href="/checkout" className="px-3 py-2 bg-[var(--accent)] text-white rounded-xl font-black text-sm flex items-center gap-2"><ArrowRight className="w-4 h-4" />Checkout</Link>
+          <div className="mt-4 flex gap-2">
+            <Link href="/cart" className="flex-1 px-4 py-3 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] text-center uppercase tracking-widest hover:border-[var(--text-primary)] transition-all">View Cart</Link>
+            <Link href="/checkout" className="px-5 py-3 bg-[var(--accent)] text-white rounded-full font-black text-[10px] flex items-center gap-2 uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all"><ArrowRight className="w-3.5 h-3.5" />Checkout</Link>
           </div>
         </div>
       )}

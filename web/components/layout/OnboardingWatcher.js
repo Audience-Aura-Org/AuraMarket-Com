@@ -13,6 +13,12 @@ export default function OnboardingWatcher() {
     // Wait for persisted auth state to hydrate before redirecting.
     if (!hasHydrated) return;
 
+    const role = user?.role?.toLowerCase();
+    
+    // 0. Skip for onboarding/auth pages to prevent redirect loops
+    const SKIP_PREFIXES = ['/onboarding', '/login', '/register', '/auth'];
+    if (SKIP_PREFIXES.some(p => pathname.startsWith(p))) return;
+
     const protectedPrefixes = [
       '/vendor',
       '/admin',
@@ -28,36 +34,42 @@ export default function OnboardingWatcher() {
       '/settings',
     ];
 
-    // 0. Global auth guard for protected pages
-    if ((!isAuthenticated || !user) && protectedPrefixes.some((p) => pathname.startsWith(p))) {
-      router.replace('/login');
-      return;
-    }
+    const isProfessionalRole = ['admin', 'vendor', 'logistics'].includes(role);
 
-    // 1. If not authenticated, onboarding logic stops here
-    if (!isAuthenticated || !user) return;
-
-    // 1.5. Admin and Logistics roles bypass onboarding completely
-    if (['admin', 'logistics'].includes(user.role)) return;
-
-    // 2. If already on onboarding page, don't redirect again
-    if (pathname.startsWith('/onboarding')) return;
-
-    // 3. Global route protection for /vendor/* paths
-    //    Anyone accessing a vendor dashboard MUST be a fully onboarded vendor.
-    if (pathname.startsWith('/vendor')) {
-      if (user.role !== 'vendor' || !user.onboarded) {
+    // 3. Protected route logic
+    if (protectedPrefixes.some((p) => pathname.startsWith(p))) {
+      // 3.1. Auth check
+      if (!isAuthenticated || !user) {
+        console.warn('[Watcher] No auth found on protected route, redirecting to login', pathname);
+        router.replace('/login');
+        return;
+      }
+      
+      // 3.2. Onboarding check — ONLY for customers
+      // Professional roles are exempt from customer calibration
+      if (role === 'customer' && !user.onboarded && sessionStorage.getItem('onboarding_skipped') !== 'true') {
+        console.warn('[Watcher] Customer not onboarded, redirecting to /onboarding');
         router.push('/onboarding');
         return;
       }
     }
 
-    // 4. If user skipped onboarding this session, don't redirect them globally
-    if (sessionStorage.getItem('onboarding_skipped') === 'true') return;
-
-    // 5. If onboarding is not complete (and they didn't skip), redirect to onboarding
-    if (!user.onboarded) {
-      router.push('/onboarding');
+    // 4. Role specific strictness (Security)
+    // Ensure users are on the correct dashboard for their role
+    if (pathname.startsWith('/vendor') && role !== 'vendor') {
+      console.warn('[Watcher] Access Denied: Not a vendor', role);
+      router.replace('/'); 
+      return;
+    }
+    if (pathname.startsWith('/admin') && role !== 'admin') {
+      console.warn('[Watcher] Access Denied: Not an admin', role);
+      router.replace('/');
+      return;
+    }
+    if (pathname.startsWith('/logistics') && role !== 'logistics') {
+      console.warn('[Watcher] Access Denied: Not logistics', role);
+      router.replace('/');
+      return;
     }
   }, [user, isAuthenticated, hasHydrated, pathname, router]);
 

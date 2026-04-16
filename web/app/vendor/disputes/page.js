@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +10,8 @@ import {
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import Pagination from '@/components/common/Pagination';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function VendorDisputesPage() {
   const router = useRouter();
@@ -55,23 +55,25 @@ export default function VendorDisputesPage() {
   if (user?.role !== 'vendor') return null;
 
   return (
-    <DashboardLayout role="vendor">
-      <div className="w-full min-h-screen">
+    <div className="w-full min-h-screen max-w-[1600px] mx-auto">
         
         {/* Page Header */}
-        <div className="hidden md:block px-4 md:px-8 py-6 border-b border-[var(--glass-border)]">
+        <div className="hidden md:block px-4 md:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
                 <AlertTriangle className="w-6 h-6 text-rose-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-[var(--text-primary)]">Disputes</h1>
-                <p className="text-sm text-[var(--text-secondary)] opacity-60">Resolution center</p>
+                <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Resolution Center</h1>
+                <p className="text-xs text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-40">Conflict Management</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={fetchDisputes} className="p-2 rounded-xl border border-[var(--glass-border)] hover:bg-white/5 text-[var(--text-secondary)]">
+              <button 
+                onClick={fetchDisputes} 
+                className="p-2.5 rounded-xl border border-[var(--glass-border)] hover:bg-white/5 text-[var(--text-secondary)] transition-all"
+              >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
@@ -80,31 +82,25 @@ export default function VendorDisputesPage() {
 
         <div className="px-4 md:px-8 py-8">
           
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20">
-              <div className="flex items-center gap-3 mb-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Pending</span>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {[
+              { label: 'Active Disputes', value: activeCount, sub: 'Needs attention', icon: AlertTriangle, color: 'rose' },
+              { label: 'Resolved', value: (disputes.length - activeCount), sub: 'Session closed', icon: CheckCircle2, color: 'emerald' },
+              { label: 'Success Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Resolution yield', icon: Shield, color: 'indigo' }
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-rose-500/30 transition-all cursor-default"
+              >
+                <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
+                  <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
+                </div>
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-1">{stat.label}</p>
+                <h4 className="text-3xl font-black tracking-tighter mb-1">{stat.value}</h4>
+                <p className="text-[9px] font-bold opacity-40 uppercase">{stat.sub}</p>
               </div>
-              <p className="text-3xl font-black text-amber-500">{activeCount}</p>
-            </div>
-            
-            <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-              <div className="flex items-center gap-3 mb-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Resolved</span>
-              </div>
-              <p className="text-3xl font-black text-emerald-500">{disputes.length - activeCount}</p>
-            </div>
-            
-            <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 hidden lg:block">
-              <div className="flex items-center gap-3 mb-3">
-                <Shield className="w-5 h-5 text-indigo-500" />
-                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Total</span>
-              </div>
-              <p className="text-3xl font-black text-indigo-500">{disputes.length}</p>
-            </div>
+            ))}
           </div>
 
           {/* Search */}
@@ -199,6 +195,5 @@ export default function VendorDisputesPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
   );
 }

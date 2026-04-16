@@ -1,14 +1,17 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { 
-  Search, Star, LayoutGrid, 
+  Search, Star, LayoutGrid, Users,
   List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
+import Pagination from '@/components/common/Pagination';
+import { useFollow } from '@/hooks/useFollow';
+import { useChat } from '@/context/ChatContext';
 import api from '@/services/api';
 import { trackSearch } from '@/services/tracking';
 
@@ -32,6 +35,7 @@ function ShopContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState('grid');
+  const { openChat } = useChat();
 
   // --- Category drill-down state ---
   const [categoryTree, setCategoryTree] = useState([]);
@@ -40,27 +44,47 @@ function ShopContent() {
   const [activeCategoryName, setActiveCategoryName] = useState('All');
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
 
+  // --- Vendor Discovery state ---
+  const [activeVendor, setActiveVendor] = useState(null);
+  const [vendorLoading, setVendorLoading] = useState(false);
+
   // Current level of categories shown in navigation
   const currentLevel = breadcrumb.length === 0
     ? categoryTree
     : breadcrumb[breadcrumb.length - 1].children;
 
-  // Fetch categories that have products
+  // 1. Initial Category Load (Once on mount)
   useEffect(() => {
-    setIsCategoriesLoading(true);
-    api.get('/categories/with-products')
-      .then(res => { if (res.data.success) setCategoryTree(res.data.data); })
-      .catch(err => console.error(err))
-      .finally(() => setIsCategoriesLoading(false));
+    const fetchCategories = async () => {
+      setIsCategoriesLoading(true);
+      try {
+        const res = await api.get('/categories/with-products');
+        if (res.data.success) setCategoryTree(res.data.data);
+      } catch (err) { console.error('Category Load Error:', err); }
+      finally { setIsCategoriesLoading(false); }
+    };
+    fetchCategories();
   }, []);
 
-  // Sync category from URL
+  // 2. Vendor Detail Load (Tracks vendorId changes)
   useEffect(() => {
+    const fetchVendorData = async () => {
+      const vid = searchParams.get('vendorId');
+      if (!vid) { setActiveVendor(null); return; }
+      
+      setVendorLoading(true);
+      try {
+        const res = await api.get(`/vendors/stores/${vid}`);
+        if (res.data.success) setActiveVendor(res.data.data.store);
+      } catch (err) { console.error('Vendor Load Error:', err); }
+      finally { setVendorLoading(false); }
+    };
+    fetchVendorData();
+    
+    // Sync active category name from URL independently
     const urlCategory = searchParams.get('category');
-    if (urlCategory) {
-      setActiveCategoryName(urlCategory);
-    }
-  }, [searchParams]);
+    if (urlCategory) setActiveCategoryName(urlCategory);
+  }, [searchParams.get('vendorId'), searchParams.get('category')]);
 
   // Debounce ref
   const fetchTimeout = useRef(null);
@@ -73,7 +97,7 @@ function ShopContent() {
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
     const executeFetch = async () => {
-      const params = { page: targetPage, limit: 20 };
+      const params = { page: targetPage, limit: 24 };
       if (activeCategoryName && activeCategoryName !== 'All') params.category = activeCategoryName;
       if (activePrice) {
         const range = PRICE_RANGES.find(p => p.id === activePrice);
@@ -82,6 +106,9 @@ function ShopContent() {
       }
       if (search) params.search = search;
       if (sortBy) params.sort = sortBy;
+      
+      const vendorId = searchParams.get('vendorId');
+      if (vendorId) params.vendor_id = vendorId;
 
       const queryKey = JSON.stringify(params);
       const cached = productCacheRef.current.get(queryKey);
@@ -118,7 +145,7 @@ function ShopContent() {
     } else {
       fetchTimeout.current = setTimeout(executeFetch, 300);
     }
-  }, [activeCategoryName, activePrice, sortBy, search, page]); 
+  }, [activeCategoryName, activePrice, sortBy, search, page, searchParams]); 
 
   // Trigger fetch: Use immediate for filters, debounce for search
   useEffect(() => {
@@ -194,84 +221,173 @@ function ShopContent() {
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30">
         <div className="flex flex-col w-full min-h-screen relative">
 
-        {/* STICKY HEADER STACK: Search + Category bar — both pinned below TopNav */}
+        {/* STICKY HEADER STACK: Search + Category bar */}
         <div className="sticky top-[57px] md:top-[64px] z-40 bg-[var(--bg-primary)] shadow-sm">
 
-          {/* Search Bar */}
-          <div className="px-4 md:px-6 lg:px-12 py-2 flex justify-center border-b border-[var(--glass-border)]/50">
+          {/* Search Bar - Unified Premium Style */}
+          <div className="px-6 lg:px-12 py-2 flex justify-center border-b border-[var(--glass-border)]/50">
             <div className="relative w-full max-w-6xl">
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
-                placeholder="Search for products..."
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-14 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+                placeholder="Search products..."
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-14 text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
               />
               <button
                 onClick={() => { setPage(1); fetchProducts(1); }}
-                className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-bold"
+                className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center font-bold"
               >
-                <Search className="size-3" />
+                <Search className="size-4" />
               </button>
             </div>
           </div>
 
-          {/* Category Chips */}
-          <div className="border-b border-[var(--glass-border)] py-2.5 px-4 md:px-6 lg:px-12 bg-[var(--bg-primary)]/95 backdrop-blur-xl">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full">
-             {isCategoriesLoading ? (
-               // Category Skeletons
-               [...Array(6)].map((_, i) => (
-                 <div key={i} className="shrink-0 w-20 md:w-24 h-8 md:h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse border border-[var(--glass-border)]/30"></div>
-               ))
-             ) : (
-              <>
-               {breadcrumb.length > 0 ? (
-                 <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 md:py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
-                   <Home className="size-3 lg:size-3.5" /> Home
-                 </button>
+          {/* Category Chips - Unified Premium Style */}
+          <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
+            <div className="max-w-7xl mx-auto px-6 lg:px-12 py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full">
+               {isCategoriesLoading ? (
+                 [...Array(6)].map((_, i) => (
+                   <div key={i} className="shrink-0 w-24 h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse border border-[var(--glass-border)]/30"></div>
+                 ))
                ) : (
-                  <button 
-                    onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                    className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
-                  >
-                    All
-                  </button>
-               )}
-
-               {breadcrumb.length > 0 && breadcrumb.map((crumb, idx) => (
-                 <div key={crumb._id} className="flex items-center gap-2 shrink-0">
-                    <ChevronRight className="size-3 text-[var(--glass-border)] hidden sm:block" />
+                <>
+                 {breadcrumb.length > 0 ? (
+                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                     <Home className="size-3.5" /> Market
+                   </button>
+                 ) : (
                     <button 
-                      onClick={() => handleBreadcrumbClick(idx)} 
-                      className={`px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
+                      className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
-                      {crumb.name}
+                      All Products
                     </button>
-                 </div>
-               ))}
+                 )}
 
-               {breadcrumb.length > 0 && currentLevel.length > 0 && <div className="h-4 w-px bg-[var(--glass-border)] mx-1 shrink-0 hidden sm:block" />}
+                 {breadcrumb.length > 0 && breadcrumb.map((crumb, idx) => (
+                   <div key={crumb._id} className="flex items-center gap-2 shrink-0">
+                      <ChevronRight className="size-3 text-[var(--glass-border)]" />
+                      <button 
+                        onClick={() => handleBreadcrumbClick(idx)} 
+                        className={`px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                      >
+                        {crumb.name}
+                      </button>
+                   </div>
+                 ))}
 
-               {currentLevel.map(cat => (
-                 <button
-                    key={cat._id}
-                    onClick={() => {
-                      if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
-                      else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
-                    }}
-                    className={`shrink-0 px-4 md:px-5 py-1.5 md:py-2 rounded-full border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
-                 >
-                   {cat.name}
-                 </button>
-               ))}
-              </>
-             )}
-           </div>
+                 {breadcrumb.length > 0 && currentLevel.length > 0 && <div className="h-4 w-px bg-[var(--glass-border)] mx-1 shrink-0" />}
+
+                 {currentLevel.map(cat => (
+                   <button
+                      key={cat._id}
+                      onClick={() => {
+                        if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
+                        else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
+                      }}
+                      className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                   >
+                     {cat.name}
+                   </button>
+                 ))}
+                </>
+               )}
+            </div>
           </div>
         </div>
+        
+        {/* Vendor Discovery Header (Elite Store Profile Style) */}
+        {activeVendor && (
+          <div className="relative w-full">
+            {/* 1. Banner Section - COMPACT */}
+            <div className="relative h-[140px] md:h-[180px] w-full overflow-hidden">
+              <img 
+                src={activeVendor.banner || activeVendor.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070'} 
+                className="w-full h-full object-cover brightness-75 transition-transform duration-[3s] hover:scale-105"
+                alt="Store Banner"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)] via-transparent to-black/20" />
+            </div>
 
+            {/* 2. Identity & Stats Overlay - ULTRA COMPACT */}
+            <div className="max-w-7xl mx-auto px-4 md:px-12 relative z-10 -mt-10 md:-mt-14 pb-4">
+              <div className="glass-panel rounded-3xl md:rounded-[3rem] p-4 md:p-6 border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl">
+                <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-center text-center md:text-left">
+                  {/* Overlapping Logo - ULTRA COMPACT */}
+                  <div className="size-16 md:size-24 rounded-2xl md:rounded-[2rem] border-2 md:border-4 border-[var(--bg-primary)] overflow-hidden shadow-lg shrink-0 bg-[var(--bg-secondary)] relative group">
+                    <img 
+                      src={activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo || activeVendor.vendor_id?.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeVendor.vendor_id?.store_name || 'Store')}&background=random&size=200`} 
+                      className="size-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      alt="" 
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0 w-full space-y-3">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                      <h1 className="text-xl md:text-3xl font-black tracking-tighter text-[var(--text-primary)] uppercase">
+                        {activeVendor.vendor_id?.store_name}
+                      </h1>
+                      {activeVendor.vendor_id?.verified && (
+                        <div className="size-5 md:size-7 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-sm">
+                          <Check className="size-3 md:size-4" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-[9px] md:text-[10px] font-black tracking-wider text-[var(--text-secondary)] uppercase">
+                      <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/5 text-[var(--accent)]">Online Store</span>
+                      <span className="opacity-40">•</span>
+                      <span>{products.length} Items</span>
+                      <span className="opacity-40">•</span>
+                      <div className="flex items-center gap-1 text-[var(--accent)]">
+                        <Star className="size-2.5 fill-current" />
+                        {activeVendor.vendor_id?.rating?.toFixed(1) || '4.9'}
+                      </div>
+                      <span className="opacity-40 hidden md:block">•</span>
+                      <p className="hidden md:block normal-case font-medium opacity-60 truncate max-w-md">
+                        {activeVendor.vendor_id?.description || 'Premium Aura network provider.'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4">
+                       {/* Stats as Badges */}
+                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
+                          <LayoutGrid className="size-3 text-[var(--accent)]" />
+                          <span className="text-[10px] font-black text-[var(--text-primary)]">{products.length}</span>
+                          <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Objects</span>
+                       </div>
+                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
+                          <Users className="size-3 text-[var(--accent)]" />
+                          <span className="text-[10px] font-black text-[var(--text-primary)]">{activeVendor.vendor_id?.follower_count || 0}</span>
+                          <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Followers</span>
+                       </div>
+                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                          <Check className="size-3 text-emerald-600" />
+                          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Trusted</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Shrunken Actions Row/Column */}
+                  <div className="flex flex-row md:flex-col items-center gap-2 w-full md:w-auto shrink-0">
+                    <VendorFollowButton vendorId={activeVendor.vendor_id?._id} />
+                    <button 
+                      onClick={() => openChat(activeVendor.vendor_id?.user_id?._id, null, {
+                        store_name: activeVendor.vendor_id?.store_name,
+                        branding: { logo: activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo }
+                      })}
+                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[9px] tracking-widest uppercase hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                    >
+                      Contact
+                    </button>
+                  </div>
+                  </div>
+                </div>
+            </div>
+          </div>
+        )}
 
         {/* ── MAIN CONTENT ── */}
         <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden pt-[1px]">
@@ -279,31 +395,37 @@ function ShopContent() {
           {/* Results Info & Action Bar */}
           <div className="px-4 md:px-6 lg:px-12 py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-3 bg-[var(--bg-secondary)]">
             
-            <p className="text-[10px] md:text-xs font-medium text-[var(--text-secondary)] tracking-tight whitespace-nowrap shrink-0">
-              <span className="text-[var(--text-primary)] font-semibold">{products.length}</span> <span className="hidden sm:inline">products found</span>
-              {activeCategoryName !== 'All' && <span className="hidden lg:inline"> in <span className="text-[var(--text-primary)] font-semibold">{activeCategoryName}</span></span>}
-            </p>
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
+                {activeCategoryName === 'All' ? 'Global Market' : activeCategoryName}
+              </h3>
+              <div className="h-4 w-px bg-[var(--glass-border)]" />
+              <p className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">
+                {products.length} Results
+              </p>
+            </div>
 
-            <div className="flex items-center gap-1.5 md:gap-2 shrink-0 ml-auto dropdown-container relative z-20">
+            <div className="flex items-center gap-3 shrink-0 ml-auto z-20">
               
               {/* PRICE FILTERS */}
               <div className="relative">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-                  className={`flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:py-2 rounded-lg border transition-all text-[10px] md:text-[11px] font-medium shadow-sm ${activePrice ? 'bg-[var(--bg-primary)] border-[var(--text-primary)] text-[var(--text-primary)]' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--text-secondary)] text-[var(--text-secondary)]'}`}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-black uppercase tracking-widest shadow-sm"
                 >
-                  {activePrice ? PRICE_RANGES.find(r => r.id === activePrice)?.name : 'Price'}
+                  <span className="text-[var(--text-secondary)] font-normal opacity-60">Price:</span> 
+                  {activePrice ? PRICE_RANGES.find(r => r.id === activePrice)?.name : 'Any'}
                   <ChevronRight className={`size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
                 </button>
                 
                 {isPriceOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[14px] shadow-2xl overflow-hidden py-1.5 z-50">
-                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-4 py-2.5 text-[11px] font-medium transition-colors hover:bg-[var(--bg-secondary)] flex items-center gap-2 ${!activePrice ? 'text-[var(--text-primary)] bg-[var(--bg-secondary)]/50' : 'text-[var(--text-secondary)]'}`}>
-                       {!activePrice && <Check className="size-3" />} Any Price
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       Any Price {!activePrice && <Check className="size-3.5" />}
                      </button>
                      {PRICE_RANGES.map(range => (
-                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-4 py-2.5 text-[11px] font-medium transition-colors hover:bg-[var(--bg-secondary)] flex items-center gap-2 ${activePrice === range.id ? 'text-[var(--text-primary)] bg-[var(--bg-secondary)]/50' : 'text-[var(--text-secondary)]'}`}>
-                         {activePrice === range.id && <Check className="size-3" />} {range.name}
+                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                         {range.name} {activePrice === range.id && <Check className="size-3.5" />}
                        </button>
                      ))}
                   </div>
@@ -314,41 +436,40 @@ function ShopContent() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-                  className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-medium text-[var(--text-primary)] shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-black uppercase tracking-widest shadow-sm"
                 >
-                  <span className="hidden sm:inline text-[var(--text-secondary)] font-normal">Sort:</span> 
+                  <span className="text-[var(--text-secondary)] font-normal opacity-60">Sort:</span> 
                   {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
                   <ChevronRight className={`size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
                 </button>
                 
                 {isSortOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[14px] shadow-2xl overflow-hidden py-1.5 z-50">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                      {SORT_OPTIONS.map(opt => (
-                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-4 py-2.5 text-[11px] font-medium transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--text-primary)] bg-[var(--bg-secondary)]/50' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {opt.label}
-                         {sortBy === opt.value && <Check className="size-3" />}
+                         {sortBy === opt.value && <Check className="size-3.5" />}
                        </button>
                      ))}
                   </div>
                 )}
               </div>
               
-              <div className="h-4 w-px bg-[var(--glass-border)] hidden sm:block mx-0.5" />
-              
-              <div className="flex items-center gap-1 bg-[var(--bg-secondary)] rounded-lg p-0.5 border border-[var(--glass-border)]">
-                <button onClick={() => setViewMode('grid')} className={`p-1 md:p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
-                  <LayoutGrid className="size-3.5" />
+              {/* VIEW MODE */}
+              <div className="flex bg-[var(--bg-primary)] rounded-2xl p-1 border border-[var(--glass-border)]">
+                <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                  <LayoutGrid className="size-4" />
                 </button>
-                <button onClick={() => setViewMode('list')} className={`p-1 md:p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === 'list' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
-                  <List className="size-3.5" />
+                <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                  <List className="size-4" />
                 </button>
               </div>
             </div>
             
           </div>
 
-          {/* Product Grid */}
-          <div className="p-3 md:p-6 lg:p-10">
+          {/* Product Grid - Consistently tight layout */}
+          <div className="px-4 md:px-6 lg:px-12 py-6">
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-6">
                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(i => (
@@ -384,39 +505,13 @@ function ShopContent() {
                 </div>
 
                 {/* --- Pagination --- */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-4 mt-12 pb-12">
-                     <button 
-                        disabled={page === 1}
-                        onClick={() => handlePageChange(page - 1)}
-                        className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all transition-colors"
-                     >
-                        Previous
-                     </button>
-                     <div className="flex items-center gap-2">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                           // Show only 5 pages around current
-                           if (Math.abs(p - page) > 2 && p !== 1 && p !== totalPages) return p === 2 || p === totalPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
-                           return (
-                              <button 
-                                 key={p}
-                                 onClick={() => handlePageChange(p)}
-                                 className={`size-10 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${page === p ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
-                              >
-                                 {p}
-                              </button>
-                           );
-                        })}
-                     </div>
-                     <button 
-                        disabled={page === totalPages}
-                        onClick={() => handlePageChange(page + 1)}
-                        className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all transition-colors"
-                     >
-                        Next
-                     </button>
-                  </div>
-                )}
+                <div className="mt-8">
+                  <Pagination 
+                    currentPage={page} 
+                    totalPages={totalPages} 
+                    onPageChange={handlePageChange} 
+                  />
+                </div>
               </>
             )}
           </div>
@@ -426,12 +521,30 @@ function ShopContent() {
   );
 }
 
+// Sub-component for Follow Button to use the hook correctly
+function VendorFollowButton({ vendorId }) {
+  const { isFollowing, toggleFollow, loading } = useFollow(vendorId);
+  if (!vendorId) return null;
+
+  return (
+    <button 
+      onClick={toggleFollow}
+      disabled={loading}
+      className={`px-6 h-10 md:h-11 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all active:scale-95 flex items-center justify-center gap-2 flex-1 md:flex-none ${
+        isFollowing 
+        ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20' 
+        : 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 shadow-lg shadow-[var(--accent)]/10'
+      }`}
+    >
+      {isFollowing ? 'Following' : 'Follow'}
+    </button>
+  );
+}
+
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[var(--accent)] rounded-full border-t-transparent" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center"><div className="w-12 h-12 rounded-full border-4 border-[var(--accent)] border-t-transparent animate-spin"></div></div>}>
       <ShopContent />
     </Suspense>
   );
 }
-
-
