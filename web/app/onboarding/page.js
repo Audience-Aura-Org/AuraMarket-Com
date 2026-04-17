@@ -517,78 +517,81 @@ export default function OnboardingFlow() {
             </div>
           )}
 
-          {/* ── Step 2: Location + Phone ── */}
+          {/* ── Step 2: Location + Phone (Premium Redesign) ── */}
           {step === 2 && (
-            <div className="space-y-6 w-full">
+            <div className="space-y-4 w-full">
               {!isVendor && (
-                <div className="space-y-1">
-                  <label className={`text-[11px] font-bold tracking-tight ${colors.text}`}>Phone Number</label>
+                <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all group focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3 block opacity-50">Phone Number</label>
                   <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
+                    <Phone className="absolute left-0 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)]" />
                     <input
                       type="tel"
                       placeholder="+237 6XX XXX XXX"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-5 py-4 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 focus:ring-2 focus:ring-[var(--accent)]/10 transition-all"
+                      className="w-full bg-transparent pl-10 pr-2 py-2 text-base font-black outline-none placeholder:text-[var(--text-secondary)]/20"
                     />
                   </div>
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label className={`text-[11px] font-bold tracking-tight ${colors.text}`}>City</label>
+              <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
+                <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3 block opacity-50">City</label>
                 {zonesLoading ? (
-                  <div className="flex items-center gap-2 py-4 opacity-40">
-                    <Loader2 className="size-4 animate-spin" /><span className="text-xs">Loading zones...</span>
+                  <div className="flex items-center gap-3 py-2">
+                    <Loader2 className="size-5 animate-spin text-[var(--accent)]" />
+                    <span className="text-sm font-bold opacity-40 italic">Syncing nodes...</span>
                   </div>
                 ) : (
                   <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
+                    <MapPin className="absolute left-0 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)] pointer-events-none" />
                     <select
                       value={location.city}
                       onChange={e => setLocation(p => ({ ...p, city: e.target.value, quartier: '' }))}
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-10 py-4 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 appearance-none cursor-pointer"
+                      className="w-full bg-transparent pl-10 pr-10 py-2 text-base font-black outline-none appearance-none cursor-pointer"
                     >
-                      <option value="">Select your city...</option>
+                      <option value="">Select city...</option>
                       {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
                     </select>
+                    <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-4 opacity-20 rotate-90" />
                   </div>
                 )}
               </div>
 
               {location.city && (
                 <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-1"
+                  initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40"
                 >
-                  <label className={`text-[11px] font-bold tracking-tight ${colors.text}`}>Neighbourhood / Zone</label>
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3 block opacity-50">Neighbourhood / Zone</label>
                   <div className="relative">
-                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
+                    <Globe className="absolute left-0 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)] pointer-events-none" />
                     <select
                       value={location.quartier}
                       disabled={zonesLoading}
                       onChange={e => setLocation(p => ({ ...p, quartier: e.target.value }))}
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-10 py-4 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 appearance-none cursor-pointer disabled:opacity-40"
+                      className="w-full bg-transparent pl-10 pr-10 py-2 text-base font-black outline-none appearance-none cursor-pointer disabled:opacity-30"
                     >
-                      <option value="">Select your zone...</option>
+                      <option value="">Select zone...</option>
                       {quartiers.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
                     </select>
+                    <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-4 opacity-20 rotate-90" />
                   </div>
                 </motion.div>
               )}
 
-              <div className="space-y-1">
-                <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>
-                  {isVendor ? 'Pickup Address Details (Optional)' : 'Address Notes (Optional)'}
+              <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
+                <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3 block opacity-50">
+                  {isVendor ? 'Pickup Details' : 'Address Notes'}
                 </label>
                 <textarea
                   placeholder={isVendor ? "e.g. Next to Total Station, gate #4..." : "e.g. Door #5, blue building..."}
                   value={location.address_description}
                   onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
                   rows={3}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 transition-all resize-none"
+                  className="w-full bg-transparent py-1 text-sm font-bold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
                 />
               </div>
             </div>
