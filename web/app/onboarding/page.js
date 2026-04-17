@@ -299,7 +299,7 @@ export default function OnboardingFlow() {
 
       {/* Header / Step Progress */}
       <header className="shrink-0 sticky top-0 z-20 px-6 py-6">
-        <div className="max-w-2xl mx-auto flex items-center justify-between bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[2.5rem] px-6 py-3 shadow-2xl">
+        <div className="max-w-[95%] mx-auto flex items-center justify-between bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[2.5rem] px-6 py-3 shadow-2xl">
           {/* Back / Logo */}
           <div className="flex items-center gap-4">
             {step > 0 ? (
@@ -347,7 +347,7 @@ export default function OnboardingFlow() {
 
       {/* Step Title */}
       <div className="shrink-0 pt-8 pb-6 px-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-[95%] mx-auto">
           <div className="flex items-center gap-4">
             <div className={`size-14 rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
               {currentStepMeta && <currentStepMeta.icon className={`size-6 ${colors.text}`} />}
@@ -362,7 +362,7 @@ export default function OnboardingFlow() {
 
       {/* Step Content */}
       <div className="flex-1 overflow-y-auto px-6 pb-36">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-[95%] mx-auto">
 
           {/* ── Step 0: Vendors (Customers) / Brand Profile (Vendors) ── */}
           {step === 0 && (
@@ -441,19 +441,26 @@ export default function OnboardingFlow() {
                       const isFollowing = followedVendors.includes(v._id);
                       const isSyncing = syncing === v._id;
                       return (
-                        <div key={v._id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${isFollowing ? 'bg-blue-500/10 border-blue-500/30' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)]/30'}`}
+                        <div key={v._id} className={`flex items-center justify-between gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${isFollowing ? 'bg-blue-500/10 border-blue-500/30' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)]/30'}`}
                           onClick={() => !isSyncing && handleToggleFollow(v._id)}>
-                          <div className="size-12 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0">
-                            {v.user_id?.branding?.logo || v.user_id?.avatar
-                              ? <img src={v.user_id?.branding?.logo || v.user_id?.avatar} className="size-full object-cover" alt="" />
-                              : <div className="size-full flex items-center justify-center"><Store className="size-5 opacity-20" /></div>
-                            }
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="size-12 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0">
+                              {v.user_id?.branding?.logo || v.user_id?.avatar
+                                ? <img src={v.user_id?.branding?.logo || v.user_id?.avatar} className="size-full object-cover" alt="" />
+                                : <div className="size-full flex items-center justify-center"><Store className="size-5 opacity-20" /></div>
+                              }
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                               <h3 className="text-sm font-black text-[var(--text-primary)] truncate">{v.store_name || 'Verified Vendor'}</h3>
+                               <p className="text-[10px] text-[var(--text-secondary)] font-bold opacity-60">Vendor Node</p>
+                            </div>
                           </div>
+                          
                           <button 
                             onClick={(e) => { e.stopPropagation(); !isSyncing && handleToggleFollow(v._id); }}
-                            className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-1.5 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
+                            className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-1.5 shrink-0 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
                           >
-                            {isSyncing ? <Loader2 className="size-3 animate-spin" /> : isFollowing ? <Check className="size-3" /> : null}
+                            {isSyncing ? <Loader2 className="size-3.5 animate-spin" /> : isFollowing ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
                             {isFollowing ? 'FOLLOWED' : 'FOLLOW'}
                           </button>
                         </div>
@@ -550,21 +557,27 @@ export default function OnboardingFlow() {
                 )}
               </div>
 
-              <div className="space-y-1">
-                <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>Neighbourhood / Zone</label>
-                <div className="relative">
-                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
-                  <select
-                    value={location.quartier}
-                    disabled={!location.city || zonesLoading}
-                    onChange={e => setLocation(p => ({ ...p, quartier: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-10 py-4 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 appearance-none cursor-pointer disabled:opacity-40"
-                  >
-                    <option value="">Select your zone...</option>
-                    {quartiers.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                  </select>
-                </div>
-              </div>
+              {location.city && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-1"
+                >
+                  <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>Neighbourhood / Zone</label>
+                  <div className="relative">
+                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
+                    <select
+                      value={location.quartier}
+                      disabled={zonesLoading}
+                      onChange={e => setLocation(p => ({ ...p, quartier: e.target.value }))}
+                      className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-10 py-4 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 appearance-none cursor-pointer disabled:opacity-40"
+                    >
+                      <option value="">Select your zone...</option>
+                      {quartiers.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                    </select>
+                  </div>
+                </motion.div>
+              )}
 
               <div className="space-y-1">
                 <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>
@@ -651,11 +664,11 @@ export default function OnboardingFlow() {
 
       {/* Bottom Nav Bar  */}
       {step < 3 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 px-6 py-6 pb-8 pointer-events-none">
-          <div className="max-w-2xl mx-auto flex justify-end pointer-events-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-30 px-6 py-10 sm:py-6 pb-12 pointer-events-none">
+          <div className="max-w-[95%] mx-auto flex justify-end pointer-events-auto">
             <button
               onClick={goNext}
-              className={`px-8 py-4 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-xl hover:shadow-2xl border border-white/20 bg-gradient-to-r from-[var(--bg-primary)] to-[var(--bg-secondary)] text-[var(--text-primary)] hover:scale-[1.02] active:scale-95`}
+              className={`px-10 py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-xl hover:shadow-2xl border border-white/20 hover:scale-[1.02] active:scale-95`}
               style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
             >
               {step === 2 ? 'Review & Finish' : 'Continue'}
