@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #f20df2;
+  --color-background-dark: #120812;
+  --color-background-light: #f8f5f8;
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-bg-primary: var(--bg-primary);
+  --color-text-primary: var(--text-primary);
+  --color-card-bg: var(--card-bg);
+  --font-display: "Inter", sans-serif;
+}
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --nav-bg: rgba(10, 5, 15, 0.95);
+  --nav-text: #f8fafc;
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --component-bg: rgba(15, 23, 42, 0.04);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #f20df2;
+  --accent-light: #f472b6;
+  --accent-glow: rgba(242, 13, 242, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --card-bg: #ffffff;
+}
+
+.dark {
+  --bg-primary: #0a050a;
+  --bg-secondary: #120812;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --nav-text: #0a051b;
+  --nav-border: rgba(15, 23, 42, 0.06);
+  --component-bg: rgba(255, 255, 255, 0.04);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent: #f20df2;
+  --accent-light: #f472b6;
+  --accent-glow: rgba(242, 13, 242, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --card-bg: rgba(255, 255, 255, 0.03);
+}
+
+/* Rest of the file remains as before but ensuring no italics */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: auto;
+}
+
+body {
+  font-family: var(--font-display);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: auto;
+  background-image:
+    radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, var(--accent-glow) 0%, transparent 50%);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,h2,h3,h4,h5,h6 {
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+  font-style: normal !important;
+}
+
+i, em { font-style: normal !important; }
+
+
+
+@media (max-width: 640px) {
+  html { 
+    font-size: 14px; 
+  }
+  input, textarea, select { font-size: 16px !important; }
+  p { line-height: 1.45; }
+  button, a { word-break: normal; }
+}
+
+@layer utilities {
+  .text-fluid-xs { font-size: clamp(0.6rem, 2vw, 0.75rem); }
+  .text-fluid-sm { font-size: clamp(0.8rem, 2.5vw, 0.875rem); }
+  .text-fluid-base { font-size: clamp(0.9rem, 3vw, 1rem); }
+  .text-fluid-lg { font-size: clamp(1rem, 4vw, 1.125rem); }
+  .text-fluid-xl { font-size: clamp(1.25rem, 5vw, 1.5rem); }
+  .text-fluid-2xl { font-size: clamp(1.5rem, 6vw, 1.875rem); }
+  .p-fluid { padding: clamp(1rem, 5vw, 2.5rem); }
+  .gap-fluid { gap: clamp(0.5rem, 3vw, 1.5rem); }
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.notification-layer {
+  position: fixed; top: 0; right: 0; padding: 1.5rem; width: 100%; max-width: 420px;
+  display: flex; flex-direction: column; gap: 0.75rem; z-index: 9999; pointer-events: none;
+}
+
+.notification-toast {
+  pointer-events: auto; width: 100%; background: var(--glass-bg); backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border); color: var(--text-primary); border-radius: 12px;
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.25); border-left: 4px solid var(--accent);
+}
