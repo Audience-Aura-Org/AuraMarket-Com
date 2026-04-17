@@ -192,8 +192,8 @@ export default function UnifiedAuth() {
   };
 
   return (
-    <div className="w-full max-w-[420px] mx-auto">
-      <div className="bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+    <div className={`w-full ${step === 'CALIBRATION' ? 'max-w-[95%] md:max-w-2xl' : 'max-w-[420px]'} mx-auto transition-all duration-700`}>
+      <div className="bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
         
         {/* Progress Bar (Aesthetic Dots) */}
         <div className="flex justify-center gap-1.5 mb-8">
@@ -400,40 +400,46 @@ export default function UnifiedAuth() {
               className="space-y-6"
             >
               <div className="space-y-2">
-                <h2 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">Calibrate your Hub</h2>
+                <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Calibrate your Hub</h2>
                 <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Personalize your node for the Aura Network</p>
               </div>
 
-              <form onSubmit={handleOnboardingSubmit} className="space-y-6">
+              <form onSubmit={handleOnboardingSubmit} className="space-y-5">
                 {formData.role === 'vendor' && (
                   <div className="space-y-4">
-                    <div className="relative group">
-                       <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] opacity-40" />
-                       <input 
-                         type="text" 
-                         required
-                         placeholder="Store Name"
-                         value={onboardingData.store_name}
-                         onChange={e => setOnboardingData({...onboardingData, store_name: e.target.value})}
-                         className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all"
-                       />
+                    <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
+                       <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">Store Name</label>
+                       <div className="relative">
+                         <Store className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
+                         <input 
+                           type="text" 
+                           required
+                           placeholder="Enter Store Name"
+                           value={onboardingData.store_name}
+                           onChange={e => setOnboardingData({...onboardingData, store_name: e.target.value})}
+                           className="w-full bg-transparent pl-8 py-1 text-sm font-bold outline-none"
+                         />
+                       </div>
                     </div>
-                    <textarea 
-                      placeholder="Store Description / Mission..."
-                      required
-                      value={onboardingData.description}
-                      onChange={e => setOnboardingData({...onboardingData, description: e.target.value})}
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl p-4 text-xs font-bold outline-none h-24 resize-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all"
-                    />
+                    <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">Store Description</label>
+                      <textarea 
+                        placeholder="Tell us about your brand..."
+                        required
+                        value={onboardingData.description}
+                        onChange={e => setOnboardingData({...onboardingData, description: e.target.value})}
+                        className="w-full bg-transparent py-1 text-sm font-bold outline-none h-20 resize-none"
+                      />
+                    </div>
                   </div>
                 )}
 
-                {/* Categories / Interests Selection */}
-                <div className="space-y-3">
-                  <label className="text-[9px] font-black uppercase text-[var(--accent)] tracking-widest pl-1">
-                    {formData.role === 'vendor' ? 'Store Categories' : 'Personal Interests'}
+                {/* Categories */}
+                <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">
+                    {formData.role === 'vendor' ? 'Store Categories' : 'Interests'}
                   </label>
-                  <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto no-scrollbar p-1">
+                  <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto no-scrollbar py-1">
                     {categories.map(cat => (
                       <button
                         key={cat._id}
@@ -444,10 +450,10 @@ export default function UnifiedAuth() {
                             ? prev.selectedCategories.filter(id => id !== cat._id) 
                             : [...prev.selectedCategories, cat._id]
                         }))}
-                        className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-tighter transition-all border ${
+                        className={`px-3 py-1.5 rounded-full text-[9.5px] font-bold transition-all border ${
                           onboardingData.selectedCategories.includes(cat._id)
-                          ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
-                          : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]'
+                          ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30'
+                          : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
                         }`}
                       >
                         {cat.name}
@@ -457,46 +463,60 @@ export default function UnifiedAuth() {
                 </div>
 
                 {/* Location Selection */}
-                <div className="space-y-3">
-                  <label className="text-[9px] font-black uppercase text-[var(--accent)] tracking-widest pl-1">Operational Zone</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select 
-                       required
-                       value={onboardingData.city}
-                       onFocus={fetchZonesIfNeeded}
-                       onChange={e => setOnboardingData({...onboardingData, city: e.target.value, quartier: ''})}
-                       className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl py-3 px-3 text-[10px] font-bold outline-none"
-                    >
-                       <option value="">Select City</option>
-                       {zones.filter(z => z.type === 'region').map(z => (
-                         <option key={z._id} value={z.name}>{z.name}</option>
-                       ))}
-                    </select>
-                    <select 
-                       required
-                       disabled={!onboardingData.city}
-                       value={onboardingData.quartier}
-                       onChange={e => setOnboardingData({...onboardingData, quartier: e.target.value})}
-                       className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl py-3 px-3 text-[10px] font-bold outline-none disabled:opacity-50"
-                    >
-                       <option value="">Select Zone</option>
-                       {zones.filter(z => z.type === 'quartier' && z.parent_id?.name === onboardingData.city).map(z => (
-                         <option key={z._id} value={z.name}>{z.name}</option>
-                       ))}
-                    </select>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">City</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
+                      <select 
+                         required
+                         value={onboardingData.city}
+                         onFocus={fetchZonesIfNeeded}
+                         onChange={e => setOnboardingData({...onboardingData, city: e.target.value, quartier: ''})}
+                         className="w-full bg-transparent pl-8 pr-8 py-1 text-sm font-bold outline-none appearance-none cursor-pointer"
+                      >
+                         <option value="">Select City</option>
+                         {zones.filter(z => z.type === 'region').map(z => (
+                           <option key={z._id} value={z.name}>{z.name}</option>
+                         ))}
+                      </select>
+                      <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-4 opacity-20 rotate-90" />
+                    </div>
                   </div>
+
+                  {onboardingData.city && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl"
+                    >
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">Neighbourhood / Zone</label>
+                      <div className="relative">
+                        <Globe className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
+                        <select 
+                           required
+                           disabled={!onboardingData.city}
+                           value={onboardingData.quartier}
+                           onChange={e => setOnboardingData({...onboardingData, quartier: e.target.value})}
+                           className="w-full bg-transparent pl-8 pr-8 py-1 text-sm font-bold outline-none appearance-none cursor-pointer disabled:opacity-30"
+                        >
+                           <option value="">Select Zone</option>
+                           {zones.filter(z => z.type === 'quartier' && z.parent_id?.name === onboardingData.city).map(z => (
+                             <option key={z._id} value={z.name}>{z.name}</option>
+                           ))}
+                        </select>
+                        <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-4 opacity-20 rotate-90" />
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 rounded-2xl bg-[var(--accent)] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-4 rounded-[2rem] bg-[var(--accent)] text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'Activate Profile'
-                  )}
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Activate Profile'}
                 </button>
               </form>
             </motion.div>
