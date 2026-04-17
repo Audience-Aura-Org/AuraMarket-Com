@@ -6,7 +6,7 @@ import {
   Mail, Lock, User, Phone, 
   ArrowRight, ArrowLeft, Sparkles, 
   ChevronRight, ShoppingBag, Store, Truck,
-  CheckCircle2, Loader2, X
+  CheckCircle2, Loader2, X, MapPin, Globe
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
