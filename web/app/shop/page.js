@@ -260,7 +260,7 @@ function ShopContent() {
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-bold tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-medium tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
                       All Products
                     </button>
@@ -271,7 +271,7 @@ function ShopContent() {
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[11.5px] md:text-sm font-bold tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-medium tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {crumb.name}
                       </button>
@@ -287,7 +287,7 @@ function ShopContent() {
                          if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                        }}
-                       className={`shrink-0 px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[11.5px] md:text-sm font-bold tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-medium tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {cat.name}
                     </button>
