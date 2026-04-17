@@ -210,16 +210,16 @@ const DiscoveryContent = memo(({ user }) => {
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="sticky top-[104px] z-40 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] py-2.5 px-4 scrollbar-hide">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+      {/* Categories - SYNCED WRAPPER */}
+      <div className="sticky top-[104px] z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl py-2.5 px-4 scrollbar-hide">
+        <div className="max-w-[1200px] mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
           {isCategoriesLoading ? (
             [...Array(6)].map((_, i) => <div key={i} className="shrink-0 w-16 h-7 rounded-full bg-[var(--bg-secondary)] animate-pulse" />)
           ) : (
             <>
               <button 
                 onClick={() => { setBreadcrumb([]); setActiveCategoryId(null); setActiveCategoryName('All'); setPage(1); }}
-                className={`shrink-0 px-3 py-1.5 rounded-full border transition-all text-[9.5px] font-black tracking-tighter ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-transparent text-[var(--text-secondary)]'}`}
+                className={`shrink-0 px-4 py-2 rounded-full border transition-all text-[11px] font-normal tracking-tight ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-transparent text-[var(--text-secondary)]'}`}
               >
                 All
               </button>
@@ -227,7 +227,7 @@ const DiscoveryContent = memo(({ user }) => {
                 <button
                   key={cat._id}
                   onClick={() => handleCategoryClick(cat)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full border transition-all text-[9.5px] font-black tracking-tighter ${activeCategoryId === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)]'}`}
+                  className={`shrink-0 px-4 py-2 rounded-full border transition-all text-[11px] font-normal tracking-tight ${activeCategoryId === cat._id ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)]'}`}
                 >
                   {cat.name}
                 </button>

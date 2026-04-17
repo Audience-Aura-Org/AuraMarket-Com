@@ -384,7 +384,7 @@ export default function OnboardingFlow() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>Phone Number</label>
+                    <label className={`text-[11px] font-bold tracking-tight ${colors.text}`}>Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
                       <input
@@ -458,10 +458,10 @@ export default function OnboardingFlow() {
                           
                           <button 
                             onClick={(e) => { e.stopPropagation(); !isSyncing && handleToggleFollow(v._id); }}
-                            className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all flex items-center justify-center gap-1.5 shrink-0 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 shrink-0 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
                           >
                             {isSyncing ? <Loader2 className="size-3.5 animate-spin" /> : isFollowing ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
-                            {isFollowing ? 'FOLLOWED' : 'FOLLOW'}
+                            {isFollowing ? 'Followed' : 'Follow'}
                           </button>
                         </div>
                       );
@@ -509,7 +509,7 @@ export default function OnboardingFlow() {
                         </div>
                       )}
                       <LayoutGrid className={`size-5 md:size-6 mb-2 ${sel ? 'text-rose-400' : 'text-[var(--text-secondary)] opacity-40'}`} />
-                      <p className="text-[10px] md:text-xs font-black leading-tight">{cat.name}</p>
+                      <p className="text-[11px] md:text-xs font-medium leading-tight">{cat.name}</p>
                     </button>
                   );
                 })}
@@ -519,10 +519,10 @@ export default function OnboardingFlow() {
 
           {/* ── Step 2: Location + Phone ── */}
           {step === 2 && (
-            <div className="space-y-5 max-w-md">
+            <div className="space-y-6 w-full">
               {!isVendor && (
                 <div className="space-y-1">
-                  <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>Phone Number</label>
+                  <label className={`text-[11px] font-bold tracking-tight ${colors.text}`}>Phone Number</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
                     <input
@@ -537,7 +537,7 @@ export default function OnboardingFlow() {
               )}
 
               <div className="space-y-1">
-                <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>City</label>
+                <label className={`text-[11px] font-bold tracking-tight ${colors.text}`}>City</label>
                 {zonesLoading ? (
                   <div className="flex items-center gap-2 py-4 opacity-40">
                     <Loader2 className="size-4 animate-spin" /><span className="text-xs">Loading zones...</span>
@@ -563,7 +563,7 @@ export default function OnboardingFlow() {
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-1"
                 >
-                  <label className={`text-[10px] font-black uppercase tracking-widest ${colors.text}`}>Neighbourhood / Zone</label>
+                  <label className={`text-[11px] font-bold tracking-tight ${colors.text}`}>Neighbourhood / Zone</label>
                   <div className="relative">
                     <Globe className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
                     <select
