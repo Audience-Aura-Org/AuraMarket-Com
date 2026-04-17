@@ -260,7 +260,7 @@ function ShopContent() {
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                      className={`shrink-0 px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-bold tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
                       All Products
                     </button>
@@ -271,7 +271,7 @@ function ShopContent() {
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[11.5px] md:text-sm font-bold tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {crumb.name}
                       </button>
@@ -287,7 +287,7 @@ function ShopContent() {
                          if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                        }}
-                       className={`shrink-0 px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-wider shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                       className={`shrink-0 px-4 py-1.5 md:px-5 md:py-2 rounded-full border transition-all text-[11.5px] md:text-sm font-bold tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {cat.name}
                     </button>
@@ -396,11 +396,11 @@ function ShopContent() {
           <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
             
             <div className="flex items-center gap-1.5 md:gap-3">
-              <h3 className="text-[10px] md:text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">
+              <h3 className="text-xs md:text-xl font-bold text-[var(--text-primary)] tracking-tight">
                 {activeCategoryName === 'All' ? 'Global Market' : activeCategoryName}
               </h3>
               <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
-              <p className="text-[8px] md:text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-60">
+              <p className="text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
                 {products.length} Results
               </p>
             </div>
@@ -411,10 +411,10 @@ function ShopContent() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[8px] md:text-[9.5px] font-black uppercase tracking-wider shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
                 >
                   Price
-                  <ChevronRight className={`size-2 md:size-2.5 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
+                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
                 </button>
                 
                 {isPriceOpen && (
@@ -435,10 +435,10 @@ function ShopContent() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[8px] md:text-[9.5px] font-black uppercase tracking-wider shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
                 >
                   Sort
-                  <ChevronRight className={`size-2 md:size-2.5 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
+                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
                 </button>
                 
                 {isSortOpen && (

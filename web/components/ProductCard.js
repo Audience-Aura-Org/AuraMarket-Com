@@ -213,20 +213,20 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         <div className="flex items-center gap-1 md:gap-1.5 mt-auto">
           <button 
              onClick={(e) => { e.stopPropagation(); window.location.href = `/products/${productId}`; }}
-             className="flex-1 h-6 md:h-8 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[6px] sm:text-[7px] md:text-[9px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
+             className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
           >
-            VIEW
+             VIEW
           </button>
           
           <button 
              onClick={handleChat}
-             className="size-6 md:size-8 rounded-lg md:rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"
+             className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"
           >
-            <MessageSquare className="size-3 md:size-3.5" />
+            <MessageSquare className="size-4 md:size-4.5" />
           </button>
           
-          <button onClick={handleAddToCart} disabled={addingToCart} className="size-6 md:size-8 rounded-lg md:rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95">
-            <Plus className={`size-3 md:size-4 ${addingToCart ? 'animate-spin' : ''}`} />
+          <button onClick={handleAddToCart} disabled={addingToCart} className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95">
+            <Plus className={`size-4 md:size-5 ${addingToCart ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
