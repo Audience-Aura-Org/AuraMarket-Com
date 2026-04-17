@@ -664,12 +664,12 @@ export default function OnboardingFlow() {
 
       {/* Bottom Nav Bar  */}
       {step < 3 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 px-6 py-10 sm:py-6 pb-12 pointer-events-none">
+        <div className="fixed bottom-0 left-0 right-0 z-30 px-6 py-10 sm:py-6 pb-20 sm:pb-12 pointer-events-none">
           <div className="max-w-[95%] mx-auto flex justify-end pointer-events-auto">
             <button
               onClick={goNext}
               className={`px-10 py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-xl hover:shadow-2xl border border-white/20 hover:scale-[1.02] active:scale-95`}
-              style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
+              style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white', position: 'relative', bottom: '10px' }}
             >
               {step === 2 ? 'Review & Finish' : 'Continue'}
               <ArrowRight className="size-4" />

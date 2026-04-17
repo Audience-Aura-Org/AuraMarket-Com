@@ -199,7 +199,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       <div className="p-2 sm:p-2.5 md:p-3.5 flex flex-col flex-1 gap-2 md:gap-3">
         <div className="space-y-0.5 md:space-y-1">
           <Link href={`/products/${productId}`} className="block">
-            <h3 className="text-[9px] sm:text-[10.5px] md:text-[12px] font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
+            <h3 className="text-[11px] sm:text-[12px] md:text-[14px] font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
           </Link>
           <div className="flex items-center justify-between">
             <span className="text-[10.5px] sm:text-[12px] md:text-[14px] font-black text-[var(--accent)]">{price?.toLocaleString()} XAF</span>

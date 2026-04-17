@@ -224,18 +224,18 @@ function ShopContent() {
         {/* STICKY HEADER STACK: Search + Category bar */}
         <div className="sticky top-[57px] md:top-[64px] z-40 bg-[var(--bg-primary)] shadow-sm">
 
-          {/* Search Bar - Unified Premium Style */}
-          <div className="px-6 lg:px-12 py-2 flex justify-center border-b border-[var(--glass-border)]/50">
-            <div className="relative w-full max-w-6xl">
+          {/* Search Bar - DISCOVERY SYNC */}
+          <div className="px-6 lg:px-12 py-3 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
+            <div className="relative max-w-2xl mx-auto">
               <input
                 type="text"
+                placeholder="Search premium products..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
-                placeholder="Search products..."
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2 md:py-2.5 pl-4 pr-12 text-[10px] md:text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] md:text-sm outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
-              <button
+              <button 
                 onClick={() => { setPage(1); fetchProducts(1); }}
                 className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center font-bold"
               >
@@ -244,7 +244,7 @@ function ShopContent() {
             </div>
           </div>
 
-          {/* Category Chips - Unified Premium Style */}
+          {/* Category Chips - DISCOVERY SYNC */}
           <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
             <div className="max-w-7xl mx-auto px-6 lg:px-12 py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full">
                {isCategoriesLoading ? (
@@ -254,15 +254,15 @@ function ShopContent() {
                ) : (
                 <>
                  {breadcrumb.length > 0 ? (
-                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] font-black uppercase tracking-tighter text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
                      <Home className="size-3.5" /> Market
                    </button>
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-medium tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-tighter shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
-                      All Products
+                      All
                     </button>
                  )}
 
@@ -271,7 +271,7 @@ function ShopContent() {
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-medium tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-tighter shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {crumb.name}
                       </button>
@@ -287,7 +287,7 @@ function ShopContent() {
                          if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                        }}
-                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11.5px] md:text-sm font-medium tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[9.5px] md:text-[11px] font-black uppercase tracking-tighter shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {cat.name}
                     </button>
