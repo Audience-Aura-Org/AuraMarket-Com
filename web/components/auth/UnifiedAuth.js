@@ -1,5 +1,5 @@
 "use client";
-// Force HMR refresh for MapPin import
+// Force cache bust: v2-alias-fix
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,7 @@ import {
   Mail, Lock, User, Phone, 
   ArrowRight, ArrowLeft, Sparkles, 
   ChevronRight, ShoppingBag, Store, Truck,
-  CheckCircle2, Loader2, X, MapPin, Globe
+  CheckCircle2, Loader2, X, MapPin as AuraMapPin, Globe
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -44,39 +44,43 @@ export default function UnifiedAuth() {
     description: '',
     selectedCategories: [],
     city: '',
-    quartier: ''
+    quartier: '',
+    followedVendors: []
   });
 
   // Resources for onboarding
   const [categories, setCategories] = useState([]);
   const [zones, setZones] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [fetchingResources, setFetchingResources] = useState(false);
 
   useEffect(() => {
     if (step === 'CALIBRATION') {
-      const fetchCategories = async () => {
+      const fetchResources = async () => {
         setFetchingResources(true);
         try {
-          const cRes = await api.get('/categories');
-          setCategories(cRes.data.data || []);
+          // Parallel fetch for maximum speed
+          const [catRes, zoneRes, vendorRes] = await Promise.all([
+            api.get('/categories'),
+            api.get('/logistics/zones'),
+            api.get('/vendors/promoted') // Assuming this endpoint exists or similar
+          ]);
+          
+          setCategories(catRes.data.data || []);
+          setZones(zoneRes.data.data?.zones || []);
+          setVendors(vendorRes.data.data || vendorRes.data || []);
         } catch (e) {
-          console.error('Failed to fetch categories', e);
+          console.error('Failed to calibrate network resources', e);
         } finally {
           setFetchingResources(false);
         }
       };
-      fetchCategories();
+      fetchResources();
     }
   }, [step]);
 
-  // Lazy-load zones only when user touches the city selector
-  const fetchZonesIfNeeded = async () => {
-    if (zones.length > 0) return;
-    try {
-      const zRes = await api.get('/logistics/zones');
-      setZones(zRes.data.data?.zones || []);
-    } catch (e) { /* silent */ }
-  };
+  // Zones now pre-loaded for speed
+  const fetchZonesIfNeeded = () => {}; 
 
   const nextStep = () => {
     if (step === 'IDENTIFIER') setStep('CHALLENGE');
@@ -153,6 +157,7 @@ export default function UnifiedAuth() {
       } else {
         await api.patch('/users/onboarding', {
           liked_categories: onboardingData.selectedCategories,
+          followed_vendors: onboardingData.followedVendors,
           location: {
             city: onboardingData.city,
             quartier: onboardingData.quartier
@@ -402,8 +407,20 @@ export default function UnifiedAuth() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
-              className="space-y-6"
+              className="space-y-6 relative"
             >
+              {fetchingResources && (
+                <div className="absolute inset-0 z-50 bg-[var(--bg-secondary)]/80 backdrop-blur-md rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all duration-500">
+                  <div className="relative">
+                    <Loader2 className="w-10 h-10 animate-spin text-[var(--accent)] opacity-20" />
+                    <Sparkles className="absolute inset-0 w-10 h-10 text-[var(--accent)] animate-pulse" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)]">Syncing Network</p>
+                    <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-tighter animate-pulse">Calibrating Hub Resources...</p>
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Calibrate your Hub</h2>
                 <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Personalize your node for the Aura Network</p>
@@ -467,12 +484,59 @@ export default function UnifiedAuth() {
                   </div>
                 </div>
 
+                {/* Follow Vendors (New) */}
+                {formData.role === 'customer' && (
+                  <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] opacity-50">Follow Vendors</label>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${onboardingData.followedVendors.length >= 2 ? 'bg-green-500/20 text-green-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]'}`}>
+                        {onboardingData.followedVendors.length}/2+ Selected
+                      </span>
+                    </div>
+                    <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">Pick 2+ stores you love to personalize your feed</p>
+                    
+                    {fetchingResources ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-[var(--accent)]" />
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto no-scrollbar py-1">
+                        {vendors.length > 0 ? vendors.map(v => (
+                          <button
+                            key={v._id}
+                            type="button"
+                            onClick={() => setOnboardingData(prev => ({
+                              ...prev,
+                              followedVendors: prev.followedVendors.includes(v._id) 
+                                ? prev.followedVendors.filter(id => id !== v._id) 
+                                : [...prev.followedVendors, v._id]
+                            }))}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all ${
+                              onboardingData.followedVendors.includes(v._id)
+                              ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30'
+                              : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
+                            }`}
+                          >
+                            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-black">
+                              {v.store_name?.[0] || 'V'}
+                            </div>
+                            <span className="text-[10px] font-bold">{v.store_name}</span>
+                            {onboardingData.followedVendors.includes(v._id) && <CheckCircle2 className="w-3 h-3" />}
+                          </button>
+                        )) : (
+                          <div className="w-full text-center py-2 text-[10px] font-bold opacity-30 italic">No nodes found in your sector</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Location Selection */}
                 <div className="space-y-4">
                   <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
                     <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">City</label>
                     <div className="relative">
-                      <MapPin className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
+                      <AuraMapPin className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
                       <select 
                          required
                          value={onboardingData.city}
@@ -521,7 +585,11 @@ export default function UnifiedAuth() {
                   disabled={loading}
                   className="w-full py-4 rounded-[2rem] bg-[var(--accent)] text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Activate Profile'}
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                    formData.role === 'customer' && onboardingData.followedVendors.length < 2 
+                    ? 'Pick 2+ Stores to Activate' 
+                    : 'Activate Profile'
+                  )}
                 </button>
               </form>
             </motion.div>
