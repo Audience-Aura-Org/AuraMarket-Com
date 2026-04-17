@@ -150,22 +150,25 @@ export default function OnboardingFlow() {
 
   const handleToggleFollow = useCallback(async (vId) => {
     const isFollowing = followedVendors.includes(vId);
+    
+    // Optimistic update
+    setFollowedVendors(p => isFollowing ? p.filter(id => id !== vId) : [...p, vId]);
     setSyncing(vId);
+
     try {
       if (isFollowing) {
         await api.delete(`/vendors/${vId}/follow`);
-        setFollowedVendors(p => p.filter(id => id !== vId));
       } else {
         try {
           await api.post(`/vendors/${vId}/follow`);
-          setFollowedVendors(p => [...p, vId]);
         } catch (err) {
-          if (err.response?.status === 400) setFollowedVendors(p => [...new Set([...p, vId])]);
-          else throw err;
+          if (err.response?.status !== 400) throw err;
         }
       }
     } catch (err) {
       toast.error('Action failed.');
+      // Revert optimistic update
+      setFollowedVendors(p => isFollowing ? [...p, vId] : p.filter(id => id !== vId));
     } finally {
       setSyncing(null);
     }

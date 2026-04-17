@@ -1,4 +1,5 @@
 "use client";
+// Force HMR refresh for MapPin import
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -105,7 +106,11 @@ export default function UnifiedAuth() {
     try {
       if (isNewUser) {
         // Registering
-        const result = await register(formData);
+        const formattedData = {
+          ...formData,
+          phone: formData.phone ? formData.phone.replace(/[\s-]/g, '') : formData.phone
+        };
+        const result = await register(formattedData);
         if (result.success) {
           const registeredUser = useAuthStore.getState().user;
           // Only customers need the calibration (onboarding) flow
