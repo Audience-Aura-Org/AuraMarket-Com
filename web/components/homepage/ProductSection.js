@@ -40,7 +40,7 @@ export default function ProductSection({ title, subtitle, data, config }) {
                 key={i} 
                 className={`flex-shrink-0 snap-start transition-transform duration-500 hover:scale-[1.02] ${
                   isFeatured 
-                  ? 'w-[75%] sm:w-[45%] md:w-[25%] lg:w-[calc(14.28%-1.25rem)]' 
+                  ? 'w-[calc(50%-0.75rem)] sm:w-[45%] md:w-[25%] lg:w-[calc(14.28%-1.25rem)]' 
                   : 'w-[75%] sm:w-[45%] md:w-[30%] lg:w-[calc(20%-1.25rem)]'
                 }`}
               >
