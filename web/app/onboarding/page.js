@@ -676,7 +676,6 @@ export default function OnboardingFlow() {
             </div>
           )}
         </div>
-      </div>
 
       {/* Bottom Nav Bar  */}
       {step < 3 && (
