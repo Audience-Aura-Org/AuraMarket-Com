@@ -508,30 +508,17 @@ export default function OnboardingFlow() {
                   </div>
 
                   <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-1 block opacity-60">Specific Directions (Optional)</label>
+                    <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-1 block opacity-60">Address Details / Notes</label>
                     <textarea
-                      placeholder="e.g. Opposite the blue gate..."
+                      placeholder={isVendor ? "e.g. Opposite Total Station, gate #4..." : "e.g. Door #5, blue building..."}
                       value={location.address_description}
                       onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
-                      rows={2}
+                      rows={3}
                       className="w-full bg-transparent py-1 text-xs font-bold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
                     />
                   </div>
                 </motion.div>
               )}
-
-              <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
-                <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-3 block opacity-50">
-                  {isVendor ? 'Pickup Details' : 'Address Notes'}
-                </label>
-                <textarea
-                  placeholder={isVendor ? "e.g. Next to Total Station, gate #4..." : "e.g. Door #5, blue building..."}
-                  value={location.address_description}
-                  onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
-                  rows={3}
-                  className="w-full bg-transparent py-1 text-sm font-bold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
-                />
-              </div>
             </div>
           )}
 
