@@ -18,6 +18,7 @@ export const useAuthStore = create(
       loading: false,
       error: null,
       setHasHydrated: (value) => set({ hasHydrated: value }),
+      setRememberedEmail: (email) => set({ rememberedEmail: email }),
 
       // Login functionality
       login: async (credentials) => {
@@ -104,7 +105,10 @@ export const useAuthStore = create(
         try {
           const res = await api.get('/users/followed-vendors');
           if (res.data.success) {
-            const ids = (res.data.data.follows || []).map(f => (f.vendor_id?._id || f.vendor_id).toString());
+            const ids = (res.data.data.follows || [])
+              .map(f => f.vendor_id?._id || f.vendor_id)
+              .filter(id => id != null)
+              .map(id => id.toString());
             set({ followedVendorIds: ids });
           }
         } catch (err) {

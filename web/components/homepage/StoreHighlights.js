@@ -1,26 +1,46 @@
 "use client";
 import Link from 'next/link';
-import { BadgeCheck, Users, ArrowUpRight } from 'lucide-react';
+import { BadgeCheck, Users, ArrowUpRight, Check } from 'lucide-react';
+import { useAuthStore } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
 export default function StoreHighlights({ title, data }) {
+  const { followedVendorIds, fetchFollowedVendors, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (isAuthenticated) fetchFollowedVendors();
+  }, [isAuthenticated, fetchFollowedVendors]);
+
   if (!data?.length) return null;
 
+  // Helper to format follower counts
+  const formatCount = (num) => {
+    if (!num) return '0';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return num.toString();
+  };
+
   return (
-    <section className="py-4 px-6 max-w-7xl mx-auto">
-      <div className="flex items-end justify-between mb-8">
-        <div className="space-y-2">
-          <h2 className="text-xl md:text-3xl font-black text-[var(--text-primary)] tracking-tight">
-            {title || "Featured Artisans & Stores"}
+    <section className="py-6 w-full">
+      <div className="flex flex-col md:flex-row items-baseline justify-between mb-8 px-4 md:px-6 gap-3">
+        <div className="space-y-1 text-left">
+          <h2 className="text-xl md:text-2xl font-black text-[var(--text-primary)] tracking-tight">
+            {title || "Top Rated Vendors"}
           </h2>
           <div className="h-1 w-12 md:w-20 bg-[var(--accent)] rounded-full" />
         </div>
+        <Link href="/discovery?tab=vendors" className="flex items-center gap-2 group cursor-pointer">
+           <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
+           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)]">View All Nodes</span>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 px-4 md:px-6">
         {data.map((item, i) => {
           const vendor = item.vendor_id;
           if (!vendor) return null;
           const store = vendor.store;
+          const isFollowed = followedVendorIds.includes(vendor._id?.toString());
 
           return (
             <div key={i} className="group relative bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-[2.5rem] overflow-hidden hover:border-[var(--accent)]/30 transition-all duration-500">
@@ -59,7 +79,7 @@ export default function StoreHighlights({ title, data }) {
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
                          <StarIcon />
-                         <span className="text-xs font-bold">{vendor.rating || 5.0} Rating</span>
+                         <span className="text-xs font-bold">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
                       </div>
                     </div>
                     <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all">
@@ -72,12 +92,21 @@ export default function StoreHighlights({ title, data }) {
                   </p>
 
                   <div className="pt-4 flex items-center gap-4">
-                    <button className="flex-1 bg-[var(--accent)] text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-[var(--accent)]/20 hover:-translate-y-0.5 transition-all">
-                      Follow Store
+                    <button className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                      isFollowed 
+                      ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--glass-border)] opacity-60' 
+                      : 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20 hover:-translate-y-0.5'
+                    }`}>
+                      {isFollowed ? (
+                        <>
+                          <Check className="size-4" />
+                          Following
+                        </>
+                      ) : 'Follow Store'}
                     </button>
                     <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                       <Users className="w-4 h-4 opacity-40" />
-                      <span className="text-xs font-bold opacity-80">1.2k</span>
+                      <span className="text-xs font-bold opacity-80">{formatCount(vendor.follower_count)}</span>
                     </div>
                   </div>
                 </div>

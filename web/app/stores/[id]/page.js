@@ -9,20 +9,29 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useChat } from '@/context/ChatContext';
 
+import { useAuthStore } from '@/hooks/useAuth';
+
 export default function StorePage() {
   const { id } = useParams();
   const { openChat } = useChat();
   const productsAnchor = useRef(null);
+  const { followedVendorIds, addFollowedVendor, removeFollowedVendor, isAuthenticated, fetchFollowedVendors } = useAuthStore();
+  
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
   const [activeTab, setActiveTab] = useState('Signal Intake');
+
+  const vendor = store?.vendor_id;
+  const isFollowing = vendor ? followedVendorIds.includes(vendor._id?.toString() || id) : false;
+
+  useEffect(() => {
+    if (isAuthenticated) fetchFollowedVendors();
+  }, [isAuthenticated, fetchFollowedVendors]);
 
   const handlePageChange = (p) => {
     setPage(p);
@@ -39,19 +48,17 @@ export default function StorePage() {
         if (page === 1) setLoading(true);
         else setProductsLoading(true);
 
-        // 1. Fetch Store Details (only on first page)
+        // 1. Fetch Store Details
         if (page === 1) {
           const storeRes = await api.get(`/vendors/stores/${id}`);
           if (storeRes.data.success) {
-            const s = storeRes.data.data.store;
-            setStore(s);
-            setFollowersCount(s.vendor_id?.follower_count || 0);
+            setStore(storeRes.data.data.store);
           }
         }
 
         // 2. Fetch Store's Products
         let sortParam = '-createdAt';
-        if (activeTab === 'Signal Intake') sortParam = '-createdAt'; // Popularity/Default
+        if (activeTab === 'Signal Intake') sortParam = '-createdAt';
         else if (activeTab === 'Latest Drops') sortParam = '-createdAt';
         else if (activeTab === 'Catalogs') sortParam = 'category';
 
@@ -59,14 +66,6 @@ export default function StorePage() {
         if (productsRes.data.success) {
           setProducts(productsRes.data.data.products);
           setTotalPages(productsRes.data.pagination?.pages || 1);
-        }
-
-        // 3. Check follow status if logged in (only on first page)
-        if (page === 1) {
-          try {
-             const followRes = await api.get(`/vendors/${id}/follow-status`);
-             if (followRes.data.success) setIsFollowing(followRes.data.is_following);
-          } catch { /* Silent if not logged in */ }
         }
 
       } catch (error) {
@@ -80,49 +79,33 @@ export default function StorePage() {
     if (id) fetchStoreData();
   }, [id, page, activeTab]);
 
-  useEffect(() => {
-    const handleGlobalUpdate = (e) => {
-      if (e.detail.vendorId === store?.vendor_id?._id || e.detail.vendorId === id) {
-        setIsFollowing(e.detail.isFollowing);
-      }
-    };
-    window.addEventListener('aura_follow_update', handleGlobalUpdate);
-    return () => window.removeEventListener('aura_follow_update', handleGlobalUpdate);
-  }, [store?.vendor_id?._id, id]);
-
   const handleToggleFollow = async () => {
-    if (!id) return;
-    setFollowLoading(true);
-    const prevStatus = isFollowing;
-    const newStatus = !prevStatus;
+    const targetId = vendor?._id?.toString() || id;
+    if (!targetId || followLoading) return;
     
-    // Optimistic Update
-    setIsFollowing(newStatus);
-    window.dispatchEvent(new CustomEvent('aura_follow_update', { 
-      detail: { vendorId: store?.vendor_id?._id || id, isFollowing: newStatus } 
-    }));
-
+    setFollowLoading(true);
     try {
-      if (prevStatus) {
-        const res = await api.delete(`/vendors/${id}/follow`);
-        if (res.data.success) {
-          setFollowersCount(res.data.follower_count);
-          toast.success('Disconnected from node network.');
+      if (isFollowing) {
+        await api.delete(`/vendors/${targetId}/follow`);
+        removeFollowedVendor(targetId);
+        if (store?.vendor_id) {
+          setStore(prev => ({
+            ...prev,
+            vendor_id: { ...prev.vendor_id, follower_count: (prev.vendor_id.follower_count || 1) - 1 }
+          }));
         }
       } else {
-        const res = await api.post(`/vendors/${id}/follow`);
-        if (res.data.success) {
-          setFollowersCount(res.data.follower_count);
-          toast.success('Synchronized with vendor updates.');
+        await api.post(`/vendors/${targetId}/follow`);
+        addFollowedVendor(targetId);
+        if (store?.vendor_id) {
+          setStore(prev => ({
+            ...prev,
+            vendor_id: { ...prev.vendor_id, follower_count: (prev.vendor_id.follower_count || 0) + 1 }
+          }));
         }
       }
     } catch (err) {
-      // Revert
-      setIsFollowing(prevStatus);
-      window.dispatchEvent(new CustomEvent('aura_follow_update', { 
-        detail: { vendorId: store?.vendor_id?._id || id, isFollowing: prevStatus } 
-      }));
-      toast.error(err.response?.data?.message || 'Biometric handshake failed.');
+      toast.error('Handshake failed.');
     } finally {
       setFollowLoading(false);
     }
@@ -151,8 +134,8 @@ export default function StorePage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 relative overflow-x-hidden transition-colors duration-500">
-      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full -z-0"></div>
-      <div className="fixed bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-[var(--accent-light)]/5 blur-[100px] rounded-full -z-0"></div>
+      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full -z-0 pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-[var(--accent-light)]/5 blur-[100px] rounded-full -z-0 pointer-events-none"></div>
 
        <div className="relative w-full">
         {/* 1. Banner Section - COMPACT */}
@@ -166,7 +149,7 @@ export default function StorePage() {
         </div>
 
         {/* 2. Identity Overlay - COMPACT ROW */}
-        <div className="max-w-7xl mx-auto px-4 md:px-12 relative z-10 -mt-10 md:-mt-14 pb-4">
+        <div className="px-6 lg:px-12 relative z-10 -mt-10 md:-mt-14 pb-4">
           <div className="glass-panel rounded-3xl md:rounded-[3rem] p-4 md:p-6 border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl overflow-hidden">
             <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-center text-center md:text-left">
               {/* Overlapping Logo - ULTRA COMPACT */}
@@ -179,43 +162,30 @@ export default function StorePage() {
               </div>
 
               <div className="flex-1 min-w-0 w-full space-y-3">
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
                   <h1 className="text-xl md:text-3xl font-black tracking-tighter text-[var(--text-primary)] uppercase">
                     {store.vendor_id?.store_name}
                   </h1>
+                  <div className="flex items-center justify-center md:justify-start gap-3">
+                     <div className="px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center gap-2">
+                        <Star className="size-3 text-[var(--accent)] fill-current" />
+                        <span className="text-[10px] font-black text-[var(--accent)]">{store.vendor_id?.rating?.toFixed(1) || '5.0'}</span>
+                     </div>
+                     <div className="px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center gap-2">
+                        <Users className="size-3 opacity-40" />
+                        <span className="text-[10px] font-black opacity-60">
+                          {store.vendor_id?.follower_count ? (store.vendor_id.follower_count >= 1000 ? (store.vendor_id.follower_count / 1000).toFixed(1) + 'k' : store.vendor_id.follower_count) : '0'}
+                        </span>
+                     </div>
+                  </div>
                 </div>
-
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-[9px] md:text-[10px] font-black tracking-wider text-[var(--text-secondary)] uppercase">
-                  <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/5 text-[var(--accent)]">Online Store</span>
-                  <span className="opacity-40">•</span>
-                  <div className="flex items-center gap-1 text-[var(--accent)]">
-                    <Star className="size-2.5 fill-current" />
-                    {store.vendor_id?.rating?.toFixed(1) || '4.9'}
-                  </div>
-                  <span className="opacity-40 hidden md:block">•</span>
-                  <p className="hidden md:block normal-case font-medium opacity-60 truncate max-w-md">
-                    {store.vendor_id?.description || 'Verified Marketplace Node.'}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
-                    <LayoutGrid className="size-3 text-[var(--accent)]" />
-                    <span className="text-[10px] font-black text-[var(--text-primary)]">{store.products_count || 0}</span>
-                    <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Objects</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
-                    <Users className="size-3 text-[var(--accent)]" />
-                    <span className="text-[10px] font-black text-[var(--text-primary)]">{store.vendor_id?.follower_count || 0}</span>
-                    <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Followers</span>
-                  </div>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                     <Check className="size-3 text-emerald-600" />
                     <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Trusted</span>
                   </div>
-                </div>
               </div>
 
+              {/* Action Stack - MOBILE OPTIMIZED */}
               <div className="flex flex-row md:flex-col items-center gap-2 w-full md:w-auto shrink-0">
                 <button 
                   onClick={handleToggleFollow}
@@ -246,82 +216,84 @@ export default function StorePage() {
             </div>
           </div>
         </div>
-        </div>
 
-        <div ref={productsAnchor} className="mt-16 mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
-             {['Signal Intake', 'Latest Drops', 'Catalogs'].map((tab) => (
-               <motion.button 
-                key={tab}
-                onClick={() => { setActiveTab(tab); setPage(1); }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`h-12 px-6 md:px-8 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold transition-all shrink-0 border-2 ${
-                  tab === activeTab
-                  ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' 
-                  : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]'
-                }`}
-               >
-                 {tab}
-               </motion.button>
-             ))}
-          </div>
-        </div>
-
-        {productsLoading ? (
-           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-32 opacity-40">
-             {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-[4/5] rounded-[32px] bg-[var(--bg-primary)] animate-pulse" />)}
-           </div>
-        ) : products.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
-              {products.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
+        <div className="px-6 lg:px-12">
+          <div ref={productsAnchor} className="mt-12 md:mt-16 mb-8 md:mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
+               {['Signal Intake', 'Latest Drops', 'Catalogs'].map((tab) => (
+                 <motion.button 
+                  key={tab}
+                  onClick={() => { setActiveTab(tab); setPage(1); }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`h-11 md:h-12 px-6 md:px-8 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black tracking-widest uppercase transition-all shrink-0 border-2 ${
+                    tab === activeTab
+                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' 
+                    : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]'
+                  }`}
+                 >
+                   {tab}
+                 </motion.button>
+               ))}
             </div>
-
-            {/* Pagination Controls */}
-            {(totalPages > 1 || products.length === 20 || page > 1) && (
-              <div className="flex items-center justify-center gap-3 pb-32">
-                 <button 
-                  disabled={page === 1}
-                  onClick={() => handlePageChange(page - 1)}
-                  className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
-                 >
-                   Previous
-                 </button>
-                 <div className="flex items-center gap-2">
-                    {Array.from({ length: Math.max(totalPages, page + (products.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
-                       const maxPages = Math.max(totalPages, page + (products.length === 20 ? 1 : 0));
-                       if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
-                       return (
-                          <button 
-                             key={p}
-                             onClick={() => handlePageChange(p)}
-                             className={`size-10 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
-                          >
-                             {p}
-                          </button>
-                       );
-                    })}
-                 </div>
-                 <button 
-                  disabled={products.length < 20}
-                  onClick={() => handlePageChange(page + 1)}
-                  className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
-                 >
-                   Next
-                 </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="bg-[var(--bg-primary)]/40 rounded-[64px] p-24 text-center border border-[var(--glass-border)] mb-32 glass-panel">
-            <Package className="size-16 mx-auto mb-6 opacity-10" />
-            <h3 className="text-3xl font-black text-[var(--text-primary)] mb-2 uppercase tracking-tighter">Inventory Dry</h3>
-            <p className="text-[var(--text-secondary)] max-w-md mx-auto font-medium opacity-60">This vendor node is currently preparing new assets for deployment.</p>
           </div>
-        )}
+
+          {productsLoading ? (
+             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-3 md:gap-4 pb-32 opacity-40">
+               {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--bg-primary)] animate-pulse" />)}
+             </div>
+          ) : products.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-3 md:gap-4 pb-20">
+                {products.map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {(totalPages > 1 || products.length === 20 || page > 1) && (
+                <div className="flex items-center justify-center gap-3 pb-32">
+                   <button 
+                    disabled={page === 1}
+                    onClick={() => handlePageChange(page - 1)}
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                   >
+                     Previous
+                   </button>
+                   <div className="flex items-center gap-2">
+                      {Array.from({ length: Math.max(totalPages, page + (products.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
+                         const maxPages = Math.max(totalPages, page + (products.length === 20 ? 1 : 0));
+                         if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30">...</span> : null;
+                         return (
+                            <button 
+                               key={p}
+                               onClick={() => handlePageChange(p)}
+                               className={`size-10 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
+                            >
+                               {p}
+                            </button>
+                         );
+                      })}
+                   </div>
+                   <button 
+                    disabled={products.length < 20}
+                    onClick={() => handlePageChange(page + 1)}
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                   >
+                     Next
+                   </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="bg-[var(--bg-primary)]/40 rounded-[3rem] md:rounded-[4rem] p-12 md:p-24 text-center border border-[var(--glass-border)] mb-32 glass-panel">
+              <Package className="size-12 md:size-16 mx-auto mb-6 opacity-10" />
+              <h3 className="text-2xl md:text-3xl font-black text-[var(--text-primary)] mb-2 uppercase tracking-tighter">Inventory Dry</h3>
+              <p className="text-[var(--text-secondary)] text-sm md:text-base max-w-md mx-auto font-medium opacity-60">This vendor node is currently preparing new assets for deployment.</p>
+            </div>
+          )}
+        </div>
       </div>
+    </div>
   );
 }

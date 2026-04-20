@@ -140,9 +140,9 @@ export default function UnifiedAuth() {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-6"
             >
-              <div className="text-center space-y-2">
-                <h1 className="text-3xl font-black text-[var(--text-primary)]">Welcome to Aura</h1>
-                <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-60">
+              <div className="text-center space-y-1">
+                <h1 className="text-[22px] font-black text-[var(--text-primary)] font-display tracking-tight">Welcome to Aura</h1>
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-50">
                   Enter your email to continue
                 </p>
               </div>
@@ -158,13 +158,13 @@ export default function UnifiedAuth() {
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     placeholder="name@example.com"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all placeholder:text-[var(--text-secondary)]/30"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[13px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-4 rounded-2xl bg-[var(--accent)] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
                 >
                   Continue
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -201,11 +201,11 @@ export default function UnifiedAuth() {
                 Change Email
               </button>
 
-              <div className="space-y-1">
-                <h2 className="text-xl font-black text-[var(--text-primary)]">
+              <div className="space-y-0.5">
+                <h2 className="text-[18px] font-black text-[var(--text-primary)] font-display tracking-tight">
                   {isNewUser ? 'Create your node' : 'Enter password'}
                 </h2>
-                <p className="text-[10px] font-bold text-[var(--accent)] truncate max-w-full">
+                <p className="text-[10px] font-bold text-[var(--accent)] truncate max-w-full opacity-80">
                   {formData.email}
                 </p>
               </div>
@@ -232,7 +232,7 @@ export default function UnifiedAuth() {
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
                         placeholder="Full Name"
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[13px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
                     
@@ -244,7 +244,7 @@ export default function UnifiedAuth() {
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         placeholder="Email Address"
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[13px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
 
@@ -256,7 +256,7 @@ export default function UnifiedAuth() {
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
                         placeholder="Phone Number"
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[13px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
 
@@ -308,7 +308,7 @@ export default function UnifiedAuth() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 rounded-2xl bg-[var(--accent)] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

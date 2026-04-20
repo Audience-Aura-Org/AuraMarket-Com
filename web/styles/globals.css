@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -10,7 +10,8 @@
   --color-bg-primary: var(--bg-primary);
   --color-text-primary: var(--text-primary);
   --color-card-bg: var(--card-bg);
-  --font-display: "Poppins", sans-serif;
+  --font-display: "Outfit", "Inter", "Poppins", sans-serif;
+  --font-sans: "Inter", sans-serif;
 }
 
 :root {
@@ -27,6 +28,7 @@
   --accent-glow: rgba(242, 13, 242, 0.05);
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(15, 23, 42, 0.08);
+  --accent-rgb: 242, 13, 242;
   --card-bg: #ffffff;
 }
 
@@ -44,6 +46,7 @@
   --accent-glow: rgba(242, 13, 242, 0.15);
   --glass-bg: rgba(255, 255, 255, 0.04);
   --glass-border: rgba(255, 255, 255, 0.12);
+  --accent-rgb: 242, 13, 242;
   --card-bg: rgba(255, 255, 255, 0.03);
 }
 
@@ -128,4 +131,17 @@ i, em { font-style: normal !important; }
   pointer-events: auto; width: 100%; background: var(--glass-bg); backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border); color: var(--text-primary); border-radius: 12px;
   box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.25); border-left: 4px solid var(--accent);
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }

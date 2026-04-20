@@ -14,7 +14,7 @@ export default function StorefrontRenderer({ sections }) {
         if (!section.is_active) return null;
 
         const { type, title, subtitle, data, config } = section;
-        const isFullWidth = ['hero', 'promo_banner'].includes(type);
+        const isFullWidth = ['hero', 'promo_banner'].includes(type) || (title && title.toLowerCase().includes('featured'));
 
         const content = (() => {
           switch (type) {
@@ -52,7 +52,7 @@ export default function StorefrontRenderer({ sections }) {
         if (!content) return null;
 
         return (
-          <div key={section._id || index} className={`${isFullWidth ? 'w-full mb-2' : 'max-w-[1400px] mx-auto py-2'}`}>
+          <div key={section._id || index} className={`${isFullWidth ? 'w-full mb-4' : 'w-full px-4 md:px-8 lg:px-12 py-4 md:py-6'}`}>
             {content}
           </div>
         );
