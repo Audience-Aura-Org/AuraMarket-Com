@@ -43,8 +43,6 @@ export default function LandingPage() {
         // Customer logic
         if (user.onboarded === false) {
           router.replace('/onboarding');
-        } else {
-          router.replace('/discovery');
         }
       }
     }

@@ -9,10 +9,10 @@ export default function StoreHighlights({ title, data }) {
     <section className="py-4 px-6 max-w-7xl mx-auto">
       <div className="flex items-end justify-between mb-8">
         <div className="space-y-2">
-          <h2 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-xl md:text-3xl font-black text-[var(--text-primary)] tracking-tight">
             {title || "Featured Artisans & Stores"}
           </h2>
-          <div className="h-1 w-20 bg-[var(--accent)] rounded-full" />
+          <div className="h-1 w-12 md:w-20 bg-[var(--accent)] rounded-full" />
         </div>
       </div>
 
