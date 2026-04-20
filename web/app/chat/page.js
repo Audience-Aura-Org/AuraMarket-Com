@@ -162,7 +162,7 @@ function ChatContent() {
   }, [inbox, searchQuery]);
 
   const partnerName = activeChat?.store_name || activeChat?.branding?.store_name || activeChat?.name || 'User';
-  const partnerAvatar = activeChat?.branding?.logo || activeChat?.avatar || activeChat?.profile_picture;
+  const partnerAvatar = activeChat?.store?.logo || activeChat?.branding?.logo || activeChat?.avatar || activeChat?.profile_picture;
 
   // Track product context changes for thread rendering
   let lastProductRef = null;
@@ -201,9 +201,9 @@ function ChatContent() {
              <div className="flex justify-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
            ) : (
              filteredInbox.map(chat => (
-               <button key={chat.partner?._id} onClick={() => setActiveChat(chat.partner)} className={`w-full h-[72px] px-3 flex items-center gap-3 hover:bg-[#202c33] transition-all relative ${activeChat?._id === chat.partner?._id ? 'bg-[#2a3942]' : ''}`}>
+               <button key={chat._id || chat.partner?._id || `inbox-${chat.date}`} onClick={() => setActiveChat(chat.partner)} className={`w-full h-[72px] px-3 flex items-center gap-3 hover:bg-[#202c33] transition-all relative ${activeChat?._id === chat.partner?._id ? 'bg-[#2a3942]' : ''}`}>
                  <div className="size-12 rounded-full overflow-hidden shrink-0 border border-white/5 bg-[#111b21]">
-                    {chat.partner?.branding?.logo || chat.partner?.avatar ? <img src={chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center bg-[var(--accent)] text-xs font-black">{chat.partner?.name?.[0]}</div>}
+                    {chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar ? <img src={chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center bg-[var(--accent)] text-xs font-black">{chat.partner?.name?.[0]}</div>}
                  </div>
                  <div className="flex-1 border-b border-[#202c33] h-full flex flex-col justify-center min-w-0 pr-2 transition-all">
                     <div className="flex justify-between items-center mb-0.5">
@@ -254,25 +254,30 @@ function ChatContent() {
                   </div>
                </div>
                <div className="flex items-center gap-7 text-[#aebac1]">
-                  <Search className="size-5 opacity-60 hover:opacity-100" />
-                  <Phone className="size-5 opacity-60 hover:opacity-100" />
-                  <Video className="size-5 opacity-60 hover:opacity-100" />
-                  <MoreVertical className="size-5 opacity-60 hover:opacity-100" />
+                  <Search onClick={() => alert('Diagnostic Search: Feature Encrypting...')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
+                  <Phone onClick={() => alert('Encrypted Voice Pipeline: Operational Check Pending')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
+                  <Video onClick={() => alert('Secure Video Transmission: Protocol Required')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
+                  <MoreVertical onClick={() => alert('Node Configuration Menu')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
                </div>
             </div>
 
             {/* Persistent Product Context Highlight */}
             {contextProduct && (
-              <div className="bg-[#111b21] px-6 py-3 border-b border-[#202c33] flex items-center gap-4 z-20 shadow-lg">
-                 <div className="size-14 rounded-xl overflow-hidden bg-[#202c33] border border-white/5 shrink-0">
+              <div className="bg-[#111b21] px-8 py-4 border-b border-[#202c33] flex items-center gap-5 z-20 shadow-2xl relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-48 h-full bg-[var(--accent)]/5 blur-3xl pointer-events-none" />
+                 <div className="size-16 rounded-2xl overflow-hidden bg-[#202c33] border-2 border-white/5 shrink-0 shadow-lg relative z-10 transition-transform hover:scale-105">
                     <img src={contextProduct.images?.[0]?.url || contextProduct.images?.[0]} className="size-full object-cover" alt="" />
                  </div>
-                 <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] mb-1">Current Subject</p>
-                    <h4 className="text-sm font-bold text-white truncate uppercase tracking-tighter">{contextProduct.name}</h4>
-                    <p className="text-xs font-black text-[#aebac1] opacity-60">{contextProduct.price?.toLocaleString()} XAF</p>
+                 <div className="flex-1 min-w-0 relative z-10">
+                    <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.3em] mb-1.5 opacity-80">Subject Payload</p>
+                    <h4 className="text-base font-black text-white truncate uppercase tracking-tighter leading-tight">{contextProduct.name}</h4>
+                    <div className="flex items-center gap-3 mt-1.5">
+                       <p className="text-sm font-black text-[#aebac1]">{contextProduct.price?.toLocaleString()} XAF</p>
+                       <div className="size-1 rounded-full bg-[var(--accent)] opacity-30" />
+                       <span className="text-[10px] font-bold text-[var(--accent)] uppercase opacity-60 tracking-widest animate-pulse">Sync Active</span>
+                    </div>
                  </div>
-                 <button onClick={() => setContextProduct(null)} className="p-2 text-[#aebac1] hover:text-white opacity-40 hover:opacity-100 transition-all"><X className="size-5" /></button>
+                 <button onClick={() => setContextProduct(null)} className="p-3 rounded-full bg-white/5 text-[#aebac1] hover:text-white hover:bg-white/10 transition-all z-10"><X className="size-5" /></button>
               </div>
             )}
 

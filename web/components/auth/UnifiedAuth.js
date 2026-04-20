@@ -7,7 +7,7 @@ import {
   Mail, Lock, User, Phone, 
   ArrowRight, ArrowLeft, Sparkles, 
   ChevronRight, ShoppingBag, Store, Truck,
-  CheckCircle2, Loader2, X, MapPin as AuraMapPin, Globe
+  CircleCheck, Loader2, X, MapPin as AuraMapPin, Globe, Heart
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -21,7 +21,7 @@ import { toast } from 'react-hot-toast';
  */
 export default function UnifiedAuth() {
   const router = useRouter();
-  const { login, register } = useAuthStore();
+  const { login, register, rememberedEmail, hasHydrated } = useAuthStore();
 
   // Step state: 'IDENTIFIER' -> 'CHALLENGE' (Existing/New) -> 'CALIBRATION' (New)
   const [step, setStep] = useState('IDENTIFIER'); 
@@ -38,61 +38,21 @@ export default function UnifiedAuth() {
     role: 'customer'
   });
 
-  // Onboarding data (Step 3)
-  const [onboardingData, setOnboardingData] = useState({
-    store_name: '',
-    description: '',
-    selectedCategories: [],
-    city: '',
-    quartier: '',
-    followedVendors: []
-  });
-
-  // Resources for onboarding
-  const [categories, setCategories] = useState([]);
-  const [zones, setZones] = useState([]);
-  const [vendors, setVendors] = useState([]);
-  const [fetchingResources, setFetchingResources] = useState(false);
-
+  // Pre-fill remembered email when store hydrates
   useEffect(() => {
-    if (step === 'CALIBRATION') {
-      const fetchResources = async () => {
-        setFetchingResources(true);
-        try {
-          // Parallel fetch for maximum speed
-          const [catRes, zoneRes, vendorRes] = await Promise.all([
-            api.get('/categories'),
-            api.get('/logistics/zones'),
-            api.get('/vendors/promoted') // Assuming this endpoint exists or similar
-          ]);
-          
-          setCategories(catRes.data.data || []);
-          setZones(zoneRes.data.data?.zones || []);
-          setVendors(vendorRes.data.data || vendorRes.data || []);
-        } catch (e) {
-          console.error('Failed to calibrate network resources', e);
-        } finally {
-          setFetchingResources(false);
-        }
-      };
-      fetchResources();
+    if (hasHydrated && rememberedEmail && !formData.email) {
+      setFormData(prev => ({ ...prev, email: rememberedEmail }));
     }
-  }, [step]);
-
-  // Zones now pre-loaded for speed
-  const fetchZonesIfNeeded = () => {}; 
+  }, [hasHydrated, rememberedEmail, formData.email]);
 
   const nextStep = () => {
     if (step === 'IDENTIFIER') setStep('CHALLENGE');
-    else if (step === 'CHALLENGE') setStep('CALIBRATION');
   };
 
   const prevStep = () => {
     if (step === 'CHALLENGE') {
       setStep('IDENTIFIER');
       setIsNewUser(false);
-    } else if (step === 'CALIBRATION') {
-      setStep('CHALLENGE');
     }
   };
 
@@ -116,13 +76,7 @@ export default function UnifiedAuth() {
         };
         const result = await register(formattedData);
         if (result.success) {
-          const registeredUser = useAuthStore.getState().user;
-          // Only customers need the calibration (onboarding) flow
-          if (registeredUser?.role && registeredUser.role !== 'customer') {
-            handleRedirect();
-          } else {
-            setStep('CALIBRATION');
-          }
+          handleRedirect();
         } else {
           setError(result.message || 'Registration failed');
         }
@@ -139,41 +93,7 @@ export default function UnifiedAuth() {
     }
   };
 
-  const handleOnboardingSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      if (formData.role === 'vendor') {
-        await api.post('/vendors/onboard', {
-          store_name: onboardingData.store_name,
-          description: onboardingData.description,
-          categories: onboardingData.selectedCategories,
-          location: {
-            city: onboardingData.city,
-            quartier: onboardingData.quartier
-          }
-        });
-      } else {
-        await api.patch('/users/onboarding', {
-          liked_categories: onboardingData.selectedCategories,
-          followed_vendors: onboardingData.followedVendors,
-          location: {
-            city: onboardingData.city,
-            quartier: onboardingData.quartier
-          },
-          onboarded: true
-        });
-      }
-      
-      toast.success('Node calibrated successfully!');
-      handleRedirect();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Calibration failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const handleRedirect = () => {
     const user = useAuthStore.getState().user;
@@ -202,16 +122,13 @@ export default function UnifiedAuth() {
   };
 
   return (
-    <div className={`w-full ${step === 'CALIBRATION' ? 'max-w-[95%] md:max-w-2xl' : 'max-w-[420px]'} mx-auto transition-all duration-700`}>
+    <div className={`w-full max-w-[420px] mx-auto transition-all duration-700`}>
       <div className="bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
         
         {/* Progress Bar (Aesthetic Dots) */}
         <div className="flex justify-center gap-1.5 mb-8">
-          <div className={`h-1 rounded-full transition-all duration-500 ${step === 'IDENTIFIER' ? 'w-8 bg-[var(--accent)]' : 'w-2 bg-[var(--accent)]/30'}`} />
+          <div className={`h-1 rounded-full transition-all duration-500 w-8 bg-[var(--accent)]`} />
           <div className={`h-1 rounded-full transition-all duration-500 ${step === 'CHALLENGE' ? 'w-8 bg-[var(--accent)]' : 'w-2 bg-[var(--accent)]/30'}`} />
-          {isNewUser && (
-            <div className={`h-1 rounded-full transition-all duration-500 ${step === 'CALIBRATION' ? 'w-8 bg-[var(--accent)]' : 'w-2 bg-[var(--accent)]/30'}`} />
-          )}
         </div>
 
         <AnimatePresence mode="wait">
@@ -267,7 +184,7 @@ export default function UnifiedAuth() {
                 </button>
               </div>
             </motion.div>
-          ) : step === 'CHALLENGE' ? (
+          ) : (
             <motion.div
               key="challenge"
               // ... existing challenge code ...
@@ -397,198 +314,6 @@ export default function UnifiedAuth() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     isNewUser ? 'Join Aura' : 'Continue'
-                  )}
-                </button>
-              </form>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="calibration"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="space-y-6 relative"
-            >
-              {fetchingResources && (
-                <div className="absolute inset-0 z-50 bg-[var(--bg-secondary)]/80 backdrop-blur-md rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all duration-500">
-                  <div className="relative">
-                    <Loader2 className="w-10 h-10 animate-spin text-[var(--accent)] opacity-20" />
-                    <Sparkles className="absolute inset-0 w-10 h-10 text-[var(--accent)] animate-pulse" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)]">Syncing Network</p>
-                    <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-tighter animate-pulse">Calibrating Hub Resources...</p>
-                  </div>
-                </div>
-              )}
-              <div className="space-y-2">
-                <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Calibrate your Hub</h2>
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Personalize your node for the Aura Network</p>
-              </div>
-
-              <form onSubmit={handleOnboardingSubmit} className="space-y-5">
-                {formData.role === 'vendor' && (
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
-                       <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">Store Name</label>
-                       <div className="relative">
-                         <Store className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
-                         <input 
-                           type="text" 
-                           required
-                           placeholder="Enter Store Name"
-                           value={onboardingData.store_name}
-                           onChange={e => setOnboardingData({...onboardingData, store_name: e.target.value})}
-                           className="w-full bg-transparent pl-8 py-1 text-sm font-bold outline-none"
-                         />
-                       </div>
-                    </div>
-                    <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">Store Description</label>
-                      <textarea 
-                        placeholder="Tell us about your brand..."
-                        required
-                        value={onboardingData.description}
-                        onChange={e => setOnboardingData({...onboardingData, description: e.target.value})}
-                        className="w-full bg-transparent py-1 text-sm font-bold outline-none h-20 resize-none"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Categories */}
-                <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
-                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">
-                    {formData.role === 'vendor' ? 'Store Categories' : 'Interests'}
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto no-scrollbar py-1">
-                    {categories.map(cat => (
-                      <button
-                        key={cat._id}
-                        type="button"
-                        onClick={() => setOnboardingData(prev => ({
-                          ...prev,
-                          selectedCategories: prev.selectedCategories.includes(cat._id) 
-                            ? prev.selectedCategories.filter(id => id !== cat._id) 
-                            : [...prev.selectedCategories, cat._id]
-                        }))}
-                        className={`px-3 py-1.5 rounded-full text-[9.5px] font-bold transition-all border ${
-                          onboardingData.selectedCategories.includes(cat._id)
-                          ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30'
-                          : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
-                        }`}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Follow Vendors (New) */}
-                {formData.role === 'customer' && (
-                  <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] opacity-50">Follow Vendors</label>
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${onboardingData.followedVendors.length >= 2 ? 'bg-green-500/20 text-green-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]'}`}>
-                        {onboardingData.followedVendors.length}/2+ Selected
-                      </span>
-                    </div>
-                    <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">Pick 2+ stores you love to personalize your feed</p>
-                    
-                    {fetchingResources ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-[var(--accent)]" />
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto no-scrollbar py-1">
-                        {vendors.length > 0 ? vendors.map(v => (
-                          <button
-                            key={v._id}
-                            type="button"
-                            onClick={() => setOnboardingData(prev => ({
-                              ...prev,
-                              followedVendors: prev.followedVendors.includes(v._id) 
-                                ? prev.followedVendors.filter(id => id !== v._id) 
-                                : [...prev.followedVendors, v._id]
-                            }))}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all ${
-                              onboardingData.followedVendors.includes(v._id)
-                              ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30'
-                              : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
-                            }`}
-                          >
-                            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-black">
-                              {v.store_name?.[0] || 'V'}
-                            </div>
-                            <span className="text-[10px] font-bold">{v.store_name}</span>
-                            {onboardingData.followedVendors.includes(v._id) && <CheckCircle2 className="w-3 h-3" />}
-                          </button>
-                        )) : (
-                          <div className="w-full text-center py-2 text-[10px] font-bold opacity-30 italic">No nodes found in your sector</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Location Selection */}
-                <div className="space-y-4">
-                  <div className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">City</label>
-                    <div className="relative">
-                      <AuraMapPin className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
-                      <select 
-                         required
-                         value={onboardingData.city}
-                         onFocus={fetchZonesIfNeeded}
-                         onChange={e => setOnboardingData({...onboardingData, city: e.target.value, quartier: ''})}
-                         className="w-full bg-transparent pl-8 pr-8 py-1 text-sm font-bold outline-none appearance-none cursor-pointer"
-                      >
-                         <option value="">Select City</option>
-                         {zones.filter(z => z.type === 'region').map(z => (
-                           <option key={z._id} value={z.name}>{z.name}</option>
-                         ))}
-                      </select>
-                      <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-4 opacity-20 rotate-90" />
-                    </div>
-                  </div>
-
-                  {onboardingData.city && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl"
-                    >
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 block opacity-50">Neighbourhood / Zone</label>
-                      <div className="relative">
-                        <Globe className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--accent)]" />
-                        <select 
-                           required
-                           disabled={!onboardingData.city}
-                           value={onboardingData.quartier}
-                           onChange={e => setOnboardingData({...onboardingData, quartier: e.target.value})}
-                           className="w-full bg-transparent pl-8 pr-8 py-1 text-sm font-bold outline-none appearance-none cursor-pointer disabled:opacity-30"
-                        >
-                           <option value="">Select Zone</option>
-                           {zones.filter(z => z.type === 'quartier' && z.parent_id?.name === onboardingData.city).map(z => (
-                             <option key={z._id} value={z.name}>{z.name}</option>
-                           ))}
-                        </select>
-                        <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-4 opacity-20 rotate-90" />
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 rounded-[2rem] bg-[var(--accent)] text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-                    formData.role === 'customer' && onboardingData.followedVendors.length < 2 
-                    ? 'Pick 2+ Stores to Activate' 
-                    : 'Activate Profile'
                   )}
                 </button>
               </form>

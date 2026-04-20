@@ -99,6 +99,8 @@ export default function TopNav() {
     }
   };
 
+  const hideSearchIcon = pathname === '/shop' || pathname === '/discovery' || pathname === '/stores';
+
   return (
     <header className="sticky top-0 z-[100] bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
       {/* iOS Dynamic Island / notch safe-area spacer */}
@@ -109,7 +111,7 @@ export default function TopNav() {
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
           <Link href="/" className="flex items-center gap-2 md:gap-3 group">
             <img
-              src={!mounted ? '/logo-white.png' : (theme === 'dark' ? '/logo-black.png' : '/logo-white.png')}
+              src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'}
               alt="Aura Market"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
@@ -125,28 +127,29 @@ export default function TopNav() {
           </nav>
         </div>
         
-        {/* Search Bar - Global Premium Pill */}
-        <div className="hidden lg:flex flex-1 max-w-md relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--nav-text)] opacity-20 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-          <input 
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={handleSearch}
-            placeholder="Identify premium assets..."
-            className="w-full bg-[var(--bg-secondary)] border border-[var(--nav-border)] rounded-full py-2.5 pl-12 pr-4 text-[11px] font-bold text-[var(--nav-text)] focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--nav-text)]/20"
-          />
-        </div>
+        {/* Global Search Interface - Icon Only */}
+        {!hideSearchIcon && (
+          <div className="hidden lg:flex flex-1 justify-end mr-4">
+             <button 
+               onClick={() => setIsSearchOpen(!isSearchOpen)}
+               className="size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-[var(--glass-border)] hover:text-[var(--accent)] transition-all active:scale-95 shadow-sm group"
+             >
+               <Search className="size-5 transition-transform group-hover:scale-110" />
+             </button>
+          </div>
+        )}
 
         {/* Actions Section */}
-        <div className="flex items-center gap-2 md:gap-4 ml-auto">
+        <div className={`flex items-center gap-2 md:gap-4 ${hideSearchIcon ? 'ml-auto' : ''}`}>
           {/* Mobile Search Toggle */}
-          <button 
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="lg:hidden size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:text-[var(--accent)] transition-all active:scale-95 shadow-sm"
-          >
-            <Search className="size-5" />
-          </button>
+          {!hideSearchIcon && (
+            <button 
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="lg:hidden size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:text-[var(--accent)] transition-all active:scale-95 shadow-sm"
+            >
+              <Search className="size-5" />
+            </button>
+          )}
 
           <button 
             onClick={() => openChat(null)}
@@ -196,21 +199,21 @@ export default function TopNav() {
         </div>
       </div>
 
-      {/* Mobile Search Overlay - Premium Pill */}
-      {isSearchOpen && (
-        <div className="md:hidden absolute left-0 top-full w-full bg-[var(--nav-bg)] p-4 border-b border-[var(--glass-border)] animate-in slide-in-from-top-4 duration-500">
-          <div className="relative w-full">
+      {/* Standardized Search Overlay */}
+      {isSearchOpen && !hideSearchIcon && (
+        <div className="absolute left-0 top-full w-full bg-[var(--nav-bg)] p-4 border-b border-[var(--glass-border)] animate-in slide-in-from-top-4 duration-500 shadow-2xl">
+          <div className="relative w-full max-w-2xl mx-auto">
             <input 
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
               placeholder="Search discovery network..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-3.5 pl-6 pr-14 text-sm text-[var(--text-primary)] font-bold focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-3.5 pl-6 pr-14 text-sm text-[var(--text-primary)] font-bold focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all shadow-inner"
             />
             <button 
               onClick={() => { trackSearch(search); router.push(`/shop?q=${search}`); setIsSearchOpen(false); }} 
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 size-10 bg-[var(--accent)] text-white rounded-full flex items-center justify-center shadow-lg"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 size-10 bg-[var(--accent)] text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all"
             >
               <Search className="size-5" />
             </button>

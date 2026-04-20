@@ -450,16 +450,33 @@ const getHubFeed = async (req, res, next) => {
     
     const followedVendorIds = follows.map(f => f.vendor_id);
     const categoryIds = user.liked_categories || [];
+    const isFollowedOnly = req.query.followedOnly === 'true' || req.query.followedOnly === true;
 
     const sort = req.query.sort || '-createdAt';
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
     const skip = (page - 1) * limit;
 
-    // 2. Prepare recommendation query
+    // If requesting followed-only feed and user hasn't followed anyone, return empty
+    if (isFollowedOnly && followedVendorIds.length === 0) {
+      return res.status(200).json({ 
+        success: true, 
+        pagination: { total: 0, page: 1, pages: 1, limit },
+        data: { products: [] } 
+      });
+    }
+
+    // 2. Prepare query based on followedOnly parameter
     let query = { status: 'active' };
-    if (followedVendorIds.length > 0) {
-      query.vendor_id = { $nin: followedVendorIds };
+    
+    if (isFollowedOnly) {
+      // When showing followed-only feed, include ONLY followed vendors
+      query.vendor_id = { $in: followedVendorIds };
+    } else {
+      // When showing discovery feed, exclude followed vendors to show new content
+      if (followedVendorIds.length > 0) {
+        query.vendor_id = { $nin: followedVendorIds };
+      }
     }
     
     if (req.query.category) {
@@ -475,28 +492,26 @@ const getHubFeed = async (req, res, next) => {
       } else {
         query.category = targetCategoryName;
       }
-    } else if (categoryIds.length > 0) {
+    } else if (categoryIds.length > 0 && !isFollowedOnly) {
+      // Only apply generic liked_categories if NOT viewing followed-only feed
       query.category = { $in: categoryIds };
     }
 
-    // 3. Parallelize product fetching and counting
-    const followedProductsPromise = (followedVendorIds.length > 0 && page === 1)
-      ? Product.find({ status: 'active', vendor_id: { $in: followedVendorIds } })
-          .populate({
-            path: 'vendor_id',
-            select: 'store_name rating verified pickup_address user_id average_response_time',
-            populate: [
-              { path: 'store', select: 'logo' },
-              { path: 'user_id', select: 'avatar branding' }
-            ]
-          })
-          .sort(sort)
-          .limit(10)
-          .lean()
-      : Promise.resolve([]);
+    // Add search filter
+    if (req.query.search) {
+      query.$text = { $search: req.query.search };
+    }
 
-    const [followedProducts, productsRaw, total] = await Promise.all([
-      followedProductsPromise,
+    // Add price filter
+    if (req.query.minPrice !== undefined || req.query.maxPrice !== undefined) {
+      const priceQuery = {};
+      if (req.query.minPrice !== undefined) priceQuery.$gte = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice !== undefined) priceQuery.$lte = parseFloat(req.query.maxPrice);
+      query.price = priceQuery;
+    }
+
+    // 3. Fetch products and count
+    const [productsRaw, total] = await Promise.all([
       Product.find(query)
         .populate({
           path: 'vendor_id',
@@ -515,9 +530,9 @@ const getHubFeed = async (req, res, next) => {
 
     let products = productsRaw;
 
-    // 4. Fallback for sparse results (Page 1)
-    if (products.length < 5 && page === 1) {
-      const excludeIds = [...followedProducts, ...products].map(p => p._id);
+    // 4. Fallback for sparse results (Page 1) - only for discovery feed, not followed-only
+    if (!isFollowedOnly && products.length < 5 && page === 1) {
+      const excludeIds = products.map(p => p._id);
       const recommended = await Product.find({ 
         status: 'active', 
         _id: { $nin: excludeIds } 
@@ -545,7 +560,6 @@ const getHubFeed = async (req, res, next) => {
         limit
       },
       data: { 
-        followedProducts,
         products 
       } 
     });

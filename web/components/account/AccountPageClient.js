@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, User, Bell, Shield, Lock, Power, ChevronRight,
-  Store, ShieldAlert, Palette, Database, BarChart3,
-  Mail, MapPin, Camera, ExternalLink, RefreshCw,
+  Store, ShieldAlert, Database, BarChart3,
+  Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
   Truck, LayoutGrid, ShoppingBag,
-  Users, Heart, Phone, Moon, Sun, ShieldCheck
+  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -19,17 +19,16 @@ import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
 
 const TABS = [
-  { id: 'general', label: 'General', icon: User, roles: ['customer', 'vendor', 'admin', 'logistics'] },
+  { id: 'general', label: 'Profile', icon: User, roles: ['customer', 'vendor', 'admin', 'logistics'] },
   { id: 'orders', label: 'Orders', icon: ShoppingBag, roles: ['customer', 'vendor'] },
   { id: 'security', label: 'Security', icon: Shield, roles: ['customer', 'vendor', 'admin', 'logistics'] },
   { id: 'network', label: 'Network', icon: Users, roles: ['customer', 'vendor'] },
   { id: 'audience', label: 'Audience', icon: Heart, roles: ['vendor'] },
-
-  { id: 'store', label: 'Storefront', icon: Store, roles: ['vendor'] },
-  { id: 'fleet', label: 'Fleet Management', icon: Truck, roles: ['logistics'] },
+  { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },
+  { id: 'fleet', label: 'Fleet', icon: Truck, roles: ['logistics'] },
   { id: 'governance', label: 'Governance', icon: ShieldAlert, roles: ['admin'] },
   { id: 'kyc', label: 'Verification', icon: Shield, roles: ['customer', 'vendor'] },
-  { id: 'notifications', label: 'Signals', icon: Bell, roles: ['customer', 'vendor', 'admin', 'logistics'] },
+  { id: 'notifications', label: 'Alerts', icon: Bell, roles: ['customer', 'vendor', 'admin', 'logistics'] },
   { id: 'advanced', label: 'Advanced', icon: Database, roles: ['admin'] },
 ];
 
@@ -39,6 +38,7 @@ export default function AccountPageClient() {
   const { user, logout, updateUser } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('general');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const canUseBanner = ['vendor', 'logistics'].includes(user?.role);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function AccountPageClient() {
   const [saveStatus, setSaveStatus] = useState('');
   const [profileBranding, setProfileBranding] = useState({ logo: '', banner: '' });
   const [brandingStatus, setBrandingStatus] = useState('');
-  const [brandingUploading, setBrandingUploading] = useState(null); // 'logo' | 'banner' | 'kyc' | null
+  const [brandingUploading, setBrandingUploading] = useState(null);
 
   const [storeData, setStoreData] = useState({
     store_name: '',
@@ -84,6 +84,7 @@ export default function AccountPageClient() {
     };
     fetchZones();
   }, []);
+
   const [kycData, setKycData] = useState({ full_name: '', id_type: 'national_id', id_number: '', file_url_front: '', file_url_back: '' });
   const [kycStatus, setKycStatus] = useState(null);
   const [kycLoading, setKycLoading] = useState(false);
@@ -115,7 +116,6 @@ export default function AccountPageClient() {
      }
   }, [user]);
 
-
   useEffect(() => {
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'network') fetchNetwork();
@@ -134,7 +134,6 @@ export default function AccountPageClient() {
   const fetchAudience = async () => {
     setAudienceLoading(true);
     try {
-      // First get vendor profile to get ID
       const vRes = await api.get('/vendors/me');
       if (vRes.data.success) {
         const aRes = await api.get(`/vendors/${vRes.data.data.vendor._id}/followers`);
@@ -144,6 +143,13 @@ export default function AccountPageClient() {
     finally { setAudienceLoading(false); }
   };
 
+  useEffect(() => {
+    const handleGlobalUpdate = () => {
+      fetchNetwork();
+    };
+    window.addEventListener('aura_follow_update', handleGlobalUpdate);
+    return () => window.removeEventListener('aura_follow_update', handleGlobalUpdate);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -176,22 +182,18 @@ export default function AccountPageClient() {
 
   const handleUpdateProfile = async () => {
     setProfileSaving(true);
-    setBrandingStatus('Updating personal records...');
+    setBrandingStatus('Updating profile...');
     try {
       const res = await api.patch('/users/me', userData);
       if (res.data?.success && res.data?.data?.user) {
         updateUser(res.data.data.user);
-        setBrandingStatus('Profile updated.');
+        setBrandingStatus('Profile updated successfully.');
       }
     } catch (err) {
       console.error(err);
-      setBrandingStatus('Profile update failed.');
+      setBrandingStatus('Update failed.');
     } finally {
       setProfileSaving(false);
-      if (user.role === 'vendor' && userData.name) {
-         setStoreData(s => ({ ...s, store_name: userData.name }));
-         // Optionally trigger auto-sync with vendor record here
-      }
       setTimeout(() => setBrandingStatus(''), 2500);
     }
   };
@@ -224,25 +226,25 @@ export default function AccountPageClient() {
 
   const handleUpdateStore = async () => {
     setLoading(true);
-    setSaveStatus('Saving changes...');
+    setSaveStatus('Saving store...');
     try {
       await api.patch('/vendors/profile', {
         store_name: storeData.store_name,
         description: storeData.description,
         pickup_address: storeData.pickup_address
       });
-      setSaveStatus('Store profile synchronized.');
+      setSaveStatus('Store updated successfully.');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (err) {
       console.error("Update failed", err);
-      setSaveStatus('Sync failed. Check terminal.');
+      setSaveStatus('Update failed.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpdateBranding = async () => {
-    setBrandingStatus('Saving branding...');
+    setBrandingStatus('Updating branding...');
     try {
       const brandingPayload = canUseBanner
         ? { logo: profileBranding.logo, banner: profileBranding.banner }
@@ -253,7 +255,6 @@ export default function AccountPageClient() {
       });
 
       if (user?.role === 'vendor') {
-        // Also update the store visuals for consistency
         await api.patch('/vendors/store', { 
           logo: profileBranding.logo, 
           banner: profileBranding.banner 
@@ -261,11 +262,11 @@ export default function AccountPageClient() {
       }
 
       if (res.data?.success && res.data?.data?.user) updateUser(res.data.data.user);
-      setBrandingStatus('Branding updated platforms-wide.');
+      setBrandingStatus('Branding updated successfully.');
       setTimeout(() => setBrandingStatus(''), 2500);
     } catch (err) {
       console.error('Branding update failed', err);
-      setBrandingStatus('Branding update failed.');
+      setBrandingStatus('Update failed.');
       setTimeout(() => setBrandingStatus(''), 2500);
     }
   };
@@ -275,7 +276,6 @@ export default function AccountPageClient() {
     setBrandingUploading(field);
     setBrandingStatus(`Uploading ${field.replace('_', ' ')}...`);
     try {
-      // 📂 PASS TYPE: Ensures folder organization on the hosting
       let uploadType = 'general';
       if (field === 'logo') uploadType = 'avatars';
       if (field === 'banner') uploadType = 'banners';
@@ -285,10 +285,10 @@ export default function AccountPageClient() {
       if (res?.success && res?.data?.url) {
         if (field === 'kyc_front') {
           setKycData((p) => ({ ...p, file_url_front: res.data.url }));
-          setBrandingStatus(`Front of ID uploaded.`);
+          setBrandingStatus(`ID front uploaded.`);
         } else if (field === 'kyc_back') {
           setKycData((p) => ({ ...p, file_url_back: res.data.url }));
-          setBrandingStatus(`Back of ID uploaded.`);
+          setBrandingStatus(`ID back uploaded.`);
         } else {
           setProfileBranding((p) => ({ ...p, [field]: res.data.url }));
           setBrandingStatus(`${field} uploaded. Save to apply.`);
@@ -298,7 +298,7 @@ export default function AccountPageClient() {
       }
       setTimeout(() => setBrandingStatus(''), 2500);
     } catch (err) {
-      console.error('Branding upload failed', err);
+      console.error('Upload failed', err);
       setBrandingStatus('Upload failed.');
       setTimeout(() => setBrandingStatus(''), 2500);
     } finally {
@@ -308,19 +308,19 @@ export default function AccountPageClient() {
 
   const handleKYCSubmit = async () => {
     setKycLoading(true);
-    setBrandingStatus('Submitting KYC data...');
+    setBrandingStatus('Submitting KYC...');
     try {
       const res = await api.post('/users/kyc', kycData);
       if (res.data?.success) {
         updateUser(res.data.data.user);
         setKycStatus(res.data.data.user.kyc.status);
-        setBrandingStatus('KYC data submitted successfully. Awaiting review.');
+        setBrandingStatus('KYC submitted successfully.');
       } else {
-        setBrandingStatus('KYC submission failed.');
+        setBrandingStatus('Submission failed.');
       }
     } catch (err) {
       console.error('KYC submission failed', err);
-      setBrandingStatus('KYC submission failed.');
+      setBrandingStatus('Submission failed.');
     } finally {
       setKycLoading(false);
       setTimeout(() => setBrandingStatus(''), 2500);
@@ -330,977 +330,736 @@ export default function AccountPageClient() {
   const filteredTabs = TABS.filter((t) => t.roles.includes(user?.role || 'customer'));
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-700">
-      <div className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(circle_at_0%_0%,var(--accent)_0%,transparent_30%),radial-gradient(circle_at_100%_100%,_#3b82f6_0%,transparent_30%)] opacity-[0.02]" />
+    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)]">
+      {/* Header */}
+      <div className="sticky top-0 z-50 border-b border-[var(--glass-border)] backdrop-blur-2xl bg-[var(--bg-primary)]/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.back()} className="p-2 hover:bg-[var(--bg-secondary)]/50 rounded-[1.5rem] transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold tracking-tight">Account Settings</h1>
+          </div>
+          <button onClick={() => { logout(); router.push('/login'); }} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-[1.5rem] transition-colors">
+            <Power className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
-      <div className="flex flex-col lg:flex-row min-h-screen max-w-[1600px] mx-auto overflow-hidden">
-        <div className="w-full lg:w-80 lg:border-r border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 z-40 lg:h-screen lg:flex lg:flex-col shrink-0">
-          <div className="px-6 py-8 md:px-10 flex items-center justify-between lg:block">
-            <div className="flex items-center gap-4 mb-0 lg:mb-12">
-              <button onClick={() => router.back()} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--accent)] transition-all">
-                <ArrowLeft className="size-5" />
-              </button>
-              <div className="flex flex-col">
-                <h1 className="text-xl md:text-2xl font-black tracking-tight uppercase leading-none">Account</h1>
-                <span className="text-[9px] font-black tracking-[0.2em] text-[var(--accent)] uppercase mt-1 opacity-60">Control Panel</span>
-              </div>
-            </div>
-
-            <Link 
-              href={`/${user?.role}/dashboard`}
-              className="hidden lg:flex items-center gap-3 px-6 py-4 mb-6 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all"
-            >
-              <LayoutGrid className="size-4" />
-              Return to Dashboard
-            </Link>
-
-            <div className="hidden lg:flex items-center gap-4 mb-10 p-4 rounded-3xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-               <div className="size-12 rounded-2xl bg-[var(--bg-primary)] overflow-hidden border border-[var(--glass-border)] flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-24 space-y-6">
+            {/* Profile Card */}
+            <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[3rem] p-6 backdrop-blur-3xl shadow-xl transition-all duration-500 hover:shadow-2xl space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center">
                   {profileBranding.logo ? (
-                    <img src={profileBranding.logo} className="size-full object-cover" alt="Node" />
+                    <img src={profileBranding.logo} className="w-full h-full object-cover" alt="" />
                   ) : (
-                    <User className="size-6 text-[var(--accent)]" />
+                    <User className="w-6 h-6 text-[var(--accent)]" />
                   )}
-               </div>
-               <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black tracking-widest uppercase truncate">{user?.name}</p>
-                  <p className="text-[8px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 truncate">{user?.role}</p>
-               </div>
-            </div>
-
-            <div className="flex items-center gap-2 lg:hidden">
-              <div className="size-10 rounded-xl overflow-hidden border border-[var(--glass-border)] mr-2">
-                 <img src={profileBranding.logo || user?.avatar} className="size-full object-cover" alt="" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{user?.name}</p>
+                  <p className="text-xs text-[var(--text-secondary)] capitalize truncate">{user?.role}</p>
+                </div>
               </div>
-              <button onClick={() => logout()} className="size-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-                <Power className="size-5" />
-              </button>
+              <div className="flex gap-2">
+                <button onClick={toggleTheme} className="flex-1 p-2 rounded-[1.5rem] bg-[var(--bg-secondary)]/50 hover:bg-[var(--glass-border)] transition-colors flex items-center justify-center gap-2">
+                  {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
-            <nav className="hidden lg:flex flex-col gap-2">
+            {/* Navigation */}
+            <nav className="space-y-2">
               {filteredTabs.map((tab) => {
                 const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`
-                      group flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300
-                      ${activeTab === tab.id
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-[1.5rem] transition-all text-left ${
+                      isActive
                         ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                        : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}
-                    `}
+                        : 'hover:bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <Icon className={`size-5 transition-transform group-hover:scale-110 ${activeTab === tab.id ? 'text-white' : 'text-[var(--accent)]'}`} />
-                      <span className="text-[11px] font-black tracking-[0.2em] uppercase">{tab.label}</span>
-                    </div>
-                    {activeTab === tab.id && (
-                      <motion.div layoutId="activeInd" className="size-1.5 rounded-full bg-white" />
-                    )}
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium">{tab.label}</span>
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
                   </button>
                 );
               })}
             </nav>
           </div>
-
-          <div className="lg:hidden flex items-center overflow-x-auto px-6 pb-4 no-scrollbar gap-2 -mt-2">
-            {filteredTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-[var(--accent)] text-white shadow-md'
-                    : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="hidden lg:mt-auto lg:p-10 lg:block">
-            <button
-              onClick={() => { logout(); router.push('/login'); }}
-              className="w-full flex items-center justify-between p-6 rounded-[32px] bg-rose-500/5 border border-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <Power className="size-5" />
-                <span className="text-[10px] font-black tracking-widest uppercase">Terminate Session</span>
-              </div>
-              <ChevronRight className="size-4 opacity-40 group-hover:translate-x-1 transition-all" />
-            </button>
-          </div>
         </div>
 
-        <main className="flex-1 px-6 py-8 md:px-12 md:py-16 lg:px-20 lg:py-24 overflow-y-auto no-scrollbar">
+        {/* Main Content */}
+        <div className="lg:col-span-3">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="max-w-4xl mx-auto space-y-12"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
             >
               {activeTab === 'general' && (
-                <div className="space-y-12">
-                  <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">General Matrix</h2>
-                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Universal identity and interface parameters for your Aura profile.</p>
-                  </header>
-
-                  <div className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-[40px] p-8 md:p-12 relative overflow-hidden glass-panel group shadow-2xl">
-                    <div className="absolute top-0 right-0 size-96 bg-[var(--accent)]/5 rounded-full blur-[100px]" />
-                    
-                    {/* Header: Identity & Roles */}
-                    <div className="flex flex-col md:flex-row items-center gap-10 relative z-10 mb-12">
-                      <div className="relative group">
-                        <div className="size-32 md:size-40 rounded-full border-[6px] border-[var(--accent)]/20 p-2 shadow-inner group-hover:border-[var(--accent)] transition-all duration-500">
-                          <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center text-5xl font-black text-[var(--accent)] overflow-hidden">
-                            {profileBranding.logo ? <img src={profileBranding.logo} className="size-full object-cover" alt="" /> : user?.name?.[0]?.toUpperCase()}
-                          </div>
+                <div className="space-y-6">
+                  {/* Identity Header Card */}
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-8 shadow-xl w-full">
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8">
+                      <div className="relative group shrink-0">
+                        <div className="size-28 md:size-32 rounded-full border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-4xl font-black text-[var(--accent)]">
+                          {profileBranding.logo ? (
+                            <img src={profileBranding.logo} className="size-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                          ) : (
+                            user?.name?.[0]?.toUpperCase()
+                          )}
                         </div>
-                        <label className="absolute bottom-2 right-2 size-12 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] border-4 border-[var(--bg-secondary)] flex items-center justify-center hover:scale-110 transition-transform shadow-xl cursor-pointer">
-                          <Camera className="size-5" />
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
+                        <label className="absolute bottom-0 right-0 size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-primary)] border-4 border-[var(--bg-primary)] flex items-center justify-center hover:scale-110 hover:text-[var(--accent)] transition-all shadow-xl cursor-pointer z-20">
+                          <Camera className="size-4" />
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { handleBrandingFileUpload('logo', e.target.files?.[0]); handleUpdateBranding(); }} />
                         </label>
                       </div>
 
-                      <div className="flex-1 space-y-4 text-center md:text-left">
-                        <div className="space-y-1">
-                          <h3 className="text-4xl font-black tracking-tight">
-                            {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Authorized User'}
-                          </h3>
-                          <p className="text-[var(--text-secondary)] font-medium flex items-center justify-center md:justify-start gap-2">
-                            <Mail className="size-4 opacity-40" /> {user?.email}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                          <span className="px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-black tracking-widest uppercase border border-[var(--accent)]/20">
-                            {user?.role === 'vendor' ? 'Nexus Vendor' : user?.role === 'admin' ? 'Root Administrator' : user?.role === 'logistics' ? 'Logistics Node' : 'Node User'}
-                          </span>
-                          <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black tracking-widest uppercase border border-emerald-500/20">
-                            Active Session
+                      <div className="flex-1 text-center md:text-left space-y-1">
+                        <h3 className="text-2xl md:text-3xl font-black uppercase text-[var(--text-primary)] tracking-tight">
+                          {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
+                        </h3>
+                        <p className="text-[var(--text-secondary)] font-medium flex items-center justify-center md:justify-start gap-2 text-sm">
+                          <Mail className="size-4 opacity-40 shrink-0" /> {user?.email}
+                        </p>
+                        <div className="pt-2">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest uppercase border border-[var(--accent)]/20 shadow-sm">
+                            {user?.role || 'User'} Profile
                           </span>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Branding Suite Integrated */}
-                    <div className="border-t border-[var(--glass-border)]/50 pt-10 space-y-8 relative z-10">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-[10px] font-black tracking-[0.3em] uppercase text-[var(--text-secondary)]">Platform Branding</h4>
-                        {brandingStatus && <span className="text-[9px] font-black text-[var(--accent)] uppercase animate-pulse">{brandingStatus}</span>}
-                      </div>
-
-                      <div className={`grid grid-cols-1 ${canUseBanner ? 'md:grid-cols-2' : ''} gap-8`}>
-                         <div className="space-y-4">
-                            <div className="flex items-center justify-between px-2">
-                               <span className="text-[8px] font-black tracking-widest uppercase opacity-40">Identity Logo</span>
-                               {brandingUploading === 'logo' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
-                            </div>
-                            <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
-                               {profileBranding.logo ? (
-                                 <img src={profileBranding.logo} className="size-full object-cover" alt="logo" />
-                               ) : (
-                                 <Store className="size-8 opacity-10" />
-                               )}
-                               <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/b:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                                  <Camera className="text-white size-8" />
-                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
-                               </label>
-                            </div>
-                         </div>
-
-                         {canUseBanner && (
-                         <div className="space-y-4">
-                            <div className="flex items-center justify-between px-2">
-                               <span className="text-[8px] font-black tracking-widest uppercase opacity-40">Immersion Banner</span>
-                               {brandingUploading === 'banner' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
-                            </div>
-                            <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
-                               {profileBranding.banner ? (
-                                 <img src={profileBranding.banner} className="size-full object-cover" alt="banner" />
-                               ) : (
-                                 <ExternalLink className="size-8 opacity-10" />
-                               )}
-                               <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/b:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                                  <ExternalLink className="text-white size-8" />
-                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('banner', e.target.files?.[0])} />
-                               </label>
-                            </div>
-                         </div>
-                         )}
-                      </div>
-
-                      <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1">
-                           <InputModule 
-                              label="Branding Key (Logo URL)" 
-                              value={profileBranding.logo} 
-                              onChange={(v) => setProfileBranding(p => ({...p, logo: v}))} 
-                              icon={Camera} 
-                              placeholder="https://..." 
-                           />
+                      <div className="grid grid-cols-2 gap-8 md:gap-12 shrink-0 px-4 md:px-8 border-l border-[var(--glass-border)] hidden md:grid">
+                        <div className="text-center group-hover:scale-110 transition-transform cursor-pointer" onClick={() => setActiveTab('network')}>
+                          <p className="text-xl md:text-2xl font-black text-[var(--accent)] drop-shadow-[0_0_10px_var(--accent-light)]">{followedVendors.length}</p>
+                          <p className="text-[8px] md:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest mt-1">Protocols</p>
                         </div>
-                        {canUseBanner && (
-                        <div className="flex-1">
-                           <InputModule 
-                              label="Immersion Link (Banner URL)" 
-                              value={profileBranding.banner} 
-                              onChange={(v) => setProfileBranding(p => ({...p, banner: v}))} 
-                              icon={ExternalLink} 
-                              placeholder="https://..." 
-                           />
+                        <div className="text-center group-hover:scale-110 transition-transform cursor-pointer" onClick={() => setActiveTab('orders')}>
+                          <p className="text-xl md:text-2xl font-black text-[var(--text-primary)]">{orders.filter(o => o.order_status !== 'delivered').length}</p>
+                          <p className="text-[8px] md:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest mt-1">Active</p>
                         </div>
-                        )}
-                      </div>
-
-                      <div className="pt-4 flex items-center justify-between">
-                         <p className="text-[9px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 max-w-xs">
-                            {user?.role === 'vendor' ? 'Changes synchronize with your digital storefront node.' : 'Branding reflects across all platform interaction vectors.'}
-                         </p>
-                         <button
-                            onClick={handleUpdateBranding}
-                            className="bg-[var(--accent)] text-white px-10 py-4 rounded-2xl font-black text-[10px] tracking-widest uppercase shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all"
-                         >
-                            Deploy Branding Update
-                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <SectionBox title="Personal Records">
-                    <div className="space-y-6 pt-2">
-                      <InputModule 
-                        label="Official Designation" 
-                        value={userData.name} 
-                        onChange={(v) => setUserData({ ...userData, name: v })} 
-                        icon={User} 
-                        placeholder="Human Name" 
-                      />
-                      <InputModule 
-                        label="Logistics Signal (Phone)" 
-                        value={userData.phone} 
-                        onChange={(v) => setUserData({ ...userData, phone: v })} 
-                        icon={Phone} 
-                        placeholder="+237 ..." 
-                      />
-                      <InputRow label="Auth Node (Email)" value={user?.email} disable />
-                      <InputRow label="Platform Role" value={user?.role?.toUpperCase()} disable />
+                  <div className="space-y-6 md:space-y-8">
+                    <div className="flex items-center gap-6 px-4 md:px-6">
+                      <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Identity Parameters</h3>
+                      <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                    </div>
+
+                    <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                      <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                         <SelectModule 
-                            label="Operational Sector (City)"
+                      <div className="relative z-10 space-y-6 md:space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            label="Full Name"
+                            value={userData.name}
+                            onChange={(v) => setUserData({ ...userData, name: v })}
+                            icon={User}
+                            placeholder="Your name"
+                          />
+                          <FormField
+                            label="Phone Number"
+                            value={userData.phone}
+                            onChange={(v) => setUserData({ ...userData, phone: v })}
+                            icon={Phone}
+                            placeholder="+237..."
+                          />
+                        </div>
+
+                        <FormField
+                          label="Email"
+                          value={user?.email}
+                          disabled={true}
+                          icon={Mail}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormSelect
+                            label="City"
                             value={userData.onboarding_location.city}
                             onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, city: v, quartier: ''}})}
                             options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
                             icon={MapPin}
-                            placeholder="Select City Node"
-                         />
-                         <SelectModule 
-                            label="Local Quartier (Zone)"
+                            placeholder="Select city"
+                          />
+                          <FormSelect
+                            label="Quartier"
                             value={userData.onboarding_location.quartier}
                             onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, quartier: v}})}
                             options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === userData.onboarding_location.city).map(z => ({ label: z.name, value: z.name }))}
                             icon={MapPin}
-                            placeholder="Select Quartier Signal"
-                            disable={!userData.onboarding_location.city}
-                         />
-                      </div>
-                      <InputModule 
-                         label="Address Description" 
-                         value={userData.onboarding_location.address_description} 
-                         onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })} 
-                         icon={MapPin} 
-                         placeholder="Additional routing metadata (Door #, Landmark)..." 
-                         area
-                      />
-                      
-                      <div className="pt-4 flex justify-end">
+                            placeholder="Select quartier"
+                            disabled={!userData.onboarding_location.city}
+                          />
+                        </div>
+
+                        <FormField
+                          label="Address Description"
+                          value={userData.onboarding_location.address_description}
+                          onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })}
+                          icon={MapPin}
+                          placeholder="Additional address details..."
+                          textarea={true}
+                        />
+
                         <button
                           onClick={handleUpdateProfile}
                           disabled={profileSaving}
-                          className="px-8 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest uppercase hover:bg-[var(--accent)] hover:text-white transition-all"
+                          className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
                         >
-                          {profileSaving ? 'Saving...' : 'Synchronize Records'}
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                          <span className="relative z-10 text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
+                            {profileSaving ? 'Synchronizing State...' : 'Save Identity Configuration'}
+                          </span>
                         </button>
                       </div>
                     </div>
-                  </SectionBox>
-
-                  <SectionBox title="Interface Preferences">
-                    <div className="flex items-center justify-between py-2">
-                       <div className="flex items-center gap-4">
-                         <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
-                           {theme === 'dark' ? <Moon className="size-5" /> : <Sun className="size-5" />}
-                         </div>
-                         <div>
-                           <p className="text-[11px] font-black uppercase tracking-tight">System Appearance</p>
-                           <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">Toggle between Dark and Light protocol modes.</p>
-                         </div>
-                       </div>
-                       <button 
-                         onClick={toggleTheme}
-                         className={`w-14 h-8 rounded-full relative transition-all duration-300 ${theme === 'dark' ? 'bg-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.5)]' : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]'}`}
-                       >
-                         <div className={`absolute top-1 size-6 rounded-full bg-white shadow-xl transition-all duration-300 ${theme === 'dark' ? 'left-7' : 'left-1'}`} />
-                       </button>
-                    </div>
-                  </SectionBox>
+                  </div>
                 </div>
               )}
 
-
               {activeTab === 'orders' && (
-                <div className="space-y-12">
-                   <header className="space-y-4 flex flex-col md:flex-row md:items-end justify-between">
-                     <div>
-                       <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)] uppercase">Order <span className="text-[var(--accent)]">Matrix</span></h2>
-                       <p className="text-[var(--text-secondary)] font-medium max-w-lg mt-2">Historical and active transaction records synchronized with the platform.</p>
-                     </div>
-                     <button onClick={fetchOrders} className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--accent)] transition-all">
-                        <RefreshCw className={`size-5 ${ordersLoading ? 'animate-spin' : ''}`} />
-                     </button>
-                   </header>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Transaction Logs</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
 
-                    <div className="space-y-4">
-                      {orders.length === 0 ? (
-                        <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-xl text-center space-y-6">
-                            <ShoppingBag className="size-16 opacity-10" />
-                            <p className="text-sm font-black uppercase tracking-widest opacity-40">No Order Records Synchronized</p>
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+
+                    <div className="relative z-10">
+                      {ordersLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                          <RefreshCw className="w-8 h-8 text-[var(--accent)] animate-spin" />
+                        </div>
+                      ) : orders.length === 0 ? (
+                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
+                          <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Transaction History</p>
                         </div>
                       ) : (
-                        <>
-                        {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((o) => (
-                           <Link href={`/orders/${o._id}`} key={o._id} className="block p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 hover:shadow-2xl transition-all group overflow-hidden relative">
-                              <div className="absolute top-0 right-0 size-24 bg-[var(--accent)]/5 rounded-full blur-2xl group-hover:bg-[var(--accent)]/10 transition-all" />
-                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                                 <div className="flex items-center gap-6">
-                                    <div className="size-16 rounded-[28px] bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center relative shadow-inner overflow-hidden">
-                                       <img src={o.products?.[0]?.image || '/placeholder.png'} className="size-full object-cover" alt="" />
+                        <div className="space-y-4">
+                          {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
+                            const firstItem = order.products?.[0] || order.items?.[0];
+                            const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white.png';
+                            const title = firstItem?.name || firstItem?.product?.name || `Order #${order._id.substring(0, 8)}`;
+                            
+                            return (
+                              <Link key={order._id} href={`/orders/${order._id}`} className="block group">
+                                <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] p-5 md:p-6 hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--accent)]/30 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5">
+                                  <div className="flex items-center gap-5">
+                                    <div className="size-16 rounded-[1.25rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 group-hover:border-[var(--accent)]/30 transition-colors shadow-sm">
+                                      <img src={imageUrl} alt="Product Thumbnail" className="size-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                     </div>
-                                    <div>
-                                       <h4 className="text-lg font-black uppercase tracking-tight group-hover:text-[var(--accent)] transition-colors line-clamp-1">{o.products?.[0]?.name || 'Encrypted Order'}</h4>
-                                       <div className="flex items-center gap-3 mt-1.5 grayscale group-hover:grayscale-0 transition-all opacity-40 group-hover:opacity-100">
-                                          <span className="text-[10px] font-black uppercase tracking-widest">{new Date(o.createdAt).toLocaleDateString()}</span>
-                                          <div className="size-1 rounded-full bg-[var(--accent)]" />
-                                          <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)]">{o.order_status}</span>
-                                       </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[11px] md:text-xs font-black tracking-widest uppercase truncate text-[var(--text-primary)] mb-1">{title}</p>
+                                      <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
-                                 </div>
-                                 <div className="flex items-center justify-between md:justify-end gap-10 border-t md:border-t-0 border-[var(--glass-border)] pt-6 md:pt-0">
-                                    <div className="text-right">
-                                       <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mb-1">Vault Value</p>
-                                       <p className="text-2xl font-black font-mono text-[var(--text-primary)]">{(o.total_amount).toLocaleString()} <span className="text-xs">XAF</span></p>
+                                    <div className="text-right shrink-0">
+                                      <p className="text-xs md:text-sm font-black tracking-wider text-[var(--text-primary)]">{(order.total_amount).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
+                                      <div className="mt-1 flex justify-end">
+                                        <span className={`px-3 py-1 rounded-full text-[8px] font-black tracking-widest uppercase border ${order.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : order.order_status === 'shipped' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                                          {order.order_status || 'Pending'}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
-                                       <ChevronRight className="size-5" />
-                                    </div>
-                                 </div>
-                              </div>
-                           </Link>
-                        ))}
-                        {orders.length > 0 && (
-                          <div className="pt-6">
+                                    <ChevronRight className="size-5 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-[var(--accent)] ml-2 hidden md:block" />
+                                  </div>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                          {orders.length > itemsPerPage && (
                             <Pagination
                               currentPage={currentPage}
                               totalPages={Math.ceil(orders.length / itemsPerPage)}
                               onPageChange={setCurrentPage}
                             />
-                          </div>
-                        )}
-                        </>
+                          )}
+                        </div>
                       )}
-                   </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'security' && (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Security Matrix</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
 
-                <div className="space-y-12">
-                  <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Security Citadel</h2>
-                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Manage encrypted access, key pairing, and biometric links.</p>
-                  </header>
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-4">
+                      <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
+                        <div className="flex items-center gap-4">
+                          <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
+                            <Lock className="size-5 text-[var(--accent)]" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Change Passphrase</p>
+                            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
+                      </button>
 
-                  <SectionBox title="Core Access Control">
-                    <ActionButton icon={Lock} label="Rotate Access Key" desc="Change your security passphrase regularly." />
-                    <ActionButton icon={RefreshCw} label="Secure Session Clearing" desc="Logout from all other active node devices." />
-                  </SectionBox>
+                      <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
+                        <div className="flex items-center gap-4">
+                          <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
+                            <RefreshCw className="size-5 text-[var(--accent)]" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Active Node Sessions</p>
+                            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'store' && user?.role === 'vendor' && (
-                <div className="space-y-12">
-                  <header className="space-y-4 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-4">
-                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)] uppercase">Command <span className="text-[var(--accent)]">Center</span></h2>
-                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Customize your organization&apos;s digital storefront presence.</p>
-                    </div>
-                    {saveStatus && (
-                      <span className="px-6 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest uppercase border border-[var(--accent)] animate-pulse">
-                        {saveStatus}
-                      </span>
-                    )}
-                  </header>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
 
-                  <SectionBox title="Storefront Presence">
-                    <div className="space-y-8">
-                      {/* Sync Notice */}
-                      <div className="p-8 rounded-[40px] bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center gap-8 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 size-32 bg-[var(--accent)]/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-[var(--accent)]/20 transition-all" />
-                        <div className="size-16 rounded-[24px] bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] relative z-10">
-                          <Palette className="size-8" />
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-6 md:space-y-8">
+                      <FormField
+                        label="Store Name"
+                        value={storeData.store_name}
+                        onChange={(v) => setStoreData({ ...storeData, store_name: v })}
+                        icon={Store}
+                        placeholder="Your store name"
+                      />
+
+                      <FormField
+                        label="Store Description"
+                        value={storeData.description}
+                        onChange={(v) => setStoreData({ ...storeData, description: v })}
+                        icon={Database}
+                        placeholder="Describe your store..."
+                        textarea={true}
+                      />
+
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-4">
+                          <MapPin className="size-4 text-[var(--accent)]" />
+                          <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Pickup Node Configuration</h4>
                         </div>
-                        <div className="flex-1 relative z-10">
-                          <p className="text-sm font-black uppercase tracking-tight">Unified Platform Branding</p>
-                          <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 leading-relaxed mt-1 max-w-md">
-                            Your storefront visuals (Logo & Banner) are synchronized with your <span className="text-[var(--accent)]">General Profile</span> settings to maintain cross-platform brand integrity.
-                          </p>
-                        </div>
-                        <button 
-                          onClick={() => setActiveTab('general')}
-                          className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-black uppercase tracking-widest hover:border-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all relative z-10"
-                        >
-                          Modify Assets
-                        </button>
-                      </div>
-
-                      <div className="space-y-8">
-                        <InputModule 
-                          label="Store Alias" 
-                          value={storeData.store_name} 
-                          onChange={(v) => setStoreData({ ...storeData, store_name: v })} 
-                          icon={Store} 
-                          placeholder="Organization Name" 
-                        />
-                        <InputModule 
-                          label="Store Transmission (Bio)" 
-                          value={storeData.description} 
-                          onChange={(v) => setStoreData({ ...storeData, description: v })} 
-                          icon={Database} 
-                          placeholder="Describe your node's purpose and mission..." 
-                          area 
-                        />
-                      </div>
-                    </div>
-                  </SectionBox>
-
-                  <SectionBox title="Logistics Hub (Pickup)">
-                    <div className="space-y-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                         <SelectModule 
-                            label="Fulfillment Hub (City)" 
-                            value={storeData.pickup_address.city} 
-                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})} 
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormSelect
+                            label="City"
+                            value={storeData.pickup_address.city}
+                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})}
                             options={zones.filter(z => z.type === 'city').map(z => ({ label: z.name, value: z.name }))}
                             icon={MapPin}
-                            placeholder="Select Node"
+                            placeholder="Select city"
                           />
-                          <SelectModule 
-                             label="Pickup Region (Quartier)"
-                             value={storeData.pickup_address.quartier}
-                             onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
-                             options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === storeData.pickup_address.city).map(z => ({ label: z.name, value: z.name }))}
-                             icon={MapPin}
-                             placeholder="Select Sub-Node"
-                             disable={!storeData.pickup_address.city}
+                          <FormSelect
+                            label="Quartier"
+                            value={storeData.pickup_address.quartier}
+                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
+                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === storeData.pickup_address.city).map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select quartier"
+                            disabled={!storeData.pickup_address.city}
                           />
-                      </div>
-                      <InputModule 
-                        label="Handshake Coordinates (Pickup Address)" 
-                        value={storeData.pickup_address.address_description} 
-                        onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })} 
-                        icon={MapPin} 
-                        placeholder="Specific building info for logistics pickup..." 
-                        area 
-                      />
-                    </div>
-                  </SectionBox>
+                        </div>
 
-                  <button
-                    onClick={handleUpdateStore}
-                    disabled={loading}
-                    className="w-full py-10 bg-[var(--accent)] text-white font-black text-[11px] tracking-[0.5em] rounded-[40px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[var(--accent)]/40 uppercase flex items-center justify-center gap-4 disabled:opacity-50"
-                  >
-                    {loading ? <RefreshCw className="size-5 animate-spin" /> : <RefreshCw className="size-5" />}
-                    {loading ? 'Committing Hub Sync...' : 'Finalize Store Profile'}
-                  </button>
+                        <FormField
+                          label="Pickup Address Description"
+                          value={storeData.pickup_address.address_description}
+                          onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })}
+                          icon={MapPin}
+                          placeholder="Specific address details..."
+                          textarea={true}
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleUpdateStore}
+                        disabled={loading}
+                        className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                      >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                        <div className="relative z-10 flex items-center gap-3">
+                          {loading && <RefreshCw className="size-4 animate-spin" />}
+                          <span className="text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
+                            {loading ? 'Updating Storefront...' : 'Commit Store Configuration'}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {activeTab === 'fleet' && user?.role === 'logistics' && (
-                <div className="space-y-12">
-                  <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Fleet Management</h2>
-                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Configure your operational capacity and dispatch parameters.</p>
-                  </header>
-                  <SectionBox title="Operational Reach">
-                    <ActionButton icon={MapPin} label="Service Regions" desc="Define cities where your fleet is active." />
-                    <ActionButton icon={Truck} label="Vehicle Manifest" desc="Specify available vehicle types (Bikes, Vans, Trucks)." />
-                   </SectionBox>
-                 </div>
-               )}
- 
-               {activeTab === 'kyc' && (
-                 <div className="space-y-12">
-                   <header className="space-y-4">
-                     <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Identity Node</h2>
-                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Verify your identity to unlock advanced vendor features and higher transaction limits.</p>
-                   </header>
-  
-                   <div className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-[40px] p-8 md:p-12 glass-panel shadow-2xl relative overflow-hidden">
-                     <div className="absolute top-0 right-0 size-64 bg-emerald-500/5 rounded-full blur-[100px]" />
-                     
-                     <div className="flex items-center justify-between mb-10 pb-10 border-b border-[var(--glass-border)]/50">
-                       <div className="flex items-center gap-6">
-                         <div className={`size-16 rounded-[24px] flex items-center justify-center border shadow-inner ${
-                           kycStatus === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                           kycStatus === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                           kycStatus === 'rejected' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
-                           'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)]'
-                         }`}>
-                           <Shield className="size-8" />
-                         </div>
-                         <div>
-                           <h3 className="text-xl font-black tracking-tight uppercase">Verification Status</h3>
-                           <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${
-                             kycStatus === 'approved' ? 'text-emerald-500' :
-                             kycStatus === 'pending' ? 'text-amber-500' :
-                             kycStatus === 'rejected' ? 'text-rose-500' : 'text-[var(--text-secondary)]'
-                           }`}>
-                             {kycStatus ? kycStatus.toUpperCase() : 'NOT SUBMITTED'}
-                           </p>
-                         </div>
-                       </div>
-                       
-                       {kycStatus === 'approved' && (
-                         <div className="px-6 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[10px] font-black tracking-widest uppercase">
-                           Global Node Verified
-                         </div>
-                       )}
-                     </div>
-  
-                     {kycStatus === 'approved' ? (
-                       <div className="py-10 text-center space-y-4">
-                         <p className="text-sm font-bold text-[var(--text-secondary)]">Your identity has been fully verified by the Aura Protocol.</p>
-                         <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest">Enhanced node privileges activated</p>
-                       </div>
-                     ) : (
-                       <div className="space-y-8">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           <InputModule 
-                             label="Full Legal Name" 
-                             value={kycData.full_name} 
-                             onChange={(v) => setKycData({...kycData, full_name: v})} 
-                             icon={User} 
-                             placeholder="Ex: John Doe" 
-                           />
-                           <div className="space-y-4">
-                             <div className="flex items-center gap-3 ml-4">
-                               <Shield className="size-4 text-[var(--accent)] opacity-40" />
-                               <span className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">ID Document Type</span>
-                             </div>
-                             <select 
-                               value={kycData.id_type}
-                               onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
-                               className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-full px-8 py-5 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none shadow-inner text-[var(--text-primary)]"
-                             >
-                               <option value="national_id">National ID Card</option>
-                               <option value="passport">Biometric Passport</option>
-                               <option value="drivers_license">Driver's License</option>
-                             </select>
-                           </div>
-                         </div>
-  
-                         <InputModule 
-                           label="Document ID Number" 
-                           value={kycData.id_number} 
-                           onChange={(v) => setKycData({...kycData, id_number: v})} 
-                           icon={Lock} 
-                           placeholder="Ex: 2024-X99" 
-                         />
-  
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                             <div className="space-y-4">
-                                <div className="flex items-center justify-between px-2">
-                                   <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">ID Front Scan</span>
-                                   {brandingUploading === 'kyc_front' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
-                                </div>
-                                <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
-                                   {kycData.file_url_front ? (
-                                     <>
-                                       <img src={kycData.file_url_front} className="absolute inset-0 size-full object-contain p-4" alt="ID front" />
-                                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <p className="text-white text-[10px] font-black uppercase tracking-widest">Replace Front</p>
-                                       </div>
-                                     </>
-                                   ) : (
-                                     <>
-                                       <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
-                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest">Front Page</p>
-                                     </>
-                                   )}
-                                   <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleBrandingFileUpload('kyc_front', e.target.files?.[0])} />
-                                </div>
-                             </div>
+              {activeTab === 'kyc' && (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Identity Validation</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
 
-                             <div className="space-y-4">
-                                <div className="flex items-center justify-between px-2">
-                                   <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">ID Back Scan</span>
-                                   {brandingUploading === 'kyc_back' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
-                                </div>
-                                <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
-                                   {kycData.file_url_back ? (
-                                     <>
-                                       <img src={kycData.file_url_back} className="absolute inset-0 size-full object-contain p-4" alt="ID back" />
-                                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <p className="text-white text-[10px] font-black uppercase tracking-widest">Replace Back</p>
-                                       </div>
-                                     </>
-                                   ) : (
-                                     <>
-                                       <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
-                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest">Back Page</p>
-                                     </>
-                                   )}
-                                   <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleBrandingFileUpload('kyc_back', e.target.files?.[0])} />
-                                </div>
-                             </div>
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      {kycStatus === 'approved' ? (
+                        <div className="flex flex-col items-center justify-center text-center p-12 bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem]">
+                          <div className="size-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
+                            <ShieldCheck className="size-10 text-emerald-500" />
                           </div>
-   
-                          <div className="flex justify-center pt-8">
-                             <button
-                               onClick={handleKYCSubmit}
-                               disabled={kycLoading || kycStatus === 'pending'}
-                               className={`min-w-[320px] px-10 py-5 rounded-full font-black text-[10px] tracking-[0.2em] uppercase transition-all shadow-xl ${
-                                 kycStatus === 'pending' ? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' :
-                                 'bg-[var(--accent)] text-white shadow-[var(--accent)]/30 hover:scale-105 active:scale-95'
-                               }`}
-                             >
-                               {kycLoading ? 'Commiting Node Data...' : kycStatus === 'pending' ? 'Governance Review In Progress' : 'Initialize Identity Verification'}
-                             </button>
+                          <h4 className="text-xl font-black uppercase tracking-tight text-emerald-500 mb-2">Verified Identity</h4>
+                          <p className="text-sm text-emerald-500/60 font-medium max-w-xs">Your identity matrix has been fully synchronized and validated.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-8">
+                          {kycStatus === 'pending' && (
+                            <div className="flex items-center gap-5 p-6 bg-amber-500/5 border border-amber-500/20 rounded-[2rem]">
+                              <div className="size-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
+                                <Clock className="size-6 text-amber-500 animate-pulse" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-black tracking-widest uppercase text-amber-500">Validation in Progress</p>
+                                <p className="text-sm text-amber-500/60 font-medium">Our node controllers are reviewing your credentials.</p>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                              label="Legal Full Name"
+                              value={kycData.full_name}
+                              onChange={(v) => setKycData({...kycData, full_name: v})}
+                              icon={User}
+                              placeholder="Your full name"
+                            />
+
+                            <div>
+                              <label className="block text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
+                              <select
+                                value={kycData.id_type}
+                                onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
+                                className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
+                              >
+                                <option value="national_id">National Identification</option>
+                                <option value="passport">Global Passport</option>
+                                <option value="drivers_license">Driver Authorization</option>
+                              </select>
+                            </div>
                           </div>
-                       </div>
-                     )}
-                   </div>
-                 </div>
-               )}
-  
-               {activeTab === 'notifications' && (
-                <div className="space-y-12">
-                  <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Signals & Intel</h2>
-                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Configure how the platform communicates critical updates to your node.</p>
-                  </header>
-                  <SectionBox title="Notification Channels">
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-4">
-                        <Mail className="size-5 text-[var(--accent)]" />
-                        <span className="text-[11px] font-black uppercase tracking-widest">Email Protocols</span>
-                      </div>
-                      <Toggle active />
+
+                          <FormField
+                            label="Document Serial Number"
+                            value={kycData.id_number}
+                            onChange={(v) => setKycData({...kycData, id_number: v})}
+                            icon={Lock}
+                            placeholder="Your ID number"
+                          />
+
+                          <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                              <Camera className="size-4 text-[var(--accent)]" />
+                              <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Biometric Scans</h4>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-3">
+                                <p className="text-[9px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
+                                <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
+                                  {kycData.file_url_front ? (
+                                    <img src={kycData.file_url_front} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                                  ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                      <Camera className="size-8 text-[var(--glass-border)] group-hover:scale-110 group-hover:text-[var(--accent)] transition-all" />
+                                      <span className="text-[10px] font-bold text-[var(--glass-border)] uppercase tracking-wider">Initialize Scan</span>
+                                    </div>
+                                  )}
+                                  <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_front', e.target.files?.[0])} />
+                                </label>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <p className="text-[9px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 px-1">Secondary Face (Back)</p>
+                                <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
+                                  {kycData.file_url_back ? (
+                                    <img src={kycData.file_url_back} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                                  ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                      <Camera className="size-8 text-[var(--glass-border)] group-hover:scale-110 group-hover:text-[var(--accent)] transition-all" />
+                                      <span className="text-[10px] font-bold text-[var(--glass-border)] uppercase tracking-wider">Initialize Scan</span>
+                                    </div>
+                                  )}
+                                  <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_back', e.target.files?.[0])} />
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={handleKYCSubmit}
+                            disabled={kycLoading || kycStatus === 'pending'}
+                            className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                          >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                            <div className="relative z-10 flex items-center gap-3">
+                              {kycLoading && <RefreshCw className="size-4 animate-spin" />}
+                              <span className="text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
+                                {kycLoading ? 'Encrypting Credentials...' : 'Submit to Validation Node'}
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-4">
-                        <Bell className="size-5 text-[var(--accent)]" />
-                        <span className="text-[11px] font-black uppercase tracking-widest">Push Signals</span>
-                      </div>
-                      <Toggle active />
-                    </div>
-                    <Link href="/notifications" className="block p-8 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-center group transition-all hover:bg-[var(--accent)] hover:text-white mt-10 shadow-xl">
-                       <p className="text-[10px] font-black uppercase tracking-[0.4em]">Initialize Full Frequency Scan</p>
-                    </Link>
-                  </SectionBox>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'network' && (
-                 <div className="space-y-12">
-                    <header className="space-y-4">
-                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Network</span></h2>
-                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Active connections to marketplaces and independent vendor nodes.</p>
-                    </header>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Followed Protocols</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
 
-                    {networkLoading ? (
-                      <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
-                         <RefreshCw className="size-16 animate-spin mb-4" />
-                         <p className="text-[10px] font-black uppercase tracking-widest">Resolving Followed Nodes...</p>
-                      </div>
-                    ) : followedVendors.length === 0 ? (
-                       <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
-                           <Users className="size-16 opacity-10" />
-                           <p className="text-sm font-black uppercase tracking-widest opacity-40">No connected vendor nodes detected</p>
-                       </div>
-                    ) : (
-                       <div className="space-y-6">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(f => (
-                             <Link key={f._id} href={`/stores/${f.vendor_id?._id}`} className="group p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/40 transition-all flex items-center gap-6 shadow-xl">
-                                <div className="size-20 rounded-[28px] overflow-hidden border border-[var(--glass-border)] group-hover:border-[var(--accent)]/50 transition-all shadow-inner shrink-0 bg-[var(--bg-primary)]">
-                                   <img src={f.vendor_id?.user_id?.branding?.logo || f.vendor_id?.user_id?.avatar} className="size-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      {networkLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                          <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
+                        </div>
+                      ) : followedVendors.length === 0 ? (
+                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
+                          <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Followed Vendors</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+                          {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(vendor => (
+                            <Link 
+                              key={vendor._id} 
+                              href={`/stores/${vendor.vendor_id?._id || ''}`} 
+                              className="group relative rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[var(--accent)]/10 hover:-translate-y-2 glass-panel"
+                            >
+                              {/* Banner Background */}
+                              <div className="absolute top-0 left-0 w-full h-24 overflow-hidden">
+                                <img 
+                                  src={vendor.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000'} 
+                                  className="w-full h-full object-cover brightness-[0.4] group-hover:scale-110 transition-transform duration-1000"
+                                  alt=""
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)] to-transparent opacity-90"></div>
+                              </div>
+
+                              <div className="relative pt-12 px-6 pb-6 flex flex-col items-center text-center">
+                                {/* Profile Avatar */}
+                                <div className="size-20 rounded-2xl overflow-hidden border-4 border-[var(--bg-primary)] shadow-xl relative z-10 bg-[var(--bg-secondary)] group-hover:scale-105 transition-transform">
+                                  <img 
+                                    src={vendor.vendor_id?.user_id?.branding?.logo || vendor.vendor_id?.user_id?.avatar || '/logo-white.png'} 
+                                    alt={vendor.vendor_id?.store_name}
+                                    className="size-full object-cover"
+                                  />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                   <div className="flex items-center gap-3">
-                                      <h4 className="text-lg font-black uppercase tracking-tight truncate group-hover:text-[var(--accent)] transition-colors">{f.vendor_id?.store_name}</h4>
-                                      {f.vendor_id?.verified && <ShieldCheck className="size-4 text-emerald-500 shrink-0" />}
-                                   </div>
-                                   <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mt-1">{(f.vendor_id?.follower_count || 0).toLocaleString()} Subscribers</p>
+
+                                <div className="mt-4 space-y-2 relative z-10 w-full">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <h3 className="text-sm font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight line-clamp-1 uppercase">
+                                      {vendor.vendor_id?.store_name}
+                                    </h3>
+                                    <ShieldCheck className="size-3.5 text-blue-500" />
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[8px] font-black tracking-widest w-fit mx-auto uppercase">
+                                    <Star className="size-2.5 fill-current" /> {vendor.vendor_id?.rating || '4.9'}
+                                  </div>
+
+                                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-tighter">
+                                    {vendor.vendor_id?.follower_count || 0} Synchronized Nodes
+                                  </p>
                                 </div>
-                             </Link>
+
+                                <div className="mt-6 pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
+                                  <div className="flex flex-col items-start gap-1">
+                                    <span className="text-[7px] font-black text-[var(--text-secondary)]/40 tracking-[0.3em] uppercase">Status</span>
+                                    <span className="text-[9px] font-bold text-emerald-500 flex items-center gap-1 uppercase">
+                                      <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Active
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="size-8 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-secondary)] group-hover:bg-[var(--accent)] group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-sm">
+                                    <ChevronRight className="size-4" />
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
                           ))}
-                         </div>
-                         {followedVendors.length > 0 && (
-                            <Pagination
-                              currentPage={currentPage}
-                              totalPages={Math.ceil(followedVendors.length / itemsPerPage)}
-                              onPageChange={setCurrentPage}
-                            />
-                         )}
-                       </div>
-                    )}
-                 </div>
-              )}
-
-              {activeTab === 'audience' && (
-                 <div className="space-y-12">
-                    <header className="space-y-4">
-                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Audience</span></h2>
-                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Independent user nodes synchronized with your marketplace frequency.</p>
-                    </header>
-
-                    {audienceLoading ? (
-                      <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
-                         <RefreshCw className="size-16 animate-spin mb-4" />
-                         <p className="text-[10px] font-black uppercase tracking-widest">Scanning Audience Signal...</p>
-                      </div>
-                    ) : audience.length === 0 ? (
-                       <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
-                           <Heart className="size-16 opacity-10" />
-                           <p className="text-sm font-black uppercase tracking-widest opacity-40">No active subscribers in this frequency</p>
-                       </div>
-                    ) : (
-                       <div className="space-y-6 pb-32">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {audience.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(a => (
-                             <div key={a._id} className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex items-center gap-6 shadow-xl">
-                                <div className="size-16 rounded-[24px] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0">
-                                   <img src={a.user_id?.branding?.logo || a.user_id?.avatar} className="size-full object-cover" alt="" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                   <h4 className="text-base font-black uppercase tracking-tight truncate">{a.user_id?.name}</h4>
-                                   <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40 mt-1">Status: Active Monitor</p>
-                                </div>
-                                <span className="text-[8px] font-black uppercase tracking-widest opacity-20">{new Date(a.createdAt).toLocaleDateString()}</span>
-                             </div>
-                          ))}
-                       </div>
-                       {audience.length > 0 && (
-                          <Pagination
-                            currentPage={currentPage}
-                            totalPages={Math.ceil(audience.length / itemsPerPage)}
-                            onPageChange={setCurrentPage}
-                          />
-                       )}
+                        </div>
+                      )}
                     </div>
-                    )}
-                 </div>
-              )}
-
-              {activeTab === 'governance' && user?.role === 'admin' && (
-                 <div className="space-y-12 pb-32">
-                   <header className="space-y-4">
-                     <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Protocol Governance</h2>
-                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Advanced administrative controls for platform stability and regulation.</p>
-                   </header>
- 
-                    <SectionBox title="User Governance">
-                       <div className="space-y-6">
-                          <div className="relative group">
-                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)] opacity-40 group-focus-within:opacity-100 transition-opacity" />
-                             <input 
-                                type="text"
-                                placeholder="Search by Node ID or Email..."
-                                className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-[32px] pl-16 pr-8 py-6 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all shadow-inner text-[var(--text-primary)]"
-                                onChange={async (e) => {
-                                   const q = e.target.value;
-                                   if (q.length < 3) return;
-                                   try {
-                                      const res = await api.get(`/admin/users?search=${q}`);
-                                      if (res.data.success) setGovUsers(res.data.data.users || []);
-                                   } catch (_) {}
-                                }}
-                             />
-                          </div>
-
-                          <div className="space-y-4">
-                             {(govUsers || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(u => (
-                                <div key={u._id} className="p-6 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-between gap-6">
-                                   <div className="flex items-center gap-4">
-                                      <div className="size-12 rounded-2xl bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)]">
-                                         <img src={u.branding?.logo || u.avatar} alt="" className="size-full object-cover" />
-                                      </div>
-                                      <div>
-                                         <p className="text-[11px] font-black uppercase tracking-tight">{u.name}</p>
-                                         <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">{u.email} • {u.role}</p>
-                                      </div>
-                                   </div>
-                                   <div className="flex items-center gap-2">
-                                      <button 
-                                         onClick={async () => {
-                                            const nextStatus = u.verification_status === 'held' ? 'unverified' : 'held';
-                                            try { await api.patch(`/admin/users/${u._id}/status`, { status: nextStatus }); setBrandingStatus(`User ${u.name} ${nextStatus}.`); } catch (_) {}
-                                         }}
-                                         className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${u.verification_status === 'held' ? 'bg-amber-500 text-white' : 'bg-transparent border-[var(--glass-border)] hover:bg-amber-500/10 text-amber-500'}`}
-                                      >
-                                         {u.verification_status === 'held' ? 'Release Node' : 'Hold Node'}
-                                      </button>
-                                      <button 
-                                         onClick={async () => {
-                                            try { await api.patch(`/admin/users/${u._id}/status`, { status: 'unverified' }); setBrandingStatus(`Verification requested for ${u.name}`); } catch (_) {}
-                                         }}
-                                         className="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all"
-                                      >
-                                         Request Verify
-                                      </button>
-                                   </div>
-                                </div>
-                             ))}
-                          </div>
-                          {(govUsers || []).length > 0 && (
-                             <Pagination
-                               currentPage={currentPage}
-                               totalPages={Math.ceil((govUsers || []).length / itemsPerPage)}
-                               onPageChange={setCurrentPage}
-                             />
-                          )}
-                       </div>
-                    </SectionBox>
-
-                   <SectionBox title="Administrative Override">
-                     <ActionButton icon={ShieldAlert} label="System Lockdown" desc="Temporarily suspend all non-essential platform services." />
-                     <ActionButton icon={User} label="Node Verification" desc="Manually review and approve pending vendor applications." />
-                   </SectionBox>
-                 </div>
-              )}
-
-              {activeTab === 'advanced' && user?.role === 'admin' && (
-                <div className="space-y-12">
-                  <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Root Systems</h2>
-                    <p className="text-[var(--text-secondary)] font-medium max-w-lg">Low-level data manipulation and infrastructure parameters.</p>
-                  </header>
-                  <SectionBox title="Database Sync">
-                    <ActionButton icon={Database} label="Flush Cache" desc="Clear all temporary platform optimization data." />
-                    <ActionButton icon={BarChart3} label="Audit Logs" desc="View complete interaction history for this node." />
-                  </SectionBox>
+                  </div>
                 </div>
               )}
+
+              {activeTab === 'audience' && user?.role === 'vendor' && (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Audience</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
+
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      {audienceLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                          <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
+                        </div>
+                      ) : audience.length === 0 ? (
+                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
+                          <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Connected Nodes</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {audience.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(follower => (
+                            <div key={follower._id} className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] p-5 hover:bg-[var(--accent)]/5 transition-all duration-300">
+                              <div className="flex items-center gap-4">
+                                <div className="size-14 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0">
+                                  <img src={follower.user_id?.branding?.logo || follower.user_id?.avatar || '/logo-white.png'} className="size-full object-cover" alt="" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-black uppercase tracking-widest truncate text-[var(--text-primary)]">{follower.user_id?.name}</p>
+                                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-tighter">Synchronized {new Date(follower.createdAt).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'notifications' && (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Signal Parameters</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
+
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-4">
+                      <NotificationToggle label="Internal Node Signals" icon={Bell} active={true} />
+                      <NotificationToggle label="External Multi-cast (Email)" icon={Mail} active={true} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Add other tabs as needed - they can follow the same pattern */}
             </motion.div>
           </AnimatePresence>
-        </main>
+        </div>
       </div>
     </div>
   );
 }
 
-function SectionBox({ title, children }) {
+function FormField({ label, value, onChange, icon: Icon, placeholder, disabled = false, textarea = false }) {
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-6 px-4">
-        <h3 className="text-[10px] font-black tracking-[0.4em] uppercase text-[var(--text-secondary)] opacity-50">{title}</h3>
-        <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
-      </div>
-      <div className="glass-panel rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-8 md:p-10 space-y-6">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function InputModule({ label, value, onChange, icon: Icon, placeholder, area = false, disable = false }) {
-  return (
-    <div className="space-y-3 px-2">
-      <div className="flex items-center gap-3">
-        {Icon && <Icon className="size-4 text-[var(--accent)] opacity-40" />}
-        <label className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">{label}</label>
-      </div>
-      {area ? (
+    <div>
+      <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</label>
+      {textarea ? (
         <textarea
-          value={value}
+          value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          disabled={disable}
+          disabled={disabled}
           rows={4}
-          className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-[32px] px-8 py-6 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all resize-none shadow-inner text-[var(--text-primary)]"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
         />
       ) : (
         <input
-          value={value}
+          type="text"
+          value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          disabled={disable}
-          className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-full px-8 py-5 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all shadow-inner text-[var(--text-primary)]"
+          disabled={disabled}
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       )}
     </div>
   );
 }
 
-function InputRow({ label, value, disable }) {
+function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, disabled = false }) {
   return (
-    <div className="flex items-center justify-between p-6 rounded-3xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-      <span className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">{label}</span>
-      <span className={`text-xs font-black uppercase ${disable ? 'opacity-40' : ''}`}>{value}</span>
-    </div>
-  );
-}
-
-function Toggle({ active }) {
-  return (
-    <div className={`w-14 h-8 rounded-full p-1.5 transition-all duration-500 cursor-pointer ${active ? 'bg-[var(--accent)] shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--glass-border)]'}`}>
-      <div className={`h-full aspect-square rounded-full bg-white transition-all duration-500 transform ${active ? 'translate-x-6' : ''}`} />
-    </div>
-  );
-}
-
-function ActionButton({ icon: Icon, label, desc }) {
-  return (
-    <button className="w-full flex items-center justify-between p-6 rounded-3xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all text-left">
-      <div className="flex items-center gap-6">
-        <div className="size-12 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-white/10 group-hover:border-white/20">
-          <Icon className="size-5 text-[var(--accent)] group-hover:text-white" />
-        </div>
-        <div>
-          <p className="text-[11px] font-black tracking-widest uppercase">{label}</p>
-          <p className="text-[10px] font-bold opacity-50 group-hover:opacity-100">{desc}</p>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function SelectModule({ label, value, onChange, options, icon: Icon, placeholder, disable = false }) {
-  return (
-    <div className="space-y-3 px-2">
-      <div className="flex items-center gap-3">
-        {Icon && <Icon className="size-4 text-[var(--accent)] opacity-40" />}
-        <label className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] uppercase">{label}</label>
-      </div>
+    <div>
+      <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        disabled={disable}
-        className="w-full bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] rounded-full px-8 py-5 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/30 outline-none transition-all shadow-inner text-[var(--text-primary)] appearance-none cursor-pointer disabled:opacity-50"
+        disabled={disabled}
+        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
       >
         <option value="">{placeholder}</option>
         {options.map(opt => (
-           <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function NotificationToggle({ label, icon: Icon, active }) {
+  return (
+    <div className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)] rounded-[1.5rem] transition-colors border border-[var(--glass-border)]">
+      <div className="flex items-center gap-3">
+        <Icon className="w-5 h-5 text-[var(--accent)]" />
+        <p className="font-medium text-sm text-[var(--text-primary)]">{label}</p>
+      </div>
+      <div className={`w-12 h-6 rounded-full transition-colors relative ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}>
+        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--text-primary)] transition-transform ${active ? 'left-[26px]' : 'left-0.5'}`} />
+      </div>
     </div>
   );
 }

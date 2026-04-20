@@ -105,7 +105,7 @@ export default function VendorListPanel({ onOpenChat }) {
               vendor={vendor}
               index={i}
               onOpenChat={(vData) => openChat(vendor.user_id?._id, null, vData)}
-              onClick={() => router.push(`/shop?vendorId=${vendor._id}`)}
+              onClick={() => router.push(`/stores/${vendor._id}`)}
             />
           ))
         )}
