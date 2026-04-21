@@ -92,6 +92,7 @@ export default function AccountPageClient() {
 
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderView, setOrderView] = useState(user?.role === 'vendor' ? 'sales' : 'purchases');
 
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
@@ -104,17 +105,18 @@ export default function AccountPageClient() {
      if (!user) return;
      setOrdersLoading(true);
      try {
-       const endpoint = user?.role === 'vendor' ? '/orders/vendor-orders' : '/orders/my-orders';
+       const endpoint = orderView === 'sales' ? '/orders/vendor-orders' : '/orders/my-orders';
        const res = await api.get(endpoint);
        if (res.data.success) {
-          setOrders(res.data.data.orders || []);
+          const sortedOrders = (res.data.data.orders || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setOrders(sortedOrders);
        }
      } catch (err) {
        console.error("Orders fetch failed", err);
      } finally {
        setOrdersLoading(false);
      }
-  }, [user]);
+  }, [user, orderView]);
 
   useEffect(() => {
     if (activeTab === 'orders') fetchOrders();
@@ -574,6 +576,23 @@ export default function AccountPageClient() {
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
 
                     <div className="relative z-10">
+                      {user?.role === 'vendor' && (
+                        <div className="flex p-1.5 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] w-fit mb-8">
+                          <button
+                            onClick={() => setOrderView('purchases')}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                          >
+                            My Purchases
+                          </button>
+                          <button
+                            onClick={() => setOrderView('sales')}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                          >
+                            Store Sales
+                          </button>
+                        </div>
+                      )}
+
                       {ordersLoading ? (
                         <div className="flex items-center justify-center py-16">
                           <RefreshCw className="w-8 h-8 text-[var(--accent)] animate-spin" />
@@ -581,7 +600,7 @@ export default function AccountPageClient() {
                       ) : orders.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Transaction History</p>
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No {orderView === 'sales' ? 'Sales' : 'Purchase'} Manifest Found</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
