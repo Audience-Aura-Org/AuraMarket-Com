@@ -5,17 +5,43 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const Status = require('./models/Status.model');
+const Vendor = require('./models/Vendor.model');
+const User = require('./models/User.model');
 
 async function check() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected');
     
-    const count = await Status.countDocuments({ expires_at: { $gt: new Date() } });
-    console.log('Active statuses count:', count);
+    const now = new Date();
+    const query = { expires_at: { $gt: now } };
     
-    const all = await Status.find({}).limit(5).lean();
-    console.log('Sample statuses:', JSON.stringify(all, null, 2));
+    const statuses = await Status.find(query)
+      .sort({ likes_count: -1, createdAt: -1 })
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name user_id',
+        populate: { path: 'user_id', select: 'avatar branding' }
+      })
+      .lean();
+    
+    console.log('Query result count:', statuses.length);
+    if (statuses.length > 0) {
+      console.log('First result vendor name:', statuses[0].vendor_id?.store_name);
+      console.log('First result user branding:', statuses[0].vendor_id?.user_id?.branding);
+    } else {
+      console.log('No statuses found with the query');
+      const allCount = await Status.countDocuments({});
+      console.log('Total statuses in DB (even expired):', allCount);
+      if (allCount > 0) {
+        const one = await Status.findOne({}).lean();
+        console.log('Sample status info:', {
+          id: one._id,
+          expires_at: one.expires_at,
+          now: now
+        });
+      }
+    }
     
     process.exit(0);
   } catch (e) {

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth.middleware');
+const { protect, protectOptional } = require('../middleware/auth.middleware');
 const {
   createStatus,
   getActiveStatuses,
@@ -10,8 +10,8 @@ const {
   deleteStatus
 } = require('../controllers/status.controller');
 
-router.get('/', getActiveStatuses);
-router.post('/:id/view', viewStatus);
+router.get('/', protectOptional, getActiveStatuses);
+router.post('/:id/view', protectOptional, viewStatus);
 
 router.use(protect); // Protect all write/private status routes
 
