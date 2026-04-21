@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, X, Plus, Package, Image as ImageIcon,
   ArrowLeft, Star
