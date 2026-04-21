@@ -28,7 +28,9 @@ async function handleRequest(request, params, method) {
   const searchParams = new URL(request.url).search;
   
   // Use environment variable for backend URL, fallback to localhost only in dev
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : null);
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 
+                     process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, '') || 
+                     (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : null);
   
   if (!backendUrl) {
     console.error('[Bridge] CRITICAL: NEXT_PUBLIC_BACKEND_URL is not defined in production environment.');
