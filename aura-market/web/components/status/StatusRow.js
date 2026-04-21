@@ -65,7 +65,10 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20, delay: i * 0.04 }}
-            onClick={() => onSelect(items)}
+            onClick={() => {
+              const others = statuses.filter(s => s.vendor_id?._id !== vendor._id);
+              onSelect([...items, ...others]);
+            }}
             className="flex flex-col items-center gap-2 shrink-0 group"
             style={{ scrollSnapAlign: 'start' }}
           >

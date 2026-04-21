@@ -27,7 +27,18 @@ export default function StatusTabGrid({ onSelectStatus }) {
     setLoading(true);
     try {
       const res = await api.get('/statuses', { params: { mode: 'global', sort: sortBy } });
-      if (res.data.success) setStatuses(res.data.data || []);
+      if (res.data.success) {
+        const data = res.data.data || [];
+        setStatuses(data);
+        
+        // Aggressive background preloading for instant zero-latency viewing
+        data.forEach(s => {
+          if (s.type === 'image' && s.content_url) {
+            const img = new Image();
+            img.src = s.content_url;
+          }
+        });
+      }
     } catch (e) {
       console.error('Failed to fetch global statuses:', e);
     } finally {

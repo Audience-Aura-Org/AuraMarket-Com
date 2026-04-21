@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -18,7 +18,7 @@ export default function StorePage() {
   const { id } = useParams();
   const { openChat } = useChat();
   const productsAnchor = useRef(null);
-  const { followedVendorIds, addFollowedVendor, removeFollowedVendor, isAuthenticated, fetchFollowedVendors } = useAuthStore();
+  const { user, followedVendorIds, addFollowedVendor, removeFollowedVendor, isAuthenticated, fetchFollowedVendors } = useAuthStore();
   
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);

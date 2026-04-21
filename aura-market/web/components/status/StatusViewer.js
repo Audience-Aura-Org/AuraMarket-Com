@@ -104,7 +104,15 @@ export default function StatusViewer({ initialStatuses, onClose }) {
   const onTouchEnd = (e) => {
     clearTimeout(holdTimer.current);
     if (paused) { setPaused(false); return; }
+    
     const dx = touchStart.current.x - e.changedTouches[0].clientX;
+    const dy = touchStart.current.y - e.changedTouches[0].clientY;
+    
+    // WhatsApp Gestures: Swipe down to close, swipe up to chat
+    if (dy < -80) { onClose(); return; }
+    if (dy > 80 && !story?.linked_product) { handleChat(); return; }
+    
+    // Original: Horizontal swipe
     if (Math.abs(dx) > 60) {
       dx > 0 ? goNext() : goPrev();
     }
@@ -154,7 +162,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
         onTouchEnd={onTouchEnd}
       >
         {/* ── Progress bars (CSS animation driven) ── */}
-        <div className="absolute top-3 inset-x-3 z-50 flex gap-1">
+        <div className={`absolute top-3 inset-x-3 z-50 flex gap-1 transition-opacity duration-200 ${paused ? 'opacity-0' : 'opacity-100'}`}>
           {initialStatuses.map((_, i) => (
             <div key={i} className="h-[3px] flex-1 rounded-full overflow-hidden bg-white/20">
               <div
@@ -175,7 +183,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
         </div>
 
         {/* ── Header ── */}
-        <div className="absolute top-8 inset-x-4 z-50 flex items-center justify-between">
+        <div className={`absolute top-8 inset-x-4 z-50 flex items-center justify-between transition-opacity duration-200 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-full overflow-hidden border-2 border-white/30 shadow-md bg-black/40">
               {vendorLogo
@@ -247,7 +255,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
         </div>
 
         {/* ── Footer ── */}
-        <div className="absolute bottom-0 inset-x-0 z-40 px-5 pb-8 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent">
+        <div className={`absolute bottom-0 inset-x-0 z-40 px-5 pb-8 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-300 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           {story.caption && (
             <p className="text-sm text-white/90 font-medium mb-4 leading-relaxed line-clamp-3 bg-white/5 backdrop-blur-sm px-4 py-3 rounded-2xl border border-white/10">
               {story.caption}

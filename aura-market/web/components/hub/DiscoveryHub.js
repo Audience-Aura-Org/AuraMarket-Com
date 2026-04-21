@@ -325,7 +325,16 @@ export default function DiscoveryHub() {
         params: { mode: user ? 'followed' : 'global', limit: 20 } 
       });
       if (res.data.success) {
-        setFollowedStatuses(res.data.data || []);
+        const data = res.data.data || [];
+        setFollowedStatuses(data);
+        
+        // Aggressive background preloading for instant zero-latency viewing
+        data.forEach(s => {
+          if (s.type === 'image' && s.content_url) {
+            const img = new Image();
+            img.src = s.content_url;
+          }
+        });
       }
     } catch (e) { 
       console.error('[Hub] Failed to fetch statuses:', e); 
@@ -370,7 +379,10 @@ export default function DiscoveryHub() {
                 followedStatuses={followedStatuses} 
                 onOpenStatus={(vendorId) => {
                   const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
-                  if (items.length > 0) setViewingStatuses(items);
+                  if (items.length > 0) {
+                    const others = followedStatuses.filter(s => s.vendor_id?._id !== vendorId);
+                    setViewingStatuses([...items, ...others]);
+                  }
                 }}
               />
             </div>
