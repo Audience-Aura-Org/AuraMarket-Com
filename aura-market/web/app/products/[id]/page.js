@@ -204,6 +204,14 @@ export default function ProductDetailsPage() {
           {/* Desktop Sidebar Thumbnails */}
           <div className="hidden md:flex flex-col gap-4 order-1 shrink-0 w-20">
             {images.map((img, i) => (
+              <button 
+                key={i} 
+                onClick={() => setActiveImg(i)}
+                className={`aspect-square rounded-2xl overflow-hidden bg-white shadow-sm border border-black/5 transition-all duration-500 scale-100 hover:scale-[1.03] ${activeImg === i ? 'ring-2 ring-black bg-white ring-offset-2 opacity-100' : 'opacity-20 hover:opacity-100'}`}
+              >
+                <img src={img.url || img} className="w-full h-full object-contain p-3" alt="" />
+              </button>
+            ))}
           </div>
         </div>
 
