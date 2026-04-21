@@ -1,13 +1,16 @@
 "use client";
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Flame } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 
 /**
  * StatusRow
- * Horizontal scrollable row of vendor avatars with status rings.
- * Shows 'Followed Only' logic in Discovery.
+ * Premium horizontal story bubble row — Instagram-meets-Aura aesthetic.
+ * Gradient rings for unseen, greyscale for seen, vendor avatar with store name.
  */
-export default function StatusRow({ statuses, onSelect, onAdd, isVendor }) {
+export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) {
+  const scrollRef = useRef(null);
+
   // Group statuses by vendor
   const vendorMap = statuses.reduce((acc, status) => {
     const vId = status.vendor_id?._id;
@@ -20,66 +23,102 @@ export default function StatusRow({ statuses, onSelect, onAdd, isVendor }) {
   const vendors = Object.values(vendorMap);
 
   return (
-    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-4 px-2">
-      {/* Add Status for Vendor */}
+    <div
+      ref={scrollRef}
+      className="flex items-end gap-4 overflow-x-auto no-scrollbar py-4 px-4"
+      style={{ scrollSnapType: 'x mandatory' }}
+    >
+      {/* Add Status CTA for Vendors */}
       {isVendor && (
-        <button 
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           onClick={onAdd}
-          className="flex flex-col items-center gap-1.5 shrink-0 group"
+          className="flex flex-col items-center gap-2 shrink-0 group"
+          style={{ scrollSnapAlign: 'start' }}
         >
-          <div className="size-16 md:size-20 rounded-full border-2 border-dashed border-[var(--glass-border)] flex items-center justify-center group-hover:border-[var(--accent)] transition-all bg-[var(--bg-primary)] shadow-sm">
-            <Plus className="size-6 text-[var(--text-secondary)] group-hover:text-[var(--accent)]" />
-          </div>
-          <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-tighter">My Status</span>
-        </button>
-      )}
-
-      {vendors.map(({ vendor, items }) => {
-        const logoUrl = vendor.user_id?.branding?.logo || vendor.user_id?.avatar;
-        const hasUnviewed = items.some(s => !s.isViewed);
-
-        return (
-          <button 
-            key={vendor._id}
-            onClick={() => onSelect(items)}
-            className="flex flex-col items-center gap-1.5 shrink-0"
-          >
-            <div className={`size-16 md:size-20 rounded-full p-1 border-2 transition-all shadow-md ${hasUnviewed ? 'border-[var(--accent)] animate-pulse' : 'border-[var(--glass-border)] opacity-60'}`}>
-              <div className="w-full h-full rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                {logoUrl ? (
-                  <img src={logoUrl} alt={vendor.store_name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-lg font-black text-[var(--accent)] bg-[var(--bg-secondary)]">
-                    {vendor.store_name?.[0]}
-                  </div>
-                )}
+          {/* Ring with add icon */}
+          <div className="relative">
+            <div className="size-[60px] md:size-[68px] rounded-full p-[2.5px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-lg shadow-[var(--accent)]/25 group-hover:shadow-[var(--accent)]/50 transition-all duration-300">
+              <div className="w-full h-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center">
+                <Plus className="size-5 md:size-6 text-[var(--accent)] group-hover:rotate-90 transition-transform duration-300" />
               </div>
             </div>
-            <span className="text-[10px] font-bold text-[var(--text-primary)] truncate w-16 text-center tracking-tight">
-              {vendor.store_name}
+            <div className="absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] flex items-center justify-center shadow-md">
+              <Sparkles className="size-2.5 text-white" />
+            </div>
+          </div>
+          <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">Add Story</span>
+        </motion.button>
+      )}
+
+      {/* Vendor Status Bubbles */}
+      {vendors.map(({ vendor, items }, i) => {
+        const logoUrl = vendor.user_id?.branding?.logo || vendor.user_id?.avatar;
+        const hasUnviewed = items.some(s => !s.isViewed);
+        const storeName = vendor.store_name || 'Store';
+
+        return (
+          <motion.button
+            key={vendor._id}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20, delay: i * 0.04 }}
+            onClick={() => onSelect(items)}
+            className="flex flex-col items-center gap-2 shrink-0 group"
+            style={{ scrollSnapAlign: 'start' }}
+          >
+            <div className="relative">
+              {/* Gradient ring for unseen / grey for seen */}
+              <div className={`size-[60px] md:size-[68px] rounded-full p-[2.5px] transition-all duration-300 ${
+                hasUnviewed
+                  ? 'bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-400 shadow-md shadow-[var(--accent)]/30 group-hover:shadow-[var(--accent)]/60'
+                  : 'bg-[var(--glass-border)] opacity-50 group-hover:opacity-70'
+              }`}>
+                <div className="w-full h-full rounded-full overflow-hidden border-2 border-[var(--bg-primary)]">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={storeName}
+                      className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-110 ${
+                        !hasUnviewed ? 'grayscale' : ''
+                      }`}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-base font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">
+                      {storeName[0]?.toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Unviewed dot */}
+              {hasUnviewed && (
+                <div className="absolute top-0 right-0 size-3.5 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] shadow-sm" />
+              )}
+            </div>
+            <span className="text-[9px] font-black text-[var(--text-primary)] truncate w-14 md:w-16 text-center tracking-tight group-hover:text-[var(--accent)] transition-colors">
+              {storeName.length > 9 ? storeName.slice(0, 8) + '…' : storeName}
             </span>
-          </button>
+          </motion.button>
         );
       })}
 
+      {/* Empty state */}
       {vendors.length === 0 && !isVendor && (
-        <div 
-          onClick={() => {
-            const buttons = document.querySelectorAll('button');
-            buttons.forEach(btn => {
-              if (btn.innerText.toUpperCase().includes('STATUS')) btn.click();
-            });
-          }}
-          className="flex-1 min-w-[280px] h-16 md:h-20 rounded-2xl bg-gradient-to-r from-[var(--accent)]/10 to-transparent border border-[var(--accent)]/20 flex items-center gap-4 px-5 cursor-pointer hover:bg-[var(--accent)]/15 transition-all group shrink-0"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-gradient-to-r from-[var(--accent)]/10 to-purple-500/5 border border-[var(--accent)]/20 shrink-0 min-w-[220px] cursor-default"
         >
-          <div className="size-10 md:size-12 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-lg shadow-[var(--accent)]/20 group-hover:scale-110 transition-transform">
-            <Flame className="size-5 md:size-6 text-white" />
+          <div className="size-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-600 flex items-center justify-center shadow-md shadow-[var(--accent)]/30 shrink-0">
+            <Sparkles className="size-5 text-white" />
           </div>
           <div className="text-left">
-            <p className="text-[11px] font-black text-[var(--text-primary)] uppercase tracking-tight">Explore Trending stories 🔥</p>
-            <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-widest opacity-60">Tap to synchronize nodes</p>
+            <p className="text-[10px] font-black text-[var(--text-primary)] tracking-tight">Follow vendors to see their stories</p>
+            <p className="text-[9px] font-bold text-[var(--accent)] opacity-70 tracking-widest uppercase mt-0.5">Explore the Status tab</p>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

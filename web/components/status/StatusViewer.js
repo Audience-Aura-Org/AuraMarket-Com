@@ -1,115 +1,181 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, Heart, ShoppingBag, MessageCircle, 
-  ChevronLeft, ChevronRight, Play, Pause, 
-  Flame 
+import {
+  X, Heart, ShoppingBag, MessageCircle,
+  ChevronLeft, ChevronRight, Volume2, VolumeX,
+  Eye, Flame
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import api from '@/services/api';
 
+const STORY_DURATION = 5000; // ms for image/text
+const TICK = 50; // ms per progress tick
+
+/**
+ * StatusViewer
+ * Full-screen cinematic story viewer.
+ * - Preloads adjacent images for instant transitions
+ * - Swipe & keyboard navigation
+ * - Tap-left / tap-right zones  (WhatsApp style)
+ * - Hold-to-pause
+ */
 export default function StatusViewer({ initialStatuses, onClose }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isLiked, setIsLiked] = useState(false);
-  const videoRef = useRef(null);
+  const router = useRouter();
   const { openChat } = useChat();
 
-  const currentStatus = initialStatuses[currentIndex];
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [direction, setDirection] = useState(1); // 1=forward, -1=backward
+
+  const videoRef = useRef(null);
+  const timerRef = useRef(null);
+  const touchStartX = useRef(null);
+
+  const current = initialStatuses[currentIndex];
   const total = initialStatuses.length;
-  const duration = currentStatus?.type === 'video' ? 30000 : 5000; // default 5s for image
+  const isVideo = current?.type === 'video';
+  const duration = isVideo ? (videoRef.current?.duration * 1000 || 30000) : STORY_DURATION;
 
-  // View state tracking
+  // ── Preload next image ──────────────────────────────────────
   useEffect(() => {
-    if (currentStatus) {
-      api.post(`/statuses/${currentStatus._id}/view`).catch(console.error);
-      setIsLiked(currentStatus.isLiked || false);
+    const next = initialStatuses[currentIndex + 1];
+    if (next?.content_url && next.type === 'image') {
+      const img = new Image();
+      img.src = next.content_url;
     }
-  }, [currentStatus]);
+  }, [currentIndex, initialStatuses]);
 
-  // Timer loop
+  // ── Track view ──────────────────────────────────────────────
   useEffect(() => {
-    if (!isPlaying) return;
-    
-    const interval = 100;
-    const step = (interval / duration) * 100;
+    if (current) {
+      api.post(`/statuses/${current._id}/view`).catch(() => {});
+      setIsLiked(current.isLiked || false);
+      setProgress(0);
+    }
+  }, [currentIndex]);
 
-    const timer = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) return 100;
-        return prev + step;
+  // ── Progress timer ──────────────────────────────────────────
+  useEffect(() => {
+    if (isPaused || isVideo) return;
+    const step = (TICK / duration) * 100;
+    timerRef.current = setInterval(() => {
+      setProgress(p => {
+        if (p + step >= 100) {
+          clearInterval(timerRef.current);
+          return 100;
+        }
+        return p + step;
       });
-    }, interval);
+    }, TICK);
+    return () => clearInterval(timerRef.current);
+  }, [currentIndex, isPaused, isVideo, duration]);
 
-    return () => clearInterval(timer);
-  }, [currentIndex, isPlaying, duration]);
-
-  // Handle completion side-effect safely outside of the setState callback
+  // ── Auto-advance when progress reaches 100 ──────────────────
   useEffect(() => {
-    if (progress >= 100) {
-      handleNext();
-    }
+    if (progress >= 100) goNext();
   }, [progress]);
 
-  const handleNext = () => {
+  // ── Keyboard navigation ─────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [currentIndex, total]);
+
+  const goNext = useCallback(() => {
+    setDirection(1);
     if (currentIndex < total - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex(i => i + 1);
       setProgress(0);
     } else {
       onClose();
     }
-  };
+  }, [currentIndex, total, onClose]);
 
-  const handlePrev = () => {
+  const goPrev = useCallback(() => {
+    setDirection(-1);
     if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex(i => i - 1);
       setProgress(0);
     }
+  }, [currentIndex]);
+
+  // ── Touch swipe ─────────────────────────────────────────────
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      diff > 0 ? goNext() : goPrev();
+    }
+    touchStartX.current = null;
   };
 
   const toggleLike = async () => {
-    try {
-      await api.post(`/statuses/${currentStatus._id}/react`);
-      setIsLiked(!isLiked);
-    } catch (e) { console.error(e); }
+    setIsLiked(l => !l);
+    try { await api.post(`/statuses/${current._id}/react`); } catch {}
   };
 
   const handleChat = () => {
-    const vName = currentStatus.vendor_id?.store_name || 'Vendor';
-    const msg = `Hi, I saw this on your status 👇`;
-    openChat(currentStatus.vendor_id?.user_id?._id, currentStatus.linked_product, { 
+    const vName = current.vendor_id?.store_name || 'Vendor';
+    openChat(current.vendor_id?.user_id?._id, current.linked_product, {
       store_name: vName,
-      initialMessage: msg 
+      initialMessage: `Hi, I saw this on your story 👇`
     });
     onClose();
   };
 
   const handleViewProduct = () => {
-    if (currentStatus.linked_product) {
-      window.location.href = `/products/${currentStatus.linked_product._id || currentStatus.linked_product}`;
-    }
+    const pid = current.linked_product?._id || current.linked_product;
+    if (pid) router.push(`/products/${pid}`);
   };
 
-  if (!currentStatus) return null;
+  if (!current) return null;
+
+  const vendorLogo = current.vendor_id?.user_id?.branding?.logo || current.vendor_id?.user_id?.avatar;
+  const storeName = current.vendor_id?.store_name || '';
+
+  // Slide variants
+  const variants = {
+    enter: (dir) => ({ opacity: 0, x: dir > 0 ? 60 : -60, scale: 0.97 }),
+    center: { opacity: 1, x: 0, scale: 1 },
+    exit: (dir) => ({ opacity: 0, x: dir > 0 ? -60 : 60, scale: 0.97 }),
+  };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden touch-none"
+      className="fixed inset-0 z-[2000] bg-black flex items-center justify-center"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
-      <div className="relative w-full h-full max-w-lg mx-auto bg-[#080808]">
-        
-        {/* Progress Bars */}
-        <div className="absolute top-4 inset-x-4 z-50 flex gap-1">
+      {/* ── Outer dim background ── */}
+      <div className="absolute inset-0 bg-black/90" onClick={onClose} />
+
+      {/* ── Story card ── */}
+      <div className="relative w-full h-full max-w-[420px] mx-auto flex flex-col overflow-hidden select-none">
+
+        {/* Progress bars */}
+        <div className="absolute top-3 inset-x-3 z-50 flex gap-1">
           {initialStatuses.map((_, i) => (
-            <div key={i} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-white transition-all duration-100 ease-linear"
-                style={{ width: `${i < currentIndex ? 100 : i === currentIndex ? progress : 0}%` }}
+            <div key={i} className="h-[3px] flex-1 rounded-full overflow-hidden bg-white/25">
+              <motion.div
+                className="h-full bg-white rounded-full"
+                style={{
+                  width: `${i < currentIndex ? 100 : i === currentIndex ? progress : 0}%`,
+                  transition: i === currentIndex ? `width ${TICK}ms linear` : 'none',
+                }}
               />
             </div>
           ))}
@@ -117,111 +183,196 @@ export default function StatusViewer({ initialStatuses, onClose }) {
 
         {/* Header */}
         <div className="absolute top-8 inset-x-4 z-50 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full border-2 border-white/20 overflow-hidden bg-black/40">
-              <img src={currentStatus.vendor_id?.user_id?.avatar || currentStatus.vendor_id?.user_id?.branding?.logo} alt="" className="size-full object-cover" />
+          <div className="flex items-center gap-2.5">
+            <div className="size-9 rounded-full overflow-hidden border-2 border-white/30 shadow-md bg-black/40">
+              {vendorLogo
+                ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
+                : <div className="size-full flex items-center justify-center text-xs font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">{storeName[0]}</div>
+              }
             </div>
             <div>
-              <p className="text-sm font-black text-white uppercase tracking-tighter">{currentStatus.vendor_id?.store_name}</p>
-              <p className="text-[10px] text-white/60 font-bold uppercase tracking-widest">Aura Verified Node</p>
+              <p className="text-[13px] font-black text-white leading-tight tracking-tight drop-shadow">{storeName}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">Aura Verified</span>
+              </div>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-white/80 hover:text-white transition-all">
-            <X className="size-6" />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Mute for video */}
+            {isVideo && (
+              <button
+                onClick={() => {
+                  setMuted(m => !m);
+                  if (videoRef.current) videoRef.current.muted = !muted;
+                }}
+                className="size-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all"
+              >
+                {muted ? <VolumeX className="size-4 text-white" /> : <Volume2 className="size-4 text-white" />}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="size-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all"
+            >
+              <X className="size-4 text-white" />
+            </button>
+          </div>
         </div>
 
-        {/* Content */}
-        <div 
-          className="w-full h-full flex items-center justify-center"
-          onMouseDown={() => setIsPlaying(false)}
-          onMouseUp={() => setIsPlaying(true)}
-          onTouchStart={() => setIsPlaying(false)}
-          onTouchEnd={() => setIsPlaying(true)}
-        >
-          {currentStatus.type === 'video' ? (
-            <video 
-              ref={videoRef}
-              src={currentStatus.content_url}
-              autoPlay 
-              playsInline
-              className="w-full h-full object-contain"
-              onEnded={handleNext}
-            />
-          ) : currentStatus.type === 'image' ? (
-            <img 
-              src={currentStatus.content_url} 
-              alt="" 
-              className="w-full h-full object-contain"
-            />
-          ) : (
-             <div className="p-12 text-center text-2xl font-black italic uppercase text-white bg-gradient-to-br from-[var(--accent)] to-[#111] size-full flex items-center justify-center">
-               {currentStatus.text_content}
-             </div>
+        {/* ── Content ── */}
+        <AnimatePresence custom={direction} mode="wait">
+          <motion.div
+            key={currentIndex}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="absolute inset-0 z-10"
+            onMouseDown={() => setIsPaused(true)}
+            onMouseUp={() => setIsPaused(false)}
+            onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+          >
+            {current.type === 'video' ? (
+              <video
+                ref={videoRef}
+                src={current.content_url}
+                autoPlay
+                playsInline
+                muted={muted}
+                className="w-full h-full object-cover"
+                onEnded={goNext}
+                onTimeUpdate={(e) => {
+                  const ratio = (e.currentTarget.currentTime / (e.currentTarget.duration || 1)) * 100;
+                  setProgress(ratio);
+                }}
+              />
+            ) : current.type === 'image' ? (
+              <img
+                src={current.content_url}
+                alt=""
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : (
+              // Text status — premium glassmorphism gradient card
+              <div
+                className="w-full h-full flex items-center justify-center p-10 text-center"
+                style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%)' }}
+              >
+                {/* Ambient glow */}
+                <div className="absolute inset-0 opacity-40">
+                  <div className="absolute top-1/3 left-1/2 -translate-x-1/2 size-64 rounded-full bg-[var(--accent)] blur-[100px]" />
+                </div>
+                <p className="relative z-10 text-3xl font-black italic text-white leading-snug tracking-tight"
+                   style={{ textShadow: '0 0 40px rgba(var(--accent-rgb), 0.5)' }}>
+                  {current.text_content}
+                </p>
+              </div>
+            )}
+
+            {/* Dark gradient overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* ── Tap navigation zones (on top of content, below controls) ── */}
+        <div className="absolute inset-x-0 top-20 bottom-32 z-30 flex pointer-events-auto">
+          <div className="flex-1 cursor-pointer" onClick={goPrev} />
+          <div className="w-8" /> {/* center dead zone */}
+          <div className="flex-1 cursor-pointer" onClick={goNext} />
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="absolute bottom-0 inset-x-0 z-40 px-5 pb-10 pt-24 bg-gradient-to-t from-black via-black/70 to-transparent">
+
+          {/* Caption */}
+          {current.caption && (
+            <motion.p
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="text-sm text-white/90 font-medium mb-5 leading-relaxed line-clamp-3 bg-white/5 backdrop-blur-sm px-4 py-3 rounded-2xl border border-white/10"
+            >
+              {current.caption}
+            </motion.p>
           )}
 
-          {/* Navigation Overlay */}
-          <div className="absolute inset-x-0 inset-y-20 flex">
-            <div className="flex-1 cursor-pointer" onClick={handlePrev} />
-            <div className="flex-1 cursor-pointer" onClick={handleNext} />
+          {/* Actions */}
+          <div className="flex items-center gap-2.5">
+            {/* Like */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={toggleLike}
+              className={`flex items-center justify-center gap-2 h-12 px-5 rounded-2xl border font-black text-[11px] uppercase tracking-widest transition-all duration-200 ${
+                isLiked
+                  ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/30'
+                  : 'bg-white/10 border-white/15 text-white hover:bg-white/20 backdrop-blur-sm'
+              }`}
+            >
+              <Heart className={`size-4 transition-transform ${isLiked ? 'fill-current scale-110' : ''}`} />
+              <span>{isLiked ? 'Liked' : 'Like'}</span>
+            </motion.button>
+
+            {/* View Product */}
+            {current.linked_product && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleViewProduct}
+                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-purple-600 text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-[var(--accent)]/30 active:opacity-90 transition-all"
+              >
+                <ShoppingBag className="size-4" />
+                <span>View Product</span>
+              </motion.button>
+            )}
+
+            {/* Chat */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={handleChat}
+              className={`flex items-center justify-center gap-2 h-12 rounded-2xl bg-white/10 border border-white/15 text-white hover:bg-white/20 backdrop-blur-sm font-black text-[11px] uppercase tracking-widest transition-all ${
+                current.linked_product ? 'px-3.5' : 'flex-1'
+              }`}
+            >
+              <MessageCircle className="size-4" />
+              {!current.linked_product && <span>Chat</span>}
+            </motion.button>
+          </div>
+
+          {/* Meta row */}
+          <div className="flex items-center justify-between mt-4 px-1">
+            <div className="flex items-center gap-2 text-white/40">
+              <Eye className="size-3.5" />
+              <span className="text-[9px] font-bold uppercase tracking-widest">{current.views_count || 0} views</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Flame className="size-3.5 text-orange-400" />
+              <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
+                {currentIndex + 1} / {total}
+              </span>
+            </div>
           </div>
         </div>
-
-        {/* Interaction Footer */}
-        <div className="absolute bottom-0 inset-x-0 p-6 pb-12 bg-gradient-to-t from-black via-black/60 to-transparent z-50">
-          
-          {currentStatus.caption && (
-            <p className="text-sm text-white font-medium mb-6 line-clamp-3 bg-black/20 backdrop-blur-md p-3 rounded-2xl border border-white/5 shadow-2xl">
-              {currentStatus.caption}
-            </p>
-          )}
-
-          <div className="flex items-center gap-3">
-             <button 
-                onClick={toggleLike}
-                className={`flex-1 h-14 rounded-2xl border flex items-center justify-center gap-2 transition-all ${isLiked ? 'bg-red-500 border-red-500 text-white' : 'bg-white/10 border-white/10 text-white hover:bg-white/20'}`}
-             >
-                <Heart className={`size-5 ${isLiked ? 'fill-current' : ''}`} />
-                <span className="text-[10px] font-black uppercase tracking-widest">{isLiked ? 'Liked' : 'React'}</span>
-             </button>
-
-             {currentStatus.linked_product && (
-               <button 
-                  onClick={handleViewProduct}
-                  className="flex-[2] h-14 rounded-2xl bg-[var(--accent)] border border-[var(--accent)] text-white flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/30 active:scale-95 transition-all group"
-               >
-                  <ShoppingBag className="size-5 group-hover:scale-110 transition-transform" />
-                  <span className="text-[11px] font-black uppercase tracking-widest">View Product</span>
-               </button>
-             )}
-
-             <button 
-                onClick={handleChat}
-                className={`h-14 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all ${currentStatus.linked_product ? 'flex-1' : 'flex-[3]'}`}
-             >
-                <MessageCircle className={`size-6 ${currentStatus.linked_product ? '' : 'mr-2'}`} />
-                {!currentStatus.linked_product && <span className="text-[10px] font-black uppercase tracking-widest">Chat with Vendor</span>}
-             </button>
-          </div>
-
-          <div className="mt-6 flex items-center justify-between px-2">
-             <div className="flex items-center gap-2">
-                <Flame className="size-4 text-[var(--accent)] animate-pulse" />
-                <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Trending Now</span>
-             </div>
-             <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">{currentIndex + 1} / {total}</p>
-          </div>
-        </div>
       </div>
 
-      {/* Nav Controls (Desktop Only) */}
-      <div className="hidden lg:flex fixed left-12 top-1/2 -translate-y-1/2 flex-col gap-4">
-         <button onClick={handlePrev} className="size-12 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-all"><ChevronLeft /></button>
-      </div>
-      <div className="hidden lg:flex fixed right-12 top-1/2 -translate-y-1/2 flex-col gap-4">
-         <button onClick={handleNext} className="size-12 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-all"><ChevronRight /></button>
-      </div>
-
+      {/* ── Desktop chevron controls ── */}
+      <button
+        onClick={goPrev}
+        className="hidden lg:flex absolute left-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-50 disabled:opacity-30"
+        disabled={currentIndex === 0}
+      >
+        <ChevronLeft className="size-6" />
+      </button>
+      <button
+        onClick={goNext}
+        className="hidden lg:flex absolute right-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-50"
+      >
+        <ChevronRight className="size-6" />
+      </button>
     </motion.div>
   );
 }

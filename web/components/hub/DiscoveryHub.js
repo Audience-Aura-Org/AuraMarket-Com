@@ -271,7 +271,7 @@ const DiscoveryContent = memo(({ user }) => {
       </div>
 
       {/* ── CONTENT AREA ── */}
-      <div className="flex-1 px-4 py-6 pb-40">
+      <div className="flex-1 px-4 py-6">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
              {[...Array(12)].map((_, i) => <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-white/5" />)}
@@ -345,7 +345,7 @@ export default function DiscoveryHub() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-secondary)] flex flex-col pb-32">
+    <div className="relative h-screen bg-[var(--bg-secondary)] flex flex-col overflow-hidden">
       <AuraAssistant user={user} />
 
       <div className="flex-1 relative overflow-hidden">
@@ -402,7 +402,7 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </div>
 
-      <nav className="fixed bottom-[72px] md:bottom-10 left-1/2 -translate-x-1/2 z-[999] w-full md:w-[92%] max-w-4xl bg-[#080808]/95 backdrop-blur-xl border border-white/10 md:rounded-2xl shadow-2xl overflow-hidden">
+      <nav className="relative z-50 w-full flex-shrink-0 bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden">
         <div className="flex items-center h-[60px]">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;
