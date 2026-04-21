@@ -42,6 +42,9 @@ exports.getActiveStatuses = async (req, res) => {
 
     // Followed-only mode: scope to followed vendors
     if (mode === 'followed') {
+      if (!req.user) {
+        return res.status(200).json({ success: true, count: 0, data: [] });
+      }
       const followed = await Follow.find({ user_id: req.user.id }).select('vendor_id').lean();
       query.vendor_id = { $in: followed.map(f => f.vendor_id) };
     }
@@ -112,11 +115,12 @@ exports.reactToStatus = async (req, res) => {
 // @access  Private
 exports.viewStatus = async (req, res) => {
   try {
-    // Single atomic update — no need to fetch first
-    await Status.updateOne(
-      { _id: req.params.id },
-      { $inc: { views_count: 1 }, $addToSet: { viewer_ids: req.user.id } }
-    );
+    const update = { $inc: { views_count: 1 } };
+    if (req.user) {
+      update.$addToSet = { viewer_ids: req.user.id };
+    }
+    
+    await Status.updateOne({ _id: req.params.id }, update);
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

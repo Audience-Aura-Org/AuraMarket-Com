@@ -10,10 +10,12 @@ const {
   deleteStatus
 } = require('../controllers/status.controller');
 
-router.use(protect); // Protect all status routes
+router.get('/', getActiveStatuses);
+router.post('/:id/view', viewStatus);
+
+router.use(protect); // Protect all write/private status routes
 
 router.route('/')
-  .get(getActiveStatuses)
   .post(createStatus);
 
 router.get('/my-statuses', getMyStatuses);
@@ -22,6 +24,5 @@ router.route('/:id')
   .delete(deleteStatus);
 
 router.post('/:id/react', reactToStatus);
-router.post('/:id/view', viewStatus);
 
 module.exports = router;
