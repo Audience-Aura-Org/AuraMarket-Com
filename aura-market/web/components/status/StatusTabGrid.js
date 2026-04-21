@@ -48,13 +48,21 @@ export default function StatusTabGrid({ onSelectStatus }) {
 
   useEffect(() => { fetchStatuses(); }, [fetchStatuses]);
 
-  const filtered = search.trim()
+  const baseFiltered = search.trim()
     ? statuses.filter(s =>
         s.vendor_id?.store_name?.toLowerCase().includes(search.toLowerCase()) ||
         s.caption?.toLowerCase().includes(search.toLowerCase()) ||
         s.text_content?.toLowerCase().includes(search.toLowerCase())
       )
     : statuses;
+
+  // Filter to prevent grid domination: maximum 2 visual tiles per vendor
+  const vendorCounts = {};
+  const gridStatuses = baseFiltered.filter(s => {
+    const vId = s.vendor_id?._id || 'unknown';
+    vendorCounts[vId] = (vendorCounts[vId] || 0) + 1;
+    return vendorCounts[vId] <= 2;
+  });
 
   return (
     <div className="flex flex-col bg-[var(--bg-secondary)]">
@@ -116,14 +124,19 @@ export default function StatusTabGrid({ onSelectStatus }) {
               <div key={i} className="rounded-2xl bg-[var(--bg-primary)] animate-pulse border border-[var(--glass-border)]/50 aspect-[3/4]" />
             ))}
           </div>
-        ) : filtered.length > 0 ? (
+        ) : gridStatuses.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-            {filtered.map((status, i) => (
+            {gridStatuses.map((status, i) => (
               <StatusCard
                 key={status._id}
                 status={status}
                 featured={i === 0}
-                onClick={() => onSelectStatus([status])}
+                onClick={() => {
+                  const vId = status.vendor_id?._id;
+                  const vendorItems = statuses.filter(s => s.vendor_id?._id === vId);
+                  const otherItems = statuses.filter(s => s.vendor_id?._id !== vId);
+                  onSelectStatus([...vendorItems, ...otherItems]);
+                }}
               />
             ))}
           </div>
