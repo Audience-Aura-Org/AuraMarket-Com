@@ -5,7 +5,7 @@ import {
   ArrowLeft, User, Bell, Shield, Lock, Power, ChevronRight,
   Store, ShieldAlert, Database, BarChart3,
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
-  Truck, LayoutGrid, ShoppingBag,
+  Truck, LayoutGrid, ShoppingBag, Activity,
   Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock
 } from 'lucide-react';
 
@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
+import StatusManager from '@/components/status/StatusManager';
 
 const TABS = [
   { id: 'general', label: 'Profile', icon: User, roles: ['customer', 'vendor', 'admin', 'logistics'] },
@@ -24,8 +25,9 @@ const TABS = [
   { id: 'security', label: 'Security', icon: Shield, roles: ['customer', 'vendor', 'admin', 'logistics'] },
   { id: 'network', label: 'Network', icon: Users, roles: ['customer', 'vendor'] },
   { id: 'audience', label: 'Audience', icon: Heart, roles: ['vendor'] },
-  { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },
-  { id: 'fleet', label: 'Fleet', icon: Truck, roles: ['logistics'] },
+   { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },
+   { id: 'statuses', label: 'Stories', icon: Activity, roles: ['vendor', 'admin'] },
+   { id: 'fleet', label: 'Fleet', icon: Truck, roles: ['logistics'] },
   { id: 'governance', label: 'Governance', icon: ShieldAlert, roles: ['admin'] },
   { id: 'kyc', label: 'Verification', icon: Shield, roles: ['customer', 'vendor'] },
   { id: 'notifications', label: 'Alerts', icon: Bell, roles: ['customer', 'vendor', 'admin', 'logistics'] },
@@ -1020,6 +1022,16 @@ export default function AccountPageClient() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Propagation</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
+                  <StatusManager />
                 </div>
               )}
 

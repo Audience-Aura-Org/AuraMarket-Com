@@ -8,6 +8,9 @@ import ProductCard from '@/components/ProductCard';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useChat } from '@/context/ChatContext';
+import dynamic from 'next/dynamic';
+
+const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'), { ssr: false });
 
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -25,6 +28,7 @@ export default function StorePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('Signal Intake');
+  const [showStatusCreator, setShowStatusCreator] = useState(false);
 
   const vendor = store?.vendor_id;
   const isFollowing = vendor ? followedVendorIds.includes(vendor._id?.toString() || id) : false;
@@ -203,6 +207,14 @@ export default function StorePage() {
                     </>
                   ) : '+ Follow'}
                 </button>
+                {user?._id === store.vendor_id?.user_id?._id && (
+                   <button 
+                    onClick={() => setShowStatusCreator(true)}
+                    className="h-10 md:h-11 px-6 rounded-xl bg-[var(--accent)] text-white font-black text-[9px] tracking-widest uppercase hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20 flex-1 md:flex-none flex items-center justify-center gap-2"
+                   >
+                     <Activity className="size-3.5" /> Add Story
+                   </button>
+                )}
                 <button 
                   onClick={() => openChat(store.vendor_id?.user_id?._id, null, {
                     store_name: store.vendor_id?.store_name,
@@ -216,6 +228,18 @@ export default function StorePage() {
             </div>
           </div>
         </div>
+
+        <AnimatePresence>
+          {showStatusCreator && (
+            <StatusCreator 
+              onClose={() => setShowStatusCreator(false)} 
+              onStatusCreated={() => {
+                setShowStatusCreator(false);
+                toast.success('Story synchronized with node.');
+              }} 
+            />
+          )}
+        </AnimatePresence>
 
         <div className="px-6 lg:px-12">
           <div ref={productsAnchor} className="mt-12 md:mt-16 mb-8 md:mb-12 flex flex-col md:flex-row items-center justify-between gap-6">

@@ -40,10 +40,12 @@ const updateMe = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No valid fields provided.' });
     }
 
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, {
-      returnDocument: 'after',
+    await User.findByIdAndUpdate(req.user._id, { $set: updates }, {
       runValidators: true,
     });
+
+    // Re-fetch clean and lean user to match GET /me perfectly (prevents wiped fields in frontend state)
+    const user = await User.findById(req.user._id).populate('liked_categories').lean();
 
     // Cascading updates for role-specific records
     if (user.role === 'vendor') {

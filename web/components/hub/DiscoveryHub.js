@@ -12,11 +12,16 @@ import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import dynamic from 'next/dynamic';
 
-// ── Lazy-loaded components ──────────────────────────────────────────
-const VendorListPanel = dynamic(() => import('@/components/hub/VendorListPanel'), { ssr: false });
-const AuraAssistant = dynamic(() => import('@/components/onboarding/AuraAssistant'), { ssr: false });
-const ProductCard = dynamic(() => import('@/components/ProductCard'), { ssr: false });
-const Pagination = dynamic(() => import('@/components/common/Pagination'), { ssr: false });
+import ProductCard from '@/components/ProductCard';
+import Pagination from '@/components/common/Pagination';
+import VendorListPanel from '@/components/hub/VendorListPanel';
+import AuraAssistant from '@/components/onboarding/AuraAssistant';
+import StatusRow from '@/components/status/StatusRow';
+import StatusTabGrid from '@/components/status/StatusTabGrid';
+
+// ── Lazy-loaded components (Modals/Hidden Tabs) ────────────────────────
+const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
+const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'), { ssr: false });
 
 // Shared tab data for sub-pages
 const ProfileContent = dynamic(() => import('./HubSubTabs').then(mod => mod.ProfileContent), { ssr: false });
@@ -306,6 +311,22 @@ export default function DiscoveryHub() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('discover');
+  
+  // Status States
+  const [followedStatuses, setFollowedStatuses] = useState([]);
+  const [viewingStatuses, setViewingStatuses] = useState(null);
+  const [showCreator, setShowCreator] = useState(false);
+
+  const fetchFollowedStatuses = async () => {
+    try {
+      const res = await api.get('/statuses', { params: { mode: 'followed' } });
+      if (res.data.success) setFollowedStatuses(res.data.data);
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    if (user) fetchFollowedStatuses();
+  }, [user]);
 
   useEffect(() => {
     if (!user) router.replace('/login');
@@ -328,17 +349,56 @@ export default function DiscoveryHub() {
       <AuraAssistant user={user} />
 
       <div className="flex-1 relative overflow-hidden">
-        <AnimatePresence mode="wait">
-          {activeTab === 'vendors' && <VendorListPanel key="vendors" />}
-          {activeTab === 'discover' && <DiscoveryContent key="discover" user={user} />}
-          {activeTab === 'status' && (
-            <div key="status" className="flex flex-col items-center justify-center h-full min-h-[60vh] p-8 text-center space-y-6">
-              <Activity className="size-12 text-[var(--accent)] mb-4" />
-              <h2 className="text-2xl font-black italic uppercase">Node Synchronized</h2>
-              <p className="text-xs text-[var(--text-secondary)] opacity-40 max-w-xs">Mesh feedback loop is stable. All systems operational.</p>
+        {/* All Tabs Mounted for Instant State Swap */}
+        <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'vendors' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+          <div className="h-full flex flex-col">
+            <StatusRow 
+              statuses={followedStatuses} 
+              onSelect={(items) => setViewingStatuses(items)}
+              onAdd={() => setShowCreator(true)}
+              isVendor={user?.role === 'vendor'}
+            />
+            <div className="flex-1 overflow-hidden">
+                <VendorListPanel 
+                  followedStatuses={followedStatuses} 
+                  onOpenStatus={(vendorId) => {
+                    const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
+                    if (items.length > 0) setViewingStatuses(items);
+                  }}
+                />
             </div>
+          </div>
+        </div>
+
+        <div className={`absolute inset-0 h-full overflow-y-auto transition-opacity duration-300 ${activeTab === 'discover' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+          <DiscoveryContent user={user} isActive={activeTab === 'discover'} />
+        </div>
+
+        <div className={`absolute inset-0 h-full overflow-y-auto transition-opacity duration-300 ${activeTab === 'status' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+          <StatusTabGrid onSelectStatus={(items) => setViewingStatuses(items)} />
+        </div>
+
+        <div className={`absolute inset-0 h-full overflow-y-auto transition-opacity duration-300 ${activeTab === 'profile' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+          <ProfileContent user={user} onSelectTab={handleTabChange} />
+        </div>
+
+        {/* Status Overlays */}
+        <AnimatePresence>
+          {viewingStatuses && (
+            <StatusViewer 
+              initialStatuses={viewingStatuses} 
+              onClose={() => setViewingStatuses(null)} 
+            />
           )}
-          {activeTab === 'profile' && <ProfileContent key="profile" user={user} onSelectTab={handleTabChange} />}
+          {showCreator && (
+            <StatusCreator 
+              onClose={() => setShowCreator(false)}
+              onStatusCreated={(newStatus) => {
+                fetchFollowedStatuses();
+                setShowCreator(false);
+              }}
+            />
+          )}
         </AnimatePresence>
       </div>
 

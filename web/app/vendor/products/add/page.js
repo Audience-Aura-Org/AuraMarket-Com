@@ -23,6 +23,8 @@ export default function AddProductPage() {
     name: '', description: '', price: '', stock: '',
     category: '', featured: false, specifications: '', long_description: ''
   });
+  const [showStoryPrompt, setShowStoryPrompt] = useState(false);
+  const [createdProduct, setCreatedProduct] = useState(null);
 
 
   const handleImageUpload = (e) => {
@@ -58,14 +60,16 @@ export default function AddProductPage() {
       formData.append('tags', JSON.stringify(tags));
       formData.append('type', 'products');
       
-      await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
-      toast.success(`"${form.name}" has been published to your store!`, {
-        duration: 4000,
-        icon: '🚀',
-      });
-
-      router.push('/vendor/products');
+      toast.success(`"${form.name}" has been published!`, { icon: '🚀' });
+      
+      if (res.data.success) {
+        setCreatedProduct(res.data.data);
+        setShowStoryPrompt(true);
+      } else {
+        router.push('/vendor/products');
+      }
     } catch (err) {
       const msg = err?.response?.data?.message || 'Failed to publish product. Please try again.';
       toast.error(msg);
@@ -302,6 +306,55 @@ export default function AddProductPage() {
           </div>
         </div>
       </main>
+
+      {/* Story Prompt Modal */}
+      <AnimatePresence>
+        {showStoryPrompt && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }}
+              className="max-w-md w-full bg-[var(--bg-primary)] rounded-[2.5rem] border border-[var(--glass-border)] p-8 text-center shadow-2xl"
+            >
+              <div className="size-20 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ImageIcon className="size-10 text-[var(--accent)]" />
+              </div>
+              <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Boost Visibility?</h3>
+              <p className="text-sm text-[var(--text-secondary)] mb-8">
+                Your product is live! Vendors who share new products as **Stories** see up to 3x more engagement in the first hour.
+              </p>
+              
+              <div className="space-y-3">
+                <button 
+                  onClick={async () => {
+                    try {
+                      await api.post('/statuses', {
+                        type: 'image',
+                        content_url: createdProduct.images?.[0]?.url || createdProduct.images?.[0],
+                        linked_product: createdProduct._id,
+                        caption: `New Drop: ${createdProduct.name} 🔥`
+                      });
+                      toast.success('Story synchronized!');
+                      router.push('/vendor/products');
+                    } catch (e) {
+                      toast.error('Failed to post story');
+                    }
+                  }}
+                  className="w-full py-4 bg-[var(--accent)] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all"
+                >
+                  Post as Story Now
+                </button>
+                <button 
+                  onClick={() => router.push('/vendor/products')}
+                  className="w-full py-4 text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:text-[var(--text-primary)] transition-colors"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

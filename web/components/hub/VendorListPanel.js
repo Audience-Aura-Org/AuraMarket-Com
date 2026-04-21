@@ -17,7 +17,7 @@ import { useChat } from '@/context/ChatContext';
  * WhatsApp-style vendor list. Each vendor acts like a chat contact.
  * Clicking a vendor slides in a VendorStorefront panel with their products.
  */
-export default function VendorListPanel({ onOpenChat }) {
+export default function VendorListPanel({ onOpenChat, followedStatuses = [], onOpenStatus }) {
   const { user } = useAuthStore();
   const router = useRouter();
   const { openChat } = useChat();
@@ -104,6 +104,8 @@ export default function VendorListPanel({ onOpenChat }) {
               key={vendor._id}
               vendor={vendor}
               index={i}
+              hasStatus={followedStatuses.some(s => (s.vendor_id?._id || s.vendor_id) === vendor._id)}
+              onOpenStatus={() => onOpenStatus(vendor._id)}
               onOpenChat={(vData) => openChat(vendor.user_id?._id, null, vData)}
               onClick={() => router.push(`/stores/${vendor._id}`)}
             />
@@ -116,7 +118,7 @@ export default function VendorListPanel({ onOpenChat }) {
   );
 }
 
-function VendorRow({ vendor, index, onClick, onOpenChat }) {
+function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus }) {
   const logoUrl = vendor.user_id?.branding?.logo || vendor.user_id?.avatar || vendor.logo?.url;
   const isOnline = vendor.isOnline || Math.random() > 0.3; // Simulated or real
   const lastSeen = vendor.lastActive ? new Date(vendor.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2m ago';
@@ -139,15 +141,17 @@ function VendorRow({ vendor, index, onClick, onOpenChat }) {
       className="w-full flex items-center gap-4 px-4 py-4 hover:bg-[var(--accent)]/5 active:bg-[var(--accent)]/10 border-b border-[var(--glass-border)]/20 transition-all text-left group cursor-pointer"
     >
       {/* WhatsApp-style Avatar with status bubble */}
-      <div className="relative shrink-0">
-        <div className="w-14 h-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 border-[var(--glass-border)] group-hover:border-[var(--accent)]/30 transition-all shadow-sm">
-          {logoUrl ? (
-            <img src={logoUrl} alt={vendor.store_name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-xl font-black text-[var(--accent)]">
-              {vendor.store_name?.[0]?.toUpperCase() || 'S'}
-            </div>
-          )}
+      <div className="relative shrink-0" onClick={(e) => { if (hasStatus) { e.stopPropagation(); onOpenStatus(); } }}>
+        <div className={`w-14 h-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 transition-all shadow-sm ${hasStatus ? 'border-[var(--accent)] p-0.5' : 'border-[var(--glass-border)] group-hover:border-[var(--accent)]/30'}`}>
+          <div className="size-full rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+            {logoUrl ? (
+              <img src={logoUrl} alt={vendor.store_name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-xl font-black text-[var(--accent)]">
+                {vendor.store_name?.[0]?.toUpperCase() || 'S'}
+              </div>
+            )}
+          </div>
         </div>
         {isOnline && (
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[var(--bg-primary)] shadow-sm" />

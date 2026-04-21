@@ -128,16 +128,11 @@ api.interceptors.response.use(
         // Silence 401s for guests (it's expected on some routes like /cart)
         if (status !== 401) {
           console.warn(`[API] ${status} Error at ${config.url}: ${message}`);
-        }
-        
-        // Auto-logout on 401 (token expired/invalid) to prevent background 401 loop
-        if (status === 401 && typeof window !== 'undefined') {
-          try {
-            localStorage.removeItem('aura-auth-storage');
-            localStorage.removeItem('aura_token');
-            // We don't force page reload here to avoid infinite loops, 
-            // but the next hook call will see the empty state.
-          } catch (e) { /* ignore */ }
+        } else {
+          // Note: We deliberately DO NOT wipe localStorage here anymore.
+          // Random 401s (e.g. hitting a protected route before Zustand hydrates)
+          // were incorrectly logging users out on refresh.
+          console.warn(`[API] 401 Unauthorized at ${config.url}. Session may be missing or expired.`);
         }
       } else {
         console.warn(`[API Network/Unknown Error] at ${config.url}: ${error.message}`);

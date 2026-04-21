@@ -13,6 +13,7 @@ import { useChat } from '@/context/ChatContext';
 import { useFollow } from '@/hooks/useFollow';
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
+import { toast } from 'react-hot-toast';
 
 /**
  * ProductCard - Elite Nexus Version
@@ -36,10 +37,22 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
-    if (!user) { alert('Please login first'); return; }
+    if (!user) { toast.error('Please login to activate cart'); return; }
     setAddingToCart(true);
     cartStore.addItem(product, 1);
     api.post('/cart', { product_id: productId, quantity: 1 })
+      .then(() => {
+        toast.success(`${name} added to cart`, {
+          icon: '🛒',
+          style: {
+            borderRadius: '16px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          },
+        });
+      })
       .finally(() => setAddingToCart(false));
   };
 
