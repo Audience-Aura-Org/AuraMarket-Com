@@ -136,7 +136,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
   }, [breadcrumb, categoryTree]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col bg-[var(--bg-secondary)] pb-24">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col bg-[var(--bg-secondary)] pb-40">
       
       {/* Sticky Header below replaces the relative stories row */}
 
@@ -365,7 +365,7 @@ export default function DiscoveryHub() {
                 />
               </div>
             )}
-            <div className="flex flex-col pb-24">
+            <div className="flex flex-col pb-40">
               <VendorListPanel 
                 followedStatuses={followedStatuses} 
                 onOpenStatus={(vendorId) => {
@@ -415,7 +415,7 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-[72px] left-0 right-0 z-[100] bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
         <div className="flex items-center h-[60px]">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;
