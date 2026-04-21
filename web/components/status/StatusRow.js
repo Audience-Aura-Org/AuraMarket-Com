@@ -104,22 +104,6 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
         );
       })}
 
-      {/* Empty state */}
-      {vendors.length === 0 && !isVendor && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-gradient-to-r from-[var(--accent)]/10 to-purple-500/5 border border-[var(--accent)]/20 shrink-0 min-w-[220px] cursor-default"
-        >
-          <div className="size-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-600 flex items-center justify-center shadow-md shadow-[var(--accent)]/30 shrink-0">
-            <Sparkles className="size-5 text-white" />
-          </div>
-          <div className="text-left">
-            <p className="text-[10px] font-black text-[var(--text-primary)] tracking-tight">Follow vendors to see their stories</p>
-            <p className="text-[9px] font-bold text-[var(--accent)] opacity-70 tracking-widest uppercase mt-0.5">Explore the Status tab</p>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }

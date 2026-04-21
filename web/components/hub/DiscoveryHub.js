@@ -136,7 +136,7 @@ const DiscoveryContent = memo(({ user }) => {
   }, [breadcrumb, categoryTree]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full overflow-y-auto flex flex-col bg-[var(--bg-secondary)]">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col bg-[var(--bg-secondary)]">
       
       {/* ── STICKY HEADER ── */}
       <div className="sticky top-0 z-40 bg-[var(--bg-primary)] shadow-sm">
@@ -345,40 +345,36 @@ export default function DiscoveryHub() {
   };
 
   return (
-    <div className="relative h-screen bg-[var(--bg-secondary)] flex flex-col overflow-hidden">
+    <div className="relative min-h-screen bg-[var(--bg-secondary)] flex flex-col">
       <AuraAssistant user={user} />
-
-      <div className="flex-1 relative overflow-hidden">
-        {/* All Tabs Mounted for Instant State Swap */}
-        <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'vendors' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-          <div className="h-full flex flex-col">
+      <div className="flex-1">
+        <div className={activeTab === 'vendors' ? 'block' : 'hidden'}>
+          <div className="flex flex-col">
             <StatusRow 
               statuses={followedStatuses} 
               onSelect={(items) => setViewingStatuses(items)}
               onAdd={() => setShowCreator(true)}
               isVendor={user?.role === 'vendor'}
             />
-            <div className="flex-1 overflow-hidden">
-                <VendorListPanel 
-                  followedStatuses={followedStatuses} 
-                  onOpenStatus={(vendorId) => {
-                    const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
-                    if (items.length > 0) setViewingStatuses(items);
-                  }}
-                />
-            </div>
+            <VendorListPanel 
+              followedStatuses={followedStatuses} 
+              onOpenStatus={(vendorId) => {
+                const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
+                if (items.length > 0) setViewingStatuses(items);
+              }}
+            />
           </div>
         </div>
 
-        <div className={`absolute inset-0 h-full overflow-y-auto transition-opacity duration-300 ${activeTab === 'discover' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+        <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
           <DiscoveryContent user={user} isActive={activeTab === 'discover'} />
         </div>
 
-        <div className={`absolute inset-0 h-full overflow-y-auto transition-opacity duration-300 ${activeTab === 'status' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+        <div className={activeTab === 'status' ? 'block' : 'hidden'}>
           <StatusTabGrid onSelectStatus={(items) => setViewingStatuses(items)} />
         </div>
 
-        <div className={`absolute inset-0 h-full overflow-y-auto transition-opacity duration-300 ${activeTab === 'profile' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+        <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
           <ProfileContent user={user} onSelectTab={handleTabChange} />
         </div>
 
@@ -402,7 +398,7 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </div>
 
-      <nav className="relative z-50 w-full flex-shrink-0 bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden">
+      <nav className="z-50 w-full bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden mt-auto">
         <div className="flex items-center h-[60px]">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;

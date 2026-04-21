@@ -57,7 +57,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex flex-col"
+      className="flex flex-col"
     >
       {/* Search */}
       <div className="sticky top-0 z-40 bg-[var(--bg-primary)] px-4 py-3 border-b border-[var(--glass-border)]/50">
@@ -79,7 +79,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
       </div>
 
       {/* Vendor List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="pb-10">
         {loading ? (
           // Skeleton loaders
           [...Array(8)].map((_, i) => (

@@ -38,57 +38,34 @@ exports.getActiveStatuses = async (req, res) => {
   try {
     const { mode = 'global', sort = 'trending', page = 1, limit = 20 } = req.query;
     const now = new Date();
-    let match = { expires_at: { $gt: now } };
+    const query = { expires_at: { $gt: now } };
 
-    // Discovery Mode: Only followed vendors
+    // Followed-only mode: scope to followed vendors
     if (mode === 'followed') {
-      const followed = await Follow.find({ user_id: req.user.id }).select('vendor_id');
-      const vendorIds = followed.map(f => f.vendor_id);
-      match.vendor_id = { $in: vendorIds };
+      const followed = await Follow.find({ user_id: req.user.id }).select('vendor_id').lean();
+      query.vendor_id = { $in: followed.map(f => f.vendor_id) };
     }
 
-    let sortOption = { createdAt: -1 };
-    let aggregation = [{ $match: match }];
-
-    if (mode === 'global') {
-      if (sort === 'trending') {
-        // Decay Score: Likes / (HoursSincePost + 2)
-        aggregation.push({
-          $addFields: {
-            hoursSincePost: {
-              $divide: [{ $subtract: [now, "$createdAt"] }, 3600000]
-            }
-          }
-        });
-        aggregation.push({
-          $addFields: {
-            score: {
-              $divide: ["$likes_count", { $add: ["$hoursSincePost", 2] }]
-            }
-          }
-        });
-        sortOption = { score: -1, createdAt: -1 };
-      } else if (sort === 'new') {
-        sortOption = { createdAt: -1 };
-      } else if (sort === 'popular') {
-        sortOption = { likes_count: -1, createdAt: -1 };
-      }
+    // Sort
+    let sortOption;
+    switch (sort) {
+      case 'new':     sortOption = { createdAt: -1 }; break;
+      case 'popular': sortOption = { likes_count: -1, createdAt: -1 }; break;
+      default:        sortOption = { likes_count: -1, createdAt: -1 }; break; // trending fallback
     }
 
-    aggregation.push({ $sort: sortOption });
-    aggregation.push({ $skip: (Number(page) - 1) * Number(limit) });
-    aggregation.push({ $limit: Number(limit) });
+    const statuses = await Status.find(query)
+      .sort(sortOption)
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name user_id',
+        populate: { path: 'user_id', select: 'avatar branding' }
+      })
+      .lean();
 
-    // Populate vendor info
-    const statuses = await Status.aggregate(aggregation);
-    
-    // We need to hydrate the models to use populate or do it manually
-    const hydrated = await Status.populate(statuses, [
-      { path: 'vendor_id', select: 'store_name user_id' },
-      { path: 'vendor_id', populate: { path: 'user_id', select: 'avatar branding' } }
-    ]);
-
-    res.status(200).json({ success: true, count: hydrated.length, data: hydrated });
+    res.status(200).json({ success: true, count: statuses.length, data: statuses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -135,16 +112,11 @@ exports.reactToStatus = async (req, res) => {
 // @access  Private
 exports.viewStatus = async (req, res) => {
   try {
-    const status = await Status.findById(req.params.id);
-    if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
-
-    // Mark as viewed if not already
-    // Use atomic update to prevent document size explosion and race conditions
-    await Status.findByIdAndUpdate(req.params.id, {
-      $inc: { views_count: 1 },
-      $addToSet: { viewer_ids: req.user.id }
-    });
-
+    // Single atomic update — no need to fetch first
+    await Status.updateOne(
+      { _id: req.params.id },
+      { $inc: { views_count: 1 }, $addToSet: { viewer_ids: req.user.id } }
+    );
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
