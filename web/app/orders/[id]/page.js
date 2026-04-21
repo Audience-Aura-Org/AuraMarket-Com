@@ -19,6 +19,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '@/services/api';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
@@ -47,6 +48,30 @@ export default function OrderDetailPage() {
       toast.error("Failed to load order manifest.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadInvoice = async () => {
+    const toastId = toast.loading('Generating invoice PDF...');
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null;
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/orders/${id}/invoice`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' }
+      });
+      if (!response.ok) throw new Error('Invoice generation failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Invoice downloaded!', { id: toastId });
+    } catch (err) {
+      toast.error('Failed to download invoice.', { id: toastId });
     }
   };
 
@@ -275,32 +300,32 @@ export default function OrderDetailPage() {
                       >
                          <div className="relative size-24 md:size-32 rounded-[2rem] overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-700">
                             <img 
-                              src={(item.product_id?.images?.[0] || item.product_id?.images?.[0]?.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80')} 
+                              src={item.image || item.product_id?.images?.[0]?.url || item.product_id?.images?.[0] || '/placeholder.png'} 
                               className="size-full object-cover" 
-                              alt="" 
+                              alt={item.name || ''} 
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                          </div>
 
                          <div className="flex-1 text-center md:text-left min-w-0 space-y-2">
                             <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-2 md:gap-4 mb-2">
-                               <Link href={`/products/${item.product_id?._id}`} className="inline-block group/link">
+                               <Link href={`/products/${item.product_id?._id || '#'}`} className="inline-block group/link">
                                   <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest opacity-60 flex items-center justify-center md:justify-start gap-2">
                                      <CornerDownRight className="size-3" />
                                      Item Registry
                                   </p>
                                </Link>
-                               {item.product_id?.vendor_id && (
-                                 <Link href={`/stores/${item.product_id.vendor_id?._id || item.product_id.vendor_id}`} className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] w-fit mx-auto md:mx-0">
+                               {(item.product_id?.vendor_id || order.vendor_id) && (
+                                 <Link href={`/stores/${item.product_id?.vendor_id?._id || item.product_id?.vendor_id || order.vendor_id?._id || ''}`} className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] w-fit mx-auto md:mx-0">
                                    <Store className="size-3" />
-                                   {item.product_id.vendor_id?.branding?.store_name || item.product_id.vendor_id?.name || 'Authorized Merchant'}
+                                   {item.product_id?.vendor_id?.branding?.store_name || item.product_id?.vendor_id?.name || order.vendor_id?.store_name || order.vendor_id?.user_id?.name || 'Authorized Merchant'}
                                  </Link>
                                )}
                             </div>
                             
-                            <Link href={`/products/${item.product_id?._id}`} className="group/link">
+                            <Link href={`/products/${item.product_id?._id || '#'}`} className="group/link">
                                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter group-hover/link:text-[var(--accent)] transition-colors truncate">
-                                  {item.product_id?.name || 'Protocol Data Corrupted'}
+                                  {item.name || item.product_id?.name || 'Archived Item'}
                                </h3>
                             </Link>
                             <div className="flex items-center justify-center md:justify-start gap-4">
@@ -455,12 +480,12 @@ export default function OrderDetailPage() {
                  {/* ACTION PANEL */}
                  <div className="grid grid-cols-2 gap-4">
                     <button 
-                      onClick={() => window.print()}
-                      className="p-5 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 hover:bg-[var(--accent)] hover:text-white transition-all group"
-                    >
-                       <Printer className="size-5 opacity-40 group-hover:opacity-100" />
-                       <span className="text-[8px] font-black uppercase tracking-widest">Invoice</span>
-                    </button>
+                       onClick={handleDownloadInvoice}
+                       className="p-5 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 hover:bg-[var(--accent)] hover:text-white transition-all group"
+                     >
+                        <Receipt className="size-5 opacity-40 group-hover:opacity-100" />
+                        <span className="text-[8px] font-black uppercase tracking-widest">Invoice PDF</span>
+                     </button>
                     <button 
                       onClick={() => {
                         if (navigator.share) {

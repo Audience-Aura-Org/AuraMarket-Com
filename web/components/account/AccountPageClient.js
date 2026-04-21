@@ -220,9 +220,23 @@ export default function AccountPageClient() {
     }
   }, []);
 
+  const fetchLogisticsProfile = useCallback(async () => {
+    try {
+      const res = await api.get('/logistics/profile');
+      if (res.data.success) {
+        const firm = res.data.data.firm;
+        // The identity header uses user.branding which we update anyway,
+        // but we fetch to ensure we have the latest corporate data if needed.
+      }
+    } catch (err) {
+      console.error("Failed to fetch logistics profile", err);
+    }
+  }, []);
+
   useEffect(() => {
     if (user?.role === 'vendor') fetchVendorProfile();
-  }, [user, fetchVendorProfile]);
+    if (user?.role === 'logistics') fetchLogisticsProfile();
+  }, [user, fetchVendorProfile, fetchLogisticsProfile]);
 
   const handleUpdateStore = async () => {
     setLoading(true);
@@ -243,12 +257,15 @@ export default function AccountPageClient() {
     }
   };
 
-  const handleUpdateBranding = async () => {
+  const handleUpdateBranding = async (overrides = {}) => {
     setBrandingStatus('Updating branding...');
     try {
+      const logo = overrides.logo || profileBranding.logo;
+      const banner = overrides.banner || profileBranding.banner;
+
       const brandingPayload = canUseBanner
-        ? { logo: profileBranding.logo, banner: profileBranding.banner }
-        : { logo: profileBranding.logo };
+        ? { logo, banner }
+        : { logo };
       
       const res = await api.patch('/users/me', {
         branding: brandingPayload
@@ -256,8 +273,15 @@ export default function AccountPageClient() {
 
       if (user?.role === 'vendor') {
         await api.patch('/vendors/store', { 
-          logo: profileBranding.logo, 
-          banner: profileBranding.banner 
+          logo, 
+          banner 
+        });
+      }
+
+      if (user?.role === 'logistics') {
+        await api.patch('/logistics/profile', { 
+          logo, 
+          banner 
         });
       }
 
@@ -283,15 +307,18 @@ export default function AccountPageClient() {
 
       const res = await uploadService.uploadSingle(file, uploadType);
       if (res?.success && res?.data?.url) {
+        const url = res.data.url;
         if (field === 'kyc_front') {
-          setKycData((p) => ({ ...p, file_url_front: res.data.url }));
+          setKycData((p) => ({ ...p, file_url_front: url }));
           setBrandingStatus(`ID front uploaded.`);
         } else if (field === 'kyc_back') {
-          setKycData((p) => ({ ...p, file_url_back: res.data.url }));
+          setKycData((p) => ({ ...p, file_url_back: url }));
           setBrandingStatus(`ID back uploaded.`);
         } else {
-          setProfileBranding((p) => ({ ...p, [field]: res.data.url }));
-          setBrandingStatus(`${field} uploaded. Save to apply.`);
+          setProfileBranding((p) => ({ ...p, [field]: url }));
+          setBrandingStatus(`${field} uploaded. Syncing profile...`);
+          // Immediately sync to prevent race conditions with state updates
+          await handleUpdateBranding({ [field]: url });
         }
       } else {
         setBrandingStatus('Upload failed.');
@@ -426,7 +453,7 @@ export default function AccountPageClient() {
                         </div>
                         <label className="absolute bottom-0 right-0 size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-primary)] border-4 border-[var(--bg-primary)] flex items-center justify-center hover:scale-110 hover:text-[var(--accent)] transition-all shadow-xl cursor-pointer z-20">
                           <Camera className="size-4" />
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { handleBrandingFileUpload('logo', e.target.files?.[0]); handleUpdateBranding(); }} />
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
                         </label>
                       </div>
 

@@ -47,9 +47,19 @@ const createProduct = async (req, res, next) => {
     const product = await Product.create(productData);
 
     const { notifyFollowers } = require('../utils/notifier');
+
+    // Notify vendor's followers about the new product
     notifyFollowers(req.app, vendor._id, {
       title: 'New Arrival Alert!',
       message: `${vendor.store_name} has just deployed a new item: ${product.name}`,
+      metadata: { target_id: product._id, link: `/products/${product._id}` }
+    });
+
+    // Notify the vendor themselves with a confirmation
+    await sendNotification(req.app, vendor.user_id, {
+      title: '✅ Product Published',
+      message: `"${product.name}" is now live in your store and visible to buyers.`,
+      type: 'system_alert',
       metadata: { target_id: product._id, link: `/products/${product._id}` }
     });
 
@@ -62,6 +72,7 @@ const createProduct = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // ─────────────────────────────────────────────
 // @route   GET /api/products

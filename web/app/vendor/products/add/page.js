@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import CategoryPicker from '@/components/CategoryPicker';
+import { toast } from 'react-hot-toast';
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -42,6 +43,13 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!form.name.trim()) return toast.error('Product name is required.');
+    if (!form.price || Number(form.price) <= 0) return toast.error('Please enter a valid price.');
+    if (!form.stock && form.stock !== 0) return toast.error('Stock quantity is required.');
+    if (!form.category) return toast.error('Please select a category.');
+    if (images.length === 0) return toast.error('At least one product image is required.');
+
     setLoading(true);
     try {
       const formData = new FormData();
@@ -51,8 +59,16 @@ export default function AddProductPage() {
       formData.append('type', 'products');
       
       await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+      toast.success(`"${form.name}" has been published to your store!`, {
+        duration: 4000,
+        icon: '🚀',
+      });
+
       router.push('/vendor/products');
     } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to publish product. Please try again.';
+      toast.error(msg);
       console.error('Product creation error:', err);
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,30 +14,53 @@ export default function BrandingSuitePage() {
     const [bannerPreview, setBannerPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
 
-    const handleFileChange = async (e, type) => {
+    const handleFileChange = (e, type) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Local preview
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            if (type === 'logo') setLogoPreview(reader.result);
-            else setBannerPreview(reader.result);
-        };
-        reader.readAsDataURL(file);
+        if (type === 'logo') setLogoPreview(file);
+        else setBannerPreview(file);
     };
 
     const handleSave = async () => {
+        if (!logoPreview && !bannerPreview) {
+            toast.error('No changes to synchronize.');
+            return;
+        }
+
         setUploading(true);
-        toast.loading('Synchronizing branding nodes...');
+        const loadingToast = toast.loading('Synchronizing branding nodes...');
         try {
-            // Logic for file upload to server would go here
-            await new Promise(r => setTimeout(r, 1500));
-            toast.dismiss();
-            toast.success('Visual identity synchronized.');
+            const updates = { branding: {} };
+            
+            // 1. Upload files if they are File objects (previews)
+            if (logoPreview instanceof File) {
+                const res = await uploadService.uploadSingle(logoPreview, 'avatars');
+                if (res.success) updates.branding.logo = res.data.url;
+            }
+            if (bannerPreview instanceof File) {
+                const res = await uploadService.uploadSingle(bannerPreview, 'banners');
+                if (res.success) updates.branding.banner = res.data.url;
+            }
+
+            // 2. Save to backend
+            const res = await api.patch('/users/me', updates);
+            
+            if (res.data.success) {
+                toast.dismiss(loadingToast);
+                toast.success('Visual identity synchronized.');
+                // Update local storage if needed or refresh
+                if (typeof window !== 'undefined') {
+                    const user = JSON.parse(localStorage.getItem('aura_market_user') || '{}');
+                    localStorage.setItem('aura_market_user', JSON.stringify({ ...user, ...res.data.data.user }));
+                }
+            } else {
+                throw new Error(res.data.message || 'Sync failed');
+            }
         } catch (err) {
-            toast.dismiss();
-            toast.error('Identity sync failed.');
+            console.error('Branding sync error:', err);
+            toast.dismiss(loadingToast);
+            toast.error(err.response?.data?.message || 'Identity sync failed.');
         } finally {
             setUploading(false);
         }
@@ -87,7 +110,11 @@ export default function BrandingSuitePage() {
                             <div className="flex flex-col sm:flex-row items-center gap-10">
                                 <div className="size-40 rounded-[48px] border-4 border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center overflow-hidden shrink-0 relative shadow-inner group-hover:border-[var(--accent)]/40 transition-all duration-500">
                                     {logoPreview ? (
-                                        <img src={logoPreview} className="size-full object-cover p-2 rounded-[48px]" alt="Logo Preview" />
+                                        <img 
+                                            src={logoPreview instanceof File ? URL.createObjectURL(logoPreview) : logoPreview} 
+                                            className="size-full object-cover p-2 rounded-[48px]" 
+                                            alt="Logo Preview" 
+                                        />
                                     ) : (
                                         <div className="text-center space-y-2 opacity-20 group-hover:opacity-40 transition-opacity">
                                             <CloudUpload className="size-10 mx-auto" />
@@ -143,7 +170,11 @@ export default function BrandingSuitePage() {
                             <div className="relative z-10 flex flex-col h-full">
                                 <div className="aspect-[2/1] w-full rounded-[32px] border-4 border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] mb-8 overflow-hidden group-hover:border-indigo-500/40 transition-all duration-500 shadow-inner">
                                     {bannerPreview ? (
-                                        <img src={bannerPreview} className="size-full object-cover transition-transform duration-1000 group-hover:scale-105" alt="Banner Preview" />
+                                        <img 
+                                            src={bannerPreview instanceof File ? URL.createObjectURL(bannerPreview) : bannerPreview} 
+                                            className="size-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                                            alt="Banner Preview" 
+                                        />
                                     ) : (
                                         <div className="size-full flex flex-col items-center justify-center gap-3 opacity-20 group-hover:opacity-40 transition-opacity">
                                             <Sparkles className="size-10 text-indigo-400" />

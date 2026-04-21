@@ -76,8 +76,21 @@ const getSearchCompatibleFirms = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getFirmShipments = async (req, res, next) => {
   try {
-    const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
-    if (!firm) return res.status(403).json({ success: false, message: 'Unregistered Firm profile.' });
+    let firm = await LogisticsCompany.findOne({ user_id: req.user._id });
+    
+    // Auto-provision stub if missing for a logistics user
+    if (!firm) {
+      firm = await LogisticsCompany.create({
+        user_id: req.user._id,
+        company_name: req.user.name || 'Logistics Partner',
+        contact_email: req.user.email,
+        contact_phone: '000000000',
+        service_regions: [],
+        vehicle_types: ['motorcycle'],
+        is_verified: true // Auto-verify for existing accounts to unblock user
+      });
+      console.log(`📡 Auto-provisioned missing profile for user ${req.user._id} during fetch.`);
+    }
 
     const shipments = await Shipment.find({ logistics_id: firm._id })
       .populate('order_id', 'total_amount products tracking_number createdAt')
@@ -362,6 +375,34 @@ const getProfile = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────
+// @route   PATCH /api/logistics/profile
+// @desc    Update logistics firm name, contact, logo/banner
+// ─────────────────────────────────────────────
+const updateProfile = async (req, res, next) => {
+  try {
+    const { company_name, contact_email, contact_phone, logo, banner } = req.body;
+
+    const firm = await LogisticsCompany.findOneAndUpdate(
+      { user_id: req.user._id },
+      {
+        company_name,
+        contact_email,
+        contact_phone,
+        logo,
+        banner
+      },
+      { returnDocument: 'after', runValidators: true }
+    );
+
+    if (!firm) return res.status(404).json({ success: false, message: 'Logistics profile not found.' });
+
+    res.status(200).json({ success: true, message: 'Logistics profile updated successfully.', data: { firm } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
 // @route   PATCH /api/logistics/pricing
 // @desc    Update route pricing & pickup regions
 // ─────────────────────────────────────────────
@@ -377,7 +418,7 @@ const updatePricing = async (req, res, next) => {
     const firm = await LogisticsCompany.findOneAndUpdate(
       { user_id: req.user._id },
       {
-        quartier_prices: sanitisedPrices,
+        quartier_prices: sanitizedPrices,
         supported_pickup_regions: supported_pickup_regions || []
       },
       { returnDocument: 'after', runValidators: true }
@@ -400,5 +441,6 @@ module.exports = {
   getPublicLogisticsFirms,
   getZones,
   getProfile,
+  updateProfile,
   updatePricing
 };

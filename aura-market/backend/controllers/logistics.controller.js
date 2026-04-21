@@ -76,8 +76,21 @@ const getSearchCompatibleFirms = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getFirmShipments = async (req, res, next) => {
   try {
-    const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
-    if (!firm) return res.status(403).json({ success: false, message: 'Unregistered Firm profile.' });
+    let firm = await LogisticsCompany.findOne({ user_id: req.user._id });
+    
+    // Auto-provision stub if missing for a logistics user
+    if (!firm) {
+      firm = await LogisticsCompany.create({
+        user_id: req.user._id,
+        company_name: req.user.name || 'Logistics Partner',
+        contact_email: req.user.email,
+        contact_phone: '000000000',
+        service_regions: [],
+        vehicle_types: ['motorcycle'],
+        is_verified: true // Auto-verify for existing accounts to unblock user
+      });
+      console.log(`📡 Auto-provisioned missing profile for user ${req.user._id} during fetch.`);
+    }
 
     const shipments = await Shipment.find({ logistics_id: firm._id })
       .populate('order_id', 'total_amount products tracking_number createdAt')

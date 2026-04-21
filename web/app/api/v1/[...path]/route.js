@@ -27,8 +27,14 @@ async function handleRequest(request, params, method) {
   const path = pathParts.path.join('/');
   const searchParams = new URL(request.url).search;
   
-  // Use environment variable for backend URL, fallback to production default
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://13.51.198.119:5000';
+  // Use environment variable for backend URL, fallback to localhost only in dev
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : null);
+  
+  if (!backendUrl) {
+    console.error('[Bridge] CRITICAL: NEXT_PUBLIC_BACKEND_URL is not defined in production environment.');
+    return NextResponse.json({ success: false, message: 'Infrastructure Configuration Error: Backend target undefined.' }, { status: 500 });
+  }
+
   const BACKEND_URL = `${backendUrl}/api/v1/${path}${searchParams}`;
 
   try {

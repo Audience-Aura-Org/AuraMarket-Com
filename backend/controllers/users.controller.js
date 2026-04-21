@@ -18,30 +18,58 @@ const updateMe = async (req, res, next) => {
   try {
     const updates = {};
     if (req.body?.branding && typeof req.body.branding === 'object') {
-      updates.branding = {};
-      if (req.body.branding.logo !== undefined) updates.branding.logo = req.body.branding.logo || null;
-      if (req.body.branding.banner !== undefined) updates.branding.banner = req.body.branding.banner || null;
+      if (req.body.branding.logo !== undefined) {
+        updates['branding.logo'] = req.body.branding.logo || null;
+        // Keep avatar in sync for legacy compatibility
+        updates.avatar = req.body.branding.logo || null;
+      }
+      if (req.body.branding.banner !== undefined) {
+        updates['branding.banner'] = req.body.branding.banner || null;
+      }
     }
     if (req.body?.name !== undefined) updates.name = req.body.name;
     if (req.body?.phone !== undefined) updates.phone = req.body.phone;
-    if (req.body?.avatar !== undefined) updates.avatar = req.body.avatar || null;
+    if (req.body?.avatar !== undefined) {
+        updates.avatar = req.body.avatar || null;
+        // If avatar is explicitly sent, also sync logo
+        if (!updates['branding.logo']) updates['branding.logo'] = req.body.avatar || null;
+    }
     if (req.body?.onboarding_location !== undefined) updates.onboarding_location = req.body.onboarding_location;
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ success: false, message: 'No valid fields provided.' });
     }
 
-    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, {
       returnDocument: 'after',
       runValidators: true,
     });
 
     // Cascading updates for role-specific records
-    if (updates.phone) {
-      if (user.role === 'vendor') {
+    if (user.role === 'vendor') {
+      const Store = require('../models/Store.model');
+      const storeUpdates = {};
+      if (updates['branding.logo'] !== undefined) storeUpdates.logo = updates['branding.logo'];
+      if (updates['branding.banner'] !== undefined) storeUpdates.banner = updates['branding.banner'];
+      
+      if (Object.keys(storeUpdates).length > 0) {
+        await Store.findOneAndUpdate({ vendor_id: (await Vendor.findOne({ user_id: user._id }))?._id }, storeUpdates);
+      }
+      
+      if (updates.phone) {
         await Vendor.findOneAndUpdate({ user_id: user._id }, { phone: updates.phone });
-      } else if (user.role === 'logistics') {
-        const LogisticsCompany = require('../models/LogisticsCompany.model');
+      }
+    } else if (user.role === 'logistics') {
+      const LogisticsCompany = require('../models/LogisticsCompany.model');
+      const firmUpdates = {};
+      if (updates['branding.logo'] !== undefined) firmUpdates.logo = updates['branding.logo'];
+      if (updates['branding.banner'] !== undefined) firmUpdates.banner = updates['branding.banner'];
+      
+      if (Object.keys(firmUpdates).length > 0) {
+        await LogisticsCompany.findOneAndUpdate({ user_id: user._id }, firmUpdates);
+      }
+
+      if (updates.phone) {
         await LogisticsCompany.findOneAndUpdate({ user_id: user._id }, { contact_phone: updates.phone });
       }
     }

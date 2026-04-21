@@ -5,7 +5,9 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { User, Shield, ShieldAlert, Mail, Search, Filter, Loader2, Ban, CheckCircle, MoreVertical, X, Phone, Trash2 } from 'lucide-react';
 import api from '@/services/api';
+import { useAuthStore } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import Pagination from '@/components/common/Pagination';
 
@@ -21,10 +23,44 @@ export default function AdminUsersPage() {
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: '', verification_status: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const { user } = useAuthStore();
+
   useEffect(() => {
     fetchUsers();
     setCurrentPage(1);
+    setSelectedIds([]); // Reset selection on filter change
   }, [roleFilter]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === currentUsers.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(currentUsers.map(u => u._id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to PURGE ${selectedIds.length} selected users? This is IRREVERSIBLE.`)) return;
+    setBulkDeleting(true);
+    try {
+      const res = await api.post('/admin/users/bulk-delete', { ids: selectedIds });
+      if (res.data.success) {
+        toast.success(res.data.message);
+        setUsers(prev => prev.filter(u => !selectedIds.includes(u._id)));
+        setSelectedIds([]);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk purge failed');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -108,7 +144,15 @@ export default function AdminUsersPage() {
     <>
       <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">User <span className="text-[var(--accent)]">Directory</span></h2>
+          <div className="flex items-center gap-3">
+             <button 
+               onClick={toggleSelectAll}
+               className={`size-5 rounded-lg border flex items-center justify-center transition-all ${selectedIds.length === currentUsers.length && currentUsers.length > 0 ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
+             >
+                {selectedIds.length === currentUsers.length && currentUsers.length > 0 && <CheckCircle className="size-3" />}
+             </button>
+             <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">User <span className="text-[var(--accent)]">Directory</span></h2>
+          </div>
           <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)] opacity-30" />
           <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
             <Search className="size-3.5 text-[var(--text-secondary)] opacity-40" />
@@ -137,7 +181,7 @@ export default function AdminUsersPage() {
         </div>
       </header>
 
-      <div className="p-4 lg:p-10 space-y-8 lg:space-y-12 pb-20">
+      <div className="p-4 lg:p-10 space-y-8 lg:space-y-12 pb-32">
         {/* Mobile Search */}
         <div className="md:hidden flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
           <Search className="size-3.5 text-[var(--text-secondary)] opacity-40" />
@@ -158,12 +202,18 @@ export default function AdminUsersPage() {
         ) : (
            <div className="grid grid-cols-1 gap-4 min-h-[600px]">
               {currentUsers.map(u => (
-                <div key={u._id} className="group p-4 lg:p-6 glass-panel border border-[var(--glass-border)] hover:border-[var(--accent)]/30 rounded-[24px] lg:rounded-[32px] bg-[var(--bg-primary)]/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 lg:gap-8 hover:shadow-xl">
+                <div key={u._id} className={`group p-4 lg:p-6 glass-panel border rounded-[24px] lg:rounded-[32px] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 lg:gap-8 hover:shadow-xl ${selectedIds.includes(u._id) ? 'bg-[var(--accent)]/5 border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/50 hover:border-[var(--accent)]/30'}`}>
                   <div className="flex items-center gap-4 lg:gap-6">
+                    <button 
+                      onClick={() => toggleSelect(u._id)}
+                      className={`size-6 lg:size-8 rounded-xl border flex items-center justify-center transition-all ${selectedIds.includes(u._id) ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] opacity-20 group-hover:opacity-100'}`}
+                    >
+                       {selectedIds.includes(u._id) && <CheckCircle className="size-4" />}
+                    </button>
                     <div className="size-12 lg:size-16 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
                       {u.avatar ? <img src={u.avatar} className="size-full object-cover" alt="" /> : <User className="size-6 opacity-20" />}
                     </div>
-                    <div className="space-y-1 min-w-0">
+                    <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
                         <h4 className="text-base lg:text-lg font-black tracking-tight truncate">{u.name}</h4>
                         <span className={`px-2 lg:px-3 py-0.5 lg:py-1 rounded-full text-[7px] lg:text-[8px] font-black uppercase tracking-widest border ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20 shadow-[0_0_10px_#6366f111]' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-[0_0_10px_#f59e0b11]' : 'bg-blue-500/10 text-blue-500 border-blue-500/20 shadow-[0_0_10px_#3b82f611]'}`}>
@@ -172,9 +222,6 @@ export default function AdminUsersPage() {
                       </div>
                       <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 flex items-center gap-2 truncate">
                         <Mail className="size-3 shrink-0" /> {u.email}
-                      </p>
-                      <p className="text-[10px] font-bold text-[var(--accent)] flex items-center gap-2 truncate">
-                        <Phone className="size-3 shrink-0" /> {u.phone || 'NO PHONE ATTACHED'}
                       </p>
                     </div>
                   </div>
@@ -231,6 +278,7 @@ export default function AdminUsersPage() {
                 onPageChange={setCurrentPage} 
               />
 
+
               {filteredUsers.length === 0 && (
                  <div className="py-20 text-center opacity-30">
                     <ShieldAlert className="size-16 mx-auto mb-4" />
@@ -240,6 +288,40 @@ export default function AdminUsersPage() {
            </div>
         )}
       </div>
+      {/* BULK ACTION BAR */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6 px-8 py-4 bg-[var(--bg-primary)]/80 backdrop-blur-2xl border border-[var(--accent)]/30 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] min-w-[320px] justify-between"
+          >
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)]">Selection Active</span>
+              <span className="text-sm font-black">{selectedIds.length} Identity Nodes</span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setSelectedIds([])}
+                className="px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[var(--bg-secondary)] transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="px-6 py-3 rounded-full bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all flex items-center gap-2 shadow-lg shadow-rose-500/20 disabled:opacity-50"
+              >
+                {bulkDeleting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                Purge Selected
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">

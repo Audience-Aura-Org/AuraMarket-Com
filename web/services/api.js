@@ -19,13 +19,22 @@ const getBaseURL = () => {
 
 const api = axios.create({
   baseURL: getBaseURL(),
-  timeout: 10000, // 10s hard cap — prevents hanging requests
+  timeout: 10000, 
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-const API_ORIGIN = getBaseURL().replace(/\/api\/v1\/?$/, '');
+// Correctly derive origin for asset normalization
+const getApiOrigin = () => {
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocal) return window.location.origin;
+  }
+  return getBaseURL().replace(/\/api\/v1\/?$/, '');
+};
+
+const API_ORIGIN = getApiOrigin();
 
 const normalizeAssetUrls = (value) => {
   if (typeof value === 'string') {

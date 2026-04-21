@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -75,8 +75,12 @@ function CheckoutContent() {
     const items = order?.products || cartItems;
     if (!items.length) return;
 
-    const vendorIds = [...new Set(items.map(it => it.vendor_id?._id || it.vendor_id || it.product?.vendor_id).filter(Boolean))];
-    
+    // Extract vendor IDs — handle both order products (vendor on order) and cart items
+    let vendorIds = [...new Set(items.map(it => it.vendor_id?._id || it.vendor_id || it.product?.vendor_id).filter(Boolean))];
+    // For single-vendor orders the vendor is on the order object, not each product
+    if (vendorIds.length === 0 && order?.vendor_id) {
+      vendorIds = [order.vendor_id?._id || order.vendor_id];
+    }
     if (vendorIds.length === 0) return;
 
     setLogisticsLoading(true);
@@ -733,13 +737,13 @@ function CheckoutContent() {
                       <span className="text-xs font-mono">{subtotal.toLocaleString()} XAF</span>
                    </div>
                    
-                   {deliveryFee > 0 && selectedLogistics && (
+                   {compatibleFee > 0 && selectedLogistics && (
                       <div className="space-y-4 pt-4 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
                            <p className="text-[10px] font-black uppercase text-[var(--accent)] tracking-widest flex items-center gap-2">
                              <Truck className="size-3" /> Delivery Fees
                            </p>
-                           <p className="text-[11px] font-mono font-black text-[var(--accent)]">{deliveryFee.toLocaleString()} XAF</p>
+                           <p className="text-[11px] font-mono font-black text-[var(--accent)]">{compatibleFee.toLocaleString()} XAF</p>
                          </div>
                          <div className="space-y-2">
                            {vendorList.map((v, i) => (

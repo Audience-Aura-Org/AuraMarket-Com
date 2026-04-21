@@ -1,7 +1,6 @@
 /**
  * controllers/admin.controller.js
  * Aura Market — Supreme Administrative Commands
- *
  * Exclusively executes tasks reserved for native platform managers.
  * Includes layout mapping, user bans, and broad dispute settlements natively.
  */
@@ -683,16 +682,23 @@ const updateUserAdmin = async (req, res, next) => {
 
     await user.save();
 
-    // Cascading updates: sync associated business profiles so notifications always match the master User email
-    if (emailChanged) {
-      // Use the user's role from the DB (already saved above) — don't rely on req.body.role being present
-      if (user.role === 'logistics') {
-        const logisticsComp = await LogisticsCompany.findOne({ user_id: user._id });
-        if (logisticsComp) {
-          logisticsComp.contact_email = email;
-          await logisticsComp.save();
-          console.log(`✅ Synced LogisticsCompany contact_email → ${email} for user ${user._id}`);
-        }
+    // Cascading business profile synchronization
+    if (user.role === 'logistics') {
+      const existingFirm = await LogisticsCompany.findOne({ user_id: user._id });
+      if (!existingFirm) {
+        await LogisticsCompany.create({
+          user_id: user._id,
+          company_name: user.name || 'New Logistics Partner',
+          contact_email: user.email,
+          contact_phone: '000000000', // Placeholder
+          service_regions: [],
+          vehicle_types: ['motorcycle']
+        });
+        console.log(`📡 Auto-provisioned LogisticsCompany profile for user ${user._id}`);
+      } else if (emailChanged) {
+        existingFirm.contact_email = email;
+        await existingFirm.save();
+        console.log(`✅ Synced LogisticsCompany contact_email → ${email} for user ${user._id}`);
       }
     }
 
@@ -724,6 +730,68 @@ const deleteUser = async (req, res, next) => {
     await User.findByIdAndDelete(id);
 
     res.status(200).json({ success: true, message: 'Account and associated metadata purged.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const bulkDeleteUsers = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No IDs provided for bulk deletion.' });
+    }
+
+    // Safety: prevent self-deletion
+    const filteredIds = ids.filter(id => id.toString() !== req.user._id.toString());
+    if (filteredIds.length === 0) {
+      return res.status(403).json({ success: false, message: 'You cannot delete yourself via bulk operation.' });
+    }
+
+    const usersToDelete = await User.find({ _id: { $in: filteredIds } });
+
+    for (const user of usersToDelete) {
+      // Cascading deletion for business entities (reusing logic from single delete)
+      if (user.role === 'vendor') {
+        const vendor = await Vendor.findOne({ user_id: user._id });
+        if (vendor) {
+          await Product.deleteMany({ vendor_id: vendor._id });
+          try {
+            await require('../models/Store.model').findOneAndDelete({ vendor_id: vendor._id });
+          } catch (e) { /* ignore if no store */ }
+          await Vendor.findByIdAndDelete(vendor._id);
+        }
+      } else if (user.role === 'logistics') {
+        await LogisticsCompany.findOneAndDelete({ user_id: user._id });
+      }
+    }
+
+    await User.deleteMany({ _id: { $in: filteredIds } });
+
+    res.status(200).json({ 
+      success: true, 
+      message: `${filteredIds.length} users and associated metadata purged.`,
+      deletedCount: filteredIds.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const bulkDeleteProducts = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No IDs provided for bulk deletion.' });
+    }
+
+    const result = await Product.deleteMany({ _id: { $in: ids } });
+
+    res.status(200).json({ 
+      success: true, 
+      message: `${result.deletedCount} products purged from the global asset pool.`,
+      deletedCount: result.deletedCount
+    });
   } catch (error) {
     next(error);
   }
@@ -762,4 +830,6 @@ module.exports = {
   getAdvancedAnalytics,
   getEmailLogs,
   deleteUser,
+  bulkDeleteUsers,
+  bulkDeleteProducts,
 };

@@ -36,31 +36,42 @@ const getCompatibleFirms = async (quartier, vendorIds) => {
   const vendors = await Vendor.find({ _id: { $in: vendorIds } });
   const pickupRegions = [...new Set(vendors.map(v => v.pickup_address?.region).filter(Boolean))];
 
-  // 2. Find information about the target zone
+  // 2. Find information about the target zone (case-insensitive)
   const LogisticZone = require('../models/LogisticZone.model');
-  const targetZone = await LogisticZone.findOne({ name: quartier }).populate('parent_id');
+  const targetZone = await LogisticZone.findOne({ name: new RegExp(`^${quartier}$`, 'i') }).populate('parent_id');
   const districtName = targetZone?.parent_id?.name;
 
   // 3. Find firms that:
-  // - Have a price defined for the specific quartier OR its parent district
+  // - Are verified
+  // - Have a price defined for the specific quartier OR its parent district (case-insensitive)
+  const quartierPattern  = new RegExp(`^${quartier}$`, 'i');
+  const districtPattern  = districtName ? new RegExp(`^${districtName}$`, 'i') : null;
+
   const query = {
     is_verified: true,
     $or: [
-      { 'quartier_prices.quartier': quartier }
+      { 'quartier_prices.quartier': quartierPattern }
     ]
   };
 
-  if (districtName) {
-    query.$or.push({ 'quartier_prices.quartier': districtName });
+  if (districtPattern) {
+    query.$or.push({ 'quartier_prices.quartier': districtPattern });
   }
 
+  // Only filter by pickup regions if vendors have them set; don't exclude firms that haven't set this field
   if (pickupRegions.length > 0) {
-    query.supported_pickup_regions = { $all: pickupRegions };
+    query.$or.push({ supported_pickup_regions: { $in: pickupRegions } });
+    query.$or.push({ supported_pickup_regions: { $exists: false } });
+    query.$or.push({ supported_pickup_regions: { $size: 0 } });
   }
 
-  const firms = await LogisticsCompany.find(query).populate('user_id', 'name email avatar branding');
-
-
+  let firms = await LogisticsCompany.find(query).populate('user_id', 'name email avatar branding');
+  
+  // FALLBACK: If no strictly compatible firms found, return all verified firms 
+  // to prevent checkout blockage.
+  if (firms.length === 0) {
+    firms = await LogisticsCompany.find({ is_verified: true }).populate('user_id', 'name email avatar branding');
+  }
 
   return firms;
 };

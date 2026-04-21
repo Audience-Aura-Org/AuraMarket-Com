@@ -76,20 +76,27 @@ const getUserInbox = async (req, res, next) => {
     });
 
     // Format output mapping neatly to hide the complex Object groupings
-    const activeChats = populatedInbox.map((item) => {
-      const msg = item.latestMessage;
-      // Determine the "other user" reliably safely
-      const partner = msg.sender_id._id.toString() === req.user._id.toString()
-        ? msg.receiver_id
-        : msg.sender_id;
+    const activeChats = populatedInbox
+      .filter((item) => {
+        const msg = item.latestMessage;
+        // Skip messages where user documents have been deleted/unpopulated
+        return msg && msg.sender_id && msg.receiver_id;
+      })
+      .map((item) => {
+        const msg = item.latestMessage;
+        // Determine the "other user" reliably safely
+        const senderId = msg.sender_id?._id?.toString() || msg.sender_id?.toString();
+        const partner = senderId === req.user._id.toString()
+          ? msg.receiver_id
+          : msg.sender_id;
 
-      return {
-        partner,
-        snippet: msg.text || (msg.product_reference ? '[Product Shared]' : ''),
-        read_status: msg.read_status,
-        date: msg.createdAt,
-      };
-    });
+        return {
+          partner,
+          snippet: msg.text || (msg.product_reference ? '[Product Shared]' : ''),
+          read_status: msg.read_status,
+          date: msg.createdAt,
+        };
+      });
 
     res.status(200).json({ success: true, count: activeChats.length, data: { activeChats } });
   } catch (error) {
