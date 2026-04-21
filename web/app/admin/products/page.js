@@ -242,6 +242,8 @@ export default function AdminProductsPage() {
               )}
             </div>
           )}
+        </div>
+      </div>
       {/* BULK ACTION BAR */}
       <AnimatePresence>
         {selectedIds.length > 0 && (
