@@ -138,7 +138,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
   };
 
   const partnerName = partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User';
-  const partnerAvatar = partnerInfo?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
+  const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
 
   return (
     <motion.div
@@ -185,9 +185,9 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
         <div className="flex items-center gap-2">
            {activePartnerId ? (
              <>
-                <button className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><Video className="size-5" /></button>
-                <button className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><Phone className="size-5" /></button>
-                <button className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><MoreVertical className="size-5" /></button>
+                <button onClick={() => alert('Secure Video Transmission: Feature Encrypting...')} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><Video className="size-5" /></button>
+                <button onClick={() => alert('Encrypted Voice Pipeline: Feature Pending...')} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><Phone className="size-5" /></button>
+                <button onClick={() => alert('Node Configuration Menu')} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><MoreVertical className="size-5" /></button>
              </>
            ) : (
               <Link href="/chat" onClick={onClose} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100 hover:text-[var(--accent)]">
@@ -199,16 +199,25 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
 
       {/* --- Persistent Product Context Bar --- */}
       {activePartnerId && product && (
-        <div className="px-4 py-2.5 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]/50 flex items-center gap-3 z-20">
-           <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0">
-              <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
+        <div className="px-5 py-3 relative overflow-hidden bg-gradient-to-r from-[var(--bg-primary)] to-[var(--bg-secondary)] border-b border-[var(--glass-border)] z-20">
+           <div className="absolute top-0 right-0 w-24 h-full bg-[var(--accent)]/5 blur-xl pointer-events-none" />
+           <div className="flex items-center gap-4 relative z-10">
+              <div className="size-14 rounded-2xl overflow-hidden border-2 border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+                 <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
+              </div>
+              <div className="flex-1 min-w-0">
+                 <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] mb-1 leading-none">Subject Payload</p>
+                 <h4 className="text-[13px] font-black text-[var(--text-primary)] truncate uppercase tracking-tight">{product.name}</h4>
+                 <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[11px] font-black text-[var(--text-secondary)] opacity-80">{product.price?.toLocaleString()} XAF</p>
+                    <div className="size-1 rounded-full bg-[var(--accent)] opacity-20" />
+                    <span className="text-[9px] font-black text-[var(--accent)] uppercase opacity-40">Ready for Transfer</span>
+                 </div>
+              </div>
+              <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] opacity-40 hover:opacity-100 cursor-pointer">
+                 <Package className="size-5" />
+              </div>
            </div>
-           <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest mb-0.5">Subject Context</p>
-              <h4 className="text-[11px] font-bold text-[var(--text-primary)] truncate uppercase tracking-tight">{product.name}</h4>
-              <p className="text-[11px] font-black text-[var(--text-secondary)] opacity-60">{product.price?.toLocaleString()} XAF</p>
-           </div>
-           <Package className="size-5 text-[var(--text-secondary)] opacity-20" />
         </div>
       )}
 
@@ -297,17 +306,17 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
              ) : (
                 inbox.map((chat) => (
                   <button
-                    key={chat.partner?._id}
+                    key={chat._id || chat.partner?._id || `chat-${chat.date}`}
                     onClick={() => {
                       setActivePartnerId(chat.partner?._id);
                       setPartnerInfo(chat.partner);
                     }}
-                    className="w-full p-4 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/[0.03] hover:border-[var(--accent)]/40 transition-all flex items-center gap-4 group text-left"
+                    className="w-full p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/[0.04] hover:border-[var(--accent)]/50 transition-all flex items-center gap-4 group text-left shadow-sm mb-2"
                   >
-                    <div className="size-12 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] flex items-center justify-center">
-                       {chat.partner?.branding?.logo || chat.partner?.avatar 
-                         ? <img src={chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" />
-                         : <div className="text-lg font-black text-[var(--accent)] uppercase">{chat.partner?.store_name?.[0] || chat.partner?.name?.[0]}</div>}
+                    <div className="size-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] flex items-center justify-center shrink-0">
+                       {chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar 
+                         ? <img src={chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" />
+                         : <div className="text-xl font-black text-[var(--accent)] uppercase">{chat.partner?.store_name?.[0] || chat.partner?.name?.[0]}</div>}
                     </div>
                     <div className="flex-1 min-w-0">
                        <div className="flex justify-between items-start mb-0.5">

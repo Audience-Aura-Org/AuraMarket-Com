@@ -64,11 +64,11 @@ export default function Hero({ data, config }) {
                     <span>Exclusive Release</span>
                   </div>
                   
-                  <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl">
+                  <h1 className="text-2xl sm:text-4xl md:text-6xl font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl">
                     {banner.headline}
                   </h1>
                   
-                  <p className="text-sm md:text-lg text-white/80 font-medium leading-relaxed max-w-lg line-clamp-3 sm:line-clamp-none">
+                  <p className="text-xs md:text-lg text-white/80 font-medium leading-relaxed max-w-lg line-clamp-3 sm:line-clamp-none">
                     {banner.subtext}
                   </p>
                   

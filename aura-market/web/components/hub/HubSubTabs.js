@@ -18,48 +18,57 @@ export const ProfileContent = memo(({ user, onSelectTab }) => {
 
   const menuItems = [
     { id: 'wallet', label: 'Matrix Wallet', icon: Wallet, desc: 'Credits & balance', href: '/wallet', color: 'blue' },
-    { id: 'orders', label: 'Order History', icon: Package, desc: 'Track your packages', action: () => onSelectTab('orders'), color: 'emerald' },
-    { id: 'wishlist', label: 'Saved Items', icon: Heart, desc: 'Your liked hardware', action: () => onSelectTab('wishlist'), color: 'rose' },
+    { id: 'orders', label: 'Order History', icon: Package, desc: 'Track full manifest', href: '/profile?tab=orders', color: 'emerald' },
+    { id: 'wishlist', label: 'Liked Items', icon: Heart, desc: 'Your saved assets', href: '/profile?tab=wishlist', color: 'rose' },
     { id: 'profile', label: 'Terminal Settings', icon: User, desc: 'Personal branding', href: '/profile', color: 'amber' },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="h-full overflow-y-auto px-6 py-8">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* User Card */}
-        <div className="bg-[var(--bg-primary)] rounded-[2.5rem] border border-[var(--glass-border)] p-8 relative overflow-hidden group shadow-2xl">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-[var(--accent)]/5 rounded-full blur-3xl -z-0" />
-          <div className="flex items-center gap-6 relative z-10">
-            <div className="size-20 rounded-full border-2 border-[var(--accent)]/20 p-1">
-               <img 
-                 src={user?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || 'A'}`} 
-                 className="size-full rounded-full object-cover" 
-                 alt="" 
-               />
+        {/* Premium User Card */}
+        <div className="relative overflow-hidden bg-[var(--bg-primary)]/80 backdrop-blur-3xl rounded-[3rem] border border-[var(--glass-border)] p-8 md:p-12 shadow-2xl flex flex-col items-center justify-center text-center">
+            {/* Dynamic Halo Glow */}
+            <div className="absolute inset-x-0 -top-24 h-64 bg-[var(--accent)]/10 blur-[100px] rounded-full pointer-events-none" />
+            
+            <div className="relative group shrink-0 mb-6">
+               <div className="absolute inset-0 bg-[var(--accent)]/40 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+               <div className="size-28 md:size-32 rounded-[2rem] border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-2xl relative z-10 transition-transform duration-500 group-hover:scale-105">
+                 <img 
+                   src={user?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || 'A'}`} 
+                   className="size-full object-cover group-hover:scale-110 transition-transform duration-1000" 
+                   alt="" 
+                 />
+               </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight">{user?.name || 'Aura User'}</h2>
-              <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-[0.2em] opacity-40">Node ID: {user?._id?.slice(-8).toUpperCase()}</p>
+            
+            <div className="space-y-3 relative z-10">
+              <h2 className="text-3xl md:text-5xl font-black text-[var(--text-primary)] uppercase tracking-tighter shadow-sm">{user?.name || 'Aura User'}</h2>
             </div>
-          </div>
         </div>
 
-        {/* Action Grid */}
-        <div className="grid grid-cols-1 gap-3">
+        {/* Action Grid - Upgraded Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 mt-8">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => item.action ? item.action() : router.push(item.href || '#')}
-              className="bg-[var(--bg-primary)]/50 hover:bg-[var(--bg-primary)] border border-[var(--glass-border)] p-5 rounded-3xl flex items-center gap-4 transition-all group"
+              className="relative overflow-hidden bg-[var(--bg-primary)]/50 hover:bg-[var(--bg-primary)] border border-[var(--glass-border)] p-5 md:p-6 rounded-[2rem] flex items-center gap-5 transition-all duration-300 group hover:shadow-xl hover:-translate-y-1"
             >
-              <div className={`size-12 rounded-2xl bg-[var(--bg-secondary)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all`}>
-                <item.icon className="size-5 opacity-60 group-hover:opacity-100" />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--accent)]/5 rounded-full blur-2xl transition-all duration-500 group-hover:bg-[var(--accent)]/10 group-hover:scale-150" />
+              
+              <div className="size-14 md:size-16 rounded-[1.5rem] bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:border-[var(--accent)] text-[var(--text-secondary)] group-hover:text-white transition-all shadow-sm z-10 shrink-0">
+                <item.icon className="size-6 md:size-7 transition-all duration-300 group-hover:scale-110" />
               </div>
-              <div className="flex-1 text-left">
-                <h3 className="text-xs font-black text-[var(--text-primary)] uppercase tracking-tight">{item.label}</h3>
-                <p className="text-[10px] text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{item.desc}</p>
+              
+              <div className="flex-1 text-left z-10 min-w-0">
+                <h3 className="text-[13px] md:text-[15px] font-black text-[var(--text-primary)] uppercase tracking-tighter truncate">{item.label}</h3>
+                <p className="text-[10px] md:text-[11px] text-[var(--text-secondary)] opacity-60 uppercase tracking-widest mt-0.5 truncate">{item.desc}</p>
               </div>
-              <ChevronRight className="size-4 opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              
+              <div className="size-8 rounded-full bg-[var(--text-primary)]/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 z-10 shrink-0">
+                <ChevronRight className="size-4 text-[var(--text-primary)]" />
+              </div>
             </button>
           ))}
         </div>
@@ -89,24 +98,31 @@ export const OrdersContent = memo(({ user }) => {
           [...Array(3)].map((_, i) => <div key={i} className="h-24 w-full rounded-3xl bg-[var(--bg-primary)] animate-pulse" />)
         ) : orders.length > 0 ? (
           orders.map(order => (
-            <div key={order._id} className="bg-[var(--bg-primary)] border border-[var(--glass-border)] p-5 rounded-3xl flex items-center justify-between">
+            <Link 
+              key={order._id} 
+              href={`/orders/${order._id}`}
+              className="bg-[var(--bg-primary)] border border-[var(--glass-border)] p-5 rounded-3xl flex items-center justify-between hover:border-[var(--accent)] transition-all group"
+            >
               <div className="flex items-center gap-4">
-                <div className="size-10 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center">
-                   <Package className="size-5 text-[var(--accent)] opacity-40" />
+                <div className="size-10 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center group-hover:bg-[var(--accent)]/10 transition-colors">
+                   <Package className="size-5 text-[var(--accent)] opacity-40 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
                   <p className="text-[9px] text-[var(--text-secondary)] opacity-50 uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-black text-[var(--text-primary)]">{order.total?.toLocaleString()} XAF</p>
-                <div className="flex items-center gap-1.5 justify-end mt-1">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">{order.status}</span>
-                  <CheckCircle2 className="size-3 text-emerald-400" />
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-xs font-black text-[var(--text-primary)]">{order.total_amount?.toLocaleString() || order.total?.toLocaleString()} XAF</p>
+                  <div className="flex items-center gap-1.5 justify-end mt-1">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">{order.order_status || order.status}</span>
+                    <CheckCircle2 className="size-3 text-emerald-400" />
+                  </div>
                 </div>
+                <ChevronRight className="size-4 text-[var(--text-secondary)] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </div>
-            </div>
+            </Link>
           ))
         ) : (
           <div className="flex flex-col items-center justify-center p-12 text-[var(--text-secondary)]">

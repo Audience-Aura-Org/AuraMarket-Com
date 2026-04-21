@@ -47,9 +47,19 @@ const createProduct = async (req, res, next) => {
     const product = await Product.create(productData);
 
     const { notifyFollowers } = require('../utils/notifier');
+
+    // Notify vendor's followers about the new product
     notifyFollowers(req.app, vendor._id, {
       title: 'New Arrival Alert!',
       message: `${vendor.store_name} has just deployed a new item: ${product.name}`,
+      metadata: { target_id: product._id, link: `/products/${product._id}` }
+    });
+
+    // Notify the vendor themselves with a confirmation
+    await sendNotification(req.app, vendor.user_id, {
+      title: '✅ Product Published',
+      message: `"${product.name}" is now live in your store and visible to buyers.`,
+      type: 'system_alert',
       metadata: { target_id: product._id, link: `/products/${product._id}` }
     });
 
@@ -62,6 +72,7 @@ const createProduct = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // ─────────────────────────────────────────────
 // @route   GET /api/products
@@ -450,36 +461,33 @@ const getHubFeed = async (req, res, next) => {
     
     const followedVendorIds = follows.map(f => f.vendor_id);
     const categoryIds = user.liked_categories || [];
+    const isFollowedOnly = req.query.followedOnly === 'true' || req.query.followedOnly === true;
 
     const sort = req.query.sort || '-createdAt';
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
     const skip = (page - 1) * limit;
 
-    // 2. Prepare recommendation query
+    // If requesting followed-only feed and user hasn't followed anyone, return empty
+    if (isFollowedOnly && followedVendorIds.length === 0) {
+      return res.status(200).json({ 
+        success: true, 
+        pagination: { total: 0, page: 1, pages: 1, limit },
+        data: { products: [] } 
+      });
+    }
+
+    // 2. Prepare query based on followedOnly parameter
     let query = { status: 'active' };
-
-    if (req.query.search) {
-      query.$text = { $search: req.query.search };
-    }
-
-    if (req.query.minPrice !== undefined || req.query.maxPrice !== undefined) {
-      const priceQuery = {};
-      if (req.query.minPrice !== undefined) priceQuery.$gte = parseFloat(req.query.minPrice);
-      if (req.query.maxPrice !== undefined) priceQuery.$lte = parseFloat(req.query.maxPrice);
-      query.price = priceQuery;
-    }
-
-    // If requested specifically for the Discovery Hub (followedOnly), restrict to followed vendors.
-    // Otherwise, this is the generic Shop discovery, so we exclude followed vendors from the main pool.
-    if (req.query.followedOnly) {
-      // If user isn't following anyone, they immediately get 0 results for the Feed.
-      if (followedVendorIds.length === 0) {
-        return res.status(200).json({ success: true, pagination: { total: 0, page: 1, pages: 1, limit }, data: { products: [] } });
-      }
+    
+    if (isFollowedOnly) {
+      // When showing followed-only feed, include ONLY followed vendors
       query.vendor_id = { $in: followedVendorIds };
-    } else if (followedVendorIds.length > 0) {
-      query.vendor_id = { $nin: followedVendorIds };
+    } else {
+      // When showing discovery feed, exclude followed vendors to show new content
+      if (followedVendorIds.length > 0) {
+        query.vendor_id = { $nin: followedVendorIds };
+      }
     }
     
     if (req.query.category) {
@@ -495,12 +503,25 @@ const getHubFeed = async (req, res, next) => {
       } else {
         query.category = targetCategoryName;
       }
-    } else if (categoryIds.length > 0 && !req.query.followedOnly) {
-      // Only apply generic liked_categories if it's NOT the followed feed
+    } else if (categoryIds.length > 0 && !isFollowedOnly) {
+      // Only apply generic liked_categories if NOT viewing followed-only feed
       query.category = { $in: categoryIds };
     }
 
-    // 3. Normal product fetching and counting
+    // Add search filter
+    if (req.query.search) {
+      query.$text = { $search: req.query.search };
+    }
+
+    // Add price filter
+    if (req.query.minPrice !== undefined || req.query.maxPrice !== undefined) {
+      const priceQuery = {};
+      if (req.query.minPrice !== undefined) priceQuery.$gte = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice !== undefined) priceQuery.$lte = parseFloat(req.query.maxPrice);
+      query.price = priceQuery;
+    }
+
+    // 3. Fetch products and count
     const [productsRaw, total] = await Promise.all([
       Product.find(query)
         .populate({
@@ -520,8 +541,8 @@ const getHubFeed = async (req, res, next) => {
 
     let products = productsRaw;
 
-    // 4. Fallback for sparse results (Page 1) ONLY for generic discovery, NOT followed feed
-    if (!req.query.followedOnly && products.length < 5 && page === 1) {
+    // 4. Fallback for sparse results (Page 1) - only for discovery feed, not followed-only
+    if (!isFollowedOnly && products.length < 5 && page === 1) {
       const excludeIds = products.map(p => p._id);
       const recommended = await Product.find({ 
         status: 'active', 
@@ -535,7 +556,7 @@ const getHubFeed = async (req, res, next) => {
           { path: 'user_id', select: 'avatar branding' }
         ]
       })
-      .sort({ view_count: -1, createdAt: -1 })
+      .sort({ popularity_score: -1, createdAt: -1 })
       .limit(10)
       .lean();
       products = [...products, ...recommended];

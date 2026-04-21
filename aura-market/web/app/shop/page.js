@@ -244,9 +244,8 @@ function ShopContent() {
             </div>
           </div>
 
-          {/* Category Chips - PREMIUM WRAPPED */}
           <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
-            <div className="max-w-7xl mx-auto px-6 lg:px-12 py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full">
+            <div className="max-w-7xl px-6 lg:px-12 py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full">
                {isCategoriesLoading ? (
                  [...Array(6)].map((_, i) => (
                    <div key={i} className="shrink-0 w-24 h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse border border-[var(--glass-border)]/30"></div>
@@ -311,9 +310,9 @@ function ShopContent() {
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)] via-transparent to-black/20" />
             </div>
 
-            {/* 2. Identity & Stats Overlay - ULTRA COMPACT */}
+            {/* 2. Identity & Stats Overlay - CENTRALIZED WRAPPER ONLY */}
             <div className="max-w-7xl mx-auto px-4 md:px-12 relative z-10 -mt-10 md:-mt-14 pb-4">
-              <div className="glass-panel rounded-3xl md:rounded-[3rem] p-4 md:p-6 border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl">
+              <div className="glass-panel rounded-3xl md:rounded-[3rem] p-4 md:p-6 border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl overflow-hidden">
                 <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-center text-center md:text-left">
                   {/* Overlapping Logo - ULTRA COMPACT */}
                   <div className="size-16 md:size-24 rounded-2xl md:rounded-[2rem] border-2 md:border-4 border-[var(--bg-primary)] overflow-hidden shadow-lg shrink-0 bg-[var(--bg-secondary)] relative group">
@@ -352,7 +351,6 @@ function ShopContent() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4">
-                       {/* Stats as Badges */}
                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
                           <LayoutGrid className="size-3 text-[var(--accent)]" />
                           <span className="text-[10px] font-black text-[var(--text-primary)]">{products.length}</span>
@@ -370,7 +368,6 @@ function ShopContent() {
                     </div>
                   </div>
 
-                  {/* Shrunken Actions Row/Column */}
                   <div className="flex flex-row md:flex-col items-center gap-2 w-full md:w-auto shrink-0">
                     <VendorFollowButton vendorId={activeVendor.vendor_id?._id} />
                     <button 
@@ -383,8 +380,8 @@ function ShopContent() {
                       Contact
                     </button>
                   </div>
-                  </div>
                 </div>
+              </div>
             </div>
           </div>
         )}
@@ -408,7 +405,7 @@ function ShopContent() {
             <div className="flex items-center gap-3 shrink-0 ml-auto z-20">
               
               {/* PRICE FILTERS */}
-              <div className="relative">
+              <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
                   className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
@@ -432,7 +429,7 @@ function ShopContent() {
               </div>
 
               {/* SORT DROPDOWN */}
-              <div className="relative">
+              <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
                   className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
@@ -466,11 +463,11 @@ function ShopContent() {
             
           </div>
 
-          {/* Product Grid - Consistently tight layout */}
-          <div className="px-4 md:px-6 lg:px-12 py-6">
+          {/* Product Grid - Consistently tight layout - ZOOMED STYLE */}
+          <div className="px-4 md:px-8 lg:px-12 py-6">
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-6">
-                {[1,2,3,4,5,6,7,8,9,10,11,12].map(i => (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-4 md:gap-5">
+                {[...Array(12)].map((_, i) => (
                   <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-[var(--glass-border)]" />
                 ))}
               </div>
@@ -496,7 +493,7 @@ function ShopContent() {
               </div>
             ) : (
               <>
-                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-5 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
+                <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
                   {products.map(product => (
                     <ProductCard key={product._id} product={product} layout={viewMode} />
                   ))}

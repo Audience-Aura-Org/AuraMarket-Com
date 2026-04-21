@@ -15,6 +15,7 @@ const {
   getZones,
   getSearchCompatibleFirms,
   getProfile,
+  updateProfile,
   updatePricing
 } = require('../controllers/logistics.controller');
 
@@ -28,6 +29,13 @@ router.get('/compatible-firms', getSearchCompatibleFirms);
 
 router.use(protect);
 
+// ── Shared / Smart Routing ────────────────────
+router.get('/shipments', (req, res, next) => {
+  if (req.user.role === 'logistics') return getFirmShipments(req, res, next);
+  if (req.user.role === 'vendor') return getVendorShipments(req, res, next);
+  return res.status(403).json({ success: false, message: 'Unauthorized role for general shipment access.' });
+});
+
 // ── Vendor Actions ────────────────────────────
 router.get('/shipments/vendor', restrictTo('vendor', 'admin'), getVendorShipments);
 
@@ -35,6 +43,7 @@ router.get('/shipments/vendor', restrictTo('vendor', 'admin'), getVendorShipment
 router.post('/onboard', onboardLogistics);
 router.get('/shipments/firm', restrictTo('logistics', 'admin'), getFirmShipments);
 router.get('/profile', restrictTo('logistics', 'admin'), getProfile);
+router.patch('/profile', restrictTo('logistics', 'admin'), updateProfile);
 router.patch('/pricing', restrictTo('logistics', 'admin'), updatePricing);
 
 

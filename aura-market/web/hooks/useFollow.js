@@ -14,100 +14,38 @@ const pendingRequests = new Map();
  * Handles state synchronization, optimistic updates, and request deduplication.
  */
 export function useFollow(vendorId) {
-  const { user } = useAuthStore();
-  const [isFollowing, setIsFollowing] = useState(false);
+  const { user, followedVendorIds, fetchFollowedVendors } = useAuthStore();
+  
+  // 1. Initialize state immediately from the global store to avoid flicker
+  const [isFollowing, setIsFollowing] = useState(() => {
+    if (!vendorId || !followedVendorIds) return false;
+    return followedVendorIds.includes(vendorId);
+  });
   const [loading, setLoading] = useState(false);
-  const [statusLoading, setStatusLoading] = useState(true);
-  const abortControllerRef = useRef(null);
-
-  const checkFollowStatus = useCallback(async () => {
-    if (!user || !vendorId) {
-      setStatusLoading(false);
-      return;
-    }
-
-    const cacheKey = `${user._id}-${vendorId}`;
-
-    // Return cached result if available
-    if (followStatusCache.has(cacheKey)) {
-      const cachedValue = followStatusCache.get(cacheKey);
-      setIsFollowing(cachedValue);
-      setStatusLoading(false);
-      return;
-    }
-
-    // Deduplicate pending requests - if already requesting, wait for it
-    if (pendingRequests.has(cacheKey)) {
-      try {
-        const result = await pendingRequests.get(cacheKey);
-        setIsFollowing(result);
-      } catch (err) {
-        console.error('Failed to check follow status:', err);
-      } finally {
-        setStatusLoading(false);
-      }
-      return;
-    }
-
-    // Create new request with timeout
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout for this request
-
-    const requestPromise = (async () => {
-      try {
-        const res = await api.get(`/vendors/${vendorId}/follow-status`, {
-          signal: controller.signal
-        });
-        
-        if (res.data.success) {
-          const isFollowingValue = res.data.is_following;
-          followStatusCache.set(cacheKey, isFollowingValue);
-          return isFollowingValue;
-        }
-        return false;
-      } catch (err) {
-        // Handle cancellations silently - don't rethrow
-        // Check for both AbortError (native) and CanceledError (axios)
-        const isAbortedOrCanceled = err.name === 'AbortError' || err.code === 'ERR_CANCELED';
-        if (!isAbortedOrCanceled) {
-          // Re-throw non-cancellation errors to be handled by outer catch
-          throw err;
-        }
-        return false; // Default to not following on cancellation
-      } finally {
-        clearTimeout(timeoutId);
-        pendingRequests.delete(cacheKey);
-      }
-    })();
-
-    pendingRequests.set(cacheKey, requestPromise);
-
-    try {
-      const result = await requestPromise;
-      setIsFollowing(result);
-    } catch (err) {
-      console.error('Failed to check follow status:', err);
-      setIsFollowing(false); // Default to not following on error
-    } finally {
-      setStatusLoading(false);
-    }
-  }, [user, vendorId]);
-
+  
+  // 2. Sync local status if the global store changes (e.g. hydrate or follow elsewhere)
   useEffect(() => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+    if (!vendorId) return;
+    setIsFollowing(followedVendorIds.includes(vendorId));
+  }, [vendorId, followedVendorIds]);
 
-    checkFollowStatus();
+  // 2. Fetch global followed list on first mount if empty and user exists
+  useEffect(() => {
+    if (user && followedVendorIds.length === 0) {
+      fetchFollowedVendors();
+    }
+  }, [user, followedVendorIds.length, fetchFollowedVendors]);
 
-    return () => {
-      // Cancel request on unmount
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+  // 3. Listen for global events (optional backup)
+  useEffect(() => {
+    const handleGlobalUpdate = (e) => {
+      if (e.detail.vendorId === vendorId) {
+        setIsFollowing(e.detail.isFollowing);
       }
     };
-  }, [checkFollowStatus]);
+    window.addEventListener('aura_follow_update', handleGlobalUpdate);
+    return () => window.removeEventListener('aura_follow_update', handleGlobalUpdate);
+  }, [vendorId]);
 
   const toggleFollow = async () => {
     if (!user) {
@@ -117,27 +55,42 @@ export function useFollow(vendorId) {
 
     if (!vendorId) return;
 
-    // Optimistic Update
     const prevStatus = isFollowing;
-    setIsFollowing(!prevStatus);
-    setLoading(true);
+    const newStatus = !prevStatus;
+    
+    // Update local state and global store immediately (optimistic)
+    setIsFollowing(newStatus);
+    if (newStatus) {
+      useAuthStore.getState().addFollowedVendor(vendorId);
+    } else {
+      useAuthStore.getState().removeFollowedVendor(vendorId);
+    }
+
+    // Notify non-Zustand listeners
+    window.dispatchEvent(new CustomEvent('aura_follow_update', { 
+      detail: { vendorId, isFollowing: newStatus } 
+    }));
 
     try {
-      const cacheKey = `${user._id}-${vendorId}`;
-      
       if (prevStatus) {
-        // Unfollow
         await api.delete(`/vendors/${vendorId}/follow`);
-        followStatusCache.set(cacheKey, false);
       } else {
-        // Follow
         await api.post(`/vendors/${vendorId}/follow`);
-        followStatusCache.set(cacheKey, true);
       }
+      // Background sync to be 100% sure
+      useAuthStore.getState().fetchFollowedVendors();
     } catch (err) {
       console.error('Follow toggle failed:', err);
       // Revert on error
       setIsFollowing(prevStatus);
+      if (prevStatus) {
+        useAuthStore.getState().addFollowedVendor(vendorId);
+      } else {
+        useAuthStore.getState().removeFollowedVendor(vendorId);
+      }
+      window.dispatchEvent(new CustomEvent('aura_follow_update', { 
+        detail: { vendorId, isFollowing: prevStatus } 
+      }));
       alert('Follow action failed. Please try again.');
     } finally {
       setLoading(false);
@@ -147,7 +100,6 @@ export function useFollow(vendorId) {
   return {
     isFollowing,
     toggleFollow,
-    loading: loading || statusLoading,
-    statusLoading
+    loading
   };
 }

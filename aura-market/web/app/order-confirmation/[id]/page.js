@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  CircleCheck, Package, Truck, ArrowRight, 
+  CheckCircle2, Package, Truck, ArrowRight, 
   ShoppingBag, ShieldCheck, Heart, Share2, Sparkles,
   PartyPopper, ChevronRight
 } from 'lucide-react';

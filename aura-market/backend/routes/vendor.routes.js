@@ -22,7 +22,6 @@ const {
   getFollowers,
   getFollowing,
   checkFollowStatus,
-  getPromotedVendors,
 } = require('../controllers/vendor.controller');
 
 const {
@@ -46,7 +45,6 @@ const { protect, restrictTo, loadVendor } = require('../middleware/auth.middlewa
 // ── Public Routes ─────────────────────────────
 router.get('/', getPublicStores);
 router.get('/stores/:id', getStore);
-router.get('/promoted', getPromotedVendors);
 
 // Follow/Unfollow (Any Authenticated User)
 router.get('/following', protect, getFollowing);

@@ -132,8 +132,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ─────────────────────────────────────────────
 // 9. API Routes
 // ─────────────────────────────────────────────
-app.use('/api', require('./routes/v1.router')); // Unified to /api
-app.use('/api/v1', require('./routes/v1.router')); // Fallback for stability
+app.use('/api/v1', require('./routes/v1.router')); // Specific fallback first
+app.use('/api', require('./routes/v1.router'));    // Unified fallback last
 
 
 // ─────────────────────────────────────────────

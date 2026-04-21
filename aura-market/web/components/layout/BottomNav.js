@@ -22,7 +22,7 @@ export default function BottomNav() {
   }, []);
 
   const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages') || pathname?.startsWith('/admin/messages');
-  const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register');
+  const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/onboarding');
   const isRolePage = pathname?.startsWith('/wallet') || pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics');
 
   if (!mounted || isChatPage || isAuthPage || isRolePage) return null;

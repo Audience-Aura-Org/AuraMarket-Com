@@ -1,6 +1,25 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+const getSocketURL = () => {
+  if (typeof window !== 'undefined') {
+    // If we're on a secure origin (HTTPS), we must use the current origin
+    // to bypass protocol blocks, or an explicitly defined secure URL.
+    if (window.location.protocol === 'https:') {
+       return process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
+    }
+    
+    // In local development
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+       return process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+    }
+  }
+  
+  // Server-side or fallback
+  return process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+};
+
+const SOCKET_URL = getSocketURL();
 
 class SocketService {
   socket = null;
