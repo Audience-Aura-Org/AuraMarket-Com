@@ -238,6 +238,22 @@ export default function VendorDashboard() {
               </div>
             </div>
           </div>
+          
+          {/* Aura Stories Quick Action */}
+          <div className="glass-panel p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shadow-lg">
+                <span className="material-symbols-outlined text-2xl">auto_awesome</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight">Aura Stories Manager</h3>
+                <p className="text-[9px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest">Share updates & engage with your followers</p>
+              </div>
+            </div>
+            <Link href="/vendor/stories" className="px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
+              Launch Story Hub
+            </Link>
+          </div>
 
           {/* Middle: Chart + Orders */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
