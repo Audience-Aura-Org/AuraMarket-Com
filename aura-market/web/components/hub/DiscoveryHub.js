@@ -415,7 +415,7 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </div>
 
-      <nav className="fixed bottom-[72px] left-0 right-0 z-[100] bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+      <nav className="fixed bottom-[72px] sm:bottom-0 left-0 right-0 z-[100] bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
         <div className="flex items-center h-[60px]">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;
