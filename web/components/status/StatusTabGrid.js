@@ -4,9 +4,9 @@ import { Heart, Flame, Zap, Globe, Play, Search, X } from 'lucide-react';
 import api from '@/services/api';
 
 const SORT_TABS = [
-  { id: 'trending', label: 'Trending', emoji: '🔥' },
-  { id: 'new', label: 'New', emoji: '⚡' },
-  { id: 'popular', label: 'All', emoji: '🌐' },
+  { id: 'trending', label: 'Trending', color: 'from-[#080808] to-[#1a1a1a]' },
+  { id: 'new', label: 'Recent', color: 'from-[#080808] to-[#1a1a1a]' },
+  { id: 'popular', label: 'All', color: 'from-[#080808] to-[#1a1a1a]' },
 ];
 
 /**
@@ -50,30 +50,30 @@ export default function StatusTabGrid({ onSelectStatus }) {
       {/* ── Sticky Header ── */}
       <div className="sticky top-0 z-20 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)]/60">
         <div className="flex items-center justify-between px-5 pt-4 pb-2 gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="size-7 md:size-8 rounded-xl bg-gradient-to-br from-[var(--accent)] to-purple-600 flex items-center justify-center shadow-md shadow-[var(--accent)]/30">
-              <Flame className="size-3.5 md:size-4 text-white" />
-            </div>
-            <h2 className="text-sm md:text-base font-black tracking-tight text-[var(--text-primary)]">
-              Aura Stories
+          <div className="flex items-center gap-3">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-50">
+              Live Feed
             </h2>
+            <div className="size-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]" />
           </div>
 
-          <div className="flex bg-[var(--bg-secondary)] rounded-xl p-1 gap-1 border border-[var(--glass-border)]">
-            {SORT_TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setSortBy(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${
-                  sortBy === tab.id
-                    ? 'bg-gradient-to-r from-[var(--accent)] to-purple-600 text-white shadow-md shadow-[var(--accent)]/20'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <span>{tab.emoji}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
+          <div className="flex bg-[var(--bg-secondary)]/50 rounded-full h-9 p-1 gap-1 border border-black/[0.05] dark:border-white/[0.05]">
+            {SORT_TABS.map(tab => {
+              const isActive = sortBy === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSortBy(tab.id)}
+                  className={`flex items-center px-4 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                    isActive
+                      ? 'bg-black dark:bg-white text-white dark:text-black shadow-lg'
+                      : 'text-[var(--text-secondary)]/40 hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

@@ -51,7 +51,7 @@ const SORT_OPTIONS = [
 ];
 
 // ── DISCOVER TAB (Synced with Shop + Followed Only) ──────────────────
-const DiscoveryContent = memo(({ user }) => {
+const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categoryTree, setCategoryTree] = useState([]);
@@ -136,8 +136,10 @@ const DiscoveryContent = memo(({ user }) => {
   }, [breadcrumb, categoryTree]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col bg-[var(--bg-secondary)]">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col bg-[var(--bg-secondary)] pb-40">
       
+      {/* Sticky Header below replaces the relative stories row */}
+
       {/* ── STICKY HEADER ── */}
       <div className="sticky top-0 z-40 bg-[var(--bg-primary)] shadow-sm">
         {/* Search */}
@@ -317,27 +319,30 @@ export default function DiscoveryHub() {
   const [viewingStatuses, setViewingStatuses] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
 
-  const fetchFollowedStatuses = async () => {
+  const fetchFollowedStatuses = useCallback(async () => {
     try {
-      const res = await api.get('/statuses', { params: { mode: 'followed' } });
-      if (res.data.success) setFollowedStatuses(res.data.data);
-    } catch (e) { console.error(e); }
-  };
-
-  useEffect(() => {
-    if (user) fetchFollowedStatuses();
+      const res = await api.get('/statuses', { 
+        params: { mode: user ? 'followed' : 'global', limit: 20 } 
+      });
+      if (res.data.success) {
+        setFollowedStatuses(res.data.data || []);
+      }
+    } catch (e) { 
+      console.error('[Hub] Failed to fetch statuses:', e); 
+      setFollowedStatuses([]);
+    }
   }, [user]);
 
   useEffect(() => {
-    if (!user) router.replace('/login');
-  }, [user, router]);
+    fetchFollowedStatuses();
+  }, [fetchFollowedStatuses]);
+
 
   useEffect(() => {
     const lastTab = sessionStorage.getItem('aura_hub_active_tab');
     if (lastTab) setActiveTab(lastTab);
   }, []);
 
-  if (!user) return null;
 
   const handleTabChange = (id) => {
     setActiveTab(id);
@@ -349,25 +354,37 @@ export default function DiscoveryHub() {
       <AuraAssistant user={user} />
       <div className="flex-1">
         <div className={activeTab === 'vendors' ? 'block' : 'hidden'}>
-          <div className="flex flex-col">
-            <StatusRow 
-              statuses={followedStatuses} 
-              onSelect={(items) => setViewingStatuses(items)}
-              onAdd={() => setShowCreator(true)}
-              isVendor={user?.role === 'vendor'}
-            />
-            <VendorListPanel 
-              followedStatuses={followedStatuses} 
-              onOpenStatus={(vendorId) => {
-                const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
-                if (items.length > 0) setViewingStatuses(items);
-              }}
-            />
+          <div className="flex flex-col relative">
+            {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
+              <div className="sticky top-0 z-30 bg-[var(--bg-secondary)]/95 backdrop-blur-md border-b border-white/5">
+                <StatusRow 
+                  statuses={followedStatuses} 
+                  onSelect={(items) => setViewingStatuses(items)}
+                  onAdd={() => setShowCreator(true)}
+                  isVendor={user?.role === 'vendor'}
+                />
+              </div>
+            )}
+            <div className="flex flex-col pb-40">
+              <VendorListPanel 
+                followedStatuses={followedStatuses} 
+                onOpenStatus={(vendorId) => {
+                  const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
+                  if (items.length > 0) setViewingStatuses(items);
+                }}
+              />
+            </div>
           </div>
         </div>
 
         <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
-          <DiscoveryContent user={user} isActive={activeTab === 'discover'} />
+          <DiscoveryContent 
+            user={user} 
+            isActive={activeTab === 'discover'} 
+            statuses={followedStatuses}
+            onSelectStatus={(items) => setViewingStatuses(items)}
+            onAddStatus={() => setShowCreator(true)}
+          />
         </div>
 
         <div className={activeTab === 'status' ? 'block' : 'hidden'}>
@@ -398,7 +415,7 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </div>
 
-      <nav className="z-50 w-full bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-2xl overflow-hidden mt-auto">
+      <nav className="fixed bottom-[72px] sm:bottom-0 left-0 right-0 z-[100] bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
         <div className="flex items-center h-[60px]">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;
