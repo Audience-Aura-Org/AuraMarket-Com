@@ -22,19 +22,23 @@ const STORY_DURATION = 5000;
  */
 
 // Single story content — renders immediately, manages its own playback
-const StoryContent = memo(function StoryContent({ story, active, muted, onVideoEnd }) {
+const StoryContent = memo(function StoryContent({ story, active, paused, muted, onVideoEnd, onTimeUpdate }) {
   const localVideoRef = useRef(null);
 
   useEffect(() => {
     if (story.type === 'video' && localVideoRef.current) {
       if (active) {
-        localVideoRef.current.currentTime = 0;
-        localVideoRef.current.play().catch(() => {});
+        if (!paused) {
+          localVideoRef.current.play().catch(() => {});
+        } else {
+          localVideoRef.current.pause();
+        }
       } else {
         localVideoRef.current.pause();
+        localVideoRef.current.currentTime = 0;
       }
     }
-  }, [active, story.type]);
+  }, [active, paused, story.type]);
 
   if (!story) return null;
 
@@ -47,6 +51,7 @@ const StoryContent = memo(function StoryContent({ story, active, muted, onVideoE
         muted={muted}
         className="w-full h-full object-cover"
         onEnded={onVideoEnd}
+        onTimeUpdate={onTimeUpdate}
         preload="auto"
       />
     );
@@ -201,15 +206,16 @@ export default function StatusViewer({ initialStatuses, onClose }) {
                 <div className="h-full w-full bg-white rounded-full" />
               ) : i === idx ? (
                 <div
+                  id={`progress-${idx}`}
                   key={`active-${idx}`}
                   className="h-full rounded-full bg-white"
-                  style={{
+                  style={!isVideo ? {
                     width: paused ? undefined : '100%',
                     animation: paused
                       ? 'none'
-                      : `story-progress ${isVideo ? '30s' : `${STORY_DURATION}ms`} linear forwards`,
-                  }}
-                  onAnimationEnd={handleProgressEnd}
+                      : `story-progress ${STORY_DURATION}ms linear forwards`,
+                  } : { width: '0%' }}
+                  onAnimationEnd={!isVideo ? handleProgressEnd : undefined}
                 />
               ) : (
                 <div className="h-full w-0" />
@@ -272,8 +278,17 @@ export default function StatusViewer({ initialStatuses, onClose }) {
                 <StoryContent
                   story={s}
                   active={i === idx}
+                  paused={paused}
                   muted={muted}
                   onVideoEnd={goNext}
+                  onTimeUpdate={(e) => {
+                    if (i === idx) {
+                      const bar = document.getElementById(`progress-${idx}`);
+                      if (bar && e.target.duration) {
+                        bar.style.width = `${(e.target.currentTime / e.target.duration) * 100}%`;
+                      }
+                    }
+                  }}
                 />
               </div>
             );
