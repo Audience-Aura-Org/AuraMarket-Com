@@ -427,27 +427,58 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </div>
 
-      <nav className="fixed bottom-[72px] sm:bottom-0 left-0 right-0 z-[100] bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-        <div className="flex items-center h-[60px]">
-          {TABS.map((tab, idx) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <div key={tab.id} className="flex-1 flex items-center h-full">
-                {idx > 0 && <div className="w-[1px] h-3 bg-white/5" />}
-                <button
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex-1 flex flex-col items-center justify-center h-full transition-all duration-500 relative ${isActive ? 'text-[var(--accent)] font-black' : 'text-white/20 font-bold hover:text-white/50'}`}
-                >
-                  <span className={`text-[9px] md:text-[10px] uppercase tracking-[0.2em] ${isActive ? 'scale-105' : 'scale-100'}`}>{tab.label}</span>
-                  {isActive && (
-                    <motion.div layoutId="hub-indicator" className="absolute bottom-0 inset-x-3 h-[2px] bg-[var(--accent)] shadow-[0_-5px_15px_var(--accent)]" />
-                  )}
-                </button>
-              </div>
-            );
-          })}
+      {/* ── THE "AURORA" DOCK ──
+          Blends with the global BottomNav but stands out with floating glassmorphism
+          and premium active indicators.
+      */}
+      <nav className="fixed bottom-[72px] sm:bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-lg overflow-hidden">
+        <div className="relative group">
+          {/* Animated glow background behind the dock */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent)]/10 via-purple-500/5 to-[var(--accent)]/10 blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+          
+          <div className="relative flex items-center h-[58px] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] px-1.5">
+            {TABS.map((tab, idx) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <div key={tab.id} className="flex-1 flex items-center h-full">
+                  {idx > 0 && <div className="w-px h-3 bg-white/10" />}
+                  <button
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`flex-1 flex flex-col items-center justify-center h-full transition-all duration-300 relative ${
+                      isActive ? 'text-[var(--accent)]' : 'text-white/30 hover:text-white/60'
+                    }`}
+                  >
+                    <div className={`relative p-1.5 rounded-xl transition-all duration-500 ${isActive ? 'bg-[var(--accent)]/10 scale-110' : ''}`}>
+                      <Icon className={`size-4 md:size-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                      {isActive && (
+                        <motion.div 
+                          layoutId="tab-glow"
+                          className="absolute inset-0 rounded-xl bg-[var(--accent)]/20 blur-md"
+                        />
+                      )}
+                    </div>
+                    
+                    <span className={`text-[8px] md:text-[9px] uppercase tracking-[0.2em] mt-0.5 font-black transition-all ${
+                      isActive ? 'opacity-100' : 'opacity-40'
+                    }`}>
+                      {tab.label}
+                    </span>
+
+                    {isActive && (
+                      <motion.div 
+                        layoutId="hub-indicator" 
+                        className="absolute -bottom-1.5 inset-x-6 h-[3px] bg-[var(--accent)] rounded-full shadow-[0_0_12px_var(--accent)]" 
+                      />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </div>
   );
 }
+
