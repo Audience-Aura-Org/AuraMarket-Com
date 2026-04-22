@@ -189,12 +189,12 @@ export default function StatusViewer({ initialStatuses, onClose }) {
       className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center select-none touch-none overflow-hidden"
     >
       <div
-        className="relative w-full h-full max-w-md mx-auto bg-zinc-900 overflow-hidden shadow-2xl"
+        className="relative w-full h-full sm:max-w-md sm:mx-auto bg-black overflow-hidden shadow-2xl"
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
       >
         {/* ── Progress Indicators ─────────────────────────────── */}
-        <div className={`absolute top-3 inset-x-3 z-50 flex gap-1 transition-opacity duration-150 ${paused ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`absolute top-[calc(env(safe-area-inset-top)+12px)] inset-x-3 z-50 flex gap-1 transition-opacity duration-150 ${paused ? 'opacity-0' : 'opacity-100'}`}>
           {initialStatuses.map((_, i) => (
             <div key={i} className="h-[3px] flex-1 rounded-full overflow-hidden bg-white/25">
               {i < idx ? (
@@ -219,7 +219,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
         </div>
 
         {/* ── Header ─────────────────────────────────────────── */}
-        <div className={`absolute top-8 inset-x-4 z-50 flex items-center justify-between transition-opacity duration-150 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className={`absolute top-[calc(env(safe-area-inset-top)+28px)] inset-x-4 z-50 flex items-center justify-between transition-opacity duration-150 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-full overflow-hidden border-2 border-white/30 shadow-md bg-black/40">
               {vendorLogo
@@ -228,8 +228,8 @@ export default function StatusViewer({ initialStatuses, onClose }) {
               }
             </div>
             <div>
-              <p className="text-[13px] font-black text-white leading-tight tracking-tight drop-shadow">{storeName}</p>
-              <span className="text-[9px] font-bold text-white/50">
+              <p className="text-[14px] font-black text-white leading-tight tracking-tight shadow-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{storeName}</p>
+              <span className="text-[10px] font-bold text-white/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
                 {new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -291,7 +291,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
         {/* ── Footer ── */}
         <div className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-8 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-200 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           {story.caption && (
-            <p className="text-sm text-white/90 font-medium mb-4 leading-relaxed line-clamp-3 bg-white/5 backdrop-blur-sm px-4 py-3 rounded-2xl border border-white/10">
+            <p className="text-[15px] text-white font-medium mb-5 leading-relaxed line-clamp-4 bg-black/40 backdrop-blur-md px-5 py-4 rounded-3xl border border-white/10 shadow-xl">
               {story.caption}
             </p>
           )}
@@ -334,13 +334,13 @@ export default function StatusViewer({ initialStatuses, onClose }) {
           </div>
 
           <div className="flex items-center justify-between mt-3 px-1">
-            <div className="flex items-center gap-1.5 text-white/35">
+            <div className="flex items-center gap-1.5 text-white/60 drop-shadow-md">
               <Eye className="size-3" />
-              <span className="text-[8px] font-bold uppercase tracking-widest">{story.views_count || 0} views</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{story.views_count || 0} views</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 drop-shadow-md">
               <Flame className="size-3 text-orange-400" />
-              <span className="text-[8px] font-bold text-white/35 uppercase tracking-widest">{idx + 1}/{total}</span>
+              <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{idx + 1}/{total}</span>
             </div>
           </div>
         </div>

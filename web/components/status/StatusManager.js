@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import StatusCreator from './StatusCreator';
+import BlurUpImage from '@/components/common/BlurUpImage';
 
 /**
  * StatusManager
@@ -50,122 +51,142 @@ export default function StatusManager() {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Action Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-5 py-5 md:px-7 md:py-6 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl md:rounded-3xl shadow-sm">
-        {/* Left: icon + text */}
-        <div className="flex items-center gap-3 md:gap-4 min-w-0">
-          <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/15 shrink-0">
-            <Activity className="size-5 md:size-6 text-[var(--accent)]" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight">
-                My Stories
-              </h3>
-              {statuses.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold">
-                  <span className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-                  {statuses.length} active
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5 opacity-60">
-              Manage and track your published stories
-            </p>
-          </div>
+    <div className="space-y-16 animate-in fade-in duration-700">
+      {/* ── Header Section ────────────────────────────────────────────────── */}
+      <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <p className="text-[11px] font-black tracking-[0.3em] text-[var(--accent)] uppercase opacity-80">Operational Management</p>
+          <h2 className="text-5xl font-black tracking-tighter text-[var(--text-primary)] leading-none">
+            Active <span className="opacity-40">Statuses</span>
+          </h2>
         </div>
-
-        {/* Right: CTA */}
-        <button
+        <button 
           onClick={() => setShowCreator(true)}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 md:px-6 md:py-3 bg-[var(--accent)] text-white rounded-xl text-xs md:text-[11px] font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20 shrink-0"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
         >
-          <Plus className="size-3.5" />
-          Post Story
+          <Plus className="size-4" />
+          Post New Status
         </button>
-      </div>
+      </section>
 
-      {/* Grid of Results */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
+      {/* ── Bento Grid for Statuses ────────────────────────────────────────── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {/* Create Status Card */}
+        <div 
+          onClick={() => setShowCreator(true)}
+          className="group cursor-pointer aspect-[4/5] bg-[var(--bg-secondary)]/50 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-6 rounded-[2.5rem] hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all duration-500"
+        >
+          <div className="size-16 rounded-full border border-[var(--glass-border)] flex items-center justify-center group-hover:scale-110 group-hover:border-[var(--accent)] transition-all duration-500 bg-[var(--bg-primary)]/50">
+            <Plus className="size-8 text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" />
+          </div>
+          <span className="text-[10px] font-black tracking-[0.25em] text-[var(--text-primary)] uppercase opacity-60 group-hover:opacity-100 transition-opacity">CREATE STATUS</span>
         </div>
-      ) : statuses.length === 0 ? (
-        <div className="p-20 text-center bg-[var(--bg-secondary)]/20 border border-dashed border-[var(--glass-border)] rounded-[3rem]">
-           <AlertCircle className="size-12 text-[var(--text-secondary)]/20 mx-auto mb-4" />
-           <p className="text-xs font-black uppercase tracking-widest opacity-30">No Active Stories Found</p>
-           <button onClick={() => setShowCreator(true)} className="mt-4 text-[10px] font-black text-[var(--accent)] hover:underline">Launch your first story →</button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {statuses.map(status => (
-            <div key={status._id} className="group glass-panel rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden hover:shadow-2xl transition-all duration-500">
-              <div className="relative aspect-video">
-                {status.type === 'image' || status.type === 'video' ? (
-                  <img src={status.content_url} className="size-full object-cover group-hover:scale-105 transition-transform duration-1000" alt="" />
-                ) : (
-                  <div className="size-full bg-gradient-to-br from-[var(--bg-secondary)] to-[#111] flex items-center justify-center p-6 text-center">
-                    <p className="text-sm font-black italic uppercase text-white/40 line-clamp-3">{status.text_content}</p>
-                  </div>
-                )}
-                <div className="absolute top-4 left-4">
-                  <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border backdrop-blur-md ${new Date(status.expires_at) > new Date() ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                    {new Date(status.expires_at) > new Date() ? 'Active' : 'Expired'}
-                  </span>
+
+        {/* Active Status Cards */}
+        {statuses.filter(s => new Date(s.expires_at) > new Date()).map(status => {
+          const timeLeft = Math.max(0, Math.floor((new Date(status.expires_at) - new Date()) / (1000 * 60 * 60)));
+          return (
+            <div key={status._id} className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] bg-[var(--bg-primary)] border border-[var(--glass-border)]">
+              {/* Media Content */}
+              {status.type === 'image' || status.type === 'video' ? (
+                <BlurUpImage 
+                  src={status.content_url} 
+                  className="size-full"
+                  imgClassName="group-hover:scale-110 transition-transform duration-[2s] ease-out" 
+                />
+              ) : (
+                <div className="size-full bg-gradient-to-br from-[#1c1b1b] to-[#000] flex items-center justify-center p-8 text-center">
+                  <p className="text-base font-medium italic text-white/80 line-clamp-4 leading-relaxed">{status.text_content}</p>
                 </div>
-              </div>
+              )}
 
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-4 text-[var(--text-secondary)]">
-                      <div className="flex items-center gap-1.5" title="Total Views">
-                        <Eye className="size-3.5 text-[var(--accent)]" />
-                        <span className="text-[11px] font-black">{status.views_count || status.viewer_ids?.length || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5" title="Total Hearts">
-                        <Heart className="size-3.5 text-red-500 fill-current" />
-                        <span className="text-[11px] font-black">{status.likes_count || status.reactions?.length || 0}</span>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-2">
-                      <Calendar className="size-3 text-[var(--text-secondary)] opacity-40" />
-                      <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{new Date(status.createdAt).toLocaleDateString()}</span>
-                   </div>
-                </div>
+              {/* Overlay Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />
 
-                {status.linked_product && (
-                  <div className="p-3 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)] flex items-center gap-3">
-                    <ShoppingBag className="size-4 text-[var(--accent)] shrink-0" />
-                    <p className="text-[10px] font-bold truncate opacity-60">Linked to: {status.linked_product.name || 'Product'}</p>
+              {/* Status Info */}
+              <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end text-white z-10">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Engagement</p>
+                  <div className="flex items-center gap-2.5">
+                    <Eye className="size-4 text-[var(--accent)]" />
+                    <span className="text-2xl font-black tabular-nums tracking-tight">{status.views_count || 0}</span>
                   </div>
-                )}
-
-                {(status.views_count > 5 || status.likes_count > 0) && (
-                   <div className="px-4 py-3 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent)] flex items-center gap-2">
-                        <Activity className="size-3" /> Performance Feedback
-                      </p>
-                      <p className="text-[10px] font-bold text-[var(--text-primary)] mt-1">
-                        {status.likes_count > (status.views_count * 0.1) 
-                          ? "🔥 High conversion! This story is resonating well." 
-                          : "⚡ Gaining traction. Post more similar content."}
-                      </p>
+                </div>
+                
+                <div className="flex flex-col items-end gap-2">
+                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-black tracking-tight uppercase flex items-center gap-2 shadow-xl">
+                      <span className={`size-1.5 rounded-full ${timeLeft < 5 ? 'bg-red-500 animate-pulse' : 'bg-[var(--accent)]'}`} />
+                      {timeLeft}h left
                    </div>
-                )}
-
-                <button 
-                  onClick={() => handleDelete(status._id)}
-                  disabled={deletingId === status._id}
-                  className="w-full h-11 rounded-xl bg-red-500/5 hover:bg-red-500 hover:text-white border border-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                >
-                  {deletingId === status._id ? <RefreshCw className="size-4 animate-spin" /> : <><Trash2 className="size-4" /> Terminate Story</>}
-                </button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); handleDelete(status._id); }}
+                     disabled={deletingId === status._id}
+                     className="size-8 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                   >
+                     {deletingId === status._id ? <RefreshCw className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                   </button>
+                </div>
               </div>
             </div>
-          ))}
+          );
+        })}
+      </section>
+
+      {/* ── Status History Section ────────────────────────────────────────── */}
+      <section className="space-y-10 pt-16">
+        <div className="flex items-center gap-6">
+          <h3 className="text-2xl font-black tracking-tighter text-[var(--text-primary)]">Archive <span className="opacity-30">History</span></h3>
+          <div className="h-px flex-grow bg-[var(--glass-border)] opacity-30" />
         </div>
-      )}
+
+        <div className="space-y-5">
+          {statuses.filter(s => new Date(s.expires_at) <= new Date()).length === 0 ? (
+            <div className="py-12 text-center bg-[var(--bg-secondary)]/30 rounded-[2rem] border border-dashed border-[var(--glass-border)]">
+              <p className="text-xs font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest">No archival data available</p>
+            </div>
+          ) : (
+            statuses.filter(s => new Date(s.expires_at) <= new Date()).map(status => (
+              <div key={status._id} className="bg-[var(--bg-primary)] p-5 rounded-[2rem] border border-[var(--glass-border)] flex items-center justify-between shadow-sm hover:shadow-xl transition-all duration-500 group">
+                <div className="flex items-center gap-6">
+                  <div className="size-20 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] shrink-0 shadow-inner">
+                    {status.content_url ? (
+                      <img src={status.content_url} className="size-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="" />
+                    ) : (
+                      <div className="size-full flex items-center justify-center bg-zinc-900 opacity-20"><Activity className="size-6" /></div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="font-black text-base text-[var(--text-primary)] tracking-tight uppercase leading-tight">
+                      {status.text_content ? (status.text_content.slice(0, 30) + '...') : `Story ${status._id.slice(-6)}`}
+                    </p>
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-secondary)] opacity-60">
+                      <Calendar className="size-3" />
+                      <span>Expired {new Date(status.expires_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-12 items-center pr-4">
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Total Reach</p>
+                    <p className="text-lg font-black tabular-nums tracking-tighter">{status.views_count || 0}</p>
+                  </div>
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
+                    <p className="text-lg font-black tabular-nums tracking-tighter">24h</p>
+                  </div>
+                  <button 
+                    onClick={() => handleDelete(status._id)}
+                    className="size-10 rounded-full bg-red-500/5 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       {/* Creator Modal */}
       {showCreator && (

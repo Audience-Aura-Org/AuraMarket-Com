@@ -100,8 +100,8 @@ app.use(cors({
 }));
 
 app.use(compression()); // Gzip all API responses
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Apply general rate limit to all requests
 app.use('/api', apiLimiter);
@@ -164,6 +164,11 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   Access from other devices: http://${ipAddress}:${PORT}/api/health`);
   console.log(`   All interfaces: http://0.0.0.0:${PORT}/api/health\n`);
 });
+
+// Increase server timeouts for large file uploads (100MB videos)
+server.timeout = 600000; // 10 minutes
+server.keepAliveTimeout = 610000; // Slightly more than keepAlive to avoid race conditions
+server.headersTimeout = 620000;
 
 // ─────────────────────────────────────────────
 // 12. Handle unhandled promise rejections

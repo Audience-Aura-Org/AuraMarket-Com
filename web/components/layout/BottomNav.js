@@ -24,8 +24,9 @@ export default function BottomNav() {
   const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages') || pathname?.startsWith('/admin/messages');
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/onboarding');
   const isRolePage = pathname?.startsWith('/wallet') || pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics');
+  const isDiscoveryPage = pathname?.startsWith('/discovery');
 
-  if (!mounted || isChatPage || isAuthPage || isRolePage) return null;
+  if (!mounted || isChatPage || isAuthPage || isRolePage || isDiscoveryPage) return null;
 
   const menu = [
     { label: "Discover", href: "/discovery", icon: Compass },
@@ -69,7 +70,9 @@ export default function BottomNav() {
                       <div className="absolute -top-1 -right-1 size-1.5 bg-[var(--accent)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent)]"></div>
                     )}
                   </div>
-                  <span className={`mt-0.5 text-[10px] font-semibold tracking-tight leading-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                  <span className={`text-[10px] font-bold mt-1 transition-all ${
+                    isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-60'
+                  }`}>
                     {item.label}
                   </span>
                 </>

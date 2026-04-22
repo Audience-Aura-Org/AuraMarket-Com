@@ -111,11 +111,11 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                   <div className="size-5 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                     <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
                   </div>
-                  <span className="text-[8px] font-black text-[var(--accent)] uppercase tracking-widest truncate whitespace-nowrap block flex-1">{vendor_id?.store_name || 'Verified Node'}</span>
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider truncate whitespace-nowrap block flex-1">{vendor_id?.store_name || 'Verified Node'}</span>
                 </Link>
                 {user?._id !== vendorUserId && (
-                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`text-[8px] font-black tracking-tighter ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
-                    {isFollowing ? 'FOLLOWING' : '+ FOLLOW'}
+                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`text-[9px] font-bold tracking-tight ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
+                    {isFollowing ? 'Following' : '+ Follow'}
                   </button>
                 )}
              </div>
@@ -125,8 +125,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             </Link>
             <div className="flex items-center gap-4">
               <p className="text-[14px] md:text-[18px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
-              <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-40">
-                 <span className="flex items-center gap-1"><ShoppingCart className="size-3 text-emerald-500" /> {product.purchase_count || 0}</span>
+              <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-secondary)] opacity-70">
+                 <span className="flex items-center gap-1"><ShoppingCart className="size-3.5 text-emerald-500" /> {product.purchase_count || 0} sold</span>
               </div>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
             </div>
             <h4
-              className="text-[8.5px] sm:text-[9px] md:text-[10px] font-bold text-[var(--text-primary)] leading-none flex-1 truncate"
+              className="text-[11px] sm:text-[12px] font-bold text-[var(--text-primary)] leading-none flex-1 truncate"
             >{vendor_id?.store_name || 'Verified Node'}</h4>
             {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
          </Link>
@@ -219,10 +219,10 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             <h3 className="text-[11px] sm:text-[12px] md:text-[14px] font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
           </Link>
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] sm:text-[12px] md:text-[14px] font-bold text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
-            <div className="flex items-center gap-1 opacity-30">
-               <Star className="size-2 fill-[var(--accent)] text-[var(--accent)]" />
-               <span className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)]">{rating || '4.8'}</span>
+            <span className="text-[12px] sm:text-[14px] md:text-[16px] font-bold text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
+            <div className="flex items-center gap-1 opacity-70">
+               <Star className="size-2.5 fill-[var(--accent)] text-[var(--accent)]" />
+               <span className="text-[10px] sm:text-[11px] md:text-[12px] font-bold text-[var(--text-secondary)]">{rating || '4.8'}</span>
             </div>
           </div>
         </div>

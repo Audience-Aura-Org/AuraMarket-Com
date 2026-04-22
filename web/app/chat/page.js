@@ -172,7 +172,7 @@ function ChatContent() {
       {/* Sidebar Left */}
       <aside className={`w-full md:w-[400px] border-r border-[#202c33] flex flex-col ${activeChat ? 'hidden md:flex' : 'flex'} z-20 bg-[#111b21]`}>
         {/* Sidebar Header - FIXED BG */}
-        <div className="h-[64px] bg-[#202c33] px-4 flex items-center justify-between border-b border-[#111b21]">
+        <div className="h-[calc(64px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-[#202c33] px-4 flex items-center justify-between border-b border-[#111b21]">
            <div className="size-10 rounded-full overflow-hidden bg-[#111b21] border border-white/10">
               {user?.branding?.logo || user?.avatar ? <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt="" /> : <User className="m-auto mt-2 opacity-20" />}
            </div>
@@ -239,7 +239,7 @@ function ChatContent() {
         ) : (
           <>
             {/* Conversations Header */}
-            <div className="h-[64px] bg-[#202c33] px-4 flex items-center justify-between shrink-0 shadow-md z-30">
+            <div className="h-[calc(64px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-[#202c33] px-4 flex items-center justify-between shrink-0 shadow-md z-30">
                <div className="flex items-center gap-4 min-w-0 cursor-pointer">
                   <button onClick={() => setActiveChat(null)} className="md:hidden p-2 -ml-2"><ArrowLeft className="size-5" /></button>
                   <div className="size-10 rounded-full overflow-hidden bg-[#111b21] border border-white/5 shrink-0">
@@ -354,7 +354,7 @@ function ChatContent() {
             </div>
 
             {/* Input Bar */}
-            <div className="bg-[#202c33] px-4 py-3 flex items-center gap-4 shrink-0">
+            <div className="bg-[#202c33] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] flex items-center gap-4 shrink-0">
                <div className="flex items-center gap-5 text-[#aebac1]">
                   <Smile className="size-6 cursor-pointer opacity-70 hover:opacity-100" />
                   <Plus className="size-6 cursor-pointer opacity-70 hover:opacity-100" />

@@ -46,13 +46,41 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
     if (!selectedFile) return;
 
     // Type validation
-    if (type === 'video' && !selectedFile.type.startsWith('video/')) {
-       setError('Please select a video file.');
-       return;
+    if (type === 'video') {
+       if (!selectedFile.type.startsWith('video/')) {
+          setError('Please select a video file.');
+          return;
+       }
+       
+       // 100MB size check
+       if (selectedFile.size > 100 * 1024 * 1024) {
+         setError('File too large. Maximum size is 100MB.');
+         return;
+       }
+
+       // Duration check (1 minute)
+       const video = document.createElement('video');
+       video.preload = 'metadata';
+       video.onloadedmetadata = () => {
+         window.URL.revokeObjectURL(video.src);
+         if (video.duration > 61) { // 1s buffer
+           setError('Video duration exceeds 1 minute limit.');
+           setFile(null);
+           setPreviewUrl('');
+         }
+       };
+       video.src = URL.createObjectURL(selectedFile);
     }
-    if (type === 'image' && !selectedFile.type.startsWith('image/')) {
-       setError('Please select an image file.');
-       return;
+    
+    if (type === 'image') {
+       if (!selectedFile.type.startsWith('image/')) {
+          setError('Please select an image file.');
+          return;
+       }
+       if (selectedFile.size > 100 * 1024 * 1024) {
+         setError('File too large. Maximum size is 100MB.');
+         return;
+       }
     }
 
     setFile(selectedFile);
@@ -119,10 +147,10 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
              <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center">
                 <Send className="size-5 text-[var(--accent)]" />
              </div>
-             <div>
-                <h3 className="text-sm font-black uppercase italic tracking-tighter text-[var(--text-primary)]">Post New Status</h3>
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Aura Node Intelligence</p>
-             </div>
+              <div>
+                <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight">Post Story</h3>
+                <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-50">Share an update with your followers</p>
+              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-[var(--bg-secondary)] rounded-full transition-all text-[var(--text-secondary)]">
             <X className="size-5" />
@@ -145,7 +173,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                     className={`flex flex-col items-center gap-3 p-5 rounded-3xl border-2 transition-all group ${type === t.id ? 'border-[var(--accent)] bg-[var(--accent)]/5 shadow-lg' : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30 bg-[var(--bg-secondary)] opacity-40 hover:opacity-100'}`}
                   >
                     <t.icon className={`size-6 ${type === t.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
+                    <span className="text-[11px] font-bold">{t.label}</span>
                   </button>
                 ))}
               </div>
@@ -156,8 +184,8 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                   <textarea
                     value={textContent}
                     onChange={e => setTextContent(e.target.value)}
-                    placeholder="Type your status content here..."
-                    className="w-full h-48 bg-[var(--bg-secondary)] rounded-3xl p-6 text-lg font-black italic uppercase text-center border-2 border-[var(--glass-border)] focus:border-[var(--accent)] outline-none transition-all placeholder:opacity-20"
+                    placeholder="Type your story content here..."
+                    className="w-full h-48 bg-[var(--bg-secondary)] rounded-3xl p-6 text-xl font-medium text-center border-2 border-[var(--glass-border)] focus:border-[var(--accent)] outline-none transition-all placeholder:opacity-20"
                     maxLength={500}
                   />
                 ) : (
@@ -183,8 +211,8 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                           {type === 'image' ? <ImageIcon className="size-6 text-[var(--accent)]" /> : <Video className="size-6 text-[var(--accent)]" />}
                         </div>
                         <div className="text-center">
-                          <p className="text-[10px] font-black uppercase tracking-widest">Select {type}</p>
-                          <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest mt-1">Max 5MB • {type === 'video' ? '30s max' : 'High res'}</p>
+                          <p className="text-xs font-bold text-[var(--text-primary)]">Select {type}</p>
+                          <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-50 mt-1">Max 100MB • {type === 'video' ? '1min max' : 'High res'}</p>
                         </div>
                       </label>
                     )}
@@ -202,16 +230,16 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
               <button
                 disabled={(!file && type !== 'text') || (type === 'text' && !textContent)}
                 onClick={() => setStep(2)}
-                className="w-full h-14 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl disabled:opacity-30 active:scale-95 flex items-center justify-center gap-2"
+                className="w-full h-14 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl text-xs font-bold hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl disabled:opacity-30 active:scale-95 flex items-center justify-center gap-2"
               >
-                Continue Setup <Send className="size-4" />
+                Continue <Send className="size-4" />
               </button>
             </div>
           ) : (
             <div className="space-y-6">
               {/* Caption */}
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] ml-2">Add Caption</label>
+                <label className="text-[10px] font-bold text-[var(--text-secondary)] ml-2">Add Caption</label>
                 <input 
                   type="text"
                   value={caption}
@@ -223,8 +251,8 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
 
               {/* Tag Product */}
               <div className="space-y-4">
-                <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] ml-2 flex items-center justify-between">
-                  Link a Product <span className="text-[8px] opacity-40 italic">Optional but recommended</span>
+                <label className="text-[10px] font-bold text-[var(--text-secondary)] ml-2 flex items-center justify-between">
+                  Link a Product <span className="text-[9px] opacity-40 font-medium">Optional but recommended</span>
                 </label>
                 
                 {linkedProduct ? (
@@ -234,8 +262,8 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                         <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-tighter line-clamp-1">{linkedProduct.name}</p>
-                        <p className="text-[10px] font-bold text-[var(--text-secondary)]">{linkedProduct.price?.toLocaleString()} XAF</p>
+                        <p className="text-[11px] font-bold text-[var(--text-primary)] line-clamp-1">{linkedProduct.name}</p>
+                        <p className="text-[10px] font-medium text-[var(--text-secondary)]">{linkedProduct.price?.toLocaleString()} XAF</p>
                       </div>
                     </div>
                     <button onClick={() => setLinkedProduct(null)} className="size-8 rounded-full bg-white/5 hover:bg-black/10 flex items-center justify-center transition-all">
@@ -265,13 +293,13 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                               <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
                             </div>
                             <div className="flex-1 min-w-0">
-                               <p className="text-[10px] font-black uppercase tracking-tighter truncate">{p.name}</p>
-                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">ID: {p._id.slice(-6).toUpperCase()}</p>
+                               <p className="text-[11px] font-bold text-[var(--text-primary)] truncate">{p.name}</p>
+                               <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">ID: {p._id.slice(-6).toUpperCase()}</p>
                             </div>
                           </button>
                         )) : (
                           <div className="p-8 text-center opacity-30">
-                            <p className="text-[10px] font-bold uppercase tracking-widest">No assets found</p>
+                            <p className="text-[10px] font-medium">No assets found</p>
                           </div>
                         )}
                       </div>
@@ -283,16 +311,16 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
               <div className="pt-6 flex gap-3">
                  <button 
                   onClick={() => setStep(1)}
-                  className="px-8 h-14 rounded-full border border-[var(--glass-border)] text-[10px] font-black uppercase tracking-widest hover:bg-[var(--bg-secondary)] transition-all"
+                  className="px-8 h-14 rounded-full border border-[var(--glass-border)] text-xs font-medium hover:bg-[var(--bg-secondary)] transition-all"
                  >
                    Back
                  </button>
                  <button 
                   onClick={handlePost}
                   disabled={loading}
-                  className="flex-1 h-14 bg-[var(--accent)] text-white rounded-full text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/30 disabled:opacity-30 active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl text-xs font-bold hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/30 disabled:opacity-30 active:scale-95 flex items-center justify-center gap-2"
                  >
-                   {loading ? <Loader2 className="size-5 animate-spin" /> : <>Finalize & Post <CheckCircle2 className="size-4" /></>}
+                   {loading ? <Loader2 className="size-5 animate-spin" /> : <>Post Story <CheckCircle2 className="size-4" /></>}
                  </button>
               </div>
             </div>

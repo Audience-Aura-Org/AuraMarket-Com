@@ -4,8 +4,8 @@
   "description": "Premium Multi-Vendor Platform with Liquid-Glass Aesthetics.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0d0d",
-  "theme_color": "#a855f7",
+  "background_color": "#f20df2",
+  "theme_color": "#f20df2",
   "categories": ["shopping", "ecommerce", "lifestyle"],
   "icons": [
     {

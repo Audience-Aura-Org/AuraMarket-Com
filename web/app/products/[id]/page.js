@@ -184,24 +184,10 @@ export default function ProductDetailsPage() {
       <div className="w-full px-4 md:px-6 py-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
 
         {/* ── Col 1: Media Gallery (left thumbnail + main image) ── */}
-        <div className="lg:col-span-5 xl:col-span-5 flex gap-4 md:gap-6 pl-0 md:pl-4">
+        <div className="lg:col-span-5 xl:col-span-5 flex flex-col md:flex-row gap-4 md:gap-6 pl-0 md:pl-4">
 
-          {/* Vertical Thumbnails */}
-          <div className="flex flex-col gap-4 shrink-0 w-16">
-            {images.map((img, i) => (
-              <button key={i} onClick={() => setActiveImg(i)}
-                className={`w-16 h-16 rounded-[20px] overflow-hidden bg-[var(--bg-primary)] transition-all shrink-0 ${
-                  activeImg === i
-                    ? 'shadow-[0_10px_20px_-5px_rgba(0,0,0,0.1)] scale-105 ring-2 ring-[var(--text-primary)]'
-                    : 'opacity-60 hover:opacity-100 hover:scale-105'
-                }`}>
-                <img src={img.url || img} className="w-full h-full object-contain p-2" alt={`View ${i + 1}`} />
-              </button>
-            ))}
-          </div>
-
-          {/* Main Image */}
-          <div className="flex-1 flex flex-col gap-4">
+          {/* Main Image (Top on mobile, Right on desktop) */}
+          <div className="order-1 md:order-2 flex-1 flex flex-col gap-4">
             <div
               className="relative w-full aspect-[4/5] max-h-[500px] bg-[var(--bg-primary)] rounded-[32px] overflow-hidden cursor-zoom-in shadow-[0_40px_60px_-15px_rgba(0,0,0,0.05)]"
               onMouseEnter={() => setIsZoomed(true)}
@@ -229,8 +215,22 @@ export default function ProductDetailsPage() {
                 className={`w-full h-full object-contain p-4 transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
               />
             </div>
-
           </div>
+
+          {/* Thumbnails (Bottom on mobile, Left on desktop) */}
+          <div className="order-2 md:order-1 flex flex-row md:flex-col gap-4 shrink-0 w-full md:w-16 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+            {images.map((img, i) => (
+              <button key={i} onClick={() => setActiveImg(i)}
+                className={`w-14 h-14 md:w-16 md:h-16 rounded-[16px] md:rounded-[20px] overflow-hidden bg-[var(--bg-primary)] transition-all shrink-0 ${
+                  activeImg === i
+                    ? 'shadow-[0_10px_20px_-5px_rgba(0,0,0,0.1)] scale-105 ring-2 ring-[var(--text-primary)]'
+                    : 'opacity-60 hover:opacity-100 hover:scale-105'
+                }`}>
+                <img src={img.url || img} className="w-full h-full object-contain p-2" alt={`View ${i + 1}`} />
+              </button>
+            ))}
+          </div>
+
         </div>
 
         {/* ── Col 2: Product Info ── */}
