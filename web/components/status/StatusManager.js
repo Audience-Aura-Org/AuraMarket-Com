@@ -52,21 +52,37 @@ export default function StatusManager() {
   return (
     <div className="space-y-8">
       {/* Action Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[3rem] backdrop-blur-3xl">
-        <div className="flex items-center gap-5">
-           <div className="size-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20 shadow-lg">
-              <Activity className="size-6 text-[var(--accent)]" />
-           </div>
-           <div>
-              <h3 className="text-xl font-black uppercase text-[var(--text-primary)] tracking-tight">Status Insights</h3>
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Monitor your active engagement nodes</p>
-           </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-5 py-5 md:px-7 md:py-6 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl md:rounded-3xl shadow-sm">
+        {/* Left: icon + text */}
+        <div className="flex items-center gap-3 md:gap-4 min-w-0">
+          <div className="size-10 md:size-12 rounded-xl md:rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/15 shrink-0">
+            <Activity className="size-5 md:size-6 text-[var(--accent)]" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight">
+                My Stories
+              </h3>
+              {statuses.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold">
+                  <span className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+                  {statuses.length} active
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5 opacity-60">
+              Manage and track your published stories
+            </p>
+          </div>
         </div>
-        <button 
+
+        {/* Right: CTA */}
+        <button
           onClick={() => setShowCreator(true)}
-          className="px-8 py-4 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95 flex items-center gap-2"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 md:px-6 md:py-3 bg-[var(--accent)] text-white rounded-xl text-xs md:text-[11px] font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20 shrink-0"
         >
-          <Plus className="size-4" /> Post New Story
+          <Plus className="size-3.5" />
+          Post Story
         </button>
       </div>
 

@@ -236,37 +236,49 @@ export default function ProductDetailsPage() {
         {/* ── Col 2: Product Info ── */}
         <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-8 md:px-4">
 
-          {/* Product Dossier / Info */}
-          <div className="space-y-8">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="size-3.5 text-[var(--accent)]" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-                Aura Market Verified Asset
+          {/* Product Info — mobile-first, natural casing */}
+          <div className="space-y-5 text-center lg:text-left">
+
+            {/* Verified badge */}
+            <div className="flex items-center justify-center lg:justify-start gap-1.5">
+              <Shield className="size-3 text-[var(--accent)] shrink-0" />
+              <span className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-wide">
+                Aura Market Verified
               </span>
             </div>
 
-            <h1 className="text-3xl md:text-[2.5rem] font-black tracking-tighter text-[var(--text-primary)] leading-[1.05]">
+            {/* Product name */}
+            <h1 className="text-2xl md:text-[2.5rem] font-black tracking-tighter text-[var(--text-primary)] leading-[1.08]">
               {product.name}
             </h1>
 
-            <div className="flex flex-col sm:flex-row sm:items-end gap-8 pt-4">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Acquisition Price</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
+            {/* Price + Stock row — compact on mobile */}
+            <div className="flex items-center justify-center lg:justify-start gap-4 pt-1">
+              {/* Price block */}
+              <div>
+                <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">Price</p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] tracking-tight leading-none">
                     {product.price?.toLocaleString()}
                   </span>
-                  <span className="text-xs font-bold text-[var(--accent)]">XAF</span>
+                  <span className="text-xs font-bold text-[var(--accent)] leading-none pb-0.5">XAF</span>
                 </div>
               </div>
 
-              <div className="hidden sm:block w-px h-10 bg-[var(--glass-border)] shrink-0" />
+              {/* Divider */}
+              <div className="w-px h-10 bg-[var(--glass-border)] shrink-0" />
 
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Inventory Node</span>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
-                  {product.stock} <span className="text-[var(--text-secondary)]">Units Available</span>
-                </p>
+              {/* Stock pill */}
+              <div>
+                <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">In stock</p>
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                  inStock
+                    ? 'bg-emerald-500/10 text-emerald-600'
+                    : 'bg-red-500/10 text-red-500'
+                }`}>
+                  <span className={`size-1.5 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  {inStock ? `${product.stock} available` : 'Out of stock'}
+                </div>
               </div>
             </div>
           </div>

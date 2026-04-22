@@ -145,3 +145,20 @@ i, em { font-style: normal !important; }
     opacity: 0;
   }
 }
+
+/* ── WhatsApp-style shimmer for story skeleton loading ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 0%,
+    var(--bg-primary)   40%,
+    var(--bg-secondary) 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
