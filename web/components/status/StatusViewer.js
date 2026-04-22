@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Heart, ShoppingBag, MessageCircle,
   ChevronLeft, ChevronRight, Volume2, VolumeX,
@@ -17,28 +17,32 @@ const STORY_DURATION = 5000;
  * StatusViewer — WhatsApp-speed story viewer.
  * - Progress bar keyed directly on idx (resets in the SAME render, no useEffect delay)
  * - Navigation never blocked by loading state
- * - Preloads ±2 adjacent images ahead of time
- * - Adjacent stories rendered off-screen (opacity-0) for instant swap
- * - Zero unnecessary re-renders: all navigation is synchronous setIdx
+ * - Buffer Stack: Renders adjacent stories in the DOM (opacity-0) so they load in background
+ * - Zero "dark screens": The next story is already rendered before you tap.
  */
 
-// Preload helper — fire and forget
-function preloadImage(url) {
-  if (!url || typeof window === 'undefined') return;
-  const img = new Image();
-  img.src = url;
-}
+// Single story content — renders immediately, manages its own playback
+const StoryContent = memo(function StoryContent({ story, active, muted, onVideoEnd }) {
+  const localVideoRef = useRef(null);
 
-// Single story content — memoized so only re-mounts when idx changes
-const StoryContent = memo(function StoryContent({ story, muted, videoRef, onVideoEnd }) {
+  useEffect(() => {
+    if (story.type === 'video' && localVideoRef.current) {
+      if (active) {
+        localVideoRef.current.currentTime = 0;
+        localVideoRef.current.play().catch(() => {});
+      } else {
+        localVideoRef.current.pause();
+      }
+    }
+  }, [active, story.type]);
+
   if (!story) return null;
 
   if (story.type === 'video') {
     return (
       <video
-        ref={videoRef}
+        ref={localVideoRef}
         src={story.content_url}
-        autoPlay
         playsInline
         muted={muted}
         className="w-full h-full object-cover"
@@ -50,19 +54,16 @@ const StoryContent = memo(function StoryContent({ story, muted, videoRef, onVide
 
   if (story.type === 'image') {
     return (
-      // BlurUpImage: blurred placeholder shows instantly, sharp fades in.
-      // Same URL = one network request, shared browser cache.
       <BlurUpImage
         src={story.content_url}
         alt=""
-        priority="high"
+        priority={active ? "high" : "low"}
         className="w-full h-full"
         objectFit="cover"
       />
     );
   }
 
-  // Text story
   return (
     <div
       className="w-full h-full flex items-center justify-center p-10 text-center"
@@ -83,12 +84,10 @@ export default function StatusViewer({ initialStatuses, onClose }) {
   const { openChat } = useChat();
 
   const [idx, setIdx] = useState(0);
-  // Paused & liked are the only state we need — no imgReady, no progressKey
   const [paused, setPaused] = useState(false);
   const [liked, setLiked] = useState(false);
   const [muted, setMuted] = useState(false);
 
-  const videoRef = useRef(null);
   const holdTimer = useRef(null);
   const touchStart = useRef({ x: 0, y: 0, t: 0 });
 
@@ -96,146 +95,111 @@ export default function StatusViewer({ initialStatuses, onClose }) {
   const total = initialStatuses.length;
   const isVideo = story?.type === 'video';
 
-  // ── Preload ALL images on mount (aggressive) ──────────────────
+  // ── Preload Strategy ──────────────────────────────────────────
   useEffect(() => {
+    // Background preload of all story media once component mounts
     initialStatuses.forEach(s => {
-      if ((s.type === 'image') && s.content_url) preloadImage(s.content_url);
+      if (s.type === 'image' && s.content_url) {
+        const img = new Image();
+        img.src = s.content_url;
+      }
     });
-  }, []); // eslint-disable-line
+  }, [initialStatuses]);
 
-  // ── Lock body scroll ──────────────────────────────────────────
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
-
-  // ── Side-effect on idx change (fire-and-forget, no state updates) ──
-  useEffect(() => {
-    if (!story) return;
-    // Fire-and-forget view tracking
-    api.post(`/statuses/${story._id}/view`).catch(() => {});
-    // Preload adjacent images right away
-    const next = initialStatuses[idx + 1];
-    const prev = initialStatuses[idx - 1];
-    if (next?.content_url) preloadImage(next.content_url);
-    if (prev?.content_url) preloadImage(prev.content_url);
-    // Sync liked state (no re-render cascade: setLiked is a single state update)
-    setLiked(story.isLiked || false);
-  }, [idx]); // eslint-disable-line
-
-  // ── Navigation (synchronous — never blocked) ──────────────────
   const goNext = useCallback(() => {
-    setIdx(i => {
-      if (i < total - 1) return i + 1;
+    if (idx < total - 1) {
+      setIdx(idx + 1);
+      setLiked(false);
+    } else {
       onClose();
-      return i;
-    });
-  }, [total, onClose]);
+    }
+  }, [idx, total, onClose]);
 
   const goPrev = useCallback(() => {
-    setIdx(i => Math.max(0, i - 1));
-  }, []);
-
-  // ── Progress bar end (CSS animation driven) ───────────────────
-  // We use idx as the key on the animated bar so React resets the
-  // animation in the SAME render cycle — no useEffect delay.
-  const handleProgressEnd = useCallback(() => {
-    if (!paused) goNext();
-  }, [paused, goNext]);
-
-  // ── Keyboard ──────────────────────────────────────────────────
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'ArrowRight') goNext();
-      else if (e.key === 'ArrowLeft') goPrev();
-      else if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [goNext, goPrev, onClose]);
-
-  // ── Touch: long-press = pause, horizontal swipe = navigate ───
-  const onTouchStart = useCallback((e) => {
-    touchStart.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-      t: Date.now()
-    };
-    holdTimer.current = setTimeout(() => setPaused(true), 200);
-  }, []);
-
-  const onTouchEnd = useCallback((e) => {
-    clearTimeout(holdTimer.current);
-    if (paused) { setPaused(false); return; }
-
-    const dx = touchStart.current.x - e.changedTouches[0].clientX;
-    const dy = touchStart.current.y - e.changedTouches[0].clientY;
-
-    if (dy < -80) { onClose(); return; }
-    if (dy > 80 && !story?.linked_product) { handleChat(); return; }
-
-    if (Math.abs(dx) > 40) {
-      // Lower threshold (40px vs 60px) = more responsive swipe
-      dx > 0 ? goNext() : goPrev();
+    if (idx > 0) {
+      setIdx(idx - 1);
+      setLiked(false);
     }
-  }, [paused, story, goNext, goPrev, onClose]); // eslint-disable-line
+  }, [idx]);
 
-  // ── Actions ───────────────────────────────────────────────────
-  const toggleLike = useCallback(async () => {
-    setLiked(l => !l);
-    try { await api.post(`/statuses/${story._id}/react`); } catch {}
-  }, [story]);
+  const toggleLike = async () => {
+    const next = !liked;
+    setLiked(next);
+    try {
+      await api.post(`/statuses/${story._id}/like`);
+    } catch (e) { console.error(e); }
+  };
 
-  const handleChat = useCallback(() => {
-    const vName = story.vendor_id?.store_name || 'Vendor';
-    openChat(story.vendor_id?.user_id?._id, story.linked_product, {
-      store_name: vName,
-      initialMessage: `Hi, I saw this on your story 👇`
-    });
+  const handleViewProduct = () => {
+    if (!story.linked_product?._id) return;
     onClose();
-  }, [story, openChat, onClose]);
+    router.push(`/products/${story.linked_product._id}`);
+  };
 
-  const handleViewProduct = useCallback(() => {
-    const pid = story.linked_product?._id || story.linked_product;
-    if (pid) router.push(`/products/${pid}`);
-  }, [story, router]);
+  const handleChat = () => {
+    const vId = story.vendor_id?._id || story.vendor_id;
+    if (!vId) return;
+    onClose();
+    router.push(`/messages?vendorId=${vId}`);
+  };
+
+  const handleProgressEnd = () => {
+    if (!paused) goNext();
+  };
+
+  // ── Interaction Handlers ─────────────────────────────────────
+  const onPointerDown = (e) => {
+    touchStart.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+    holdTimer.current = setTimeout(() => setPaused(true), 250);
+  };
+
+  const onPointerUp = (e) => {
+    clearTimeout(holdTimer.current);
+    const duration = Date.now() - touchStart.current.t;
+    const dist = Math.abs(e.clientX - touchStart.current.x);
+
+    if (paused) {
+      setPaused(false);
+      return;
+    }
+
+    // Swipe down to close
+    if (e.clientY - touchStart.current.y > 100 && duration < 500) {
+      onClose();
+      return;
+    }
+
+    if (duration < 250 && dist < 10) {
+      const width = window.innerWidth;
+      if (e.clientX < width * 0.35) goPrev();
+      else goNext();
+    }
+  };
 
   if (!story) return null;
 
+  const storeName = story.vendor_id?.store_name || "Aura Vendor";
   const vendorLogo = story.vendor_id?.user_id?.branding?.logo || story.vendor_id?.user_id?.avatar;
-  const storeName = story.vendor_id?.store_name || '';
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.1 }}
-      className="fixed inset-0 z-[2000] bg-black flex items-center justify-center"
-      style={{ touchAction: 'none' }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center select-none touch-none overflow-hidden"
     >
-      {/* Background dismiss */}
-      <div className="absolute inset-0 bg-black/95" onClick={onClose} />
-
-      {/* Story container */}
       <div
-        className="relative w-full h-full max-w-[420px] mx-auto flex flex-col overflow-hidden select-none"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        className="relative w-full h-full max-w-md mx-auto bg-zinc-900 overflow-hidden shadow-2xl"
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
       >
-        {/* ── Progress bars ─────────────────────────────────────
-            Key strategy: each segment gets a stable key based on index.
-            The ACTIVE segment's inner fill is keyed on `idx` itself,
-            so React destroys & recreates it in the same render → instant reset.
-        ──────────────────────────────────────────────────────── */}
+        {/* ── Progress Indicators ─────────────────────────────── */}
         <div className={`absolute top-3 inset-x-3 z-50 flex gap-1 transition-opacity duration-150 ${paused ? 'opacity-0' : 'opacity-100'}`}>
           {initialStatuses.map((_, i) => (
             <div key={i} className="h-[3px] flex-1 rounded-full overflow-hidden bg-white/25">
               {i < idx ? (
-                // Completed — always full, stable key
                 <div className="h-full w-full bg-white rounded-full" />
               ) : i === idx ? (
-                // Active — keyed on idx so it remounts (and restarts animation) instantly
                 <div
                   key={`active-${idx}`}
                   className="h-full rounded-full bg-white"
@@ -248,7 +212,6 @@ export default function StatusViewer({ initialStatuses, onClose }) {
                   onAnimationEnd={handleProgressEnd}
                 />
               ) : (
-                // Future — empty
                 <div className="h-full w-0" />
               )}
             </div>
@@ -275,50 +238,58 @@ export default function StatusViewer({ initialStatuses, onClose }) {
           <div className="flex items-center gap-2">
             {isVideo && (
               <button
-                onClick={() => {
-                  setMuted(m => !m);
-                  if (videoRef.current) videoRef.current.muted = !muted;
-                }}
+                onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}
                 className="size-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center"
               >
                 {muted ? <VolumeX className="size-4 text-white" /> : <Volume2 className="size-4 text-white" />}
               </button>
             )}
-            <button onClick={onClose} className="size-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+            <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="size-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
               <X className="size-4 text-white" />
             </button>
           </div>
         </div>
 
-        {/* ── Story Content (instant swap via key) ─────────────
-            key={idx} forces React to unmount old & mount new content
-            in the SAME commit — no transition delay, no waiting.
-            The background color is a dark fallback so there's no white flash.
+        {/* ── BUFFER STACK (The "WhatsApp" Secret) ──────────────
+            We render a window of stories.
+            Active story is opacity-100.
+            Next/Prev stories are in the DOM (loading pixels) but opacity-0.
+            This guarantees zero "dark screens" or "load stops".
         ──────────────────────────────────────────────────────── */}
-        <div
-          className="absolute inset-0 z-10 bg-zinc-900"
-        >
-          <StoryContent
-            story={story}
-            muted={muted}
-            videoRef={videoRef}
-            onVideoEnd={goNext}
-          />
-          {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+        <div className="absolute inset-0 z-10 bg-black">
+          {initialStatuses.map((s, i) => {
+            // Only render current, next, and previous to save memory
+            const isNear = Math.abs(i - idx) <= 1;
+            if (!isNear) return null;
+
+            return (
+              <div
+                key={s._id}
+                className={`absolute inset-0 transition-opacity duration-300 ${
+                  i === idx ? 'opacity-100 z-20' : 'opacity-0 z-10'
+                }`}
+              >
+                <StoryContent
+                  story={s}
+                  active={i === idx}
+                  muted={muted}
+                  onVideoEnd={goNext}
+                />
+              </div>
+            );
+          })}
+          {/* Global gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none z-30" />
         </div>
 
-        {/* ── Tap zones (wide, no dead gap) ────────────────────
-            Split 35%/65% — left third goes back, right two-thirds go forward
-            matching Instagram/WhatsApp muscle memory.
-        ──────────────────────────────────────────────────────── */}
-        <div className="absolute inset-x-0 top-20 bottom-32 z-30 flex pointer-events-auto">
-          <div className="w-[35%]" onClick={goPrev} />
-          <div className="flex-1" onClick={goNext} />
+        {/* ── Tap zones ── */}
+        <div className="absolute inset-x-0 top-20 bottom-32 z-40 flex pointer-events-auto">
+          <div className="w-[35%]" onClick={(e) => { e.stopPropagation(); goPrev(); }} />
+          <div className="flex-1" onClick={(e) => { e.stopPropagation(); goNext(); }} />
         </div>
 
-        {/* ── Footer ───────────────────────────────────────────── */}
-        <div className={`absolute bottom-0 inset-x-0 z-40 px-5 pb-8 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-200 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {/* ── Footer ── */}
+        <div className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-8 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-200 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           {story.caption && (
             <p className="text-sm text-white/90 font-medium mb-4 leading-relaxed line-clamp-3 bg-white/5 backdrop-blur-sm px-4 py-3 rounded-2xl border border-white/10">
               {story.caption}
@@ -328,7 +299,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
           <div className="flex items-center gap-2.5">
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={toggleLike}
+              onClick={(e) => { e.stopPropagation(); toggleLike(); }}
               className={`flex items-center justify-center gap-2 h-11 px-5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-colors ${
                 liked
                   ? 'bg-red-500 border-red-500 text-white'
@@ -342,7 +313,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
             {story.linked_product && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={handleViewProduct}
+                onClick={(e) => { e.stopPropagation(); handleViewProduct(); }}
                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-purple-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg"
               >
                 <ShoppingBag className="size-3.5" />
@@ -352,7 +323,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
 
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={handleChat}
+              onClick={(e) => { e.stopPropagation(); handleChat(); }}
               className={`flex items-center justify-center gap-2 h-11 rounded-2xl bg-white/10 border border-white/15 text-white font-black text-[10px] uppercase tracking-widest ${
                 story.linked_product ? 'px-3.5' : 'flex-1'
               }`}
@@ -379,19 +350,18 @@ export default function StatusViewer({ initialStatuses, onClose }) {
       <button
         onClick={goPrev}
         disabled={idx === 0}
-        className="hidden lg:flex absolute left-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-50 disabled:opacity-20"
+        className="hidden lg:flex absolute left-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-[1001] disabled:opacity-20"
       >
         <ChevronLeft className="size-6" />
       </button>
       <button
         onClick={goNext}
-        className="hidden lg:flex absolute right-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-50"
+        className="hidden lg:flex absolute right-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-[1001]"
       >
         <ChevronRight className="size-6" />
       </button>
 
-      {/* CSS keyframe for story progress bar */}
-      <style>{`
+      <style jsx global>{`
         @keyframes story-progress {
           from { width: 0%; }
           to   { width: 100%; }
