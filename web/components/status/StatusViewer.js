@@ -143,7 +143,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
   };
 
   const handleProgressEnd = () => {
-    if (!paused) goNext();
+    if (!paused && !isReplying) goNext();
   };
 
   const handleViewProduct = () => {
@@ -160,19 +160,26 @@ export default function StatusViewer({ initialStatuses, onClose }) {
     } catch (e) { console.error(e); }
   };
 
-  const handleSendReply = async () => {
+  const handleSendReply = () => {
     if (!replyText.trim()) return;
-    const vId = story.vendor_id?._id || story.vendor_id;
-    try {
-      await api.post('/messages', {
-        receiverId: vId,
-        content: `Replied to your story: "${replyText}"`,
-        metadata: { type: 'story_reply', storyId: story._id }
-      });
-      setReplyText('');
-      setIsReplying(false);
-      // Show success toast or something?
-    } catch (e) { console.error(e); }
+    const recipientUserId = story.vendor_id?.user_id?._id || story.vendor_id?.user_id;
+    if (!recipientUserId) return;
+
+    const text = replyText.trim();
+
+    // Optimistic — close instantly, send in background
+    setReplyText('');
+    setIsReplying(false);
+
+    api.post('/chat', {
+      receiver_id: recipientUserId,
+      text,
+      metadata: {
+        type: 'story_reply',
+        storyId: story._id,
+        storyPreview: story.type === 'text' ? story.text_content : story.content_url
+      }
+    }).catch(e => console.error('Story reply failed:', e));
   };
 
   const onPointerDown = (e) => {
@@ -214,15 +221,12 @@ export default function StatusViewer({ initialStatuses, onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center select-none touch-none overflow-hidden"
+      className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center overflow-hidden"
     >
-      <div
-        className="relative w-full h-full sm:max-w-md sm:mx-auto bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)]"
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-      >
+      <div className="relative w-full h-full sm:max-w-md sm:mx-auto bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)]">
+
         {/* ── Progress Indicators ── */}
-        <div className={`absolute top-[calc(env(safe-area-inset-top)+16px)] inset-x-4 z-50 flex gap-1.5 transition-opacity duration-300 ${paused ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`absolute top-[calc(env(safe-area-inset-top)+16px)] inset-x-4 z-50 flex gap-1.5 transition-opacity duration-300 pointer-events-none ${paused ? 'opacity-0' : 'opacity-100'}`}>
           {initialStatuses.map((_, i) => (
             <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-white/20 backdrop-blur-md">
               {i < idx ? (
@@ -233,8 +237,8 @@ export default function StatusViewer({ initialStatuses, onClose }) {
                   key={`active-${idx}`}
                   className="h-full rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
                   style={!isVideo ? {
-                    width: paused ? undefined : '100%',
-                    animation: paused ? 'none' : `story-progress ${STORY_DURATION}ms linear forwards`,
+                    width: (paused || isReplying) ? undefined : '100%',
+                    animation: (paused || isReplying) ? 'none' : `story-progress ${STORY_DURATION}ms linear forwards`,
                   } : { width: '0%' }}
                   onAnimationEnd={!isVideo ? handleProgressEnd : undefined}
                 />
@@ -246,7 +250,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
         </div>
 
         {/* ── Premium Header ── */}
-        <div className={`absolute top-[calc(env(safe-area-inset-top)+32px)] inset-x-5 z-50 flex items-center justify-between transition-all duration-300 ${paused ? 'opacity-0 translate-y-[-10px]' : 'opacity-100 translate-y-0'}`}>
+        <div className={`absolute top-[calc(env(safe-area-inset-top)+32px)] inset-x-5 z-50 flex items-center justify-between transition-all duration-300 pointer-events-none ${paused ? 'opacity-0 translate-y-[-10px]' : 'opacity-100 translate-y-0'}`}>
           <div className="flex items-center gap-3">
             <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-xl">
               <div className="size-full rounded-full overflow-hidden border-2 border-black bg-black">
@@ -270,7 +274,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 pointer-events-auto">
             {isVideo && (
               <button
                 onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}
@@ -288,8 +292,12 @@ export default function StatusViewer({ initialStatuses, onClose }) {
           </div>
         </div>
 
-        {/* ── Story Content ── */}
-        <div className="absolute inset-0 z-10 bg-[#050505]">
+        {/* ── Story Content (also handles tap/swipe gestures) ── */}
+        <div
+          className="absolute inset-0 z-10 bg-[#050505] select-none touch-none"
+          onPointerDown={isReplying ? undefined : onPointerDown}
+          onPointerUp={isReplying ? undefined : onPointerUp}
+        >
           {initialStatuses.map((s, i) => {
             const isNear = Math.abs(i - idx) <= 1;
             if (!isNear) return null;
@@ -298,7 +306,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
                 <StoryContent 
                   story={s} 
                   active={i === idx} 
-                  paused={paused} 
+                  paused={paused || isReplying} 
                   muted={muted} 
                   onVideoEnd={goNext} 
                   onTimeUpdate={(e) => {
@@ -327,7 +335,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
         </div>
 
         {/* ── Interactive Footer ── */}
-        <div className={`absolute bottom-0 inset-x-0 z-50 px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] transition-all duration-300 ${paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0'}`}>
+        <div className={`absolute bottom-0 inset-x-0 z-50 px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] transition-all duration-300 ${(paused && !isReplying) ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0'}`}>
           {story.caption && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -364,14 +372,20 @@ export default function StatusViewer({ initialStatuses, onClose }) {
           )}
 
           {/* Action Row */}
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3"
+            onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex-1 relative flex items-center">
                <input 
                  type="text" 
                  value={replyText}
                  onChange={e => setReplyText(e.target.value)}
-                 onFocus={() => { setPaused(true); setIsReplying(true); }}
-                 onBlur={() => { setPaused(false); setTimeout(() => setIsReplying(false), 200); }}
+                 onFocus={() => setIsReplying(true)}
+                 onBlur={() => setTimeout(() => setIsReplying(false), 200)}
+                 onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) { e.preventDefault(); handleSendReply(); } }}
                  placeholder="Reply with fire..."
                  className="w-full h-14 rounded-full bg-white/10 backdrop-blur-2xl border border-white/15 px-6 pr-14 text-sm font-medium text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/50 focus:bg-white/20 transition-all shadow-xl"
                />
@@ -392,7 +406,10 @@ export default function StatusViewer({ initialStatuses, onClose }) {
               <Heart className={`size-6 ${liked ? 'fill-current' : ''}`} />
             </motion.button>
 
-            <button className="size-14 rounded-full bg-white/10 border border-white/15 backdrop-blur-2xl flex items-center justify-center text-white hover:bg-white/20 transition-all shadow-xl">
+            <button 
+              onClick={e => e.stopPropagation()}
+              className="size-14 rounded-full bg-white/10 border border-white/15 backdrop-blur-2xl flex items-center justify-center text-white hover:bg-white/20 transition-all shadow-xl"
+            >
                <Share2 className="size-5.5" />
             </button>
           </div>

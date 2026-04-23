@@ -340,11 +340,33 @@ function ChatContent() {
                           </div>
                         )}
                         <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[70%] px-4 py-2.5 rounded-xl shadow-sm relative text-[15px] leading-relaxed ${isOwn ? 'bg-[#005c4b] text-[#e9edef]' : 'bg-[#202c33] text-[#e9edef]'}`}>
-                            <p className="whitespace-pre-wrap">{msg.text}</p>
-                            <div className="flex items-center justify-end gap-1 mt-1.5 opacity-40 text-[10px]">
-                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                {isOwn && (msg.status === 'sending' ? <Check className="size-3" /> : <CheckCheck className="size-3 text-[#53bdeb]" />)}
+                          <div className={`max-w-[80%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                            {/* Story Reply Preview */}
+                            {msg.metadata?.type === 'story_reply' && (
+                              <div className={`mb-1 p-2 rounded-2xl bg-[#2a3942]/50 border border-white/5 flex items-center gap-3 min-w-[200px] max-w-full backdrop-blur-md overflow-hidden relative group cursor-pointer hover:bg-[#2a3942] transition-all`} onClick={() => msg.metadata.storyId && window.open(`/status?id=${msg.metadata.storyId}`, '_blank')}>
+                                <div className="absolute top-0 left-0 w-1 h-full bg-[var(--accent)]" />
+                                {msg.metadata.storyPreview?.startsWith('http') ? (
+                                  <div className="size-12 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black">
+                                    <img src={msg.metadata.storyPreview} className="size-full object-cover opacity-80" alt="" />
+                                  </div>
+                                ) : (
+                                  <div className="size-12 rounded-lg bg-[var(--accent)]/10 border border-white/10 flex items-center justify-center shrink-0 p-1">
+                                    <p className="text-[8px] font-black italic text-[var(--accent)] leading-tight text-center line-clamp-3">{msg.metadata.storyPreview}</p>
+                                  </div>
+                                )}
+                                <div className="min-w-0 pr-2">
+                                  <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest mb-0.5">Story Reply</p>
+                                  <p className="text-[11px] text-[#aebac1] opacity-60 italic truncate">Sent from Global Pulse</p>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className={`px-4 py-2.5 rounded-2xl shadow-sm relative text-[15px] leading-relaxed ${isOwn ? 'bg-[#005c4b] text-[#e9edef]' : 'bg-[#202c33] text-[#e9edef]'}`}>
+                              <p className="whitespace-pre-wrap">{msg.text}</p>
+                              <div className="flex items-center justify-end gap-1 mt-1.5 opacity-40 text-[10px]">
+                                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {isOwn && (msg.status === 'sending' ? <Check className="size-3" /> : <CheckCheck className="size-3 text-[#53bdeb]" />)}
+                              </div>
                             </div>
                           </div>
                         </motion.div>

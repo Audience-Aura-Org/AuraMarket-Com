@@ -111,7 +111,7 @@ const getUserInbox = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const sendMessage = async (req, res, next) => {
   try {
-    const { receiver_id, text, product_reference } = req.body;
+    const { receiver_id, text, product_reference, metadata } = req.body;
 
     if (!receiver_id) {
       return res.status(400).json({ success: false, message: 'Receiver ID is required.' });
@@ -123,7 +123,8 @@ const sendMessage = async (req, res, next) => {
       sender_id: req.user._id,
       receiver_id,
       text,
-      product_reference: product_reference || null
+      product_reference: product_reference || null,
+      metadata: metadata || null
     });
 
     // Populate for immediate UI consumption if needed
