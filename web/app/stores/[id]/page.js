@@ -165,23 +165,28 @@ export default function StorePage() {
                   <h1 className="text-xl md:text-3xl font-black tracking-tighter text-[var(--text-primary)] uppercase">
                     {store.vendor_id?.store_name}
                   </h1>
-                  <div className="flex items-center justify-center md:justify-start gap-3">
-                     <div className="px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center gap-2">
-                        <Star className="size-3 text-[var(--accent)] fill-current" />
-                        <span className="text-[10px] font-black text-[var(--accent)]">{store.vendor_id?.rating?.toFixed(1) || '5.0'}</span>
-                     </div>
-                     <div className="px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center gap-2">
-                        <Users className="size-3 opacity-40" />
-                        <span className="text-[10px] font-black opacity-60">
-                          {store.vendor_id?.follower_count ? (store.vendor_id.follower_count >= 1000 ? (store.vendor_id.follower_count / 1000).toFixed(1) + 'k' : store.vendor_id.follower_count) : '0'}
-                        </span>
-                     </div>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
+                    <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-black text-[var(--text-primary)]">
+                      {vendor?.rating ? vendor.rating.toFixed(1) : '5.0'}
+                    </span>
+                    <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Rating</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
+                    <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-black text-[var(--text-primary)]">
+                      {vendor?.follower_count ? (vendor.follower_count >= 1000 ? (vendor.follower_count / 1000).toFixed(1) + 'k' : vendor.follower_count) : '0'}
+                    </span>
+                    <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Network</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
+                    <ShieldCheck className="size-3.5 text-emerald-600" />
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Verified Node</span>
                   </div>
                 </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                    <Check className="size-3 text-emerald-600" />
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Trusted</span>
-                  </div>
               </div>
 
               {/* Action Stack - MOBILE OPTIMIZED */}
@@ -239,19 +244,24 @@ export default function StorePage() {
         <div className="px-6 lg:px-12">
           <div ref={productsAnchor} className="mt-12 md:mt-16 mb-8 md:mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
-               {['Signal Intake', 'Latest Drops', 'Catalogs'].map((tab) => (
+               {[
+                 { id: 'Signal Intake', label: 'Signal Intake', icon: <Activity className="size-3.5" /> },
+                 { id: 'Latest Drops', label: 'Latest Drops', icon: <Package className="size-3.5" /> },
+                 { id: 'Catalogs', label: 'Catalogs', icon: <LayoutGrid className="size-3.5" /> }
+               ].map((tab) => (
                  <motion.button 
-                  key={tab}
-                  onClick={() => { setActiveTab(tab); setPage(1); }}
-                  whileHover={{ scale: 1.02 }}
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setPage(1); }}
+                  whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`h-11 md:h-12 px-6 md:px-8 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black tracking-widest uppercase transition-all shrink-0 border-2 ${
-                    tab === activeTab
-                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' 
+                  className={`h-11 md:h-12 px-6 md:px-8 rounded-2xl flex items-center gap-3 text-[10px] md:text-[11px] font-black tracking-widest uppercase transition-all shrink-0 border-2 ${
+                    tab.id === activeTab
+                    ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-primary)] shadow-2xl' 
                     : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]'
                   }`}
                  >
-                   {tab}
+                   {tab.icon}
+                   {tab.label}
                  </motion.button>
                ))}
             </div>

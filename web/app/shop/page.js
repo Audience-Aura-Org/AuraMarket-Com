@@ -339,36 +339,27 @@ function ShopContent() {
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-[9px] md:text-[10px] font-black tracking-wider text-[var(--text-secondary)] uppercase">
-                      <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/5 text-[var(--accent)]">Online Store</span>
-                      <span className="opacity-40">•</span>
-                      <span>{products.length} Items</span>
-                      <span className="opacity-40">•</span>
-                      <div className="flex items-center gap-1 text-[var(--accent)]">
-                        <Star className="size-2.5 fill-current" />
-                        {activeVendor.vendor_id?.rating?.toFixed(1) || '4.9'}
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
+                        <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
+                        <span className="text-[11px] font-black text-[var(--text-primary)]">
+                          {activeVendor.vendor_id?.rating ? activeVendor.vendor_id.rating.toFixed(1) : '5.0'}
+                        </span>
+                        <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Rating</span>
                       </div>
-                      <span className="opacity-40 hidden md:block">•</span>
-                      <p className="hidden md:block normal-case font-medium opacity-60 truncate max-w-md">
-                        {activeVendor.vendor_id?.description || 'Premium Aura network provider.'}
-                      </p>
-                    </div>
 
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4">
-                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
-                          <LayoutGrid className="size-3 text-[var(--accent)]" />
-                          <span className="text-[10px] font-black text-[var(--text-primary)]">{products.length}</span>
-                          <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Objects</span>
-                       </div>
-                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
-                          <Users className="size-3 text-[var(--accent)]" />
-                          <span className="text-[10px] font-black text-[var(--text-primary)]">{activeVendor.vendor_id?.follower_count || 0}</span>
-                          <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Followers</span>
-                       </div>
-                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                          <Check className="size-3 text-emerald-600" />
-                          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Trusted</span>
-                       </div>
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
+                        <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
+                        <span className="text-[11px] font-black text-[var(--text-primary)]">
+                          {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
+                        </span>
+                        <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Network</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
+                        <ShieldCheck className="size-3.5 text-emerald-600" />
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Verified Node</span>
+                      </div>
                     </div>
                   </div>
 
