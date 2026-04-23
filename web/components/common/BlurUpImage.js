@@ -13,6 +13,9 @@ import { useState, useEffect, forwardRef } from 'react';
  *
  * Result: No white flash, no stop, no gap — exactly like WhatsApp.
  */
+// Global cache for loaded images to prevent re-blurring on re-mount or tab switch
+const loadedImages = new Set();
+
 const BlurUpImage = forwardRef(({
   src,
   alt = '',
@@ -25,12 +28,15 @@ const BlurUpImage = forwardRef(({
   onLoad,
   ...props
 }, ref) => {
-  const [sharp, setSharp] = useState(false);
+  const [sharp, setSharp] = useState(() => loadedImages.has(src));
 
-  // Reset state when source changes to ensure the blurred layer
-  // shows up immediately for the NEW image.
+  // If src changes and it's not in cache, reset sharp
   useEffect(() => {
-    setSharp(false);
+    if (src && !loadedImages.has(src)) {
+      setSharp(false);
+    } else if (src && loadedImages.has(src)) {
+      setSharp(true);
+    }
   }, [src]);
 
   if (!src) return null;
@@ -70,6 +76,7 @@ const BlurUpImage = forwardRef(({
         } ${imgClassName}`}
         style={{ ...props.style, willChange: 'opacity' }}
         onLoad={() => {
+          if (src) loadedImages.add(src);
           setSharp(true);
           onLoad?.();
         }}

@@ -298,15 +298,10 @@ export default function StatusTabGrid({ onSelectStatus }) {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-12"
             >
-              {/* Personalized Header */}
+              {/* Personalized Header - Simplified */}
               <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                  <h3 className="text-2xl font-black tracking-tighter text-[var(--text-primary)]">
-                    Your <span className="text-[var(--accent)]">Pulse</span>
-                  </h3>
-                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-[0.2em] mt-1">
-                    Updates from vendors you trust
-                  </p>
+                <div className="hidden md:block">
+                  {/* Empty space or small indicator if needed, but removing the requested text */}
                 </div>
 
                 {/* Category Tags */}
