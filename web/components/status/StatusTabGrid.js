@@ -149,7 +149,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const [globalStatuses, setGlobalStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('pulse'); // Default to Global Pulse so all vendor stories visible
+  const [activeTab, setActiveTab] = useState('inner'); // Inner Circle (followed) is default
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const fetch = useCallback(async () => {
@@ -194,22 +194,29 @@ export default function StatusTabGrid({ onSelectStatus }) {
     });
   }, [followedStatuses, globalStatuses, activeTab]);
 
-  // Derived data
-  const filteredFollowed = useMemo(() => {
-    return followedStatuses.filter(s => 
-      !search.trim() || 
+  // Instant client-side filter (shows result before API refetches)
+  const clientFilteredFollowed = useMemo(() => {
+    const pool = followedStatuses.filter(s =>
+      !search.trim() ||
       [s.vendor_id?.store_name, s.caption, s.text_content].some(t => t?.toLowerCase().includes(search.toLowerCase()))
     );
-  }, [followedStatuses, search]);
+    if (selectedCategory === 'All') return pool;
+    return pool.filter(s => s.category?.toLowerCase() === selectedCategory.toLowerCase());
+  }, [followedStatuses, search, selectedCategory]);
 
-  const filteredGlobal = useMemo(() => {
-    // Filter out statuses from followed vendors to make it true "discovery"
+  const clientFilteredGlobal = useMemo(() => {
     const followedIds = new Set(followedStatuses.map(s => s.vendor_id?._id));
-    return globalStatuses.filter(s => 
+    const pool = globalStatuses.filter(s =>
       (!user || !followedIds.has(s.vendor_id?._id)) &&
       (!search.trim() || [s.vendor_id?.store_name, s.caption, s.text_content].some(t => t?.toLowerCase().includes(search.toLowerCase())))
     );
-  }, [globalStatuses, followedStatuses, search, user]);
+    if (selectedCategory === 'All') return pool;
+    return pool.filter(s => s.category?.toLowerCase() === selectedCategory.toLowerCase());
+  }, [globalStatuses, followedStatuses, search, user, selectedCategory]);
+
+  // Legacy aliases used by render
+  const filteredFollowed = clientFilteredFollowed;
+  const filteredGlobal   = clientFilteredGlobal;
 
   const handleOpen = (status, pool) => {
     const vId = status.vendor_id?._id;
