@@ -531,14 +531,14 @@ export default function HubContent() {
                   {/* Followed Section */}
                   <div className="space-y-4">
                      <div className="flex items-center justify-between px-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Followed Nodes</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Followed Vendors</p>
                         <Heart className="size-3.5 text-[var(--accent)] fill-[var(--accent)]" />
                      </div>
                      <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-3 min-h-[400px] shadow-sm backdrop-blur-xl">
                         {loadingInbox ? (
                           <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[var(--accent)]" /></div>
                         ) : filteredInbox.filter(c => c.isFollowed).length === 0 ? (
-                          <EmptyPlaceholder icon={Users} text="Follow vendors to establish nodes." />
+                          <EmptyPlaceholder icon={Users} text="Follow vendors to see them here." />
                         ) : (
                           <div className="space-y-1">
                              {filteredInbox.filter(c => c.isFollowed).map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}

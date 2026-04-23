@@ -117,7 +117,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                   <div className="size-5 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                     <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
                   </div>
-                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider truncate whitespace-nowrap block flex-1">{vendor_id?.store_name || 'Verified Node'}</span>
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider truncate whitespace-nowrap block flex-1">{vendor_id?.store_name || 'Verified Vendor'}</span>
                 </Link>
                 {user?._id !== vendorUserId && (
                   <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`text-[9px] font-bold tracking-tight ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>

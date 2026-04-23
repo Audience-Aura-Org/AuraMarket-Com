@@ -689,7 +689,7 @@ export default function AccountPageClient() {
                             <RefreshCw className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
-                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Active Node Sessions</p>
+                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Active Device Sessions</p>
                             <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
                           </div>
                         </div>
@@ -731,7 +731,7 @@ export default function AccountPageClient() {
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
-                          <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Pickup Node Configuration</h4>
+                          <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Pickup Address Configuration</h4>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -894,7 +894,7 @@ export default function AccountPageClient() {
                             <div className="relative z-10 flex items-center gap-3">
                               {kycLoading && <RefreshCw className="size-4 animate-spin" />}
                               <span className="text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
-                                {kycLoading ? 'Encrypting Credentials...' : 'Submit to Validation Node'}
+                                {kycLoading ? 'Encrypting Credentials...' : 'Submit for Validation'}
                               </span>
                             </div>
                           </button>
@@ -908,7 +908,7 @@ export default function AccountPageClient() {
               {activeTab === 'network' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Followed Protocols</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Followed Vendors</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -966,7 +966,7 @@ export default function AccountPageClient() {
                                   </div>
 
                                   <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-tighter">
-                                    {vendor.vendor_id?.follower_count || 0} Synchronized Nodes
+                                    {vendor.vendor_id?.follower_count || 0} Followers
                                   </p>
                                 </div>
 
@@ -995,7 +995,7 @@ export default function AccountPageClient() {
               {activeTab === 'audience' && user?.role === 'vendor' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Audience</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Store Audience</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -1010,7 +1010,7 @@ export default function AccountPageClient() {
                       ) : audience.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Connected Nodes</p>
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Followers Yet</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1037,7 +1037,7 @@ export default function AccountPageClient() {
               {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Propagation</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Story Management</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
                   <StatusManager />
@@ -1055,7 +1055,7 @@ export default function AccountPageClient() {
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
-                      <NotificationToggle label="Internal Node Signals" icon={Bell} active={true} />
+                      <NotificationToggle label="App Notifications" icon={Bell} active={true} />
                       <NotificationToggle label="External Multi-cast (Email)" icon={Mail} active={true} />
                     </div>
                   </div>

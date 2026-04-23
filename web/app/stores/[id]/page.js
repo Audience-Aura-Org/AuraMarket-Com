@@ -178,7 +178,7 @@ export default function StorePage() {
 
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                     <ShieldCheck className="size-3.5 text-emerald-600" />
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Verified Node</span>
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Verified Vendor</span>
                   </div>
                 </div>
               </div>

@@ -323,7 +323,6 @@ export default function UnifiedAuth() {
       </div>
 
       <p className="mt-8 text-center text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3em] opacity-40">
-        © 2026 Aura Ecosystem
       </p>
     </div>
   );

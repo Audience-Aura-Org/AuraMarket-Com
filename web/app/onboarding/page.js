@@ -550,7 +550,7 @@ export default function OnboardingFlow() {
                          </div>
                          <div className="flex flex-col min-w-0">
                             <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">{v.store_name || 'Verified Vendor'}</h3>
-                            <p className="text-[10px] text-[var(--text-secondary)] font-medium opacity-50">Verified Node</p>
+                            <p className="text-[10px] text-[var(--text-secondary)] font-medium opacity-50">Verified Merchant</p>
                          </div>
                        </div>
                        
@@ -682,7 +682,6 @@ export default function OnboardingFlow() {
                 >
                   {loading ? <Loader2 className="size-4 animate-spin" /> : 'Enter the Marketplace'}
                 </button>
-                <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-30">Aura Protocol Verified • Identity Access Granted</p>
               </div>
             </div>
           )}

@@ -11,17 +11,15 @@ import dynamic_import from 'next/dynamic';
 const StorefrontRenderer = dynamic_import(() => import('@/components/homepage/StorefrontRenderer'), { ssr: false });
 const AuraAssistant = dynamic_import(() => import('@/components/onboarding/AuraAssistant'), { ssr: false });
 
-// Skeleton for storefront loading — renders instantly without JS
-function StorefrontSkeleton() {
+// Simple SplashScreen for initial mount
+function SplashScreen() {
   return (
-    <div className="w-full min-h-screen pt-16 px-4 space-y-8 animate-pulse">
-      <div className="h-64 rounded-3xl bg-[var(--bg-primary)]" />
-      <div className="grid grid-cols-2 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-48 rounded-2xl bg-[var(--bg-primary)]" />
-        ))}
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white transition-opacity duration-500">
+      <div className="relative">
+        <div className="size-20 rounded-full border border-black/5 flex items-center justify-center overflow-hidden shadow-sm">
+           <img src="/icon-512.png?v=8" className="w-16 h-auto animate-pulse" alt="Aura Logo" />
+        </div>
       </div>
-      <div className="h-40 rounded-3xl bg-[var(--bg-primary)]" />
     </div>
   );
 }
@@ -65,6 +63,7 @@ export default function LandingPage() {
           setSections([]);
         }
       } finally {
+        // Immediate removal of splash once data is in
         setLoading(false);
       }
     };
@@ -74,17 +73,18 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] overflow-x-hidden transition-colors duration-500">
+      {/* Splash Screen */}
+      {loading && <SplashScreen />}
+
       {/* Ambient blobs — CSS-only, zero JS cost */}
       <div className="pointer-events-none fixed top-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full opacity-20 z-0" style={{background:'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter:'blur(60px)'}} />
       <div className="pointer-events-none fixed top-[60%] right-[-50px] w-[400px] h-[400px] rounded-full opacity-20 z-0" style={{background:'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter:'blur(60px)'}} />
 
       {/* Storefront — shows skeleton immediately, replaces when data arrives */}
       <div className="w-full relative z-10">
-        {loading ? (
-          <StorefrontSkeleton />
-        ) : sections && sections.length > 0 ? (
+        {!loading && sections && sections.length > 0 ? (
           <StorefrontRenderer sections={sections} />
-        ) : (
+        ) : !loading && (
           <main className="w-full pt-12 pb-24 px-6 md:px-20">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="flex flex-col gap-8">

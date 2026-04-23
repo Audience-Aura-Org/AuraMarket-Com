@@ -41,7 +41,7 @@ export default function VendorsDirectoryPage() {
               </div>
               <div className="space-y-0.5">
                  <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Merchant Directory</h1>
-                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-40">1,240 global nodes</p>
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-40">1,240 verified merchants</p>
               </div>
            </div>
 
@@ -50,7 +50,7 @@ export default function VendorsDirectoryPage() {
                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
                  <input 
                    type="text" 
-                   placeholder="Search nodes..." 
+                   placeholder="Search merchants..." 
                    value={search}
                    onChange={e => setSearch(e.target.value)}
                    className="w-full h-10 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
@@ -96,7 +96,7 @@ export default function VendorsDirectoryPage() {
 
                     <div className="flex items-center justify-between md:justify-end gap-6">
                        <div className="hidden lg:flex flex-col items-end">
-                          <p className="text-[8px] font-black tracking-widest text-[var(--text-secondary)] opacity-30 uppercase">Origin Node</p>
+                          <p className="text-[8px] font-black tracking-widest text-[var(--text-secondary)] opacity-30 uppercase">Merchant Origin</p>
                           <p className="text-[10px] font-bold text-[var(--text-primary)] opacity-60">West Central Africa</p>
                        </div>
                        
@@ -105,7 +105,7 @@ export default function VendorsDirectoryPage() {
                              <MessageCircle className="size-4 group-hover/msg:scale-110 transition-transform" />
                           </Link>
                           <Link href={`/shop?vendorId=${vendor._id}`} className="h-10 px-6 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold uppercase tracking-widest flex items-center gap-3 hover:bg-[var(--accent)] hover:text-white transition-all group/btn">
-                             View Node <ArrowRight className="size-3 group-hover/btn:translate-x-1 transition-transform" />
+                             View Store <ArrowRight className="size-3 group-hover/btn:translate-x-1 transition-transform" />
                           </Link>
                        </div>
                     </div>

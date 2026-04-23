@@ -32,7 +32,7 @@ export default function StoreHighlights({ title, data }) {
         </div>
         <Link href="/discovery?tab=vendors" className="flex items-center gap-2 group cursor-pointer">
            <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)]">View All Nodes</span>
+           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
         </Link>
       </div>
 
