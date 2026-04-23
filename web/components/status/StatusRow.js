@@ -74,10 +74,10 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
             displayName={displayName}
             hasUnviewed={hasUnviewed}
             onTap={() => {
-              // Rotate so clicked vendor's stories come first (latest first)
-              const vendorItems = [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-              const others      = statuses.filter(s => s.vendor_id?._id !== vendor._id);
-              onSelect([...vendorItems, ...others]);
+              // Find the first unviewed story, or fallback to the latest one
+              const unviewed = items.find(s => !s.isViewed);
+              const startId  = (unviewed || latestStory)?._id;
+              onSelect(statuses, startId);
             }}
           />
         );

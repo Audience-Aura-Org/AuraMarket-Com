@@ -219,22 +219,11 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const filteredGlobal   = clientFilteredGlobal;
 
   const handleOpen = (status, pool) => {
-    const vId = status.vendor_id?._id;
     // Preload sibling stories when one is opened
     pool.slice(0, 10).forEach(s => { if (s.content_url) new Image().src = s.content_url; });
 
-    // Get this vendor's stories and rotate so the CLICKED story is always first
-    const vendorStories = pool.filter(x => x.vendor_id?._id === vId);
-    const clickedIdx = vendorStories.findIndex(s => s._id === status._id);
-    const rotatedVendorStories = [
-      ...vendorStories.slice(clickedIdx >= 0 ? clickedIdx : 0),
-      ...vendorStories.slice(0, clickedIdx >= 0 ? clickedIdx : 0)
-    ];
-
-    onSelectStatus([
-      ...rotatedVendorStories,
-      ...pool.filter(x => x.vendor_id?._id !== vId)
-    ]);
+    // Just pass the pool as-is and the clicked ID
+    onSelectStatus(pool, status._id);
   };
 
   if (loading && !globalStatuses.length && !followedStatuses.length) return <Skeleton />;

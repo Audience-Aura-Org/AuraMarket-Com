@@ -76,31 +76,46 @@ const StoryContent = memo(function StoryContent({ story, active, paused, muted, 
 });
 
 // ─── StatusViewer ─────────────────────────────────────────────────────────────
-export default function StatusViewer({ initialStatuses, onClose }) {
+export default function StatusViewer({ initialStatuses, initialStoryId, onClose }) {
   const router = useRouter();
   const { openChat } = useChat();
 
-  // ── Group by vendor so progress bars are per-vendor ──────────────────────
+  // ── Group by vendor ──────────────────────────────────────────────────────
   const vendorGroups = useMemo(() => {
     const groups = [];
     const seen   = new Set();
+    
+    // 1. Identify unique vendors in the order they appear in initialStatuses
     for (const s of initialStatuses) {
       const vId = (s.vendor_id?._id || s.vendor_id)?.toString();
       if (!seen.has(vId)) {
         seen.add(vId);
+        // 2. Filter all stories for this vendor and sort chronologically (Oldest -> Newest)
+        const vendorStories = initialStatuses
+          .filter(x => (x.vendor_id?._id || x.vendor_id)?.toString() === vId)
+          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          
         groups.push({
           vendorId: vId,
-          stories: initialStatuses.filter(
-            x => (x.vendor_id?._id || x.vendor_id)?.toString() === vId
-          )
+          stories: vendorStories
         });
       }
     }
     return groups;
   }, [initialStatuses]);
 
-  const [vendorIdx,   setVendorIdx]   = useState(0);
-  const [storyIdx,    setStoryIdx]    = useState(0);
+  // Find initial position based on initialStoryId
+  const initialPos = useMemo(() => {
+    if (!initialStoryId) return { vIdx: 0, sIdx: 0 };
+    for (let vIdx = 0; vIdx < vendorGroups.length; vIdx++) {
+      const sIdx = vendorGroups[vIdx].stories.findIndex(s => s._id === initialStoryId);
+      if (sIdx !== -1) return { vIdx, sIdx };
+    }
+    return { vIdx: 0, sIdx: 0 };
+  }, [vendorGroups, initialStoryId]);
+
+  const [vendorIdx,   setVendorIdx]   = useState(initialPos.vIdx);
+  const [storyIdx,    setStoryIdx]    = useState(initialPos.sIdx);
   const [paused,      setPaused]      = useState(false);
   const [liked,       setLiked]       = useState(false);
   const [muted,       setMuted]       = useState(false);
@@ -233,7 +248,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
       className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center overflow-hidden"
     >
       <div
-        className="relative w-full h-full sm:max-w-md sm:mx-auto bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)] select-none touch-none"
+        className="relative w-full h-full bg-black overflow-hidden select-none touch-none"
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
       >

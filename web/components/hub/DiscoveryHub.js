@@ -317,6 +317,7 @@ export default function DiscoveryHub() {
   // Status States
   const [followedStatuses, setFollowedStatuses] = useState([]);
   const [viewingStatuses, setViewingStatuses] = useState(null);
+  const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
 
   const fetchFollowedStatuses = useCallback(async () => {
@@ -368,7 +369,10 @@ export default function DiscoveryHub() {
               <div className="sticky top-0 z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden">
                 <StatusRow 
                   statuses={followedStatuses} 
-                  onSelect={(items) => setViewingStatuses(items)}
+                  onSelect={(items, storyId) => {
+                    setViewingStatuses(items);
+                    setSelectedStoryId(storyId);
+                  }}
                   onAdd={() => setShowCreator(true)}
                   isVendor={user?.role === 'vendor'}
                 />
@@ -380,8 +384,8 @@ export default function DiscoveryHub() {
                 onOpenStatus={(vendorId) => {
                   const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
                   if (items.length > 0) {
-                    const others = followedStatuses.filter(s => s.vendor_id?._id !== vendorId);
-                    setViewingStatuses([...items, ...others]);
+                    setViewingStatuses(followedStatuses);
+                    setSelectedStoryId(items[0]._id);
                   }
                 }}
               />
@@ -400,7 +404,10 @@ export default function DiscoveryHub() {
         </div>
 
         <div className={activeTab === 'status' ? 'block' : 'hidden'}>
-          <StatusTabGrid onSelectStatus={(items) => setViewingStatuses(items)} />
+          <StatusTabGrid onSelectStatus={(items, storyId) => {
+            setViewingStatuses(items);
+            setSelectedStoryId(storyId);
+          }} />
         </div>
 
         <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
@@ -411,8 +418,12 @@ export default function DiscoveryHub() {
         <AnimatePresence>
           {viewingStatuses && (
             <StatusViewer 
-              initialStatuses={viewingStatuses} 
-              onClose={() => setViewingStatuses(null)} 
+              initialStatuses={viewingStatuses}
+              initialStoryId={selectedStoryId}
+              onClose={() => {
+                setViewingStatuses(null);
+                setSelectedStoryId(null);
+              }} 
             />
           )}
           {showCreator && (
