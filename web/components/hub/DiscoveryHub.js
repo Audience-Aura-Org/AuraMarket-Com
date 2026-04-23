@@ -108,10 +108,38 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
     finally { setLoading(false); }
   }, [activeCategoryName, search, page, sortBy, activePrice]);
 
+  // Trigger fetch: Sync with Shop logic (immediate for filters, debounced for search)
   useEffect(() => {
-    const timer = setTimeout(() => fetchProducts(page), search ? 400 : 0);
-    return () => clearTimeout(timer);
-  }, [activeCategoryName, search, page, sortBy, activePrice, fetchProducts]);
+    fetchProducts(1);
+  }, [activeCategoryName, activePrice, sortBy, search]);
+
+  useEffect(() => {
+    fetchProducts(page);
+  }, [page, fetchProducts]);
+
+  const handleCategoryClick = (cat) => {
+    setBreadcrumb(prev => [...prev, cat]);
+    setActiveCategoryId(cat._id);
+    setActiveCategoryName(cat.name);
+    setPage(1);
+  };
+
+  const handleBreadcrumbClick = (idx) => {
+    if (idx === -1) {
+      setBreadcrumb([]);
+      setActiveCategoryId(null);
+      setActiveCategoryName('All');
+    } else {
+      const newBreadcrumb = breadcrumb.slice(0, idx + 1);
+      setBreadcrumb(newBreadcrumb);
+      const last = newBreadcrumb[newBreadcrumb.length - 1];
+      setActiveCategoryId(last._id);
+      setActiveCategoryName(last.name);
+    }
+    setPage(1);
+  };
+
+  const currentLevel = breadcrumb.length === 0 ? categoryTree : breadcrumb[breadcrumb.length - 1].children || [];
 
   useEffect(() => {
     const handleGlobalUpdate = () => fetchProducts(1);
@@ -164,37 +192,41 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                [...Array(6)].map((_, i) => <div key={i} className="shrink-0 w-24 h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse" />)
              ) : (
                <>
-                 <button onClick={() => { setBreadcrumb([]); setActiveCategoryId(null); setActiveCategoryName('All'); setPage(1); }} className={`shrink-0 flex items-center gap-1.5 px-4 py-2 md:px-5 md:py-2.5 rounded-full border border-[var(--glass-border)] transition-all text-[11px] md:text-sm font-normal ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
-                   <Home className="size-3.5" /> All
-                 </button>
+                 {breadcrumb.length > 0 ? (
+                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                     <Home className="size-3.5" /> Market
+                   </button>
+                 ) : (
+                    <button 
+                      onClick={() => handleBreadcrumbClick(-1)}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      All
+                    </button>
+                 )}
 
                  {breadcrumb.map((crumb, idx) => (
                    <div key={crumb._id} className="flex items-center gap-2 shrink-0">
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
-                        onClick={() => {
-                          const newBreadcrumb = breadcrumb.slice(0, idx + 1);
-                          setBreadcrumb(newBreadcrumb);
-                          const last = newBreadcrumb[newBreadcrumb.length - 1];
-                          setActiveCategoryId(last._id);
-                          setActiveCategoryName(last.name);
-                          setPage(1);
-                        }} 
-                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal ${idx === breadcrumb.length - 1 ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)]'}`}
+                        onClick={() => handleBreadcrumbClick(idx)} 
+                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {crumb.name}
                       </button>
                    </div>
                  ))}
 
+                 {breadcrumb.length > 0 && currentLevel.length > 0 && <div className="h-4 w-px bg-[var(--glass-border)] mx-1 shrink-0" />}
+
                  {currentLevel.map(cat => (
                    <button
                        key={cat._id}
                        onClick={() => {
-                         if (cat.children && cat.children.length > 0) setBreadcrumb(p => [...p, cat]);
+                         if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); setPage(1); }
                        }}
-                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border border-[var(--glass-border)] transition-all text-[11px] md:text-sm font-normal bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]`}
+                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {cat.name}
                     </button>
@@ -229,14 +261,14 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             </button>
             {isPriceOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                <button onClick={() => { setActivePrice(null); setIsPriceOpen(false); }} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
-                  Any Price {!activePrice && <Check className="size-3.5" />}
-                </button>
-                {PRICE_RANGES.map(r => (
-                  <button key={r.id} onClick={() => { setActivePrice(r.id); setIsPriceOpen(false); }} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === r.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
-                    {r.name} {activePrice === r.id && <Check className="size-3.5" />}
-                  </button>
-                ))}
+                 <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                   Any Price {!activePrice && <Check className="size-3.5" />}
+                 </button>
+                 {PRICE_RANGES.map(range => (
+                   <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                     {range.name} {activePrice === range.id && <Check className="size-3.5" />}
+                   </button>
+                 ))}
               </div>
             )}
           </div>
@@ -251,12 +283,12 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             </button>
             {isSortOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                {SORT_OPTIONS.map(o => (
-                  <button key={o.value} onClick={() => { setSortBy(o.value); setIsSortOpen(false); }} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === o.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
-                    {o.label}
-                    {sortBy === o.value && <Check className="size-3.5" />}
-                  </button>
-                ))}
+                 {SORT_OPTIONS.map(opt => (
+                   <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                     {opt.label}
+                     {sortBy === opt.value && <Check className="size-3.5" />}
+                   </button>
+                 ))}
               </div>
             )}
           </div>
@@ -279,7 +311,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
              {[...Array(12)].map((_, i) => <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-white/5" />)}
           </div>
         ) : products.length > 0 ? (
-          <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5" : "flex flex-col gap-4 max-w-4xl mx-auto"}>
+          <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
             {products.map(p => <ProductCard key={p._id} product={p} layout={viewMode} />)}
           </div>
         ) : (
