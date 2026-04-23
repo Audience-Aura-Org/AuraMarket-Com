@@ -139,7 +139,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
     setPage(1);
   };
 
-  const currentLevel = breadcrumb.length === 0 ? categoryTree : breadcrumb[breadcrumb.length - 1].children || [];
+
 
   useEffect(() => {
     const handleGlobalUpdate = () => fetchProducts(1);
