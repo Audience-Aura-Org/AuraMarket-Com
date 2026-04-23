@@ -30,8 +30,8 @@ const WishlistContent = dynamic(() => import('./HubSubTabs').then(mod => mod.Wis
 
 const TABS = [
   { id: 'vendors', icon: Store, label: 'Vendors' },
-  { id: 'discover', icon: Compass, label: 'Discover' },
-  { id: 'status', icon: Activity, label: 'Status' },
+  { id: 'discover', icon: Compass, label: 'Atmosphere & Vibes' },
+  { id: 'status', icon: Activity, label: 'Stories Hub' },
   { id: 'profile', icon: User, label: 'Profile' },
 ];
 

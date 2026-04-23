@@ -45,7 +45,7 @@ const BlurUpImage = forwardRef(({
 
   return (
     <div className={`relative overflow-hidden ${className}`} style={style}>
-      {/* ── Layer 1: blur placeholder (always visible as a base) ── */}
+      {/* ── Layer 1: blur placeholder (only visible while loading) ── */}
       <img
         src={src}
         alt=""
@@ -53,13 +53,12 @@ const BlurUpImage = forwardRef(({
         draggable={false}
         fetchPriority={priority}
         decoding="async"
-        className={`absolute inset-0 w-full h-full ${fitClass}`}
+        className={`absolute inset-0 w-full h-full ${fitClass} transition-opacity duration-700`}
         style={{
           filter: 'blur(18px) brightness(0.85)',
           transform: 'scale(1.08)',
           willChange: 'opacity',
-          // Stay visible even when sharp is loaded to handle transparent or small images
-          opacity: 0.8, 
+          opacity: sharp ? 0 : 0.8, 
         }}
       />
 

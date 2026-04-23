@@ -1,5 +1,5 @@
 "use client";
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Plus, Sparkles } from 'lucide-react';
 import BlurUpImage from '@/components/common/BlurUpImage';
 
@@ -10,6 +10,19 @@ import BlurUpImage from '@/components/common/BlurUpImage';
  */
 export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) {
   const scrollRef = useRef(null);
+  const [repliedVendorIds, setRepliedVendorIds] = useState(new Set());
+
+  // Listen for global reply events
+  useEffect(() => {
+    const handleReply = (e) => {
+      const vendorId = e.detail?.sender_id?.vendor_id || e.detail?.sender_id?._id;
+      if (vendorId) {
+        setRepliedVendorIds(prev => new Set([...prev, vendorId]));
+      }
+    };
+    window.addEventListener('aura_vendor_reply', handleReply);
+    return () => window.removeEventListener('aura_vendor_reply', handleReply);
+  }, []);
 
   // Group by vendor, sort each group so latest story is first
   const vendorMap = statuses.reduce((acc, status) => {
@@ -73,7 +86,16 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
             storeName={storeName}
             displayName={displayName}
             hasUnviewed={hasUnviewed}
+            hasReply={repliedVendorIds.has(vendor._id)}
             onTap={() => {
+              // Clear reply highlight on tap
+              if (repliedVendorIds.has(vendor._id)) {
+                setRepliedVendorIds(prev => {
+                  const next = new Set(prev);
+                  next.delete(vendor._id);
+                  return next;
+                });
+              }
               // Find the first unviewed story, or fallback to the latest one
               const unviewed = items.find(s => !s.isViewed);
               const startId  = (unviewed || latestStory)?._id;
@@ -86,7 +108,7 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
   );
 }
 
-function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed, onTap }) {
+function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed, hasReply, onTap }) {
   return (
     <button
       onClick={onTap}
@@ -95,10 +117,12 @@ function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed,
       <div className="relative">
         {/* Outer gradient ring */}
         <div
-          className={`size-[78px] md:size-[86px] rounded-full p-[2.5px] transition-all duration-300 ${
-            hasUnviewed
-              ? 'bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-400 shadow-[0_0_16px_rgba(139,92,246,0.4)]'
-              : 'bg-[var(--glass-border)] opacity-50 group-hover:opacity-70'
+          className={`size-[78px] md:size-[86px] rounded-full p-[2.5px] transition-all duration-300 relative ${
+            hasReply
+              ? 'bg-gradient-to-tr from-emerald-400 via-emerald-500 to-teal-400 shadow-[0_0_20px_rgba(16,185,129,0.5)] animate-pulse'
+              : hasUnviewed
+                ? 'bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-400 shadow-[0_0_16px_rgba(139,92,246,0.4)]'
+                : 'bg-[var(--glass-border)] opacity-50 group-hover:opacity-70'
           }`}
         >
           {/* Inner circle — story preview as background + logo on top */}
