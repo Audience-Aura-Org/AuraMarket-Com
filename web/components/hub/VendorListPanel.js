@@ -98,6 +98,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
               <div className="h-2 w-8 bg-[var(--bg-secondary)] rounded" />
             </div>
           ))
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center p-8">
             <div className="size-16 rounded-full bg-[var(--accent)]/5 flex items-center justify-center mb-4">
                <MessageCircle className="w-8 h-8 text-[var(--accent)] opacity-20" />
