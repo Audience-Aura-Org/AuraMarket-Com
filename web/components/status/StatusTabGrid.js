@@ -324,7 +324,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
               </section>
 
               {filteredFollowed.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
                   {filteredFollowed.map((s, i) => (
                     <PremiumCard 
                       key={s._id} 
@@ -379,7 +379,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
               </section>
 
               {filteredGlobal.length > 0 ? (
-                <div className="columns-2 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-8 2xl:columns-10 gap-3 md:gap-4 space-y-3 md:space-y-4">
+                <div className="columns-2 sm:columns-4 md:columns-5 lg:columns-6 gap-3 md:gap-4 space-y-3 md:space-y-4">
                   {filteredGlobal.map((s, i) => (
                     <PremiumCard 
                       key={s._id} 
