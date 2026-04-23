@@ -39,10 +39,16 @@ const createProduct = async (req, res, next) => {
     };
 
     if (req.body.tags && typeof req.body.tags === 'string') {
-      try {
-        productData.tags = JSON.parse(req.body.tags);
-      } catch (e) {}
+      try { productData.tags = JSON.parse(req.body.tags); } catch (e) {}
     }
+    if (req.body.variant_types && typeof req.body.variant_types === 'string') {
+      try { productData.variant_types = JSON.parse(req.body.variant_types); } catch (e) {}
+    }
+    if (req.body.sku_variants && typeof req.body.sku_variants === 'string') {
+      try { productData.sku_variants = JSON.parse(req.body.sku_variants); } catch (e) {}
+    }
+    if (req.body.has_variants === 'true') productData.has_variants = true;
+    if (req.body.has_variants === 'false') productData.has_variants = false;
 
     const product = await Product.create(productData);
 
@@ -247,10 +253,16 @@ const updateProduct = async (req, res, next) => {
     updateData.images = finalImages;
 
     if (req.body.tags && typeof req.body.tags === 'string') {
-      try {
-        updateData.tags = JSON.parse(req.body.tags);
-      } catch (e) {}
+      try { updateData.tags = JSON.parse(req.body.tags); } catch (e) {}
     }
+    if (req.body.variant_types && typeof req.body.variant_types === 'string') {
+      try { updateData.variant_types = JSON.parse(req.body.variant_types); } catch (e) {}
+    }
+    if (req.body.sku_variants && typeof req.body.sku_variants === 'string') {
+      try { updateData.sku_variants = JSON.parse(req.body.sku_variants); } catch (e) {}
+    }
+    if (req.body.has_variants === 'true') updateData.has_variants = true;
+    if (req.body.has_variants === 'false') updateData.has_variants = false;
 
     delete updateData.featured;
     delete updateData.existing_images;

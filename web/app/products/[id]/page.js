@@ -15,6 +15,8 @@ import { trackView, trackCart } from '@/services/tracking';
 import ProductCard from '@/components/ProductCard';
 import cartStore from '@/services/cartStore';
 import { toast as hotToast } from 'react-hot-toast';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import BlurUpImage from '@/components/common/BlurUpImage';
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
@@ -32,6 +34,8 @@ export default function ProductDetailsPage() {
   const [wishlisted, setWishlisted] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [currentVariant, setCurrentVariant] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -51,6 +55,28 @@ export default function ProductDetailsPage() {
     api.get(`/products/${id}/related?limit=10`).then(r => setRelated(r.data.data?.products || [])).catch(() => {});
   }, [id]);
 
+  useEffect(() => {
+    if (product?.has_variants && product.variant_types?.length > 0) {
+      // Default select first options
+      const defaults = {};
+      product.variant_types.forEach(type => {
+        if (type.options?.length > 0) defaults[type.name] = type.options[0];
+      });
+      setSelectedOptions(defaults);
+    }
+  }, [product]);
+
+  useEffect(() => {
+    if (product?.has_variants && product.sku_variants?.length > 0) {
+      const match = product.sku_variants.find(v => 
+        Object.entries(selectedOptions).every(([k, val]) => v.combination[k] === val)
+      );
+      setCurrentVariant(match || null);
+    } else {
+      setCurrentVariant(null);
+    }
+  }, [selectedOptions, product]);
+
   const handleWishlist = async () => {
     if (!user) return router.push('/login');
     try {
@@ -64,15 +90,27 @@ export default function ProductDetailsPage() {
   const handleAddToCart = async () => {
     if (!user) return router.push('/login');
     setAddingToCart(true);
-    trackCart(product);
-    cartStore.addItem(product, quantity);
+    const itemToTrack = currentVariant 
+      ? { ...product, price: currentVariant.price, variant: currentVariant.combination }
+      : product;
+    trackCart(itemToTrack);
+    cartStore.addItem(itemToTrack, quantity);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('cart-item-added', {
-        detail: { name: product.name, image: product.images?.[0]?.url || product.images?.[0] }
+        detail: { 
+          name: product.name, 
+          image: currentVariant?.image || product.images?.[0]?.url || product.images?.[0],
+          variant: currentVariant?.combination 
+        }
       }));
     }
     try {
-      const res = await api.post('/cart', { product_id: id, quantity });
+      const payload = { 
+        product_id: id, 
+        quantity,
+        variant: currentVariant?.combination
+      };
+      const res = await api.post('/cart', payload);
       cartStore.setCart(res.data.data.cart);
       hotToast.success('Added to cart');
     } catch {
@@ -107,14 +145,7 @@ export default function ProductDetailsPage() {
     imgRef.current.style.transformOrigin = `${((e.clientX - left) / width) * 100}% ${((e.clientY - top) / height) * 100}%`;
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-secondary)]">
-      <div className="relative size-10">
-        <div className="absolute inset-0 border-2 border-[var(--glass-border)] rounded-full" />
-        <div className="absolute inset-0 border-2 border-transparent border-t-[var(--accent)] rounded-full animate-spin" />
-      </div>
-    </div>
-  );
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!product) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg-secondary)] gap-4">
@@ -129,10 +160,14 @@ export default function ProductDetailsPage() {
 
   const images = product?.images?.length ? product.images : [{ url: '/placeholder.png' }];
   const vendor = product?.vendor_id;
-  const inStock = Boolean(product?.stock > 0);
+  
+  const displayPrice = currentVariant ? currentVariant.price : product?.price;
+  const displayStock = currentVariant ? currentVariant.stock : product?.stock;
+  const inStock = Boolean(displayStock > 0);
+  
   const rating = Number(product?.rating || 0);
   const discount = product?.oldPrice
-    ? Math.round(100 - (product.price / product.oldPrice) * 100)
+    ? Math.round(100 - (displayPrice / product.oldPrice) * 100)
     : null;
 
   // Detect if the logged-in user is the vendor who listed this product
@@ -208,11 +243,13 @@ export default function ProductDetailsPage() {
                 )}
               </div>
 
-              <img
+              <BlurUpImage
                 ref={imgRef}
                 src={images[activeImg]?.url || images[activeImg]}
                 alt={product.name}
-                className={`w-full h-full object-contain p-4 transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
+                objectFit="contain"
+                className="w-full h-full p-4"
+                imgClassName={`transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
               />
             </div>
           </div>
@@ -226,7 +263,12 @@ export default function ProductDetailsPage() {
                     ? 'shadow-[0_10px_20px_-5px_rgba(0,0,0,0.1)] scale-105 ring-2 ring-[var(--text-primary)]'
                     : 'opacity-60 hover:opacity-100 hover:scale-105'
                 }`}>
-                <img src={img.url || img} className="w-full h-full object-contain p-2" alt={`View ${i + 1}`} />
+                <BlurUpImage 
+                  src={img.url || img} 
+                  className="w-full h-full p-2" 
+                  objectFit="contain"
+                  alt={`View ${i + 1}`} 
+                />
               </button>
             ))}
           </div>
@@ -259,7 +301,7 @@ export default function ProductDetailsPage() {
                 <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">Price</p>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] tracking-tight leading-none">
-                    {product.price?.toLocaleString()}
+                    {displayPrice?.toLocaleString()}
                   </span>
                   <span className="text-xs font-bold text-[var(--accent)] leading-none pb-0.5">XAF</span>
                 </div>
@@ -277,11 +319,73 @@ export default function ProductDetailsPage() {
                     : 'bg-red-500/10 text-red-500'
                 }`}>
                   <span className={`size-1.5 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                  {inStock ? `${product.stock} available` : 'Out of stock'}
+                  {inStock ? `${displayStock} available` : 'Out of stock'}
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Variant Selectors */}
+          {product.has_variants && product.variant_types?.length > 0 && (
+            <div className="space-y-6 bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8">
+              {product.variant_types.map((type) => (
+                <div key={type.name} className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black uppercase tracking-[0.15em] text-[var(--text-primary)]">
+                      Select {type.name}
+                    </span>
+                    <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full uppercase">
+                      {selectedOptions[type.name]}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {type.options.map((option) => {
+                      const isColor = type.name.toLowerCase() === 'color';
+                      const hexCode = type.metadata?.[option];
+                      const isActive = selectedOptions[type.name] === option;
+
+                      if (isColor && hexCode) {
+                        return (
+                          <button
+                            key={option}
+                            onClick={() => setSelectedOptions(prev => ({ ...prev, [type.name]: option }))}
+                            title={option}
+                            className={`group relative flex items-center justify-center size-10 rounded-full transition-all ${
+                              isActive ? 'ring-2 ring-[var(--text-primary)] ring-offset-2' : 'ring-1 ring-[var(--glass-border)]'
+                            }`}
+                          >
+                            <div 
+                              className="size-full rounded-full border border-black/10"
+                              style={{ backgroundColor: hexCode }}
+                            />
+                            {isActive && (
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <CheckCircle2 className="size-4 text-white drop-shadow-md" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={option}
+                          onClick={() => setSelectedOptions(prev => ({ ...prev, [type.name]: option }))}
+                          className={`px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${
+                            isActive
+                              ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                              : 'border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]/40'
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Short Description */}
           <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-4">

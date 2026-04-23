@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { cartStore } from '@/services/cartStore';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
@@ -94,11 +95,7 @@ export default function CartPage() {
   const discount = coupon ? (coupon.type === 'percent' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount) : 0;
   const total = subtotal - discount;
 
-  if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-      <Loader2 className="w-10 h-10 text-[var(--accent)] animate-spin" />
-    </div>
-  );
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (cartItems.length === 0) {
     return (

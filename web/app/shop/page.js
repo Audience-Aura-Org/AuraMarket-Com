@@ -10,6 +10,8 @@ import {
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import BlurUpImage from '@/components/common/BlurUpImage';
 import { useFollow } from '@/hooks/useFollow';
 import { useChat } from '@/context/ChatContext';
 import api from '@/services/api';
@@ -302,9 +304,10 @@ function ShopContent() {
           <div className="relative w-full">
             {/* 1. Banner Section - COMPACT */}
             <div className="relative h-[140px] md:h-[180px] w-full overflow-hidden">
-              <img 
+              <BlurUpImage 
                 src={activeVendor.banner || activeVendor.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070'} 
-                className="w-full h-full object-cover brightness-75 transition-transform duration-[3s] hover:scale-105"
+                className="w-full h-full" 
+                imgClassName="brightness-75 transition-transform duration-[3s] hover:scale-105" 
                 alt="Store Banner"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)] via-transparent to-black/20" />
@@ -316,10 +319,11 @@ function ShopContent() {
                 <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-center text-center md:text-left">
                   {/* Overlapping Logo - ULTRA COMPACT */}
                   <div className="size-16 md:size-24 rounded-2xl md:rounded-[2rem] border-2 md:border-4 border-[var(--bg-primary)] overflow-hidden shadow-lg shrink-0 bg-[var(--bg-secondary)] relative group">
-                    <img 
+                    <BlurUpImage 
                       src={activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo || activeVendor.vendor_id?.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeVendor.vendor_id?.store_name || 'Store')}&background=random&size=200`} 
-                      className="size-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                      alt="" 
+                      className="size-full" 
+                      imgClassName="transition-transform duration-700 group-hover:scale-110" 
+                      alt={activeVendor.vendor_id?.store_name} 
                     />
                   </div>
 
@@ -538,7 +542,7 @@ function VendorFollowButton({ vendorId }) {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center"><div className="w-12 h-12 rounded-full border-4 border-[var(--accent)] border-t-transparent animate-spin"></div></div>}>
+    <Suspense fallback={<LoadingSpinner fullScreen />}>
       <ShopContent />
     </Suspense>
   );

@@ -12,6 +12,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,10 @@ export default function VendorAnalyticsPage() {
   const avgOrderValue = orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0;
   const totalViews = products.reduce((sum, p) => sum + (p.view_count || 0), 0);
   const totalWishlists = products.reduce((sum, p) => sum + (p.wishlist_count || 0), 0);
+
+  if (loading) {
+    return <LoadingSpinner fullScreen />;
+  }
 
   if (user?.role !== 'vendor' || !user.onboarded) return null;
 

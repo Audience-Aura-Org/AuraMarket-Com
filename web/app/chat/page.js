@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import socketService from '@/services/socket';
 
 /**
@@ -405,7 +406,7 @@ export default function RedChatPage() {
   if (!user) return null;
 
   return (
-    <Suspense fallback={<div className="fixed inset-0 bg-[#0c0c0c] flex items-center justify-center opacity-20"><Loader2 className="animate-spin" /></div>}>
+    <Suspense fallback={<LoadingSpinner fullScreen />}>
       <ChatContent />
     </Suspense>
   );

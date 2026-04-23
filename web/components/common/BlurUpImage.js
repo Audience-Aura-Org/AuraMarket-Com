@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 
 /**
  * BlurUpImage — WhatsApp-style progressive image loading.
@@ -13,7 +13,7 @@ import { useState, useEffect } from 'react';
  *
  * Result: No white flash, no stop, no gap — exactly like WhatsApp.
  */
-export default function BlurUpImage({
+const BlurUpImage = forwardRef(({
   src,
   alt = '',
   className = '',
@@ -23,7 +23,8 @@ export default function BlurUpImage({
   objectFit = 'cover',
   draggable = false,
   onLoad,
-}) {
+  ...props
+}, ref) => {
   const [sharp, setSharp] = useState(false);
 
   // Reset state when source changes to ensure the blurred layer
@@ -58,6 +59,7 @@ export default function BlurUpImage({
 
       {/* ── Layer 2: sharp image (fades in on load) ───────────── */}
       <img
+        ref={ref}
         src={src}
         alt={alt}
         draggable={draggable}
@@ -66,12 +68,17 @@ export default function BlurUpImage({
         className={`relative w-full h-full ${fitClass} transition-opacity duration-500 ${
           sharp ? 'opacity-100' : 'opacity-0'
         } ${imgClassName}`}
-        style={{ willChange: 'opacity' }}
+        style={{ ...props.style, willChange: 'opacity' }}
         onLoad={() => {
           setSharp(true);
           onLoad?.();
         }}
+        {...props}
       />
     </div>
   );
-}
+});
+
+BlurUpImage.displayName = 'BlurUpImage';
+
+export default BlurUpImage;

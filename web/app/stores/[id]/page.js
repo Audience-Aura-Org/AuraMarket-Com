@@ -9,6 +9,7 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useChat } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'), { ssr: false });
 
@@ -115,13 +116,7 @@ export default function StorePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!store) {
     return (

@@ -18,6 +18,7 @@ const OrderItemSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true }, // price locked at time of purchase
   image: { type: String },
+  variant: { type: mongoose.Schema.Types.Mixed, default: null }
 });
 
 const OrderSchema = new mongoose.Schema(

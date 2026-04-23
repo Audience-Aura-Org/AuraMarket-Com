@@ -13,7 +13,7 @@ exports.createStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only vendors can post statuses' });
     }
 
-    const { type, content_url, text_content, linked_product, caption } = req.body;
+    const { type, content_url, text_content, linked_product, caption, category } = req.body;
 
     const status = await Status.create({
       vendor_id: vendor._id,
@@ -22,6 +22,7 @@ exports.createStatus = async (req, res) => {
       text_content,
       linked_product,
       caption,
+      category: category || 'General',
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000)
     });
 
@@ -36,9 +37,13 @@ exports.createStatus = async (req, res) => {
 // @access  Private
 exports.getActiveStatuses = async (req, res) => {
   try {
-    const { mode = 'global', sort = 'trending', page = 1, limit = 20 } = req.query;
+    const { mode = 'global', sort = 'trending', category, page = 1, limit = 40 } = req.query;
     const now = new Date();
     const query = { expires_at: { $gt: now } };
+
+    if (category && category !== 'All') {
+      query.category = category;
+    }
 
     // Followed-only mode: scope to followed vendors
     if (mode === 'followed') {

@@ -14,6 +14,7 @@ import { useFollow } from '@/hooks/useFollow';
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
 import { toast } from 'react-hot-toast';
+import BlurUpImage from '@/components/common/BlurUpImage';
 
 /**
  * ProductCard - Elite Nexus Version
@@ -98,7 +99,12 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         <div className="relative h-full aspect-[4/5] shrink-0 rounded-2xl overflow-hidden bg-[var(--accent)]/5">
           {/* Synchronized Node Badge */}
 
-          <img src={mainImage} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          <BlurUpImage 
+            src={mainImage} 
+            alt={name} 
+            className="w-full h-full" 
+            imgClassName="transition-transform duration-700 group-hover:scale-105" 
+          />
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2 right-2 size-8 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/40 text-white border-white/10 hover:bg-red-500'}`}>
             <Heart className={`size-4 ${wishlisted ? 'fill-current' : ''}`} />
           </button>
@@ -193,7 +199,12 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
 
         <Link href={`/products/${productId}`} className="block h-full w-full" onClick={e => e.stopPropagation()}>
-          <img src={mainImage} alt={name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+          <BlurUpImage 
+            src={mainImage} 
+            alt={name} 
+            className="w-full h-full" 
+            imgClassName="transition-transform duration-1000 group-hover:scale-110" 
+          />
         </Link>
         
         {/* Wishlist Icon */}

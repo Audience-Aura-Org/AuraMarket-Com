@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +12,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const TX_ICONS = {
   deposit:    { Icon: ArrowDownLeft,  color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
@@ -273,10 +274,7 @@ export default function WalletPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-40">
-            <div className="size-14 rounded-full border-4 border-[var(--accent)]/10 border-t-[var(--accent)] animate-spin" />
-            <p className="mt-6 text-[var(--text-secondary)] font-bold text-xs uppercase tracking-widest opacity-40">Loading...</p>
-          </div>
+          <LoadingSpinner />
         ) : (
           <div className="space-y-6">
             

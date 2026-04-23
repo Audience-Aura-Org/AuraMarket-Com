@@ -66,8 +66,29 @@ const createOrder = async (req, res, next) => {
         throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
       }
 
+      let itemPrice = product.price;
+      let itemImage = product.images.length > 0 ? product.images[0].url : null;
+
+      // Handle Variant Price/Stock/Image
+      if (product.has_variants && item.variant) {
+        const variantMatch = product.sku_variants.find(v => 
+          Object.entries(item.variant).every(([k, val]) => v.combination[k] === val)
+        );
+        if (variantMatch) {
+          if (variantMatch.stock < item.quantity) {
+             throw new Error(`Insufficient stock for ${product.name} (${Object.values(item.variant).join('/')}). Available: ${variantMatch.stock}`);
+          }
+          itemPrice = variantMatch.price;
+          if (variantMatch.image) itemImage = variantMatch.image;
+          
+          // Reduce variant stock
+          variantMatch.stock -= item.quantity;
+        }
+      }
+
       product.stock -= item.quantity;
       product.purchase_count = (product.purchase_count || 0) + item.quantity;
+      product.markModified('sku_variants');
       await product.save({ session });
 
       // Low stock alert (in-app only)
@@ -83,11 +104,12 @@ const createOrder = async (req, res, next) => {
         product_id: product._id,
         name:       product.name,
         quantity:   item.quantity,
-        price:      product.price,
-        image:      product.images.length > 0 ? product.images[0].url : null,
+        price:      itemPrice,
+        image:      itemImage,
+        variant:    item.variant
       });
 
-      subtotal += product.price * item.quantity;
+      subtotal += itemPrice * item.quantity;
     }
 
     // 3. Handle Coupon Logic
@@ -585,12 +607,45 @@ const createOrdersFromCart = async (req, res, next) => {
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
       let subtotal = 0;
       const orderProducts = items.map(it => {
-        subtotal += it.product.price * it.quantity;
-        return { product_id: it.product._id, name: it.product.name, quantity: it.quantity, price: it.product.price, image: it.product.images?.[0]?.url };
+        let itemPrice = it.product.price;
+        let itemImage = it.product.images?.[0]?.url;
+
+        if (it.product.has_variants && it.variant) {
+          const variantMatch = it.product.sku_variants.find(v => 
+            Object.entries(it.variant).every(([k, val]) => v.combination[k] === val)
+          );
+          if (variantMatch) {
+            itemPrice = variantMatch.price;
+            if (variantMatch.image) itemImage = variantMatch.image;
+          }
+        }
+
+        subtotal += itemPrice * it.quantity;
+        return { 
+          product_id: it.product._id, 
+          name: it.product.name, 
+          quantity: it.quantity, 
+          price: itemPrice, 
+          image: itemImage,
+          variant: it.variant
+        };
       });
 
       for (const it of items) {
-        await Product.findByIdAndUpdate(it.product._id, { $inc: { stock: -it.quantity, purchase_count: it.quantity } }, { session });
+        // Find product to update stock
+        const p = await Product.findById(it.product._id).session(session);
+        if (p) {
+          if (p.has_variants && it.variant) {
+            const vMatch = p.sku_variants.find(v => 
+              Object.entries(it.variant).every(([k, val]) => v.combination[k] === val)
+            );
+            if (vMatch) vMatch.stock -= it.quantity;
+            p.markModified('sku_variants');
+          }
+          p.stock -= it.quantity;
+          p.purchase_count = (p.purchase_count || 0) + it.quantity;
+          await p.save({ session });
+        }
       }
 
       let shippingFee = 0;

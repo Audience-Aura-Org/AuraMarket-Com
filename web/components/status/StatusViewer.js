@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Heart, ShoppingBag, MessageCircle,
   ChevronLeft, ChevronRight, Volume2, VolumeX,
-  Eye, Flame
+  Eye, Flame, Send, Sparkles, MoreHorizontal,
+  Share2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
@@ -14,14 +15,13 @@ import BlurUpImage from '@/components/common/BlurUpImage';
 const STORY_DURATION = 5000;
 
 /**
- * StatusViewer — WhatsApp-speed story viewer.
- * - Progress bar keyed directly on idx (resets in the SAME render, no useEffect delay)
- * - Navigation never blocked by loading state
- * - Buffer Stack: Renders adjacent stories in the DOM (opacity-0) so they load in background
- * - Zero "dark screens": The next story is already rendered before you tap.
+ * Premium StatusViewer — The pinnacle of story experiences.
+ * - Zero-latency navigation
+ * - Elegant glassmorphism overlays
+ * - Intuitive gesture controls
+ * - Boutique-grade typography
  */
 
-// Single story content — renders immediately, manages its own playback
 const StoryContent = memo(function StoryContent({ story, active, paused, muted, onVideoEnd, onTimeUpdate }) {
   const localVideoRef = useRef(null);
 
@@ -71,13 +71,14 @@ const StoryContent = memo(function StoryContent({ story, active, paused, muted, 
 
   return (
     <div
-      className="w-full h-full flex items-center justify-center p-10 text-center"
-      style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%)' }}
+      className="w-full h-full flex items-center justify-center p-12 text-center"
+      style={{ background: 'linear-gradient(165deg, #050505 0%, #150824 100%)' }}
     >
-      <div className="absolute inset-0 opacity-40">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 size-64 rounded-full bg-[var(--accent)] blur-[100px]" />
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[400px] rounded-full bg-[var(--accent)]/10 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 right-0 size-[300px] rounded-full bg-purple-600/10 blur-[100px]" />
       </div>
-      <p className="relative z-10 text-3xl font-black italic text-white leading-snug tracking-tight">
+      <p className="relative z-10 text-4xl font-black italic text-white leading-tight tracking-tighter drop-shadow-2xl">
         {story.text_content}
       </p>
     </div>
@@ -92,6 +93,8 @@ export default function StatusViewer({ initialStatuses, onClose }) {
   const [paused, setPaused] = useState(false);
   const [liked, setLiked] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [isReplying, setIsReplying] = useState(false);
 
   const holdTimer = useRef(null);
   const touchStart = useRef({ x: 0, y: 0, t: 0 });
@@ -100,9 +103,7 @@ export default function StatusViewer({ initialStatuses, onClose }) {
   const total = initialStatuses.length;
   const isVideo = story?.type === 'video';
 
-  // ── Preload Strategy ──────────────────────────────────────────
   useEffect(() => {
-    // Background preload of all story media once component mounts
     initialStatuses.forEach(s => {
       if (s.type === 'image' && s.content_url) {
         const img = new Image();
@@ -115,6 +116,8 @@ export default function StatusViewer({ initialStatuses, onClose }) {
     if (idx < total - 1) {
       setIdx(idx + 1);
       setLiked(false);
+      setReplyText('');
+      setIsReplying(false);
     } else {
       onClose();
     }
@@ -124,8 +127,30 @@ export default function StatusViewer({ initialStatuses, onClose }) {
     if (idx > 0) {
       setIdx(idx - 1);
       setLiked(false);
+      setReplyText('');
+      setIsReplying(false);
     }
   }, [idx]);
+
+  const ago = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    return `${Math.floor(hours / 24)}d`;
+  };
+
+  const handleProgressEnd = () => {
+    if (!paused) goNext();
+  };
+
+  const handleViewProduct = () => {
+    if (!story.linked_product?._id) return;
+    onClose();
+    router.push(`/products/${story.linked_product._id}`);
+  };
 
   const toggleLike = async () => {
     const next = !liked;
@@ -135,30 +160,29 @@ export default function StatusViewer({ initialStatuses, onClose }) {
     } catch (e) { console.error(e); }
   };
 
-  const handleViewProduct = () => {
-    if (!story.linked_product?._id) return;
-    onClose();
-    router.push(`/products/${story.linked_product._id}`);
-  };
-
-  const handleChat = () => {
+  const handleSendReply = async () => {
+    if (!replyText.trim()) return;
     const vId = story.vendor_id?._id || story.vendor_id;
-    if (!vId) return;
-    onClose();
-    router.push(`/messages?vendorId=${vId}`);
+    try {
+      await api.post('/messages', {
+        receiverId: vId,
+        content: `Replied to your story: "${replyText}"`,
+        metadata: { type: 'story_reply', storyId: story._id }
+      });
+      setReplyText('');
+      setIsReplying(false);
+      // Show success toast or something?
+    } catch (e) { console.error(e); }
   };
 
-  const handleProgressEnd = () => {
-    if (!paused) goNext();
-  };
-
-  // ── Interaction Handlers ─────────────────────────────────────
   const onPointerDown = (e) => {
+    if (isReplying) return;
     touchStart.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     holdTimer.current = setTimeout(() => setPaused(true), 250);
   };
 
   const onPointerUp = (e) => {
+    if (isReplying) return;
     clearTimeout(holdTimer.current);
     const duration = Date.now() - touchStart.current.t;
     const dist = Math.abs(e.clientX - touchStart.current.x);
@@ -168,7 +192,6 @@ export default function StatusViewer({ initialStatuses, onClose }) {
       return;
     }
 
-    // Swipe down to close
     if (e.clientY - touchStart.current.y > 100 && duration < 500) {
       onClose();
       return;
@@ -188,32 +211,30 @@ export default function StatusViewer({ initialStatuses, onClose }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center select-none touch-none overflow-hidden"
     >
       <div
-        className="relative w-full h-full sm:max-w-md sm:mx-auto bg-black overflow-hidden shadow-2xl"
+        className="relative w-full h-full sm:max-w-md sm:mx-auto bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)]"
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
       >
-        {/* ── Progress Indicators ─────────────────────────────── */}
-        <div className={`absolute top-[calc(env(safe-area-inset-top)+12px)] inset-x-3 z-50 flex gap-1 transition-opacity duration-150 ${paused ? 'opacity-0' : 'opacity-100'}`}>
+        {/* ── Progress Indicators ── */}
+        <div className={`absolute top-[calc(env(safe-area-inset-top)+16px)] inset-x-4 z-50 flex gap-1.5 transition-opacity duration-300 ${paused ? 'opacity-0' : 'opacity-100'}`}>
           {initialStatuses.map((_, i) => (
-            <div key={i} className="h-[3px] flex-1 rounded-full overflow-hidden bg-white/25">
+            <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-white/20 backdrop-blur-md">
               {i < idx ? (
                 <div className="h-full w-full bg-white rounded-full" />
               ) : i === idx ? (
                 <div
                   id={`progress-${idx}`}
                   key={`active-${idx}`}
-                  className="h-full rounded-full bg-white"
+                  className="h-full rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
                   style={!isVideo ? {
                     width: paused ? undefined : '100%',
-                    animation: paused
-                      ? 'none'
-                      : `story-progress ${STORY_DURATION}ms linear forwards`,
+                    animation: paused ? 'none' : `story-progress ${STORY_DURATION}ms linear forwards`,
                   } : { width: '0%' }}
                   onAnimationEnd={!isVideo ? handleProgressEnd : undefined}
                 />
@@ -224,157 +245,170 @@ export default function StatusViewer({ initialStatuses, onClose }) {
           ))}
         </div>
 
-        {/* ── Header ─────────────────────────────────────────── */}
-        <div className={`absolute top-[calc(env(safe-area-inset-top)+28px)] inset-x-4 z-50 flex items-center justify-between transition-opacity duration-150 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-full overflow-hidden border-2 border-white/30 shadow-md bg-black/40">
-              {vendorLogo
-                ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
-                : <div className="size-full flex items-center justify-center text-xs font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">{storeName[0]}</div>
-              }
+        {/* ── Premium Header ── */}
+        <div className={`absolute top-[calc(env(safe-area-inset-top)+32px)] inset-x-5 z-50 flex items-center justify-between transition-all duration-300 ${paused ? 'opacity-0 translate-y-[-10px]' : 'opacity-100 translate-y-0'}`}>
+          <div className="flex items-center gap-3">
+            <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-xl">
+              <div className="size-full rounded-full overflow-hidden border-2 border-black bg-black">
+                {vendorLogo
+                  ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
+                  : <div className="size-full flex items-center justify-center text-xs font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">{storeName[0]}</div>
+                }
+              </div>
             </div>
             <div>
-              <p className="text-[14px] font-black text-white leading-tight tracking-tight shadow-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{storeName}</p>
-              <span className="text-[10px] font-bold text-white/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                {new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[15px] font-black text-white tracking-tight drop-shadow-lg">{storeName}</p>
+                <div className="size-1 rounded-full bg-white/40" />
+                <span className="text-[10px] font-bold text-white/60">
+                  {ago(story.createdAt)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-[9px] font-black text-[var(--accent)] uppercase tracking-widest mt-0.5">
+                 <Sparkles className="size-2.5" /> Official Drop
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {isVideo && (
               <button
                 onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}
-                className="size-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center"
+                className="size-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
               >
-                {muted ? <VolumeX className="size-4 text-white" /> : <Volume2 className="size-4 text-white" />}
+                {muted ? <VolumeX className="size-4.5" /> : <Volume2 className="size-4.5" />}
               </button>
             )}
-            <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="size-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
-              <X className="size-4 text-white" />
+            <button 
+              onClick={(e) => { e.stopPropagation(); onClose(); }} 
+              className="size-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+            >
+              <X className="size-5" />
             </button>
           </div>
         </div>
 
-        {/* ── BUFFER STACK (The "WhatsApp" Secret) ──────────────
-            We render a window of stories.
-            Active story is opacity-100.
-            Next/Prev stories are in the DOM (loading pixels) but opacity-0.
-            This guarantees zero "dark screens" or "load stops".
-        ──────────────────────────────────────────────────────── */}
-        <div className="absolute inset-0 z-10 bg-black">
+        {/* ── Story Content ── */}
+        <div className="absolute inset-0 z-10 bg-[#050505]">
           {initialStatuses.map((s, i) => {
-            // Only render current, next, and previous to save memory
             const isNear = Math.abs(i - idx) <= 1;
             if (!isNear) return null;
-
             return (
-              <div
-                key={s._id}
-                className={`absolute inset-0 transition-opacity duration-300 ${
-                  i === idx ? 'opacity-100 z-20' : 'opacity-0 z-10'
-                }`}
-              >
-                <StoryContent
-                  story={s}
-                  active={i === idx}
-                  paused={paused}
-                  muted={muted}
-                  onVideoEnd={goNext}
+              <div key={s._id} className={`absolute inset-0 transition-all duration-500 ease-out ${i === idx ? 'opacity-100 z-20 scale-100' : 'opacity-0 z-10 scale-105'}`}>
+                <StoryContent 
+                  story={s} 
+                  active={i === idx} 
+                  paused={paused} 
+                  muted={muted} 
+                  onVideoEnd={goNext} 
                   onTimeUpdate={(e) => {
                     if (i === idx) {
                       const bar = document.getElementById(`progress-${idx}`);
-                      if (bar && e.target.duration) {
-                        bar.style.width = `${(e.target.currentTime / e.target.duration) * 100}%`;
-                      }
+                      if (bar && e.target.duration) bar.style.width = `${(e.target.currentTime / e.target.duration) * 100}%`;
                     }
-                  }}
+                  }} 
                 />
               </div>
             );
           })}
-          {/* Global gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none z-30" />
-        </div>
-
-        {/* ── Tap zones ── */}
-        <div className="absolute inset-x-0 top-20 bottom-32 z-40 flex pointer-events-auto">
-          <div className="w-[35%]" onClick={(e) => { e.stopPropagation(); goPrev(); }} />
-          <div className="flex-1" onClick={(e) => { e.stopPropagation(); goNext(); }} />
-        </div>
-
-        {/* ── Footer ── */}
-        <div className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-8 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-200 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          {story.caption && (
-            <p className="text-[15px] text-white font-medium mb-5 leading-relaxed line-clamp-4 bg-black/40 backdrop-blur-md px-5 py-4 rounded-3xl border border-white/10 shadow-xl">
-              {story.caption}
-            </p>
+          
+          {/* Preload Next Story (Hidden) */}
+          {idx < total - 1 && (
+            <div className="hidden" aria-hidden="true">
+              {initialStatuses[idx + 1].type === 'video' ? (
+                <video src={initialStatuses[idx + 1].content_url} preload="auto" muted />
+              ) : (
+                <img src={initialStatuses[idx + 1].content_url} alt="" />
+              )}
+            </div>
           )}
 
-          <div className="flex items-center gap-2.5">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90 pointer-events-none z-30" />
+        </div>
+
+        {/* ── Interactive Footer ── */}
+        <div className={`absolute bottom-0 inset-x-0 z-50 px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] transition-all duration-300 ${paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0'}`}>
+          {story.caption && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <p className="text-[16px] text-white/95 font-medium leading-relaxed drop-shadow-xl line-clamp-3">
+                {story.caption}
+              </p>
+            </motion.div>
+          )}
+
+          {/* Tagged Product Highlight */}
+          {story.linked_product && (
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={(e) => { e.stopPropagation(); handleViewProduct(); }}
+              className="w-full mb-6 p-4 rounded-[2rem] bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="size-14 rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-inner">
+                   <BlurUpImage src={typeof story.linked_product.images?.[0] === 'string' ? story.linked_product.images[0] : story.linked_product.images?.[0]?.url} alt="" className="size-full" objectFit="cover" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[13px] font-black text-white tracking-tight uppercase line-clamp-1">{story.linked_product.name}</p>
+                  <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">{story.linked_product.price?.toLocaleString()} XAF</p>
+                </div>
+              </div>
+              <div className="size-10 rounded-full bg-[var(--accent)] text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <ShoppingBag className="size-5" />
+              </div>
+            </motion.button>
+          )}
+
+          {/* Action Row */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative flex items-center">
+               <input 
+                 type="text" 
+                 value={replyText}
+                 onChange={e => setReplyText(e.target.value)}
+                 onFocus={() => { setPaused(true); setIsReplying(true); }}
+                 onBlur={() => { setPaused(false); setTimeout(() => setIsReplying(false), 200); }}
+                 placeholder="Reply with fire..."
+                 className="w-full h-14 rounded-full bg-white/10 backdrop-blur-2xl border border-white/15 px-6 pr-14 text-sm font-medium text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/50 focus:bg-white/20 transition-all shadow-xl"
+               />
+               <button 
+                 onClick={handleSendReply}
+                 disabled={!replyText.trim()}
+                 className={`absolute right-2 size-10 rounded-full flex items-center justify-center transition-all ${replyText.trim() ? 'bg-[var(--accent)] text-white scale-100 shadow-lg' : 'bg-white/5 text-white/20 scale-90'}`}
+               >
+                 <Send className="size-4.5" />
+               </button>
+            </div>
+
+            <motion.button
+              whileTap={{ scale: 0.8 }}
               onClick={(e) => { e.stopPropagation(); toggleLike(); }}
-              className={`flex items-center justify-center gap-2 h-11 px-5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-colors ${
-                liked
-                  ? 'bg-red-500 border-red-500 text-white'
-                  : 'bg-white/10 border-white/15 text-white'
-              }`}
+              className={`size-14 rounded-full flex items-center justify-center border transition-all shadow-xl ${liked ? 'bg-red-500 border-red-500 text-white' : 'bg-white/10 border-white/15 text-white backdrop-blur-2xl'}`}
             >
-              <Heart className={`size-3.5 ${liked ? 'fill-current' : ''}`} />
-              {liked ? 'Liked' : 'Like'}
+              <Heart className={`size-6 ${liked ? 'fill-current' : ''}`} />
             </motion.button>
 
-            {story.linked_product && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={(e) => { e.stopPropagation(); handleViewProduct(); }}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-purple-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg"
-              >
-                <ShoppingBag className="size-3.5" />
-                View Product
-              </motion.button>
-            )}
-
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.stopPropagation(); handleChat(); }}
-              className={`flex items-center justify-center gap-2 h-11 rounded-2xl bg-white/10 border border-white/15 text-white font-black text-[10px] uppercase tracking-widest ${
-                story.linked_product ? 'px-3.5' : 'flex-1'
-              }`}
-            >
-              <MessageCircle className="size-3.5" />
-              {!story.linked_product && 'Chat'}
-            </motion.button>
+            <button className="size-14 rounded-full bg-white/10 border border-white/15 backdrop-blur-2xl flex items-center justify-center text-white hover:bg-white/20 transition-all shadow-xl">
+               <Share2 className="size-5.5" />
+            </button>
           </div>
 
-          <div className="flex items-center justify-between mt-3 px-1">
-            <div className="flex items-center gap-1.5 text-white/60 drop-shadow-md">
-              <Eye className="size-3" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{story.views_count || 0} views</span>
+          <div className="mt-4 flex items-center justify-between px-2">
+            <div className="flex items-center gap-2 text-white/50">
+               <Eye className="size-3.5" />
+               <span className="text-[10px] font-black uppercase tracking-[0.2em]">{story.views_count || 0} views</span>
             </div>
-            <div className="flex items-center gap-1.5 drop-shadow-md">
-              <Flame className="size-3 text-orange-400" />
-              <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{idx + 1}/{total}</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+               <Flame className="size-3 text-orange-500" />
+               <span className="text-[10px] font-black text-white/80">{idx + 1} / {total}</span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Desktop nav arrows */}
-      <button
-        onClick={goPrev}
-        disabled={idx === 0}
-        className="hidden lg:flex absolute left-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-[1001] disabled:opacity-20"
-      >
-        <ChevronLeft className="size-6" />
-      </button>
-      <button
-        onClick={goNext}
-        className="hidden lg:flex absolute right-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-[1001]"
-      >
-        <ChevronRight className="size-6" />
-      </button>
 
       <style jsx global>{`
         @keyframes story-progress {

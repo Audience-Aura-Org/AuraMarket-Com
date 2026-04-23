@@ -13,6 +13,7 @@ import {
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
@@ -932,7 +933,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin size-8 border-2 border-[var(--accent)] rounded-full border-t-transparent" /></div>}>
+    <Suspense fallback={<LoadingSpinner fullScreen />}>
       <CheckoutContent />
     </Suspense>
   );

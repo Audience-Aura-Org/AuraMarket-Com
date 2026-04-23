@@ -15,6 +15,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -86,11 +87,7 @@ export default function OrdersPage() {
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const currentOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-      <div className="size-12 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-all duration-500 pb-32">

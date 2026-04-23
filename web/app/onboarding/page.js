@@ -268,26 +268,6 @@ export default function OnboardingFlow() {
             )}
           </div>
 
-          <div className="text-center space-y-2">
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
-              Calibrating <span className="text-[var(--accent)]">Aura</span>
-            </h2>
-            <div className="flex flex-col items-center gap-1">
-               <p className="text-[10px] text-[var(--text-secondary)] font-bold opacity-40">Synchronizing Hub with Matrix nodes</p>
-               <div className="w-32 h-1 bg-[var(--bg-primary)] rounded-full mt-2 overflow-hidden border border-[var(--glass-border)]">
-                  {mounted ? (
-                    <motion.div 
-                      initial={{ x: "-100%" }}
-                      animate={{ x: "100%" }}
-                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                      className="w-full h-full bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent" 
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-[var(--accent)]/20 animate-pulse" />
-                  )}
-               </div>
-            </div>
-          </div>
         </div>
       </div>
     );

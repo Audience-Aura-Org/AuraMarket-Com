@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Eye, Heart, ShoppingBag, 
-  RefreshCw, Activity, Calendar, AlertCircle
+  RefreshCw, Activity, Calendar, AlertCircle, Clock, Zap, Flame, Shield
 } from 'lucide-react';
 import api from '@/services/api';
 import StatusCreator from './StatusCreator';
@@ -115,8 +115,12 @@ export default function StatusManager() {
                 
                 <div className="flex flex-col items-end gap-2">
                    <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-black tracking-tight uppercase flex items-center gap-2 shadow-xl">
-                      <span className={`size-1.5 rounded-full ${timeLeft < 5 ? 'bg-red-500 animate-pulse' : 'bg-[var(--accent)]'}`} />
-                      {timeLeft}h left
+                      <Clock className={`size-3 ${timeLeft < 5 ? 'text-red-400 animate-pulse' : 'text-[var(--accent)]'}`} />
+                      {timeLeft < 24 ? `${timeLeft}h left` : `${Math.ceil(timeLeft / 24)}d left`}
+                   </div>
+                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase flex items-center gap-1.5">
+                      {status.expiry_days === 1 ? <Zap className="size-2.5 text-amber-400" /> : status.expiry_days === 7 ? <Shield className="size-2.5 text-emerald-400" /> : <Flame className="size-2.5 text-[var(--accent)]" />}
+                      {status.expiry_days || 1}d story
                    </div>
                    <button 
                      onClick={(e) => { e.stopPropagation(); handleDelete(status._id); }}
@@ -173,7 +177,7 @@ export default function StatusManager() {
                   </div>
                   <div className="text-right hidden sm:block">
                     <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
-                    <p className="text-lg font-black tabular-nums tracking-tighter">24h</p>
+                    <p className="text-lg font-black tabular-nums tracking-tighter">{status.expiry_days || 1}d</p>
                   </div>
                   <button 
                     onClick={() => handleDelete(status._id)}

@@ -620,6 +620,15 @@ export default function AccountPageClient() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-[11px] md:text-xs font-black tracking-widest uppercase truncate text-[var(--text-primary)] mb-1">{title}</p>
+                                      {firstItem?.variant && (
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                          {Object.entries(firstItem.variant).map(([k, v]) => (
+                                            <span key={k} className="text-[8px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded-md uppercase">
+                                              {k}: {v}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
                                       <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     <div className="text-right shrink-0">

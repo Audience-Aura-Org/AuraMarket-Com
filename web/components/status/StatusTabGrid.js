@@ -1,286 +1,455 @@
 "use client";
-import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { Heart, Flame, Globe, Play, Search, X } from 'lucide-react';
+import { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { 
+  Heart, Flame, Play, Search, X, Eye, 
+  TrendingUp, Zap, Clock, Tag, ShoppingBag, 
+  Plus, Users, Globe, Sparkles, ChevronRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
+import { useAuthStore } from '@/hooks/useAuth';
 
-const SORT_TABS = [
-  { id: 'trending', label: 'Trending' },
-  { id: 'new',      label: 'Recent'   },
-  { id: 'popular',  label: 'All'      },
-];
+// ─── Utils ─────────────────────────────────────────────────────────────────────
 
-/**
- * StatusTabGrid — WhatsApp-speed stories grid.
- * - Cards tap instantly (never block on image load)
- * - Shimmer skeleton while images load (like WhatsApp)
- * - fetchPriority="high" on first visible row
- * - Memo'd cards prevent re-renders on sort/search change
- * - Background preload of all images after data arrives
- */
-export default function StatusTabGrid({ onSelectStatus }) {
-  const [statuses, setStatuses]   = useState([]);
-  const [loading,  setLoading]    = useState(true);
-  const [sortBy,   setSortBy]     = useState('trending');
-  const [search,   setSearch]     = useState('');
-  const searchRef = useRef(null);
+const ago = d => {
+  const s = Math.floor((Date.now() - new Date(d)) / 1000);
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s/60)}m`;
+  if (s < 86400) return `${Math.floor(s/3600)}h`;
+  return `${Math.floor(s/86400)}d`;
+};
 
-  const fetchStatuses = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/statuses', { params: { mode: 'global', sort: sortBy } });
-      if (res.data.success) {
-        const data = res.data.data || [];
-        setStatuses(data);
+const hoursLeft = exp => Math.max(0, (new Date(exp) - Date.now()) / 3600000);
 
-        // Fire-and-forget preload — all images enter browser cache immediately
-        data.forEach(s => {
-          if (s.type === 'image' && s.content_url) {
-            const img = new Image();
-            img.src = s.content_url;
-          }
-        });
-      }
-    } catch (e) {
-      console.error('Failed to fetch global statuses:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [sortBy]);
+const score = s => (s.likes_count || 0) * 3 + (s.views_count || 0) - ((Date.now() - new Date(s.createdAt)) / 3600000) * 0.4;
 
-  useEffect(() => { fetchStatuses(); }, [fetchStatuses]);
-
-  const baseFiltered = search.trim()
-    ? statuses.filter(s =>
-        s.vendor_id?.store_name?.toLowerCase().includes(search.toLowerCase()) ||
-        s.caption?.toLowerCase().includes(search.toLowerCase()) ||
-        s.text_content?.toLowerCase().includes(search.toLowerCase())
-      )
-    : statuses;
-
-  // Max 2 tiles per vendor so no single store dominates
-  const vendorCounts = {};
-  const gridStatuses = baseFiltered.filter(s => {
-    const vId = s.vendor_id?._id || 'unknown';
-    vendorCounts[vId] = (vendorCounts[vId] || 0) + 1;
-    return vendorCounts[vId] <= 2;
-  });
+// ─── Premium Shared Card ────────────────────────────────────────────────────────
+const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 'auto', onClick, className = '' }) {
+  const v = status.vendor_id;
+  const logo = v?.user_id?.branding?.logo || v?.user_id?.avatar;
+  const name = v?.store_name || 'Store';
+  const isText = status.type === 'text';
+  const expH = hoursLeft(status.expires_at);
+  const urgent = expH > 0 && expH < 12;
 
   return (
-    <div className="flex flex-col bg-[var(--bg-secondary)]">
-
-      {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-20 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)]/60">
-        <div className="flex items-center justify-between px-5 pt-4 pb-2 gap-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-50">
-              Live Feed
-            </h2>
-            <div className="size-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)] animate-pulse" />
-          </div>
-
-          <div className="flex bg-[var(--bg-secondary)]/50 rounded-full h-9 p-1 gap-1 border border-black/[0.05] dark:border-white/[0.05]">
-            {SORT_TABS.map(tab => {
-              const isActive = sortBy === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setSortBy(tab.id)}
-                  className={`flex items-center px-4 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-150 ${
-                    isActive
-                      ? 'bg-black dark:bg-white text-white dark:text-black shadow-lg'
-                      : 'text-[var(--text-secondary)]/40 hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="px-5 pb-3">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)]/50" />
-            <input
-              ref={searchRef}
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search stories or vendors..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl py-2.5 pl-9 pr-9 text-[11px] font-medium outline-none focus:ring-1 focus:ring-[var(--accent)]/50 placeholder:text-[var(--text-secondary)]/40 transition-all"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                <X className="size-3.5 text-[var(--text-secondary)]" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Grid ── */}
-      <div className="px-3 md:px-5 pt-4 pb-6">
-        {loading ? (
-          /* WhatsApp-style shimmer skeleton — matches the real card shape */
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-            {[...Array(10)].map((_, i) => (
-              <div
-                key={i}
-                className={`${i === 0 ? 'aspect-[3/5]' : 'aspect-[3/4]'} rounded-2xl overflow-hidden relative`}
-              >
-                {/* Shimmer base */}
-                <div className="absolute inset-0 animate-shimmer" />
-                {/* Faint bottom overlay to hint at card structure */}
-                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent rounded-b-2xl" />
-                {/* Avatar ghost */}
-                <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                  <div className="size-5 rounded-full bg-white/10" />
-                  <div className="h-2 w-14 rounded-full bg-white/10" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : gridStatuses.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-            {gridStatuses.map((status, i) => (
-              <StatusCard
-                key={status._id}
-                status={status}
-                featured={i === 0}
-                // fetchPriority high for first 6 visible cards, low for rest
-                priority={i < 6 ? 'high' : 'low'}
-                onClick={() => {
-                  const vId = status.vendor_id?._id;
-                  const vendorItems = statuses.filter(s => s.vendor_id?._id === vId);
-                  const otherItems  = statuses.filter(s => s.vendor_id?._id !== vId);
-                  onSelectStatus([...vendorItems, ...otherItems]);
-                }}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-32 text-center gap-4">
-            <div className="size-16 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center">
-              <Globe className="size-8 text-[var(--accent)]/40" />
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-[var(--text-secondary)]">
-                {search ? 'No stories match your search' : 'No Active Stories'}
-              </p>
-              <p className="text-[10px] text-[var(--text-secondary)]/50 mt-1">
-                {search ? 'Try a different term' : 'Check back soon for new vendor stories'}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * StatusCard — WhatsApp blur-up card.
- * BlurUpImage: blurred placeholder appears instantly (no stops, no white flash),
- * sharp image fades in once loaded. Tap is always instant.
- */
-const StatusCard = memo(function StatusCard({ status, featured, priority, onClick }) {
-  const vendor      = status.vendor_id;
-  const isVideo     = status.type === 'video';
-  const isText      = status.type === 'text';
-  const aspectClass = featured ? 'aspect-[3/5]' : 'aspect-[3/4]';
-  const vendorAvatar = vendor?.user_id?.branding?.logo || vendor?.user_id?.avatar;
-
-  return (
-    <div
+    <motion.button
+      whileHover={{ y: -8, scale: 1.02 }}
+      whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      className={`group relative ${aspectClass} rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-150`}
+      onMouseEnter={() => {
+        if (status.content_url && status.type !== 'text') {
+          if (status.type === 'video') {
+            const vid = document.createElement('video');
+            vid.src = status.content_url;
+            vid.preload = 'auto';
+          } else {
+            const img = new Image();
+            img.src = status.content_url;
+          }
+        }
+      }}
+      className={`group relative overflow-hidden rounded-[2rem] shadow-2xl transition-all duration-500 cursor-pointer ${className}`}
     >
-      {/* ── Background layer ── */}
-      <div className="absolute inset-0 z-0">
+      {/* Dynamic Background with Glow */}
+      <div className="absolute inset-0">
         {!isText ? (
-          // BlurUpImage: blurred placeholder → sharp fade-in. No stops.
-          <BlurUpImage
-            src={status.content_url}
-            alt=""
-            priority={priority}
-            className="w-full h-full group-hover:scale-105 transition-transform duration-300"
-            objectFit="cover"
-          />
+          <>
+            <BlurUpImage src={status.content_url} alt={name} priority={priority}
+              className="w-full h-full group-hover:scale-110 transition-transform duration-[2s] ease-out"
+              objectFit="cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+          </>
         ) : (
-          /* Text story — always instant */
-          <div
-            className="size-full p-5 flex items-center justify-center text-center"
-            style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a0a2e 100%)' }}
-          >
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute top-4 left-4 size-20 rounded-full bg-[var(--accent)] blur-[40px]" />
-              <div className="absolute bottom-4 right-4 size-16 rounded-full bg-purple-600 blur-[30px]" />
-            </div>
-            <p className="relative z-10 text-[10px] md:text-[11px] font-black italic uppercase text-white leading-relaxed line-clamp-5">
+          <div className="size-full flex items-center justify-center p-6 text-center overflow-hidden"
+            style={{ background: 'linear-gradient(160deg, #090909 0%, #1a1a1a 100%)' }}>
+            {/* Animated background blobs */}
+            <div className="absolute -top-10 -left-10 size-32 bg-[var(--accent)] blur-[60px] opacity-20 rounded-full animate-pulse" />
+            <div className="absolute -bottom-10 -right-10 size-32 bg-purple-600 blur-[60px] opacity-20 rounded-full animate-pulse delay-700" />
+            
+            <p className="relative z-10 text-[11px] font-black italic uppercase text-white/90 leading-relaxed tracking-wider line-clamp-6">
               {status.text_content}
             </p>
           </div>
         )}
-
-        {/* Gradient overlay — always on top */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/25 group-hover:from-black/90 transition-all duration-150" />
       </div>
 
-      {/* Video badge */}
-      {isVideo && (
-        <div className="absolute top-2.5 right-2.5 z-10 size-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-          <Play className="size-3 text-white fill-current ml-0.5" />
-        </div>
-      )}
-
-      {/* Featured badge */}
-      {featured && (
-        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/20">
-          <Flame className="size-2.5 text-orange-400" />
-          <span className="text-[8px] font-black uppercase tracking-widest text-white">Top</span>
-        </div>
-      )}
-
-      {/* ── Info overlay ── */}
-      <div className="absolute inset-x-0 bottom-0 p-3 z-10">
-        <div className="flex items-center gap-2 mb-2">
-          <VendorAvatar src={vendorAvatar} name={vendor?.store_name} />
-          <p className="text-[9px] font-black text-white/90 uppercase tracking-tight truncate">
-            {vendor?.store_name}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
-            <Heart className="size-2.5 text-red-400 fill-current" />
-            <span className="text-[8px] font-bold text-white">{status.likes_count || 0}</span>
+      {/* Glass Overlay for info */}
+      <div className="absolute inset-x-0 bottom-0 p-4 z-20 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+        <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3 space-y-2 shadow-2xl">
+          <div className="flex items-center gap-2">
+            <div className="size-6 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
+              {logo ? (
+                <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
+              ) : (
+                <div className="size-full flex items-center justify-center text-[8px] font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
+                  {name[0]}
+                </div>
+              )}
+            </div>
+            <p className="text-[9px] font-black text-white uppercase tracking-widest truncate">{name}</p>
+            {isNew && (
+              <div className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent)] text-white text-[7px] font-black uppercase">
+                <Sparkles className="size-2" /> New
+              </div>
+            )}
           </div>
-          <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">
-            {new Date(status.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-          </span>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-[8px] font-bold text-white/70">
+                <Heart className="size-2.5 text-red-400 fill-red-400/20" />
+                <span>{status.likes_count || 0}</span>
+              </div>
+              <div className="flex items-center gap-1 text-[8px] font-bold text-white/70">
+                <Eye className="size-2.5 text-blue-400" />
+                <span>{status.views_count || 0}</span>
+              </div>
+            </div>
+            <span className="text-[8px] font-bold text-white/40">{ago(status.createdAt)}</span>
+          </div>
+
+          {status.linked_product && (
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-white/5 border border-white/5 text-[8px] font-bold text-white/80">
+              <ShoppingBag className="size-2.5 text-[var(--accent)]" />
+              <span className="truncate">{status.linked_product.name}</span>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+
+      {/* Floating Badges */}
+      <div className="absolute top-4 left-4 z-30 flex gap-2">
+        {rank && (
+          <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 shadow-lg">
+             <Flame className={`size-3 ${rank === 1 ? 'text-orange-400' : 'text-white/60'}`} />
+             <span className="text-[9px] font-black text-white">#{rank}</span>
+          </div>
+        )}
+      </div>
+
+      {urgent && (
+        <div className="absolute top-4 right-4 z-30">
+          <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-red-500/80 backdrop-blur-xl border border-white/20 text-[9px] font-black text-white shadow-lg animate-pulse">
+            <Clock className="size-3" /> {Math.floor(expH)}h
+          </div>
+        </div>
+      )}
+    </motion.button>
   );
 });
 
-/** Vendor avatar — blur-up progressive load, no state boilerplate */
-function VendorAvatar({ src, name }) {
-  if (src) {
-    return (
-      <BlurUpImage
-        src={src}
-        alt={name || ''}
-        priority="low"
-        className="size-5 md:size-6 rounded-full border border-white/30 shrink-0 overflow-hidden"
-        objectFit="cover"
-      />
+const CATEGORIES = ['All', 'Fashion', 'Electronics', 'Lifestyle', 'Tech', 'Art', 'Beauty', 'General'];
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+export default function StatusTabGrid({ onSelectStatus }) {
+  const { user } = useAuthStore();
+  const [followedStatuses, setFollowedStatuses] = useState([]);
+  const [globalStatuses, setGlobalStatuses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('inner'); // 'inner' or 'pulse'
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = { 
+        sort: 'trending', 
+        limit: 50,
+        category: selectedCategory === 'All' ? undefined : selectedCategory
+      };
+
+      const [globalRes, followedRes] = await Promise.all([
+        api.get('/statuses', { params: { ...params, mode: 'global' } }),
+        user ? api.get('/statuses', { params: { ...params, mode: 'followed' } }) : Promise.resolve({ data: { data: [] } })
+      ]);
+
+      if (globalRes.data.success) {
+        setGlobalStatuses(globalRes.data.data || []);
+      }
+      if (followedRes.data.success) {
+        setFollowedStatuses(followedRes.data.data || []);
+      }
+    } catch (e) {
+      console.error('[StatusHub] Fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, selectedCategory]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  // Preload Top Stories for WhatsApp-speed viewing
+  useEffect(() => {
+    const pool = activeTab === 'inner' ? followedStatuses : globalStatuses;
+    pool.slice(0, 15).forEach(s => {
+      if (s.content_url && s.type === 'image') {
+        const img = new Image();
+        img.src = s.content_url;
+      }
+    });
+  }, [followedStatuses, globalStatuses, activeTab]);
+
+  // Derived data
+  const filteredFollowed = useMemo(() => {
+    return followedStatuses.filter(s => 
+      !search.trim() || 
+      [s.vendor_id?.store_name, s.caption, s.text_content].some(t => t?.toLowerCase().includes(search.toLowerCase()))
     );
-  }
+  }, [followedStatuses, search]);
+
+  const filteredGlobal = useMemo(() => {
+    // Filter out statuses from followed vendors to make it true "discovery"
+    const followedIds = new Set(followedStatuses.map(s => s.vendor_id?._id));
+    return globalStatuses.filter(s => 
+      (!user || !followedIds.has(s.vendor_id?._id)) &&
+      (!search.trim() || [s.vendor_id?.store_name, s.caption, s.text_content].some(t => t?.toLowerCase().includes(search.toLowerCase())))
+    );
+  }, [globalStatuses, followedStatuses, search, user]);
+
+  const handleOpen = (status, pool) => {
+    const vId = status.vendor_id?._id;
+    // Preload sibling stories when one is opened
+    pool.slice(0, 10).forEach(s => { if (s.content_url) new Image().src = s.content_url; });
+
+    onSelectStatus([
+      ...pool.filter(x => x.vendor_id?._id === vId),
+      ...pool.filter(x => x.vendor_id?._id !== vId)
+    ]);
+  };
+
+  if (loading && !globalStatuses.length && !followedStatuses.length) return <Skeleton />;
+
   return (
-    <div className="size-5 md:size-6 rounded-full border border-white/30 overflow-hidden shrink-0 flex items-center justify-center text-[8px] font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">
-      {name?.[0]}
+    <div className="bg-[var(--bg-secondary)] min-h-screen pb-32 w-full">
+      {/* ── HIGH-END STICKY HEADER ── */}
+      <div className="sticky top-0 z-40 bg-[var(--bg-primary)]/80 backdrop-blur-3xl border-b border-[var(--glass-border)] w-full">
+        <div className="w-full px-6 lg:px-12 pt-6 pb-4 space-y-6">
+          <div className="flex items-end justify-between">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black tracking-[0.4em] text-[var(--accent)] uppercase opacity-80">
+                Atmosphere & Vibes
+              </p>
+              <h2 className="text-4xl font-black tracking-tighter text-[var(--text-primary)] leading-none">
+                Stories <span className="opacity-30">Hub</span>
+              </h2>
+            </div>
+            
+            <div className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+              <div className="size-2 rounded-full bg-[var(--accent)] animate-pulse shadow-[0_0_8px_var(--accent)]" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
+                {globalStatuses.length + followedStatuses.length} Live
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* Tabs for Inner vs Pulse */}
+            <div className="flex p-1.5 bg-[var(--bg-secondary)] rounded-[1.5rem] border border-[var(--glass-border)] w-full md:w-auto">
+              <button 
+                onClick={() => setActiveTab('inner')}
+                className={`flex-1 md:flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xl border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              >
+                <Users className="size-3.5" /> Inner Circle
+              </button>
+              <button 
+                onClick={() => setActiveTab('pulse')}
+                className={`flex-1 md:flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xl border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              >
+                <Globe className="size-3.5" /> Global Pulse
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative w-full md:w-72 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)]/40 group-focus-within:text-[var(--accent)] transition-colors" />
+              <input 
+                type="text" 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search vibes..."
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-11 pr-11 text-[11px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-secondary)]/30"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--accent)]">
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full px-6 lg:px-12 pt-10">
+        <AnimatePresence mode="wait">
+          {activeTab === 'inner' ? (
+            <motion.div 
+              key="inner-circle"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="space-y-12"
+            >
+              {/* Personalized Header */}
+              <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  <h3 className="text-2xl font-black tracking-tighter text-[var(--text-primary)]">
+                    Your <span className="text-[var(--accent)]">Pulse</span>
+                  </h3>
+                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-[0.2em] mt-1">
+                    Updates from vendors you trust
+                  </p>
+                </div>
+
+                {/* Category Tags */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {CATEGORIES.map(c => (
+                    <button 
+                      key={c} 
+                      onClick={() => setSelectedCategory(c)}
+                      className={`shrink-0 px-5 py-2.5 rounded-full border transition-all text-[9px] font-black uppercase tracking-widest ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-lg' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {filteredFollowed.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-6 md:gap-8">
+                  {filteredFollowed.map((s, i) => (
+                    <PremiumCard 
+                      key={s._id} 
+                      status={s} 
+                      isNew={i < 3}
+                      priority={i < 4 ? 'high' : 'auto'}
+                      className="aspect-[4/5]"
+                      onClick={() => handleOpen(s, filteredFollowed)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Empty 
+                  icon={<Users className="size-12 opacity-20" />}
+                  title="Quiet in the Circle"
+                  desc={user ? "The vendors you follow haven't posted recently. Explore the Global Pulse for something new!" : "Sign in to follow vendors and build your personal pulse."}
+                  action={!user ? "Sign In" : "Explore Global"}
+                  onAction={() => setActiveTab('pulse')}
+                />
+              )}
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="global-pulse"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-12"
+            >
+              <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  <h3 className="text-2xl font-black tracking-tighter text-[var(--text-primary)]">
+                    Global <span className="text-purple-500">Discovery</span>
+                  </h3>
+                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-[0.2em] mt-1">
+                    What's trending across Aura Market
+                  </p>
+                </div>
+                
+                {/* Category Tags */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {CATEGORIES.map(c => (
+                    <button 
+                      key={c} 
+                      onClick={() => setSelectedCategory(c)}
+                      className={`shrink-0 px-5 py-2.5 rounded-full border transition-all text-[9px] font-black uppercase tracking-widest ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-lg' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {filteredGlobal.length > 0 ? (
+                <div className="columns-2 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-8 2xl:columns-10 gap-8 space-y-8">
+                  {filteredGlobal.map((s, i) => (
+                    <PremiumCard 
+                      key={s._id} 
+                      status={s} 
+                      rank={i < 10 ? i + 1 : null}
+                      priority={i < 6 ? 'high' : 'auto'}
+                      className={`w-full break-inside-avoid ${i % 3 === 0 ? 'h-96' : 'h-72'}`}
+                      onClick={() => handleOpen(s, filteredGlobal)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Empty 
+                  icon={<Globe className="size-12 opacity-20" />}
+                  title="No New Vibes"
+                  desc="We couldn't find any new statuses to discover at the moment. Check back in a few!"
+                  action="Refresh"
+                  onAction={fetch}
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
+
+// ─── Elegant UI Components ───────────────────────────────────────────────────
+
+function Skeleton() {
+  return (
+    <div className="bg-[var(--bg-secondary)] min-h-screen p-8 pt-24 space-y-12">
+      <div className="flex justify-between items-end">
+        <div className="space-y-4">
+          <div className="w-48 h-10 bg-white/5 animate-pulse rounded-2xl" />
+          <div className="w-32 h-4 bg-white/5 animate-pulse rounded-full" />
+        </div>
+        <div className="w-32 h-12 bg-white/5 animate-pulse rounded-2xl" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+        {[...Array(10)].map((_, i) => (
+          <div key={i} className="aspect-[4/5] rounded-[2rem] bg-white/5 animate-pulse border border-white/5" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Empty({ icon, title, desc, action, onAction }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center py-32 px-6 text-center space-y-6 bg-[var(--bg-primary)]/40 rounded-[3rem] border border-dashed border-[var(--glass-border)]"
+    >
+      <div className="size-24 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center border border-[var(--glass-border)] shadow-inner">
+        {icon}
+      </div>
+      <div className="space-y-2 max-w-sm">
+        <h4 className="text-xl font-black tracking-tight text-[var(--text-primary)] uppercase">{title}</h4>
+        <p className="text-[11px] font-medium text-[var(--text-secondary)] leading-relaxed opacity-60">
+          {desc}
+        </p>
+      </div>
+      {action && (
+        <button 
+          onClick={onAction}
+          className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all active:scale-95"
+        >
+          {action} <ChevronRight className="size-3.5" />
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
