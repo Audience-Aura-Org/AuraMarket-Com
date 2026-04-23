@@ -365,7 +365,7 @@ export default function DiscoveryHub() {
         <div className={activeTab === 'vendors' ? 'block' : 'hidden'}>
           <div className="flex flex-col relative">
             {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
-              <div className="sticky top-[env(safe-area-inset-top)] z-30 bg-[var(--bg-secondary)]/95 backdrop-blur-md border-b border-white/5">
+              <div className="sticky top-0 z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden">
                 <StatusRow 
                   statuses={followedStatuses} 
                   onSelect={(items) => setViewingStatuses(items)}

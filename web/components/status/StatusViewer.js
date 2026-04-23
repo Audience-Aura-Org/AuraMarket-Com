@@ -5,7 +5,7 @@ import {
   X, Heart, ShoppingBag,
   Volume2, VolumeX,
   Eye, Flame, Send, Sparkles,
-  Share2
+  Share2, Tag
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
@@ -278,8 +278,14 @@ export default function StatusViewer({ initialStatuses, onClose }) {
                 <div className="size-1 rounded-full bg-white/40" />
                 <span className="text-[10px] font-bold text-white/60">{ago(story.createdAt)}</span>
               </div>
-              <div className="flex items-center gap-1 text-[9px] font-black text-[var(--accent)] uppercase tracking-widest mt-0.5">
-                <Sparkles className="size-2.5" /> Official Drop
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-1 text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">
+                  <Sparkles className="size-2.5" /> Official Drop
+                </div>
+                <div className="size-0.5 rounded-full bg-white/20" />
+                <div className="flex items-center gap-1 text-[9px] font-black text-white/40 uppercase tracking-widest">
+                  <Tag className="size-2.5" /> {story.category || 'General'}
+                </div>
               </div>
             </div>
           </div>

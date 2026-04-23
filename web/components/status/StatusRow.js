@@ -5,16 +5,13 @@ import BlurUpImage from '@/components/common/BlurUpImage';
 
 /**
  * StatusRow — WhatsApp-style horizontal story bubble row.
- * - Avatars never block tapping: clicking works before image finishes loading
- * - No framer-motion overhead on each bubble (pure CSS)
- * - Shimmer pulse on avatar while it loads
- * - Seen stories: greyscale + muted ring
- * - Unseen stories: gradient ring with subtle glow pulse
+ * Each bubble shows the vendor's LATEST story thumbnail as a preview ring.
+ * Bigger avatars, isolated horizontal scroll (doesn't fight vertical page scroll).
  */
 export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) {
   const scrollRef = useRef(null);
 
-  // Group statuses by vendor
+  // Group by vendor, sort each group so latest story is first
   const vendorMap = statuses.reduce((acc, status) => {
     const vId = status.vendor_id?._id;
     if (!vId) return acc;
@@ -23,50 +20,64 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
     return acc;
   }, {});
 
-  const vendors = Object.values(vendorMap);
+  const vendors = Object.values(vendorMap).map(({ vendor, items }) => ({
+    vendor,
+    items,
+    // Latest story = most recently created
+    latestStory: [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+  }));
+
+  if (vendors.length === 0 && !isVendor) return null;
 
   return (
     <div
       ref={scrollRef}
-      className="flex items-end gap-3 overflow-x-auto no-scrollbar py-3 px-4"
+      className="flex items-end gap-4 overflow-x-auto no-scrollbar py-4 px-5"
+      style={{ overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
     >
-      {/* Add Story CTA */}
+      {/* Add Story CTA — vendors only */}
       {isVendor && (
         <button
           onClick={onAdd}
-          className="flex flex-col items-center gap-1.5 shrink-0 group active:scale-95 transition-transform duration-100"
+          className="flex flex-col items-center gap-2 shrink-0 group active:scale-95 transition-transform duration-100"
         >
           <div className="relative">
-            <div className="size-[60px] md:size-[66px] rounded-full p-[2.5px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-md">
+            <div className="size-[78px] md:size-[86px] rounded-full p-[2.5px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-lg">
               <div className="w-full h-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center">
-                <Plus className="size-5 md:size-6 text-[var(--accent)] group-hover:rotate-90 transition-transform duration-200" />
+                <Plus className="size-7 text-[var(--accent)] group-hover:rotate-90 transition-transform duration-200" />
               </div>
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] flex items-center justify-center shadow-md">
-              <Sparkles className="size-2.5 text-white" />
+            <div className="absolute -bottom-0.5 -right-0.5 size-6 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] flex items-center justify-center shadow-md">
+              <Sparkles className="size-3 text-white" />
             </div>
           </div>
           <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">Add Story</span>
         </button>
       )}
 
-      {/* Vendor bubbles */}
-      {vendors.map(({ vendor, items }) => {
-        const logoUrl = vendor.user_id?.branding?.logo || vendor.user_id?.avatar;
+      {/* Vendor story bubbles */}
+      {vendors.map(({ vendor, items, latestStory }) => {
+        const logoUrl     = vendor.user_id?.branding?.logo || vendor.user_id?.avatar;
         const hasUnviewed = items.some(s => !s.isViewed);
-        const storeName = vendor.store_name || 'Store';
-        const displayName = storeName.length > 9 ? storeName.slice(0, 8) + '…' : storeName;
+        const storeName   = vendor.store_name || 'Store';
+        const displayName = storeName.length > 10 ? storeName.slice(0, 9) + '…' : storeName;
+        const previewUrl  = latestStory?.type === 'image' || latestStory?.type === 'video'
+          ? latestStory.content_url
+          : null;
 
         return (
           <StoryBubble
             key={vendor._id}
             logoUrl={logoUrl}
+            previewUrl={previewUrl}
             storeName={storeName}
             displayName={displayName}
             hasUnviewed={hasUnviewed}
             onTap={() => {
-              const others = statuses.filter(s => s.vendor_id?._id !== vendor._id);
-              onSelect([...items, ...others]);
+              // Rotate so clicked vendor's stories come first (latest first)
+              const vendorItems = [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+              const others      = statuses.filter(s => s.vendor_id?._id !== vendor._id);
+              onSelect([...vendorItems, ...others]);
             }}
           />
         );
@@ -75,52 +86,66 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
   );
 }
 
-/**
- * StoryBubble — individual story avatar.
- * BlurUpImage gives WhatsApp-style blur-up: taps work instantly,
- * blurred placeholder appears immediately, sharp fades in.
- */
-function StoryBubble({ logoUrl, storeName, displayName, hasUnviewed, onTap }) {
+function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed, onTap }) {
   return (
     <button
       onClick={onTap}
-      className="flex flex-col items-center gap-1.5 shrink-0 group active:scale-95 transition-transform duration-100"
+      className="flex flex-col items-center gap-2 shrink-0 group active:scale-95 transition-transform duration-100"
     >
       <div className="relative">
-        {/* Gradient ring */}
+        {/* Outer gradient ring */}
         <div
-          className={`size-[60px] md:size-[66px] rounded-full p-[2.5px] transition-opacity duration-300 ${
+          className={`size-[78px] md:size-[86px] rounded-full p-[2.5px] transition-all duration-300 ${
             hasUnviewed
-              ? 'bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-400 shadow-[0_0_12px_rgba(var(--accent-rgb,139,92,246),0.35)]'
-              : 'bg-[var(--glass-border)] opacity-40 group-hover:opacity-60'
+              ? 'bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-400 shadow-[0_0_16px_rgba(139,92,246,0.4)]'
+              : 'bg-[var(--glass-border)] opacity-50 group-hover:opacity-70'
           }`}
         >
-          <div className="w-full h-full rounded-full overflow-hidden border-2 border-[var(--bg-primary)]">
-            {logoUrl ? (
-              <BlurUpImage
-                src={logoUrl}
-                alt={storeName}
-                priority="high"
-                className="w-full h-full rounded-full"
-                imgClassName={!hasUnviewed ? 'grayscale group-hover:grayscale-0 transition-all duration-300' : 'group-hover:scale-110 transition-transform duration-300'}
-                objectFit="cover"
-              />
-            ) : (
-              // Fallback letter avatar — always instant
-              <div className="w-full h-full flex items-center justify-center text-base font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">
-                {storeName[0]?.toUpperCase()}
+          {/* Inner circle — story preview as background + logo on top */}
+          <div className="w-full h-full rounded-full overflow-hidden border-2 border-[var(--bg-primary)] relative bg-black">
+            {/* Latest story thumbnail as background */}
+            {previewUrl && (
+              <div className="absolute inset-0">
+                <BlurUpImage
+                  src={previewUrl}
+                  alt=""
+                  priority="high"
+                  className="w-full h-full"
+                  objectFit="cover"
+                  imgClassName={`opacity-50 ${!hasUnviewed ? 'grayscale' : ''} group-hover:opacity-70 group-hover:scale-110 transition-all duration-500`}
+                />
               </div>
             )}
+
+            {/* Vendor logo — centered on top of preview */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="size-9 md:size-10 rounded-full overflow-hidden border-2 border-white/30 shadow-xl bg-black">
+                {logoUrl ? (
+                  <BlurUpImage
+                    src={logoUrl}
+                    alt={storeName}
+                    priority="high"
+                    className="w-full h-full rounded-full"
+                    imgClassName={`${!hasUnviewed ? 'grayscale group-hover:grayscale-0' : ''} transition-all duration-300`}
+                    objectFit="cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-sm font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">
+                    {storeName[0]?.toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Unread dot */}
+        {/* Unread indicator dot */}
         {hasUnviewed && (
-          <div className="absolute top-0 right-0 size-3.5 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] shadow-sm" />
+          <div className="absolute top-0.5 right-0.5 size-4 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] shadow-md" />
         )}
       </div>
 
-      <span className="text-[9px] font-black text-[var(--text-primary)] truncate w-14 md:w-16 text-center tracking-tight group-hover:text-[var(--accent)] transition-colors">
+      <span className="text-[9px] md:text-[10px] font-black text-[var(--text-primary)] truncate w-[74px] md:w-[82px] text-center tracking-tight group-hover:text-[var(--accent)] transition-colors">
         {displayName}
       </span>
     </button>

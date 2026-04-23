@@ -57,7 +57,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
   const [error, setError] = useState(null);
   const [step, setStep] = useState(1); // 1: Media, 2: Details & Duration, 3: Final Preview
   const [expiryDays, setExpiryDays] = useState(3);
-  const [selectedCategory, setSelectedCategory] = useState('General');
+  const [selectedCategory, setSelectedCategory] = useState(null); // No default, must select
 
   const fileInputRef = useRef(null);
 
@@ -116,7 +116,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
         linked_product: linkedProduct?._id || null,
         expires_at: expiresAt.toISOString(),
         expiry_days: expiryDays,
-        category: selectedCategory,
+        category: selectedCategory || 'General',
       };
 
       const res = await api.post('/statuses', statusData);
@@ -135,7 +135,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const canProceed = (type === 'text' && textContent.trim()) || (type !== 'text' && file);
+  const canProceed = (type === 'text' ? textContent.trim() : file) && (step < 3 || selectedCategory);
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
@@ -295,18 +295,19 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                   </div>
 
                   {/* Category Selection */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                      <Tag className="size-4 text-[var(--accent)]" />
+                    <div className="flex items-center justify-between px-1">
                       <label className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">Story Category</label>
+                      <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest bg-[var(--accent)]/10 px-2 py-1 rounded-full">Required Field</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                       {['Fashion', 'Electronics', 'Lifestyle', 'Tech', 'Art', 'Beauty', 'General'].map(cat => (
                         <button
                           key={cat}
+                          type="button"
                           onClick={() => setSelectedCategory(cat)}
-                          className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${selectedCategory === cat ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50 border border-[var(--glass-border)]'}`}
+                          className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform ${selectedCategory === cat ? 'bg-[var(--accent)] text-white shadow-lg scale-105 border-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 border border-[var(--glass-border)] hover:opacity-100 hover:scale-102'}`}
                         >
+                          {selectedCategory === cat && <Sparkles className="size-3 inline-block mr-1.5 -mt-0.5" />}
                           {cat}
                         </button>
                       ))}
@@ -420,6 +421,11 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                      </div>
 
                      <div className="absolute bottom-10 inset-x-6">
+                        <div className="flex items-center gap-2 mb-3">
+                           <div className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[8px] font-black uppercase text-white flex items-center gap-1">
+                              <Tag className="size-2.5" /> {selectedCategory || 'Pick Category'}
+                           </div>
+                        </div>
                         {caption && <p className="text-sm text-white/90 font-medium mb-4 line-clamp-2">{caption}</p>}
                         {linkedProduct && (
                            <div className="w-full p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-between">
@@ -437,13 +443,13 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
 
                   <div className="w-full grid grid-cols-2 gap-4 mt-8">
                      <button onClick={() => setStep(2)} className="h-16 rounded-[2rem] border border-[var(--glass-border)] text-[10px] font-black uppercase tracking-widest hover:bg-[var(--bg-secondary)] transition-all">Refine</button>
-                     <button 
-                       onClick={handlePost} 
-                       disabled={loading}
-                       className="h-16 bg-[var(--accent)] text-white rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_30px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-3"
-                     >
-                       {loading ? <Loader2 className="size-5 animate-spin" /> : <><Sparkles className="size-5" /> Post Story</>}
-                     </button>
+                      <button 
+                        onClick={handlePost} 
+                        disabled={loading || !selectedCategory}
+                        className={`h-16 bg-[var(--accent)] text-white rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_30px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-3 disabled:opacity-20 disabled:cursor-not-allowed`}
+                      >
+                        {loading ? <Loader2 className="size-5 animate-spin" /> : <><Sparkles className="size-5" /> Post Story</>}
+                      </button>
                   </div>
                 </motion.div>
               )}
