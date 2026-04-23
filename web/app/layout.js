@@ -31,7 +31,7 @@ export const metadata = {
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
   },
 
@@ -50,7 +50,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={poppins.variable} data-scroll-behavior="smooth">
       <head>
-        {/* Non-render-blocking icon font — loaded async after paint */}
+        {/* Dynamic Theme-Aware Favicons */}
+        <link rel="icon" href="/logo-black.png" media="(prefers-color-scheme: light)" />
+        <link rel="icon" href="/logo-white.png" media="(prefers-color-scheme: dark)" />
+        {/* Fallback for browsers that don't support media queries on icons */}
+        <link rel="shortcut icon" href="/logo-white.png" />
+        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
