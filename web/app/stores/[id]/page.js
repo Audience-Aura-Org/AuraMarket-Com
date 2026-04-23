@@ -14,6 +14,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'), { ssr: false });
 
 import { useAuthStore } from '@/hooks/useAuth';
+import VendorFollowButton from '@/components/VendorFollowButton';
 
 export default function StorePage() {
   const { id } = useParams();
@@ -84,37 +85,28 @@ export default function StorePage() {
     if (id) fetchStoreData();
   }, [id, page, activeTab]);
 
-  const handleToggleFollow = async () => {
-    const targetId = vendor?._id?.toString() || id;
-    if (!targetId || followLoading) return;
-    
-    setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        await api.delete(`/vendors/${targetId}/follow`);
-        removeFollowedVendor(targetId);
-        if (store?.vendor_id) {
-          setStore(prev => ({
+  // Listen for global follow updates to sync local follower count
+  useEffect(() => {
+    const handleFollowSync = (e) => {
+      const { vendorId: updatedId, isFollowing: currentlyFollowing } = e.detail;
+      const targetId = vendor?._id?.toString() || id;
+      
+      if (updatedId === targetId) {
+        setStore(prev => {
+          if (!prev) return prev;
+          const currentCount = prev.vendor_id?.follower_count || 0;
+          const newCount = currentlyFollowing ? currentCount + 1 : Math.max(0, currentCount - 1);
+          return {
             ...prev,
-            vendor_id: { ...prev.vendor_id, follower_count: (prev.vendor_id.follower_count || 1) - 1 }
-          }));
-        }
-      } else {
-        await api.post(`/vendors/${targetId}/follow`);
-        addFollowedVendor(targetId);
-        if (store?.vendor_id) {
-          setStore(prev => ({
-            ...prev,
-            vendor_id: { ...prev.vendor_id, follower_count: (prev.vendor_id.follower_count || 0) + 1 }
-          }));
-        }
+            vendor_id: { ...prev.vendor_id, follower_count: newCount }
+          };
+        });
       }
-    } catch (err) {
-      toast.error('Handshake failed.');
-    } finally {
-      setFollowLoading(false);
-    }
-  };
+    };
+    
+    window.addEventListener('aura_follow_update', handleFollowSync);
+    return () => window.removeEventListener('aura_follow_update', handleFollowSync);
+  }, [vendor, id]);
 
   if (loading) return <LoadingSpinner fullScreen />;
 
@@ -193,22 +185,10 @@ export default function StorePage() {
 
               {/* Action Stack - MOBILE OPTIMIZED */}
               <div className="flex flex-row md:flex-col items-center gap-2 w-full md:w-auto shrink-0">
-                <button 
-                  onClick={handleToggleFollow}
-                  disabled={followLoading}
-                  className={`px-6 h-10 md:h-11 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all active:scale-95 flex items-center justify-center gap-2 flex-1 md:flex-none ${
-                    isFollowing 
-                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20' 
-                    : 'bg-[var(--accent)] text-white border border-[var(--accent)] hover:brightness-110 shadow-lg shadow-[var(--accent)]/20'
-                  }`}
-                >
-                  {isFollowing ? (
-                    <>
-                      <Check className="size-3" />
-                      Following
-                    </>
-                  ) : '+ Follow'}
-                </button>
+                <VendorFollowButton 
+                  vendorId={vendor?._id?.toString() || id} 
+                  className="!h-10 md:!h-11 !text-[10px] flex-1 md:flex-none"
+                />
                 {user?._id === store.vendor_id?.user_id?._id && (
                    <button 
                     onClick={() => setShowStatusCreator(true)}
