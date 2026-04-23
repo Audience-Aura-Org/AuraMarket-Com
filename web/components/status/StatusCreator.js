@@ -295,6 +295,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                   </div>
 
                   {/* Category Selection */}
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                       <label className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">Story Category</label>
                       <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest bg-[var(--accent)]/10 px-2 py-1 rounded-full">Required Field</span>
