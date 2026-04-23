@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { BadgeCheck, Users, ArrowUpRight, Check } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import VendorFollowButton from '@/components/VendorFollowButton';
 
 export default function StoreHighlights({ title, data }) {
   const { followedVendorIds, fetchFollowedVendors, isAuthenticated } = useAuthStore();
@@ -35,31 +36,30 @@ export default function StoreHighlights({ title, data }) {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 px-4 md:px-6">
+      <div className="flex gap-6 md:gap-8 px-4 md:px-6 overflow-x-auto no-scrollbar pb-10 snap-x snap-mandatory">
         {data.map((item, i) => {
           const vendor = item.vendor_id;
           if (!vendor) return null;
           const store = vendor.store;
-          const isFollowed = followedVendorIds.includes(vendor._id?.toString());
 
           return (
-            <div key={i} className="group relative bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-[2.5rem] overflow-hidden hover:border-[var(--accent)]/30 transition-all duration-500">
+            <div key={i} className="flex-shrink-0 w-[280px] md:w-[360px] snap-start group relative bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-[2.5rem] overflow-hidden hover:border-[var(--accent)]/30 transition-all duration-500">
               {/* Cover Banner */}
-              <div className="h-32 w-full overflow-hidden">
+              <div className="h-32 w-full overflow-hidden relative">
                 <img 
                   src={store?.banner || vendor.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000'} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                   alt={vendor.store_name}
                 />
-                <div className="absolute inset-x-0 top-0 h-32 bg-black/20" />
+                <div className="absolute inset-0 bg-black/20" />
               </div>
 
               {/* Logo & Content */}
-              <div className="px-8 pb-8 -mt-10 relative">
+              <div className="px-6 pb-6 -mt-10 relative">
                 <div className="relative group/logo inline-block">
                    <div className="w-20 h-20 rounded-2xl border-4 border-[var(--bg-secondary)] overflow-hidden shadow-xl bg-white">
                     <img 
-                      src={store?.logo || vendor.user_id?.branding?.logo || vendor.user_id?.avatar || 'https://via.placeholder.com/150'} 
+                      src={store?.logo || vendor.user_id?.branding?.logo || vendor.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.store_name)}&background=random`} 
                       className="w-full h-full object-cover" 
                       alt={vendor.store_name}
                     />
@@ -73,40 +73,32 @@ export default function StoreHighlights({ title, data }) {
 
                 <div className="mt-4 space-y-4">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-black text-xl text-[var(--text-primary)] leading-tight">
+                    <div className="min-w-0">
+                      <h3 className="font-black text-lg text-[var(--text-primary)] leading-tight truncate">
                         {vendor.store_name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
                          <StarIcon />
-                         <span className="text-xs font-bold">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
+                         <span className="text-[10px] font-bold uppercase tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
                       </div>
                     </div>
-                    <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all">
+                    <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shrink-0">
                       <ArrowUpRight className="w-5 h-5" />
                     </Link>
                   </div>
 
-                  <p className="text-sm text-[var(--text-secondary)] line-clamp-2 min-h-[2.5rem]">
+                  <p className="text-[13px] text-[var(--text-secondary)] line-clamp-2 min-h-[2.5rem] font-medium leading-relaxed">
                     {vendor.description || "Discover premium products from this elite curator."}
                   </p>
 
-                  <div className="pt-4 flex items-center gap-4">
-                    <button className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                      isFollowed 
-                      ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--glass-border)] opacity-60' 
-                      : 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20 hover:-translate-y-0.5'
-                    }`}>
-                      {isFollowed ? (
-                        <>
-                          <Check className="size-4" />
-                          Following
-                        </>
-                      ) : 'Follow Store'}
-                    </button>
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                      <Users className="w-4 h-4 opacity-40" />
-                      <span className="text-xs font-bold opacity-80">{formatCount(vendor.follower_count)}</span>
+                  <div className="pt-2 flex items-center gap-3">
+                    <VendorFollowButton 
+                      vendorId={vendor._id} 
+                      className="!h-10 !text-[9px] flex-1"
+                    />
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+                      <Users className="w-3.5 h-3.5 opacity-40 text-[var(--accent)]" />
+                      <span className="text-[10px] font-black opacity-80">{formatCount(vendor.follower_count)}</span>
                     </div>
                   </div>
                 </div>
