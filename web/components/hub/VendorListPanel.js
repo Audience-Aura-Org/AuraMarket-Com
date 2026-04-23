@@ -45,7 +45,13 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
     fetchVendors();
   }, [fetchVendors]);
 
+  const { followedVendorIds } = useAuthStore();
+
   const filtered = vendors.filter(v => {
+    // 1. Must be in followed list
+    if (!followedVendorIds.includes(v._id)) return false;
+
+    // 2. Search filter
     const name = v.store_name || '';
     const desc = v.description || '';
     const q = search.toLowerCase();
@@ -92,11 +98,20 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
               <div className="h-2 w-8 bg-[var(--bg-secondary)] rounded" />
             </div>
           ))
-        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center p-8">
-            <Package className="w-12 h-12 text-[var(--text-secondary)]/20 mb-3" />
-            <p className="font-bold text-[var(--text-secondary)] text-sm">No vendors found</p>
-            <p className="text-[10px] text-[var(--text-secondary)] opacity-60 mt-1">Try a different search term</p>
+            <div className="size-16 rounded-full bg-[var(--accent)]/5 flex items-center justify-center mb-4">
+               <MessageCircle className="w-8 h-8 text-[var(--accent)] opacity-20" />
+            </div>
+            <p className="font-black text-[var(--text-primary)] uppercase tracking-tighter text-base italic">Your Circle is Empty</p>
+            <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-2 max-w-[220px] mx-auto font-medium">
+              Only vendors you follow appear here for quick chat access. Explore the Global Market to find your vibe.
+            </p>
+            <button 
+              onClick={() => router.push('/shop')}
+              className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[9px] font-black uppercase tracking-widest rounded-full shadow-lg"
+            >
+              Explore Shop
+            </button>
           </div>
         ) : (
           filtered.map((vendor, i) => (
