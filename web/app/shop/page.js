@@ -303,7 +303,7 @@ function ShopContent() {
         {activeVendor && (
           <div className="relative w-full">
             {/* 1. Banner Section - COMPACT */}
-            <div className="relative h-[220px] md:h-[340px] w-full overflow-hidden">
+            <div className="relative h-[165px] md:h-[260px] w-full overflow-hidden">
               <BlurUpImage 
                 src={activeVendor.banner || activeVendor.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070'} 
                 className="w-full h-full" 
