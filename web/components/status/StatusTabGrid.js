@@ -232,7 +232,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
     <div className="bg-[var(--bg-secondary)] min-h-screen pb-32 w-full">
       {/* ── HIGH-END STICKY HEADER ── */}
       <div className="sticky top-0 z-40 bg-[var(--bg-primary)]/80 backdrop-blur-3xl border-b border-[var(--glass-border)] w-full">
-        <div className="w-full px-6 lg:px-12 pt-6 pb-4 space-y-6">
+        <div className="w-full px-2 md:px-4 pt-6 pb-4 space-y-6">
           <div className="flex items-end justify-between">
             <div className="space-y-1">
               <p className="text-[10px] font-black tracking-[0.4em] text-[var(--accent)] uppercase opacity-80">
@@ -288,7 +288,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
         </div>
       </div>
 
-      <div className="w-full px-6 lg:px-12 pt-10">
+      <div className="w-full px-2 md:px-4 pt-10">
         <AnimatePresence mode="wait">
           {activeTab === 'inner' ? (
             <motion.div 
@@ -324,7 +324,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
               </section>
 
               {filteredFollowed.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-6 md:gap-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3 md:gap-4">
                   {filteredFollowed.map((s, i) => (
                     <PremiumCard 
                       key={s._id} 
@@ -379,7 +379,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
               </section>
 
               {filteredGlobal.length > 0 ? (
-                <div className="columns-2 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-8 2xl:columns-10 gap-8 space-y-8">
+                <div className="columns-2 sm:columns-4 md:columns-5 lg:columns-6 xl:columns-8 2xl:columns-10 gap-3 md:gap-4 space-y-3 md:space-y-4">
                   {filteredGlobal.map((s, i) => (
                     <PremiumCard 
                       key={s._id} 

@@ -273,7 +273,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
       </div>
 
       {/* ── CONTENT AREA ── */}
-      <div className="flex-1 px-4 py-6">
+      <div className="flex-1 px-2 py-6">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
              {[...Array(12)].map((_, i) => <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-white/5" />)}
