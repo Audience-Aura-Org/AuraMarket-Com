@@ -68,7 +68,7 @@ const StoryContent = memo(function StoryContent({ story, active, paused, muted, 
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[400px] rounded-full bg-[var(--accent)]/10 blur-[120px] animate-pulse" />
         <div className="absolute bottom-0 right-0 size-[300px] rounded-full bg-purple-600/10 blur-[100px]" />
       </div>
-      <p className="relative z-10 text-4xl font-black italic text-white leading-tight tracking-tighter drop-shadow-2xl">
+      <p className="relative z-10 text-3xl font-bold italic text-white leading-tight drop-shadow-2xl">
         {story.text_content}
       </p>
     </div>
@@ -207,6 +207,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         storyId: story._id,
         storyPreview: story.type === 'text' ? story.text_content : story.content_url
       }
+    }).then(() => {
+      onClose();
+      router.push(`/chat?vendorId=${recipientUserId}&storyId=${story._id}`);
     }).catch(e => console.error('Story reply failed:', e));
   };
 
@@ -283,22 +286,22 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               <div className="size-full rounded-full overflow-hidden border-2 border-black bg-black">
                 {vendorLogo
                   ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
-                  : <div className="size-full flex items-center justify-center text-xs font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">{storeName[0]}</div>
+                  : <div className="size-full flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">{storeName[0]}</div>
                 }
               </div>
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-[15px] font-black text-white tracking-tight drop-shadow-lg">{storeName}</p>
+                <p className="text-[15px] font-bold text-white tracking-tight drop-shadow-lg">{storeName}</p>
                 <div className="size-1 rounded-full bg-white/40" />
                 <span className="text-[10px] font-bold text-white/60">{ago(story.createdAt)}</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="flex items-center gap-1 text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">
+                <div className="flex items-center gap-1 text-[9px] font-bold text-[var(--accent)]">
                   <Sparkles className="size-2.5" /> Official Drop
                 </div>
                 <div className="size-0.5 rounded-full bg-white/20" />
-                <div className="flex items-center gap-1 text-[9px] font-black text-white/40 uppercase tracking-widest">
+                <div className="flex items-center gap-1 text-[9px] font-bold text-white/40">
                   <Tag className="size-2.5" /> {story.category || 'General'}
                 </div>
               </div>
@@ -320,7 +323,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         </div>
 
         {/* ── Story Content ── */}
-        <div className="absolute inset-0 z-10 bg-[#050505]">
+        <div className={`absolute inset-0 z-10 bg-[#050505] transition-all duration-500 ${isReplying ? 'scale-[0.92] rounded-[3rem] ring-4 ring-[var(--accent)] ring-offset-4 ring-offset-black shadow-[0_0_50px_rgba(var(--accent-rgb),0.3)]' : ''}`}>
           <StoryContent
             story={story}
             active={true}
@@ -368,7 +371,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                   />
                 </div>
                 <div className="text-left">
-                  <p className="text-[13px] font-black text-white tracking-tight uppercase line-clamp-1">{story.linked_product.name}</p>
+                  <p className="text-[13px] font-bold text-white tracking-tight line-clamp-1">{story.linked_product.name}</p>
                   <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">{story.linked_product.price?.toLocaleString()} XAF</p>
                 </div>
               </div>
@@ -424,11 +427,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           <div className="mt-4 flex items-center justify-between px-2">
             <div className="flex items-center gap-2 text-white/50">
               <Eye className="size-3.5" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">{story.views_count || 0} views</span>
+              <span className="text-[10px] font-bold">{story.views_count || 0} views</span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
               <Flame className="size-3 text-orange-500" />
-              <span className="text-[10px] font-black text-white/80">
+              <span className="text-[10px] font-bold text-white/80">
                 {storyIdx + 1}/{totalInGroup}
                 {totalVendors > 1 && <span className="opacity-40 ml-1">· {vendorIdx + 1}/{totalVendors} vendors</span>}
               </span>

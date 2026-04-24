@@ -68,7 +68,7 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
             <div className="absolute -top-10 -left-10 size-32 bg-[var(--accent)] blur-[60px] opacity-20 rounded-full animate-pulse" />
             <div className="absolute -bottom-10 -right-10 size-32 bg-purple-600 blur-[60px] opacity-20 rounded-full animate-pulse delay-700" />
             
-            <p className="relative z-10 text-[11px] font-black italic uppercase text-white/90 leading-relaxed tracking-wider line-clamp-6">
+            <p className="relative z-10 text-xs font-semibold italic text-white/90 leading-relaxed line-clamp-6">
               {status.text_content}
             </p>
           </div>
@@ -88,9 +88,9 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
                 </div>
               )}
             </div>
-            <p className="text-[9px] font-black text-white uppercase tracking-widest truncate">{name}</p>
+            <p className="text-[10px] font-bold text-white truncate">{name}</p>
             {isNew && (
-              <div className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent)] text-white text-[7px] font-black uppercase">
+              <div className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent)] text-white text-[8px] font-bold">
                 <Sparkles className="size-2" /> New
               </div>
             )}
@@ -235,18 +235,15 @@ export default function StatusTabGrid({ onSelectStatus }) {
         <div className="w-full px-2 md:px-4 pt-6 pb-4 space-y-6">
           <div className="flex items-end justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] font-black tracking-[0.4em] text-[var(--accent)] uppercase opacity-80">
-                Atmosphere & Vibes
-              </p>
-              <h2 className="text-4xl font-black tracking-tighter text-[var(--text-primary)] leading-none">
-                Stories <span className="opacity-30">Hub</span>
+              <h2 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] leading-none">
+                Story Feed
               </h2>
             </div>
             
             <div className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-              <div className="size-2 rounded-full bg-[var(--accent)] animate-pulse shadow-[0_0_8px_var(--accent)]" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
-                {globalStatuses.length + followedStatuses.length} Live
+              <div className="size-2 rounded-full bg-[var(--accent)] animate-pulse" />
+              <span className="text-[10px] font-bold text-[var(--text-secondary)]">
+                Active Now
               </span>
             </div>
           </div>
@@ -256,13 +253,13 @@ export default function StatusTabGrid({ onSelectStatus }) {
             <div className="flex p-1.5 bg-[var(--bg-secondary)] rounded-[1.5rem] border border-[var(--glass-border)] w-full md:w-auto">
               <button 
                 onClick={() => setActiveTab('inner')}
-                className={`flex-1 md:flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xl border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+                className={`flex-1 md:flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[11px] font-bold transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xl border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
               >
                 <Users className="size-3.5" /> Inner Circle
               </button>
               <button 
                 onClick={() => setActiveTab('pulse')}
-                className={`flex-1 md:flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xl border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+                className={`flex-1 md:flex-none flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[11px] font-bold transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xl border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
               >
                 <Globe className="size-3.5" /> Global Pulse
               </button>
@@ -310,7 +307,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                     <button 
                       key={c} 
                       onClick={() => setSelectedCategory(c)}
-                      className={`shrink-0 px-5 py-2.5 rounded-full border transition-all text-[9px] font-black uppercase tracking-widest ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-lg' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-5 py-2.5 rounded-full border transition-all text-[11px] font-bold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-lg' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'}`}
                     >
                       {c}
                     </button>
@@ -365,7 +362,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                     <button 
                       key={c} 
                       onClick={() => setSelectedCategory(c)}
-                      className={`shrink-0 px-5 py-2.5 rounded-full border transition-all text-[9px] font-black uppercase tracking-widest ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-lg' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-5 py-2.5 rounded-full border transition-all text-[11px] font-bold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-lg' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'}`}
                     >
                       {c}
                     </button>

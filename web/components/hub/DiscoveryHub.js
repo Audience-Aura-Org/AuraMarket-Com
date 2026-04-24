@@ -4,10 +4,12 @@ import { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
 import { 
   Compass, User, Store,
   Search, X, Home, ChevronRight, ShoppingBag,
-  Activity, Circle, LayoutGrid, List, Check
+  Activity, Circle, LayoutGrid, List, Check,
+  Heart, Package, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import dynamic from 'next/dynamic';
@@ -25,13 +27,12 @@ const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'),
 
 // Shared tab data for sub-pages
 const ProfileContent = dynamic(() => import('./HubSubTabs').then(mod => mod.ProfileContent), { ssr: false });
-const OrdersContent = dynamic(() => import('./HubSubTabs').then(mod => mod.OrdersContent), { ssr: false });
-const WishlistContent = dynamic(() => import('./HubSubTabs').then(mod => mod.WishlistContent), { ssr: false });
 
 const TABS = [
-  { id: 'vendors', icon: Store, label: 'Vendors' },
-  { id: 'discover', icon: Compass, label: 'Atmosphere & Vibes' },
-  { id: 'status', icon: Activity, label: 'Stories Hub' },
+  { id: 'home', icon: Store, label: 'Vendor' },
+  { id: 'status', icon: Activity, label: 'Story' },
+  { id: 'discover', icon: ShoppingBag, label: 'Shop' },
+  { id: 'overtime', icon: Home, label: 'Overtime' },
   { id: 'profile', icon: User, label: 'Profile' },
 ];
 
@@ -88,7 +89,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
   const fetchProducts = useCallback(async (targetPage = page) => {
     setLoading(true);
     try {
-      const params = { limit, page: targetPage, followedOnly: true };
+      const params = { limit, page: targetPage }; // General market, not followed-only
       if (activeCategoryName !== 'All') params.category = activeCategoryName;
       if (search) params.search = search;
       if (sortBy) params.sort = sortBy;
@@ -98,7 +99,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
         params.maxPrice = range.max;
       }
       
-      const res = await api.get('/products/hub', { params });
+      const res = await api.get('/products', { params }); // Use general products endpoint
       if (res.data.success) {
         const items = res.data.data.products || [];
         setProducts(items);
@@ -108,7 +109,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
     finally { setLoading(false); }
   }, [activeCategoryName, search, page, sortBy, activePrice]);
 
-  // Trigger fetch: Sync with Shop logic (immediate for filters, debounced for search)
+  // Trigger fetch
   useEffect(() => {
     fetchProducts(1);
   }, [activeCategoryName, activePrice, sortBy, search]);
@@ -139,8 +140,6 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
     setPage(1);
   };
 
-
-
   useEffect(() => {
     const handleGlobalUpdate = () => fetchProducts(1);
     window.addEventListener('aura_follow_update', handleGlobalUpdate);
@@ -166,23 +165,29 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col bg-[var(--bg-secondary)] pb-40">
       
-      {/* Sticky Header below replaces the relative stories row */}
-
       {/* ── STICKY HEADER ── */}
       <div className="sticky top-0 z-40 bg-[var(--bg-primary)] shadow-sm">
-        {/* Search */}
+        {/* Search & Stores Link */}
         <div className="px-6 lg:px-12 py-3 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
-          <div className="relative max-w-2xl mx-auto">
-            <input
-              type="text"
-              placeholder="Search followed vendors..."
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] md:text-sm outline-none transition-all font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
-            />
-            <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 flex items-center justify-center font-bold">
-              <Search className="size-4" />
-            </button>
+          <div className="w-full max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative w-full flex-1">
+              <input
+                type="text"
+                placeholder="Search the global market..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] md:text-sm outline-none transition-all font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
+              />
+              <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 flex items-center justify-center font-bold">
+                <Search className="size-4" />
+              </button>
+            </div>
+            <Link 
+              href="/stores"
+              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-all font-bold text-[11px] shadow-sm active:scale-95"
+            >
+              <Store className="size-4" /> Explore Stores
+            </Link>
           </div>
         </div>
 
@@ -237,7 +242,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
         </div>
       </div>
 
-      {/* ── ACTION BAR (Synced with Shop) ── */}
+      {/* ── ACTION BAR ── */}
       <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-1.5 md:gap-3">
           <h3 className="text-xs md:text-xl font-bold text-[var(--text-primary)] tracking-tight">
@@ -250,7 +255,6 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
         </div>
 
         <div className="flex items-center gap-3 shrink-0 ml-auto z-20">
-          {/* Price Filter */}
           <div className="relative dropdown-container">
             <button 
               onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
@@ -261,11 +265,11 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             </button>
             {isPriceOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                 <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                 <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                    Any Price {!activePrice && <Check className="size-3.5" />}
                  </button>
                  {PRICE_RANGES.map(range => (
-                   <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                   <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                      {range.name} {activePrice === range.id && <Check className="size-3.5" />}
                    </button>
                  ))}
@@ -284,7 +288,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             {isSortOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                  {SORT_OPTIONS.map(opt => (
-                   <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                   <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                      {opt.label}
                      {sortBy === opt.value && <Check className="size-3.5" />}
                    </button>
@@ -320,13 +324,13 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
               <ShoppingBag className="size-10 text-[var(--accent)] opacity-20" />
             </div>
             <div>
-              <h2 className="text-xl font-black tracking-tighter uppercase italic">No Followed Items</h2>
+              <h2 className="text-xl font-bold tracking-tight">No Market Items</h2>
               <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-40 max-w-[280px] mx-auto mt-2">
-                Follow more vendors to build your personal Discovery feed.<br/>
-                Items of vendors followed should appear here according to popularity.
+                Try adjusting your filters or search to explore the global collection.<br/>
+                All products from the general market are indexed here.
               </p>
             </div>
-            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Reset Feed</button>
+            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[10px] font-bold rounded-full shadow-lg">Reset Feed</button>
           </div>
         )}
 
@@ -344,7 +348,7 @@ DiscoveryContent.displayName = 'DiscoveryContent';
 export default function DiscoveryHub() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('discover');
+  const [activeTab, setActiveTab] = useState('status');
   
   // Status States
   const [followedStatuses, setFollowedStatuses] = useState([]);
@@ -361,7 +365,6 @@ export default function DiscoveryHub() {
         const data = res.data.data || [];
         setFollowedStatuses(data);
         
-        // Aggressive background preloading for instant zero-latency viewing
         data.forEach(s => {
           if (s.type === 'image' && s.content_url) {
             const img = new Image();
@@ -379,16 +382,16 @@ export default function DiscoveryHub() {
     fetchFollowedStatuses();
   }, [fetchFollowedStatuses]);
 
-
-  useEffect(() => {
-    const lastTab = sessionStorage.getItem('aura_hub_active_tab');
-    if (lastTab) setActiveTab(lastTab);
-  }, []);
-
-
   const handleTabChange = (id) => {
+    if (id === 'home') {
+      router.push('/');
+      return;
+    }
+    if (id === 'overtime') {
+      router.push('/overtime');
+      return;
+    }
     setActiveTab(id);
-    sessionStorage.setItem('aura_hub_active_tab', id);
   };
 
   return (
@@ -436,6 +439,19 @@ export default function DiscoveryHub() {
         </div>
 
         <div className={activeTab === 'status' ? 'block' : 'hidden'}>
+          {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
+            <div className="relative z-10 bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden">
+              <StatusRow 
+                statuses={followedStatuses} 
+                onSelect={(items, storyId) => {
+                  setViewingStatuses(items);
+                  setSelectedStoryId(storyId);
+                }}
+                onAdd={() => setShowCreator(true)}
+                isVendor={user?.role === 'vendor'}
+              />
+            </div>
+          )}
           <StatusTabGrid onSelectStatus={(items, storyId) => {
             setViewingStatuses(items);
             setSelectedStoryId(storyId);
@@ -470,10 +486,7 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </div>
 
-      {/* ── THE DISCOVERY BOTTOM NAV ──
-          Replaces the global BottomNav with discovery-specific context.
-          Blends with the platform aesthetic but keeps the high-density tabs.
-      */}
+      {/* ── THE DISCOVERY BOTTOM NAV ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-[100] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
         <div className="flex items-center justify-around h-[72px] px-2 pb-2 pt-1 relative">
           {TABS.map((tab, idx) => {
@@ -494,7 +507,7 @@ export default function DiscoveryHub() {
                   )}
                 </div>
                 
-                <span className={`text-[8px] font-black uppercase tracking-[0.15em] mt-1 transition-all font-[var(--font-display)] ${
+                <span className={`text-[9px] font-bold mt-1 transition-all ${
                   isActive ? 'text-[var(--accent)] opacity-100' : 'text-[var(--text-secondary)] opacity-60'
                 }`}>
                   {tab.label}
@@ -528,7 +541,7 @@ export default function DiscoveryHub() {
                   }`}
                 >
                    <Icon className={`size-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                   <span className="text-[7.5px] font-black uppercase tracking-[0.2em] mt-1 font-[var(--font-display)]">{tab.label}</span>
+                   <span className="text-[10px] font-bold mt-1">{tab.label}</span>
                 </button>
               </div>
             );
@@ -538,4 +551,3 @@ export default function DiscoveryHub() {
     </div>
   );
 }
-

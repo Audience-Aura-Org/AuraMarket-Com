@@ -190,6 +190,12 @@ export default function CartSidebar() {
             >
               Full Cart View
             </Link>
+            <Link
+              href="/overtime"
+              className="w-full py-2 bg-transparent text-[var(--text-secondary)] text-[8px] font-black uppercase tracking-widest hover:text-[var(--accent)] transition-all flex items-center justify-center gap-1.5 opacity-60 hover:opacity-100"
+            >
+              <ArrowRight className="size-2.5 rotate-180" /> Continue Shopping
+            </Link>
           </div>
         </div>
       </aside>

@@ -173,14 +173,14 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                    {step === 1 ? <Layout className="size-6" /> : <CheckCircle2 className="size-6" />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tighter uppercase italic text-[var(--text-primary)]">
+                  <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
                     {step === 1 ? 'New Story' : step === 2 ? 'Story Details' : 'Final Preview'}
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                      {[1, 2, 3].map(s => (
                         <div key={s} className={`h-1 rounded-full transition-all duration-300 ${s === step ? 'w-4 bg-[var(--accent)]' : s < step ? 'w-2 bg-emerald-500' : 'w-2 bg-[var(--glass-border)]'}`} />
                      ))}
-                     <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest ml-1 opacity-40">Step {step}/3</span>
+                     <span className="text-[10px] font-bold text-[var(--text-secondary)] ml-1 opacity-40">Step {step}/3</span>
                   </div>
                 </div>
              </div>
@@ -203,7 +203,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                       <button
                         key={t.id}
                         onClick={() => { setType(t.id); setFile(null); setPreviewUrl(''); setError(null); }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${type === t.id ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-xl' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl text-[11px] font-bold transition-all ${type === t.id ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-xl' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
                       >
                         <t.icon className="size-4" />
                         {t.label}
@@ -272,7 +272,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 px-1">
                       <Clock className="size-4 text-[var(--accent)]" />
-                      <label className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">Story Life</label>
+                      <label className="text-[11px] font-bold text-[var(--text-secondary)]">Story Life</label>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       {DURATION_OPTIONS.map(opt => {
@@ -285,8 +285,8 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                           >
                             <opt.icon className={`size-6 ${isSelected ? opt.text : 'text-[var(--text-secondary)]'}`} />
                             <div className="text-center">
-                              <p className={`text-xs font-black ${isSelected ? opt.text : 'text-[var(--text-primary)]'}`}>{opt.label}</p>
-                              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase mt-0.5">{opt.sublabel}</p>
+                              <p className={`text-xs font-bold ${isSelected ? opt.text : 'text-[var(--text-primary)]'}`}>{opt.label}</p>
+                              <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{opt.sublabel}</p>
                             </div>
                           </button>
                         );
@@ -306,7 +306,7 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
                           key={cat}
                           type="button"
                           onClick={() => setSelectedCategory(cat)}
-                          className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 transform ${selectedCategory === cat ? 'bg-[var(--accent)] text-white shadow-lg scale-105 border-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 border border-[var(--glass-border)] hover:opacity-100 hover:scale-102'}`}
+                          className={`px-5 py-2.5 rounded-2xl text-[10px] font-bold transition-all duration-300 transform ${selectedCategory === cat ? 'bg-[var(--accent)] text-white shadow-lg scale-105 border-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 border border-[var(--glass-border)] hover:opacity-100 hover:scale-102'}`}
                         >
                           {selectedCategory === cat && <Sparkles className="size-3 inline-block mr-1.5 -mt-0.5" />}
                           {cat}

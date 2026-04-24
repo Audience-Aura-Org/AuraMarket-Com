@@ -238,24 +238,70 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                       lastProductRef = currentRefId;
 
                       return (
-                        <div key={msg._id || i} className="space-y-2">
+                        <div key={msg._id || i} className="space-y-4">
+                          {/* Centered Product Context Card */}
                           {showProductContext && msg.product_reference && (
                             <div className="flex justify-center my-4">
-                               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm animate-in fade-in slide-in-from-bottom-1">
-                                  <div className="size-5 rounded overflow-hidden border border-[var(--glass-border)]">
-                                     <img src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=50&q=80'} className="size-full object-cover" alt="" />
+                              <button 
+                                onClick={() => window.open(`/products/${msg.product_reference._id || msg.product_reference}`, '_blank')}
+                                className="group flex items-center gap-3 p-2.5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-md hover:border-[var(--accent)]/50 transition-all w-full max-w-[90%]"
+                              >
+                                <div className="size-11 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-black shrink-0">
+                                  <img 
+                                    src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80'} 
+                                    className="size-full object-cover" 
+                                    alt="" 
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <div className="flex items-center gap-1.5 mb-0.5">
+                                    <div className="size-1 rounded-full bg-[var(--accent)] animate-pulse" />
+                                    <span className="text-[7px] font-black text-[var(--accent)] uppercase tracking-widest leading-none">Subject Payload</span>
                                   </div>
-                                  <span className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest truncate max-w-[120px]">
-                                    {msg.product_reference.name}
-                                  </span>
-                               </div>
+                                  <h5 className="text-[11px] font-black text-[var(--text-primary)] truncate uppercase tracking-tight leading-tight">{msg.product_reference.name}</h5>
+                                  <p className="text-[9px] font-bold text-[var(--text-secondary)]/60 tabular-nums">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
+                                </div>
+                                <ExternalLink className="size-3 text-[var(--text-secondary)] opacity-20 mr-1" />
+                              </button>
                             </div>
                           )}
-                          <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`
-                              max-w-[85%] px-4 py-3 rounded-2xl text-[14px] md:text-base font-medium leading-relaxed shadow-sm
-                              ${isOwn ? 'bg-[var(--accent)] text-white rounded-br-sm' : 'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--glass-border)] rounded-bl-sm'}
-                            `}>
+
+                          {/* Centered Story Reply Interaction Card */}
+                          {msg.metadata?.type === 'story_reply' && (
+                            <div className="flex justify-center my-4">
+                              <button 
+                                onClick={() => msg.metadata.storyId && window.open(`/status?id=${msg.metadata.storyId}`, '_blank')}
+                                className="group flex items-center gap-3 p-2.5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-md hover:border-purple-500/50 transition-all w-full max-w-[90%]"
+                              >
+                                <div className="size-11 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[#0b141a] shrink-0">
+                                  {msg.metadata.storyPreview?.startsWith('http') ? (
+                                    <img src={msg.metadata.storyPreview} className="size-full object-cover opacity-80" alt="" />
+                                  ) : (
+                                    <div className="size-full bg-gradient-to-br from-[#050505] to-[#1a0a2e] flex items-center justify-center p-1.5 text-[6px] font-bold italic text-white/70 text-center leading-tight">
+                                      {msg.metadata.storyPreview}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <div className="flex items-center gap-1.5 mb-0.5">
+                                    <div className="size-1 rounded-full bg-purple-500 animate-pulse" />
+                                    <span className="text-[7px] font-black text-purple-400 uppercase tracking-widest leading-none">Status Interaction</span>
+                                  </div>
+                                  <h5 className="text-[11px] font-black text-[var(--text-primary)] truncate uppercase tracking-tight leading-tight">Replied to Story</h5>
+                                  <p className="text-[9px] font-medium text-[var(--text-secondary)]/40 italic">via Aura Pulse</p>
+                                </div>
+                                <ExternalLink className="size-3 text-[var(--text-secondary)] opacity-20 mr-1" />
+                              </button>
+                            </div>
+                          )}
+
+                          <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+
+                              <div className={`
+                                w-full px-4 py-3 rounded-2xl text-[14px] md:text-base font-medium leading-relaxed shadow-sm
+                                ${isOwn ? 'bg-[var(--accent)] text-white rounded-tr-none' : 'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--glass-border)] rounded-tl-none'}
+                              `}>
                               <p className="whitespace-pre-wrap">{msg.text}</p>
                               <div className={`flex items-center gap-1.5 mt-2 ${isOwn ? 'justify-end' : 'justify-start'} opacity-60 text-[10px]`}>
                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -264,7 +310,8 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                             </div>
                           </div>
                         </div>
-                      );
+                      </div>
+                    );
                     });
                   })()
                 )}

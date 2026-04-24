@@ -34,6 +34,7 @@ function ChatContent() {
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [contextProduct, setContextProduct] = useState(null);
+  const [contextStory, setContextStory] = useState(null);
   
   const scrollRef = useRef(null);
   const activeChatRef = useRef(null);
@@ -71,6 +72,13 @@ function ChatContent() {
           if (productId) {
             api.get(`/products/${productId}`).then(res => {
               if (res.data.success) setContextProduct(res.data.data.product || res.data.product);
+            }).catch(() => {});
+          }
+
+          const storyId = searchParams.get('storyId');
+          if (storyId) {
+            api.get(`/statuses/${storyId}`).then(res => {
+              if (res.data.success) setContextStory(res.data.data.status || res.data.status);
             }).catch(() => {});
           }
         }
@@ -144,7 +152,12 @@ function ChatContent() {
       const res = await api.post('/chat', { 
         receiver_id: partnerId, 
         text,
-        product_reference: contextProduct?._id
+        product_reference: contextProduct?._id,
+        metadata: contextStory ? {
+          type: 'story_reply',
+          storyId: contextStory._id,
+          storyPreview: contextStory.type === 'text' ? contextStory.text_content : contextStory.content_url
+        } : undefined
       });
       if (res.data.success) {
         setMessages(prev => prev.map(m => m._id === optimistic._id ? res.data.data.message : m));
@@ -262,36 +275,47 @@ function ChatContent() {
                </div>
             </div>
 
-            {/* Persistent Product Context Highlight */}
-            {contextProduct && (
-              <div className="bg-[#111b21]/95 backdrop-blur-xl px-4 md:px-8 py-3 md:py-4 border-b border-[#202c33] flex items-center gap-4 md:gap-5 z-20 shadow-2xl relative overflow-hidden group">
+            {/* Persistent Context Highlights (Product or Story) */}
+            {(contextProduct || contextStory) && (
+              <div className="bg-[#111b21]/95 backdrop-blur-xl px-4 md:px-8 py-2 md:py-3 border-b border-[#202c33] flex items-center gap-4 z-20 shadow-2xl relative overflow-hidden group">
                  <div className="absolute top-0 right-0 w-64 h-full bg-[var(--accent)]/10 blur-3xl pointer-events-none group-hover:bg-[var(--accent)]/20 transition-all duration-700" />
                  
-                 <div className="relative z-10 size-14 md:size-16 rounded-xl md:rounded-2xl overflow-hidden bg-[#202c33] border border-white/10 shrink-0 shadow-lg transition-transform group-hover:scale-[1.02] active:scale-95 duration-500">
-                    <img src={contextProduct.images?.[0]?.url || contextProduct.images?.[0]} className="size-full object-cover" alt="" />
+                 <div className="relative z-10 size-10 md:size-12 rounded-xl overflow-hidden bg-[#202c33] border border-white/10 shrink-0 shadow-lg">
+                    {contextProduct ? (
+                      <img src={contextProduct.images?.[0]?.url || contextProduct.images?.[0]} className="size-full object-cover" alt="" />
+                    ) : (
+                      contextStory?.type === 'text' ? (
+                        <div className="size-full bg-gradient-to-br from-[#050505] to-[#1a0a2e] flex items-center justify-center p-2 text-[8px] font-bold italic text-white/70 text-center leading-tight">
+                          {contextStory.text_content}
+                        </div>
+                      ) : (
+                        <img src={contextStory?.content_url} className="size-full object-cover opacity-80" alt="" />
+                      )
+                    )}
                  </div>
-
+  
                  <div className="flex-1 min-w-0 relative z-10">
-                    <div className="flex items-center gap-2 mb-1">
-                       <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-[0.2em] opacity-90">Subject Payload</span>
-                       <div className="size-1 rounded-full bg-[var(--accent)] opacity-40 animate-pulse" />
+                    <div className="flex items-center gap-2">
+                       <span className={`text-[8px] font-black uppercase tracking-[0.2em] opacity-90 ${contextProduct ? 'text-[var(--accent)]' : 'text-purple-400'}`}>
+                         {contextProduct ? 'Subject Payload' : 'Status Context'}
+                       </span>
                     </div>
-                    <h4 className="text-sm md:text-base font-black text-white truncate uppercase tracking-tight leading-tight mb-1">{contextProduct.name}</h4>
-                    <div className="flex items-center gap-3">
-                       <p className="text-xs md:text-sm font-black text-[#aebac1] tabular-nums">{contextProduct.price?.toLocaleString()} <span className="text-[10px] text-[var(--accent)] opacity-60">XAF</span></p>
-                       <div className="h-3 w-px bg-white/10" />
-                       <button 
-                         onClick={() => router.push(`/products/${contextProduct._id}`)}
-                         className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[var(--accent)] hover:text-white transition-colors group/btn"
-                       >
-                         <ExternalLink className="size-3 group-hover/btn:rotate-12 transition-transform" />
-                         <span>Inspect Node</span>
-                       </button>
-                    </div>
+                    <h4 className="text-xs md:text-sm font-black text-white truncate uppercase tracking-tight leading-tight">
+                      {contextProduct ? contextProduct.name : 'Replied to Aura Pulse'}
+                    </h4>
                  </div>
-
-                 <div className="flex items-center gap-2 relative z-10">
-                    <button onClick={() => setContextProduct(null)} className="p-2.5 md:p-3 rounded-full bg-white/5 text-[#aebac1] hover:text-white hover:bg-white/10 transition-all border border-white/5"><X className="size-5" /></button>
+  
+                 <div className="flex items-center gap-3 relative z-10">
+                    {contextProduct && (
+                      <button 
+                        onClick={() => router.push(`/products/${contextProduct._id}`)}
+                        className="hidden md:flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[var(--accent)] hover:text-white transition-colors"
+                      >
+                        <ExternalLink className="size-3" />
+                        <span>Inspect</span>
+                      </button>
+                    )}
+                    <button onClick={() => { setContextProduct(null); setContextStory(null); }} className="p-2 rounded-full bg-white/5 text-[#aebac1] hover:text-white transition-all border border-white/5"><X className="size-4" /></button>
                  </div>
               </div>
             )}
@@ -308,60 +332,78 @@ function ChatContent() {
 
                     return (
                       <div key={msg._id || i} className="space-y-4">
+                        {/* Centered Product Context Card */}
                         {showProductContext && msg.product_reference && (
-                          <div className="flex justify-center my-8">
+                          <div className="flex justify-center my-6">
                             <button 
                               onClick={() => window.open(`/products/${msg.product_reference._id || msg.product_reference}`, '_blank')}
-                              className="group flex flex-col md:flex-row items-center gap-4 p-4 rounded-3xl bg-[#202c33]/50 border border-white/5 shadow-2xl hover:bg-[#202c33]/80 hover:border-[var(--accent)]/30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4"
+                              className="group flex flex-col md:flex-row items-center gap-4 p-3 rounded-[2rem] bg-black/40 border border-white/5 shadow-2xl hover:bg-black/60 hover:border-[var(--accent)]/30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 w-full max-w-[90%] md:max-w-md"
                             >
-                               <div className="size-20 md:size-24 rounded-2xl overflow-hidden border border-white/10 bg-[#111b21] shrink-0 group-hover:scale-[1.03] transition-transform duration-500">
-                                  <img 
-                                    src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80'} 
-                                    className="size-full object-cover" 
-                                    alt="" 
-                                  />
-                               </div>
-                               <div className="text-center md:text-left min-w-0 pr-4">
-                                  <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5 ">
-                                     <div className="size-1 rounded-full bg-[var(--accent)]" />
-                                     <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest leading-none">Product Synchronization</p>
+                              <div className="size-16 rounded-2xl overflow-hidden border border-white/10 bg-black shrink-0 shadow-lg">
+                                <img 
+                                  src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80'} 
+                                  className="size-full object-cover" 
+                                  alt="" 
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0 text-center md:text-left">
+                                <div className="flex items-center justify-center md:justify-start gap-1.5 mb-1">
+                                  <div className="size-1 rounded-full bg-[var(--accent)] animate-pulse" />
+                                  <span className="text-[8px] font-black text-[var(--accent)] uppercase tracking-[0.2em]">Subject Payload</span>
+                                </div>
+                                <h5 className="text-[12px] font-black text-white truncate uppercase tracking-tight mb-1">{msg.product_reference.name}</h5>
+                                <div className="flex items-center justify-center md:justify-start gap-3">
+                                  <p className="text-[11px] font-black text-[var(--accent)] tabular-nums">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
+                                  <div className="h-2.5 w-px bg-white/10" />
+                                  <div className="flex items-center gap-1 text-[9px] font-bold text-white/40 group-hover:text-white transition-colors">
+                                    <ExternalLink className="size-2.5" />
+                                    <span>Inspect</span>
                                   </div>
-                                  <h5 className="text-sm font-black text-[#e9edef] truncate max-w-[200px] uppercase tracking-tight mb-2 group-hover:text-[var(--accent)] transition-colors">{msg.product_reference.name}</h5>
-                                  <div className="flex items-center justify-center md:justify-start gap-4">
-                                     <p className="text-xs font-black text-[#aebac1] tabular-nums">{(msg.product_reference.price || 0).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
-                                     <div className="h-3 w-px bg-white/10 hidden md:block" />
-                                     <div className="hidden md:flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#aebac1] group-hover:text-white transition-colors">
-                                        <ExternalLink className="size-3" />
-                                        <span>Navigate</span>
-                                     </div>
-                                  </div>
-                               </div>
+                                </div>
+                              </div>
                             </button>
                           </div>
                         )}
-                        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[80%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-                            {/* Story Reply Preview */}
-                            {msg.metadata?.type === 'story_reply' && (
-                              <div className={`mb-1 p-2 rounded-2xl bg-[#2a3942]/50 border border-white/5 flex items-center gap-3 min-w-[200px] max-w-full backdrop-blur-md overflow-hidden relative group cursor-pointer hover:bg-[#2a3942] transition-all`} onClick={() => msg.metadata.storyId && window.open(`/status?id=${msg.metadata.storyId}`, '_blank')}>
-                                <div className="absolute top-0 left-0 w-1 h-full bg-[var(--accent)]" />
+
+                        {/* Centered Story Reply Interaction Card */}
+                        {msg.metadata?.type === 'story_reply' && (
+                          <div className="flex justify-center my-6">
+                            <button 
+                              onClick={() => msg.metadata.storyId && window.open(`/status?id=${msg.metadata.storyId}`, '_blank')}
+                              className="group flex flex-col md:flex-row items-center gap-4 p-3 rounded-[2rem] bg-black/40 border border-white/5 shadow-2xl hover:bg-black/60 hover:border-purple-500/30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 w-full max-w-[90%] md:max-w-md"
+                            >
+                              <div className="size-16 rounded-2xl overflow-hidden border border-white/10 bg-[#0b141a] shrink-0 shadow-lg">
                                 {msg.metadata.storyPreview?.startsWith('http') ? (
-                                  <div className="size-12 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black">
-                                    <img src={msg.metadata.storyPreview} className="size-full object-cover opacity-80" alt="" />
-                                  </div>
+                                  <img src={msg.metadata.storyPreview} className="size-full object-cover opacity-80" alt="" />
                                 ) : (
-                                  <div className="size-12 rounded-lg bg-[var(--accent)]/10 border border-white/10 flex items-center justify-center shrink-0 p-1">
-                                    <p className="text-[8px] font-black italic text-[var(--accent)] leading-tight text-center line-clamp-3">{msg.metadata.storyPreview}</p>
+                                  <div className="size-full bg-gradient-to-br from-[#050505] to-[#1a0a2e] flex items-center justify-center p-2 text-[8px] font-bold italic text-white/70 text-center leading-tight">
+                                    {msg.metadata.storyPreview}
                                   </div>
                                 )}
-                                <div className="min-w-0 pr-2">
-                                  <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest mb-0.5">Story Reply</p>
-                                  <p className="text-[11px] text-[#aebac1] opacity-60 italic truncate">Sent from Global Pulse</p>
+                              </div>
+                              <div className="flex-1 min-w-0 text-center md:text-left">
+                                <div className="flex items-center justify-center md:justify-start gap-1.5 mb-1">
+                                  <div className="size-1 rounded-full bg-purple-500 animate-pulse" />
+                                  <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">Status Interaction</span>
+                                </div>
+                                <h5 className="text-[12px] font-black text-white truncate uppercase tracking-tight mb-1">Replied to Story</h5>
+                                <div className="flex items-center justify-center md:justify-start gap-3">
+                                  <p className="text-[11px] font-medium text-white/40 italic">via Aura Pulse</p>
+                                  <div className="h-2.5 w-px bg-white/10" />
+                                  <div className="flex items-center gap-1 text-[9px] font-bold text-white/40 group-hover:text-purple-400 transition-colors">
+                                    <ExternalLink className="size-2.5" />
+                                    <span>View Story</span>
+                                  </div>
                                 </div>
                               </div>
-                            )}
+                            </button>
+                          </div>
+                        )}
 
-                            <div className={`px-4 py-2.5 rounded-2xl shadow-sm relative text-[15px] leading-relaxed ${isOwn ? 'bg-[#005c4b] text-[#e9edef]' : 'bg-[#202c33] text-[#e9edef]'}`}>
+                        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[85%] md:max-w-[70%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+
+                            <div className={`px-4 py-2.5 rounded-2xl shadow-sm relative text-[15px] leading-relaxed w-full ${isOwn ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none' : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'}`}>
                               <p className="whitespace-pre-wrap">{msg.text}</p>
                               <div className="flex items-center justify-end gap-1 mt-1.5 opacity-40 text-[10px]">
                                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
