@@ -235,8 +235,8 @@ export default function StatusTabGrid({ onSelectStatus }) {
         <div className="w-full px-2 md:px-4 pt-6 pb-4 space-y-6">
           <div className="flex items-end justify-between">
             <div className="space-y-1">
-              <h2 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] leading-none">
-                Story Feed
+              <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-[var(--text-primary)] leading-none uppercase">
+                Aura Story
               </h2>
             </div>
             

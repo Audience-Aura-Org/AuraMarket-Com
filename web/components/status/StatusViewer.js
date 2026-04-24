@@ -248,15 +248,17 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center overflow-hidden"
+      onClick={onClose}
+      className="fixed inset-0 z-[1000] bg-black/98 backdrop-blur-3xl flex items-center justify-center overflow-hidden cursor-pointer"
     >
       <div
-        className="relative w-full h-full bg-black overflow-hidden select-none touch-none"
+        onClick={e => e.stopPropagation()}
+        className="relative w-full h-full md:max-w-[420px] md:max-h-[850px] md:aspect-[9/16] md:rounded-[3rem] bg-black overflow-hidden shadow-[0_0_120px_rgba(0,0,0,1)] select-none touch-none md:border md:border-white/10 cursor-default"
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
       >
         {/* ── Vendor-Grouped Progress Bars ── */}
-        <div className={`absolute top-[calc(env(safe-area-inset-top)+16px)] inset-x-4 z-50 flex gap-1.5 pointer-events-none transition-opacity duration-300 ${paused ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`absolute top-[calc(env(safe-area-inset-top,0px)+16px)] inset-x-4 z-50 flex gap-1.5 pointer-events-none transition-opacity duration-300 ${paused ? 'opacity-0' : 'opacity-100'}`}>
           {currentGroup?.stories.map((_, i) => (
             <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-white/20 backdrop-blur-md">
               {i < storyIdx ? (
@@ -280,7 +282,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         </div>
 
         {/* ── Header ── */}
-        <div className={`absolute top-[calc(env(safe-area-inset-top)+32px)] inset-x-5 z-50 flex items-center justify-between transition-all duration-300 pointer-events-none ${paused ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0'}`}>
+        <div className={`absolute top-[calc(env(safe-area-inset-top,0px)+32px)] inset-x-5 z-50 flex items-center justify-between transition-all duration-300 pointer-events-none ${paused ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0'}`}>
           <div className="flex items-center gap-3">
             <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-xl">
               <div className="size-full rounded-full overflow-hidden border-2 border-black bg-black">
@@ -350,7 +352,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         </div>
 
         {/* ── Footer ── */}
-        <div className={`absolute bottom-0 inset-x-0 z-50 px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] transition-all duration-300 ${(paused && !isReplying) ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0'}`}>
+        <div className={`absolute bottom-0 inset-x-0 z-50 px-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] transition-all duration-300 ${(paused && !isReplying) ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0'}`}>
           {story.caption && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
               <p className="text-[16px] text-white/95 font-medium leading-relaxed drop-shadow-xl line-clamp-3">{story.caption}</p>

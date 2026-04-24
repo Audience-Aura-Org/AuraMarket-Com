@@ -15,6 +15,7 @@ import api from '@/services/api';
 import cartStore from '@/services/cartStore';
 import { toast } from 'react-hot-toast';
 import BlurUpImage from '@/components/common/BlurUpImage';
+import VariantSelectorModal from '@/components/common/VariantSelectorModal';
 
 /**
  * ProductCard - Elite Nexus Version
@@ -31,6 +32,10 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  
+  // Variant Selection State
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [modalActionType, setModalActionType] = useState('cart'); // 'cart' or 'buy'
 
   // Handle both string and object image formats
   const rawImage = images && images.length > 0 ? images[0] : null;
@@ -39,6 +44,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   const handleAddToCart = (e) => {
     e.stopPropagation();
     if (!user) { toast.error('Please login to activate cart'); return; }
+    
+    // If product has variants, show selector instead of adding directly
+    if (product.has_variants) {
+      setModalActionType('cart');
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     setAddingToCart(true);
     cartStore.addItem(product, 1);
     api.post('/cart', { product_id: productId, quantity: 1 })
@@ -55,6 +68,59 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         });
       })
       .finally(() => setAddingToCart(false));
+  };
+
+  const handleBuyNow = (e) => {
+    e.stopPropagation();
+    if (!user) { toast.error('Please login to proceed'); return; }
+
+    // If product has variants, show selector
+    if (product.has_variants) {
+      setModalActionType('buy');
+      setIsVariantModalOpen(true);
+      return;
+    }
+
+    // Direct Buy Now logic
+    cartStore.addItem(product, 1);
+    api.post('/cart', { product_id: productId, quantity: 1 })
+      .then(() => {
+        window.location.href = '/checkout';
+      });
+  };
+
+  const handleVariantConfirm = async (variantOrProduct) => {
+    if (modalActionType === 'buy') {
+      cartStore.addItem(variantOrProduct, 1);
+      await api.post('/cart', { 
+        product_id: productId, 
+        quantity: 1, 
+        variant: variantOrProduct.combination 
+      });
+      window.location.href = '/checkout';
+    } else {
+      setAddingToCart(true);
+      cartStore.addItem(variantOrProduct, 1);
+      try {
+        await api.post('/cart', { 
+          product_id: productId, 
+          quantity: 1, 
+          variant: variantOrProduct.combination 
+        });
+        toast.success(`${name} added to cart`, {
+          icon: '🛒',
+          style: {
+            borderRadius: '16px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          },
+        });
+      } finally {
+        setAddingToCart(false);
+      }
+    }
   };
 
   const handleWishlist = async (e) => {
@@ -138,7 +204,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           </div>
 
           <div className="flex items-center gap-3 mt-auto">
-            <button onClick={(e) => { e.stopPropagation(); window.location.href = `/checkout?productId=${productId}&quantity=1`; }} className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black tracking-widest rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95">BUY NOW</button>
+            <button onClick={handleBuyNow} className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black tracking-widest rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95">BUY NOW</button>
             <div className="flex items-center gap-2">
               <button onClick={handleChat} className="size-9 rounded-2xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                 <MessageSquare className="size-4.5" />
@@ -240,10 +306,10 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
         <div className="flex items-center gap-1 md:gap-1.5 mt-auto">
           <button 
-             onClick={(e) => { e.stopPropagation(); window.location.href = `/products/${productId}`; }}
+             onClick={handleBuyNow}
              className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
           >
-             VIEW
+             BUY NOW
           </button>
           
           <button 
@@ -258,6 +324,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           </button>
         </div>
       </div>
+
+      <VariantSelectorModal 
+        isOpen={isVariantModalOpen}
+        onClose={() => setIsVariantModalOpen(false)}
+        product={product}
+        actionType={modalActionType}
+        onConfirm={handleVariantConfirm}
+      />
     </div>
   );
 }

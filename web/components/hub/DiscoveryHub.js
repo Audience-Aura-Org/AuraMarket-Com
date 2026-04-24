@@ -30,7 +30,7 @@ const ProfileContent = dynamic(() => import('./HubSubTabs').then(mod => mod.Prof
 
 const TABS = [
   { id: 'home', icon: Store, label: 'Vendor' },
-  { id: 'status', icon: Activity, label: 'Story' },
+  { id: 'status', icon: Activity, label: 'Aura Story' },
   { id: 'discover', icon: ShoppingBag, label: 'Shop' },
   { id: 'overtime', icon: Home, label: 'Overtime' },
   { id: 'profile', icon: User, label: 'Profile' },
