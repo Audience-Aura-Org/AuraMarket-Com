@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   X, Heart, ShoppingBag,
   Volume2, VolumeX,
-  Eye, Send, Share2, Pause,
+  Eye, Send, Share2, Pause, Play,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
@@ -30,22 +30,73 @@ function preloadMedia(url, type) {
   }
 }
 
-// ─── StoryMedia ─────────────────────────────────────────────────────────────
-// Separated video/image rendering with proper ref handling
+// ─── StoryVideo ──────────────────────────────────────────────────────────────
+// Renders video with a blur-up first-frame poster (canvas extraction).
+// Falls back to dark gradient + play icon if CORS blocks canvas.
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
-  const ref = useRef(null);
+  const ref    = useRef(null);
   const srcRef = useRef(src);
+  const [poster, setPoster]         = useState(null);  // base64 first frame
+  const [videoReady, setVideoReady] = useState(false); // true once canplay fires
 
+  // ── Extract first frame as blurred poster ──────────────────────────────────
+  useEffect(() => {
+    if (!src) return;
+    setPoster(null);
+    setVideoReady(false);
+
+    let cancelled = false;
+    const probe = document.createElement('video');
+    probe.setAttribute('crossOrigin', 'anonymous'); // must precede src
+    probe.muted   = true;
+    probe.preload = 'metadata';
+    probe.src     = src; // set after crossOrigin
+
+    const onSeeked = () => {
+      if (cancelled) return;
+      try {
+        const w   = Math.min(probe.videoWidth, 640);
+        const h   = Math.round(w * (probe.videoHeight / (probe.videoWidth || 1)));
+        const cvs = document.createElement('canvas');
+        cvs.width  = w;
+        cvs.height = h;
+        cvs.getContext('2d').drawImage(probe, 0, 0, w, h);
+        if (!cancelled) setPoster(cvs.toDataURL('image/jpeg', 0.35));
+      } catch {
+        // CORS blocked — gradient fallback will show
+      }
+    };
+
+    const onMeta = () => {
+      if (cancelled) return;
+      // Seek to 10% of duration (or 0.5s), whichever is smaller
+      probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1);
+    };
+
+    probe.addEventListener('loadedmetadata', onMeta,  { once: true });
+    probe.addEventListener('seeked',         onSeeked, { once: true });
+    probe.load();
+
+    return () => {
+      cancelled = true;
+      probe.removeEventListener('loadedmetadata', onMeta);
+      probe.removeEventListener('seeked', onSeeked);
+      probe.src = ''; // abort pending load
+    };
+  }, [src]);
+
+  // ── Imperative src reset ───────────────────────────────────────────────────
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    // If src changed, reset
     if (srcRef.current !== src) {
       srcRef.current = src;
+      setVideoReady(false);
       v.load();
     }
   }, [src]);
 
+  // ── Play / pause ───────────────────────────────────────────────────────────
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
@@ -58,6 +109,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     }
   }, [active, paused]);
 
+  // ── Mute ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
@@ -65,16 +117,40 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
   }, [muted]);
 
   return (
-    <video
-      ref={ref}
-      src={src}
-      playsInline
-      muted={muted}
-      preload="auto"
-      className="absolute inset-0 w-full h-full object-cover"
-      onEnded={onEnded}
-      onTimeUpdate={onProgress}
-    />
+    <div className="absolute inset-0">
+      {/* ── Poster / placeholder (visible until video is ready) ── */}
+      <div className={`absolute inset-0 z-10 transition-opacity duration-700 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {poster ? (
+          // Blurred first-frame — gives instant visual of the video content
+          <img
+            src={poster}
+            alt=""
+            className="w-full h-full object-cover blur-md scale-110"
+            aria-hidden="true"
+          />
+        ) : (
+          // Gradient fallback when CORS blocks canvas extraction
+          <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 flex items-center justify-center">
+            <div className="size-16 rounded-full bg-white/10 border border-white/15 flex items-center justify-center animate-pulse">
+              <Play className="size-7 text-white/50 ml-1" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Actual video — fades in on canplay ── */}
+      <video
+        ref={ref}
+        src={src}
+        playsInline
+        muted={muted}
+        preload="auto"
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+        onCanPlay={() => setVideoReady(true)}
+        onEnded={onEnded}
+        onTimeUpdate={onProgress}
+      />
+    </div>
   );
 });
 
@@ -206,11 +282,16 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       || vendorGroups[vendorIdx + 1]?.stories[0];
     const prev = currentGroup.stories[storyIdx - 1];
     [next, prev].forEach(s => s && preloadMedia(s.content_url, s.type));
-    // Also eagerly preload all images in session
     initialStatuses.forEach(s => {
       if (s.type === 'image') preloadMedia(s.content_url, 'image');
     });
   }, [vendorIdx, storyIdx, currentGroup, vendorGroups, initialStatuses]);
+
+  // Register view on story change
+  useEffect(() => {
+    if (!story?._id) return;
+    api.post(`/statuses/${story._id}/view`).catch(() => {});
+  }, [story?._id]);
 
   const resetStoryState = () => {
     setLiked(false);
@@ -260,7 +341,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
   const toggleLike = () => {
     setLiked(l => !l);
-    api.post(`/statuses/${story._id}/like`).catch(() => {});
+    api.post(`/statuses/${story._id}/react`).catch(() => {});
   };
 
   const handleSendReply = () => {

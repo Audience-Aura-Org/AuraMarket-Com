@@ -16,7 +16,7 @@ export default function CartSidebar() {
   const navRef = useRef(null);
   const [navHeight, setNavHeight] = useState(65);
 
-  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat', '/discovery', '/onboarding'];
+  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/onboarding'];
   const shouldHide = hidden.some(r => pathname?.startsWith(r));
 
   // Measure actual TopNav height so we position correctly
@@ -29,6 +29,12 @@ export default function CartSidebar() {
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
+
+  // Signal cart open state globally via HTML class for CSS grid adaptation
+  useEffect(() => {
+    document.documentElement.classList.toggle('cart-open', open);
+    return () => document.documentElement.classList.remove('cart-open');
+  }, [open]);
 
   useEffect(() => {
     const unsub = cartStore.subscribe(({ items: newItems }) => {

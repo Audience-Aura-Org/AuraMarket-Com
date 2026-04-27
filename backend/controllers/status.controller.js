@@ -112,6 +112,16 @@ exports.reactToStatus = async (req, res) => {
           type: 'vendor_update',
           metadata: { target_id: status._id, link: `/dashboard/statuses` }
         });
+
+        // 🔥 Real-time Update to Vendor
+        const io = req.app.get('io');
+        if (io) {
+          io.to(vendor.user_id.toString()).emit('status_update', { 
+            status_id: status._id.toString(), 
+            type: 'like', 
+            count: status.reactions.length 
+          });
+        }
       }
     } else {
       status.reactions.splice(index, 1); // Unlike
@@ -133,9 +143,25 @@ exports.viewStatus = async (req, res) => {
     if (req.user) {
       update.$addToSet = { viewer_ids: req.user.id };
     }
-    
-    await Status.updateOne({ _id: req.params.id }, update);
+
+    // Respond immediately — don't block on socket/vendor lookup
+    const updatedStatus = await Status.findByIdAndUpdate(req.params.id, update, { new: true });
     res.status(200).json({ success: true });
+
+    // 🔥 Fire-and-forget: emit real-time update to vendor after responding
+    if (updatedStatus) {
+      Vendor.findById(updatedStatus.vendor_id).then(vendor => {
+        if (!vendor) return;
+        const io = req.app.get('io');
+        if (io) {
+          io.to(vendor.user_id.toString()).emit('status_update', {
+            status_id: updatedStatus._id.toString(),
+            type: 'view',
+            count: updatedStatus.views_count
+          });
+        }
+      }).catch(() => {});
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

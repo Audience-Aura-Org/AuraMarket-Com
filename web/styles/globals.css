@@ -162,3 +162,28 @@ i, em { font-style: normal !important; }
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
+
+/* ── Cart-aware grid adaptation ──────────────────────────────────────────────
+   When the cart sidebar is open (html.cart-open set by CartSidebar.js),
+   step down Tailwind lg:grid-cols-* so cards don't get squeezed.
+   CSS escaping: Tailwind compiles `lg:grid-cols-N` → `.lg\:grid-cols-N`      */
+@media (min-width: 1024px) {
+  html.cart-open .lg\:grid-cols-6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .lg\:grid-cols-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .lg\:grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .xl\:grid-cols-6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .xl\:grid-cols-5 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .xl\:grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}

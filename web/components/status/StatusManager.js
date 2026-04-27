@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plus, Trash2, Eye,
+  Plus, Trash2, Eye, Heart,
   RefreshCw, Activity, Calendar, Clock, Zap, Flame, Shield, RotateCcw
 } from 'lucide-react';
 import api from '@/services/api';
+import socketService from '@/services/socket';
 import StatusCreator from './StatusCreator';
 import BlurUpImage from '@/components/common/BlurUpImage';
 
@@ -35,6 +36,20 @@ export default function StatusManager() {
 
   useEffect(() => {
     fetchMyStatuses();
+
+    // ── Real-time Engagement Listener ──
+    const handleStatusUpdate = (update) => {
+      setStatuses(prev => prev.map(s => {
+        if (s._id?.toString() === update.status_id?.toString()) {
+          if (update.type === 'view') return { ...s, views_count: update.count };
+          if (update.type === 'like') return { ...s, likes_count: update.count };
+        }
+        return s;
+      }));
+    };
+
+    socketService.on('status_update', handleStatusUpdate);
+    return () => socketService.off('status_update', handleStatusUpdate);
   }, []);
 
   const handleDelete = async (id) => {
@@ -108,9 +123,15 @@ export default function StatusManager() {
               <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end text-white z-10">
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Engagement</p>
-                  <div className="flex items-center gap-2.5">
-                    <Eye className="size-4 text-[var(--accent)]" />
-                    <span className="text-2xl font-black tabular-nums tracking-tight">{status.views_count || 0}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Eye className="size-4 text-[var(--accent)]" />
+                      <span className="text-2xl font-black tabular-nums tracking-tight">{status.views_count || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Heart className="size-4 text-red-500 fill-red-500" />
+                      <span className="text-2xl font-black tabular-nums tracking-tight">{status.likes_count || 0}</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -173,8 +194,12 @@ export default function StatusManager() {
 
                 <div className="flex gap-12 items-center pr-4">
                   <div className="text-right">
-                    <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Total Reach</p>
+                    <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Views</p>
                     <p className="text-lg font-black tabular-nums tracking-tighter">{status.views_count || 0}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Likes</p>
+                    <p className="text-lg font-black tabular-nums tracking-tighter text-red-500">{status.likes_count || 0}</p>
                   </div>
                   <div className="text-right hidden sm:block">
                     <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
