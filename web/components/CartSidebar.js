@@ -30,11 +30,6 @@ export default function CartSidebar() {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  // Signal cart open state globally via HTML class for CSS grid adaptation
-  useEffect(() => {
-    document.documentElement.classList.toggle('cart-open', open);
-    return () => document.documentElement.classList.remove('cart-open');
-  }, [open]);
 
   useEffect(() => {
     const unsub = cartStore.subscribe(({ items: newItems }) => {
@@ -84,6 +79,12 @@ export default function CartSidebar() {
   const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
   const totalQty = items.reduce((s, it) => s + it.quantity, 0);
   const open = !shouldHide && items.length > 0;
+
+  // Signal cart open state globally via HTML class for CSS grid adaptation
+  useEffect(() => {
+    document.documentElement.classList.toggle('cart-open', open);
+    return () => document.documentElement.classList.remove('cart-open');
+  }, [open]);
 
   return (
     <>
