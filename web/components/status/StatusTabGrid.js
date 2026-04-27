@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { 
   Heart, Flame, Play, Search, X, Eye, 
@@ -336,3 +336,42 @@ export default function StatusTabGrid({ onSelectStatus }) {
   );
 }
 
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+function Skeleton() {
+  return (
+    <div className="bg-[var(--bg-secondary)] min-h-screen p-3 pt-6 space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="w-36 h-7 bg-white/5 animate-pulse rounded-xl" />
+        <div className="w-24 h-7 bg-white/5 animate-pulse rounded-xl" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="aspect-[3/4] rounded-[1.5rem] bg-white/5 animate-pulse border border-white/5" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Empty ────────────────────────────────────────────────────────────────────
+function Empty({ icon, title, desc, action, onAction }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 px-6 text-center space-y-5 bg-[var(--bg-primary)]/30 rounded-[2rem] border border-dashed border-[var(--glass-border)] mt-4">
+      <div className="size-20 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center border border-[var(--glass-border)]">
+        {icon}
+      </div>
+      <div className="space-y-1.5 max-w-xs">
+        <h4 className="text-base font-black tracking-tight text-[var(--text-primary)]">{title}</h4>
+        <p className="text-[11px] font-medium text-[var(--text-secondary)] leading-relaxed opacity-60">{desc}</p>
+      </div>
+      {action && (
+        <button
+          onClick={onAction}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-bold shadow-lg hover:scale-105 transition-all active:scale-95"
+        >
+          {action}
+        </button>
+      )}
+    </div>
+  );
+}

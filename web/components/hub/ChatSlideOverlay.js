@@ -193,8 +193,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-           {activePartnerId ? (
+         {activePartnerId ? (
              <>
                 <button
                   onClick={() => { if (confirm('Delete this conversation from your view?')) hideConversation(activePartnerId.toString()); }}
@@ -207,11 +206,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                   <X className="size-5" />
                 </button>
              </>
-           ) : (
-              <button onClick={onClose} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100">
-                <X className="size-5" />
-              </button>
-           )}
+           ) : null}
         </div>
       </div>
 

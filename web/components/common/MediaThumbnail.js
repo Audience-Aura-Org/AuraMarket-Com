@@ -1,72 +1,77 @@
 "use client";
 import { memo } from 'react';
+import { Play } from 'lucide-react';
 import BlurUpImage from './BlurUpImage';
 
 /**
- * MediaThumbnail — Smart component that renders either an image or a video preview.
- * For videos:
- * - If Cloudinary: Uses transformation API to get an instant blurred JPEG.
- * - If Other (S3): Uses a muted video tag with preload="metadata" to show the first frame.
+ * MediaThumbnail — Smart cross-platform media thumbnail component.
+ *
+ * Images:   BlurUpImage (progressive blur-up, works everywhere)
+ * Cloudinary video: Transforms URL to blurred JPEG poster → BlurUpImage
+ * S3/generic video: Premium styled dark placeholder + play icon
+ *   (video preload is unreliable on iOS Safari PWA, so we skip the video element)
  */
-const isVideo = (url) => {
+const isVideoUrl = (url) => {
   if (!url) return false;
-  return url.match(/\.(mp4|mov|webm|ogg|m4v)$|^blob:/i) || url.includes('/video/upload/');
+  return /\.(mp4|mov|webm|ogg|m4v)(\?|$)/i.test(url) || url.includes('/video/upload/');
 };
 
-const MediaThumbnail = memo(({ src, alt, className, imgClassName, objectFit = 'cover', priority = 'auto' }) => {
+const MediaThumbnail = memo(({ src, alt, className = '', imgClassName = '', objectFit = 'cover', priority = 'auto' }) => {
   if (!src) return null;
 
-  if (isVideo(src)) {
-    // ── Cloudinary Optimization ──────────────────────────────────────────────
+  if (isVideoUrl(src)) {
+    // ── Cloudinary: generate instant blurred poster via URL transform ──────────
     if (src.includes('res.cloudinary.com')) {
       try {
-        let poster = src.replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/');
-        poster = poster.replace(/\.[^/.]+$/, ".jpg");
+        const poster = src
+          .replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/')
+          .replace(/\.[^/.]+$/, '.jpg');
         return (
-          <BlurUpImage 
-            src={poster} 
-            alt={alt} 
-            className={className} 
-            imgClassName={imgClassName} 
-            objectFit={objectFit} 
-            priority={priority} 
+          <BlurUpImage
+            src={poster}
+            alt={alt}
+            className={className}
+            imgClassName={imgClassName}
+            objectFit={objectFit}
+            priority={priority}
           />
         );
-      } catch (e) {
-        // Fallback to video tag below
+      } catch (_) {
+        // fall through to placeholder
       }
     }
 
-    // ── Fallback for S3 / Generic Videos ─────────────────────────────────────
-    // Browsers will show the first frame of a muted video if preload="metadata" is set.
+    // ── S3 / Generic: reliable styled placeholder (works on iOS PWA) ──────────
     return (
-      <div className={`relative overflow-hidden bg-black ${className}`}>
-        <video
-          src={src}
-          muted
-          playsInline
-          preload="metadata"
-          className={`w-full h-full object-${objectFit} transition-all duration-500 ${imgClassName}`}
-        />
-        {/* Play indicator overlay for video thumbnails */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-           <div className="size-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
-             <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-1" />
-           </div>
+      <div
+        className={`relative overflow-hidden bg-black ${className}`}
+        style={{ background: 'linear-gradient(160deg,#0a0a0a 0%,#1a1220 100%)' }}
+      >
+        {/* Subtle shimmer overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3" />
+
+        {/* Centered play badge */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="size-10 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-xl">
+            <Play className="size-4 text-white ml-0.5 fill-white" />
+          </div>
         </div>
+
+        {/* Bottom gradient strip (mimics a "video thumbnail" look) */}
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
       </div>
     );
   }
 
-  // ── Standard Image ─────────────────────────────────────────────────────────
+  // ── Standard image ──────────────────────────────────────────────────────────
   return (
-    <BlurUpImage 
-      src={src} 
-      alt={alt} 
-      className={className} 
-      imgClassName={imgClassName} 
-      objectFit={objectFit} 
-      priority={priority} 
+    <BlurUpImage
+      src={src}
+      alt={alt}
+      className={className}
+      imgClassName={imgClassName}
+      objectFit={objectFit}
+      priority={priority}
     />
   );
 });
