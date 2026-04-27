@@ -30,27 +30,57 @@ function preloadMedia(url, type) {
   }
 }
 
+// ─── StoryVideo Helper ───────────────────────────────────────────────────────
+// Generates an instant poster URL for Cloudinary videos or returns null.
+const getVideoPoster = (src) => {
+  if (!src) return null;
+  // If it's Cloudinary, we can transform the video into a blurred JPEG instantly.
+  if (src.includes('res.cloudinary.com')) {
+    try {
+      // Replace /video/upload/ with /video/upload/e_blur:800,q_auto:low,f_jpg/ 
+      // and change extension to .jpg
+      let poster = src.replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/');
+      poster = poster.replace(/\.[^/.]+$/, ".jpg");
+      return poster;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
 // Renders video with a blur-up first-frame poster (canvas extraction).
 // Falls back to dark gradient + play icon if CORS blocks canvas.
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
   const ref    = useRef(null);
   const srcRef = useRef(src);
-  const [poster, setPoster]         = useState(null);  // base64 first frame
-  const [videoReady, setVideoReady] = useState(false); // true once canplay fires
+  
+  // Try to get an instant poster (e.g. Cloudinary transformation)
+  const [poster, setPoster] = useState(() => getVideoPoster(src));
+  const [videoReady, setVideoReady] = useState(false); 
 
-  // ── Extract first frame as blurred poster ──────────────────────────────────
+  // ── Extract first frame as blurred poster (Fallback for non-Cloudinary) ─────
   useEffect(() => {
     if (!src) return;
+    
+    // If we already have a Cloudinary poster, we don't need the heavy canvas probe
+    const instantPoster = getVideoPoster(src);
+    if (instantPoster) {
+      setPoster(instantPoster);
+      setVideoReady(false);
+      return;
+    }
+
     setPoster(null);
     setVideoReady(false);
 
     let cancelled = false;
     const probe = document.createElement('video');
-    probe.setAttribute('crossOrigin', 'anonymous'); // must precede src
+    probe.setAttribute('crossOrigin', 'anonymous'); 
     probe.muted   = true;
     probe.preload = 'metadata';
-    probe.src     = src; // set after crossOrigin
+    probe.src     = src; 
 
     const onSeeked = () => {
       if (cancelled) return;
@@ -63,13 +93,12 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         cvs.getContext('2d').drawImage(probe, 0, 0, w, h);
         if (!cancelled) setPoster(cvs.toDataURL('image/jpeg', 0.35));
       } catch {
-        // CORS blocked — gradient fallback will show
+        // Fallback handled by shimmer in render
       }
     };
 
     const onMeta = () => {
       if (cancelled) return;
-      // Seek to 10% of duration (or 0.5s), whichever is smaller
       probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1);
     };
 
@@ -81,7 +110,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       cancelled = true;
       probe.removeEventListener('loadedmetadata', onMeta);
       probe.removeEventListener('seeked', onSeeked);
-      probe.src = ''; // abort pending load
+      probe.src = ''; 
     };
   }, [src]);
 
@@ -117,31 +146,33 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
   }, [muted]);
 
   return (
-    <div className="absolute inset-0">
-      {/* ── Poster / placeholder (visible until video is ready) ── */}
-      <div className={`absolute inset-0 z-10 transition-opacity duration-700 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    <div className="absolute inset-0 bg-black">
+      {/* ── Poster / Placeholder Layer ── */}
+      <div 
+        className={`absolute inset-0 z-10 transition-opacity duration-700 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      >
         {poster ? (
-          // Blurred first-frame — gives instant visual of the video content
           <img
             src={poster}
             alt=""
-            className="w-full h-full object-cover blur-md scale-110"
+            className="w-full h-full object-cover blur-xl scale-110"
             aria-hidden="true"
           />
         ) : (
-          // Gradient fallback when CORS blocks canvas extraction
-          <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-black to-zinc-800 flex items-center justify-center">
-            <div className="size-16 rounded-full bg-white/10 border border-white/15 flex items-center justify-center animate-pulse">
-              <Play className="size-7 text-white/50 ml-1" />
+          /* Shimmering skeleton while we wait for either the probe or the video itself */
+          <div className="w-full h-full animate-shimmer flex items-center justify-center">
+             <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+              <Play className="size-7 text-white/20 ml-1" />
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Actual video — fades in on canplay ── */}
+      {/* ── Actual Video ── */}
       <video
         ref={ref}
         src={src}
+        poster={poster && !src.includes('cloudinary') ? poster : undefined} 
         playsInline
         muted={muted}
         preload="auto"
