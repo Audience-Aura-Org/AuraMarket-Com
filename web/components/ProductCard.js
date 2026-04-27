@@ -90,8 +90,16 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   };
 
   const handleVariantConfirm = async (variantOrProduct) => {
+    // Merge parent product name/images into the variant (SKU variants don't carry them)
+    const enriched = {
+      ...variantOrProduct,
+      _id: variantOrProduct._id || productId,
+      name: variantOrProduct.name || name,
+      images: variantOrProduct.images?.length ? variantOrProduct.images : images,
+    };
+
     if (modalActionType === 'buy') {
-      cartStore.addItem(variantOrProduct, 1);
+      cartStore.addItem(enriched, 1);
       await api.post('/cart', { 
         product_id: productId, 
         quantity: 1, 
@@ -100,7 +108,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       window.location.href = '/checkout';
     } else {
       setAddingToCart(true);
-      cartStore.addItem(variantOrProduct, 1);
+      cartStore.addItem(enriched, 1);
       try {
         await api.post('/cart', { 
           product_id: productId, 

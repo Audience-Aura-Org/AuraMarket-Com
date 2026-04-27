@@ -92,7 +92,7 @@ export default function CartSidebar() {
       <div
         className={`
           hidden lg:block flex-shrink-0
-          transition-all duration-500 ease-in-out
+          transition-[width] duration-150 ease-out
           ${open ? 'w-[260px]' : 'w-0'}
         `}
         aria-hidden="true"
@@ -107,7 +107,7 @@ export default function CartSidebar() {
           w-[260px]
           border-l border-[var(--glass-border)]
           bg-[var(--bg-primary)]
-          transition-all duration-500 ease-in-out
+          transition-transform duration-150 ease-out
           z-40
           ${open ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}
         `}
