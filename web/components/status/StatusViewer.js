@@ -382,7 +382,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     const text = replyText.trim();
     setReplyText('');
     setIsReplying(false);
-    // Send silently — just close the viewer, no chat overlay
+    // Send silently then advance to next story (don't close viewer)
     api.post('/chat', {
       receiver_id: recipientUserId,
       text,
@@ -392,7 +392,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         storyPreview: story.type === 'text' ? story.text_content : story.content_url
       }
     }).catch(() => {});
-    onClose();
+    // Dispatch reply event so StatusRow ring updates
+    window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
+    goNext();
   };
 
   // Touch / pointer handlers
@@ -482,7 +484,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
         {/* ── Progress Bars ── */}
         <div
-          className={`absolute top-[max(env(safe-area-inset-top,0px),14px)] inset-x-4 z-50 pointer-events-none transition-opacity duration-200 ${paused ? 'opacity-0' : 'opacity-100'}`}
+          className={`absolute top-[max(env(safe-area-inset-top,0px),14px)] inset-x-4 z-50 pointer-events-none transition-opacity duration-200 ${(paused || isReplying) ? 'opacity-0' : 'opacity-100'}`}
         >
           <ProgressBar
             key={`${vendorIdx}-${storyIdx}`}
@@ -499,7 +501,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         {/* ── Header ── */}
         <div
           className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none
-            ${paused ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}
+            ${(paused || isReplying) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}
           `}
           style={{ top: 'calc(max(env(safe-area-inset-top, 0px), 14px) + 14px)' }}
         >
@@ -547,22 +549,17 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           </div>
         </div>
 
-        {/* ── Footer ── */}
-        <div
-          className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-4 transition-all duration-200 ${isReplying ? '' : (paused ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0')}`}
-        >
-          {story.caption && (
-            <p className="text-sm text-white/90 font-medium leading-relaxed drop-shadow mb-4 line-clamp-3">
-              {story.caption}
-            </p>
-          )}
-
-          {story.linked_product?.name && (
+        {/* ── Linked Product (always visible, above footer transition) ── */}
+        {story.linked_product?.name && (
+          <div
+            className="absolute bottom-[calc(max(env(safe-area-inset-bottom,0px),16px)+80px)] inset-x-5 z-50"
+            onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+          >
             <button
-              onClick={e => { e.stopPropagation(); handleViewProduct(); }}
-              onPointerDown={e => e.stopPropagation()}
-              onPointerUp={e => e.stopPropagation()}
-              className="w-full mb-4 px-4 py-3 rounded-[1.5rem] bg-white/10 backdrop-blur-xl border border-white/15 flex items-center justify-between active:scale-[0.98] transition-transform"
+              onClick={handleViewProduct}
+              className="w-full px-4 py-3 rounded-[1.5rem] bg-black/60 backdrop-blur-xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-transform shadow-2xl"
             >
               <div className="flex items-center gap-3">
                 <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
@@ -576,14 +573,26 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                   })()}
                 </div>
                 <div className="text-left">
-                  <p className="text-[12px] font-bold text-white line-clamp-1">{story.linked_product.name}</p>
+                  <p className="text-[11px] font-black text-white/60 uppercase tracking-widest">Shop Now</p>
+                  <p className="text-[13px] font-bold text-white line-clamp-1">{story.linked_product.name}</p>
                   <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">{story.linked_product.price?.toLocaleString()} XAF</p>
                 </div>
               </div>
-              <div className="size-9 rounded-full bg-[var(--accent)] flex items-center justify-center shrink-0">
-                <ShoppingBag className="size-4 text-white" />
+              <div className="size-10 rounded-full bg-[var(--accent)] flex items-center justify-center shrink-0 shadow-lg">
+                <ShoppingBag className="size-4.5 text-white" />
               </div>
             </button>
+          </div>
+        )}
+
+        {/* ── Footer ── */}
+        <div
+          className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-4 transition-all duration-200 ${isReplying ? '' : (paused ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0')}`}
+        >
+          {story.caption && (
+            <p className="text-sm text-white/90 font-medium leading-relaxed drop-shadow mb-4 line-clamp-3">
+              {story.caption}
+            </p>
           )}
 
           {/* Reply row */}

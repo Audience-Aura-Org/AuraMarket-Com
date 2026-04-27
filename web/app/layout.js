@@ -37,19 +37,17 @@ export const metadata = {
 
 };
 
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
-  themeColor: '#0a050a',
-};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={poppins.variable} data-scroll-behavior="smooth">
       <head>
+        {/* Viewport: interactive-widget=resizes-visual prevents iOS PWA keyboard freeze */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual"
+        />
+        <meta name="theme-color" content="#0a050a" />
         {/* Dynamic Theme-Aware Favicons */}
         <link rel="icon" href="/icon-192.png?v=8" media="(prefers-color-scheme: light)" />
         <link rel="icon" href="/icon-512.png?v=8" media="(prefers-color-scheme: dark)" />
