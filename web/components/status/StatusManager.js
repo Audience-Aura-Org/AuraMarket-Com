@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plus, Trash2, Eye, Heart, ShoppingBag, 
-  RefreshCw, Activity, Calendar, AlertCircle, Clock, Zap, Flame, Shield
+  Plus, Trash2, Eye,
+  RefreshCw, Activity, Calendar, Clock, Zap, Flame, Shield, RotateCcw
 } from 'lucide-react';
 import api from '@/services/api';
 import StatusCreator from './StatusCreator';
@@ -18,6 +18,7 @@ export default function StatusManager() {
   const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
+  const [reshareTarget, setReshareTarget] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
   const fetchMyStatuses = async () => {
@@ -61,25 +62,25 @@ export default function StatusManager() {
           </h2>
         </div>
         <button 
-          onClick={() => setShowCreator(true)}
+          onClick={() => { setReshareTarget(null); setShowCreator(true); }}
           className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
         >
           <Plus className="size-4" />
-          Post New Status
+          Post New Story
         </button>
       </section>
 
       {/* ── Bento Grid for Statuses ────────────────────────────────────────── */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {/* Create Status Card */}
+        {/* Create Story Card */}
         <div 
-          onClick={() => setShowCreator(true)}
+          onClick={() => { setReshareTarget(null); setShowCreator(true); }}
           className="group cursor-pointer aspect-[4/5] bg-[var(--bg-secondary)]/50 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-6 rounded-[2.5rem] hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all duration-500"
         >
           <div className="size-16 rounded-full border border-[var(--glass-border)] flex items-center justify-center group-hover:scale-110 group-hover:border-[var(--accent)] transition-all duration-500 bg-[var(--bg-primary)]/50">
             <Plus className="size-8 text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" />
           </div>
-          <span className="text-[10px] font-black tracking-[0.25em] text-[var(--text-primary)] uppercase opacity-60 group-hover:opacity-100 transition-opacity">CREATE STATUS</span>
+          <span className="text-[10px] font-black tracking-[0.25em] text-[var(--text-primary)] uppercase opacity-60 group-hover:opacity-100 transition-opacity">New Story</span>
         </div>
 
         {/* Active Status Cards */}
@@ -179,6 +180,13 @@ export default function StatusManager() {
                     <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
                     <p className="text-lg font-black tabular-nums tracking-tighter">{status.expiry_days || 1}d</p>
                   </div>
+                  <button
+                    onClick={() => { setReshareTarget(status); setShowCreator(true); }}
+                    title="Reshare this story"
+                    className="size-10 rounded-full bg-[var(--accent)]/8 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                  >
+                    <RotateCcw className="size-4" />
+                  </button>
                   <button 
                     onClick={() => handleDelete(status._id)}
                     className="size-10 rounded-full bg-red-500/5 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
@@ -195,8 +203,9 @@ export default function StatusManager() {
       {/* Creator Modal */}
       {showCreator && (
         <StatusCreator 
-          onClose={() => setShowCreator(false)} 
-          onStatusCreated={() => { fetchMyStatuses(); setShowCreator(false); }} 
+          onClose={() => { setShowCreator(false); setReshareTarget(null); }} 
+          onStatusCreated={() => { fetchMyStatuses(); setShowCreator(false); setReshareTarget(null); }}
+          initialData={reshareTarget}
         />
       )}
     </div>

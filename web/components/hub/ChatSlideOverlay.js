@@ -4,13 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Send, ArrowLeft, Package, Plus, 
-  MessageCircle, CheckCheck, Check, Mic, Image as ImageIcon,
-  ExternalLink, Search, Loader2, MoreVertical, Phone, Video
+  MessageCircle, CheckCheck, Loader2, 
+  Search, Trash2
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
-import Link from 'next/link';
 
 /**
  * ChatSlideOverlay - Global Pop-out Messaging Center
@@ -26,9 +25,21 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
   const [inboxLoading, setInboxLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [partnerInfo, setPartnerInfo] = useState(initialData);
+  const [deletedConvos, setDeletedConvos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('aura_deleted_convos') || '[]'); } catch { return []; }
+  });
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  const hideConversation = (partnerId) => {
+    const updated = [...new Set([...deletedConvos, partnerId])];
+    setDeletedConvos(updated);
+    localStorage.setItem('aura_deleted_convos', JSON.stringify(updated));
+    setActivePartnerId(null);
+    setPartnerInfo(null);
+    setMessages([]);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -185,14 +196,21 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
         <div className="flex items-center gap-2">
            {activePartnerId ? (
              <>
-                <button onClick={() => alert('Secure Video Transmission: Feature Encrypting...')} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><Video className="size-5" /></button>
-                <button onClick={() => alert('Encrypted Voice Pipeline: Feature Pending...')} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><Phone className="size-5" /></button>
-                <button onClick={() => alert('Node Configuration Menu')} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100"><MoreVertical className="size-5" /></button>
+                <button
+                  onClick={() => { if (confirm('Delete this conversation from your view?')) hideConversation(activePartnerId.toString()); }}
+                  className="p-2 text-[var(--text-secondary)] opacity-50 hover:opacity-100 hover:text-red-500 transition-all"
+                  title="Delete conversation"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+                <button onClick={onClose} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100">
+                  <X className="size-5" />
+                </button>
              </>
            ) : (
-              <Link href="/chat" onClick={onClose} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100 hover:text-[var(--accent)]">
-                <ExternalLink className="size-5" />
-              </Link>
+              <button onClick={onClose} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100">
+                <X className="size-5" />
+              </button>
            )}
         </div>
       </div>
@@ -351,7 +369,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                    <p className="text-xs font-black uppercase tracking-widest leading-loose">No active connections found</p>
                 </div>
              ) : (
-                inbox.map((chat) => (
+                inbox.filter(c => !deletedConvos.includes((c.partner?._id || '').toString())).map((chat) => (
                   <button
                     key={chat._id || chat.partner?._id || `chat-${chat.date}`}
                     onClick={() => {

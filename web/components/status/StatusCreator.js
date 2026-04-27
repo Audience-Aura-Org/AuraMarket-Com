@@ -1,131 +1,135 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Image as ImageIcon, Video, Type, 
   ShoppingBag, Trash2, Send, Loader2,
-  CheckCircle2, AlertCircle, Clock, Flame, Zap, Shield,
-  Eye, Sparkles, ChevronRight, Layout, Tag
+  AlertCircle, Clock, Search, Tag, RotateCcw
 } from 'lucide-react';
 import { uploadService } from '@/services/upload';
 import api from '@/services/api';
 
 const DURATION_OPTIONS = [
-  {
-    value: 1,
-    label: '1 Day',
-    sublabel: 'Quick Drop',
-    icon: Zap,
-    color: 'from-amber-400 to-orange-500',
-    border: 'border-amber-500/30',
-    bg: 'bg-amber-500/5',
-    text: 'text-amber-500',
-  },
-  {
-    value: 3,
-    label: '3 Days',
-    sublabel: 'Standard',
-    icon: Flame,
-    color: 'from-[var(--accent)] to-purple-500',
-    border: 'border-[var(--accent)]/30',
-    bg: 'bg-[var(--accent)]/5',
-    text: 'text-[var(--accent)]',
-    recommended: true,
-  },
-  {
-    value: 7,
-    label: '7 Days',
-    sublabel: 'Max Reach',
-    icon: Shield,
-    color: 'from-emerald-400 to-teal-500',
-    border: 'border-emerald-500/30',
-    bg: 'bg-emerald-500/5',
-    text: 'text-emerald-500',
-  },
+  { value: 1, label: '1 Day',  sublabel: 'Quick drop'  },
+  { value: 3, label: '3 Days', sublabel: 'Standard', recommended: true },
+  { value: 7, label: '7 Days', sublabel: 'Max reach' },
 ];
 
-export default function StatusCreator({ onClose, onStatusCreated }) {
-  const [type, setType] = useState('image');
-  const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [textContent, setTextContent] = useState('');
-  const [caption, setCaption] = useState('');
+const CATEGORIES = ['Fashion', 'Electronics', 'Lifestyle', 'Tech', 'Art', 'Beauty', 'General'];
+
+/**
+ * StatusCreator — single-screen story composer.
+ * Accepts optional `initialData` for resharing an existing story.
+ */
+export default function StatusCreator({ onClose, onStatusCreated, initialData = null }) {
+  const isReshare = !!initialData;
+
+  const [type, setType]                 = useState(initialData?.type || 'image');
+  const [file, setFile]                 = useState(null);
+  const [previewUrl, setPreviewUrl]     = useState(initialData?.content_url || '');
+  const [textContent, setTextContent]   = useState(initialData?.text_content || '');
+  const [caption, setCaption]           = useState(initialData?.caption || '');
   const [linkedProduct, setLinkedProduct] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [step, setStep] = useState(1); // 1: Media, 2: Details & Duration, 3: Final Preview
-  const [expiryDays, setExpiryDays] = useState(3);
-  const [selectedCategory, setSelectedCategory] = useState(null); // No default, must select
+  const [products, setProducts]         = useState([]);
+  const [searchTerm, setSearchTerm]     = useState('');
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState(null);
+  const [expiryDays, setExpiryDays]     = useState(initialData?.expiry_days || 3);
+  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || null);
+  const [mounted, setMounted]           = useState(false);
 
   const fileInputRef = useRef(null);
 
+  useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
+
+  // Load products for tagging
   useEffect(() => {
-    if (step === 2) {
-      api.get('/products/hub', { params: { limit: 50, self: true } })
-        .then(res => { if (res.data.success) setProducts(res.data.data.products || []); })
-        .catch(e => console.error(e));
+    api.get('/products/hub', { params: { limit: 50, self: true } })
+      .then(res => { if (res.data.success) setProducts(res.data.data.products || []); })
+      .catch(() => {});
+  }, []);
+
+  // Pre-load linked product for reshare
+  useEffect(() => {
+    if (initialData?.linked_product) {
+      const match = products.find(p => p._id === initialData.linked_product?._id || p._id === initialData.linked_product);
+      if (match) setLinkedProduct(match);
     }
-  }, [step]);
+  }, [products, initialData]);
+
+  // ESC to close
+  useEffect(() => {
+    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [onClose]);
+
+  // Lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, []);
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
-
+    const f = e.target.files[0];
+    if (!f) return;
     if (type === 'video') {
-      if (!selectedFile.type.startsWith('video/')) { setError('Please select a video file.'); return; }
-      if (selectedFile.size > 100 * 1024 * 1024) { setError('File too large. Max 100MB.'); return; }
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = () => {
-        window.URL.revokeObjectURL(video.src);
-        if (video.duration > 61) { setError('Video exceeds 1 minute limit.'); setFile(null); setPreviewUrl(''); }
+      if (!f.type.startsWith('video/'))  { setError('Select a video file.'); return; }
+      if (f.size > 100 * 1024 * 1024)   { setError('Max 100MB video.'); return; }
+      const vid = document.createElement('video');
+      vid.preload = 'metadata';
+      vid.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(vid.src);
+        if (vid.duration > 61) { setError('Video must be under 1 minute.'); setFile(null); setPreviewUrl(''); }
       };
-      video.src = URL.createObjectURL(selectedFile);
-    } else if (type === 'image') {
-      if (!selectedFile.type.startsWith('image/')) { setError('Please select an image file.'); return; }
-      if (selectedFile.size > 10 * 1024 * 1024) { setError('Image too large. Max 10MB.'); return; }
+      vid.src = URL.createObjectURL(f);
+    } else {
+      if (!f.type.startsWith('image/'))  { setError('Select an image file.'); return; }
+      if (f.size > 10 * 1024 * 1024)    { setError('Max 10MB image.'); return; }
     }
-
-    setFile(selectedFile);
-    setPreviewUrl(URL.createObjectURL(selectedFile));
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
     setError(null);
   };
 
   const handlePost = async () => {
+    if (!selectedCategory) { setError('Please select a category.'); return; }
     setLoading(true);
     setError(null);
     try {
-      let finalUrl = '';
-      if (type !== 'text') {
-        if (!file) throw new Error('Please select a file to upload');
+      let finalUrl = previewUrl;
+
+      // If resharing image/video and no new file was selected, reuse existing URL
+      if (type !== 'text' && file) {
         const uploadRes = await uploadService.uploadSingle(file, 'statuses');
         if (!uploadRes.success) throw new Error('Media upload failed');
         finalUrl = uploadRes.data.url;
+      } else if (type !== 'text' && !isReshare && !previewUrl) {
+        throw new Error('Please select a file to upload');
       }
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiryDays);
 
-      const statusData = {
+      const payload = {
         type,
-        content_url: finalUrl,
+        content_url: type !== 'text' ? finalUrl : '',
         text_content: type === 'text' ? textContent : '',
         caption,
         linked_product: linkedProduct?._id || null,
         expires_at: expiresAt.toISOString(),
         expiry_days: expiryDays,
-        category: selectedCategory || 'General',
+        category: selectedCategory,
       };
 
-      const res = await api.post('/statuses', statusData);
+      const res = await api.post('/statuses', payload);
       if (res.data.success) {
         onStatusCreated(res.data.data);
         onClose();
       }
     } catch (err) {
-      setError(err.message || 'Failed to post status');
+      setError(err.message || 'Failed to post story');
     } finally {
       setLoading(false);
     }
@@ -135,329 +139,290 @@ export default function StatusCreator({ onClose, onStatusCreated }) {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const canProceed = (type === 'text' ? textContent.trim() : file) && (step < 3 || selectedCategory);
+  const canPost = selectedCategory && (type === 'text' ? textContent.trim() : (file || (isReshare && previewUrl)));
 
-  return (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+  if (!mounted) return null;
+
+  const modal = (
+    <div
+      className="fixed inset-0 z-[1100] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Create Story"
+    >
+      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/90 backdrop-blur-md"
+        className="absolute inset-0 bg-black/85 backdrop-blur-md"
         onClick={onClose}
       />
 
+      {/* Sheet */}
       <motion.div
-        layout
-        initial={{ scale: 0.9, opacity: 0, y: 30 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 30 }}
-        className={`relative w-full ${step === 3 ? 'max-w-sm' : 'max-w-xl'} bg-[var(--bg-primary)] rounded-[3rem] border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col transition-all duration-500`}
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 40 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+        className="relative w-full max-w-5xl bg-[var(--bg-primary)] rounded-[2.5rem] border border-white/8 shadow-[0_40px_100px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[92vh]"
       >
-        {/* Progress Header */}
-        <div className="absolute top-0 inset-x-0 h-1 z-50">
-           <motion.div 
-             className="h-full bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]"
-             initial={{ width: '33%' }}
-             animate={{ width: `${(step / 3) * 100}%` }}
-           />
+        {/* Accent top bar */}
+        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-60 shrink-0" />
+
+        {/* Header */}
+        <div className="px-8 pt-6 pb-5 flex items-center justify-between border-b border-[var(--glass-border)] shrink-0">
+          <div>
+            <h2 className="text-xl font-black tracking-tight text-[var(--text-primary)] leading-none">
+              {isReshare ? 'Reshare Story' : 'New Story'}
+            </h2>
+            {isReshare && (
+              <p className="text-[11px] font-semibold text-[var(--accent)] mt-1 flex items-center gap-1.5 opacity-80">
+                <RotateCcw className="size-3" /> Reusing previous content — change anything below
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-red-500/10 hover:text-red-500 transition-all"
+          >
+            <X className="size-5" />
+          </button>
         </div>
 
-        {/* Content Container */}
-        <div className={`flex-1 flex flex-col ${step === 3 ? 'h-[75vh]' : 'max-h-[85vh]'}`}>
-          
-          {/* Header */}
-          <div className="px-8 pt-8 pb-4 flex items-center justify-between shrink-0">
-             <div className="flex items-center gap-4">
-                <div className={`size-12 rounded-2xl flex items-center justify-center shadow-lg ${step === 1 ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                   {step === 1 ? <Layout className="size-6" /> : <CheckCircle2 className="size-6" />}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
-                    {step === 1 ? 'New Story' : step === 2 ? 'Story Details' : 'Final Preview'}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                     {[1, 2, 3].map(s => (
-                        <div key={s} className={`h-1 rounded-full transition-all duration-300 ${s === step ? 'w-4 bg-[var(--accent)]' : s < step ? 'w-2 bg-emerald-500' : 'w-2 bg-[var(--glass-border)]'}`} />
-                     ))}
-                     <span className="text-[10px] font-bold text-[var(--text-secondary)] ml-1 opacity-40">Step {step}/3</span>
-                  </div>
-                </div>
-             </div>
-             <button onClick={onClose} className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-red-500/10 hover:text-red-500 transition-all">
-                <X className="size-5" />
-             </button>
-          </div>
+        {/* Body — two column on desktop */}
+        <div className="flex-1 overflow-y-auto no-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-0 min-h-full">
 
-          <div className="flex-1 overflow-y-auto no-scrollbar px-8 pb-8">
-            <AnimatePresence mode="wait">
-              {step === 1 ? (
-                <motion.div key="s1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-8">
-                  {/* Type Selector */}
-                  <div className="flex bg-[var(--bg-secondary)] p-1.5 rounded-[2rem] border border-[var(--glass-border)]">
-                    {[
-                      { id: 'image', icon: ImageIcon, label: 'Image' },
-                      { id: 'video', icon: Video, label: 'Video' },
-                      { id: 'text', icon: Type, label: 'Text' }
-                    ].map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => { setType(t.id); setFile(null); setPreviewUrl(''); setError(null); }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl text-[11px] font-bold transition-all ${type === t.id ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-xl' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
-                      >
-                        <t.icon className="size-4" />
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Media dropzone */}
-                  <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden border-2 border-dashed border-[var(--glass-border)] hover:border-[var(--accent)] transition-all bg-[var(--bg-secondary)] group">
-                    {previewUrl ? (
-                      <div className="absolute inset-0">
-                         {type === 'video' ? (
-                           <video src={previewUrl} className="size-full object-cover" autoPlay muted loop />
-                         ) : (
-                           <img src={previewUrl} className="size-full object-cover" alt="" />
-                         )}
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                         <button onClick={() => { setFile(null); setPreviewUrl(''); }} className="absolute top-6 right-6 size-12 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-red-500 transition-all shadow-2xl z-20 border border-white/10">
-                            <Trash2 className="size-5" />
-                         </button>
-                      </div>
-                    ) : type === 'text' ? (
-                      <div className="size-full flex flex-col p-8 bg-gradient-to-br from-[#050505] to-[#1a0a2e]">
-                         <textarea
-                           value={textContent}
-                           onChange={e => setTextContent(e.target.value)}
-                           placeholder="Type your vibe..."
-                           className="flex-1 bg-transparent text-3xl font-black italic text-white text-center flex items-center justify-center outline-none placeholder:text-white/10 resize-none pt-20"
-                           maxLength={300}
-                         />
-                         <div className="text-center pb-4">
-                           <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">{textContent.length} / 300</span>
-                         </div>
-                      </div>
-                    ) : (
-                      <label className="size-full flex flex-col items-center justify-center cursor-pointer p-8 text-center group">
-                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept={type === 'image' ? 'image/*' : 'video/*'} />
-                         <div className="size-20 rounded-[2.5rem] bg-[var(--bg-primary)] flex items-center justify-center shadow-2xl border border-[var(--glass-border)] group-hover:scale-110 transition-all duration-500 group-hover:border-[var(--accent)]">
-                            {type === 'image' ? <ImageIcon className="size-8 text-[var(--accent)]" /> : <Video className="size-8 text-[var(--accent)]" />}
-                         </div>
-                         <h4 className="text-lg font-black text-[var(--text-primary)] mt-6 tracking-tight">Upload {type === 'image' ? 'Visual' : 'Motion'}</h4>
-                         <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-40 mt-2 max-w-[180px]">Drag and drop or tap to select from your library. Max 100MB.</p>
-                      </label>
-                    )}
-                  </div>
-
-                  {error && (
-                    <div className="p-4 rounded-3xl bg-red-500/5 border border-red-500/20 flex items-center gap-3 text-red-500">
-                      <AlertCircle className="size-5 shrink-0" />
-                      <p className="text-xs font-bold uppercase tracking-tight">{error}</p>
-                    </div>
-                  )}
-
+            {/* Left — media preview */}
+            <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-[var(--glass-border)] flex flex-col gap-5">
+              {/* Type selector */}
+              <div className="flex bg-[var(--bg-secondary)] p-1 rounded-2xl border border-[var(--glass-border)]">
+                {[
+                  { id: 'image', label: 'Image' },
+                  { id: 'video', label: 'Video' },
+                  { id: 'text',  label: 'Text'  },
+                ].map(t => (
                   <button
-                    disabled={!canProceed}
-                    onClick={() => setStep(2)}
-                    className="w-full h-16 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-[2rem] text-sm font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all shadow-2xl disabled:opacity-20 active:scale-[0.98] flex items-center justify-center gap-3"
+                    key={t.id}
+                    onClick={() => { setType(t.id); if (!isReshare) { setFile(null); setPreviewUrl(''); } setError(null); }}
+                    className={`flex-1 py-2.5 rounded-xl text-[11px] font-bold tracking-wide transition-all ${type === t.id ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   >
-                    Set Details <ChevronRight className="size-5" />
+                    {t.label}
                   </button>
-                </motion.div>
-              ) : step === 2 ? (
-                <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-                  
-                  {/* Duration Selection */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                      <Clock className="size-4 text-[var(--accent)]" />
-                      <label className="text-[11px] font-bold text-[var(--text-secondary)]">Story Life</label>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      {DURATION_OPTIONS.map(opt => {
-                        const isSelected = expiryDays === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => setExpiryDays(opt.value)}
-                            className={`relative flex flex-col items-center gap-3 p-5 rounded-3xl border-2 transition-all duration-500 ${isSelected ? `${opt.border} ${opt.bg} shadow-xl scale-[1.05]` : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] opacity-40 hover:opacity-80'}`}
-                          >
-                            <opt.icon className={`size-6 ${isSelected ? opt.text : 'text-[var(--text-secondary)]'}`} />
-                            <div className="text-center">
-                              <p className={`text-xs font-bold ${isSelected ? opt.text : 'text-[var(--text-primary)]'}`}>{opt.label}</p>
-                              <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{opt.sublabel}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                ))}
+              </div>
 
-                  {/* Category Selection */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">Story Category</label>
-                      <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest bg-[var(--accent)]/10 px-2 py-1 rounded-full">Required Field</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2.5">
-                      {['Fashion', 'Electronics', 'Lifestyle', 'Tech', 'Art', 'Beauty', 'General'].map(cat => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setSelectedCategory(cat)}
-                          className={`px-5 py-2.5 rounded-2xl text-[10px] font-bold transition-all duration-300 transform ${selectedCategory === cat ? 'bg-[var(--accent)] text-white shadow-lg scale-105 border-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40 border border-[var(--glass-border)] hover:opacity-100 hover:scale-102'}`}
-                        >
-                          {selectedCategory === cat && <Sparkles className="size-3 inline-block mr-1.5 -mt-0.5" />}
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Caption */}
-                  <div className="space-y-3">
-                    <label className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1">Story Caption</label>
-                    <div className="relative group">
-                      <textarea
-                        value={caption}
-                        onChange={e => setCaption(e.target.value)}
-                        placeholder="Add some context..."
-                        className="w-full h-32 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-[2rem] p-6 text-sm font-medium focus:border-[var(--accent)] outline-none transition-all placeholder:opacity-30 resize-none"
-                        maxLength={150}
-                      />
-                      <span className="absolute bottom-4 right-6 text-[10px] font-black opacity-20">{caption.length}/150</span>
-                    </div>
-                  </div>
-
-                  {/* Tag Product */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] flex items-center gap-2">
-                        <ShoppingBag className="size-4 text-[var(--accent)]" /> Link Product
-                      </label>
-                      <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest bg-[var(--accent)]/10 px-2 py-1 rounded-full">Convert Views</span>
-                    </div>
-                    {linkedProduct ? (
-                      <div className="p-4 rounded-[2rem] border-2 border-[var(--accent)] bg-[var(--accent)]/5 flex items-center justify-between shadow-lg">
-                        <div className="flex items-center gap-4">
-                          <div className="size-16 rounded-2xl overflow-hidden border border-[var(--glass-border)] shadow-sm bg-white/5">
-                            <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
-                          </div>
-                          <div>
-                            <p className="text-[13px] font-black text-[var(--text-primary)] tracking-tight line-clamp-1">{linkedProduct.name}</p>
-                            <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">{linkedProduct.price?.toLocaleString()} XAF</p>
-                          </div>
-                        </div>
-                        <button onClick={() => setLinkedProduct(null)} className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all">
-                          <Trash2 className="size-4.5" />
-                        </button>
-                      </div>
+              {/* Preview area — phone-like 9:16 crop */}
+              <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] group flex-1 max-h-[420px]">
+                {previewUrl ? (
+                  <>
+                    {type === 'video'
+                      ? <video src={previewUrl} className="absolute inset-0 size-full object-cover" autoPlay muted loop />
+                      : <img src={previewUrl} className="absolute inset-0 size-full object-cover" alt="" />
+                    }
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    {!isReshare || file ? (
+                      <button
+                        onClick={() => { setFile(null); setPreviewUrl(''); }}
+                        className="absolute top-4 right-4 size-9 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-red-500 transition-all shadow-xl z-20 border border-white/10"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
                     ) : (
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={searchTerm}
-                          onChange={e => setSearchTerm(e.target.value)}
-                          placeholder="Search items to tag..."
-                          className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-6 pr-12 text-sm font-medium focus:border-[var(--accent)] outline-none transition-all"
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20"><Sparkles className="size-5" /></div>
-                        {searchTerm && (
-                          <div className="absolute top-full left-0 right-0 mt-3 max-h-64 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] shadow-2xl z-50 p-2 space-y-1 animate-in fade-in slide-in-from-top-2">
-                            {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                              <button
-                                key={p._id}
-                                onClick={() => { setLinkedProduct(p); setSearchTerm(''); }}
-                                className="w-full flex items-center gap-4 p-3 rounded-2xl hover:bg-[var(--bg-secondary)] transition-all text-left"
-                              >
-                                <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] shrink-0">
-                                  <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
-                                </div>
-                                <div>
-                                  <p className="text-[12px] font-black text-[var(--text-primary)] truncate">{p.name}</p>
-                                  <p className="text-[10px] font-bold text-[var(--accent)] mt-0.5">{p.price?.toLocaleString()} XAF</p>
-                                </div>
-                              </button>
-                            )) : (
-                              <div className="p-8 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">No products found</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      /* Reshare: allow replacing */
+                      <label className="absolute top-4 right-4 size-9 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-[var(--accent)] transition-all shadow-xl z-20 border border-white/10 cursor-pointer">
+                        <input type="file" className="hidden" accept={type === 'image' ? 'image/*' : 'video/*'} onChange={handleFileChange} />
+                        <ImageIcon className="size-4" />
+                      </label>
                     )}
+                  </>
+                ) : type === 'text' ? (
+                  <div className="absolute inset-0 flex flex-col p-6 bg-gradient-to-br from-[#060606] to-[#180920]">
+                    <textarea
+                      value={textContent}
+                      onChange={e => setTextContent(e.target.value)}
+                      placeholder="Type your message..."
+                      className="flex-1 bg-transparent text-2xl font-black text-white text-center outline-none placeholder:text-white/15 resize-none pt-12 leading-tight"
+                      maxLength={300}
+                    />
+                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest text-center pb-2">{textContent.length} / 300</span>
                   </div>
+                ) : (
+                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-4 text-center px-6">
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept={type === 'image' ? 'image/*' : 'video/*'} />
+                    <div className="size-16 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:border-[var(--accent)] transition-all">
+                      {type === 'image' ? <ImageIcon className="size-7 text-[var(--accent)]" /> : <Video className="size-7 text-[var(--accent)]" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Upload {type === 'image' ? 'Image' : 'Video'}</p>
+                      <p className="text-[11px] text-[var(--text-secondary)] opacity-40 mt-1">Max {type === 'image' ? '10MB' : '100MB · under 1 min'}</p>
+                    </div>
+                  </label>
+                )}
+              </div>
 
-                  <div className="flex gap-4 pt-4">
-                    <button onClick={() => setStep(1)} className="px-8 h-16 rounded-[2rem] border border-[var(--glass-border)] text-xs font-black uppercase tracking-widest hover:bg-[var(--bg-secondary)] transition-all">Back</button>
-                    <button onClick={() => setStep(3)} className="flex-1 h-16 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-[2rem] text-sm font-black uppercase tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3">
-                       Preview <Eye className="size-5" />
+              {error && (
+                <div className="p-3.5 rounded-2xl bg-red-500/8 border border-red-500/20 flex items-center gap-3 text-red-500">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <p className="text-xs font-semibold">{error}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right — details */}
+            <div className="p-6 md:p-8 flex flex-col gap-7 overflow-y-auto no-scrollbar">
+
+              {/* Duration */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+                  <Clock className="size-3.5 text-[var(--accent)]" /> Story Duration
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {DURATION_OPTIONS.map(opt => {
+                    const active = expiryDays === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setExpiryDays(opt.value)}
+                        className={`relative py-4 rounded-2xl border text-center transition-all duration-300 ${
+                          active
+                            ? 'border-[var(--accent)] bg-[var(--accent)]/8 shadow-md'
+                            : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
+                        }`}
+                      >
+                        {opt.recommended && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-black bg-[var(--accent)] text-white px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                            Best
+                          </span>
+                        )}
+                        <p className={`text-sm font-black ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{opt.label}</p>
+                        <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-50 mt-0.5">{opt.sublabel}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">Category</label>
+                  {!selectedCategory && <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Required</span>}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-wide transition-all ${
+                        selectedCategory === cat
+                          ? 'bg-[var(--accent)] text-white shadow-md'
+                          : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Caption */}
+              <div className="space-y-3">
+                <label className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">Caption</label>
+                <div className="relative">
+                  <textarea
+                    value={caption}
+                    onChange={e => setCaption(e.target.value)}
+                    placeholder="Add context to your story..."
+                    className="w-full h-24 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-4 text-sm font-medium focus:border-[var(--accent)] outline-none transition-all placeholder:opacity-30 resize-none text-[var(--text-primary)]"
+                    maxLength={150}
+                  />
+                  <span className="absolute bottom-3 right-4 text-[10px] font-bold opacity-20">{caption.length}/150</span>
+                </div>
+              </div>
+
+              {/* Link Product */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)] flex items-center gap-2">
+                    <ShoppingBag className="size-3.5 text-[var(--accent)]" /> Tag Product
+                  </label>
+                  <span className="text-[9px] font-bold text-[var(--accent)] opacity-70 uppercase tracking-widest">Optional</span>
+                </div>
+
+                {linkedProduct ? (
+                  <div className="p-3.5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] shrink-0">
+                        <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
+                      </div>
+                      <div>
+                        <p className="text-[12px] font-black text-[var(--text-primary)] line-clamp-1">{linkedProduct.name}</p>
+                        <p className="text-[10px] font-bold text-[var(--accent)] mt-0.5">{linkedProduct.price?.toLocaleString()} XAF</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setLinkedProduct(null)} className="size-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all">
+                      <Trash2 className="size-3.5" />
                     </button>
                   </div>
-                </motion.div>
-              ) : (
-                <motion.div key="s3" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="flex flex-col items-center">
-                  
-                  {/* Mock Story Viewer */}
-                  <div className="relative w-full aspect-[9/16] rounded-[2.5rem] overflow-hidden bg-black border border-white/20 shadow-2xl scale-[0.95]">
-                     {previewUrl ? (
-                        <div className="size-full">
-                           {type === 'video' ? <video src={previewUrl} className="size-full object-cover" autoPlay muted loop /> : <img src={previewUrl} className="size-full object-cover" alt="" />}
-                        </div>
-                     ) : (
-                        <div className="size-full flex items-center justify-center p-8 text-center bg-gradient-to-br from-[#050505] to-[#1a0a2e]">
-                           <p className="text-2xl font-black italic text-white leading-tight">{textContent}</p>
-                        </div>
-                     )}
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
-                     
-                     {/* Story Meta Overlay */}
-                     <div className="absolute top-6 inset-x-4 flex gap-1 px-2">
-                        <div className="h-1 flex-1 bg-white rounded-full shadow-[0_0_8px_white]" />
-                        <div className="h-1 flex-1 bg-white/20 rounded-full" />
-                     </div>
-                     <div className="absolute top-12 left-6 flex items-center gap-2">
-                        <div className="size-8 rounded-full bg-white/20 border border-white/40" />
-                        <div className="w-20 h-2 bg-white/20 rounded-full" />
-                     </div>
-
-                     <div className="absolute bottom-10 inset-x-6">
-                        <div className="flex items-center gap-2 mb-3">
-                           <div className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[8px] font-black uppercase text-white flex items-center gap-1">
-                              <Tag className="size-2.5" /> {selectedCategory || 'Pick Category'}
-                           </div>
-                        </div>
-                        {caption && <p className="text-sm text-white/90 font-medium mb-4 line-clamp-2">{caption}</p>}
-                        {linkedProduct && (
-                           <div className="w-full p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                 <div className="size-10 rounded-xl bg-white/5" />
-                                 <div className="w-20 h-2 bg-white/20 rounded-full" />
-                              </div>
-                              <div className="size-8 rounded-full bg-[var(--accent)]" />
-                           </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
+                      <Search className="size-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      placeholder="Search your products..."
+                      className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-sm font-medium focus:border-[var(--accent)] outline-none transition-all"
+                    />
+                    {searchTerm && (
+                      <div className="absolute top-full left-0 right-0 mt-2 max-h-52 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl z-50 p-1.5 space-y-0.5">
+                        {filteredProducts.length > 0 ? filteredProducts.map(p => (
+                          <button
+                            key={p._id}
+                            onClick={() => { setLinkedProduct(p); setSearchTerm(''); }}
+                            className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-left"
+                          >
+                            <div className="size-10 rounded-lg overflow-hidden border border-[var(--glass-border)] shrink-0">
+                              <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-bold text-[var(--text-primary)] truncate">{p.name}</p>
+                              <p className="text-[10px] font-bold text-[var(--accent)] mt-0.5">{p.price?.toLocaleString()} XAF</p>
+                            </div>
+                          </button>
+                        )) : (
+                          <div className="p-6 text-center text-[10px] font-bold uppercase tracking-widest opacity-30">No products found</div>
                         )}
-                     </div>
+                      </div>
+                    )}
                   </div>
+                )}
+              </div>
 
-                  <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.3em] mt-6 opacity-40 italic">Vibe Check Passed</p>
+              {/* Spacer push */}
+              <div className="flex-1" />
 
-                  <div className="w-full grid grid-cols-2 gap-4 mt-8">
-                     <button onClick={() => setStep(2)} className="h-16 rounded-[2rem] border border-[var(--glass-border)] text-[10px] font-black uppercase tracking-widest hover:bg-[var(--bg-secondary)] transition-all">Refine</button>
-                      <button 
-                        onClick={handlePost} 
-                        disabled={loading || !selectedCategory}
-                        className={`h-16 bg-[var(--accent)] text-white rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_30px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center gap-3 disabled:opacity-20 disabled:cursor-not-allowed`}
-                      >
-                        {loading ? <Loader2 className="size-5 animate-spin" /> : <><Sparkles className="size-5" /> Post Story</>}
-                      </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              {/* Submit */}
+              <button
+                onClick={handlePost}
+                disabled={loading || !canPost}
+                className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98]"
+              >
+                {loading
+                  ? <><Loader2 className="size-4 animate-spin" /> Publishing...</>
+                  : <><Send className="size-4" /> {isReshare ? 'Reshare Story' : 'Publish Story'}</>
+                }
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

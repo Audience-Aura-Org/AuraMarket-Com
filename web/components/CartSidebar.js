@@ -128,7 +128,7 @@ export default function CartSidebar() {
                 <div className="flex items-center gap-3">
                   {/* Thumbnail */}
                   <div className="size-10 rounded-lg overflow-hidden border border-[var(--glass-border)] shrink-0">
-                    <img src={it.image} className="size-full object-cover" alt={it.name} />
+                    <img src={it.image || null} className="size-full object-cover" alt={it.name} />
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">

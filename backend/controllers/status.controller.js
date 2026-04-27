@@ -13,17 +13,22 @@ exports.createStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only vendors can post statuses' });
     }
 
-    const { type, content_url, text_content, linked_product, caption, category } = req.body;
+    const { type, content_url, text_content, linked_product, caption, category, expires_at, expiry_days } = req.body;
+
+    const expiresAt = expires_at
+      ? new Date(expires_at)
+      : new Date(Date.now() + (expiry_days || 1) * 24 * 60 * 60 * 1000);
 
     const status = await Status.create({
       vendor_id: vendor._id,
       type,
       content_url,
       text_content,
-      linked_product,
+      linked_product: linked_product || null,
       caption,
       category: category || 'General',
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      expiry_days: expiry_days || 1,
+      expires_at: expiresAt,
     });
 
     res.status(201).json({ success: true, data: status });
@@ -70,6 +75,10 @@ exports.getActiveStatuses = async (req, res) => {
         path: 'vendor_id',
         select: 'store_name user_id',
         populate: { path: 'user_id', select: 'avatar branding' }
+      })
+      .populate({
+        path: 'linked_product',
+        select: 'name price images'
       })
       .lean();
 
@@ -141,7 +150,11 @@ exports.getMyStatuses = async (req, res) => {
     if (!vendor) return res.status(403).json({ success: false, message: 'Vendor profile required' });
 
     const statuses = await Status.find({ vendor_id: vendor._id })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .populate({
+        path: 'linked_product',
+        select: 'name price images'
+      });
 
     res.status(200).json({ success: true, data: statuses });
   } catch (error) {
