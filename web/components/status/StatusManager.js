@@ -9,6 +9,7 @@ import api from '@/services/api';
 import socketService from '@/services/socket';
 import StatusCreator from './StatusCreator';
 import BlurUpImage from '@/components/common/BlurUpImage';
+import MediaThumbnail from '@/components/common/MediaThumbnail';
 
 /**
  * StatusManager
@@ -105,7 +106,7 @@ export default function StatusManager() {
             <div key={status._id} className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] bg-[var(--bg-primary)] border border-[var(--glass-border)]">
               {/* Media Content */}
               {status.type === 'image' || status.type === 'video' ? (
-                <BlurUpImage 
+                <MediaThumbnail 
                   src={status.content_url} 
                   className="size-full"
                   imgClassName="group-hover:scale-110 transition-transform duration-[2s] ease-out" 
@@ -176,7 +177,7 @@ export default function StatusManager() {
                 <div className="flex items-center gap-6">
                   <div className="size-20 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] shrink-0 shadow-inner">
                     {status.content_url ? (
-                      <img src={status.content_url} className="size-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="" />
+                      <MediaThumbnail src={status.content_url} className="size-full" imgClassName="opacity-60 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="" />
                     ) : (
                       <div className="size-full flex items-center justify-center bg-zinc-900 opacity-20"><Activity className="size-6" /></div>
                     )}

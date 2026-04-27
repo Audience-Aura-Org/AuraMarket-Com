@@ -2,6 +2,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Plus, Sparkles } from 'lucide-react';
 import BlurUpImage from '@/components/common/BlurUpImage';
+import MediaThumbnail from '@/components/common/MediaThumbnail';
 
 /**
  * StatusRow — WhatsApp-style horizontal story bubble row.
@@ -130,7 +131,7 @@ function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed,
             {/* Latest story thumbnail as background */}
             {previewUrl && (
               <div className="absolute inset-0">
-                <BlurUpImage
+                <MediaThumbnail
                   src={previewUrl}
                   alt=""
                   priority="high"

@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
+import MediaThumbnail from '@/components/common/MediaThumbnail';
 import { useAuthStore } from '@/hooks/useAuth';
 
 // ─── Utils ─────────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
       <div className="absolute inset-0">
         {!isText ? (
           <>
-            <BlurUpImage src={status.content_url} alt={name} priority={priority}
+            <MediaThumbnail src={status.content_url} alt={name} priority={priority}
               className="w-full h-full group-hover:scale-110 transition-transform duration-[2s] ease-out"
               objectFit="cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
