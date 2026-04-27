@@ -193,21 +193,23 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
           )}
         </div>
 
-         {activePartnerId ? (
-             <>
-                <button
-                  onClick={() => { if (confirm('Delete this conversation from your view?')) hideConversation(activePartnerId.toString()); }}
-                  className="p-2 text-[var(--text-secondary)] opacity-50 hover:opacity-100 hover:text-red-500 transition-all"
-                  title="Delete conversation"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-                <button onClick={onClose} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100">
-                  <X className="size-5" />
-                </button>
-             </>
-           ) : null}
+        <div className="flex items-center gap-2">
+          {activePartnerId ? (
+            <>
+              <button
+                onClick={() => { if (confirm('Delete this conversation from your view?')) hideConversation(activePartnerId.toString()); }}
+                className="p-2 text-[var(--text-secondary)] opacity-50 hover:opacity-100 hover:text-red-500 transition-all"
+                title="Delete conversation"
+              >
+                <Trash2 className="size-4" />
+              </button>
+              <button onClick={onClose} className="p-2 text-[var(--text-secondary)] opacity-60 hover:opacity-100">
+                <X className="size-5" />
+              </button>
+            </>
+          ) : null}
         </div>
+
       </div>
 
       {/* --- Persistent Product Context Bar --- */}
