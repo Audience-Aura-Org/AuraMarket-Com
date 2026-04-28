@@ -408,16 +408,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     if (isReplying) return;
     clearTimeout(holdTimer.current);
     const duration = Date.now() - touchStart.current.t;
-    const distX    = Math.abs(e.clientX - touchStart.current.x);
     const distY    = e.clientY - touchStart.current.y;
 
     if (paused) { setPaused(false); return; }
+    // Pull down to close
     if (distY > 120 && duration < 400) { onClose(); return; }
-    if (duration < 220 && distX < 12) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      if (e.clientX - rect.left < rect.width * 0.35) goPrev();
-      else goNext();
-    }
   };
 
   if (!story) return null;
@@ -549,74 +544,79 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           </div>
         </div>
 
-        {/* ── Linked Product (always visible, above footer transition) ── */}
-        {story.linked_product?.name && (
-          <div
-            className="absolute bottom-[calc(max(env(safe-area-inset-bottom,0px),16px)+80px)] inset-x-5 z-50"
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => e.stopPropagation()}
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={handleViewProduct}
-              className="w-full px-4 py-3 rounded-[1.5rem] bg-black/60 backdrop-blur-xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-transform shadow-2xl"
-            >
-              <div className="flex items-center gap-3">
-                <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
-                  {(() => {
-                    const imgSrc = typeof story.linked_product.images?.[0] === 'string'
-                      ? story.linked_product.images[0]
-                      : story.linked_product.images?.[0]?.url || null;
-                    return imgSrc
-                      ? <img src={imgSrc} alt="" className="size-full object-cover" />
-                      : <div className="size-full bg-white/5" />;
-                  })()}
-                </div>
-                <div className="text-left">
-                  <p className="text-[11px] font-black text-white/60 uppercase tracking-widest">Shop Now</p>
-                  <p className="text-[13px] font-bold text-white line-clamp-1">{story.linked_product.name}</p>
-                  <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">{story.linked_product.price?.toLocaleString()} XAF</p>
-                </div>
-              </div>
-              <div className="size-10 rounded-full bg-[var(--accent)] flex items-center justify-center shrink-0 shadow-lg">
-                <ShoppingBag className="size-4.5 text-white" />
-              </div>
-            </button>
-          </div>
-        )}
+        {/* ── Tap zones (Full height, except footer area) ── */}
+        <div className="absolute inset-0 z-40 flex pointer-events-none">
+          <div 
+            className="w-[35%] h-full pointer-events-auto" 
+            onClick={e => { e.stopPropagation(); goPrev(); }} 
+          />
+          <div 
+            className="flex-1 h-full pointer-events-auto" 
+            onClick={e => { e.stopPropagation(); goNext(); }} 
+          />
+        </div>
 
-        {/* ── Footer ── */}
+        {/* ── Bottom Content Stack (Caption + Product + Reply) ── */}
         <div
-          className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-4 transition-all duration-200 ${isReplying ? '' : (paused ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0')}`}
+          className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-6 transition-all duration-300 pointer-events-none
+            ${isReplying ? 'translate-y-[-20px]' : (paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0')}
+          `}
         >
+          {/* 1. Caption (Top) */}
           {story.caption && (
-            <p className="text-sm text-white/90 font-medium leading-relaxed drop-shadow mb-4 line-clamp-3">
+            <p className="text-[14px] md:text-[15px] text-white/95 font-medium leading-relaxed drop-shadow-lg mb-4 line-clamp-4 pointer-events-auto">
               {story.caption}
             </p>
           )}
 
-          {/* Reply row */}
-          <div
-            className="flex items-center gap-2.5"
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => e.stopPropagation()}
-            onClick={e => e.stopPropagation()}
-          >
+          {/* 2. Linked Product (Middle) */}
+          {story.linked_product?.name && (
+            <div className="mb-5 pointer-events-auto">
+              <button
+                onClick={handleViewProduct}
+                className="w-full px-3 py-2.5 rounded-[1.25rem] bg-black/40 backdrop-blur-xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-all shadow-2xl"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="size-11 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
+                    {(() => {
+                      const imgSrc = typeof story.linked_product.images?.[0] === 'string'
+                        ? story.linked_product.images[0]
+                        : story.linked_product.images?.[0]?.url || null;
+                      return imgSrc
+                        ? <img src={imgSrc} alt="" className="size-full object-cover" />
+                        : <div className="size-full bg-white/5" />;
+                    })()}
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest leading-none mb-1">Featured Item</p>
+                    <p className="text-[12px] font-bold text-white truncate leading-tight">{story.linked_product.name}</p>
+                    <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">{story.linked_product.price?.toLocaleString()} XAF</p>
+                  </div>
+                </div>
+                <div className="size-9 rounded-full bg-[var(--accent)] flex items-center justify-center shrink-0 shadow-lg ml-2">
+                  <ShoppingBag className="size-4 text-white" />
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* 3. Reply row (Bottom) */}
+          <div className="flex items-center gap-2.5 pointer-events-auto">
             <div className="flex-1 relative flex items-center">
               <input
                 type="text"
                 value={replyText}
                 onChange={e => setReplyText(e.target.value)}
                 onFocus={() => setIsReplying(true)}
-                onBlur={() => setTimeout(() => setIsReplying(false), 200)}
+                onBlur={() => setIsReplying(false)}
                 onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) { e.preventDefault(); handleSendReply(); } }}
                 placeholder="Reply..."
-                className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all"
+                className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner"
               />
               <button
                 onClick={handleSendReply}
                 disabled={!replyText.trim()}
-                className={`absolute right-1.5 size-9 rounded-full flex items-center justify-center transition-all ${replyText.trim() ? 'bg-[var(--accent)] text-white' : 'bg-white/5 text-white/20'}`}
+                className={`absolute right-1.5 size-9 rounded-full flex items-center justify-center transition-all ${replyText.trim() ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-white/5 text-white/20'}`}
               >
                 <Send className="size-4" />
               </button>
@@ -624,36 +624,32 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
             <button
               onClick={e => { e.stopPropagation(); toggleLike(); }}
-              className={`size-12 rounded-full flex items-center justify-center border transition-all ${liked ? 'bg-red-500 border-red-500' : 'bg-white/10 border-white/15 backdrop-blur-xl'}`}
+              className={`size-12 rounded-full flex items-center justify-center border transition-all shadow-lg ${liked ? 'bg-red-500 border-red-500 scale-110' : 'bg-white/10 border-white/15 backdrop-blur-xl'}`}
             >
               <Heart className={`size-5 text-white ${liked ? 'fill-current' : ''}`} />
             </button>
 
             <button
               onClick={e => e.stopPropagation()}
-              className="size-12 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl flex items-center justify-center text-white"
+              className="size-12 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl flex items-center justify-center text-white shadow-lg"
             >
               <Share2 className="size-5" />
             </button>
           </div>
 
-          <div className="mt-3 flex items-center justify-between px-1">
-            <div className="flex items-center gap-1.5 text-white/40">
+          <div className="mt-4 flex items-center justify-between px-1 opacity-50">
+            <div className="flex items-center gap-1.5 text-white">
               <Eye className="size-3" />
               <span className="text-[9px] font-bold">{story.views_count || 0}</span>
             </div>
-            <span className="text-[9px] font-bold text-white/30">
+            <span className="text-[9px] font-bold text-white">
               {storyIdx + 1} / {totalInGroup}
               {totalVendors > 1 && <span className="opacity-50"> · {vendorIdx + 1}/{totalVendors}</span>}
             </span>
           </div>
         </div>
 
-        {/* ── Tap zones (invisible, full height) ── */}
-        <div className="absolute inset-0 z-40 flex pointer-events-none">
-          <div className="w-[35%] h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goPrev(); }} />
-          <div className="flex-1 h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goNext(); }} />
-        </div>
+
       </div>
     </motion.div>
   );
