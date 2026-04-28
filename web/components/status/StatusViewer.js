@@ -382,7 +382,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     const text = replyText.trim();
     setReplyText('');
     setIsReplying(false);
-    // Send silently then advance to next story (don't close viewer)
+
+    // Send silently
     api.post('/chat', {
       receiver_id: recipientUserId,
       text,
@@ -392,9 +393,10 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         storyPreview: story.type === 'text' ? story.text_content : story.content_url
       }
     }).catch(() => {});
+
     // Dispatch reply event so StatusRow ring updates
     window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
-    goNext();
+    setPaused(false); // Resume from where it was
   };
 
   // Touch / pointer handlers
@@ -542,18 +544,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               <X className="size-4.5" />
             </button>
           </div>
-        </div>
-
-        {/* ── Tap zones (Full height, except footer area) ── */}
-        <div className="absolute inset-0 z-40 flex pointer-events-none">
-          <div 
-            className="w-[35%] h-full pointer-events-auto" 
-            onClick={e => { e.stopPropagation(); goPrev(); }} 
-          />
-          <div 
-            className="flex-1 h-full pointer-events-auto" 
-            onClick={e => { e.stopPropagation(); goNext(); }} 
-          />
         </div>
 
         {/* ── Tap zones (Full height, except footer area) ── */}
