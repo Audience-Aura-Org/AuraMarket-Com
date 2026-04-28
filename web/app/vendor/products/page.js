@@ -157,7 +157,11 @@ export default function VendorProductsPage() {
                     </div>
                   </div>
 
-                  {viewMode === 'grid' ? (
+                  {filteredProducts.length === 0 ? (
+                    <div className="py-20 text-center glass-panel rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                      <p className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.3em] opacity-30">No matches found for "{searchTerm}"</p>
+                    </div>
+                  ) : viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                       {currentProducts.map((product) => (
                         <ManagementCard 
@@ -274,7 +278,6 @@ export default function VendorProductsPage() {
                       </div>
                     </div>
                   )}
-                )}
                 
                 {totalPages > 1 && (
                   <div className="pt-10">
