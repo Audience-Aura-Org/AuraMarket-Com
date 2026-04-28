@@ -122,7 +122,7 @@ export default function UnifiedAuth() {
   };
 
   return (
-    <div className={`w-full max-w-[420px] mx-auto transition-all duration-700 font-[Poppins,sans-serif]`}>
+    <div className={`w-full max-w-[420px] mx-auto transition-all duration-700`}>
       <div className="bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
         
         {/* Progress Bar (Aesthetic Dots) */}
