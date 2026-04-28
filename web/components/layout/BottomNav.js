@@ -29,9 +29,9 @@ export default function BottomNav() {
   if (isDiscoveryPage) return null;
 
   const menu = [
-    { label: "Hub", href: "/", icon: Store },
-    { label: "Live", href: "/discovery", icon: Activity },
-    { label: "Discovery Shop", href: "/discovery", icon: ShoppingBag },
+    { label: "Vendor", href: "/", icon: Store },
+    { label: "Aura Story", href: "/discovery?tab=status", icon: Activity },
+    { label: "Shop", href: "/discovery?tab=discover", icon: ShoppingBag },
     { label: "Overtime", href: "/overtime", icon: House },
     { label: "Profile", href: "/profile", icon: User },
   ];
@@ -45,7 +45,18 @@ export default function BottomNav() {
           {menu.map((item) => {
             const Icon = item.icon;
             // Strict exact match for root '/' to avoid highlighting Vendor everywhere
-            const isActive = item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
+            const itemPath = item.href.split('?')[0];
+            const itemTab = new URLSearchParams(item.href.split('?')[1]).get('tab');
+            
+            let isActive = false;
+            if (item.href === '/') {
+              isActive = pathname === '/';
+            } else if (itemTab) {
+              const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+              isActive = pathname === itemPath && currentTab === itemTab;
+            } else {
+              isActive = pathname?.startsWith(itemPath);
+            }
 
             return (
               <Link
@@ -85,7 +96,18 @@ export default function BottomNav() {
         <div className="flex items-center h-[58px] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] px-1.5 overflow-hidden">
           {menu.map((item, idx) => {
             const Icon = item.icon;
-            const isActive = item.href === '/' ? pathname === '/' : pathname?.startsWith(item.href);
+            const itemPath = item.href.split('?')[0];
+            const itemTab = new URLSearchParams(item.href.split('?')[1]).get('tab');
+            
+            let isActive = false;
+            if (item.href === '/') {
+              isActive = pathname === '/';
+            } else if (itemTab) {
+              const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+              isActive = pathname === itemPath && currentTab === itemTab;
+            } else {
+              isActive = pathname?.startsWith(itemPath);
+            }
 
             const itemContent = (
               <>

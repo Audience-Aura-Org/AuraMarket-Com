@@ -349,6 +349,16 @@ export default function DiscoveryHub() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('status');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab && ['home', 'status', 'discover', 'overtime', 'profile'].includes(tab)) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
   
   // Status States
   const [followedStatuses, setFollowedStatuses] = useState([]);
