@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Send, ArrowLeft, Package, Plus, 
   MessageCircle, CheckCheck, Loader2, 
-  Search, Trash2, Mic
+  Search, Trash2, Mic, ExternalLink
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';

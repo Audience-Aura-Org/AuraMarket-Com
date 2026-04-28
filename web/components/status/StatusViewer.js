@@ -562,16 +562,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             ${isReplying ? 'translate-y-[-20px]' : (paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0')}
           `}
         >
-          {/* 1. Caption (Top) */}
-          {story.caption && (
-            <p className="text-[14px] md:text-[15px] text-white/95 font-medium leading-relaxed drop-shadow-lg mb-4 line-clamp-4 pointer-events-auto">
-              {story.caption}
-            </p>
-          )}
-
-          {/* 2. Linked Product (Middle) */}
+          {/* 1. Linked Product (Now on Top) */}
           {story.linked_product?.name && (
-            <div className="mb-5 pointer-events-auto">
+            <div className="mb-4 pointer-events-auto">
               <button
                 onClick={handleViewProduct}
                 className="w-full px-3 py-2.5 rounded-[1.25rem] bg-black/40 backdrop-blur-xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-all shadow-2xl"
@@ -598,6 +591,13 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                 </div>
               </button>
             </div>
+          )}
+
+          {/* 2. Caption (Now below Product) */}
+          {story.caption && (
+            <p className="text-[14px] md:text-[15px] text-white/95 font-medium leading-relaxed drop-shadow-lg mb-4 line-clamp-4 pointer-events-auto">
+              {story.caption}
+            </p>
           )}
 
           {/* 3. Reply row (Bottom) */}
