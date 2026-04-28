@@ -350,11 +350,13 @@ export default function DiscoveryHub() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('status');
   
-  // Status States
-  const [followedStatuses, setFollowedStatuses] = useState([]);
-  const [viewingStatuses, setViewingStatuses] = useState(null);
-  const [selectedStoryId, setSelectedStoryId] = useState(null);
-  const [showCreator, setShowCreator] = useState(false);
+  // 1. Force blur on mount to dismiss any keyboards from previous screens
+  useEffect(() => {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    window.scrollTo(0, 0);
+  }, []);
 
   const fetchFollowedStatuses = useCallback(async () => {
     try {
@@ -397,70 +399,104 @@ export default function DiscoveryHub() {
   return (
     <div className="relative min-h-screen bg-[var(--bg-secondary)] flex flex-col pt-[env(safe-area-inset-top)]">
       <AuraAssistant user={user} />
-      <div className="flex-1">
-        <div className={activeTab === 'vendors' ? 'block' : 'hidden'}>
-          <div className="flex flex-col relative">
-            {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
-              <div className="sticky top-0 z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden">
-                <StatusRow 
-                  statuses={followedStatuses} 
-                  onSelect={(items, storyId) => {
-                    setViewingStatuses(items);
-                    setSelectedStoryId(storyId);
+      
+      <main className="flex-1 relative">
+        <AnimatePresence mode="wait">
+          {activeTab === 'vendors' && (
+            <motion.div 
+              key="vendors"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col relative"
+            >
+              {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
+                <div className="sticky top-0 z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden">
+                  <StatusRow 
+                    statuses={followedStatuses} 
+                    onSelect={(items, storyId) => {
+                      setViewingStatuses(items);
+                      setSelectedStoryId(storyId);
+                    }}
+                    onAdd={() => setShowCreator(true)}
+                    isVendor={user?.role === 'vendor'}
+                  />
+                </div>
+              )}
+              <div className="flex flex-col pb-40">
+                <VendorListPanel 
+                  followedStatuses={followedStatuses} 
+                  onOpenStatus={(vendorId) => {
+                    const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
+                    if (items.length > 0) {
+                      setViewingStatuses(followedStatuses);
+                      setSelectedStoryId(items[0]._id);
+                    }
                   }}
-                  onAdd={() => setShowCreator(true)}
-                  isVendor={user?.role === 'vendor'}
                 />
               </div>
-            )}
-            <div className="flex flex-col pb-40">
-              <VendorListPanel 
-                followedStatuses={followedStatuses} 
-                onOpenStatus={(vendorId) => {
-                  const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
-                  if (items.length > 0) {
-                    setViewingStatuses(followedStatuses);
-                    setSelectedStoryId(items[0]._id);
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
-          <DiscoveryContent 
-            user={user} 
-            isActive={activeTab === 'discover'} 
-            statuses={followedStatuses}
-            onSelectStatus={(items) => setViewingStatuses(items)}
-            onAddStatus={() => setShowCreator(true)}
-          />
-        </div>
-
-        <div className={activeTab === 'status' ? 'block' : 'hidden'}>
-          {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
-            <div className="relative z-10 bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden">
-              <StatusRow 
-                statuses={followedStatuses} 
-                onSelect={(items, storyId) => {
-                  setViewingStatuses(items);
-                  setSelectedStoryId(storyId);
-                }}
-                onAdd={() => setShowCreator(true)}
-                isVendor={user?.role === 'vendor'}
-              />
-            </div>
+            </motion.div>
           )}
-          <StatusTabGrid onSelectStatus={(items, storyId) => {
-            setViewingStatuses(items);
-            setSelectedStoryId(storyId);
-          }} />
-        </div>
 
-        <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
-          <ProfileContent user={user} onSelectTab={handleTabChange} />
-        </div>
+          {activeTab === 'discover' && (
+            <motion.div 
+              key="discover"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <DiscoveryContent 
+                user={user} 
+                isActive={true} 
+                statuses={followedStatuses}
+                onSelectStatus={(items) => setViewingStatuses(items)}
+                onAddStatus={() => setShowCreator(true)}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'status' && (
+            <motion.div 
+              key="status"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
+                <div className="relative z-10 bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden">
+                  <StatusRow 
+                    statuses={followedStatuses} 
+                    onSelect={(items, storyId) => {
+                      setViewingStatuses(items);
+                      setSelectedStoryId(storyId);
+                    }}
+                    onAdd={() => setShowCreator(true)}
+                    isVendor={user?.role === 'vendor'}
+                  />
+                </div>
+              )}
+              <StatusTabGrid onSelectStatus={(items, storyId) => {
+                setViewingStatuses(items);
+                setSelectedStoryId(storyId);
+              }} />
+            </motion.div>
+          )}
+
+          {activeTab === 'profile' && (
+            <motion.div 
+              key="profile"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ProfileContent user={user} onSelectTab={handleTabChange} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Status Overlays */}
         <AnimatePresence>
@@ -484,7 +520,7 @@ export default function DiscoveryHub() {
             />
           )}
         </AnimatePresence>
-      </div>
+      </main>
 
       {/* ── THE DISCOVERY BOTTOM NAV ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-[100] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
