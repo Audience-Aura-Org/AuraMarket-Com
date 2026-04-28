@@ -190,7 +190,7 @@ export default function ProductDetailsPage() {
           <div className="hidden md:flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
             <Link href="/" className="hover:text-[var(--accent)] transition-colors">Home</Link>
             <ChevronRight className="size-3" />
-            <Link href="/shop" className="hover:text-[var(--accent)] transition-colors">Shop</Link>
+            <Link href="/discovery" className="hover:text-[var(--accent)] transition-colors">Shop</Link>
             {product.category && <>
               <ChevronRight className="size-3" />
               <span className="text-[var(--text-primary)] font-medium truncate max-w-[160px]">{product.category}</span>
@@ -595,7 +595,7 @@ export default function ProductDetailsPage() {
           <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-10">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-lg md:text-2xl font-black text-[var(--text-primary)] tracking-tighter" style={{ fontFamily: 'var(--font-manrope, inherit)' }}>You may also like</h2>
-              <Link href="/shop"
+              <Link href="/discovery"
                 className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-primary)] hover:opacity-70 transition-opacity flex items-center gap-1 pb-1 border-b-2 border-transparent hover:border-[var(--text-primary)]">
                 View all
               </Link>

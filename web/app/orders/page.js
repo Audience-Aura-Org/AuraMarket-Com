@@ -135,7 +135,7 @@ export default function OrdersPage() {
                <h3 className="text-xl font-black uppercase tracking-tight">No Order Records Found</h3>
                <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Your transaction manifest is currently empty</p>
             </div>
-            <Link href="/shop" className="px-10 py-4 bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.3em] rounded-2xl shadow-xl shadow-[var(--accent)]/30 hover:scale-[1.05] active:scale-95 transition-all uppercase">
+            <Link href="/discovery" className="px-10 py-4 bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.3em] rounded-2xl shadow-xl shadow-[var(--accent)]/30 hover:scale-[1.05] active:scale-95 transition-all uppercase">
               Start Shopping
             </Link>
           </div>
