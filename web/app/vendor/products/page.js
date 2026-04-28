@@ -23,7 +23,8 @@ export default function VendorProductsPage() {
   const [mounted, setMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const itemsPerPage = 8;
+  const [viewMode, setViewMode] = useState('grid');
+  const itemsPerPage = viewMode === 'grid' ? 8 : 15;
 
   const fetchProducts = async () => {
     setError(null);
@@ -96,7 +97,7 @@ export default function VendorProductsPage() {
         </div>
       </header>
 
-      <div className="p-6 lg:p-10 space-y-10 lg:space-y-14 pb-32">
+      <div className="p-6 lg:p-10 pt-12 lg:pt-20 space-y-12 lg:space-y-16 pb-32">
           {error && (
             <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
                <AlertCircle className="size-5" />
@@ -132,34 +133,147 @@ export default function VendorProductsPage() {
                 <KPICard title="Discovery Hits" value={products.reduce((acc, p) => acc + (p.view_count || 0), 0)} icon={Eye} color="blue" sub="Traffic exposure" />
               </div>
 
-              <div className="space-y-8">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter">Inventory <span className="text-[var(--accent)]">Grid</span></h3>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Managing {filteredProducts.length} filtered items</p>
+                <div className="space-y-10">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter">
+                        Inventory <span className="text-[var(--accent)]">{viewMode === 'grid' ? 'Grid' : 'Table'}</span>
+                      </h3>
+                      <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Managing {filteredProducts.length} filtered items</p>
+                    </div>
+                    <div className="flex items-center gap-3 p-1.5 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl shadow-inner">
+                      <button 
+                        onClick={() => setViewMode('grid')}
+                        className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}
+                      >
+                        Grid
+                      </button>
+                      <button 
+                        onClick={() => setViewMode('table')}
+                        className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'table' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}
+                      >
+                        Table
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] font-black tracking-widest text-[var(--text-secondary)]">
-                    <span className="opacity-40 uppercase">View:</span>
-                    <button className="text-[var(--accent)]">Grid</button>
-                    <span className="opacity-20">|</span>
-                    <button className="opacity-40 hover:opacity-100">Table</button>
-                  </div>
-                </div>
 
-                {filteredProducts.length === 0 ? (
-                  <div className="py-20 text-center glass-panel rounded-3xl border border-[var(--glass-border)]">
-                    <p className="text-[11px] font-black text-[var(--text-secondary)] uppercase tracking-[0.3em] opacity-30">No matches found for "{searchTerm}"</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {currentProducts.map((product) => (
-                      <ManagementCard 
-                        key={product._id} 
-                        product={product} 
-                        onDelete={() => setProducts(prev => prev.filter(p => p._id !== product._id))}
-                      />
-                    ))}
-                  </div>
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                      {currentProducts.map((product) => (
+                        <ManagementCard 
+                          key={product._id} 
+                          product={product} 
+                          onDelete={() => setProducts(prev => prev.filter(p => p._id !== product._id))}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="glass-panel rounded-[2.5rem] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="text-[10px] font-black tracking-[0.3em] text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50 border-b border-[var(--glass-border)] uppercase">
+                              <th className="pl-10 pr-6 py-6">Product Item</th>
+                              <th className="px-6 py-6">Category</th>
+                              <th className="px-6 py-6 text-right">Price</th>
+                              <th className="px-6 py-6 text-center">Stock</th>
+                              <th className="px-6 py-6 text-center">Hits</th>
+                              <th className="px-6 py-6">Status</th>
+                              <th className="pl-6 pr-10 py-6 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--glass-border)]">
+                            {currentProducts.map((product) => {
+                              const imgSrc = product.images?.[0]?.url || product.images?.[0] || null;
+                              const isOutOfStock = product.stock <= 0;
+                              const isLowStock = product.stock <= 5 && product.stock > 0;
+                              return (
+                                <tr key={product._id} className="group hover:bg-[var(--accent)]/[0.03] transition-colors">
+                                  <td className="pl-10 pr-6 py-5">
+                                    <div className="flex items-center gap-4">
+                                      <div className="size-14 rounded-2xl bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] shadow-inner flex-shrink-0">
+                                        {imgSrc ? (
+                                          <img src={imgSrc} alt={product.name} className="size-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                        ) : (
+                                          <div className="size-full flex items-center justify-center text-[var(--accent)] font-black text-xl uppercase tracking-tighter opacity-20">
+                                            {product.name?.[0]}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-bold text-[var(--text-primary)] truncate uppercase tracking-tight">{product.name}</p>
+                                        <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest mt-0.5">ID: {product._id?.slice(-6)}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <span className="inline-flex px-3 py-1.5 rounded-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.1em]">
+                                      {product.category || 'General'}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-5 text-right text-sm font-black text-[var(--text-primary)] font-mono">
+                                    {product.price?.toLocaleString()} <span className="text-[10px] opacity-40">XAF</span>
+                                  </td>
+                                  <td className="px-6 py-5 text-center">
+                                    <span className={`text-sm font-black ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-[var(--text-primary)]'}`}>
+                                      {product.stock}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-5 text-center">
+                                    <div className="flex flex-col items-center gap-1">
+                                      <div className="flex items-center gap-1.5 text-[var(--text-secondary)] opacity-40">
+                                        <Eye className="size-3" />
+                                        <span className="text-[10px] font-black">{product.view_count || 0}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-emerald-500">
+                                        <ShoppingCart className="size-3" />
+                                        <span className="text-[10px] font-black">{product.purchase_count || 0}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                                      isOutOfStock ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
+                                      isLowStock ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                                      'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                    }`}>
+                                      <span className={`size-1.5 rounded-full animate-pulse ${isOutOfStock ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : isLowStock ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`} />
+                                      {isOutOfStock ? 'Sold Out' : isLowStock ? 'Low Stock' : 'Active'}
+                                    </div>
+                                  </td>
+                                  <td className="pl-6 pr-10 py-5 text-right">
+                                    <div className="flex items-center justify-end gap-2.5">
+                                      <Link href={`/products/${product._id}`} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-all hover:scale-105 shadow-sm">
+                                        <Eye className="size-4" />
+                                      </Link>
+                                      <Link href={`/vendor/products/edit/${product._id}`} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] flex items-center justify-center transition-all hover:scale-105 shadow-sm">
+                                        <TrendingUp className="size-4" />
+                                      </Link>
+                                      <button 
+                                        onClick={async () => {
+                                          if (confirm('Delete this listing?')) {
+                                            try {
+                                              await api.delete(`/products/${product._id}`);
+                                              setProducts(prev => prev.filter(p => p._id !== product._id));
+                                            } catch (err) {
+                                              alert('Action failed');
+                                            }
+                                          }
+                                        }}
+                                        className="size-10 rounded-xl bg-red-500/5 border border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all hover:scale-105 shadow-sm"
+                                      >
+                                        <Trash2 className="size-4" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 )}
                 
                 {totalPages > 1 && (
