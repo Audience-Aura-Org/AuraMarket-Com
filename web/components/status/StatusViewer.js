@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, useMemo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   X, Heart, ShoppingBag,
@@ -10,10 +10,9 @@ import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
 
-
 const STORY_DURATION = 5000;
 
-// ─── Preload helper ─────────────────────────────────────────────────────────
+// ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
 function preloadMedia(url, type) {
   if (!url || preloadCache.has(url)) return;
@@ -24,160 +23,109 @@ function preloadMedia(url, type) {
     v.src = url;
     v.muted = true;
     v.load();
-  } else if (type === 'image') {
+  } else {
     const img = new Image();
     img.src = url;
   }
 }
 
-// ─── StoryVideo Helper ───────────────────────────────────────────────────────
-// Generates an instant poster URL for Cloudinary videos or returns null.
+// ─── Cloudinary poster helper ────────────────────────────────────────────────
 const getVideoPoster = (src) => {
-  if (!src) return null;
-  // If it's Cloudinary, we can transform the video into a blurred JPEG instantly.
-  if (src.includes('res.cloudinary.com')) {
-    try {
-      // Replace /video/upload/ with /video/upload/e_blur:800,q_auto:low,f_jpg/ 
-      // and change extension to .jpg
-      let poster = src.replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/');
-      poster = poster.replace(/\.[^/.]+$/, ".jpg");
-      return poster;
-    } catch (e) {
-      return null;
-    }
+  if (!src || !src.includes('res.cloudinary.com')) return null;
+  try {
+    return src
+      .replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/')
+      .replace(/\.[^/.]+$/, '.jpg');
+  } catch {
+    return null;
   }
-  return null;
 };
 
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
-// Renders video with a blur-up first-frame poster (canvas extraction).
-// Falls back to dark gradient + play icon if CORS blocks canvas.
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
-  const ref    = useRef(null);
-  const srcRef = useRef(src);
-  
-  // Try to get an instant poster (e.g. Cloudinary transformation)
-  const [poster, setPoster] = useState(() => getVideoPoster(src));
-  const [videoReady, setVideoReady] = useState(false); 
+  const ref = useRef(null);
+  const [poster, setPoster]       = useState(() => getVideoPoster(src));
+  const [videoReady, setVideoReady] = useState(false);
 
-  // ── Extract first frame as blurred poster (Fallback for non-Cloudinary) ─────
+  // Poster extraction (only needed for non-Cloudinary)
   useEffect(() => {
-    if (!src) return;
-    
-    // If we already have a Cloudinary poster, we don't need the heavy canvas probe
-    const instantPoster = getVideoPoster(src);
-    if (instantPoster) {
-      setPoster(instantPoster);
-      setVideoReady(false);
-      return;
-    }
+    const instant = getVideoPoster(src);
+    if (instant) { setPoster(instant); setVideoReady(false); return; }
 
     setPoster(null);
     setVideoReady(false);
+    if (!src) return;
 
     let cancelled = false;
     const probe = document.createElement('video');
-    probe.setAttribute('crossOrigin', 'anonymous'); 
+    probe.setAttribute('crossOrigin', 'anonymous');
     probe.muted   = true;
     probe.preload = 'metadata';
-    probe.src     = src; 
+    probe.src     = src;
 
-    const onSeeked = () => {
+    probe.addEventListener('loadedmetadata', () => {
+      if (cancelled) return;
+      try { probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1); } catch {}
+    }, { once: true });
+
+    probe.addEventListener('seeked', () => {
       if (cancelled) return;
       try {
-        const w   = Math.min(probe.videoWidth, 640);
-        const h   = Math.round(w * (probe.videoHeight / (probe.videoWidth || 1)));
-        const cvs = document.createElement('canvas');
-        cvs.width  = w;
-        cvs.height = h;
-        cvs.getContext('2d').drawImage(probe, 0, 0, w, h);
-        if (!cancelled) setPoster(cvs.toDataURL('image/jpeg', 0.35));
-      } catch {
-        // Fallback handled by shimmer in render
-      }
-    };
+        const w = Math.min(probe.videoWidth, 640);
+        const h = Math.round(w * (probe.videoHeight / (probe.videoWidth || 1)));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(probe, 0, 0, w, h);
+        if (!cancelled) setPoster(c.toDataURL('image/jpeg', 0.35));
+      } catch {}
+    }, { once: true });
 
-    const onMeta = () => {
-      if (cancelled) return;
-      probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1);
-    };
-
-    probe.addEventListener('loadedmetadata', onMeta,  { once: true });
-    probe.addEventListener('seeked',         onSeeked, { once: true });
     probe.load();
-
-    return () => {
-      cancelled = true;
-      probe.removeEventListener('loadedmetadata', onMeta);
-      probe.removeEventListener('seeked', onSeeked);
-      probe.src = ''; 
-    };
+    return () => { cancelled = true; probe.src = ''; };
   }, [src]);
 
-  // ── Imperative src reset ───────────────────────────────────────────────────
-  useEffect(() => {
-    const v = ref.current;
-    if (!v) return;
-    if (srcRef.current !== src) {
-      srcRef.current = src;
-      setVideoReady(false);
-      v.load();
-    }
-  }, [src]);
-
-  // ── Play / pause ───────────────────────────────────────────────────────────
+  // Play / pause
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
     if (active && !paused) {
-      const p = v.play();
-      if (p) p.catch(() => {});
+      v.play().catch(() => {});
     } else {
       v.pause();
       if (!active) v.currentTime = 0;
     }
   }, [active, paused]);
 
-  // ── Mute ──────────────────────────────────────────────────────────────────
+  // Mute
   useEffect(() => {
     const v = ref.current;
-    if (!v) return;
-    v.muted = muted;
+    if (v) v.muted = muted;
   }, [muted]);
 
   return (
     <div className="absolute inset-0 bg-black">
-      {/* ── Poster / Placeholder Layer ── */}
-      <div 
-        className={`absolute inset-0 z-10 transition-opacity duration-700 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-      >
+      {/* Poster overlay */}
+      <div className={`absolute inset-0 z-10 transition-opacity duration-700 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {poster ? (
-          <img
-            src={poster}
-            alt=""
-            className="w-full h-full object-cover blur-xl scale-110"
-            aria-hidden="true"
-          />
+          <img src={poster} alt="" className="w-full h-full object-cover blur-xl scale-110" aria-hidden="true" />
         ) : (
-          /* Shimmering skeleton while we wait for either the probe or the video itself */
           <div className="w-full h-full animate-shimmer flex items-center justify-center">
-             <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+            <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
               <Play className="size-7 text-white/20 ml-1" />
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Actual Video ── */}
+      {/* Video — no native poster attr; overlay handles it */}
       <video
         ref={ref}
         src={src}
-        poster={poster && !src.includes('cloudinary') ? poster : undefined} 
         playsInline
         muted={muted}
         preload="auto"
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
-        onCanPlay={() => setVideoReady(true)}
+        onCanPlayThrough={() => setVideoReady(true)}
         onEnded={onEnded}
         onTimeUpdate={onProgress}
       />
@@ -186,15 +134,25 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
 });
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
-function ProgressBar({ count, current, paused, isReplying, isVideo, videoProgress = 0, onEnd }) {
-  const timerRef  = useRef(null);
-  const startRef  = useRef(null);
-  const elapsed   = useRef(0);
-  const barRef    = useRef(null);
+// activeBarRef: forwarded ref — parent writes transform directly for video (zero re-renders)
+const ProgressBar = forwardRef(function ProgressBar(
+  { count, current, paused, isReplying, isVideo, onEnd },
+  activeBarRef
+) {
+  const timerRef = useRef(null);
+  const startRef = useRef(null);
+  const elapsed  = useRef(0);
+  const localBarRef = useRef(null);
+
+  // Sync the forwarded ref with localBarRef
+  const setBarRef = useCallback((el) => {
+    localBarRef.current = el;
+    if (activeBarRef) activeBarRef.current = el;
+  }, [activeBarRef]);
 
   const stop = useCallback(() => {
     if (timerRef.current) cancelAnimationFrame(timerRef.current);
-    if (barRef.current && startRef.current) {
+    if (localBarRef.current && startRef.current) {
       elapsed.current = Date.now() - startRef.current;
     }
   }, []);
@@ -202,9 +160,9 @@ function ProgressBar({ count, current, paused, isReplying, isVideo, videoProgres
   const run = useCallback(() => {
     startRef.current = Date.now() - elapsed.current;
     const tick = () => {
-      if (!barRef.current) return;
+      if (!localBarRef.current) return;
       const pct = Math.min(((Date.now() - startRef.current) / STORY_DURATION) * 100, 100);
-      barRef.current.style.transform = `scaleX(${pct / 100})`;
+      localBarRef.current.style.transform = `scaleX(${pct / 100})`;
       if (pct < 100) {
         timerRef.current = requestAnimationFrame(tick);
       } else {
@@ -215,27 +173,20 @@ function ProgressBar({ count, current, paused, isReplying, isVideo, videoProgres
     timerRef.current = requestAnimationFrame(tick);
   }, [onEnd]);
 
-  // Reset + start on story change
+  // Reset on story change
   useEffect(() => {
     elapsed.current = 0;
-    if (barRef.current) barRef.current.style.transform = 'scaleX(0)';
+    if (localBarRef.current) localBarRef.current.style.transform = 'scaleX(0)';
     if (!isVideo && !paused && !isReplying) run();
     return () => { if (timerRef.current) cancelAnimationFrame(timerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current]);
 
-  // Pause / resume for images
+  // Pause/resume for images
   useEffect(() => {
     if (isVideo) return;
-    if (paused || isReplying) stop();
-    else run();
+    if (paused || isReplying) stop(); else run();
   }, [paused, isReplying, isVideo, run, stop]);
-
-  // For video: drive bar from videoProgress (0-100)
-  useEffect(() => {
-    if (!isVideo || !barRef.current) return;
-    barRef.current.style.transform = `scaleX(${videoProgress / 100})`;
-  }, [isVideo, videoProgress]);
 
   return (
     <div className="flex gap-1 w-full">
@@ -245,7 +196,7 @@ function ProgressBar({ count, current, paused, isReplying, isVideo, videoProgres
             <div className="h-full w-full bg-white rounded-full" />
           ) : i === current ? (
             <div
-              ref={barRef}
+              ref={setBarRef}
               className="h-full w-full bg-white rounded-full origin-left"
               style={{ transform: 'scaleX(0)', willChange: 'transform' }}
             />
@@ -254,7 +205,7 @@ function ProgressBar({ count, current, paused, isReplying, isVideo, videoProgres
       ))}
     </div>
   );
-}
+});
 
 // ─── StatusViewer ─────────────────────────────────────────────────────────────
 export default function StatusViewer({ initialStatuses, initialStoryId, onClose }) {
@@ -267,10 +218,12 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       const vId = (s.vendor_id?._id || s.vendor_id)?.toString();
       if (!seen.has(vId)) {
         seen.add(vId);
-        const vendorStories = initialStatuses
-          .filter(x => (x.vendor_id?._id || x.vendor_id)?.toString() === vId)
-          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        groups.push({ vendorId: vId, stories: vendorStories });
+        groups.push({
+          vendorId: vId,
+          stories: initialStatuses
+            .filter(x => (x.vendor_id?._id || x.vendor_id)?.toString() === vId)
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
+        });
       }
     }
     return groups;
@@ -287,15 +240,16 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
   const [vendorIdx,  setVendorIdx]  = useState(initialPos.vIdx);
   const [storyIdx,   setStoryIdx]   = useState(initialPos.sIdx);
-  const [paused,       setPaused]       = useState(false);
-  const [videoProgress, setVideoProgress] = useState(0); // 0-100 for video
+  const [paused,     setPaused]     = useState(false);
   const [liked,      setLiked]      = useState(false);
   const [muted,      setMuted]      = useState(false);
   const [replyText,  setReplyText]  = useState('');
   const [isReplying, setIsReplying] = useState(false);
 
-  const holdTimer  = useRef(null);
-  const touchStart = useRef({ x: 0, y: 0, t: 0 });
+  // Direct DOM ref for video progress bar — zero re-renders on timeupdate
+  const videoBarRef = useRef(null);
+  const holdTimer   = useRef(null);
+  const touchStart  = useRef({ x: 0, y: 0, t: 0 });
 
   const currentGroup = vendorGroups[vendorIdx];
   const story        = currentGroup?.stories[storyIdx];
@@ -303,58 +257,56 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const totalVendors = vendorGroups.length;
   const isVideo      = story?.type === 'video';
 
-  // Reset video progress on story change
-  useEffect(() => { setVideoProgress(0); }, [vendorIdx, storyIdx]);
-
-  // Preload adjacent stories
+  // Preload adjacent
   useEffect(() => {
     if (!currentGroup) return;
-    const next = currentGroup.stories[storyIdx + 1]
-      || vendorGroups[vendorIdx + 1]?.stories[0];
+    const next = currentGroup.stories[storyIdx + 1] || vendorGroups[vendorIdx + 1]?.stories[0];
     const prev = currentGroup.stories[storyIdx - 1];
     [next, prev].forEach(s => s && preloadMedia(s.content_url, s.type));
-    initialStatuses.forEach(s => {
-      if (s.type === 'image') preloadMedia(s.content_url, 'image');
-    });
+    initialStatuses.forEach(s => { if (s.type === 'image') preloadMedia(s.content_url, 'image'); });
   }, [vendorIdx, storyIdx, currentGroup, vendorGroups, initialStatuses]);
 
-  // Register view on story change
+  // Register view
   useEffect(() => {
     if (!story?._id) return;
     api.post(`/statuses/${story._id}/view`).catch(() => {});
   }, [story?._id]);
 
-  const resetStoryState = () => {
+  const resetStoryState = useCallback(() => {
     setLiked(false);
     setReplyText('');
     setIsReplying(false);
     setPaused(false);
-  };
+  }, []);
 
   const goNext = useCallback(() => {
     if (storyIdx < totalInGroup - 1) {
-      setStoryIdx(s => s + 1);
-      resetStoryState();
+      setStoryIdx(s => s + 1); resetStoryState();
     } else if (vendorIdx < totalVendors - 1) {
-      setVendorIdx(v => v + 1);
-      setStoryIdx(0);
-      resetStoryState();
+      setVendorIdx(v => v + 1); setStoryIdx(0); resetStoryState();
     } else {
       onClose();
     }
-  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose]);
+  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState]);
 
   const goPrev = useCallback(() => {
     if (storyIdx > 0) {
-      setStoryIdx(s => s - 1);
-      resetStoryState();
+      setStoryIdx(s => s - 1); resetStoryState();
     } else if (vendorIdx > 0) {
       const prevGroup = vendorGroups[vendorIdx - 1];
       setVendorIdx(v => v - 1);
       setStoryIdx(prevGroup.stories.length - 1);
       resetStoryState();
     }
-  }, [storyIdx, vendorIdx, vendorGroups]);
+  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState]);
+
+  // Video progress: write directly to DOM, no state update
+  const handleVideoProgress = useCallback((e) => {
+    const { currentTime, duration } = e.target;
+    if (duration > 0 && videoBarRef.current) {
+      videoBarRef.current.style.transform = `scaleX(${currentTime / duration})`;
+    }
+  }, []);
 
   const ago = (date) => {
     const s = Math.floor((new Date() - new Date(date)) / 1000);
@@ -364,58 +316,47 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     return `${Math.floor(s / 86400)}d`;
   };
 
-  const handleViewProduct = () => {
-    if (!story.linked_product?._id) return;
+  const handleViewProduct = useCallback(() => {
+    if (!story?.linked_product?._id) return;
     onClose();
     router.push(`/products/${story.linked_product._id}`);
-  };
+  }, [story, onClose, router]);
 
-  const toggleLike = () => {
+  const toggleLike = useCallback(() => {
     setLiked(l => !l);
     api.post(`/statuses/${story._id}/react`).catch(() => {});
-  };
+  }, [story?._id]);
 
-  const handleSendReply = () => {
+  const handleSendReply = useCallback(() => {
     if (!replyText.trim()) return;
-    const recipientUserId = story.vendor_id?.user_id?._id || story.vendor_id?.user_id;
+    const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
     if (!recipientUserId) return;
     const text = replyText.trim();
     setReplyText('');
     setIsReplying(false);
-
-    // Send silently
     api.post('/chat', {
       receiver_id: recipientUserId,
       text,
-      metadata: {
-        type: 'story_reply',
-        storyId: story._id,
-        storyPreview: story.type === 'text' ? story.text_content : story.content_url
-      }
+      metadata: { type: 'story_reply', storyId: story._id, storyPreview: story.type === 'text' ? story.text_content : story.content_url }
     }).catch(() => {});
-
-    // Dispatch reply event so StatusRow ring updates
     window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
-    setPaused(false); // Resume from where it was
-  };
+    setPaused(false);
+  }, [replyText, story]);
 
-  // Touch / pointer handlers
-  const onPointerDown = (e) => {
+  const onPointerDown = useCallback((e) => {
     if (isReplying) return;
     touchStart.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     holdTimer.current = setTimeout(() => setPaused(true), 200);
-  };
+  }, [isReplying]);
 
-  const onPointerUp = (e) => {
+  const onPointerUp = useCallback((e) => {
     if (isReplying) return;
     clearTimeout(holdTimer.current);
     const duration = Date.now() - touchStart.current.t;
     const distY    = e.clientY - touchStart.current.y;
-
     if (paused) { setPaused(false); return; }
-    // Pull down to close
     if (distY > 120 && duration < 400) { onClose(); return; }
-  };
+  }, [isReplying, paused, onClose]);
 
   if (!story) return null;
 
@@ -430,7 +371,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       onClick={onClose}
       className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
     >
-      {/* ── Story Container ── */}
+      {/* Story Container */}
       <div
         onClick={e => e.stopPropagation()}
         className="relative w-full h-full md:max-w-[420px] bg-black overflow-hidden select-none touch-none"
@@ -438,7 +379,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         onPointerUp={onPointerUp}
         onPointerCancel={() => clearTimeout(holdTimer.current)}
       >
-        {/* ── Media Layer ── */}
+        {/* Media Layer */}
         <div className="absolute inset-0 z-10">
           {isVideo ? (
             <StoryVideo
@@ -448,10 +389,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               active={true}
               paused={paused || isReplying}
               onEnded={goNext}
-              onProgress={(e) => {
-                const { currentTime, duration } = e.target;
-                if (duration > 0) setVideoProgress((currentTime / duration) * 100);
-              }}
+              onProgress={handleVideoProgress}
             />
           ) : story.type === 'image' ? (
             <BlurUpImage
@@ -475,18 +413,15 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               </p>
             </div>
           )}
-          {/* Gradient overlays */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85 pointer-events-none z-20" />
         </div>
 
-        {/* ── Progress Bars ── */}
-        <div
-          className={`absolute top-[max(env(safe-area-inset-top,0px),14px)] inset-x-4 z-50 pointer-events-none transition-opacity duration-200 ${(paused || isReplying) ? 'opacity-0' : 'opacity-100'}`}
-        >
+        {/* Progress Bars */}
+        <div className={`absolute top-[max(env(safe-area-inset-top,0px),14px)] inset-x-4 z-50 pointer-events-none transition-opacity duration-200 ${(paused || isReplying) ? 'opacity-0' : 'opacity-100'}`}>
           <ProgressBar
+            ref={videoBarRef}
             key={`${vendorIdx}-${storyIdx}`}
             count={totalInGroup}
-            videoProgress={videoProgress}
             current={storyIdx}
             paused={paused}
             isReplying={isReplying}
@@ -495,11 +430,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           />
         </div>
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div
-          className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none
-            ${(paused || isReplying) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}
-          `}
+          className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none ${(paused || isReplying) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}`}
           style={{ top: 'calc(max(env(safe-area-inset-top, 0px), 14px) + 14px)' }}
         >
           <div className="flex items-center gap-3">
@@ -523,7 +456,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           </div>
 
           <div className="flex items-center gap-2 pointer-events-auto">
-            {/* Pause indicator */}
             {paused && (
               <div className="size-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
                 <Pause className="size-4 text-white" />
@@ -546,27 +478,20 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           </div>
         </div>
 
-        {/* ── Tap zones (Full height, except footer area) ── */}
+        {/* Tap zones */}
         <div className="absolute inset-0 z-40 flex pointer-events-none">
-          <div 
-            className="w-[35%] h-full pointer-events-auto" 
-            onClick={e => { e.stopPropagation(); goPrev(); }} 
-          />
-          <div 
-            className="flex-1 h-full pointer-events-auto" 
-            onClick={e => { e.stopPropagation(); goNext(); }} 
-          />
+          <div className="w-[35%] h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goPrev(); }} />
+          <div className="flex-1 h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goNext(); }} />
         </div>
 
-        {/* ── Bottom Content Stack (Product + Caption + Reply) ── */}
+        {/* Bottom Stack */}
         <div
           className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-20 transition-all duration-300 pointer-events-none flex flex-col justify-end
-            ${isReplying ? 'translate-y-[-10px] opacity-100' : (paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0')}
-          `}
+            ${isReplying ? 'translate-y-[-10px] opacity-100' : (paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0')}`}
           style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)' }}
         >
           <div className="flex flex-col gap-4 pointer-events-none">
-            {/* 1. Linked Product */}
+            {/* Linked Product */}
             {story.linked_product && (story.linked_product.name || typeof story.linked_product === 'object') && (
               <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                 <button
@@ -576,10 +501,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
                       {(() => {
-                        const product = story.linked_product;
-                        const imgSrc = typeof product.images?.[0] === 'string'
-                          ? product.images[0]
-                          : product.images?.[0]?.url || null;
+                        const p = story.linked_product;
+                        const imgSrc = typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || null;
                         return imgSrc
                           ? <img src={imgSrc} alt="" className="size-full object-cover" />
                           : <div className="size-full flex items-center justify-center bg-white/5"><ShoppingBag className="size-5 text-white/20" /></div>;
@@ -600,7 +523,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               </div>
             )}
 
-            {/* 2. Caption */}
+            {/* Caption */}
             {story.caption && (
               <div className="pointer-events-auto px-1 py-1">
                 <p className="text-[14px] md:text-[15px] text-white/95 font-medium leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] line-clamp-4">
@@ -609,7 +532,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               </div>
             )}
 
-            {/* 3. Reply row */}
+            {/* Reply row */}
             <div className="flex items-center gap-2.5 pointer-events-auto mt-1">
               <div className="flex-1 relative flex items-center">
                 <input
@@ -646,7 +569,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               </button>
             </div>
 
-            {/* 4. Metadata */}
+            {/* Metadata */}
             <div className="flex items-center justify-between px-1 opacity-40 pt-2">
               <div className="flex items-center gap-1.5 text-white">
                 <Eye className="size-3" />

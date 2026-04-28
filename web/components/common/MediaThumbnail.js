@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useRef, useState } from 'react';
+import { memo, useRef, useState, useEffect } from 'react';
 import { Play } from 'lucide-react';
 import BlurUpImage from './BlurUpImage';
 
@@ -10,33 +10,49 @@ const isVideoUrl = (url) => {
   return /\.(mp4|mov|webm|ogg|m4v)(\?|$)/i.test(url) || url.includes('/video/upload/');
 };
 
-// ── Video Thumbnail (S3 / generic) ────────────────────────────────────────────
-// Uses a <video> element that seeks to the first frame on loadedmetadata.
-// On desktop/Android this shows the real thumbnail. On iOS where autoplay/preload
-// is blocked, shows a branded gradient + play icon fallback.
+// ── VideoThumb ─────────────────────────────────────────────────────────────────
+// Uses IntersectionObserver so video metadata only loads when the card is visible.
+// This prevents 20-50 simultaneous hidden video requests tanking bandwidth.
 const VideoThumb = memo(({ src, className }) => {
-  const videoRef = useRef(null);
-  const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
+  const containerRef = useRef(null);
+  const videoRef     = useRef(null);
+  const [visible, setVisible] = useState(false);
+  const [status,  setStatus]  = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
+
+  // Reveal when scrolled into view
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Load video only after visible
+  useEffect(() => {
+    if (!visible) return;
+    setStatus('loading');
+  }, [visible]);
 
   const handleMetadata = () => {
     const v = videoRef.current;
     if (!v) return;
-    // Seek slightly past 0 — browsers often serve a better frame at 0.1s
-    try { v.currentTime = 0.1; } catch (_) {}
+    try { v.currentTime = 0.1; } catch {}
     setStatus('ready');
   };
 
-  const handleError = () => setStatus('error');
-
   return (
-    <div className={`relative overflow-hidden bg-black ${className}`}>
-      {/* Loading shimmer */}
-      {status === 'loading' && (
+    <div ref={containerRef} className={`relative overflow-hidden bg-black ${className}`}>
+      {/* Shimmer while loading */}
+      {(status === 'idle' || status === 'loading') && (
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/30 animate-pulse" />
       )}
 
-      {/* Actual video frame — visible once metadata is loaded */}
-      {status !== 'error' && (
+      {/* Video — only rendered after in-view */}
+      {visible && status !== 'error' && (
         <video
           ref={videoRef}
           src={src}
@@ -45,27 +61,22 @@ const VideoThumb = memo(({ src, className }) => {
           playsInline
           tabIndex={-1}
           onLoadedMetadata={handleMetadata}
-          onError={handleError}
+          onError={() => setStatus('error')}
           className={`w-full h-full object-cover transition-opacity duration-300 ${status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
         />
       )}
 
-      {/* Error / iOS fallback — gradient with play icon */}
+      {/* Error fallback */}
       {status === 'error' && (
         <div
           className="absolute inset-0"
           style={{ background: 'linear-gradient(160deg,#0a0a0a 0%,#1a1220 100%)' }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3" />
-          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
-        </div>
+        />
       )}
 
-      {/* Play badge — always shown over video frame */}
+      {/* Play badge */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div
-          className={`size-9 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-xl transition-opacity duration-300 ${status === 'loading' ? 'opacity-0' : 'opacity-100'}`}
-        >
+        <div className={`size-9 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-xl transition-opacity duration-300 ${status === 'idle' || status === 'loading' ? 'opacity-0' : 'opacity-100'}`}>
           <Play className="size-4 text-white ml-0.5 fill-white" />
         </div>
       </div>
@@ -79,7 +90,7 @@ const MediaThumbnail = memo(({ src, alt, className = '', imgClassName = '', obje
   if (!src) return null;
 
   if (isVideoUrl(src)) {
-    // Cloudinary: generate a real blurred JPEG poster via URL transform
+    // Cloudinary: generate a blurred JPEG poster via URL transform — no video element needed
     if (src.includes('res.cloudinary.com')) {
       try {
         const poster = src
@@ -95,16 +106,12 @@ const MediaThumbnail = memo(({ src, alt, className = '', imgClassName = '', obje
             priority={priority}
           />
         );
-      } catch (_) {
-        // fall through to VideoThumb
-      }
+      } catch {}
     }
-
-    // S3 / generic: real first-frame extraction via <video>
+    // S3 / generic: real first-frame via lazy <video>
     return <VideoThumb src={src} className={`${className} ${objectFit === 'cover' ? 'object-cover' : 'object-contain'}`} />;
   }
 
-  // Standard image
   return (
     <BlurUpImage
       src={src}

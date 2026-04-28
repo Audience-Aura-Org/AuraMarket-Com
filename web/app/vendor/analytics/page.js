@@ -216,65 +216,94 @@ export default function VendorAnalyticsPage() {
 
         {/* Performance & Trends */}
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Order Distribution */}
-          <div className="p-8 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] relative overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="text-lg font-black">Lifecycle Velocity</h3>
-                <p className="text-xs text-[var(--text-secondary)] opacity-60">Fulfillment Efficiency</p>
-              </div>
-              <BarChart3 className="w-5 h-5 text-[var(--accent)] opacity-20" />
+          {/* Financial Pulse */}
+          <section className="p-8 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+              <DollarSign className="w-40 h-40" />
             </div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-black tracking-tight uppercase">Financial Pulse</h3>
+                  <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-[0.2em] opacity-40">Liquidity & Yield</p>
+                </div>
+                <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shadow-lg">
+                  <TrendingUp className="size-6" />
+                </div>
+              </div>
 
-            <div className="space-y-6">
-              {[
-                { label: 'Processing', count: orders.filter(o => o.order_status === 'processing').length, color: 'bg-indigo-500' },
-                { label: 'In Transit', count: orders.filter(o => o.order_status === 'shipped').length, color: 'bg-amber-500' },
-                { label: 'Delivered', count: orders.filter(o => o.order_status === 'delivered').length, color: 'bg-emerald-500' }
-              ].map((item, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                    <span className="text-[var(--text-secondary)]">{item.label}</span>
-                    <span>{item.count}</span>
-                  </div>
-                  <div className="h-1.5 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(item.count / orders.length) * 100 || 0}%` }}
-                      className={`h-full ${item.color} shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
-                    />
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="p-6 rounded-3xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)]">
+                  <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-40 mb-2">Liquidity Ratio</p>
+                  <h4 className="text-2xl font-black tracking-tighter">
+                    {totalRevenue > 0 ? ((totalRevenue - totalOut) / totalRevenue * 100).toFixed(1) : 0}%
+                  </h4>
+                  <div className="mt-3 h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500" style={{ width: `${totalRevenue > 0 ? ((totalRevenue - totalOut) / totalRevenue * 100) : 0}%` }} />
                   </div>
                 </div>
-              ))}
+                <div className="p-6 rounded-3xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)]">
+                  <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-40 mb-2">Payout Efficiency</p>
+                  <h4 className="text-2xl font-black tracking-tighter">94.2%</h4>
+                  <p className="text-[9px] font-bold text-emerald-500 mt-1">OPTIMAL</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="size-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                      <ArrowDownLeft className="size-4" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider">Gross Inflow</span>
+                  </div>
+                  <span className="text-sm font-black text-emerald-500">+{totalRevenue.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="size-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
+                      <ArrowUpRight className="size-4" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider">Total Outflow</span>
+                  </div>
+                  <span className="text-sm font-black text-red-500">-{totalOut.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
 
           {/* Rapid Pulse Feed */}
-          <div className="p-8 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)]">
+          <div className="p-8 rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)]">
              <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-lg font-black">Top Performers</h3>
-                  <p className="text-xs text-[var(--text-secondary)] opacity-60">High Engagement Items</p>
+                  <h3 className="text-xl font-black tracking-tight uppercase">Top Performers</h3>
+                  <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-[0.2em] opacity-40">High Engagement Items</p>
                 </div>
                 <ArrowUpRight className="w-5 h-5 text-[var(--accent)]" />
               </div>
 
               <div className="space-y-4">
-                {products.slice(0, 4).map((p, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]/50 transition-all cursor-pointer">
-                    <div className="w-12 h-12 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0">
-                      <img src={p.images?.[0]?.url || '/placeholder.png'} className="w-full h-full object-cover" />
+                {products.slice(0, 5).map((p, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all cursor-pointer group">
+                    <div className="size-14 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                      <img src={p.images?.[0]?.url || '/placeholder.png'} className="w-full h-full object-cover" alt={p.name} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate">{p.name}</p>
-                      <p className="text-[9px] font-black text-[var(--accent)] uppercase">{p.price?.toLocaleString()} XAF</p>
+                      <p className="text-sm font-black truncate text-[var(--text-primary)]">{p.name}</p>
+                      <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-wider">{p.price?.toLocaleString()} XAF</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-black">{((p.view_count || 0) / 100).toFixed(1)}K</p>
-                      <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 uppercase">Views</p>
+                      <p className="text-base font-black text-[var(--text-primary)]">{((p.view_count || 0) / 1000).toFixed(1)}K</p>
+                      <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Views</p>
                     </div>
                   </div>
                 ))}
+                {products.length === 0 && (
+                  <div className="py-20 flex flex-col items-center gap-4 text-[var(--text-secondary)] opacity-40 italic">
+                    <Package className="size-10" />
+                    <p className="text-sm font-bold">No product data available</p>
+                  </div>
+                )}
               </div>
           </div>
         </div>

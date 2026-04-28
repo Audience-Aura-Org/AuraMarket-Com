@@ -119,12 +119,21 @@ const requestWithdrawal = async (req, res, next) => {
     const { amount, method, details } = req.body;
     const user = await User.findById(req.user._id).session(session);
 
-    if (amount <= 0 || user.wallet_balance < amount) {
-      throw new Error('Insufficient wallet balance or invalid amount.');
+    if (!amount || amount < 1000) {
+      throw new Error('Minimum withdrawal amount is 1,000 XAF.');
     }
 
-    if (!method) {
-      throw new Error('Withdrawal method is required.');
+    if (user.wallet_balance < amount) {
+      throw new Error('Insufficient wallet balance.');
+    }
+
+    const ALLOWED_METHODS = ['mtn', 'orange'];
+    if (!method || !ALLOWED_METHODS.includes(method)) {
+      throw new Error('Invalid withdrawal method. Choose MTN MoMo or Orange Money.');
+    }
+
+    if (!details?.account_number) {
+      throw new Error('Phone number is required for mobile money withdrawal.');
     }
 
     // Deduct from wallet immediately to prevent double spending
@@ -183,7 +192,32 @@ const processWithdrawal = async (req, res, next) => {
     }
 
     if (action === 'approve') {
-      transaction.status = 'completed';
+      const payoutService = require('../services/payout.service');
+      const details = transaction.gateway_response?.details || {};
+      const method = transaction.gateway_response?.method || 'mtn';
+
+      try {
+        const payout = await payoutService.triggerMobilePayout(
+          transaction.amount,
+          details.account_number,
+          method
+        );
+
+        if (payout.success) {
+          transaction.status = 'completed';
+          transaction.description += ` | Ref: ${payout.reference}`;
+          transaction.gateway_response = { 
+            ...transaction.gateway_response, 
+            payout_ref: payout.reference, 
+            processed_at: new Date() 
+          };
+        } else {
+          throw new Error(payout.message || 'Payout failed at gateway');
+        }
+      } catch (payoutErr) {
+        console.error('[Withdrawal Approval] Payout Engine Error:', payoutErr.message);
+        throw new Error(`Payout Failed: ${payoutErr.message}`);
+      }
     } else if (action === 'reject') {
       transaction.status = 'rejected';
       // Refund the wallet since we deducted it during the request phase
@@ -411,6 +445,23 @@ const getAllWithdrawals = async (req, res, next) => {
   }
 };
 
+const getEscrowTransactions = async (req, res, next) => {
+  try {
+    const transactions = await Transaction.find({
+      user_id: req.user._id,
+      type: 'payout',
+      status: 'pending'
+    })
+    .populate('order_id', 'order_status products total_amount')
+    .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      data: { transactions }
+    });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getWalletBalance,
   getTransactionHistory,
@@ -419,4 +470,5 @@ module.exports = {
   processWithdrawal,
   getAllWithdrawals,
   payOrderWithWallet,
+  getEscrowTransactions,
 };

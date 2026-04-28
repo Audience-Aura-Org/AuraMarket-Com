@@ -16,7 +16,7 @@ const VENDOR_NAV = [
   { icon: 'star_rate',                label: 'Client Ratings',   href: '/vendor/ratings' },
   { icon: 'gavel',                    label: 'Disputes',         href: '/vendor/disputes' },
   { icon: 'chat',                     label: 'Messages',         href: '/messages',         badge: 'messages' },
-  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
+  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/vendor/wallet' },
   { icon: 'analytics',                label: 'Analytics',        href: '/vendor/analytics' },
 ];
 

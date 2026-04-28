@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, 
   Loader2, X, CheckCircle2, AlertCircle,
@@ -24,6 +25,7 @@ const TX_ICONS = {
 
 export default function WalletPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
@@ -68,7 +70,10 @@ export default function WalletPage() {
 
   useEffect(() => {
     if (!mounted || !user) return;
-    
+    // Role-based redirect
+    if (user.role === 'vendor') { router.replace('/vendor/wallet'); return; }
+    if (user.role === 'admin')  { router.replace('/admin/withdrawals'); return; }
+
     fetchWallet();
     const timer = setInterval(fetchWallet, 15000);
     const onFocus = () => fetchWallet();
@@ -139,7 +144,7 @@ export default function WalletPage() {
   const currentTransactions = filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <DashboardLayout role={user?.role || 'vendor'}>
+    <DashboardLayout role={user?.role || 'customer'}>
       
       {toast && (
         <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-sm font-bold animate-in fade-in slide-in-from-top-4 ${
