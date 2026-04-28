@@ -17,11 +17,13 @@ import cartStore from '@/services/cartStore';
 import { toast as hotToast } from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import BlurUpImage from '@/components/common/BlurUpImage';
+import { useChat } from '@/context/ChatContext';
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { openChat } = useChat();
   const imgRef = useRef(null);
 
   const [product, setProduct] = useState(null);
@@ -83,8 +85,20 @@ export default function ProductDetailsPage() {
       const res = await api.post('/wishlist/toggle', { product_id: id });
       const next = res.data.data?.wishlisted ?? !wishlisted;
       setWishlisted(next);
-      hotToast.success(next ? 'Added to wishlist' : 'Removed from wishlist');
+      hotToast.success(next ? 'Added to wishlist' : 'Removed from wishlist', {
+        style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' }
+      });
     } catch { hotToast.error('Failed to update wishlist'); }
+  };
+
+  const handleShare = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      hotToast.success('Link copied!', {
+        icon: '🔗',
+        style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' }
+      });
+    }
   };
 
   const handleAddToCart = async () => {
@@ -134,9 +148,13 @@ export default function ProductDetailsPage() {
 
   const handleChat = () => {
     if (!user) return router.push('/login');
-    const vId = vendor?.user_id?._id || vendor?.user_id || vendor?._id;
-    if (!vId) return hotToast.error('Unable to reach seller.');
-    router.push(`/messages?vendorId=${vId}&productId=${id}`);
+    const vUserId = vendor?.user_id?._id || vendor?.user_id || vendor?._id;
+    if (!vUserId) return hotToast.error('Unable to reach seller.');
+    
+    openChat(vUserId, product, {
+      store_name: vendor?.store_name || 'Verified Store',
+      branding: { logo: vendor?.user_id?.branding?.logo || vendor?.user_id?.avatar }
+    });
   };
 
   const handleMouseMove = (e) => {
@@ -208,7 +226,8 @@ export default function ProductDetailsPage() {
                 <MessageCircle className="size-4" />
               </button>
             )}
-            <button className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--component-bg)] transition-all">
+            <button onClick={handleShare}
+              className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--component-bg)] transition-all">
               <Share2 className="size-4" />
             </button>
           </div>
