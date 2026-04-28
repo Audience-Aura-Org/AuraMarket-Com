@@ -350,6 +350,12 @@ export default function DiscoveryHub() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('status');
   
+  // Status States
+  const [followedStatuses, setFollowedStatuses] = useState([]);
+  const [viewingStatuses, setViewingStatuses] = useState(null);
+  const [selectedStoryId, setSelectedStoryId] = useState(null);
+  const [showCreator, setShowCreator] = useState(false);
+
   // 1. Force blur on mount to dismiss any keyboards from previous screens
   useEffect(() => {
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
