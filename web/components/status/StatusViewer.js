@@ -560,100 +560,105 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
         {/* ── Bottom Content Stack (Product + Caption + Reply) ── */}
         <div
-          className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-10 transition-all duration-300 pointer-events-none flex flex-col gap-5
-            ${isReplying ? 'translate-y-[-10px]' : (paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0')}
+          className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-20 transition-all duration-300 pointer-events-none flex flex-col justify-end
+            ${isReplying ? 'translate-y-[-10px] opacity-100' : (paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0')}
           `}
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)' }}
         >
-          {/* 1. Linked Product (Top of footer stack) */}
-          {story.linked_product?.name && (
-            <div className="pointer-events-auto relative z-20">
+          <div className="flex flex-col gap-4 pointer-events-none">
+            {/* 1. Linked Product */}
+            {story.linked_product && (story.linked_product.name || typeof story.linked_product === 'object') && (
+              <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                <button
+                  onClick={handleViewProduct}
+                  className="w-full px-4 py-3 rounded-[1.5rem] bg-white/10 backdrop-blur-3xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-all shadow-2xl"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
+                      {(() => {
+                        const product = story.linked_product;
+                        const imgSrc = typeof product.images?.[0] === 'string'
+                          ? product.images[0]
+                          : product.images?.[0]?.url || null;
+                        return imgSrc
+                          ? <img src={imgSrc} alt="" className="size-full object-cover" />
+                          : <div className="size-full flex items-center justify-center bg-white/5"><ShoppingBag className="size-5 text-white/20" /></div>;
+                      })()}
+                    </div>
+                    <div className="text-left min-w-0">
+                      <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] leading-none mb-1.5">Market Link</p>
+                      <p className="text-[14px] font-bold text-white truncate leading-tight uppercase tracking-tight">{story.linked_product.name || 'View Product'}</p>
+                      {story.linked_product.price && (
+                        <p className="text-[12px] font-black text-white/90 mt-1 font-mono">{story.linked_product.price?.toLocaleString()} XAF</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="size-10 rounded-full bg-white text-black flex items-center justify-center shrink-0 shadow-xl ml-3 hover:scale-110 transition-transform">
+                    <ShoppingBag className="size-5" />
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {/* 2. Caption */}
+            {story.caption && (
+              <div className="pointer-events-auto px-1 py-1">
+                <p className="text-[14px] md:text-[15px] text-white/95 font-medium leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] line-clamp-4">
+                  {story.caption}
+                </p>
+              </div>
+            )}
+
+            {/* 3. Reply row */}
+            <div className="flex items-center gap-2.5 pointer-events-auto mt-1">
+              <div className="flex-1 relative flex items-center">
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  onFocus={() => { setIsReplying(true); setPaused(true); }}
+                  onBlur={() => { setIsReplying(false); setPaused(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) { e.preventDefault(); handleSendReply(); } }}
+                  placeholder="Reply..."
+                  className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner"
+                />
+                <button
+                  onClick={handleSendReply}
+                  disabled={!replyText.trim()}
+                  className={`absolute right-1.5 size-9 rounded-full flex items-center justify-center transition-all ${replyText.trim() ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-white/5 text-white/20'}`}
+                >
+                  <Send className="size-4" />
+                </button>
+              </div>
+
               <button
-                onClick={handleViewProduct}
-                className="w-full px-4 py-3 rounded-[1.25rem] bg-black/60 backdrop-blur-2xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                onClick={e => { e.stopPropagation(); toggleLike(); }}
+                className={`size-12 rounded-full flex items-center justify-center border transition-all shadow-lg ${liked ? 'bg-red-500 border-red-500 scale-110' : 'bg-white/10 border-white/15 backdrop-blur-xl'}`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
-                    {(() => {
-                      const imgSrc = typeof story.linked_product.images?.[0] === 'string'
-                        ? story.linked_product.images[0]
-                        : story.linked_product.images?.[0]?.url || null;
-                      return imgSrc
-                        ? <img src={imgSrc} alt="" className="size-full object-cover" />
-                        : <div className="size-full bg-white/5" />;
-                    })()}
-                  </div>
-                  <div className="text-left min-w-0">
-                    <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest leading-none mb-1.5">Shop This Look</p>
-                    <p className="text-[14px] font-bold text-white truncate leading-tight">{story.linked_product.name}</p>
-                    <p className="text-[12px] font-bold text-white/70 mt-1">{story.linked_product.price?.toLocaleString()} XAF</p>
-                  </div>
-                </div>
-                <div className="size-10 rounded-full bg-white text-black flex items-center justify-center shrink-0 shadow-lg ml-3">
-                  <ShoppingBag className="size-5" />
-                </div>
+                <Heart className={`size-5 text-white ${liked ? 'fill-current' : ''}`} />
+              </button>
+
+              <button
+                onClick={e => e.stopPropagation()}
+                className="size-12 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl flex items-center justify-center text-white shadow-lg"
+              >
+                <Share2 className="size-5" />
               </button>
             </div>
-          )}
 
-          {/* 2. Caption (Middle) */}
-          {story.caption && (
-            <div className="pointer-events-auto relative z-10 px-1">
-              <p className="text-[14px] md:text-[15px] text-white/95 font-medium leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] line-clamp-4">
-                {story.caption}
-              </p>
+            {/* 4. Metadata */}
+            <div className="flex items-center justify-between px-1 opacity-40 pt-2">
+              <div className="flex items-center gap-1.5 text-white">
+                <Eye className="size-3" />
+                <span className="text-[9px] font-black uppercase tracking-tighter">{story.views_count || 0}</span>
+              </div>
+              <span className="text-[9px] font-black text-white uppercase tracking-tighter">
+                {storyIdx + 1} / {totalInGroup}
+                {totalVendors > 1 && <span className="opacity-50"> · V {vendorIdx + 1}/{totalVendors}</span>}
+              </span>
             </div>
-          )}
-
-          {/* 3. Reply row (Bottom) */}
-          <div className="flex items-center gap-2.5 pointer-events-auto relative z-20">
-            <div className="flex-1 relative flex items-center">
-              <input
-                type="text"
-                value={replyText}
-                onChange={e => setReplyText(e.target.value)}
-                onFocus={() => { setIsReplying(true); setPaused(true); }}
-                onBlur={() => { setIsReplying(false); setPaused(false); }}
-                onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) { e.preventDefault(); handleSendReply(); } }}
-                placeholder="Reply..."
-                className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner"
-              />
-              <button
-                onClick={handleSendReply}
-                disabled={!replyText.trim()}
-                className={`absolute right-1.5 size-9 rounded-full flex items-center justify-center transition-all ${replyText.trim() ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-white/5 text-white/20'}`}
-              >
-                <Send className="size-4" />
-              </button>
-            </div>
-
-            <button
-              onClick={e => { e.stopPropagation(); toggleLike(); }}
-              className={`size-12 rounded-full flex items-center justify-center border transition-all shadow-lg ${liked ? 'bg-red-500 border-red-500 scale-110' : 'bg-white/10 border-white/15 backdrop-blur-xl'}`}
-            >
-              <Heart className={`size-5 text-white ${liked ? 'fill-current' : ''}`} />
-            </button>
-
-            <button
-              onClick={e => e.stopPropagation()}
-              className="size-12 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl flex items-center justify-center text-white shadow-lg"
-            >
-              <Share2 className="size-5" />
-            </button>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between px-1 opacity-50">
-            <div className="flex items-center gap-1.5 text-white">
-              <Eye className="size-3" />
-              <span className="text-[9px] font-bold">{story.views_count || 0}</span>
-            </div>
-            <span className="text-[9px] font-bold text-white">
-              {storyIdx + 1} / {totalInGroup}
-              {totalVendors > 1 && <span className="opacity-50"> · {vendorIdx + 1}/{totalVendors}</span>}
-            </span>
           </div>
         </div>
-
-
       </div>
     </motion.div>
   );

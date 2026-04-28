@@ -21,6 +21,7 @@ export default function VendorProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const itemsPerPage = 8;
 
@@ -171,13 +172,6 @@ export default function VendorProductsPage() {
                   </div>
                 )}
               </div>
-              
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalPages} 
-                onPageChange={setCurrentPage} 
-              />
-            </div>
             </>
           )}
       </div>
