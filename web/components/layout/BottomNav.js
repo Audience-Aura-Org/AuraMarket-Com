@@ -29,9 +29,9 @@ export default function BottomNav() {
   if (isDiscoveryPage) return null;
 
   const menu = [
-    { label: "Vendor", href: "/", icon: Store },
-    { label: "Story", href: "/discovery", icon: Activity },
-    { label: "Shop", href: "/shop", icon: ShoppingBag },
+    { label: "Hub", href: "/", icon: Store },
+    { label: "Live", href: "/discovery", icon: Activity },
+    { label: "Discovery Shop", href: "/discovery", icon: ShoppingBag },
     { label: "Overtime", href: "/overtime", icon: House },
     { label: "Profile", href: "/profile", icon: User },
   ];

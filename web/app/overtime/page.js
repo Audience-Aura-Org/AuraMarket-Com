@@ -87,7 +87,7 @@ export default function LandingPage() {
                     onClick={() => router.push('/discovery')}
                     className="bg-[var(--accent)] text-white px-10 py-4 rounded-full font-bold text-lg shadow-2xl shadow-[var(--accent)]/40 flex items-center gap-3 hover:scale-105 transition-transform"
                   >
-                    Enter Discovery Hub <span className="material-symbols-outlined">explore</span>
+                    Discovery Shop <span className="material-symbols-outlined">explore</span>
                   </button>
                   {user ? (
                     <button
