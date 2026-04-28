@@ -591,22 +591,20 @@ export default function ProductDetailsPage() {
 
       {/* ── Related Products ── */}
       {related.length > 0 && (
-        <section className="w-full px-4 md:px-6 pb-24">
-          <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-10">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-lg md:text-2xl font-black text-[var(--text-primary)] tracking-tighter">You may also like</h2>
-              <Link href="/discovery"
-                className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-primary)] hover:opacity-70 transition-opacity flex items-center gap-1 pb-1 border-b-2 border-transparent hover:border-[var(--text-primary)]">
-                View all
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-              {related.map(p => (
-                <div key={p._id} className="hover:-translate-y-2 transition-transform duration-300">
-                  <ProductCard product={p} />
-                </div>
-              ))}
-            </div>
+        <section className="w-full px-4 md:px-6 pb-24 space-y-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl md:text-3xl font-black text-[var(--text-primary)] tracking-tighter">You may also like</h2>
+            <Link href="/discovery"
+              className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-primary)] hover:opacity-70 transition-opacity flex items-center gap-1 pb-1 border-b-2 border-transparent hover:border-[var(--text-primary)]">
+              View all
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+            {related.map(p => (
+              <div key={p._id} className="hover:-translate-y-2 transition-transform duration-300">
+                <ProductCard product={p} />
+              </div>
+            ))}
           </div>
         </section>
       )}
