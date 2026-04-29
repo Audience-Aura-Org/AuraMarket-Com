@@ -250,14 +250,23 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const totalVendors = vendorGroups.length;
   const isVideo      = story?.type === 'video';
 
-  // Preload adjacent
+  // Preload Sliding Window: Next 10 stories in the global queue
   useEffect(() => {
-    if (!currentGroup) return;
-    const next = currentGroup.stories[storyIdx + 1] || vendorGroups[vendorIdx + 1]?.stories[0];
-    const prev = currentGroup.stories[storyIdx - 1];
-    [next, prev].forEach(s => s && preloadMedia(s.content_url, s.type));
-    initialStatuses.forEach(s => { if (s.type === 'image') preloadMedia(s.content_url, 'image'); });
-  }, [vendorIdx, storyIdx, currentGroup, vendorGroups, initialStatuses]);
+    if (!initialStatuses?.length || !story?._id) return;
+    
+    // Find current index in the global list
+    const globalIdx = initialStatuses.findIndex(s => s._id === story._id);
+    if (globalIdx === -1) return;
+
+    // Preload next 10 stories to keep the buffer warm
+    initialStatuses.slice(globalIdx + 1, globalIdx + 11).forEach(s => {
+      preloadMedia(s.content_url, s.type);
+    });
+
+    // Also preload the immediate previous one for reverse navigation
+    const prev = initialStatuses[globalIdx - 1];
+    if (prev) preloadMedia(prev.content_url, prev.type);
+  }, [story?._id, initialStatuses]);
 
   // Register view
   useEffect(() => {
