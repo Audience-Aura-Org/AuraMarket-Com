@@ -108,30 +108,36 @@ export default function VendorAnalyticsPage() {
             </div>
             
             <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={sales_history}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                  <XAxis 
-                    dataKey="_id" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fontSize: 8, fontWeight: 900, fill: 'var(--text-secondary)', opacity: 0.3}} 
-                    tickFormatter={(val) => val.split('-').slice(1).join('/')}
-                  />
-                  <YAxis hide />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '12px', fontSize: '10px' }}
-                    itemStyle={{ fontWeight: 900, textTransform: 'uppercase' }}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-                </AreaChart>
-              </ResponsiveContainer>
+              {sales_history && sales_history.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sales_history}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                    <XAxis 
+                      dataKey="_id" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 8, fontWeight: 900, fill: 'var(--text-secondary)', opacity: 0.3}} 
+                      tickFormatter={(val) => val.split('-').slice(1).join('/')}
+                    />
+                    <YAxis hide />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '12px', fontSize: '10px' }}
+                      itemStyle={{ fontWeight: 900, textTransform: 'uppercase' }}
+                    />
+                    <Area type="monotone" dataKey="revenue" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex items-center justify-center border border-dashed border-[var(--glass-border)] rounded-3xl bg-[var(--bg-primary)]/5 opacity-20">
+                  <p className="text-[9px] font-black uppercase tracking-widest">No Intelligence Data Available</p>
+                </div>
+              )}
             </div>
           </div>
 

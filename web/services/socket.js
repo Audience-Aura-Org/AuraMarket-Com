@@ -7,7 +7,8 @@ const getSocketURL = () => {
   // 2. Derive from API URL if available (most reliable for production)
   // Example: "https://aura-backend.herokuapp.com/api/v1" -> "https://aura-backend.herokuapp.com"
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '');
+    // Robustly strip /api/v1 or just /api from the end
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api(\/v1)?\/?$/, '');
   }
 
   // 3. Browser-side fallbacks
