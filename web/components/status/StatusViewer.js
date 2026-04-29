@@ -78,9 +78,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
   }, [src]);
 
   const handleError = useCallback(() => {
-    console.error('[Video] Media load failed, skipping story:', src);
-    onEnded(); 
-  }, [src, onEnded]);
+    console.warn('[Video] Media load failed, holding story:', src);
+    setIsWaiting(false);
+    // Removed onEnded() to prevent aggressive skipping on mobile/flaky connections
+  }, [src]);
 
   return (
     <div className="absolute inset-0 bg-black">
@@ -94,9 +95,9 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       )}
 
       {/* Buffering Indicator */}
-      {active && isWaiting && (
+      {active && (isWaiting || !videoReady) && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-          <Loader2 className="size-8 text-white/40 animate-spin" />
+          <Loader2 className="size-8 text-[var(--accent)]/60 animate-spin" />
         </div>
       )}
 
@@ -295,8 +296,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   // Video progress: write directly to DOM, no state update
   const handleVideoProgress = useCallback((e) => {
     const { currentTime, duration } = e.target;
-    if (duration > 0 && videoBarRef.current) {
-      videoBarRef.current.style.transform = `scaleX(${currentTime / duration})`;
+    if (duration && duration > 0 && videoBarRef.current) {
+      const progress = Math.min(currentTime / duration, 1);
+      videoBarRef.current.style.transform = `scaleX(${progress})`;
     }
   }, []);
 
@@ -391,7 +393,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               priority="high"
               className="absolute inset-0 w-full h-full"
               objectFit="cover"
-              onError={goNext}
             />
           ) : (
             <div
