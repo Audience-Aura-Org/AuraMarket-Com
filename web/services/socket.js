@@ -1,22 +1,30 @@
 import { io } from 'socket.io-client';
 
 const getSocketURL = () => {
+  // 1. Priority: Explicitly defined socket URL
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
+
+  // 2. Derive from API URL if available (most reliable for production)
+  // Example: "https://aura-backend.herokuapp.com/api/v1" -> "https://aura-backend.herokuapp.com"
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '');
+  }
+
+  // 3. Browser-side fallbacks
   if (typeof window !== 'undefined') {
-    // If we're on a secure origin (HTTPS), we must use the current origin
-    // to bypass protocol blocks, or an explicitly defined secure URL.
-    if (window.location.protocol === 'https:') {
-       return process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
-    }
-    
-    // In local development
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isLocal) {
-       return process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+      return 'http://localhost:5000';
+    }
+    
+    // On Vercel, window.location.origin is NOT a socket server.
+    // If we've reached here on HTTPS, we're likely missing the API URL env var.
+    if (window.location.protocol === 'https:') {
+      console.warn('[Socket] NEXT_PUBLIC_API_URL is missing. Socket may fail.');
     }
   }
   
-  // Server-side or fallback
-  return process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+  return 'http://localhost:5000';
 };
 
 const SOCKET_URL = getSocketURL();
