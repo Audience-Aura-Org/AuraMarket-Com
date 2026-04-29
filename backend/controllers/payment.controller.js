@@ -167,14 +167,25 @@ const sanitizePhone = (phone, country = 'CM') => {
   // If it starts with 00, replace with +
   if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
   
-  // Handle local 9-digit numbers for Cameroon
-  if (country === 'CM' && cleaned.length === 9 && !cleaned.startsWith('+')) {
-    cleaned = '+237' + cleaned;
-  }
-  
-  // Ensure it starts with + if it has a country code but no prefix
-  if (cleaned.length > 5 && !cleaned.startsWith('+')) {
-    cleaned = '+' + cleaned;
+  // Handle local numbers by prepending country codes if missing
+  if (!cleaned.startsWith('+')) {
+    const prefixes = {
+      'CM': '237',
+      'KE': '254',
+      'UG': '256',
+      'RW': '250',
+      'GH': '233',
+      'NG': '234',
+      'CI': '225'
+    };
+    const prefix = prefixes[country];
+    if (prefix) {
+      // If user provided a local number (e.g. starting with 0 or 6/7/8/9), normalize it
+      if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
+      cleaned = `+${prefix}${cleaned}`;
+    } else {
+      cleaned = '+' + cleaned;
+    }
   }
   
   return cleaned;

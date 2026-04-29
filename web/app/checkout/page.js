@@ -37,6 +37,17 @@ function CheckoutContent() {
     quartier: '',
     eversend: { phone: '', country: 'CM', currency: 'XAF', pinId: '', pin: '' }
   });
+    
+  // Eversend Country/Currency Mapping
+  const eversendMap = {
+    'XAF': 'CM',
+    'KES': 'KE',
+    'UGX': 'UG',
+    'RWF': 'RW',
+    'GHS': 'GH',
+    'NGN': 'NG'
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [order, setOrder] = useState(null);
@@ -276,7 +287,7 @@ function CheckoutContent() {
         const evRes = await api.post('/payments/eversend/initialize', {
            amount: totalAmount,
            currency: formData.eversend.currency,
-           phone: formData.phone, // Use primary contact
+           phone: formData.eversend.phone, // Use dedicated collection number
            country: formData.eversend.country,
            order_ids: finalOrderIds,
            redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`
@@ -620,12 +631,25 @@ function CheckoutContent() {
                                        <label className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
                                        <select 
                                           value={formData.eversend.currency}
-                                          onChange={e => setFormData({...formData, eversend: {...formData.eversend, currency: e.target.value}})}
+                                          onChange={e => {
+                                             const curr = e.target.value;
+                                             setFormData({
+                                               ...formData, 
+                                               eversend: {
+                                                 ...formData.eversend, 
+                                                 currency: curr,
+                                                 country: eversendMap[curr] || 'CM'
+                                               }
+                                             });
+                                          }}
                                           className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black uppercase outline-none focus:border-[var(--accent)] transition-all"
                                        >
-                                          <option value="XAF">XAF (Central Africa)</option>
-                                          <option value="NGN">NGN (Nigeria)</option>
+                                          <option value="XAF">XAF (Cameroon/Central Africa)</option>
+                                          <option value="KES">KES (Kenya)</option>
+                                          <option value="GHS">GHS (Ghana)</option>
+                                          <option value="RWF">RWF (Rwanda)</option>
                                           <option value="UGX">UGX (Uganda)</option>
+                                          <option value="NGN">NGN (Nigeria)</option>
                                        </select>
                                     </div>
                                  </div>

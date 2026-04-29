@@ -14,13 +14,7 @@ const {
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC, must come before protect middleware ───────────────────
-// Eversend: use express.raw() so we get the raw body for HMAC verification
-router.post(
-  '/eversend/webhook',
-  express.raw({ type: 'application/json' }),
-  eversendWebhook
-);
-
+// Eversend: Handled in server.js to bypass global JSON parser
 // Paystack webhook (legacy)
 router.post('/webhook', handleWebhook);
 

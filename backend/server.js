@@ -100,6 +100,12 @@ app.use(cors({
 }));
 
 app.use(compression()); // Gzip all API responses
+// ── Eversend Webhook (Raw Body Requirement) ───────────────────────────
+// Must be mounted before express.json() to allow raw body HMAC verification
+const { eversendWebhook } = require('./controllers/payment.controller');
+app.post('/api/v1/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
+app.post('/api/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
+
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
