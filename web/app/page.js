@@ -41,10 +41,19 @@ export default function VendorsDirectoryPage() {
         const data = res.data.data || [];
         setFollowedStatuses(data);
         
-        data.forEach(s => {
-          if (s.type === 'image' && s.content_url) {
+        // Aggressive background preloading for the first 15 statuses
+        data.slice(0, 15).forEach(s => {
+          if (!s.content_url) return;
+          if (s.type === 'image') {
             const img = new Image();
             img.src = s.content_url;
+          } else if (s.type === 'video') {
+            // Warm the video cache by creating an invisible metadata/auto-preload element
+            const v = document.createElement('video');
+            v.preload = 'auto'; // Load more aggressively for the first few stories
+            v.muted = true;
+            v.src = s.content_url;
+            v.load();
           }
         });
       }
