@@ -76,13 +76,13 @@ const getUserInbox = async (req, res, next) => {
     });
 
     // Format output mapping neatly to hide the complex Object groupings
-    const activeChats = populatedInbox
+    const activeChats = await Promise.all(populatedInbox
       .filter((item) => {
         const msg = item.latestMessage;
         // Skip messages where user documents have been deleted/unpopulated
         return msg && msg.sender_id && msg.receiver_id;
       })
-      .map((item) => {
+      .map(async (item) => {
         const msg = item.latestMessage;
         // Determine the "other user" reliably safely
         const senderId = msg.sender_id?._id?.toString() || msg.sender_id?.toString();
@@ -90,13 +90,23 @@ const getUserInbox = async (req, res, next) => {
           ? msg.receiver_id
           : msg.sender_id;
 
+        // Calculate unread count for this conversation
+        const unreadCount = await Message.countDocuments({
+          sender_id: partner._id,
+          receiver_id: req.user._id,
+          read_status: false
+        });
+
         return {
           partner,
+          partnerName: partner.branding?.store_name || partner.name || 'Merchant',
+          partnerAvatar: partner.avatar || partner.branding?.logo,
           snippet: msg.text || (msg.product_reference ? '[Product Shared]' : ''),
+          unread_count: unreadCount,
           read_status: msg.read_status,
           date: msg.createdAt,
         };
-      });
+      }));
 
     res.status(200).json({ success: true, count: activeChats.length, data: { activeChats } });
   } catch (error) {
