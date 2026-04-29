@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   X, Heart, ShoppingBag,
   Volume2, VolumeX,
-  Eye, Send, Share2, Pause, Play,
+  Eye, Send, Share2, Pause, Play, Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
@@ -14,12 +14,14 @@ const STORY_DURATION = 5000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
+// ─── Preload helper ──────────────────────────────────────────────────────────
+const preloadCache = new Set();
 function preloadMedia(url, type) {
   if (!url || preloadCache.has(url)) return;
   preloadCache.add(url);
   if (type === 'video') {
     const v = document.createElement('video');
-    v.preload = 'auto';
+    v.preload = 'metadata'; // Optimized: only fetch headers to save bandwidth
     v.src = url;
     v.muted = true;
     v.load();
@@ -49,6 +51,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
   const ref = useRef(null);
   const [poster, setPoster]       = useState(() => getVideoPoster(src));
   const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
+  const [isWaiting, setIsWaiting]   = useState(false);
 
   // Poster extraction (only needed for non-Cloudinary)
   useEffect(() => {
@@ -96,7 +99,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     const v = ref.current;
     if (!v) return;
     if (active && !paused) {
-      v.play().catch(() => {});
+      v.play().catch(err => {
+        console.warn('[Video] Playback blocked or failed:', err.message);
+        // If it's a critical error, we might want to skip, but usually it's just a pause
+      });
     } else {
       v.pause();
       if (!active) v.currentTime = 0;
@@ -112,7 +118,13 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
   const handleReady = useCallback(() => {
     if (src) loadedVideos.add(src);
     setVideoReady(true);
+    setIsWaiting(false);
   }, [src]);
+
+  const handleError = useCallback(() => {
+    console.error('[Video] Media load failed, skipping story:', src);
+    onEnded(); // Auto-skip broken videos
+  }, [src, onEnded]);
 
   return (
     <div className="absolute inset-0 bg-black">
@@ -129,6 +141,13 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         )}
       </div>
 
+      {/* Buffering Indicator */}
+      {active && isWaiting && videoReady && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <Loader2 className="size-8 text-white/40 animate-spin" />
+        </div>
+      )}
+
       {/* Video — no native poster attr; overlay handles it */}
       <video
         ref={ref}
@@ -139,8 +158,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlayThrough={handleReady}
         onPlaying={handleReady}
-        onPlay={handleReady}
+        onPlay={() => setIsWaiting(false)}
+        onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
+        onError={handleError}
         onEnded={onEnded}
         onTimeUpdate={onProgress}
       />
@@ -414,6 +435,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               priority="high"
               className="absolute inset-0 w-full h-full"
               objectFit="cover"
+              onError={goNext}
             />
           ) : (
             <div
