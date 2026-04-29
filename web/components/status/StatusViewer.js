@@ -14,8 +14,6 @@ const STORY_DURATION = 5000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
-// ─── Preload helper ──────────────────────────────────────────────────────────
-const preloadCache = new Set();
 function preloadMedia(url, type) {
   if (!url || preloadCache.has(url)) return;
   preloadCache.add(url);
