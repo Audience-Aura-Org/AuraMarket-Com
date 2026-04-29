@@ -150,8 +150,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       <video
         ref={ref}
         src={src}
+        autoPlay
         playsInline
-        muted={muted}
+        webkit-playsinline="true"
+        muted={true}
         preload="auto"
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlayThrough={handleReady}
@@ -159,6 +161,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         onPlay={() => setIsWaiting(false)}
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
+        onLoadedMetadata={handleReady}
         onError={handleError}
         onEnded={onEnded}
         onTimeUpdate={onProgress}
@@ -276,7 +279,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const [storyIdx,   setStoryIdx]   = useState(initialPos.sIdx);
   const [paused,     setPaused]     = useState(false);
   const [liked,      setLiked]      = useState(false);
-  const [muted,      setMuted]      = useState(false);
+  const [muted,      setMuted]      = useState(true);
   const [replyText,  setReplyText]  = useState('');
   const [isReplying, setIsReplying] = useState(false);
 
