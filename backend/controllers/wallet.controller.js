@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const logisticsService = require('../services/logistics.service');
 const PlatformSettings = require('../models/PlatformSettings.model');
+const Message = require('../models/Message.model');
 const { sendNotification } = require('../utils/notifier');
 
 // Helper to generate a unique transaction reference
@@ -247,18 +248,41 @@ const processWithdrawal = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
 
-    // Notify User
+    // Notify User via Notification System
     setImmediate(async () => {
         try {
+            const statusLabel = action === 'approve' ? 'Processed' : action === 'reject' ? 'Rejected' : 'Held';
+            const actionVerb = action === 'approve' ? 'processed' : action === 'reject' ? 'rejected and refunded' : 'placed on hold';
+            const msgText = `Your withdrawal of ${transaction.amount.toLocaleString()} XAF has been ${actionVerb}. Reference: ${transaction.reference}`;
+
+            // 1. Send Standard Notification
             await sendNotification(req.app, transaction.user_id, {
-                title: `Withdrawal ${action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Held'}`,
-                message: `Your withdrawal of ${transaction.amount.toLocaleString()} XAF has been ${action === 'approve' ? 'processed' : action === 'reject' ? 'rejected and refunded' : 'placed on hold'}.`,
+                title: `Withdrawal ${statusLabel}`,
+                message: msgText,
                 type: 'wallet_update',
                 metadata: { transaction_id: transaction._id, link: '/wallet' },
                 sendEmail: true
             });
+
+            // 2. Send Chat Message from Admin to User (System Comm as Message)
+            const chatMsg = await Message.create({
+                sender_id: req.user._id,
+                receiver_id: transaction.user_id,
+                text: `📢 [SYSTEM] ${msgText}`,
+                metadata: { type: 'system_wallet', transaction_id: transaction._id }
+            });
+
+            const io = req.app.get('io');
+            if (io) {
+                const populated = await Message.findById(chatMsg._id)
+                    .populate('sender_id', 'name avatar role branding')
+                    .populate('receiver_id', 'name avatar role branding');
+                
+                io.to(transaction.user_id.toString()).emit('receive_message', populated);
+                io.to(req.user._id.toString()).emit('sent_message_echo', populated);
+            }
         } catch (notifierErr) {
-            console.error('Withdrawal Notifier Error:', notifierErr);
+            console.error('Withdrawal Notifier/Chat Error:', notifierErr);
         }
     });
 
@@ -462,6 +486,33 @@ const getEscrowTransactions = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const getPlatformFinancialStats = async (req, res, next) => {
+  try {
+    const settings = await PlatformSettings.getSettings();
+    
+    const [escrowStats, withdrawalStats] = await Promise.all([
+      Escrow.aggregate([
+        { $match: { status: 'held' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Transaction.aggregate([
+        { $match: { type: 'withdrawal', status: 'pending' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total_platform_revenue: settings.platform_wallet_balance || 0,
+        total_escrow_held: escrowStats[0]?.total || 0,
+        total_pending_withdrawals: withdrawalStats[0]?.total || 0,
+        commission_rate: settings.commission_rate
+      }
+    });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getWalletBalance,
   getTransactionHistory,
@@ -471,4 +522,5 @@ module.exports = {
   getAllWithdrawals,
   payOrderWithWallet,
   getEscrowTransactions,
+  getPlatformFinancialStats,
 };

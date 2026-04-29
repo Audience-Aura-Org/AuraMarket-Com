@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
 import socketService from '@/services/socket';
 
 /**
@@ -17,6 +18,7 @@ import socketService from '@/services/socket';
  */
 export default function ChatSlideOverlay({ vendorId: initialVendorId, product, initialData, onClose }) {
   const { user } = useAuthStore();
+  const { isSystemWide } = useChat();
   const [activePartnerId, setActivePartnerId] = useState(initialVendorId);
   const [inbox, setInbox] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -25,6 +27,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
   const [inboxLoading, setInboxLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [partnerInfo, setPartnerInfo] = useState(initialData);
+  const [partnerBInfo, setPartnerBInfo] = useState(null);
   const [deletedConvos, setDeletedConvos] = useState(() => {
     try { return JSON.parse(localStorage.getItem('aura_deleted_convos') || '[]'); } catch { return []; }
   });
@@ -53,16 +56,17 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
   // 1. Initial Loading Logic
   useEffect(() => {
     if (activePartnerId) {
-      loadConversation(activePartnerId);
+      loadConversation(activePartnerId, partnerBInfo?._id || partnerBInfo);
     } else {
       loadInbox();
     }
-  }, [activePartnerId]);
+  }, [activePartnerId, isSystemWide]);
 
   const loadInbox = async () => {
     setInboxLoading(true);
     try {
-      const res = await api.get('/chat');
+      const endpoint = isSystemWide ? '/chat/admin/inbox' : '/chat';
+      const res = await api.get(endpoint);
       if (res.data.success) {
         setInbox(res.data.data.activeChats || []);
       }
@@ -73,16 +77,22 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
     }
   };
 
-  const loadConversation = async (pid) => {
+  const loadConversation = async (pid, pid2 = null) => {
     setLoading(true);
     try {
+      let chatEndpoint = `/chat/${pid}`;
+      if (isSystemWide && pid2) {
+        chatEndpoint = `/chat/admin/all?userA=${pid}&userB=${pid2}`;
+      }
+
       const [chatRes, partnerRes] = await Promise.all([
-        api.get(`/chat/${pid}`),
+        api.get(chatEndpoint),
         api.get(`/users/profile/${pid}`).catch(() => null)
       ]);
 
       if (chatRes.data.success) {
-        setMessages(chatRes.data.data?.messages || chatRes.data.messages || []);
+        const msgs = chatRes.data.data?.messages || chatRes.data.messages || [];
+        setMessages(msgs);
       }
       if (partnerRes?.data?.success) {
         setPartnerInfo(partnerRes.data.data?.user || partnerRes.data.user);
@@ -148,7 +158,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
     }
   };
 
-  const partnerName = partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User';
+  const partnerName = (partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User').toString();
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
 
   return (
@@ -175,10 +185,20 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
           {activePartnerId ? (
              <>
                 <div className="size-10 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] shrink-0">
-                   {partnerAvatar ? <img src={partnerAvatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center text-sm font-black text-[var(--accent)]">{partnerName[0]}</div>}
+                   {partnerAvatar && typeof partnerAvatar === 'string' ? <img src={partnerAvatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center text-sm font-black text-[var(--accent)]">{partnerName[0]}</div>}
                 </div>
-                <div className="min-w-0">
-                   <h3 className="font-black text-sm md:text-base text-[var(--text-primary)] truncate tracking-tighter leading-tight capitalize whitespace-nowrap">{partnerName}</h3>
+                <div className="min-w-0 flex-1">
+                   <h3 className="font-black text-sm md:text-base text-[var(--text-primary)] truncate tracking-tighter leading-tight capitalize whitespace-nowrap">
+                     {isSystemWide && partnerBInfo ? (
+                        <span className="flex items-center gap-1.5">
+                          {partnerName} 
+                          <span className="opacity-20 text-[10px]">&</span> 
+                          {typeof partnerBInfo === 'string' ? partnerBInfo : (partnerBInfo?.name || 'User')}
+                        </span>
+                     ) : (
+                       partnerName
+                     )}
+                   </h3>
                    <div className="flex items-center gap-1.5 ">
                       <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                       <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Active Now</p>
@@ -292,7 +312,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                                   {msg.metadata.storyPreview?.startsWith('http') ? (
                                     <img src={msg.metadata.storyPreview} className="size-full object-cover opacity-80" alt="" />
                                   ) : (
-                                    <div className="size-full bg-gradient-to-br from-[#050505] to-[#1a0a2e] flex items-center justify-center p-1.5 text-[6px] font-bold italic text-white/70 text-center leading-tight">
+                                    <div className="size-full bg-gradient-to-br from-[#050505] to-[#1a0a2e] flex items-center justify-center p-1.5 text-[6px] font-bold text-white/70 text-center leading-tight">
                                       {msg.metadata.storyPreview}
                                     </div>
                                   )}
@@ -303,7 +323,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                                     <span className="text-[7px] font-black text-purple-400 uppercase tracking-widest leading-none">Status Interaction</span>
                                   </div>
                                   <h5 className="text-[11px] font-black text-[var(--text-primary)] truncate uppercase tracking-tight leading-tight">Replied to Story</h5>
-                                  <p className="text-[9px] font-medium text-[var(--text-secondary)]/40 italic">via Aura Pulse</p>
+                                  <p className="text-[9px] font-medium text-[var(--text-secondary)]/40">via Aura Pulse</p>
                                 </div>
                                 <ExternalLink className="size-3 text-[var(--text-secondary)] opacity-20 mr-1" />
                               </button>
@@ -366,26 +386,44 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                    <p className="text-xs font-black uppercase tracking-widest leading-loose">No active connections found</p>
                 </div>
              ) : (
-                inbox.filter(c => !deletedConvos.includes((c.partner?._id || '').toString())).map((chat) => (
+                inbox.filter(c => !deletedConvos.includes((c.partner?._id || '').toString())).map((chat, i) => (
                   <button
-                    key={chat._id || chat.partner?._id || `chat-${chat.date}`}
+                    key={chat._id || (chat.isSystemWide ? `${chat.partner?._id}_${chat.partnerB?._id}` : chat.partner?._id) || `chat-${i}`}
                     onClick={() => {
                       setActivePartnerId(chat.partner?._id);
                       setPartnerInfo(chat.partner);
+                      if (chat.isSystemWide) {
+                        setPartnerBInfo(chat.partner2 || chat.partnerB);
+                      }
                     }}
                     className="w-full p-4 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/[0.04] hover:border-[var(--accent)]/50 transition-all flex items-center gap-4 group text-left shadow-sm mb-2"
                   >
                     <div className="size-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] flex items-center justify-center shrink-0">
-                       {chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar 
+                       {chat.partner?.store?.logo || chat.partner?.branding?.logo || (typeof chat.partner?.avatar === 'string' ? chat.partner?.avatar : null)
                          ? <img src={chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" />
-                         : <div className="text-xl font-black text-[var(--accent)] uppercase">{chat.partner?.store_name?.[0] || chat.partner?.name?.[0]}</div>}
+                         : <div className="text-xl font-black text-[var(--accent)] uppercase">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
                     </div>
                     <div className="flex-1 min-w-0">
                        <div className="flex justify-between items-start mb-0.5">
-                          <h4 className="font-bold text-xs md:text-sm text-[var(--text-primary)] truncate pr-2 capitalize">{chat.partner?.store_name || chat.partner?.name}</h4>
+                          <h4 className="font-bold text-[11px] md:text-xs text-[var(--text-primary)] truncate pr-2 capitalize">
+                            {chat.isSystemWide ? (
+                              <span className="flex items-center gap-1">
+                                {typeof chat.partner?.name === 'string' ? chat.partner.name : (chat.partner?.name || 'User')} 
+                                <span className="opacity-20">&</span> 
+                                {typeof chat.partnerB?.name === 'string' ? chat.partnerB.name : (chat.partnerB?.name || chat.partner2?.name || 'User')}
+                              </span>
+                            ) : (
+                              typeof chat.partner?.store_name === 'string' ? chat.partner.store_name : (chat.partner?.store_name || chat.partner?.name || 'User')
+                            )}
+                          </h4>
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 whitespace-nowrap">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
                        </div>
-                       <p className="text-xs text-[var(--text-secondary)] truncate opacity-60 leading-relaxed font-medium">{chat.snippet}</p>
+                       <div className="flex items-center gap-2">
+                          {chat.isSystemWide && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-500 text-[6px] font-black uppercase tracking-widest border border-purple-500/20 shrink-0">System</span>
+                          )}
+                          <p className="text-[10px] text-[var(--text-secondary)] truncate opacity-60 leading-relaxed font-medium">{chat.snippet}</p>
+                       </div>
                     </div>
                   </button>
                 ))

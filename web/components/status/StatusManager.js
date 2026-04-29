@@ -113,7 +113,7 @@ export default function StatusManager() {
                 />
               ) : (
                 <div className="size-full bg-gradient-to-br from-[#1c1b1b] to-[#000] flex items-center justify-center p-8 text-center">
-                  <p className="text-base font-medium italic text-white/80 line-clamp-4 leading-relaxed">{status.text_content}</p>
+                  <p className="text-base font-medium text-white/80 line-clamp-4 leading-relaxed">{status.text_content}</p>
                 </div>
               )}
 

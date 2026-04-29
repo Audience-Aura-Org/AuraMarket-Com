@@ -170,40 +170,22 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             const isActive = bestMatch?.href === item.href;
             const badge = getBadge(item);
 
-            if (item.label === 'Messages' || item.label === 'System Comms') {
-              return (
-                <button
-                  key={item.label}
-                  onClick={() => { 
-                    openChat(); 
-                    if(window.innerWidth < 1024) onClose(); 
-                  }}
-                  className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all group border-l-[3px] border-transparent hover:bg-[var(--accent)]/5`}
-                >
-                  <span className="material-symbols-outlined text-xl text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors">
-                    {item.icon}
-                  </span>
-                  <span className="font-medium text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate flex-1 text-left">
-                    {item.label}
-                  </span>
-                  {badge > 0 && (
-                    <span
-                      className="min-w-[20px] h-5 px-1.5 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
-                      style={{ background: '#ef4444' }}
-                    >
-                      {badge > 99 ? '99+' : badge}
-                    </span>
-                  )}
-                </button>
-              );
-            }
+            const isChat = item.label === 'Messages' || item.label === 'System Comms';
+            const Comp = isChat ? 'button' : Link;
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => { if(window.innerWidth < 1024) onClose(); }}
-                className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all group ${
+              <Comp
+                key={item.href || item.label}
+                href={isChat ? undefined : item.href}
+                onClick={(e) => { 
+                  if (isChat) {
+                    e.preventDefault();
+                    const isGlobal = item.label === 'System Comms';
+                    openChat(null, null, null, isGlobal);
+                  }
+                  if(window.innerWidth < 1024) onClose(); 
+                }}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all group ${
                   isActive
                     ? 'border-l-[3px]'
                     : 'hover:bg-[var(--accent)]/5 border-l-[3px] border-transparent'
@@ -234,7 +216,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                     {badge > 99 ? '99+' : badge}
                   </span>
                 )}
-              </Link>
+              </Comp>
             );
           })}
 

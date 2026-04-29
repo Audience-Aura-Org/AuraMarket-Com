@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 export default function AdminLogisticsEarningsPage() {
   const [loading, setLoading] = useState(true);
@@ -36,11 +37,7 @@ export default function AdminLogisticsEarningsPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-secondary)]">
-        <Loader2 className="size-8 animate-spin text-[var(--accent)] opacity-20" />
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   const totalRev = vendors.reduce((acc, v) => acc + (v.gross_sales || 0), 0);
@@ -88,7 +85,7 @@ export default function AdminLogisticsEarningsPage() {
                  </div>
                  <div>
                     <h4 className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">Gross Marketplace Volume</h4>
-                    <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{totalRev.toLocaleString()} <span className="text-xs opacity-20 italic">XAF</span></p>
+                    <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{totalRev.toLocaleString()} <span className="text-xs opacity-20">XAF</span></p>
                  </div>
               </div>
               <div className="text-right hidden sm:block">
@@ -104,7 +101,7 @@ export default function AdminLogisticsEarningsPage() {
                  </div>
                  <div>
                     <h4 className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">Total Logistics Burn</h4>
-                    <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{totalShip.toLocaleString()} <span className="text-xs opacity-20 italic">XAF</span></p>
+                    <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{totalShip.toLocaleString()} <span className="text-xs opacity-20">XAF</span></p>
                  </div>
               </div>
               <div className="text-right hidden sm:block">

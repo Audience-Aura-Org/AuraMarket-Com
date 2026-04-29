@@ -17,7 +17,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   }, []);
 
   return (
-    <header className="lg:hidden bg-[var(--nav-bg)] border-b border-[var(--nav-border)] text-[var(--nav-text)] sticky top-0 z-[400] transition-colors duration-500">
+    <header className="lg:hidden bg-[var(--nav-bg)] border-b border-[var(--nav-border)] text-[var(--nav-text)] sticky top-0 z-[500] transition-colors duration-500">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
       <div className="h-14 flex items-center justify-between px-4">

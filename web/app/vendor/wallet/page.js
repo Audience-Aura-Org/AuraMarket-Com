@@ -251,7 +251,9 @@ export default function VendorWalletPage() {
   const [selectedTx, setSelectedTx] = useState(null);
 
   useEffect(() => {
-    if (user && user.role !== 'vendor') {
+    if (!user) {
+      router.replace('/login?from=vendor-wallet');
+    } else if (user.role !== 'vendor') {
       router.replace('/wallet');
     }
   }, [user, router]);
@@ -278,8 +280,12 @@ export default function VendorWalletPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const totalEarned = transactions.filter(t => ['payout', 'deposit', 'refund'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
-  const totalOut    = transactions.filter(t => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
+  const totalEarned = transactions
+    .filter(t => ['payout', 'deposit', 'refund'].includes(t.type) && t.status === 'completed')
+    .reduce((s, t) => s + t.amount, 0);
+  const totalOut = transactions
+    .filter(t => t.type === 'withdrawal' && t.status === 'completed')
+    .reduce((s, t) => s + t.amount, 0);
 
   return (
     <>

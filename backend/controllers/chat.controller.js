@@ -208,7 +208,19 @@ const markAsRead = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getAllMessagesAdmin = async (req, res, next) => {
   try {
-    const messages = await Message.find({})
+    const { userA, userB } = req.query;
+    let query = {};
+
+    if (userA && userB) {
+      query = {
+        $or: [
+          { sender_id: userA, receiver_id: userB },
+          { sender_id: userB, receiver_id: userA }
+        ]
+      };
+    }
+
+    const messages = await Message.find(query)
       .populate('sender_id', 'name avatar role email branding')
       .populate('receiver_id', 'name avatar role email branding')
       .populate('product_reference', 'name price images')
@@ -224,10 +236,68 @@ const getAllMessagesAdmin = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// @route   GET /api/chat/admin/inbox
+// @desc    Admin: Get all distinct conversations system-wide
+// @access  Private/Admin
+// ─────────────────────────────────────────────
+const getSystemWideInbox = async (req, res, next) => {
+  try {
+    const inbox = await Message.aggregate([
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $gt: ['$sender_id', '$receiver_id'] },
+              { a: '$sender_id', b: '$receiver_id' },
+              { a: '$receiver_id', b: '$sender_id' },
+            ],
+          },
+          latestMessage: { $first: '$$ROOT' },
+        },
+      },
+      {
+        $sort: { 'latestMessage.createdAt': -1 },
+      },
+    ]);
+
+    const populatedInbox = await Message.populate(inbox, {
+      path: 'latestMessage.sender_id latestMessage.receiver_id',
+      select: 'name avatar branding store_name role is_online last_seen',
+      model: 'User',
+    });
+
+    const activeChats = populatedInbox
+      .filter((item) => item.latestMessage && item.latestMessage.sender_id && item.latestMessage.receiver_id)
+      .map((item) => {
+        const msg = item.latestMessage;
+        const senderId = msg.sender_id?._id?.toString() || msg.sender_id?.toString();
+        
+        // For admin, we show both but pick one as "primary" for the list UI
+        return {
+          _id: `${item._id.a}_${item._id.b}`,
+          partner: msg.sender_id,
+          partnerB: msg.receiver_id,
+          snippet: msg.text || (msg.product_reference ? '[Product Shared]' : ''),
+          date: msg.createdAt,
+          isSystemWide: true
+        };
+      });
+
+    res.status(200).json({ success: true, count: activeChats.length, data: { activeChats } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getConversation,
   getUserInbox,
   sendMessage,
   markAsRead,
   getAllMessagesAdmin,
+  getSystemWideInbox,
 };

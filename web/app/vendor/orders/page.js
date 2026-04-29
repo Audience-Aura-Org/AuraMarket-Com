@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +30,8 @@ const NEXT_STATUSES = {
 };
 
 import Pagination from '@/components/common/Pagination';
+import { motion, AnimatePresence } from 'framer-motion';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function VendorOrdersPage() {
   const router = useRouter();
@@ -80,6 +82,8 @@ export default function VendorOrdersPage() {
   const pendingCount = orders.filter(o => ['placed','processing'].includes(o.order_status)).length;
 
   if (user?.role !== 'vendor' || !user.onboarded) return null;
+
+  if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <>
@@ -226,8 +230,8 @@ export default function VendorOrdersPage() {
                         <td colSpan={5} className="px-8 py-24 text-center">
                            <div className="flex flex-col items-center gap-6 opacity-10">
                               <Package className="size-12 lg:size-16" />
-                               <p className="text-[10px] lg:text-[12px] font-black uppercase tracking-[0.4em] italic leading-relaxed">
-                                  {loading ? 'Fetching orders...' : 'No orders found.\nYour history is empty.'}
+                               <p className="text-[10px] lg:text-[12px] font-black uppercase tracking-[0.4em] leading-relaxed">
+                                  No orders found. Your history is empty.
                                 </p>
                            </div>
                         </td>

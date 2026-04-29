@@ -412,7 +412,7 @@ export default function OrderDetailPage() {
                             <Clock className="size-8" />
                          </div>
                          <h4 className="text-xs font-black uppercase tracking-[0.2em]">Synchronization Pending</h4>
-                         <p className="text-[10px] font-medium max-w-[240px] mx-auto italic">Waiting for vendor node to manifest tracking identification.</p>
+                         <p className="text-[10px] font-medium max-w-[240px] mx-auto">Waiting for vendor node to manifest tracking identification.</p>
                       </div>
                     )}
                  </div>

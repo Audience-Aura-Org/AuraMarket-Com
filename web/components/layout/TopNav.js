@@ -101,7 +101,7 @@ export default function TopNav() {
   const hideSearchIcon = pathname === '/shop' || pathname === '/discovery' || pathname === '/stores';
 
   return (
-    <header className="sticky top-0 z-[100] bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
+    <header className="sticky top-0 z-[500] bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div className="w-full bg-[var(--nav-bg)]" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
       <div className="px-4 md:px-6 py-3 md:py-4 max-w-[1920px] mx-auto flex items-center justify-between gap-4">

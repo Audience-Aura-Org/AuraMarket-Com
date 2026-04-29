@@ -103,7 +103,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             <div className="size-16 rounded-full bg-[var(--accent)]/5 flex items-center justify-center mb-4">
                <MessageCircle className="w-8 h-8 text-[var(--accent)] opacity-20" />
             </div>
-            <p className="font-black text-[var(--text-primary)] uppercase tracking-tighter text-base italic">Your Circle is Empty</p>
+            <p className="font-black text-[var(--text-primary)] uppercase tracking-tighter text-base">Your Circle is Empty</p>
             <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-2 max-w-[220px] mx-auto font-medium">
               Only vendors you follow appear here for quick chat access. Explore the Global Market to find your vibe.
             </p>

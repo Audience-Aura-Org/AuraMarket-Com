@@ -50,7 +50,7 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
           <div className="size-full flex items-center justify-center p-4 text-center overflow-hidden"
             style={{ background: 'linear-gradient(160deg, #090909 0%, #1a1a1a 100%)' }}>
             <div className="absolute -top-10 -left-10 size-24 bg-[var(--accent)] blur-[50px] opacity-20 rounded-full animate-pulse" />
-            <p className="relative z-10 text-[11px] font-semibold italic text-white/90 leading-relaxed line-clamp-5">
+            <p className="relative z-10 text-[11px] font-semibold text-white/90 leading-relaxed line-clamp-5">
               {status.text_content}
             </p>
           </div>

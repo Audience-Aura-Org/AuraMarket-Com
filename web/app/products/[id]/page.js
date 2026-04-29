@@ -422,7 +422,7 @@ export default function ProductDetailsPage() {
             </div>
 
             {reviews.length === 0 ? (
-              <p className="text-sm text-[var(--text-secondary)] italic py-4">No reviews yet.</p>
+              <p className="text-sm text-[var(--text-secondary)] py-4">No reviews yet.</p>
             ) : (
               <div className="space-y-8">
                 {reviews.slice(0, 3).map((r, i) => (

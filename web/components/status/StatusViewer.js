@@ -408,7 +408,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[350px] rounded-full bg-[var(--accent)]/12 blur-[100px]" />
               </div>
-              <p className="relative z-10 text-3xl font-bold italic text-white leading-tight drop-shadow-2xl">
+              <p className="relative z-10 text-3xl font-bold text-white leading-tight drop-shadow-2xl">
                 {story.text_content}
               </p>
             </div>

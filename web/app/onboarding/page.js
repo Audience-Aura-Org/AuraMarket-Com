@@ -14,6 +14,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const STEPS = [
   { id: 'categories', title: 'Your Interests', subtitle: 'Pick 2+ categories', icon: Heart, color: 'rose' },
@@ -241,36 +242,7 @@ export default function OnboardingFlow() {
 
   // ── Loading screen ──────────────────────────────────────────────────────────
   if (fetching || !mounted) {
-    return (
-      <div suppressHydrationWarning className="min-h-screen flex items-center justify-center bg-[var(--bg-secondary)]">
-        {mounted && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Animated background elements */}
-            <div className="absolute top-1/4 -left-20 w-80 h-80 bg-[var(--accent)]/5 rounded-full blur-[100px] animate-pulse" />
-            <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-blue-500/5 rounded-full blur-[100px] animate-pulse delay-700" />
-          </div>
-        )}
-
-        <div className="flex flex-col items-center gap-8 relative z-10">
-          <div className="relative group">
-            {/* Logo container */}
-            <div className="size-24 rounded-[32px] bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center shadow-2xl transition-transform duration-500 group-hover:scale-110">
-               <img src="/logo-black.png" className="w-12 h-auto opacity-90" alt="Aura" />
-            </div>
-            
-            {mounted && (
-              <>
-                {/* Spinning/Pulse rings */}
-                <div className="absolute -inset-4 rounded-[40px] border border-[var(--accent)]/10 animate-[spin_8s_linear_infinite]" />
-                <div className="absolute -inset-8 rounded-[48px] border border-[var(--accent)]/5 animate-[spin_12s_linear_infinite_reverse]" />
-                <div className="absolute -inset-2 rounded-[36px] border-2 border-[var(--accent)]/20 animate-ping opacity-20" />
-              </>
-            )}
-          </div>
-
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   const filteredVendors = vendors
@@ -418,7 +390,7 @@ export default function OnboardingFlow() {
                 </div>
               )}
               
-              {filteredCategories.length === 0 && <p className="text-center text-sm opacity-40 py-12 italic">No categories found in current matrix...</p>}
+              {filteredCategories.length === 0 && <p className="text-center text-sm opacity-40 py-12">No categories found in current matrix...</p>}
             </div>
           )}
 
@@ -446,7 +418,7 @@ export default function OnboardingFlow() {
                 {zonesLoading ? (
                   <div className="flex items-center gap-3 py-1">
                     <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
-                    <span className="text-xs font-bold opacity-40 italic">Syncing nodes...</span>
+                    <span className="text-xs font-bold opacity-40">Syncing nodes...</span>
                   </div>
                 ) : (
                   <div className="relative">
@@ -565,7 +537,7 @@ export default function OnboardingFlow() {
                    );
                  })}
                </div>
-               {vendors.length === 0 && <p className="text-center text-sm opacity-40 py-12 italic">Connecting to vendor matrix...</p>}
+               {vendors.length === 0 && <p className="text-center text-sm opacity-40 py-12">Connecting to vendor matrix...</p>}
              </div>
           )}
 
