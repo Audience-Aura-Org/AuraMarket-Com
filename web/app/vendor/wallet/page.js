@@ -8,10 +8,10 @@ import {
   CheckCircle2, AlertCircle, Loader2, ChevronRight,
   RefreshCw, Smartphone, Building2, Clock, TrendingUp,
   Shield, X, ArrowLeft, History, Package, Download,
-  ExternalLink, Printer, Fingerprint
+  ExternalLink, Printer, Fingerprint, Star
 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
-import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 
 const MIN_WITHDRAW = 1000;
@@ -45,7 +45,34 @@ const TX_COLOR = {
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
-// ── Receipt Modal ────────────────────────────────────────────────────────────
+// ── Components ──
+
+function KPICard({ title, value, icon: Icon, color, sub }) {
+  const colorMap = {
+    fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)]',
+    blue: 'bg-indigo-500/10 text-indigo-500',
+    emerald: 'bg-emerald-500/10 text-emerald-600',
+    amber: 'bg-amber-500/10 text-amber-500',
+    red: 'bg-red-500/10 text-red-500',
+  };
+
+  return (
+    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 group hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden glass-panel shadow-sm w-full">
+      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl opacity-20 ${colorMap[color]?.split(' ')[0]}`} />
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorMap[color]}`}>
+          <Icon className="w-6 h-6" />
+        </div>
+      </div>
+      <div className="relative z-10">
+        <p className="text-[var(--text-secondary)] text-[10px] font-black tracking-[0.2em] uppercase opacity-50">{title}</p>
+        <h3 className="text-fluid-base lg:text-fluid-xl font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
+        {sub && <p className="text-[11px] text-[var(--text-secondary)] font-bold mt-1 opacity-50 uppercase tracking-tighter truncate">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
 function ReceiptModal({ tx, onClose }) {
   if (!tx) return null;
   const isWithdrawal = tx.type === 'withdrawal';
@@ -62,10 +89,7 @@ function ReceiptModal({ tx, onClose }) {
         initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
         className="relative w-full max-w-sm bg-white text-slate-900 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
       >
-        {/* Aesthetic accents */}
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500" />
-        <div className="absolute -bottom-10 -right-10 size-40 bg-slate-100 rounded-full blur-3xl opacity-50" />
-        
         <div className="flex flex-col items-center text-center mb-8">
           <div className="size-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
              <Wallet className="size-8" />
@@ -74,64 +98,26 @@ function ReceiptModal({ tx, onClose }) {
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Official Transaction Receipt</p>
         </div>
 
-        <div className="space-y-4 mb-8">
-          <div className="flex items-center justify-between py-3 border-b border-slate-100">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Reference</span>
-            <span className="text-xs font-black text-slate-800 uppercase">{tx.reference?.slice(0, 12)}</span>
+        <div className="space-y-4 mb-8 text-sm">
+          <div className="flex justify-between border-b border-slate-100 pb-2">
+            <span className="text-slate-400 font-bold uppercase text-[10px]">Reference</span>
+            <span className="font-black text-slate-800">{tx.reference?.slice(0, 12)}</span>
           </div>
-          <div className="flex items-center justify-between py-3 border-b border-slate-100">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Date & Time</span>
-            <span className="text-xs font-bold text-slate-800">{new Date(tx.createdAt).toLocaleString()}</span>
+          <div className="flex justify-between border-b border-slate-100 pb-2">
+            <span className="text-slate-400 font-bold uppercase text-[10px]">Date</span>
+            <span className="font-bold text-slate-800">{new Date(tx.createdAt).toLocaleString()}</span>
           </div>
-          <div className="flex items-center justify-between py-3 border-b border-slate-100">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Type</span>
-            <span className="text-xs font-black text-slate-800 uppercase">{tx.type}</span>
+          <div className="py-4 text-center">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Amount</p>
+            <h4 className="text-3xl font-black text-slate-900">{fmt(tx.amount)} XAF</h4>
           </div>
-          
-          <div className="py-6 text-center">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Amount Transacted</p>
-            <h4 className="text-4xl font-black text-slate-900 tracking-tighter">
-              {fmt(tx.amount)} <span className="text-sm font-bold text-slate-400">XAF</span>
-            </h4>
-          </div>
-
-          {isWithdrawal && (
-            <div className="p-5 rounded-2xl bg-slate-50 space-y-2 border border-slate-100">
-               <div className="flex justify-between">
-                 <span className="text-[9px] font-black text-slate-400 uppercase">Beneficiary</span>
-                 <span className="text-[10px] font-black text-slate-800">{details.holder_name}</span>
-               </div>
-               <div className="flex justify-between">
-                 <span className="text-[9px] font-black text-slate-400 uppercase">Network</span>
-                 <span className="text-[10px] font-black text-slate-800 uppercase">{method}</span>
-               </div>
-               <div className="flex justify-between">
-                 <span className="text-[9px] font-black text-slate-400 uppercase">Account</span>
-                 <span className="text-[10px] font-black text-slate-800">{details.account_number}</span>
-               </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-center gap-4 mb-8">
-           <div className="flex flex-col items-center">
-              <div className="size-12 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-200">
-                 <Fingerprint className="size-6" />
-              </div>
-              <p className="text-[8px] font-black text-slate-300 uppercase mt-2">Verified</p>
-           </div>
-           <div className="w-px h-8 bg-slate-100" />
-           <div className="text-left">
-              <p className="text-[8px] font-black text-slate-300 uppercase leading-tight">Digital Auth Signature</p>
-              <p className="text-[7px] font-mono text-slate-400 break-all w-32">AUR-{tx._id?.slice(-8)}-SIG-{Math.random().toString(36).slice(2,8).toUpperCase()}</p>
-           </div>
         </div>
 
         <div className="flex gap-3">
-          <button onClick={() => window.print()} className="flex-1 h-12 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all">
+          <button onClick={() => window.print()} className="flex-1 h-12 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
             <Printer className="size-3.5" /> Print
           </button>
-          <button onClick={onClose} className="size-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-all">
+          <button onClick={onClose} className="size-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200">
             <X className="size-5" />
           </button>
         </div>
@@ -140,27 +126,6 @@ function ReceiptModal({ tx, onClose }) {
   );
 }
 
-// ── Step indicator ────────────────────────────────────────────────────────────
-function Steps({ step }) {
-  const labels = ['Amount', 'Method', 'Confirm'];
-  return (
-    <div className="flex items-center gap-2 mb-8">
-      {labels.map((l, i) => (
-        <div key={l} className="flex items-center gap-2">
-          <div className={`flex items-center gap-1.5 ${i + 1 <= step ? 'opacity-100' : 'opacity-30'}`}>
-            <div className={`size-6 rounded-full flex items-center justify-center text-[10px] font-black ${i + 1 < step ? 'bg-emerald-500 text-white' : i + 1 === step ? 'bg-[var(--accent)] text-white' : 'bg-white/10 text-white'}`}>
-              {i + 1 < step ? <CheckCircle2 className="size-3.5" /> : i + 1}
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-white/70">{l}</span>
-          </div>
-          {i < 2 && <div className={`flex-1 h-px w-8 ${i + 1 < step ? 'bg-emerald-500' : 'bg-white/10'}`} />}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Withdraw panel ────────────────────────────────────────────────────────────
 function WithdrawPanel({ balance, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
   const [amount, setAmount]   = useState('');
@@ -190,182 +155,91 @@ function WithdrawPanel({ balance, onClose, onSuccess }) {
     } finally { setLoading(false); }
   };
 
+  const StepIndicator = () => (
+    <div className="flex items-center gap-2 mb-8">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="flex items-center gap-2">
+          <div className={`size-6 rounded-full flex items-center justify-center text-[10px] font-black ${i <= step ? 'bg-[var(--accent)] text-white' : 'bg-white/10 text-white/30'}`}>
+            {i < step ? <CheckCircle2 className="size-3.5" /> : i}
+          </div>
+          {i < 3 && <div className={`w-8 h-px ${i < step ? 'bg-[var(--accent)]' : 'bg-white/10'}`} />}
+        </div>
+      ))}
+    </div>
+  );
+
   if (success) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-6"
-      >
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
-        <motion.div 
-          initial={{ y: 100, scale: 0.9 }} animate={{ y: 0, scale: 1 }} exit={{ y: 100 }}
-          className="relative w-full sm:max-w-md bg-[#0f0f12] border border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] p-10 shadow-2xl text-center"
-        >
-          <div className="size-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-             <CheckCircle2 className="size-10 text-emerald-500" />
-          </div>
-          <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Request Received</h2>
-          <p className="text-sm text-white/40 font-bold mb-8">Your withdrawal of {fmt(amtNum)} XAF has been queued for approval. You will be notified once processed.</p>
-          
-          <button onClick={onClose} className="w-full h-14 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all">
-            Dismiss
-          </button>
-        </motion.div>
-      </motion.div>
+      <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+        <div className="w-full max-w-sm bg-[#0f0f12] border border-white/10 rounded-[2.5rem] p-10 text-center">
+          <CheckCircle2 className="size-16 text-emerald-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-black text-white uppercase mb-2">Success</h2>
+          <p className="text-sm text-white/40 mb-8">Withdrawal request for {fmt(amtNum)} XAF submitted.</p>
+          <button onClick={onClose} className="w-full h-14 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-xs uppercase tracking-widest">Dismiss</button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-6"
-    >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
-      <motion.div 
-        initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-        className="relative w-full sm:max-w-md bg-[#0f0f12] border border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 shadow-2xl"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            {step > 1 && (
-              <button onClick={() => { setStep(s => s - 1); setError(''); }} className="size-8 rounded-full bg-white/5 flex items-center justify-center">
-                <ArrowLeft className="size-4 text-white" />
-              </button>
-            )}
-            <div>
-              <h2 className="text-xl font-black text-white">Withdraw Funds</h2>
-              <p className="text-[11px] text-white/40 font-semibold">Available: {fmt(balance)} XAF</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="size-8 rounded-full bg-white/5 flex items-center justify-center">
-            <X className="size-4 text-white/60" />
-          </button>
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+      <div className="absolute inset-0" onClick={onClose} />
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-md bg-[#0f0f12] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-black text-white">Withdraw Funds</h2>
+          <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/40"><X className="size-5" /></button>
         </div>
+        <StepIndicator />
+        
+        {step === 1 && (
+          <div className="space-y-6">
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-4xl font-black text-white text-center outline-none focus:border-[var(--accent)]" />
+            <button onClick={() => setStep(2)} disabled={amtNum < MIN_WITHDRAW || amtNum > balance} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest disabled:opacity-30">Next Step</button>
+          </div>
+        )}
 
-        <Steps step={step} />
-
-        <AnimatePresence mode="wait">
-          {/* Step 1 — Amount */}
-          {step === 1 && (
-            <motion.div key="step1" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-6">
-              <div>
-                <div className="relative">
-                  <input
-                    type="number" min={MIN_WITHDRAW} max={balance}
-                    value={amount} onChange={e => setAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-4xl font-black text-white text-center outline-none focus:border-[var(--accent)] transition-all placeholder:text-white/20"
-                  />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 text-sm font-black">XAF</span>
-                </div>
-                {amtNum > 0 && (
-                  <p className={`text-center text-[11px] font-bold mt-2 ${remaining < 0 ? 'text-red-400' : 'text-white/40'}`}>
-                    {remaining >= 0 ? `${fmt(remaining)} XAF remaining` : 'Exceeds available balance'}
-                  </p>
-                )}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-3">
+              {METHODS.map(m => (
+                <button key={m.id} onClick={() => setMethod(m)} className={`p-4 rounded-2xl border transition-all ${method?.id === m.id ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-white/10 bg-white/5'}`}>
+                  <div className="text-2xl mb-2">{m.icon}</div>
+                  <p className="text-xs font-black text-white">{m.label}</p>
+                </button>
+              ))}
+            </div>
+            {method && (
+              <div className="space-y-3">
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone Number" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm font-bold outline-none" />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Account Name" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm font-bold outline-none" />
               </div>
-              <div className="grid grid-cols-4 gap-2">
-                {[5000, 10000, 25000, 50000].map(q => (
-                  <button key={q} onClick={() => setAmount(String(Math.min(q, balance)))}
-                    className="py-3 rounded-xl bg-white/5 border border-white/8 text-[10px] font-black text-white/60 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] transition-all">
-                    {q >= 1000 ? `${q/1000}K` : q}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => { setError(''); setStep(2); }}
-                disabled={amtNum < MIN_WITHDRAW || amtNum > balance}
-                className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30 hover:brightness-110 transition-all">
-                Continue <ChevronRight className="size-4" />
-              </button>
-              <p className="text-center text-[10px] text-white/20 font-bold">Minimum withdrawal: 1,000 XAF</p>
-            </motion.div>
-          )}
+            )}
+            <button onClick={() => setStep(3)} disabled={!method || !phone || !name} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest disabled:opacity-30">Review</button>
+          </div>
+        )}
 
-          {/* Step 2 — Method */}
-          {step === 2 && (
-            <motion.div key="step2" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-5">
-              <div className="grid grid-cols-2 gap-3">
-                {METHODS.map(m => (
-                  <button key={m.id} onClick={() => setMethod(m)}
-                    className={`p-5 rounded-2xl border flex flex-col items-center gap-3 transition-all ${method?.id === m.id ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
-                    <div className={`size-12 rounded-xl bg-gradient-to-br ${m.color} flex items-center justify-center text-xl shadow-lg`}>{m.icon}</div>
-                    <div className="text-center">
-                      <p className="text-sm font-black text-white">{m.label}</p>
-                      <p className="text-[9px] font-bold text-white/40 uppercase tracking-wider">{m.sub}</p>
-                    </div>
-                    {method?.id === m.id && <div className="size-5 rounded-full bg-[var(--accent)] flex items-center justify-center"><CheckCircle2 className="size-3.5 text-white" /></div>}
-                  </button>
-                ))}
-              </div>
-
-              {method && (
-                <div className="space-y-3 pt-2">
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                    placeholder={`${method.label} Phone Number`}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-bold text-white placeholder:text-white/30 outline-none focus:border-[var(--accent)] transition-all" />
-                  <input type="text" value={name} onChange={e => setName(e.target.value)}
-                    placeholder="Account Holder Name"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-bold text-white placeholder:text-white/30 outline-none focus:border-[var(--accent)] transition-all" />
-                </div>
-              )}
-
-              <button onClick={() => { setError(''); setStep(3); }}
-                disabled={!method || !phone.trim() || !name.trim()}
-                className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30 hover:brightness-110 transition-all">
-                Review <ChevronRight className="size-4" />
-              </button>
-            </motion.div>
-          )}
-
-          {/* Step 3 — Confirm */}
-          {step === 3 && (
-            <motion.div key="step3" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-5">
-              {error && (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold">
-                  <AlertCircle className="size-4 shrink-0" /> {error}
-                </div>
-              )}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
-                {[
-                  ['Amount', `${fmt(amtNum)} XAF`],
-                  ['Method', method?.label],
-                  ['Phone', phone],
-                  ['Name', name],
-                  ['Processing', '1–2 Business Days'],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-wider">{k}</span>
-                    <span className="text-sm font-black text-white">{v}</span>
-                  </div>
-                ))}
-                <div className="border-t border-white/10 pt-3 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Balance After</span>
-                  <span className="text-sm font-black text-emerald-400">{fmt(remaining)} XAF</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <Shield className="size-4 text-amber-400 shrink-0" />
-                <p className="text-[10px] font-bold text-amber-400">Withdrawal requires admin approval (1–2 business days). Funds are held until approved.</p>
-              </div>
-
-              <button onClick={submit} disabled={loading}
-                className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 hover:brightness-110 transition-all">
-                {loading ? <><Loader2 className="size-4 animate-spin" /> Submitting...</> : <><CheckCircle2 className="size-4" /> Confirm Withdrawal</>}
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="bg-white/5 rounded-2xl p-4 space-y-2">
+               <div className="flex justify-between text-xs"><span className="text-white/40 uppercase font-black">Amount</span><span className="text-white font-black">{fmt(amtNum)} XAF</span></div>
+               <div className="flex justify-between text-xs"><span className="text-white/40 uppercase font-black">Method</span><span className="text-white font-black">{method?.label}</span></div>
+            </div>
+            {error && <p className="text-red-400 text-xs font-bold text-center">{error}</p>}
+            <button onClick={submit} disabled={loading} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest disabled:opacity-30">
+              {loading ? 'Processing...' : 'Confirm Withdrawal'}
+            </button>
+          </div>
+        )}
       </motion.div>
-    </motion.div>
+    </div>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main Page ──
+
 export default function VendorWalletPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const [balance, setBalance]       = useState(0);
   const [escrow, setEscrow]         = useState(0);
   const [transactions, setTxs]      = useState([]);
@@ -373,14 +247,16 @@ export default function VendorWalletPage() {
   const [loading, setLoading]       = useState(true);
   const [showWithdraw, setWithdraw] = useState(false);
   const [toast, setToast]           = useState(null);
-  const [txFilter, setTxFilter]     = useState('all');
-  const [tab, setTab]               = useState('history'); // 'history' | 'escrow'
+  const [tab, setTab]               = useState('history');
   const [selectedTx, setSelectedTx] = useState(null);
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 4000);
-  };
+  useEffect(() => {
+    if (user && user.role !== 'vendor') {
+      router.replace('/wallet');
+    }
+  }, [user, router]);
+
+  if (!user || user.role !== 'vendor') return null;
 
   const load = useCallback(async () => {
     try {
@@ -405,223 +281,102 @@ export default function VendorWalletPage() {
   const totalEarned = transactions.filter(t => ['payout', 'deposit', 'refund'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
   const totalOut    = transactions.filter(t => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
 
-  const filtered = transactions.filter(t => {
-    if (txFilter === 'payouts') return t.type === 'payout';
-    if (txFilter === 'withdrawals') return t.type === 'withdrawal';
-    return true;
-  });
-
-  const handleWithdrawSuccess = () => {
-    showToast('Withdrawal request submitted! Awaiting admin approval.');
-    load();
-  };
-
   return (
-    <DashboardLayout role="vendor">
-      {/* Toast */}
+    <>
       <AnimatePresence>
-        {toast && (
-          <motion.div 
-            initial={{ y: -50, opacity: 0, x: '-50%' }} animate={{ y: 0, opacity: 1, x: '-50%' }} exit={{ y: -50, opacity: 0, x: '-50%' }}
-            className={`fixed top-20 left-1/2 z-[300] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-sm font-bold ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}
-          >
-            {toast.type === 'error' ? <AlertCircle className="size-4" /> : <CheckCircle2 className="size-4" />}
-            {toast.msg}
-          </motion.div>
-        )}
+        {selectedTx && <ReceiptModal tx={selectedTx} onClose={() => setSelectedTx(null)} />}
+        {showWithdraw && <WithdrawPanel balance={balance} onClose={() => setWithdraw(false)} onSuccess={() => { load(); setWithdraw(false); }} />}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showWithdraw && (
-          <WithdrawPanel
-            balance={balance}
-            onClose={() => setWithdraw(false)}
-            onSuccess={handleWithdrawSuccess}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedTx && (
-          <ReceiptModal
-            tx={selectedTx}
-            onClose={() => setSelectedTx(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      <div className="px-4 md:px-8 py-8 max-w-4xl mx-auto space-y-8">
-
-        {/* ── Hero Balance Card ── */}
-        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[var(--accent)] via-purple-700 to-indigo-800 p-8 shadow-2xl">
-          <div className="absolute -top-16 -right-16 size-64 rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute -bottom-10 -left-10 size-48 rounded-full bg-black/20 blur-2xl" />
-          <div className="relative z-10">
-            <div className="flex items-start justify-between mb-6">
+      <div className="px-4 md:px-8 py-8 w-full space-y-8">
+        <div className="flex items-center justify-between mb-2">
+           <div className="flex items-center gap-4">
+              <div className="size-12 rounded-xl bg-emerald-500/10 flex items-center justify-center"><Wallet className="size-6 text-emerald-500" /></div>
               <div>
-                <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.25em] mb-1">Available Balance</p>
-                <h1 className="text-5xl font-black text-white tracking-tight">
-                  {loading ? <span className="opacity-30">—</span> : fmt(balance)}
-                </h1>
-                <p className="text-white/50 text-sm font-bold mt-1">XAF</p>
+                <h1 className="text-2xl font-black text-[var(--text-primary)]">Vendor Wallet</h1>
+                <p className="text-xs text-[var(--text-secondary)] font-bold opacity-60 uppercase tracking-widest">Financial Nexus</p>
               </div>
-              <div className="size-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center shadow-xl">
-                <Wallet className="size-7 text-white" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/15">
-              {[
-                { label: 'In Escrow', value: fmt(escrow), icon: Lock, color: 'text-amber-300' },
-                { label: 'Total Earned', value: fmt(totalEarned), icon: TrendingUp, color: 'text-emerald-300' },
-                { label: 'Withdrawn', value: fmt(totalOut), icon: ArrowUpRight, color: 'text-white/60' },
-              ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Icon className={`size-3 ${color}`} />
-                    <p className="text-white/50 text-[9px] font-black uppercase tracking-widest">{label}</p>
-                  </div>
-                  <p className={`text-lg font-black ${color}`}>{value}</p>
-                  <p className="text-white/30 text-[9px] font-bold">XAF</p>
-                </div>
-              ))}
-            </div>
-          </div>
+           </div>
+           <button onClick={load} className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+              <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
+           </button>
         </div>
 
-        {/* ── Actions ── */}
-        <div className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => setWithdraw(true)}
-            disabled={balance < MIN_WITHDRAW}
-            className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-[var(--accent)] text-white font-black text-sm uppercase tracking-wider disabled:opacity-40 hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[var(--accent)]/20">
-            <ArrowUpRight className="size-5" /> Withdraw
-          </button>
-          <button onClick={load}
-            className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-sm uppercase tracking-wider hover:bg-[var(--bg-secondary)]/80 active:scale-[0.98] transition-all">
-            <RefreshCw className="size-5" /> Refresh
-          </button>
+        {/* Clean KPI Grid - Reverting to the "Last Design" style */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard title="Available" value={`${fmt(balance)}`} icon={Wallet} color="emerald" sub="XAF Ready" />
+          <KPICard title="In Escrow" value={`${fmt(escrow)}`} icon={Lock} color="amber" sub="Holding for delivery" />
+          <KPICard title="Total Earned" value={`${fmt(totalEarned)}`} icon={TrendingUp} color="fuchsia" sub="Gross Revenue" />
+          <KPICard title="Withdrawn" value={`${fmt(totalOut)}`} icon={ArrowUpRight} color="blue" sub="Total Outflow" />
         </div>
 
-        {/* ── Tabs for Transactions vs Escrow ── */}
+        {/* Actions */}
+        <div className="flex gap-4">
+           <button onClick={() => setWithdraw(true)} disabled={balance < MIN_WITHDRAW} className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30">
+              <ArrowUpRight className="size-5" /> Initiate Withdrawal
+           </button>
+        </div>
+
+        {/* Tabs */}
         <div className="space-y-6">
-          <div className="flex items-center gap-4 border-b border-[var(--glass-border)]">
-            <button onClick={() => setTab('history')} className={`pb-4 px-2 text-xs font-black uppercase tracking-widest transition-all relative ${tab === 'history' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
-              <div className="flex items-center gap-2"><History className="size-4" /> History</div>
-              {tab === 'history' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full shadow-[0_-4px_12px_var(--accent)]" />}
-            </button>
-            <button onClick={() => setTab('escrow')} className={`pb-4 px-2 text-xs font-black uppercase tracking-widest transition-all relative ${tab === 'escrow' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
-              <div className="flex items-center gap-2"><Lock className="size-4" /> Escrow {escrowTxs.length > 0 && <span className="size-2 rounded-full bg-amber-500 animate-pulse" />}</div>
-              {tab === 'escrow' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full shadow-[0_-4px_12px_var(--accent)]" />}
-            </button>
-          </div>
+           <div className="flex items-center gap-6 border-b border-[var(--glass-border)]">
+              <button onClick={() => setTab('history')} className={`pb-4 text-xs font-black uppercase tracking-widest relative ${tab === 'history' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                 <div className="flex items-center gap-2"><History className="size-4" /> Settlement History</div>
+                 {tab === 'history' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
+              </button>
+              <button onClick={() => setTab('escrow')} className={`pb-4 text-xs font-black uppercase tracking-widest relative ${tab === 'escrow' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                 <div className="flex items-center gap-2"><Lock className="size-4" /> Escrow Pipeline {escrowTxs.length > 0 && <span className="size-2 rounded-full bg-amber-500 animate-pulse" />}</div>
+                 {tab === 'escrow' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
+              </button>
+           </div>
 
-          <AnimatePresence mode="wait">
-            {tab === 'history' ? (
-              <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-                <div className="flex gap-2 p-1 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
-                  {[['all', 'All'], ['payouts', 'Payouts'], ['withdrawals', 'Withdrawals']].map(([id, label]) => (
-                    <button key={id} onClick={() => setTxFilter(id)}
-                      className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${txFilter === id ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-
-                {loading ? (
-                  <div className="py-16 flex items-center justify-center"><Loader2 className="size-6 animate-spin text-[var(--accent)] opacity-40" /></div>
-                ) : filtered.length === 0 ? (
-                  <div className="py-16 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/50">
-                    <Wallet className="size-10 text-[var(--text-secondary)] opacity-20" />
-                    <p className="text-sm font-bold text-[var(--text-secondary)] opacity-40">No transactions yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {filtered.map((tx, i) => {
-                      const isCredit = ['payout', 'deposit', 'refund'].includes(tx.type);
-                      const color = TX_COLOR[tx.type] || 'text-white';
-                      return (
-                        <div 
-                          key={tx._id || i} 
-                          onClick={() => setSelectedTx(tx)}
-                          className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 hover:bg-[var(--bg-secondary)]/30 transition-all group cursor-pointer"
-                        >
-                          <div className={`size-11 rounded-xl flex items-center justify-center shrink-0 ${isCredit ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                            {isCredit ? <ArrowDownLeft className={`size-5 ${color}`} /> : <ArrowUpRight className={`size-5 ${color}`} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm text-[var(--text-primary)] truncate uppercase tracking-tight">{tx.description || tx.type}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
-                                {new Date(tx.createdAt).toLocaleDateString()}
-                              </p>
-                              <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border ${
-                                tx.status === 'completed' ? 'border-emerald-500/20 text-emerald-500 bg-emerald-500/5' :
-                                tx.status === 'pending'   ? 'border-amber-500/20 text-amber-500 bg-amber-500/5' :
-                                'border-red-500/20 text-red-400 bg-red-500/5'}`}>
-                                {tx.status}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                             <p className={`text-base font-black shrink-0 ${color}`}>
-                                {isCredit ? '+' : '-'}{fmt(tx.amount)}
-                             </p>
-                             <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 group-hover:opacity-100 transition-opacity uppercase flex items-center justify-end gap-1">
-                                <Printer className="size-2" /> Receipt
-                             </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div key="escrow" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-                <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Shield className="size-4 text-amber-400" />
-                    <h3 className="text-sm font-black text-amber-400 uppercase tracking-tight">Escrow System</h3>
-                  </div>
-                  <p className="text-[11px] text-amber-400/60 font-bold leading-relaxed">
-                    Funds are held until the buyer confirms delivery. After confirmation, funds move to your available balance automatically (minus commission).
-                  </p>
-                </div>
-
-                {escrowTxs.length === 0 ? (
-                  <div className="py-20 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/50">
-                    <Package className="size-10 text-[var(--text-secondary)] opacity-20" />
-                    <p className="text-sm font-bold text-[var(--text-secondary)] opacity-40">No pending escrow orders</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {escrowTxs.map((tx) => (
-                      <div key={tx._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-amber-500/20 transition-all flex items-center gap-4">
-                        <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                          <Clock className="size-5 text-amber-500" />
+           <div className="min-h-[400px]">
+              {tab === 'history' ? (
+                <div className="space-y-2">
+                   {loading ? <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div> : transactions.length === 0 ? (
+                     <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No transaction data available</div>
+                   ) : transactions.map((tx, i) => (
+                     <div key={tx._id || i} onClick={() => setSelectedTx(tx)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
+                        <div className={`size-11 rounded-xl flex items-center justify-center ${['payout', 'deposit'].includes(tx.type) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                           {['payout', 'deposit'].includes(tx.type) ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-[var(--text-primary)] truncate">Order #{tx.order_id?._id?.slice(-6).toUpperCase()}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">{tx.order_id?.order_status}</span>
-                            <span className="text-[10px] text-[var(--text-secondary)] opacity-40">•</span>
-                            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Releasing soon</p>
-                          </div>
+                           <p className="font-bold text-sm text-[var(--text-primary)] truncate uppercase">{tx.description || tx.type}</p>
+                           <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-black text-[var(--text-primary)]">{fmt(tx.amount)}</p>
-                          <p className="text-[9px] font-black uppercase text-[var(--text-secondary)] opacity-30">Pending</p>
+                           <p className={`text-base font-black ${['payout', 'deposit'].includes(tx.type) ? 'text-emerald-500' : 'text-red-500'}`}>{['payout', 'deposit'].includes(tx.type) ? '+' : '-'}{fmt(tx.amount)}</p>
+                           <p className="text-[8px] font-black uppercase opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><Printer className="size-2" /> Receipt</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                     </div>
+                   ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                   <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
+                      <Shield className="size-5 text-amber-500" />
+                      <p className="text-[10px] font-bold text-amber-600/70 uppercase leading-relaxed tracking-wider">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
+                   </div>
+                   {escrowTxs.length === 0 ? (
+                     <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently in pipeline</div>
+                   ) : escrowTxs.map(tx => (
+                     <div key={tx._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
+                        <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Clock className="size-5" /></div>
+                        <div className="flex-1 min-w-0">
+                           <p className="font-bold text-sm text-[var(--text-primary)]">Order #{tx.order_id?._id?.slice(-6).toUpperCase()}</p>
+                           <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest">{tx.order_id?.order_status}</p>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-sm font-black text-[var(--text-primary)]">{fmt(tx.amount)} XAF</p>
+                           <p className="text-[8px] font-black uppercase opacity-30">Escrowed</p>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+              )}
+           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

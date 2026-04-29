@@ -25,8 +25,7 @@ export default function Providers({ children }) {
   const pathname = usePathname();
   
   const isDashboardRoute = pathname?.startsWith('/admin') || 
-                          pathname?.startsWith('/vendor') || 
-                          pathname === '/wallet';
+                          pathname?.startsWith('/vendor');
 
   const isAuthRoute = pathname?.startsWith('/auth') || pathname === '/onboarding';
   
@@ -60,7 +59,7 @@ export default function Providers({ children }) {
             {!isDashboardRoute && !isAuthRoute && <CartSidebar />}
           </div>
 
-          {!isDashboardRoute && <BottomNav />}
+          {(!isDashboardRoute || pathname === '/vendor/wallet' || pathname === '/wallet') && <BottomNav />}
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}

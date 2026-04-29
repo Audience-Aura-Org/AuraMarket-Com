@@ -20,7 +20,7 @@ export default function BottomNav() {
 
   const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages') || pathname?.startsWith('/admin/messages');
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/onboarding');
-  const isRolePage = pathname?.startsWith('/wallet') || pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics');
+  const isRolePage = (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics')) && pathname !== '/vendor/wallet' && pathname !== '/wallet';
   // We DO want to show this on discovery page if discovery doesn't have its own, but currently discovery has its own.
   const isDiscoveryPage = pathname?.startsWith('/discovery');
 
@@ -40,7 +40,7 @@ export default function BottomNav() {
     <>
       <div className="h-[72px] sm:hidden pointer-events-none" />
       {/* Mobile Bottom Nav - Exact match of Discovery Hub */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-[400] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
         <div className="flex items-center justify-around h-[72px] px-2 pb-2 pt-1 relative w-full">
           {menu.map((item) => {
             const Icon = item.icon;
@@ -92,7 +92,7 @@ export default function BottomNav() {
       </nav>
 
       {/* Desktop/Tablet Floating Dock Fallback */}
-      <nav className="hidden sm:block fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg pointer-events-auto">
+      <nav className="hidden sm:block fixed bottom-6 left-1/2 -translate-x-1/2 z-[400] w-full max-w-lg pointer-events-auto">
         <div className="flex items-center h-[58px] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] px-1.5 overflow-hidden">
           {menu.map((item, idx) => {
             const Icon = item.icon;

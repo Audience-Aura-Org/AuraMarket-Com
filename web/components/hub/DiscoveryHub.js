@@ -539,7 +539,7 @@ export default function DiscoveryHub() {
       </main>
 
       {/* ── THE DISCOVERY BOTTOM NAV ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-[400] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
         <div className="flex items-center justify-around h-[72px] px-2 pb-2 pt-1 relative">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;
@@ -578,7 +578,7 @@ export default function DiscoveryHub() {
       </nav>
 
       {/* Desktop/Tablet Floating Dock Fallback */}
-      <nav className="hidden sm:block fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg">
+      <nav className="hidden sm:block fixed bottom-6 left-1/2 -translate-x-1/2 z-[400] w-full max-w-lg">
         <div className="flex items-center h-[58px] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] px-1.5 overflow-hidden">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;

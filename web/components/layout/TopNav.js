@@ -86,7 +86,6 @@ export default function TopNav() {
     pathname?.startsWith('/logistics') ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/messages') ||
-    pathname?.startsWith('/wallet') ||
     pathname === '/login' ||
     pathname === '/register'
   ) return null;
@@ -153,6 +152,16 @@ export default function TopNav() {
               </span>
             )}
           </button>
+
+          {user && (
+            <Link 
+              href="/wallet" 
+              className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm"
+              title="Wallet"
+            >
+              <Wallet className="size-5" />
+            </Link>
+          )}
 
           <div className="relative group/cart">
             <Link href="/cart" className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm">

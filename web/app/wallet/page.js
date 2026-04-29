@@ -144,7 +144,7 @@ export default function WalletPage() {
   const currentTransactions = filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <DashboardLayout role={user?.role || 'customer'}>
+    <DashboardLayout role={user?.role || 'customer'} hideSidebar={true}>
       
       {toast && (
         <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-sm font-bold animate-in fade-in slide-in-from-top-4 ${

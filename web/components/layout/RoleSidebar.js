@@ -41,6 +41,15 @@ const ADMIN_NAV = [
   { icon: 'web',            label: 'CMS / Hero',       href: '/admin/homepage' },
 ];
 
+const CUSTOMER_NAV = [
+  { icon: 'home',                     label: 'Marketplace',      href: '/' },
+  { icon: 'shopping_bag',             label: 'My Orders',        href: '/orders' },
+  { icon: 'favorite',                 label: 'Wishlist',         href: '/wishlist' },
+  { icon: 'chat',                     label: 'Messages',         href: '/messages',         badge: 'messages' },
+  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
+  { icon: 'person',                   label: 'Profile',          href: '/profile' },
+];
+
 const LOGISTICS_NAV = [
   { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
@@ -51,6 +60,13 @@ const LOGISTICS_NAV = [
 ];
 
 const ROLE_CONFIG = {
+  customer: {
+    nav: CUSTOMER_NAV,
+    label: 'Aura Member',
+    accent: '#2dd4bf',
+    plan: 'Standard Tier',
+    icon: 'star',
+  },
   vendor: {
     nav: VENDOR_NAV,
     label: 'Vendor Premium',
@@ -79,7 +95,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   const { user, logout } = useAuthStore();
   const { theme } = useTheme();
   const router = useRouter();
-  const config = ROLE_CONFIG[role] || ROLE_CONFIG.vendor;
+  const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
 
   const { unreadCount, unreadMessages } = useNotifications();
   const { openChat } = useChat();

@@ -5,7 +5,8 @@ import {
   Loader2, RefreshCw, Search, Filter, User, ChevronRight,
   ShieldCheck, Info, ArrowUpRight, Zap, MoreHorizontal, Pause
 } from 'lucide-react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
@@ -96,6 +97,8 @@ function RequestDetails({ request, onClose, onAction, processing }) {
 }
 
 export default function AdminWithdrawalsPage() {
+  const { user } = useAuthStore();
+  const router = useRouter();
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState('pending');
@@ -103,6 +106,14 @@ export default function AdminWithdrawalsPage() {
   const [processing, setProc]   = useState(null);
   const [toast, setToast]       = useState(null);
   const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      router.replace('/wallet');
+    }
+  }, [user, router]);
+
+  if (!user || user.role !== 'admin') return null;
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -144,7 +155,7 @@ export default function AdminWithdrawalsPage() {
   const totalPendingXAF = withdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + w.amount, 0);
 
   return (
-    <DashboardLayout role="admin">
+    <>
       <AnimatePresence>
         {toast && (
           <motion.div 
@@ -292,6 +303,6 @@ export default function AdminWithdrawalsPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
