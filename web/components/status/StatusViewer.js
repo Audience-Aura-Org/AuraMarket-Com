@@ -41,14 +41,21 @@ const getVideoPoster = (src) => {
   }
 };
 
+// Global cache for loaded videos to prevent re-shimmering
+const loadedVideos = new Set();
+
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
   const ref = useRef(null);
   const [poster, setPoster]       = useState(() => getVideoPoster(src));
-  const [videoReady, setVideoReady] = useState(false);
+  const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
 
   // Poster extraction (only needed for non-Cloudinary)
   useEffect(() => {
+    if (loadedVideos.has(src)) {
+      setVideoReady(true);
+      return;
+    }
     const instant = getVideoPoster(src);
     if (instant) { setPoster(instant); setVideoReady(false); return; }
 
@@ -102,10 +109,15 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     if (v) v.muted = muted;
   }, [muted]);
 
+  const handleReady = useCallback(() => {
+    if (src) loadedVideos.add(src);
+    setVideoReady(true);
+  }, [src]);
+
   return (
     <div className="absolute inset-0 bg-black">
       {/* Poster overlay */}
-      <div className={`absolute inset-0 z-10 transition-opacity duration-700 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`absolute inset-0 z-10 transition-opacity duration-200 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {poster ? (
           <img src={poster} alt="" className="w-full h-full object-cover blur-xl scale-110" aria-hidden="true" />
         ) : (
@@ -124,8 +136,11 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         playsInline
         muted={muted}
         preload="auto"
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
-        onCanPlayThrough={() => setVideoReady(true)}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+        onCanPlayThrough={handleReady}
+        onPlaying={handleReady}
+        onPlay={handleReady}
+        onLoadedData={handleReady}
         onEnded={onEnded}
         onTimeUpdate={onProgress}
       />
