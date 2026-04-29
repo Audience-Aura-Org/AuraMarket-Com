@@ -47,50 +47,9 @@ const loadedVideos = new Set();
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
   const ref = useRef(null);
-  const [poster, setPoster]       = useState(() => getVideoPoster(src));
-  const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
-  const [isWaiting, setIsWaiting]   = useState(false);
-
-  // Poster extraction (only needed for non-Cloudinary)
-  useEffect(() => {
-    if (loadedVideos.has(src)) {
-      setVideoReady(true);
-      return;
-    }
-    const instant = getVideoPoster(src);
-    if (instant) { setPoster(instant); setVideoReady(false); return; }
-
-    setPoster(null);
-    setVideoReady(false);
-    if (!src) return;
-
-    let cancelled = false;
-    const probe = document.createElement('video');
-    probe.setAttribute('crossOrigin', 'anonymous');
-    probe.muted   = true;
-    probe.preload = 'metadata';
-    probe.src     = src;
-
-    probe.addEventListener('loadedmetadata', () => {
-      if (cancelled) return;
-      try { probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1); } catch {}
-    }, { once: true });
-
-    probe.addEventListener('seeked', () => {
-      if (cancelled) return;
-      try {
-        const w = Math.min(probe.videoWidth, 640);
-        const h = Math.round(w * (probe.videoHeight / (probe.videoWidth || 1)));
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(probe, 0, 0, w, h);
-        if (!cancelled) setPoster(c.toDataURL('image/jpeg', 0.35));
-      } catch {}
-    }, { once: true });
-
-    probe.load();
-    return () => { cancelled = true; probe.src = ''; };
-  }, [src]);
+  const [poster] = useState(() => getVideoPoster(src));
+  const [videoReady, setVideoReady] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false);
 
   // Play / pause
   useEffect(() => {
@@ -99,7 +58,6 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     if (active && !paused) {
       v.play().catch(err => {
         console.warn('[Video] Playback blocked or failed:', err.message);
-        // If it's a critical error, we might want to skip, but usually it's just a pause
       });
     } else {
       v.pause();
@@ -121,41 +79,38 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
 
   const handleError = useCallback(() => {
     console.error('[Video] Media load failed, skipping story:', src);
-    onEnded(); // Auto-skip broken videos
+    onEnded(); 
   }, [src, onEnded]);
 
   return (
     <div className="absolute inset-0 bg-black">
-      {/* Poster overlay */}
-      <div className={`absolute inset-0 z-10 transition-opacity duration-200 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        {poster ? (
-          <img src={poster} alt="" className="w-full h-full object-cover blur-xl scale-110" aria-hidden="true" />
-        ) : (
-          <div className="w-full h-full animate-shimmer flex items-center justify-center">
-            <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-              <Play className="size-7 text-white/20 ml-1" />
-            </div>
+      {/* Fallback Shimmer if no poster and not ready */}
+      {!videoReady && !poster && (
+        <div className="absolute inset-0 z-10 animate-shimmer flex items-center justify-center">
+          <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+            <Play className="size-7 text-white/20 ml-1" />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Buffering Indicator */}
-      {active && isWaiting && videoReady && (
+      {active && isWaiting && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
           <Loader2 className="size-8 text-white/40 animate-spin" />
         </div>
       )}
 
-      {/* Video — no native poster attr; overlay handles it */}
       <video
         ref={ref}
         src={src}
+        poster={poster}
         autoPlay
         playsInline
         webkit-playsinline="true"
         muted={true}
+        crossOrigin="anonymous"
         preload="auto"
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${videoReady ? 'opacity-100' : 'opacity-80'}`}
         onCanPlayThrough={handleReady}
         onPlaying={handleReady}
         onPlay={() => setIsWaiting(false)}
