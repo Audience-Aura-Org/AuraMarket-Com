@@ -3,7 +3,48 @@
  * Handles file uploads directly to S3 with fallback to Cloudinary/Local
  */
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { uploadToS3, uploadMultipleToS3, isS3Enabled } = require('../utils/s3');
+const { compressVideo } = require('../utils/videoCompression');
+
+async function maybeTranscodeVideoForWeb(file) {
+  if (!file?.buffer || !file?.mimetype?.startsWith('video/')) {
+    return {
+      buffer: file?.buffer,
+      originalname: file?.originalname,
+      mimetype: file?.mimetype,
+    };
+  }
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aura-video-'));
+  const inputPath = path.join(tmpDir, `in-${Date.now()}-${file.originalname || 'upload'}`);
+  const outputBase = (file.originalname || 'video').replace(/\.[^.]+$/, '');
+  const outputName = `${outputBase}-web.mp4`;
+  const outputPath = path.join(tmpDir, `out-${Date.now()}-${outputName}`);
+
+  try {
+    fs.writeFileSync(inputPath, file.buffer);
+    await compressVideo(inputPath, outputPath);
+    const outBuffer = fs.readFileSync(outputPath);
+    return {
+      buffer: outBuffer,
+      originalname: outputName,
+      mimetype: 'video/mp4',
+    };
+  } catch (err) {
+    // If ffmpeg is unavailable or transcoding fails, gracefully fall back.
+    console.warn(`[Upload] Video transcode skipped, using original file: ${err.message}`);
+    return {
+      buffer: file.buffer,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+    };
+  } finally {
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+  }
+}
 
 const uploadSingle = async (req, res) => {
   console.log(`📡 [API] Upload triggered - S3 Enabled: ${isS3Enabled()}`);
@@ -28,11 +69,12 @@ const uploadSingle = async (req, res) => {
     if (isS3Enabled()) {
       const folder = req.body.type || 'general';
       console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
+      const uploadPayload = await maybeTranscodeVideoForWeb(req.file);
       const s3Result = await uploadToS3(
-        req.file.buffer,
-        req.file.originalname,
+        uploadPayload.buffer,
+        uploadPayload.originalname,
         folder,
-        req.file.mimetype  // Pass correct MIME type so S3 serves images properly
+        uploadPayload.mimetype
       );
       fileUrl = s3Result.url;
       uploadMethod = 'S3';
@@ -65,7 +107,7 @@ const uploadSingle = async (req, res) => {
       data: {
         url: fileUrl,
         filename: req.file.filename,
-        mimetype: req.file.mimetype,
+        mimetype: req.file.mimetype?.startsWith('video/') ? 'video/mp4' : req.file.mimetype,
         size: req.file.size,
         method: uploadMethod,
       }

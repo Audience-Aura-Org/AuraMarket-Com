@@ -8,6 +8,13 @@ import api from '@/services/api';
 
 const VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
 
+function isPushServiceUnavailable(err) {
+  if (!err) return false;
+  const name = err.name || '';
+  const message = (err.message || '').toLowerCase();
+  return name === 'AbortError' && message.includes('push service not available');
+}
+
 // Helper to convert base64 to Uint8Array for VAPID
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -88,10 +95,18 @@ export async function subscribeToPush() {
 
     if (!subscription) {
       console.log('[PWA] No existing subscription found — creating new one...');
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
+      try {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      } catch (subscribeErr) {
+        if (isPushServiceUnavailable(subscribeErr)) {
+          console.info('[PWA] Push service unavailable in this browser/device. Skipping subscription.');
+          return null;
+        }
+        throw subscribeErr;
+      }
       console.log('[PWA] New push subscription created:', subscription.endpoint.slice(-20));
     } else {
       console.log('[PWA] Existing subscription found — re-syncing with backend...');
@@ -134,8 +149,16 @@ export async function subscribeToPush() {
         console.log('✅ [PWA] Fresh push subscription registered after recovery.');
         return newSub;
       } catch (retryErr) {
+        if (isPushServiceUnavailable(retryErr)) {
+          console.info('[PWA] Recovery skipped: push service unavailable for this browser/device.');
+          return null;
+        }
         console.error('[PWA] Recovery subscription failed:', retryErr.message);
       }
+    }
+    if (isPushServiceUnavailable(err)) {
+      console.info('[PWA] Push registration skipped: push service unavailable.');
+      return null;
     }
     console.error('❌ Push Subscription Error:', err.name, err.message);
     return null;

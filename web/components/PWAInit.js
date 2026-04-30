@@ -27,8 +27,8 @@ export default function PWAInit() {
     if (!token || token === 'undefined' || token === 'null') return;
     
     console.log('[PWAInit] Syncing push registration at node:', pathname);
-    await subscribeToPush();
-    subscribedRef.current = true;
+    const subscription = await subscribeToPush();
+    subscribedRef.current = Boolean(subscription);
   };
 
   // 1. On initial mount, register SW and subscribe if user is logged in

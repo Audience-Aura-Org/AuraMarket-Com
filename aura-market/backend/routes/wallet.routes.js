@@ -18,6 +18,7 @@ const router = express.Router();
 
 const {
   getWalletBalance,
+  getWalletConfig,
   getTransactionHistory,
   initiateDeposit,
   requestWithdrawal,
@@ -35,6 +36,7 @@ router.use(protect);
 
 // ── General Customer / Vendor ─────────────────
 router.get('/', getWalletBalance);
+router.get('/config', getWalletConfig);
 router.get('/transactions', getTransactionHistory);
 router.get('/escrow', restrictTo('vendor'), getEscrowTransactions); // Vendor only
 router.post('/deposit', initiateDeposit);

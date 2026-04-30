@@ -308,7 +308,7 @@ function CheckoutContent() {
 
         if (ref) {
           // If in sandbox mode, skip the verify page and go straight to Step 3 for instant feedback
-          if (ref.startsWith('SBX-')) {
+          if (transaction_id?.startsWith('SBX-')) {
              toast.success('Sandbox order processed successfully!');
              cartStore.clearCart();
              setStep(3);

@@ -106,6 +106,10 @@ export default function WalletPage() {
 
   const handleAction = async (type) => {
     if (!amount || Number(amount) <= 0) return showToast('Enter a valid amount.', 'error');
+    if (type === 'withdraw') {
+      if (!withdrawalMethod) return showToast('Select a withdrawal method.', 'error');
+      if (!accountDetails.account_number) return showToast('Enter your mobile money number.', 'error');
+    }
     setSubmitting(true);
     try {
       const endpoint = type === 'deposit' ? '/wallet/deposit' : '/wallet/withdraw';
@@ -115,6 +119,8 @@ export default function WalletPage() {
         showToast(`${type} successful!`);
         setModal(null);
         setAmount('');
+        setWithdrawalMethod('');
+        setAccountDetails({ account_number: '', holder_name: '' });
         fetchWallet();
       }
     } catch (err) {
@@ -233,6 +239,33 @@ export default function WalletPage() {
                 </div>
                 <div className="space-y-6">
                   <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full h-20 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-4xl font-black text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10" />
+                  {modal === 'withdraw' && (
+                    <>
+                      <select
+                        value={withdrawalMethod}
+                        onChange={(e) => setWithdrawalMethod(e.target.value)}
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-sm font-bold outline-none focus:border-[var(--accent)]"
+                      >
+                        <option value="">Select method</option>
+                        <option value="mtn">MTN MoMo</option>
+                        <option value="orange">Orange Money</option>
+                      </select>
+                      <input
+                        type="tel"
+                        value={accountDetails.account_number}
+                        onChange={(e) => setAccountDetails((prev) => ({ ...prev, account_number: e.target.value }))}
+                        placeholder="Mobile money number"
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-sm font-bold outline-none focus:border-[var(--accent)]"
+                      />
+                      <input
+                        type="text"
+                        value={accountDetails.holder_name}
+                        onChange={(e) => setAccountDetails((prev) => ({ ...prev, holder_name: e.target.value }))}
+                        placeholder="Account holder name (optional)"
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-sm font-bold outline-none focus:border-[var(--accent)]"
+                      />
+                    </>
+                  )}
                   <button onClick={() => handleAction(modal)} disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20">
                     {submitting ? 'Calibrating...' : 'Confirm Transaction'}
                   </button>

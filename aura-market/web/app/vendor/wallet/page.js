@@ -14,7 +14,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 
-const MIN_WITHDRAW = 1000;
+const DEFAULT_MIN_WITHDRAW = 1000;
 
 const METHODS = [
   {
@@ -126,7 +126,7 @@ function ReceiptModal({ tx, onClose }) {
   );
 }
 
-function WithdrawPanel({ balance, onClose, onSuccess }) {
+function WithdrawPanel({ balance, minWithdraw, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
   const [amount, setAmount]   = useState('');
   const [method, setMethod]   = useState(null);
@@ -194,7 +194,7 @@ function WithdrawPanel({ balance, onClose, onSuccess }) {
         {step === 1 && (
           <div className="space-y-6">
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-4xl font-black text-white text-center outline-none focus:border-[var(--accent)]" />
-            <button onClick={() => setStep(2)} disabled={amtNum < MIN_WITHDRAW || amtNum > balance} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest disabled:opacity-30">Next Step</button>
+            <button onClick={() => setStep(2)} disabled={amtNum < minWithdraw || amtNum > balance} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-sm uppercase tracking-widest disabled:opacity-30">Next Step</button>
           </div>
         )}
 
@@ -249,6 +249,7 @@ export default function VendorWalletPage() {
   const [toast, setToast]           = useState(null);
   const [tab, setTab]               = useState('history');
   const [selectedTx, setSelectedTx] = useState(null);
+  const [minWithdraw, setMinWithdraw] = useState(DEFAULT_MIN_WITHDRAW);
 
   useEffect(() => {
     if (!user) {
@@ -262,14 +263,18 @@ export default function VendorWalletPage() {
 
   const load = useCallback(async () => {
     try {
-      const [balRes, txRes, escrowRes] = await Promise.all([
+      const [balRes, cfgRes, txRes, escrowRes] = await Promise.all([
         api.get('/wallet'),
+        api.get('/wallet/config'),
         api.get('/wallet/transactions'),
         api.get('/wallet/escrow'),
       ]);
       if (balRes.data.success) {
         setBalance(balRes.data.data.balance || 0);
         setEscrow(balRes.data.data.pending_escrow || 0);
+      }
+      if (cfgRes.data.success) {
+        setMinWithdraw(cfgRes.data.data.min_withdrawal_amount || DEFAULT_MIN_WITHDRAW);
       }
       if (txRes.data.success) setTxs(txRes.data.data.transactions || []);
       if (escrowRes.data.success) setEscrowTxs(escrowRes.data.data.transactions || []);
@@ -291,7 +296,7 @@ export default function VendorWalletPage() {
     <>
       <AnimatePresence>
         {selectedTx && <ReceiptModal tx={selectedTx} onClose={() => setSelectedTx(null)} />}
-        {showWithdraw && <WithdrawPanel balance={balance} onClose={() => setWithdraw(false)} onSuccess={() => { load(); setWithdraw(false); }} />}
+        {showWithdraw && <WithdrawPanel balance={balance} minWithdraw={minWithdraw} onClose={() => setWithdraw(false)} onSuccess={() => { load(); setWithdraw(false); }} />}
       </AnimatePresence>
 
       <div className="px-4 md:px-8 py-8 w-full space-y-8">
@@ -318,7 +323,7 @@ export default function VendorWalletPage() {
 
         {/* Actions */}
         <div className="flex gap-4">
-           <button onClick={() => setWithdraw(true)} disabled={balance < MIN_WITHDRAW} className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30">
+           <button onClick={() => setWithdraw(true)} disabled={balance < minWithdraw} className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30">
               <ArrowUpRight className="size-5" /> Initiate Withdrawal
            </button>
         </div>

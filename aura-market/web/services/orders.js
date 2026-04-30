@@ -13,7 +13,7 @@ export const orderService = {
 
   // Process payment using wallet balance (Triggers Escrow)
   payForOrder: async (orderId) => {
-    const res = await api.post(`/wallet/pay/${orderId}`);
+    const res = await api.post('/wallet/pay-order', { order_id: orderId });
     return res.data;
   },
 

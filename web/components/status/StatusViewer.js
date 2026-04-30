@@ -11,21 +11,35 @@ import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
 
 const STORY_DURATION = 5000;
+const VIDEO_PRELOAD_AHEAD = 4;
+const VIDEO_WAIT_TIMEOUT_MS = 8000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
+const videoPreloadMap = new Map();
 function preloadMedia(url, type) {
   if (!url || preloadCache.has(url)) return;
   preloadCache.add(url);
   if (type === 'video') {
     const v = document.createElement('video');
-    v.preload = 'auto'; // Aggressive preloading
+    v.preload = 'metadata';
     v.src = url;
     v.muted = true;
     v.load();
+    videoPreloadMap.set(url, v);
   } else {
     const img = new Image();
     img.src = url;
+  }
+}
+
+function cleanupVideoPreloads(keepUrls = []) {
+  const keep = new Set(keepUrls.filter(Boolean));
+  for (const [url, video] of videoPreloadMap.entries()) {
+    if (keep.has(url)) continue;
+    video.src = '';
+    videoPreloadMap.delete(url);
+    preloadCache.delete(url);
   }
 }
 
@@ -44,12 +58,42 @@ const getVideoPoster = (src) => {
 // Global cache for loaded videos to prevent re-shimmering
 const loadedVideos = new Set();
 
+function getRetryableVideoUrl(url) {
+  if (!url) return null;
+  try {
+    const encoded = encodeURI(url);
+    return encoded !== url ? encoded : null;
+  } catch {
+    return null;
+  }
+}
+
+function addCacheBust(url) {
+  if (!url) return null;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}cb=${Date.now()}`;
+}
+
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
   const ref = useRef(null);
+  const [playbackSrc, setPlaybackSrc] = useState(src);
   const [poster, setPoster]       = useState(() => getVideoPoster(src));
   const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
   const [isWaiting, setIsWaiting]   = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [didRetryUrl, setDidRetryUrl] = useState(false);
+  const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
+  const waitTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    setPlaybackSrc(src);
+    setDidRetryUrl(false);
+    setDidRetryCacheBust(false);
+    setVideoReady(loadedVideos.has(src));
+    setIsWaiting(false);
+    setHasStarted(false);
+  }, [src]);
 
   // Poster extraction (only needed for non-Cloudinary)
   useEffect(() => {
@@ -106,9 +150,32 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       });
     } else {
       v.pause();
-      if (!active) v.currentTime = 0;
+      if (!active) {
+        v.currentTime = 0;
+        setHasStarted(false);
+      }
     }
   }, [active, paused]);
+
+  useEffect(() => {
+    if (!active || paused || !isWaiting) {
+      if (waitTimeoutRef.current) {
+        clearTimeout(waitTimeoutRef.current);
+        waitTimeoutRef.current = null;
+      }
+      return;
+    }
+    waitTimeoutRef.current = setTimeout(() => {
+      console.warn('[Video] Wait timeout reached, skipping story:', src);
+      onEnded();
+    }, VIDEO_WAIT_TIMEOUT_MS);
+    return () => {
+      if (waitTimeoutRef.current) {
+        clearTimeout(waitTimeoutRef.current);
+        waitTimeoutRef.current = null;
+      }
+    };
+  }, [active, paused, isWaiting, src, onEnded]);
 
   // Mute
   useEffect(() => {
@@ -118,14 +185,36 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
 
   const handleReady = useCallback(() => {
     if (src) loadedVideos.add(src);
+    if (playbackSrc) loadedVideos.add(playbackSrc);
     setVideoReady(true);
     setIsWaiting(false);
-  }, [src]);
+  }, [src, playbackSrc]);
 
-  const handleError = useCallback(() => {
-    console.error('[Video] Media load failed, skipping story:', src);
-    onEnded(); // Auto-skip broken videos
-  }, [src, onEnded]);
+  const handleError = useCallback((e) => {
+    const mediaErrorCode = e?.currentTarget?.error?.code;
+    const retryUrl = getRetryableVideoUrl(playbackSrc);
+    if (!didRetryUrl && retryUrl) {
+      setDidRetryUrl(true);
+      setPlaybackSrc(retryUrl);
+      setVideoReady(false);
+      setIsWaiting(true);
+      console.warn('[Video] Initial load failed. Retrying with encoded URL.');
+      return;
+    }
+    if (!didRetryCacheBust) {
+      setDidRetryCacheBust(true);
+      setPlaybackSrc(addCacheBust(playbackSrc || src));
+      setVideoReady(false);
+      setIsWaiting(true);
+      console.warn('[Video] Encoded retry failed. Retrying with cache-busted URL.');
+      return;
+    }
+    console.warn('[Video] Media load failed after retries, skipping story:', {
+      url: playbackSrc || src,
+      mediaErrorCode,
+    });
+    onEnded();
+  }, [src, playbackSrc, didRetryUrl, didRetryCacheBust, onEnded]);
 
   return (
     <div className="absolute inset-0 bg-black">
@@ -155,20 +244,29 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       {/* Video */}
       <video
         ref={ref}
-        src={src}
+        src={playbackSrc}
         playsInline
         muted={muted}
         preload="auto"
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlay={handleReady}
         onPlaying={handleReady}
-        onPlay={() => setIsWaiting(false)}
+        onPlay={() => {
+          setIsWaiting(false);
+          setHasStarted(true);
+        }}
+        onSeeking={() => setIsWaiting(true)}
+        onSeeked={() => setIsWaiting(false)}
+        onStalled={() => setIsWaiting(true)}
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
         onLoadedMetadata={handleReady}
         onError={handleError}
         onEnded={onEnded}
-        onTimeUpdate={onProgress}
+        onTimeUpdate={(e) => {
+          if (!hasStarted || paused || isWaiting) return;
+          onProgress(e);
+        }}
       />
     </div>
   );
@@ -285,6 +383,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const videoBarRef = useRef(null);
   const holdTimer   = useRef(null);
   const touchStart  = useRef({ x: 0, y: 0, t: 0 });
+  const transitionLockRef = useRef(false);
+  const transitionUnlockRef = useRef(null);
 
   const currentGroup = vendorGroups[vendorIdx];
   const story        = currentGroup?.stories[storyIdx];
@@ -292,14 +392,28 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const totalVendors = vendorGroups.length;
   const isVideo      = story?.type === 'video';
 
-  // Preload adjacent
+  // Preload adjacent with a bounded window and cleanup stale preloads.
   useEffect(() => {
-    if (!currentGroup) return;
-    const next = currentGroup.stories[storyIdx + 1] || vendorGroups[vendorIdx + 1]?.stories[0];
-    const prev = currentGroup.stories[storyIdx - 1];
-    [next, prev].forEach(s => s && preloadMedia(s.content_url, s.type));
-    initialStatuses.forEach(s => { if (s.type === 'image') preloadMedia(s.content_url, 'image'); });
-  }, [vendorIdx, storyIdx, currentGroup, vendorGroups, initialStatuses]);
+    if (!initialStatuses?.length || !story?._id) return;
+    const globalIdx = initialStatuses.findIndex((s) => s._id === story._id);
+    if (globalIdx === -1) return;
+
+    const keepVideoUrls = [story.content_url];
+    const prev = initialStatuses[globalIdx - 1];
+    if (prev) {
+      preloadMedia(prev.content_url, prev.type);
+      if (prev.type === 'video') keepVideoUrls.push(prev.content_url);
+    }
+
+    for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
+      const nextStory = initialStatuses[i];
+      if (!nextStory) break;
+      preloadMedia(nextStory.content_url, nextStory.type);
+      if (nextStory.type === 'video') keepVideoUrls.push(nextStory.content_url);
+    }
+
+    cleanupVideoPreloads(keepVideoUrls);
+  }, [story?._id, story?.content_url, initialStatuses]);
 
   // Register view
   useEffect(() => {
@@ -314,7 +428,18 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     setPaused(false);
   }, []);
 
+  const lockTransition = useCallback(() => {
+    transitionLockRef.current = true;
+    if (transitionUnlockRef.current) clearTimeout(transitionUnlockRef.current);
+    transitionUnlockRef.current = setTimeout(() => {
+      transitionLockRef.current = false;
+      transitionUnlockRef.current = null;
+    }, 220);
+  }, []);
+
   const goNext = useCallback(() => {
+    if (transitionLockRef.current) return;
+    lockTransition();
     if (storyIdx < totalInGroup - 1) {
       setStoryIdx(s => s + 1); resetStoryState();
     } else if (vendorIdx < totalVendors - 1) {
@@ -322,9 +447,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     } else {
       onClose();
     }
-  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState]);
+  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState, lockTransition]);
 
   const goPrev = useCallback(() => {
+    if (transitionLockRef.current) return;
+    lockTransition();
     if (storyIdx > 0) {
       setStoryIdx(s => s - 1); resetStoryState();
     } else if (vendorIdx > 0) {
@@ -333,13 +460,20 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       setStoryIdx(prevGroup.stories.length - 1);
       resetStoryState();
     }
-  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState]);
+  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition]);
 
   const handleVideoProgress = useCallback((e) => {
     const { currentTime, duration } = e.target;
     if (duration > 0 && videoBarRef.current) {
       videoBarRef.current.style.transform = `scaleX(${currentTime / duration})`;
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      if (transitionUnlockRef.current) clearTimeout(transitionUnlockRef.current);
+    };
   }, []);
 
   const ago = (date) => {
