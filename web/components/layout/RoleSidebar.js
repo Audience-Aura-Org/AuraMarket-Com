@@ -124,7 +124,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-6 w-auto flex items-center justify-center shrink-0">
                <img 
-                 src={theme === 'dark' ? '/logo-white.png' : '/logo-black.png'} 
+                 src={theme === 'dark' ? '/logo-white-main.png' : '/logo-black-main.png'} 
                  alt="Aura Market" 
                  className="h-4 w-auto object-contain"
                />

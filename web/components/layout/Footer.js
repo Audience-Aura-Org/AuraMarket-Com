@@ -72,7 +72,7 @@ export default function Footer() {
           <div className="flex flex-col gap-4 md:gap-6 w-full md:max-w-xs">
             <button onClick={() => router.push('/')} className="flex items-center gap-3 group w-fit">
               <div className="size-8 md:size-9 rounded-xl bg-black p-2 ring-1 ring-white/10 group-hover:ring-[var(--accent)]/40 transition-all duration-300 shadow-xl">
-                <img src="/logo-white.png" alt="Aura" className="w-full h-full object-contain" />
+                <img src="/logo-white-main.png" alt="Aura" className="w-full h-full object-contain" />
               </div>
               <div className="text-left leading-none">
                 <span className="block text-sm md:text-base font-black uppercase tracking-tighter text-[var(--text-primary)]">
@@ -167,7 +167,7 @@ export default function Footer() {
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative z-10">
               <div className="size-8 md:size-10 rounded-lg md:rounded-xl bg-black p-2 ring-1 ring-white/10 mb-3 md:mb-4 group-hover:ring-[var(--accent)]/30 transition-all">
-                <img src="/logo-white.png" alt="Aura" className="w-full h-full object-contain" />
+                <img src="/logo-white-main.png" alt="Aura" className="w-full h-full object-contain" />
               </div>
               <p className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-[var(--accent)] mb-1">Install App</p>
               <h5 className="text-xs md:text-sm font-black text-[var(--text-primary)] leading-tight">
