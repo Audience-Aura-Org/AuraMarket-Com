@@ -12,7 +12,8 @@ import BlurUpImage from '@/components/common/BlurUpImage';
 
 const STORY_DURATION = 5000;
 const VIDEO_PRELOAD_AHEAD = 4;
-const VIDEO_WAIT_TIMEOUT_MS = 8000;
+const VIDEO_WAIT_TIMEOUT_MS = 15000; // Increased for mobile networks
+const VIDEO_STALL_TIMEOUT_MS = 5000; // Max time to wait for stall recovery
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
@@ -85,6 +86,8 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
   const [didRetryUrl, setDidRetryUrl] = useState(false);
   const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
   const waitTimeoutRef = useRef(null);
+  const stallTimeoutRef = useRef(null);
+  const visibilityRef = useRef(null);
 
   useEffect(() => {
     const instant = getVideoPoster(src);
@@ -96,6 +99,31 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     setIsWaiting(false);
     setHasStarted(false);
   }, [src]);
+
+  // Handle page visibility change (pause when tab in background)
+  useEffect(() => {
+    if (!active) return;
+    
+    const handleVisibilityChange = () => {
+      const v = ref.current;
+      if (!v) return;
+      
+      if (document.hidden) {
+        v.pause();
+        console.log('[Video] Page hidden, pausing video');
+      } else {
+        if (!paused) {
+          v.play().catch(err => {
+            console.warn('[Video] Resume after visibility change failed:', err.message);
+          });
+        }
+        console.log('[Video] Page visible, resuming video');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [active, paused]);
 
   // Play / pause
   useEffect(() => {
@@ -114,6 +142,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     }
   }, [active, paused]);
 
+  // Timeout for waiting (loading timeout)
   useEffect(() => {
     if (!active || paused || !isWaiting) {
       if (waitTimeoutRef.current) {
@@ -123,7 +152,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       return;
     }
     waitTimeoutRef.current = setTimeout(() => {
-      console.warn('[Video] Wait timeout reached, skipping story:', src);
+      console.warn('[Video] Load timeout reached, skipping story:', src);
       onEnded();
     }, VIDEO_WAIT_TIMEOUT_MS);
     return () => {
@@ -133,6 +162,34 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       }
     };
   }, [active, paused, isWaiting, src, onEnded]);
+
+  // Timeout for stall recovery
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !active || paused || !isWaiting) {
+      if (stallTimeoutRef.current) {
+        clearTimeout(stallTimeoutRef.current);
+        stallTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    stallTimeoutRef.current = setTimeout(() => {
+      console.warn('[Video] Stall timeout, attempting recovery by resuming play');
+      if (v && !paused) {
+        v.play().catch(err => {
+          console.warn('[Video] Stall recovery failed:', err.message);
+        });
+      }
+    }, VIDEO_STALL_TIMEOUT_MS);
+
+    return () => {
+      if (stallTimeoutRef.current) {
+        clearTimeout(stallTimeoutRef.current);
+        stallTimeoutRef.current = null;
+      }
+    };
+  }, [active, paused, isWaiting]);
 
   // Mute
   useEffect(() => {
@@ -145,6 +202,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     if (playbackSrc) loadedVideos.add(playbackSrc);
     setVideoReady(true);
     setIsWaiting(false);
+    console.log('[Video] Ready to play:', playbackSrc || src);
   }, [src, playbackSrc]);
 
   const handleError = useCallback((e) => {
@@ -197,7 +255,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         poster={poster}
         autoPlay
         playsInline
-        webkit-playsinline="true"
+        webkit-playsinline=""
         muted={true}
         crossOrigin="anonymous"
         preload="auto"
@@ -210,8 +268,14 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         }}
         onSeeking={() => setIsWaiting(true)}
         onSeeked={() => setIsWaiting(false)}
-        onStalled={() => setIsWaiting(true)}
-        onWaiting={() => setIsWaiting(true)}
+        onStalled={() => {
+          console.warn('[Video] Stalled, waiting for recovery...');
+          setIsWaiting(true);
+        }}
+        onWaiting={() => {
+          console.warn('[Video] Waiting for data...');
+          setIsWaiting(true);
+        }}
         onLoadedData={handleReady}
         onLoadedMetadata={handleReady}
         onError={handleError}

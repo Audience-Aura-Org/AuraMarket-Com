@@ -18,6 +18,10 @@ async function maybeTranscodeVideoForWeb(file) {
     };
   }
 
+  console.log(`🎬 [Video] Compressing for mobile playback...`);
+  const originalSize = (file.buffer.length / 1024 / 1024).toFixed(2);
+  console.log(`   Original size: ${originalSize}MB`);
+
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aura-video-'));
   const inputPath = path.join(tmpDir, `in-${Date.now()}-${file.originalname || 'upload'}`);
   const outputBase = (file.originalname || 'video').replace(/\.[^.]+$/, '');
@@ -28,6 +32,9 @@ async function maybeTranscodeVideoForWeb(file) {
     fs.writeFileSync(inputPath, file.buffer);
     await compressVideo(inputPath, outputPath);
     const outBuffer = fs.readFileSync(outputPath);
+    const compressedSize = (outBuffer.length / 1024 / 1024).toFixed(2);
+    const reduction = (((file.buffer.length - outBuffer.length) / file.buffer.length) * 100).toFixed(0);
+    console.log(`   ✅ Compressed: ${compressedSize}MB (${reduction}% reduction)`);
     return {
       buffer: outBuffer,
       originalname: outputName,
@@ -35,7 +42,9 @@ async function maybeTranscodeVideoForWeb(file) {
     };
   } catch (err) {
     // If ffmpeg is unavailable or transcoding fails, gracefully fall back.
-    console.warn(`[Upload] Video transcode skipped, using original file: ${err.message}`);
+    console.warn(`⚠️  [Video] Compression failed: ${err.message}`);
+    console.warn(`   Uploading uncompressed video (this will be slow on mobile!)`);
+    console.warn(`   To fix: Install ffmpeg - see scripts/check-ffmpeg.js`);
     return {
       buffer: file.buffer,
       originalname: file.originalname,

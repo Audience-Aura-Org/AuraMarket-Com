@@ -40,11 +40,20 @@ async function uploadToS3(fileBuffer, fileName, folder = 'uploads', contentType 
   const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
   const fileKey = `${folder}/${timestamp}-${randomSuffix}-${safeFileName}`;
 
+  // Determine if this is a video for proper streaming headers
+  const isVideo = contentType.startsWith('video/');
+
   const params = {
     Bucket: process.env.AWS_S3_BUCKET,
     Key: fileKey,
     Body: fileBuffer,
     ContentType: contentType,
+    // ✅ Critical for video streaming on mobile
+    AcceptRanges: 'bytes',
+    // ✅ Allow browsers to stream/seek video without full download
+    CacheControl: isVideo ? 'public, max-age=31536000, immutable' : 'public, max-age=3600',
+    // ✅ Inline for browser playback, not download
+    ContentDisposition: isVideo ? 'inline' : 'attachment',
     // NOTE: No ACL here — use bucket policy for public access.
     // Adding ACL: 'public-read' fails on buckets with Block Public ACLs enabled.
     Metadata: {
@@ -62,7 +71,7 @@ async function uploadToS3(fileBuffer, fileName, folder = 'uploads', contentType 
     await parallelUpload.done();
 
     const url = buildPublicUrl(process.env.AWS_S3_BUCKET, REGION, fileKey);
-    console.log(`✅ [S3] File uploaded successfully: ${fileKey}`);
+    console.log(`✅ [S3] File uploaded successfully: ${fileKey}${isVideo ? ' (video with streaming headers)' : ''}`);
     return { success: true, url, key: fileKey, bucket: process.env.AWS_S3_BUCKET };
   } catch (error) {
     // Log full error for diagnosis (code, requestId, etc.)
