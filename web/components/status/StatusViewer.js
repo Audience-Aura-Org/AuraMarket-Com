@@ -19,7 +19,7 @@ function preloadMedia(url, type) {
   preloadCache.add(url);
   if (type === 'video') {
     const v = document.createElement('video');
-    v.preload = 'metadata'; // Optimized: only fetch headers to save bandwidth
+    v.preload = 'auto'; // Aggressive preloading
     v.src = url;
     v.muted = true;
     v.load();
@@ -129,23 +129,26 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
 
   return (
     <div className="absolute inset-0 bg-black">
-      {/* Poster overlay */}
-      <div className={`absolute inset-0 z-10 transition-opacity duration-200 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      {/* Poster / Loading Layer */}
+      <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {poster ? (
-          <img src={poster} alt="" className="w-full h-full object-cover blur-xl scale-110" aria-hidden="true" />
-        ) : (
-          <div className="w-full h-full animate-shimmer flex items-center justify-center">
-            <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-              <Play className="size-7 text-white/20 ml-1" />
+          <div className="relative w-full h-full">
+            <img src={poster} alt="" className="w-full h-full object-cover blur-2xl scale-110" aria-hidden="true" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+               <Loader2 className="size-10 text-white/60 animate-spin" />
             </div>
+          </div>
+        ) : (
+          <div className="w-full h-full bg-black flex items-center justify-center">
+            <Loader2 className="size-10 text-white/20 animate-spin" />
           </div>
         )}
       </div>
 
-      {/* Buffering Indicator */}
-      {active && isWaiting && videoReady && (
+      {/* Buffering Indicator (During playback) */}
+      {active && isWaiting && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-          <Loader2 className="size-8 text-white/40 animate-spin" />
+          <Loader2 className="size-10 text-[var(--accent)] animate-spin" />
         </div>
       )}
 
@@ -157,11 +160,12 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         muted={muted}
         preload="auto"
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
-        onCanPlayThrough={handleReady}
+        onCanPlay={handleReady}
         onPlaying={handleReady}
         onPlay={() => setIsWaiting(false)}
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
+        onLoadedMetadata={handleReady}
         onError={handleError}
         onEnded={onEnded}
         onTimeUpdate={onProgress}
