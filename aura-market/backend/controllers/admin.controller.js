@@ -603,7 +603,7 @@ const getAdvancedAnalytics = async (req, res, next) => {
     const topProducts = await Product.find({ status: 'active' })
       .sort({ purchase_count: -1, view_count: -1 })
       .limit(10)
-      .select('name price purchase_count view_count stock category');
+      .select('name price purchase_count view_count stock category images');
 
     // 4. Role-Based User Breakdown
     const roleBreakdown = await User.aggregate([

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import DiscoveryHub from '@/components/hub/DiscoveryHub';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function DiscoveryPage() {
   const router = useRouter();
@@ -17,11 +18,7 @@ export default function DiscoveryPage() {
 
   // Show loading state while checking authentication
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-4 border-[var(--glass-border)] border-t-[var(--accent)] animate-spin" />
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   // Only render if authenticated

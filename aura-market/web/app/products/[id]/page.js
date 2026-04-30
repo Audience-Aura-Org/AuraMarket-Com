@@ -15,11 +15,15 @@ import { trackView, trackCart } from '@/services/tracking';
 import ProductCard from '@/components/ProductCard';
 import cartStore from '@/services/cartStore';
 import { toast as hotToast } from 'react-hot-toast';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import BlurUpImage from '@/components/common/BlurUpImage';
+import { useChat } from '@/context/ChatContext';
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { openChat } = useChat();
   const imgRef = useRef(null);
 
   const [product, setProduct] = useState(null);
@@ -32,6 +36,8 @@ export default function ProductDetailsPage() {
   const [wishlisted, setWishlisted] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [currentVariant, setCurrentVariant] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -51,28 +57,74 @@ export default function ProductDetailsPage() {
     api.get(`/products/${id}/related?limit=10`).then(r => setRelated(r.data.data?.products || [])).catch(() => {});
   }, [id]);
 
+  useEffect(() => {
+    if (product?.has_variants && product.variant_types?.length > 0) {
+      // Default select first options
+      const defaults = {};
+      product.variant_types.forEach(type => {
+        if (type.options?.length > 0) defaults[type.name] = type.options[0];
+      });
+      setSelectedOptions(defaults);
+    }
+  }, [product]);
+
+  useEffect(() => {
+    if (product?.has_variants && product.sku_variants?.length > 0) {
+      const match = product.sku_variants.find(v => 
+        Object.entries(selectedOptions).every(([k, val]) => v.combination[k] === val)
+      );
+      setCurrentVariant(match || null);
+    } else {
+      setCurrentVariant(null);
+    }
+  }, [selectedOptions, product]);
+
   const handleWishlist = async () => {
     if (!user) return router.push('/login');
     try {
       const res = await api.post('/wishlist/toggle', { product_id: id });
       const next = res.data.data?.wishlisted ?? !wishlisted;
       setWishlisted(next);
-      hotToast.success(next ? 'Added to wishlist' : 'Removed from wishlist');
+      hotToast.success(next ? 'Added to wishlist' : 'Removed from wishlist', {
+        style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' }
+      });
     } catch { hotToast.error('Failed to update wishlist'); }
+  };
+
+  const handleShare = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      hotToast.success('Link copied!', {
+        icon: '🔗',
+        style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' }
+      });
+    }
   };
 
   const handleAddToCart = async () => {
     if (!user) return router.push('/login');
     setAddingToCart(true);
-    trackCart(product);
-    cartStore.addItem(product, quantity);
+    const itemToTrack = currentVariant 
+      ? { ...product, price: currentVariant.price, variant: currentVariant.combination }
+      : product;
+    trackCart(itemToTrack);
+    cartStore.addItem(itemToTrack, quantity);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('cart-item-added', {
-        detail: { name: product.name, image: product.images?.[0]?.url || product.images?.[0] }
+        detail: { 
+          name: product.name, 
+          image: currentVariant?.image || product.images?.[0]?.url || product.images?.[0],
+          variant: currentVariant?.combination 
+        }
       }));
     }
     try {
-      const res = await api.post('/cart', { product_id: id, quantity });
+      const payload = { 
+        product_id: id, 
+        quantity,
+        variant: currentVariant?.combination
+      };
+      const res = await api.post('/cart', payload);
       cartStore.setCart(res.data.data.cart);
       hotToast.success('Added to cart');
     } catch {
@@ -96,9 +148,13 @@ export default function ProductDetailsPage() {
 
   const handleChat = () => {
     if (!user) return router.push('/login');
-    const vId = vendor?.user_id?._id || vendor?.user_id || vendor?._id;
-    if (!vId) return hotToast.error('Unable to reach seller.');
-    router.push(`/messages?vendorId=${vId}&productId=${id}`);
+    const vUserId = vendor?.user_id?._id || vendor?.user_id || vendor?._id;
+    if (!vUserId) return hotToast.error('Unable to reach seller.');
+    
+    openChat(vUserId, product, {
+      store_name: vendor?.store_name || 'Verified Store',
+      branding: { logo: vendor?.user_id?.branding?.logo || vendor?.user_id?.avatar }
+    });
   };
 
   const handleMouseMove = (e) => {
@@ -107,14 +163,7 @@ export default function ProductDetailsPage() {
     imgRef.current.style.transformOrigin = `${((e.clientX - left) / width) * 100}% ${((e.clientY - top) / height) * 100}%`;
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-secondary)]">
-      <div className="relative size-10">
-        <div className="absolute inset-0 border-2 border-[var(--glass-border)] rounded-full" />
-        <div className="absolute inset-0 border-2 border-transparent border-t-[var(--accent)] rounded-full animate-spin" />
-      </div>
-    </div>
-  );
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!product) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg-secondary)] gap-4">
@@ -129,10 +178,14 @@ export default function ProductDetailsPage() {
 
   const images = product?.images?.length ? product.images : [{ url: '/placeholder.png' }];
   const vendor = product?.vendor_id;
-  const inStock = Boolean(product?.stock > 0);
+  
+  const displayPrice = currentVariant ? currentVariant.price : product?.price;
+  const displayStock = currentVariant ? currentVariant.stock : product?.stock;
+  const inStock = Boolean(displayStock > 0);
+  
   const rating = Number(product?.rating || 0);
   const discount = product?.oldPrice
-    ? Math.round(100 - (product.price / product.oldPrice) * 100)
+    ? Math.round(100 - (displayPrice / product.oldPrice) * 100)
     : null;
 
   // Detect if the logged-in user is the vendor who listed this product
@@ -155,7 +208,7 @@ export default function ProductDetailsPage() {
           <div className="hidden md:flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
             <Link href="/" className="hover:text-[var(--accent)] transition-colors">Home</Link>
             <ChevronRight className="size-3" />
-            <Link href="/shop" className="hover:text-[var(--accent)] transition-colors">Shop</Link>
+            <Link href="/discovery" className="hover:text-[var(--accent)] transition-colors">Shop</Link>
             {product.category && <>
               <ChevronRight className="size-3" />
               <span className="text-[var(--text-primary)] font-medium truncate max-w-[160px]">{product.category}</span>
@@ -173,7 +226,8 @@ export default function ProductDetailsPage() {
                 <MessageCircle className="size-4" />
               </button>
             )}
-            <button className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--component-bg)] transition-all">
+            <button onClick={handleShare}
+              className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--component-bg)] transition-all">
               <Share2 className="size-4" />
             </button>
           </div>
@@ -184,24 +238,10 @@ export default function ProductDetailsPage() {
       <div className="w-full px-4 md:px-6 py-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
 
         {/* ── Col 1: Media Gallery (left thumbnail + main image) ── */}
-        <div className="lg:col-span-5 xl:col-span-5 flex gap-4 md:gap-6 pl-0 md:pl-4">
+        <div className="lg:col-span-5 xl:col-span-5 flex flex-col md:flex-row gap-4 md:gap-6 pl-0 md:pl-4">
 
-          {/* Vertical Thumbnails */}
-          <div className="flex flex-col gap-4 shrink-0 w-16">
-            {images.map((img, i) => (
-              <button key={i} onClick={() => setActiveImg(i)}
-                className={`w-16 h-16 rounded-[20px] overflow-hidden bg-[var(--bg-primary)] transition-all shrink-0 ${
-                  activeImg === i
-                    ? 'shadow-[0_10px_20px_-5px_rgba(0,0,0,0.1)] scale-105 ring-2 ring-[var(--text-primary)]'
-                    : 'opacity-60 hover:opacity-100 hover:scale-105'
-                }`}>
-                <img src={img.url || img} className="w-full h-full object-contain p-2" alt={`View ${i + 1}`} />
-              </button>
-            ))}
-          </div>
-
-          {/* Main Image */}
-          <div className="flex-1 flex flex-col gap-4">
+          {/* Main Image (Top on mobile, Right on desktop) */}
+          <div className="order-1 md:order-2 flex-1 flex flex-col gap-4">
             <div
               className="relative w-full aspect-[4/5] max-h-[500px] bg-[var(--bg-primary)] rounded-[32px] overflow-hidden cursor-zoom-in shadow-[0_40px_60px_-15px_rgba(0,0,0,0.05)]"
               onMouseEnter={() => setIsZoomed(true)}
@@ -222,54 +262,149 @@ export default function ProductDetailsPage() {
                 )}
               </div>
 
-              <img
+              <BlurUpImage
                 ref={imgRef}
                 src={images[activeImg]?.url || images[activeImg]}
                 alt={product.name}
-                className={`w-full h-full object-contain p-4 transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
+                objectFit="contain"
+                className="w-full h-full p-4"
+                imgClassName={`transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
               />
             </div>
-
           </div>
+
+          {/* Thumbnails (Bottom on mobile, Left on desktop) */}
+          <div className="order-2 md:order-1 flex flex-row md:flex-col gap-4 shrink-0 w-full md:w-16 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+            {images.map((img, i) => (
+              <button key={i} onClick={() => setActiveImg(i)}
+                className={`w-14 h-14 md:w-16 md:h-16 rounded-[16px] md:rounded-[20px] overflow-hidden bg-[var(--bg-primary)] transition-all shrink-0 ${
+                  activeImg === i
+                    ? 'shadow-[0_10px_20px_-5px_rgba(0,0,0,0.1)] scale-105 ring-2 ring-[var(--text-primary)]'
+                    : 'opacity-60 hover:opacity-100 hover:scale-105'
+                }`}>
+                <BlurUpImage 
+                  src={img.url || img} 
+                  className="w-full h-full p-2" 
+                  objectFit="contain"
+                  alt={`View ${i + 1}`} 
+                />
+              </button>
+            ))}
+          </div>
+
         </div>
 
         {/* ── Col 2: Product Info ── */}
         <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-8 md:px-4">
 
-          {/* Product Dossier / Info */}
-          <div className="space-y-8">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="size-3.5 text-[var(--accent)]" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-                Aura Market Verified Asset
+          {/* Product Info — mobile-first, natural casing */}
+          <div className="space-y-5 text-center lg:text-left">
+
+            {/* Verified badge */}
+            <div className="flex items-center justify-center lg:justify-start gap-1.5">
+              <Shield className="size-3 text-[var(--accent)] shrink-0" />
+              <span className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-wide">
+                Aura Market Verified
               </span>
             </div>
 
-            <h1 className="text-3xl md:text-[2.5rem] font-black tracking-tighter text-[var(--text-primary)] leading-[1.05]">
+            {/* Product name */}
+            <h1 className="text-2xl md:text-[2.5rem] font-black tracking-tighter text-[var(--text-primary)] leading-[1.08]">
               {product.name}
             </h1>
 
-            <div className="flex flex-col sm:flex-row sm:items-end gap-8 pt-4">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Acquisition Price</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
-                    {product.price?.toLocaleString()}
+            {/* Price + Stock row — compact on mobile */}
+            <div className="flex items-center justify-center lg:justify-start gap-4 pt-1">
+              {/* Price block */}
+              <div>
+                <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">Price</p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] tracking-tight leading-none">
+                    {displayPrice?.toLocaleString()}
                   </span>
-                  <span className="text-xs font-bold text-[var(--accent)]">XAF</span>
+                  <span className="text-xs font-bold text-[var(--accent)] leading-none pb-0.5">XAF</span>
                 </div>
               </div>
 
-              <div className="hidden sm:block w-px h-10 bg-[var(--glass-border)] shrink-0" />
+              {/* Divider */}
+              <div className="w-px h-10 bg-[var(--glass-border)] shrink-0" />
 
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Inventory Node</span>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
-                  {product.stock} <span className="text-[var(--text-secondary)]">Units Available</span>
-                </p>
+              {/* Stock pill */}
+              <div>
+                <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">In stock</p>
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                  inStock
+                    ? 'bg-emerald-500/10 text-emerald-600'
+                    : 'bg-red-500/10 text-red-500'
+                }`}>
+                  <span className={`size-1.5 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  {inStock ? `${displayStock} available` : 'Out of stock'}
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Variant Selectors */}
+          {product.has_variants && product.variant_types?.length > 0 && (
+            <div className="space-y-6 bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8">
+              {product.variant_types.map((type) => (
+                <div key={type.name} className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black uppercase tracking-[0.15em] text-[var(--text-primary)]">
+                      Select {type.name}
+                    </span>
+                    <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full uppercase">
+                      {selectedOptions[type.name]}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {type.options.map((option) => {
+                      const isColor = type.name.toLowerCase() === 'color';
+                      const hexCode = type.metadata?.[option];
+                      const isActive = selectedOptions[type.name] === option;
+
+                      if (isColor && hexCode) {
+                        return (
+                          <button
+                            key={option}
+                            onClick={() => setSelectedOptions(prev => ({ ...prev, [type.name]: option }))}
+                            title={option}
+                            className={`group relative flex items-center justify-center size-10 rounded-full transition-all ${
+                              isActive ? 'ring-2 ring-[var(--text-primary)] ring-offset-2' : 'ring-1 ring-[var(--glass-border)]'
+                            }`}
+                          >
+                            <div 
+                              className="size-full rounded-full border border-black/10"
+                              style={{ backgroundColor: hexCode }}
+                            />
+                            {isActive && (
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <CheckCircle2 className="size-4 text-white drop-shadow-md" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={option}
+                          onClick={() => setSelectedOptions(prev => ({ ...prev, [type.name]: option }))}
+                          className={`px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${
+                            isActive
+                              ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                              : 'border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)]/40'
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Short Description */}
           <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-4">
@@ -287,7 +422,7 @@ export default function ProductDetailsPage() {
             </div>
 
             {reviews.length === 0 ? (
-              <p className="text-sm text-[var(--text-secondary)] italic py-4">No reviews yet.</p>
+              <p className="text-sm text-[var(--text-secondary)] py-4">No reviews yet.</p>
             ) : (
               <div className="space-y-8">
                 {reviews.slice(0, 3).map((r, i) => (
@@ -475,22 +610,20 @@ export default function ProductDetailsPage() {
 
       {/* ── Related Products ── */}
       {related.length > 0 && (
-        <section className="w-full px-4 md:px-6 pb-24">
-          <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-10">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-lg md:text-2xl font-black text-[var(--text-primary)] tracking-tighter" style={{ fontFamily: 'var(--font-manrope, inherit)' }}>You may also like</h2>
-              <Link href="/shop"
-                className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-primary)] hover:opacity-70 transition-opacity flex items-center gap-1 pb-1 border-b-2 border-transparent hover:border-[var(--text-primary)]">
-                View all
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-              {related.map(p => (
-                <div key={p._id} className="hover:-translate-y-2 transition-transform duration-300">
-                  <ProductCard product={p} />
-                </div>
-              ))}
-            </div>
+        <section className="w-full px-4 md:px-6 pb-24 space-y-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl md:text-3xl font-black text-[var(--text-primary)] tracking-tighter">You may also like</h2>
+            <Link href="/discovery"
+              className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-primary)] hover:opacity-70 transition-opacity flex items-center gap-1 pb-1 border-b-2 border-transparent hover:border-[var(--text-primary)]">
+              View all
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+            {related.map(p => (
+              <div key={p._id} className="hover:-translate-y-2 transition-transform duration-300">
+                <ProductCard product={p} />
+              </div>
+            ))}
           </div>
         </section>
       )}

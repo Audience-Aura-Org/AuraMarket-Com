@@ -67,6 +67,14 @@ const LogisticsCompanySchema = new mongoose.Schema(
         type: String, // Regions/Cities where the company can pick up from vendors
       }
     ],
+    logo: {
+      type: String,
+      default: null,
+    },
+    banner: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

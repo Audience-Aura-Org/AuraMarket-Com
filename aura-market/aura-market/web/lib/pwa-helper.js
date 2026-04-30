@@ -61,7 +61,7 @@ export async function subscribeToPush() {
     try {
       const stored = localStorage.getItem('aura-auth-storage');
       if (stored) token = JSON.parse(stored)?.state?.token;
-    } catch (e) {}
+    } catch (e) { }
   }
 
   if (!token || token === 'undefined' || token === 'null') {
@@ -75,14 +75,14 @@ export async function subscribeToPush() {
     if (permission === 'default') {
       permission = await Notification.requestPermission();
     }
-    
+
     if (permission !== 'granted') {
       console.warn('⚠️ Push permission denied by user.');
       return null;
     }
 
     const registration = await navigator.serviceWorker.ready;
-    
+
     // Always get or create subscription
     let subscription = await registration.pushManager.getSubscription();
 
@@ -98,9 +98,9 @@ export async function subscribeToPush() {
     }
 
     // Always sync the subscription to the backend (handles stale entries)
-    const res = await api.post('/push/subscribe', { 
-      subscription: subscription.toJSON(), 
-      device_type: window.innerWidth < 768 ? 'mobile' : 'desktop' 
+    const res = await api.post('/push/subscribe', {
+      subscription: subscription.toJSON(),
+      device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
     });
 
     if (res.data?.success) {
@@ -118,7 +118,7 @@ export async function subscribeToPush() {
         if (oldSub) await oldSub.unsubscribe();
 
         // 2. Purge ALL stale subscriptions from the backend DB for this user
-        await api.delete('/push/purge-all').catch(() => {});
+        await api.delete('/push/purge-all').catch(() => { });
         console.log('[PWA] Backend subscriptions purged — creating fresh registration...');
 
         // 3. Re-subscribe with correct VAPID key (one retry only)
@@ -127,9 +127,9 @@ export async function subscribeToPush() {
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
-        await api.post('/push/subscribe', { 
-          subscription: newSub.toJSON(), 
-          device_type: window.innerWidth < 768 ? 'mobile' : 'desktop' 
+        await api.post('/push/subscribe', {
+          subscription: newSub.toJSON(),
+          device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
         });
         console.log('✅ [PWA] Fresh push subscription registered after recovery.');
         return newSub;

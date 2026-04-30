@@ -276,7 +276,7 @@ export default function OnboardingFlow() {
               </button>
             ) : (
               <div className="size-10 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center p-2">
-                <img src="/logo-black.png" className="w-full h-auto opacity-90" alt="" />
+                <img src="/icon-512.png" className="w-full h-auto" alt="" />
               </div>
             )}
             <div className="flex flex-col">

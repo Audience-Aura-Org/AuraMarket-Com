@@ -37,7 +37,7 @@ const getHomepage = async (req, res, next) => {
     })
     .populate({
       path: 'data.vendor_id',
-      select: 'store_name description rating verified user_id',
+      select: 'store_name description rating verified follower_count user_id',
       populate: { path: 'store user_id', select: 'logo banner branding avatar' }
     })
     .lean();

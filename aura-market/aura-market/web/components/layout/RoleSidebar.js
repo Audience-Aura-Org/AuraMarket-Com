@@ -10,6 +10,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 const VENDOR_NAV = [
   { icon: 'dashboard',                label: 'Dashboard',        href: '/vendor/dashboard' },
   { icon: 'inventory_2',              label: 'Products',         href: '/vendor/products' },
+  { icon: 'auto_awesome',             label: 'Aura Stories',     href: '/vendor/stories' },
   { icon: 'shopping_cart',            label: 'Orders',           href: '/vendor/orders',    badge: 'orders' },
   { icon: 'star_rate',                label: 'Client Ratings',   href: '/vendor/ratings' },
   { icon: 'gavel',                    label: 'Disputes',         href: '/vendor/disputes' },

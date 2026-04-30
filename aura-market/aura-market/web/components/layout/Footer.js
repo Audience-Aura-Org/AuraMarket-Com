@@ -9,10 +9,10 @@ const NAV = [
   {
     label: 'Shop',
     links: [
-      { name: 'Discovery Hub', href: '/discovery' },
-      { name: 'Collections', href: '/shop' },
-      { name: 'Verified Brands', href: '/brands' },
-      { name: 'Signature Drops', href: '/search' },
+      { name: 'Discovery Hub',    href: '/discovery' },
+      { name: 'Collections',      href: '/shop' },
+      { name: 'Verified Brands',  href: '/brands' },
+      { name: 'Signature Drops',  href: '/signature-drops' },
     ],
   },
   {
@@ -20,16 +20,16 @@ const NAV = [
     links: [
       { name: 'Global Merchants', href: '/vendors' },
       { name: 'Global Logistics', href: '/logistics' },
-      { name: 'Support Hub', href: '/help' },
-      { name: 'Network Status', href: '/api-status' },
+      { name: 'Support Hub',      href: '/help' },
+      { name: 'Network Status',   href: '/api-status' },
     ],
   },
   {
     label: 'Legal',
     links: [
-      { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Market Rules', href: '/terms' },
-      { name: 'Cookie Policy', href: '/privacy' },
+      { name: 'Privacy Policy',   href: '/privacy' },
+      { name: 'Market Rules',     href: '/terms' },
+      { name: 'Cookie Policy',    href: '/cookies' },
     ],
   },
 ];

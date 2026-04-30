@@ -148,6 +148,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                           sessionStorage.setItem('aura_assistant_shown', 'true');
                           setDismissed(true);
                           setVisible(false);
+                          router.push('/discovery');
                         }}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/30"
                       >

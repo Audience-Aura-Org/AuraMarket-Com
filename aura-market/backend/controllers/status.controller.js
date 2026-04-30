@@ -13,16 +13,22 @@ exports.createStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only vendors can post statuses' });
     }
 
-    const { type, content_url, text_content, linked_product, caption } = req.body;
+    const { type, content_url, text_content, linked_product, caption, category, expires_at, expiry_days } = req.body;
+
+    const expiresAt = expires_at
+      ? new Date(expires_at)
+      : new Date(Date.now() + (expiry_days || 1) * 24 * 60 * 60 * 1000);
 
     const status = await Status.create({
       vendor_id: vendor._id,
       type,
       content_url,
       text_content,
-      linked_product,
+      linked_product: linked_product || null,
       caption,
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      category: category || 'General',
+      expiry_days: expiry_days || 1,
+      expires_at: expiresAt,
     });
 
     res.status(201).json({ success: true, data: status });
@@ -36,9 +42,13 @@ exports.createStatus = async (req, res) => {
 // @access  Private
 exports.getActiveStatuses = async (req, res) => {
   try {
-    const { mode = 'global', sort = 'trending', page = 1, limit = 20 } = req.query;
+    const { mode = 'global', sort = 'trending', category, page = 1, limit = 40 } = req.query;
     const now = new Date();
     const query = { expires_at: { $gt: now } };
+
+    if (category && category !== 'All') {
+      query.category = category;
+    }
 
     // Followed-only mode: scope to followed vendors
     if (mode === 'followed') {
@@ -65,6 +75,10 @@ exports.getActiveStatuses = async (req, res) => {
         path: 'vendor_id',
         select: 'store_name user_id',
         populate: { path: 'user_id', select: 'avatar branding' }
+      })
+      .populate({
+        path: 'linked_product',
+        select: 'name price images'
       })
       .lean();
 
@@ -98,6 +112,16 @@ exports.reactToStatus = async (req, res) => {
           type: 'vendor_update',
           metadata: { target_id: status._id, link: `/dashboard/statuses` }
         });
+
+        // 🔥 Real-time Update to Vendor
+        const io = req.app.get('io');
+        if (io) {
+          io.to(vendor.user_id.toString()).emit('status_update', { 
+            status_id: status._id.toString(), 
+            type: 'like', 
+            count: status.reactions.length 
+          });
+        }
       }
     } else {
       status.reactions.splice(index, 1); // Unlike
@@ -119,9 +143,25 @@ exports.viewStatus = async (req, res) => {
     if (req.user) {
       update.$addToSet = { viewer_ids: req.user.id };
     }
-    
-    await Status.updateOne({ _id: req.params.id }, update);
+
+    // Respond immediately — don't block on socket/vendor lookup
+    const updatedStatus = await Status.findByIdAndUpdate(req.params.id, update, { new: true });
     res.status(200).json({ success: true });
+
+    // 🔥 Fire-and-forget: emit real-time update to vendor after responding
+    if (updatedStatus) {
+      Vendor.findById(updatedStatus.vendor_id).then(vendor => {
+        if (!vendor) return;
+        const io = req.app.get('io');
+        if (io) {
+          io.to(vendor.user_id.toString()).emit('status_update', {
+            status_id: updatedStatus._id.toString(),
+            type: 'view',
+            count: updatedStatus.views_count
+          });
+        }
+      }).catch(() => {});
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -136,7 +176,11 @@ exports.getMyStatuses = async (req, res) => {
     if (!vendor) return res.status(403).json({ success: false, message: 'Vendor profile required' });
 
     const statuses = await Status.find({ vendor_id: vendor._id })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .populate({
+        path: 'linked_product',
+        select: 'name price images'
+      });
 
     res.status(200).json({ success: true, data: statuses });
   } catch (error) {

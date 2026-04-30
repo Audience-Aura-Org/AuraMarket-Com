@@ -104,6 +104,27 @@ const ProductSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    // Variable Product Support
+    has_variants: {
+      type: Boolean,
+      default: false
+    },
+    variant_types: [
+      {
+        name: String, // e.g., "Size", "Color"
+        options: [String], // e.g., ["S", "M", "L"], ["Red", "Blue"]
+        metadata: mongoose.Schema.Types.Mixed // Optional: { "Red": "#FF0000" }
+      }
+    ],
+    sku_variants: [
+      {
+        combination: mongoose.Schema.Types.Mixed, // e.g., { "Size": "M", "Color": "Red" }
+        price: Number,
+        stock: Number,
+        sku: String,
+        image: String
+      }
+    ]
   },
   {
     timestamps: true, // adds createdAt and updatedAt

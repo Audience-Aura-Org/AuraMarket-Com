@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { getConversation, getUserInbox, sendMessage, markAsRead, getAllMessagesAdmin } = require('../controllers/chat.controller');
+const { getConversation, getUserInbox, sendMessage, markAsRead, getAllMessagesAdmin, getSystemWideInbox } = require('../controllers/chat.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
 
@@ -15,6 +15,7 @@ router.use(protect);
 
 // ── Admin-only Routes ──────────────────────────
 router.get('/admin/all', restrictTo('admin'), getAllMessagesAdmin);
+router.get('/admin/inbox', restrictTo('admin'), getSystemWideInbox);
 
 // ── Operations ──────────────────────────────
 router.get('/', getUserInbox);                 // List of all active distinct conversations

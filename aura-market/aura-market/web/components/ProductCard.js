@@ -13,6 +13,7 @@ import { useChat } from '@/context/ChatContext';
 import { useFollow } from '@/hooks/useFollow';
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
+import { toast } from 'react-hot-toast';
 
 /**
  * ProductCard - Elite Nexus Version
@@ -36,10 +37,22 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
-    if (!user) { alert('Please login first'); return; }
+    if (!user) { toast.error('Please login to activate cart'); return; }
     setAddingToCart(true);
     cartStore.addItem(product, 1);
     api.post('/cart', { product_id: productId, quantity: 1 })
+      .then(() => {
+        toast.success(`${name} added to cart`, {
+          icon: '🛒',
+          style: {
+            borderRadius: '16px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          },
+        });
+      })
       .finally(() => setAddingToCart(false));
   };
 
@@ -83,6 +96,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         className="group relative rounded-3xl bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-xl flex items-center gap-5 p-4 h-40 md:h-48 cursor-pointer"
       >
         <div className="relative h-full aspect-[4/5] shrink-0 rounded-2xl overflow-hidden bg-[var(--accent)]/5">
+          {/* Synchronized Node Badge */}
+
           <img src={mainImage} alt={name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2 right-2 size-8 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/40 text-white border-white/10 hover:bg-red-500'}`}>
             <Heart className={`size-4 ${wishlisted ? 'fill-current' : ''}`} />
@@ -146,14 +161,13 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       className="group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer"
     >
       {/* 1. Vendor Header - ELITE SYNCED */}
-      <div className="p-1.5 sm:p-2 md:p-3 flex items-center justify-between gap-1 sm:gap-1.5 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
-         <Link href={`/shop?vendorId=${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
+      <div className="p-2 sm:p-2.5 md:p-3 flex items-center justify-between gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
+         <Link href={`/stores/${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
             <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
               <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
             </div>
             <h4
-              className="text-[8.5px] sm:text-[9px] md:text-[10px] font-bold text-[var(--text-primary)] leading-none flex-1"
-              style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+              className="text-[8.5px] sm:text-[9px] md:text-[10px] font-bold text-[var(--text-primary)] leading-none flex-1 truncate"
             >{vendor_id?.store_name || 'Verified Node'}</h4>
             {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
          </Link>
@@ -162,7 +176,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             <button 
                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }}
                disabled={followLoading}
-               className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[7px] md:text-[8px] font-bold tracking-tight transition-all active:scale-95 shadow-sm border ${
+               className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[7px] md:text-[8px] font-bold tracking-tight transition-all active:scale-95 shadow-sm border ${
                  isFollowing 
                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
                  : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'
@@ -175,6 +189,9 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
       {/* 2. Photo Area */}
       <div className="relative aspect-square overflow-hidden bg-[var(--accent)]/5">
+        {/* Synchronized Node Badge */}
+
+
         <Link href={`/products/${productId}`} className="block h-full w-full" onClick={e => e.stopPropagation()}>
           <img src={mainImage} alt={name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
         </Link>

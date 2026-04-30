@@ -10,6 +10,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function AdminDisputes() {
   const [mounted, setMounted] = useState(false);
@@ -88,6 +89,10 @@ export default function AdminDisputes() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentDisputes = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  if (loading) {
+    return <LoadingSpinner fullScreen />;
+  }
+
   if (!mounted) return null;
 
   return (
@@ -114,7 +119,7 @@ export default function AdminDisputes() {
                   </h3>
                   <div className="bg-[var(--bg-secondary)]/50 p-6 rounded-3xl border border-[var(--glass-border)]">
                      <p className="text-sm font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wide">{selectedCase.reason}</p>
-                     <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic opacity-80">"{selectedCase.description}"</p>
+                     <p className="text-xs text-[var(--text-secondary)] leading-relaxed opacity-80">{selectedCase.description}</p>
                   </div>
                   
                   {selectedCase.evidence_urls?.length > 0 ? (
@@ -139,10 +144,7 @@ export default function AdminDisputes() {
                   </h3>
                   
                   {fetchingCase ? (
-                     <div className="h-40 flex flex-col items-center justify-center opacity-40">
-                        <Loader2 className="animate-spin w-8 h-8 mb-4 text-[var(--accent)]" />
-                        <p className="text-[9px] font-black tracking-widest uppercase">Fetching Node Status...</p>
-                     </div>
+                     <LoadingSpinner fullScreen />
                   ) : caseShipment?.proof_of_delivery?.image_url ? (
                     <div className="space-y-4">
                        <div className="aspect-[4/3] rounded-[2rem] overflow-hidden border-2 border-[var(--accent)]/10 shadow-xl bg-[var(--bg-secondary)]">
@@ -292,7 +294,7 @@ export default function AdminDisputes() {
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5 max-w-[200px] lg:max-w-xs">
                              <p className="text-[11px] lg:text-sm font-bold text-[var(--text-primary)] truncate uppercase">{d.reason}</p>
-                             <p className="text-[9px] lg:text-[10px] text-[var(--text-secondary)] font-medium mt-1 line-clamp-1 opacity-60 italic">{d.description}</p>
+                             <p className="text-[9px] lg:text-[10px] text-[var(--text-secondary)] font-medium mt-1 line-clamp-1 opacity-60">{d.description}</p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
                              <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] font-mono whitespace-nowrap">

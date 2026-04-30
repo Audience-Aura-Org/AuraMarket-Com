@@ -1,28 +1,58 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, 
   Loader2, X, CheckCircle2, AlertCircle,
-  Lock, ArrowRightLeft, Sparkles, Building2
+  Lock, ArrowRightLeft, Sparkles, Building2,
+  TrendingUp, Activity, ChevronRight
 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TX_ICONS = {
-  deposit:    { Icon: ArrowDownLeft,  color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  withdrawal: { Icon: ArrowUpRight,   color: 'text-red-500',     bg: 'bg-red-500/10' },
-  payment:    { Icon: ArrowDownLeft,  color: 'text-amber-500',   bg: 'bg-amber-500/10' },
-  refund:     { Icon: ArrowDownLeft,  color: 'text-blue-500',    bg: 'bg-blue-500/10' },
-  payout:     { Icon: Building2,     color: 'text-purple-500',  bg: 'bg-purple-500/10' },
+  deposit:    { Icon: ArrowDownLeft,  color: 'emerald' },
+  withdrawal: { Icon: ArrowUpRight,   color: 'red' },
+  payment:    { Icon: ArrowDownLeft,  color: 'amber' },
+  refund:     { Icon: ArrowDownLeft,  color: 'blue' },
+  payout:     { Icon: Building2,      color: 'purple' },
 };
+
+function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
+
+function CompactStat({ title, value, sub, icon: Icon, color }) {
+  const colors = {
+    emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+    fuchsia: 'bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20',
+  };
+
+  return (
+    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl p-4 hover:border-[var(--accent)]/30 transition-all group">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
+          <Icon className="size-4" />
+        </div>
+        <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-50">{title}</p>
+      </div>
+      <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{value}</h3>
+      {sub && <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 uppercase">{sub}</p>}
+    </div>
+  );
+}
 
 export default function WalletPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
@@ -61,71 +91,42 @@ export default function WalletPage() {
     }
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (!mounted || !user) return;
-    
-    fetchWallet();
-    const timer = setInterval(fetchWallet, 15000);
-    const onFocus = () => fetchWallet();
-    window.addEventListener('focus', onFocus);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener('focus', onFocus);
-    };
-  }, [mounted, user]);
-
-  const handleDeposit = async () => {
-    if (!amount || Number(amount) <= 0) return showToast('Enter a valid amount.', 'error');
-    setSubmitting(true);
-    try {
-      const res = await api.post('/wallet/deposit', { amount: Number(amount) });
-      if (res.data.success) {
-        setBalance(res.data.data.new_balance);
-        setTransactions(prev => [res.data.data.transaction, ...prev]);
-        showToast('Deposit successful!');
-        setModal(null);
-        setAmount('');
-      }
-    } catch (err) {
-      showToast(err?.response?.data?.message || 'Deposit failed.', 'error');
-    } finally {
-      setSubmitting(false);
+    if (!mounted) return;
+    if (!user) {
+      router.replace('/login?from=wallet');
+      return;
     }
-  };
+    if (user.role === 'vendor') { router.replace('/vendor/wallet'); return; }
+    if (user.role === 'admin')  { router.replace('/admin/withdrawals'); return; }
+    fetchWallet();
+  }, [mounted, user, router]);
 
-  const handleWithdraw = async () => {
+  const handleAction = async (type) => {
     if (!amount || Number(amount) <= 0) return showToast('Enter a valid amount.', 'error');
-    if (Number(amount) > balance) return showToast('Insufficient balance.', 'error');
-    if (!withdrawalMethod) return showToast('Select a withdrawal method.', 'error');
+    if (type === 'withdraw') {
+      if (!withdrawalMethod) return showToast('Select a withdrawal method.', 'error');
+      if (!accountDetails.account_number) return showToast('Enter your mobile money number.', 'error');
+    }
     setSubmitting(true);
     try {
-      const res = await api.post('/wallet/withdraw', { 
-        amount: Number(amount),
-        method: withdrawalMethod,
-        details: accountDetails
-      });
+      const endpoint = type === 'deposit' ? '/wallet/deposit' : '/wallet/withdraw';
+      const body = type === 'deposit' ? { amount: Number(amount) } : { amount: Number(amount), method: withdrawalMethod, details: accountDetails };
+      const res = await api.post(endpoint, body);
       if (res.data.success) {
-        setBalance(res.data.data.remaining_balance);
-        setTransactions(prev => [res.data.data.transaction[0] || res.data.data.transaction, ...prev]);
-        showToast('Withdrawal request submitted!');
+        showToast(`${type} successful!`);
         setModal(null);
         setAmount('');
         setWithdrawalMethod('');
         setAccountDetails({ account_number: '', holder_name: '' });
+        fetchWallet();
       }
     } catch (err) {
-      showToast(err?.response?.data?.message || 'Withdrawal failed.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+      showToast(err?.response?.data?.message || 'Transaction failed.', 'error');
+    } finally { setSubmitting(false); }
   };
-
-  const totalIn = transactions.filter(t => ['deposit', 'refund', 'payout'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
-  const totalOut = transactions.filter(t => ['withdrawal', 'payment'].includes(t.type)).reduce((s, t) => s + t.amount, 0);
 
   const filteredTransactions = transactions.filter(tx => {
     if (activeTab === 'all') return true;
@@ -134,278 +135,150 @@ export default function WalletPage() {
     return true;
   });
 
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const currentTransactions = filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <DashboardLayout role={user?.role || 'vendor'}>
-      
-      {toast && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-sm font-bold animate-in fade-in slide-in-from-top-4 ${
-          toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
-        }`}>
-          {toast.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-          {toast.msg}
-        </div>
-      )}
-
-      {modal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => { setModal(null); setAmount(''); setWithdrawalMethod(''); }} className="absolute top-5 right-5 p-2 rounded-xl hover:bg-white/5 text-[var(--text-secondary)]">
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="flex items-center gap-4 mb-6">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${modal === 'deposit' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]'}`}>
-                {modal === 'deposit' ? <ArrowDownLeft className="w-6 h-6" /> : <ArrowUpRight className="w-6 h-6" />}
+    <DashboardLayout role={user?.role || 'customer'} hideSidebar={true}>
+      <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
+        
+        {/* Surgical Header */}
+        <div className="px-6 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
+          <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                <Wallet className="size-5" />
               </div>
               <div>
-                <h2 className="text-xl font-black text-[var(--text-primary)]">
-                  {modal === 'deposit' ? 'Add Funds' : 'Withdraw'}
-                </h2>
-                <p className="text-xs text-[var(--text-secondary)] opacity-60">
-                  {modal === 'deposit' ? 'Top up your wallet instantly' : 'Transfer to your account'}
-                </p>
+                <h1 className="text-lg font-black uppercase tracking-tight">Financial Nexus</h1>
+                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Liquid Capital Hub</p>
               </div>
             </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="text-[10px] font-black text-[var(--text-secondary)] tracking-widest uppercase mb-2 block opacity-60">Amount (XAF)</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="1"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-5 text-3xl font-black text-[var(--text-primary)] placeholder-[var(--text-secondary)]/30 focus:outline-none focus:border-[var(--accent)] transition-all text-center"
-                  />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-black text-[var(--text-secondary)]/40">XAF</span>
-                </div>
-                {modal === 'deposit' && (
-                  <div className="flex gap-2 mt-3">
-                    {[5000, 10000, 25000, 50000].map(qa => (
-                      <button key={qa} onClick={() => setAmount(String(qa))} className="flex-1 py-2.5 rounded-xl text-[10px] font-black tracking-wider border border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/10 transition-all text-[var(--text-secondary)]">
-                        {qa >= 1000 ? `${qa/1000}K` : qa}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {modal === 'withdraw' && (
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-[var(--text-secondary)] tracking-widest uppercase block opacity-60">Receive Via</label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { id: 'mtn', label: 'MTN MoMo', logo: 'bg-yellow-400' },
-                      { id: 'orange', label: 'Orange', logo: 'bg-orange-500' },
-                      { id: 'bank', label: 'Bank', logo: 'bg-indigo-600' }
-                    ].map(m => (
-                      <button 
-                        key={m.id}
-                        onClick={() => setWithdrawalMethod(m.id)}
-                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${withdrawalMethod === m.id ? 'bg-[var(--accent)]/10 border-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/30'}`}
-                      >
-                        <div className={`size-6 rounded-lg ${m.logo} flex items-center justify-center`}>
-                          {m.id === 'bank' && <Building2 className="w-3 h-3 text-white" />}
-                          {m.id === 'mtn' && <span className="text-[6px] font-black text-black">MTN</span>}
-                          {m.id === 'orange' && <span className="text-[6px] font-black text-white">OM</span>}
-                        </div>
-                        <span className={`text-[8px] font-black uppercase ${withdrawalMethod === m.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>{m.label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {withdrawalMethod && (
-                    <div className="space-y-3 pt-2">
-                      <input 
-                        type="text" 
-                        placeholder={withdrawalMethod === 'bank' ? 'Account Number' : 'Phone Number'}
-                        value={accountDetails.account_number}
-                        onChange={e => setAccountDetails({...accountDetails, account_number: e.target.value})}
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-4 text-sm font-bold text-[var(--text-primary)] placeholder-[var(--text-secondary)]/40 focus:outline-none focus:border-[var(--accent)]"
-                      />
-                      <input 
-                        type="text" 
-                        placeholder="Account Holder Name"
-                        value={accountDetails.holder_name}
-                        onChange={e => setAccountDetails({...accountDetails, holder_name: e.target.value})}
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-4 text-sm font-bold text-[var(--text-primary)] placeholder-[var(--text-secondary)]/40 focus:outline-none focus:border-[var(--accent)]"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <button
-                onClick={modal === 'deposit' ? handleDeposit : handleWithdraw}
-                disabled={submitting || !amount || (modal === 'withdraw' && (!withdrawalMethod || !accountDetails.account_number))}
-                className={`w-full h-14 flex items-center justify-center gap-2 font-black uppercase tracking-wider text-xs rounded-2xl transition-all active:scale-[0.98] disabled:opacity-30 ${
-                  modal === 'deposit' ? 'bg-emerald-500 text-white' : 'bg-[var(--accent)] text-white'
-                }`}
-              >
-                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {submitting ? 'Processing...' : modal === 'deposit' ? 'Deposit Funds' : 'Withdraw Funds'}
-              </button>
+            <div className="flex items-center gap-3">
+               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
+                  <ShieldCheck className="size-3 text-emerald-500" />
+                  <span className="text-[8px] font-black text-emerald-500 uppercase">Secured</span>
+               </div>
+               <button onClick={fetchWallet} className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+                  <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+               </button>
             </div>
           </div>
         </div>
-      )}
 
-      <div className="px-4 md:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-emerald-500" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-[var(--text-primary)]">My Wallet</h1>
-              <p className="text-sm text-[var(--text-secondary)] opacity-60">Manage your funds</p>
-            </div>
+        <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto">
+          
+          {/* Micro Stat Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <CompactStat title="Available" value={fmt(balance)} sub="Liquid Capital" icon={Wallet} color="emerald" />
+            <CompactStat title="In Escrow" value={fmt(pendingBalance)} sub="Held for Delivery" icon={Lock} color="amber" />
+            <CompactStat title="Platform In" value={fmt(transactions.filter(t => ['deposit','refund','payout'].includes(t.type)).reduce((s,t)=>s+t.amount,0))} sub="Total Received" icon={ArrowDownLeft} color="fuchsia" />
+            <CompactStat title="Platform Out" value={fmt(transactions.filter(t => ['withdrawal','payment'].includes(t.type)).reduce((s,t)=>s+t.amount,0))} sub="Total Sent" icon={ArrowUpRight} color="blue" />
           </div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Secured</span>
+
+          {/* Action Hub */}
+          <div className="grid grid-cols-2 gap-4">
+             <button onClick={() => setModal('deposit')} className="h-14 rounded-2xl bg-emerald-500 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all">
+                <ArrowDownLeft className="size-5" /> Deposit Funds
+             </button>
+             <button onClick={() => setModal('withdraw')} className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all">
+                <ArrowUpRight className="size-5" /> Withdraw
+             </button>
           </div>
-        </div>
 
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-40">
-            <div className="size-14 rounded-full border-4 border-[var(--accent)]/10 border-t-[var(--accent)] animate-spin" />
-            <p className="mt-6 text-[var(--text-secondary)] font-bold text-xs uppercase tracking-widest opacity-40">Loading...</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            
-            {/* KPI Cards - Same style as vendor/products */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
-              <KPICard title="Available" value={`${balance.toLocaleString()}`} icon={Wallet} color="emerald" sub="XAF Ready" />
-              <KPICard title="In Escrow" value={`${pendingBalance.toLocaleString()}`} icon={Lock} color="amber" sub="XAF Held" />
-              <KPICard title="Total In" value={`+${totalIn.toLocaleString()}`} icon={ArrowDownLeft} color="fuchsia" sub="XAF Received" />
-              <KPICard title="Total Out" value={`-${totalOut.toLocaleString()}`} icon={ArrowUpRight} color="blue" sub="XAF Sent" />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setModal('deposit')}
-                className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-emerald-500 text-white font-bold text-sm uppercase tracking-wider hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-lg shadow-emerald-500/20"
-              >
-                <ArrowDownLeft className="w-5 h-5" />
-                Deposit
-              </button>
-              <button
-                onClick={() => setModal('withdraw')}
-                className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-sm uppercase tracking-wider hover:bg-[var(--bg-secondary)]/80 transition-all active:scale-[0.98]"
-              >
-                <ArrowUpRight className="w-5 h-5" />
-                Withdraw
-              </button>
-            </div>
-
-            {/* Transactions */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-[var(--text-primary)]">Transactions</h2>
-                <span className="text-xs font-bold text-[var(--text-secondary)] opacity-60">{filteredTransactions.length} records</span>
-              </div>
-
-              <div className="flex gap-2 p-1 bg-[var(--bg-secondary)] rounded-xl">
-                {['all', 'in', 'out'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
-                    className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                      activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {tab === 'all' ? 'All' : tab === 'in' ? 'Received' : 'Sent'}
-                  </button>
-                ))}
-              </div>
-
-              {filteredTransactions.length === 0 ? (
-                <div className="py-16 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/50">
-                  <div className="size-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
-                    <ArrowRightLeft className="w-7 h-7 text-[var(--text-secondary)]/30" />
-                  </div>
-                  <p className="text-sm font-bold text-[var(--text-secondary)] opacity-40">No transactions yet</p>
+          {/* Activity Matrix */}
+          <section className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
+             <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] opacity-40">Transaction Matrix</h3>
+                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 uppercase">Structural Ledger History</p>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {currentTransactions.map((tx, i) => {
-                    const config = TX_ICONS[tx.type] || TX_ICONS.payment;
-                    const TxIcon = config.Icon;
-                    const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
-                    
-                    return (
-                      <div key={tx._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/20 transition-all">
-                        <div className={`size-12 rounded-xl flex items-center justify-center flex-shrink-0 ${config.bg}`}>
-                          <TxIcon className={`w-5 h-5 ${config.color}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-[var(--text-primary)] truncate">
-                            {tx.description || tx.title || (isCredit ? 'Received' : 'Sent')}
-                          </p>
-                          <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
-                            {new Date(tx.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-base font-black ${isCredit ? 'text-emerald-500' : 'text-red-500'}`}>
-                            {isCredit ? '+' : '-'}{tx.amount?.toLocaleString()}
-                          </p>
-                          <p className={`text-[9px] font-bold uppercase ${
-                            tx.status === 'completed' ? 'text-emerald-500' :
-                            tx.status === 'pending' ? 'text-amber-500' : 'text-red-500'
-                          }`}>
-                            {tx.status}
-                          </p>
-                        </div>
+                <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5">
+                  {['all', 'in', 'out'].map(t => (
+                    <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+             </div>
+
+             <div className="space-y-2 min-h-[400px]">
+                {loading ? <LoadingSpinner /> : currentTransactions.length === 0 ? (
+                  <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20 text-sm">No activity records found</div>
+                ) : currentTransactions.map((tx, i) => {
+                  const config = TX_ICONS[tx.type] || TX_ICONS.payment;
+                  const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
+                  return (
+                    <div key={tx._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group cursor-pointer">
+                      <div className={`size-10 rounded-xl flex items-center justify-center bg-${config.color}-500/10 text-${config.color}-500 border border-${config.color}-500/20`}>
+                        <config.Icon className="size-4" />
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-black uppercase truncate">{tx.description || tx.type}</p>
+                        <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-base font-black ${isCredit ? 'text-emerald-500' : 'text-red-500'}`}>{isCredit ? '+' : '-'}{fmt(tx.amount)}</p>
+                        <p className="text-[8px] font-black uppercase opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Record Details</p>
+                      </div>
+                    </div>
+                  );
+                })}
+             </div>
+          </section>
+        </div>
 
-              {totalPages > 1 && (
-                <div className="pt-6 flex justify-center">
-                  <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        {/* Action Modals - Abstracted for surgical look */}
+        <AnimatePresence>
+          {modal && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setModal(null)} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-black uppercase tracking-tight">{modal === 'deposit' ? 'Add Liquidity' : 'Initiate Outflow'}</h3>
+                  <button onClick={() => setModal(null)} className="p-2 rounded-full hover:bg-[var(--bg-secondary)] transition-all"><X className="size-4 opacity-40" /></button>
                 </div>
-              )}
+                <div className="space-y-6">
+                  <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full h-20 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-4xl font-black text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10" />
+                  {modal === 'withdraw' && (
+                    <>
+                      <select
+                        value={withdrawalMethod}
+                        onChange={(e) => setWithdrawalMethod(e.target.value)}
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-sm font-bold outline-none focus:border-[var(--accent)]"
+                      >
+                        <option value="">Select method</option>
+                        <option value="mtn">MTN MoMo</option>
+                        <option value="orange">Orange Money</option>
+                      </select>
+                      <input
+                        type="tel"
+                        value={accountDetails.account_number}
+                        onChange={(e) => setAccountDetails((prev) => ({ ...prev, account_number: e.target.value }))}
+                        placeholder="Mobile money number"
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-sm font-bold outline-none focus:border-[var(--accent)]"
+                      />
+                      <input
+                        type="text"
+                        value={accountDetails.holder_name}
+                        onChange={(e) => setAccountDetails((prev) => ({ ...prev, holder_name: e.target.value }))}
+                        placeholder="Account holder name (optional)"
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-sm font-bold outline-none focus:border-[var(--accent)]"
+                      />
+                    </>
+                  )}
+                  <button onClick={() => handleAction(modal)} disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20">
+                    {submitting ? 'Calibrating...' : 'Confirm Transaction'}
+                  </button>
+                </div>
+              </motion.div>
             </div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     </DashboardLayout>
   );
 }
 
-function KPICard({ title, value, icon: Icon, color, sub }) {
-  const colorMap = {
-    fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)]',
-    blue: 'bg-indigo-500/10 text-indigo-500',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    amber: 'bg-amber-500/10 text-amber-500',
-    red: 'bg-red-500/10 text-red-500',
-  };
-
-  return (
-    <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-[24px] lg:rounded-3xl p-4 lg:p-6 group hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden glass-panel shadow-sm w-full">
-      <div className={`absolute -right-4 -top-4 w-16 lg:w-24 h-16 lg:h-24 rounded-full blur-2xl opacity-50 ${colorMap[color]?.split(' ')[0]}`} />
-      <div className="flex justify-between items-start mb-3 lg:mb-4 relative z-10">
-        <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl flex items-center justify-center ${colorMap[color]}`}>
-          <Icon className="w-5 h-5 lg:w-6 lg:h-6" />
-        </div>
-      </div>
-      <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[7px] lg:text-[10px] font-black tracking-[0.2em] uppercase opacity-50">{title}</p>
-        <h3 className="text-fluid-base lg:text-fluid-xl font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
-        {sub && <p className="text-[7px] lg:text-[11px] text-[var(--text-secondary)] font-bold mt-1 opacity-50 uppercase tracking-tighter truncate">{sub}</p>}
-      </div>
-    </div>
-  );
+function RefreshCw({ className }) {
+  return <Activity className={className} />;
 }

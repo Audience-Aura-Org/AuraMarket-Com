@@ -10,8 +10,8 @@
   --color-bg-primary: var(--bg-primary);
   --color-text-primary: var(--text-primary);
   --color-card-bg: var(--card-bg);
-  --font-display: "Outfit", "Inter", "Poppins", sans-serif;
-  --font-sans: "Inter", sans-serif;
+  --font-display: "Poppins", sans-serif;
+  --font-sans: "Poppins", sans-serif;
 }
 
 :root {
@@ -143,5 +143,47 @@ i, em { font-style: normal !important; }
   75%, 100% {
     transform: scale(2);
     opacity: 0;
+  }
+}
+
+/* ── WhatsApp-style shimmer for story skeleton loading ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 0%,
+    var(--bg-primary)   40%,
+    var(--bg-secondary) 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Cart-aware grid adaptation ──────────────────────────────────────────────
+   When the cart sidebar is open (html.cart-open set by CartSidebar.js),
+   step down Tailwind lg:grid-cols-* so cards don't get squeezed.
+   CSS escaping: Tailwind compiles `lg:grid-cols-N` → `.lg\:grid-cols-N`      */
+@media (min-width: 1024px) {
+  html.cart-open .lg\:grid-cols-6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .lg\:grid-cols-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .lg\:grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .xl\:grid-cols-6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .xl\:grid-cols-5 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  html.cart-open .xl\:grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }

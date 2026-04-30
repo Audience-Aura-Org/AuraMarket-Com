@@ -86,7 +86,6 @@ export default function TopNav() {
     pathname?.startsWith('/logistics') ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/messages') ||
-    pathname?.startsWith('/wallet') ||
     pathname === '/login' ||
     pathname === '/register'
   ) return null;
@@ -102,12 +101,12 @@ export default function TopNav() {
   const hideSearchIcon = pathname === '/shop' || pathname === '/discovery' || pathname === '/stores';
 
   return (
-    <header className="sticky top-0 z-[100] bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
+    <header className="sticky top-0 z-[500] bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div className="w-full bg-[var(--nav-bg)]" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
       <div className="px-4 md:px-6 py-3 md:py-4 max-w-[1920px] mx-auto flex items-center justify-between gap-4">
         
-        {/* Logo & Links Section */}
+        {/* Logo Section */}
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
           <Link href="/" className="flex items-center gap-2 md:gap-3 group">
             <img
@@ -115,16 +114,7 @@ export default function TopNav() {
               alt="Aura Market"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
-            <h1 className="text-lg md:text-xl font-black tracking-tighter text-[var(--nav-text)] whitespace-nowrap">
-              Aura<span className="text-[var(--accent)]">Market</span>
-            </h1>
           </Link>
-          
-          <nav className="hidden xl:flex items-center gap-8">
-            <Link href="/shop" className={`text-[10px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-all ${pathname === '/shop' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)] opacity-40 hover:opacity-100'}`}>SHOP</Link>
-            <Link href="/stores" className={`text-[10px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-all ${pathname === '/stores' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)] opacity-40 hover:opacity-100'}`}>STORES</Link>
-            <Link href="/discovery" className={`text-[10px] font-black tracking-[0.2em] hover:text-[var(--accent)] transition-all ${pathname === '/discovery' ? 'text-[var(--accent)]' : 'text-[var(--nav-text)] opacity-40 hover:opacity-100'}`}>DISCOVERY</Link>
-          </nav>
         </div>
         
         {/* Global Search Interface - Icon Only */}
@@ -162,6 +152,16 @@ export default function TopNav() {
               </span>
             )}
           </button>
+
+          {user && (
+            <Link 
+              href="/wallet" 
+              className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm"
+              title="Wallet"
+            >
+              <Wallet className="size-5" />
+            </Link>
+          )}
 
           <div className="relative group/cart">
             <Link href="/cart" className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm">

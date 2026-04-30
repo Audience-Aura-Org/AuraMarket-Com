@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const logisticsService = require('../services/logistics.service');
 const PlatformSettings = require('../models/PlatformSettings.model');
+const Message = require('../models/Message.model');
 const { sendNotification } = require('../utils/notifier');
 
 // Helper to generate a unique transaction reference
@@ -62,6 +63,26 @@ const getTransactionHistory = async (req, res, next) => {
       .sort('-createdAt');
 
     res.status(200).json({ success: true, count: transactions.length, data: { transactions } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/wallet/config
+// @desc    Get wallet rules (withdrawal fee/minimum)
+// @access  Private
+// ─────────────────────────────────────────────
+const getWalletConfig = async (req, res, next) => {
+  try {
+    const settings = await PlatformSettings.getSettings();
+    res.status(200).json({
+      success: true,
+      data: {
+        withdrawal_fee: Number(settings.withdrawal_fee || 0),
+        min_withdrawal_amount: Number(settings.min_withdrawal_amount || 0),
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -118,17 +139,31 @@ const requestWithdrawal = async (req, res, next) => {
   try {
     const { amount, method, details } = req.body;
     const user = await User.findById(req.user._id).session(session);
+    const settings = await PlatformSettings.getSettings();
+    const minWithdrawal = Number(settings?.min_withdrawal_amount || 1000);
+    const withdrawalFee = Number(settings?.withdrawal_fee || 0);
+    const requestedAmount = Number(amount || 0);
+    const totalDebit = requestedAmount + withdrawalFee;
 
-    if (amount <= 0 || user.wallet_balance < amount) {
-      throw new Error('Insufficient wallet balance or invalid amount.');
+    if (!requestedAmount || requestedAmount < minWithdrawal) {
+      throw new Error(`Minimum withdrawal amount is ${minWithdrawal.toLocaleString()} XAF.`);
     }
 
-    if (!method) {
-      throw new Error('Withdrawal method is required.');
+    if (user.wallet_balance < totalDebit) {
+      throw new Error('Insufficient wallet balance.');
+    }
+
+    const ALLOWED_METHODS = ['mtn', 'orange'];
+    if (!method || !ALLOWED_METHODS.includes(method)) {
+      throw new Error('Invalid withdrawal method. Choose MTN MoMo or Orange Money.');
+    }
+
+    if (!details?.account_number) {
+      throw new Error('Phone number is required for mobile money withdrawal.');
     }
 
     // Deduct from wallet immediately to prevent double spending
-    user.wallet_balance -= amount;
+    user.wallet_balance -= totalDebit;
     await user.save({ session });
 
     // Create a descriptive label
@@ -140,11 +175,18 @@ const requestWithdrawal = async (req, res, next) => {
     const transaction = await Transaction.create([{
       user_id: req.user._id,
       type: 'withdrawal',
-      amount,
+      amount: requestedAmount,
       reference: generateTxRef(),
       status: 'pending', // Requires admin approval
       description: `Withdrawal to ${methodLabel}${accountRef}`,
-      gateway_response: { method, details, requested_at: new Date() } // Store structured data
+      gateway_response: {
+        method,
+        details,
+        fee_amount: withdrawalFee,
+        total_debited: totalDebit,
+        payout_amount: requestedAmount,
+        requested_at: new Date()
+      } // Store structured data
     }], { session });
 
     await session.commitTransaction();
@@ -153,7 +195,12 @@ const requestWithdrawal = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Withdrawal request submitted for approval.',
-      data: { transaction: transaction[0], remaining_balance: user.wallet_balance },
+      data: {
+        transaction: transaction[0],
+        remaining_balance: user.wallet_balance,
+        fee_amount: withdrawalFee,
+        total_debited: totalDebit
+      },
     });
   } catch (error) {
     await session.abortTransaction();
@@ -183,12 +230,46 @@ const processWithdrawal = async (req, res, next) => {
     }
 
     if (action === 'approve') {
-      transaction.status = 'completed';
+      const payoutService = require('../services/payout.service');
+      const details = transaction.gateway_response?.details || {};
+      const method = transaction.gateway_response?.method || 'mtn';
+      const payoutAmount = Number(transaction.gateway_response?.payout_amount || transaction.amount);
+      const feeAmount = Number(transaction.gateway_response?.fee_amount || 0);
+
+      try {
+        const payout = await payoutService.triggerMobilePayout(
+          payoutAmount,
+          details.account_number,
+          method
+        );
+
+        if (payout.success) {
+          transaction.status = 'completed';
+          transaction.description += ` | Ref: ${payout.reference}`;
+          transaction.gateway_response = { 
+            ...transaction.gateway_response, 
+            payout_ref: payout.reference, 
+            processed_at: new Date() 
+          };
+
+          if (feeAmount > 0) {
+            const settings = await PlatformSettings.getSettings();
+            settings.platform_wallet_balance += feeAmount;
+            await settings.save({ session });
+          }
+        } else {
+          throw new Error(payout.message || 'Payout failed at gateway');
+        }
+      } catch (payoutErr) {
+        console.error('[Withdrawal Approval] Payout Engine Error:', payoutErr.message);
+        throw new Error(`Payout Failed: ${payoutErr.message}`);
+      }
     } else if (action === 'reject') {
       transaction.status = 'rejected';
       // Refund the wallet since we deducted it during the request phase
       const user = await User.findById(transaction.user_id).session(session);
-      user.wallet_balance += transaction.amount;
+      const totalDebited = Number(transaction.gateway_response?.total_debited || transaction.amount);
+      user.wallet_balance += totalDebited;
       await user.save({ session });
     } else if (action === 'hold') {
       // For now, hold just confirms it's pending but perhaps we add a flag
@@ -213,18 +294,41 @@ const processWithdrawal = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
 
-    // Notify User
+    // Notify User via Notification System
     setImmediate(async () => {
         try {
+            const statusLabel = action === 'approve' ? 'Processed' : action === 'reject' ? 'Rejected' : 'Held';
+            const actionVerb = action === 'approve' ? 'processed' : action === 'reject' ? 'rejected and refunded' : 'placed on hold';
+            const msgText = `Your withdrawal of ${transaction.amount.toLocaleString()} XAF has been ${actionVerb}. Reference: ${transaction.reference}`;
+
+            // 1. Send Standard Notification
             await sendNotification(req.app, transaction.user_id, {
-                title: `Withdrawal ${action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Held'}`,
-                message: `Your withdrawal of ${transaction.amount.toLocaleString()} XAF has been ${action === 'approve' ? 'processed' : action === 'reject' ? 'rejected and refunded' : 'placed on hold'}.`,
+                title: `Withdrawal ${statusLabel}`,
+                message: msgText,
                 type: 'wallet_update',
                 metadata: { transaction_id: transaction._id, link: '/wallet' },
                 sendEmail: true
             });
+
+            // 2. Send Chat Message from Admin to User (System Comm as Message)
+            const chatMsg = await Message.create({
+                sender_id: req.user._id,
+                receiver_id: transaction.user_id,
+                text: `📢 [SYSTEM] ${msgText}`,
+                metadata: { type: 'system_wallet', transaction_id: transaction._id }
+            });
+
+            const io = req.app.get('io');
+            if (io) {
+                const populated = await Message.findById(chatMsg._id)
+                    .populate('sender_id', 'name avatar role branding')
+                    .populate('receiver_id', 'name avatar role branding');
+                
+                io.to(transaction.user_id.toString()).emit('receive_message', populated);
+                io.to(req.user._id.toString()).emit('sent_message_echo', populated);
+            }
         } catch (notifierErr) {
-            console.error('Withdrawal Notifier Error:', notifierErr);
+            console.error('Withdrawal Notifier/Chat Error:', notifierErr);
         }
     });
 
@@ -411,12 +515,59 @@ const getAllWithdrawals = async (req, res, next) => {
   }
 };
 
+const getEscrowTransactions = async (req, res, next) => {
+  try {
+    const transactions = await Transaction.find({
+      user_id: req.user._id,
+      type: 'payout',
+      status: 'pending'
+    })
+    .populate('order_id', 'order_status products total_amount')
+    .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      data: { transactions }
+    });
+  } catch (error) { next(error); }
+};
+
+const getPlatformFinancialStats = async (req, res, next) => {
+  try {
+    const settings = await PlatformSettings.getSettings();
+    
+    const [escrowStats, withdrawalStats] = await Promise.all([
+      Escrow.aggregate([
+        { $match: { status: 'held' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Transaction.aggregate([
+        { $match: { type: 'withdrawal', status: 'pending' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total_platform_revenue: settings.platform_wallet_balance || 0,
+        total_escrow_held: escrowStats[0]?.total || 0,
+        total_pending_withdrawals: withdrawalStats[0]?.total || 0,
+        commission_rate: settings.commission_rate
+      }
+    });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getWalletBalance,
+  getWalletConfig,
   getTransactionHistory,
   initiateDeposit,
   requestWithdrawal,
   processWithdrawal,
   getAllWithdrawals,
   payOrderWithWallet,
+  getEscrowTransactions,
+  getPlatformFinancialStats,
 };

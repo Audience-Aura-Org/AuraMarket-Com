@@ -631,7 +631,7 @@ export default function AccountPageClient() {
                         <div className="space-y-4">
                           {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
                             const firstItem = order.products?.[0] || order.items?.[0];
-                            const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white.png';
+                            const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white-main.png';
                             const title = firstItem?.name || firstItem?.product?.name || `Order #${order._id.substring(0, 8)}`;
                             
                             return (
@@ -1012,7 +1012,7 @@ export default function AccountPageClient() {
                                 {/* Profile Avatar */}
                                 <div className="size-20 rounded-2xl overflow-hidden border-4 border-[var(--bg-primary)] shadow-xl relative z-10 bg-[var(--bg-secondary)] group-hover:scale-105 transition-transform">
                                   <img 
-                                    src={vendor.vendor_id?.user_id?.branding?.logo || vendor.vendor_id?.user_id?.avatar || '/logo-white.png'} 
+                                    src={vendor.vendor_id?.user_id?.branding?.logo || vendor.vendor_id?.user_id?.avatar || '/logo-white-main.png'} 
                                     alt={vendor.vendor_id?.store_name}
                                     className="size-full object-cover"
                                   />
@@ -1083,7 +1083,7 @@ export default function AccountPageClient() {
                             <div key={follower._id} className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] p-5 hover:bg-[var(--accent)]/5 transition-all duration-300">
                               <div className="flex items-center gap-4">
                                 <div className="size-14 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0">
-                                  <img src={follower.user_id?.branding?.logo || follower.user_id?.avatar || '/logo-white.png'} className="size-full object-cover" alt="" />
+                                  <img src={follower.user_id?.branding?.logo || follower.user_id?.avatar || '/logo-white-main.png'} className="size-full object-cover" alt="" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs font-black uppercase tracking-widest truncate text-[var(--text-primary)]">{follower.user_id?.name}</p>

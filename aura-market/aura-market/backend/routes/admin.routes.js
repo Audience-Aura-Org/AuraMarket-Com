@@ -41,7 +41,9 @@ const {
   getAdvancedAnalytics,
   getEmailLogs,
   getAllProducts,
-  deleteUser
+  deleteUser,
+  bulkDeleteUsers,
+  bulkDeleteProducts
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
@@ -127,5 +129,7 @@ router.delete('/users/:id', deleteUser);
 router.get('/vendors', getAllVendors);
 router.patch('/vendors/:id/status', updateVendorStatus);
 router.get('/products', getAllProducts);
+router.post('/users/bulk-delete', bulkDeleteUsers);
+router.post('/products/bulk-delete', bulkDeleteProducts);
 
 module.exports = router;

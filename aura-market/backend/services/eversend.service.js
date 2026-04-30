@@ -52,6 +52,8 @@ const eversendClient = async () => {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
+      'Origin': 'https://aura-market-com.vercel.app',
+      'Referer': 'https://aura-market-com.vercel.app/'
     },
   });
 };
@@ -88,7 +90,12 @@ const initiateCollection = async (opts) => {
     transactionRef: opts.transactionRef,
   };
 
-  // Optional stringified customer schema
+  // Eversend requires redirect_url specifically for GH (Ghana) collections
+  if (opts.redirectUrl) {
+    payload.redirect_url = opts.redirectUrl;
+  }
+
+  // Handle customer object as a JSON string as per documentation
   if (opts.email || opts.firstName || opts.lastName) {
      payload.customer = JSON.stringify({
         email: opts.email || "",
@@ -97,7 +104,7 @@ const initiateCollection = async (opts) => {
      });
   }
 
-  // Inject OTP credentials if provided (direct collection flow)
+  // Inject OTP credentials if provided (for accounts not yet whitelisted)
   if (opts.otp && opts.otp.pinId && opts.otp.pin) {
      payload.otp = {
         pinId: opts.otp.pinId,
@@ -107,7 +114,6 @@ const initiateCollection = async (opts) => {
 
   console.log('[Eversend] initiateCollection payload:', JSON.stringify(payload, null, 2));
   const res = await client.post('/collections/momo', payload);
-  console.log('[Eversend] initiateCollection raw response:', JSON.stringify(res.data, null, 2));
   return res.data;
 };
 

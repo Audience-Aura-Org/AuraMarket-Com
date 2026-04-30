@@ -10,6 +10,8 @@ const Vendor = require('../models/Vendor.model');
 const Store = require('../models/Store.model');
 const KYC = require('../models/KYC.model');
 const Escrow = require('../models/Escrow.model');
+const Order = require('../models/Order.model');
+const Product = require('../models/Product.model');
 const mongoose = require('mongoose');
 const Follow = require('../models/Follow.model');
 
@@ -492,6 +494,74 @@ const getFollowing = async (req, res, next) => {
   }
 };
 
+const getVendorAnalytics = async (req, res, next) => {
+  try {
+    const vendorId = req.vendor._id;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [products, orders, escrowStats, followCount] = await Promise.all([
+      Product.find({ vendor_id: vendorId }).sort('-purchase_count').lean(),
+      Order.find({ vendor_id: vendorId }).sort('-createdAt').lean(),
+      Escrow.aggregate([
+        { $match: { vendor_id: vendorId, status: 'held' } },
+        { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
+      ]),
+      Follow.countDocuments({ vendor_id: vendorId })
+    ]);
+
+    const deliveredOrders = orders.filter(o => o.order_status === 'delivered');
+    const totalRevenue = orders
+      .filter(o => o.order_status !== 'cancelled')
+      .reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+    const totalViews = products.reduce((sum, p) => sum + (p.view_count || 0), 0);
+    const totalSales = deliveredOrders.length;
+    
+    // Calculate conversion rate (sales / views)
+    const conversionRate = totalViews > 0 ? (totalSales / totalViews) * 100 : 0;
+    
+    // Generate simple histogram data for the last 30 days
+    const salesOverTime = await Order.aggregate([
+      { 
+        $match: { 
+          vendor_id: vendorId, 
+          createdAt: { $gte: thirtyDaysAgo },
+          order_status: { $ne: 'cancelled' }
+        } 
+      },
+      { 
+        $group: { 
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, 
+          revenue: { $sum: "$total_amount" }, 
+          count: { $sum: 1 } 
+        } 
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stats: {
+          total_revenue: totalRevenue,
+          total_sales: totalSales,
+          total_products: products.length,
+          total_views: totalViews,
+          pending_escrow: escrowStats[0]?.totalHeld || 0,
+          follower_count: followCount,
+          conversion_rate: parseFloat(conversionRate.toFixed(2))
+        },
+        top_products: products.slice(0, 5),
+        recent_orders: orders.slice(0, 5),
+        sales_history: salesOverTime
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   onboardVendor,
   getVendorProfile,
@@ -505,4 +575,5 @@ module.exports = {
   getFollowers,
   getFollowing,
   checkFollowStatus,
+  getVendorAnalytics
 };

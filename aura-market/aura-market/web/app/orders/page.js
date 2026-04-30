@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +28,10 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders/my-orders');
-      if (res.data.success) setOrders(res.data.data.orders);
+      if (res.data.success) {
+        const sortedOrders = (res.data.data.orders || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setOrders(sortedOrders);
+      }
     } catch (err) {} finally {
       setLoading(false);
     }

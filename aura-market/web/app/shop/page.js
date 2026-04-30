@@ -10,10 +10,13 @@ import {
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import BlurUpImage from '@/components/common/BlurUpImage';
 import { useFollow } from '@/hooks/useFollow';
 import { useChat } from '@/context/ChatContext';
 import api from '@/services/api';
 import { trackSearch } from '@/services/tracking';
+import VendorFollowButton from '@/components/VendorFollowButton';
 
 const PRICE_RANGES = [
   { id: 'under-5000', name: 'Under 5,000 XAF', min: 0, max: 5000 },
@@ -301,10 +304,11 @@ function ShopContent() {
         {activeVendor && (
           <div className="relative w-full">
             {/* 1. Banner Section - COMPACT */}
-            <div className="relative h-[140px] md:h-[180px] w-full overflow-hidden">
-              <img 
+            <div className="relative h-[265px] md:h-[420px] w-full overflow-hidden">
+              <BlurUpImage 
                 src={activeVendor.banner || activeVendor.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070'} 
-                className="w-full h-full object-cover brightness-75 transition-transform duration-[3s] hover:scale-105"
+                className="w-full h-full" 
+                imgClassName="brightness-75 transition-transform duration-[3s] hover:scale-105" 
                 alt="Store Banner"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)] via-transparent to-black/20" />
@@ -316,10 +320,11 @@ function ShopContent() {
                 <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-center text-center md:text-left">
                   {/* Overlapping Logo - ULTRA COMPACT */}
                   <div className="size-16 md:size-24 rounded-2xl md:rounded-[2rem] border-2 md:border-4 border-[var(--bg-primary)] overflow-hidden shadow-lg shrink-0 bg-[var(--bg-secondary)] relative group">
-                    <img 
+                    <BlurUpImage 
                       src={activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo || activeVendor.vendor_id?.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeVendor.vendor_id?.store_name || 'Store')}&background=random&size=200`} 
-                      className="size-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                      alt="" 
+                      className="size-full" 
+                      imgClassName="transition-transform duration-700 group-hover:scale-110" 
+                      alt={activeVendor.vendor_id?.store_name} 
                     />
                   </div>
 
@@ -335,36 +340,27 @@ function ShopContent() {
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-[9px] md:text-[10px] font-black tracking-wider text-[var(--text-secondary)] uppercase">
-                      <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/5 text-[var(--accent)]">Online Store</span>
-                      <span className="opacity-40">•</span>
-                      <span>{products.length} Items</span>
-                      <span className="opacity-40">•</span>
-                      <div className="flex items-center gap-1 text-[var(--accent)]">
-                        <Star className="size-2.5 fill-current" />
-                        {activeVendor.vendor_id?.rating?.toFixed(1) || '4.9'}
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
+                        <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
+                        <span className="text-[11px] font-black text-[var(--text-primary)]">
+                          {activeVendor.vendor_id?.rating ? activeVendor.vendor_id.rating.toFixed(1) : '5.0'}
+                        </span>
+                        <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Rating</span>
                       </div>
-                      <span className="opacity-40 hidden md:block">•</span>
-                      <p className="hidden md:block normal-case font-medium opacity-60 truncate max-w-md">
-                        {activeVendor.vendor_id?.description || 'Premium Aura network provider.'}
-                      </p>
-                    </div>
 
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4">
-                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
-                          <LayoutGrid className="size-3 text-[var(--accent)]" />
-                          <span className="text-[10px] font-black text-[var(--text-primary)]">{products.length}</span>
-                          <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Objects</span>
-                       </div>
-                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)]">
-                          <Users className="size-3 text-[var(--accent)]" />
-                          <span className="text-[10px] font-black text-[var(--text-primary)]">{activeVendor.vendor_id?.follower_count || 0}</span>
-                          <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Followers</span>
-                       </div>
-                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                          <Check className="size-3 text-emerald-600" />
-                          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Trusted</span>
-                       </div>
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
+                        <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
+                        <span className="text-[11px] font-black text-[var(--text-primary)]">
+                          {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
+                        </span>
+                        <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Network</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
+                        <ShieldCheck className="size-3.5 text-emerald-600" />
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Verified Vendor</span>
+                      </div>
                     </div>
                   </div>
 
@@ -516,29 +512,11 @@ function ShopContent() {
   );
 }
 
-// Sub-component for Follow Button to use the hook correctly
-function VendorFollowButton({ vendorId }) {
-  const { isFollowing, toggleFollow, loading } = useFollow(vendorId);
-  if (!vendorId) return null;
 
-  return (
-    <button 
-      onClick={toggleFollow}
-      disabled={loading}
-      className={`px-6 h-10 md:h-11 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all active:scale-95 flex items-center justify-center gap-2 flex-1 md:flex-none ${
-        isFollowing 
-        ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20' 
-        : 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 shadow-lg shadow-[var(--accent)]/10'
-      }`}
-    >
-      {isFollowing ? 'Following' : 'Follow'}
-    </button>
-  );
-}
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center"><div className="w-12 h-12 rounded-full border-4 border-[var(--accent)] border-t-transparent animate-spin"></div></div>}>
+    <Suspense fallback={<LoadingSpinner fullScreen />}>
       <ShopContent />
     </Suspense>
   );

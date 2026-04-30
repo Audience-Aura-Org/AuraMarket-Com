@@ -12,6 +12,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function VendorDisputesPage() {
   const router = useRouter();
@@ -117,9 +118,7 @@ export default function VendorDisputesPage() {
 
           {/* Disputes List */}
           {loading ? (
-            <div className="py-20 flex justify-center">
-              <div className="animate-spin size-10 border-2 border-[var(--accent)] border-t-transparent rounded-full" />
-            </div>
+            <LoadingSpinner fullScreen />
           ) : filtered.length === 0 ? (
             <div className="py-20 flex flex-col items-center text-center">
               <div className="size-20 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
@@ -171,7 +170,7 @@ export default function VendorDisputesPage() {
                   
                   {d.description && (
                     <div className="mt-4 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                      <p className="text-xs text-[var(--text-secondary)] italic">"{d.description}"</p>
+                      <p className="text-xs text-[var(--text-secondary)]">"{d.description}"</p>
                     </div>
                   )}
                   

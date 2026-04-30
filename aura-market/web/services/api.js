@@ -19,7 +19,7 @@ const getBaseURL = () => {
 
 const api = axios.create({
   baseURL: getBaseURL(),
-  timeout: 10000, 
+  timeout: 300000, // Increased to 5 minutes for large file uploads (100MB)
   headers: {
     'Content-Type': 'application/json',
   },

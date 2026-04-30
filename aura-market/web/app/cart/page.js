@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { cartStore } from '@/services/cartStore';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
@@ -94,11 +95,7 @@ export default function CartPage() {
   const discount = coupon ? (coupon.type === 'percent' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount) : 0;
   const total = subtotal - discount;
 
-  if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-      <Loader2 className="w-10 h-10 text-[var(--accent)] animate-spin" />
-    </div>
-  );
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (cartItems.length === 0) {
     return (
@@ -108,7 +105,7 @@ export default function CartPage() {
         </div>
         <h1 className="text-2xl sm:text-3xl font-black mb-2 tracking-tight">Your cart is empty</h1>
         <p className="text-[var(--text-secondary)] mb-8 max-w-xs text-center text-sm">Add products to continue to checkout.</p>
-            <Link href="/shop" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 uppercase">
+            <Link href="/overtime" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 uppercase">
                Browse products
             </Link>
       </div>
@@ -124,7 +121,7 @@ export default function CartPage() {
       <main className="w-full px-4 sm:px-6 lg:px-20 py-6 sm:py-8 relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 sm:mb-8">
           <div>
-            <Link href="/discovery" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[10px] md:text-xs font-black tracking-widest mb-3 md:mb-4 uppercase">
+            <Link href="/overtime" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[10px] md:text-xs font-black tracking-widest mb-3 md:mb-4 uppercase">
               <ChevronLeft className="w-3.5 h-3.5" /> Continue Exploring
             </Link>
             <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-none text-balance">

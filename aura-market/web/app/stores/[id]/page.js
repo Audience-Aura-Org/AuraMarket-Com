@@ -9,10 +9,12 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useChat } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'), { ssr: false });
 
 import { useAuthStore } from '@/hooks/useAuth';
+import VendorFollowButton from '@/components/VendorFollowButton';
 
 export default function StorePage() {
   const { id } = useParams();
@@ -83,45 +85,30 @@ export default function StorePage() {
     if (id) fetchStoreData();
   }, [id, page, activeTab]);
 
-  const handleToggleFollow = async () => {
-    const targetId = vendor?._id?.toString() || id;
-    if (!targetId || followLoading) return;
-    
-    setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        await api.delete(`/vendors/${targetId}/follow`);
-        removeFollowedVendor(targetId);
-        if (store?.vendor_id) {
-          setStore(prev => ({
+  // Listen for global follow updates to sync local follower count
+  useEffect(() => {
+    const handleFollowSync = (e) => {
+      const { vendorId: updatedId, isFollowing: currentlyFollowing } = e.detail;
+      const targetId = vendor?._id?.toString() || id;
+      
+      if (updatedId === targetId) {
+        setStore(prev => {
+          if (!prev) return prev;
+          const currentCount = prev.vendor_id?.follower_count || 0;
+          const newCount = currentlyFollowing ? currentCount + 1 : Math.max(0, currentCount - 1);
+          return {
             ...prev,
-            vendor_id: { ...prev.vendor_id, follower_count: (prev.vendor_id.follower_count || 1) - 1 }
-          }));
-        }
-      } else {
-        await api.post(`/vendors/${targetId}/follow`);
-        addFollowedVendor(targetId);
-        if (store?.vendor_id) {
-          setStore(prev => ({
-            ...prev,
-            vendor_id: { ...prev.vendor_id, follower_count: (prev.vendor_id.follower_count || 0) + 1 }
-          }));
-        }
+            vendor_id: { ...prev.vendor_id, follower_count: newCount }
+          };
+        });
       }
-    } catch (err) {
-      toast.error('Handshake failed.');
-    } finally {
-      setFollowLoading(false);
-    }
-  };
+    };
+    
+    window.addEventListener('aura_follow_update', handleFollowSync);
+    return () => window.removeEventListener('aura_follow_update', handleFollowSync);
+  }, [vendor, id]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!store) {
     return (
@@ -143,7 +130,7 @@ export default function StorePage() {
 
        <div className="relative w-full">
         {/* 1. Banner Section - COMPACT */}
-        <div className="relative h-[140px] md:h-[180px] w-full overflow-hidden">
+        <div className="relative h-[265px] md:h-[420px] w-full overflow-hidden">
           <img 
             src={store.banner || store.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070'} 
             className="w-full h-full object-cover brightness-75 transition-transform duration-[3s] hover:scale-105"
@@ -170,43 +157,38 @@ export default function StorePage() {
                   <h1 className="text-xl md:text-3xl font-black tracking-tighter text-[var(--text-primary)] uppercase">
                     {store.vendor_id?.store_name}
                   </h1>
-                  <div className="flex items-center justify-center md:justify-start gap-3">
-                     <div className="px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center gap-2">
-                        <Star className="size-3 text-[var(--accent)] fill-current" />
-                        <span className="text-[10px] font-black text-[var(--accent)]">{store.vendor_id?.rating?.toFixed(1) || '5.0'}</span>
-                     </div>
-                     <div className="px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center gap-2">
-                        <Users className="size-3 opacity-40" />
-                        <span className="text-[10px] font-black opacity-60">
-                          {store.vendor_id?.follower_count ? (store.vendor_id.follower_count >= 1000 ? (store.vendor_id.follower_count / 1000).toFixed(1) + 'k' : store.vendor_id.follower_count) : '0'}
-                        </span>
-                     </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
+                    <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-black text-[var(--text-primary)]">
+                      {vendor?.rating ? vendor.rating.toFixed(1) : '5.0'}
+                    </span>
+                    <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Rating</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
+                    <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-black text-[var(--text-primary)]">
+                      {vendor?.follower_count ? (vendor.follower_count >= 1000 ? (vendor.follower_count / 1000).toFixed(1) + 'k' : vendor.follower_count) : '0'}
+                    </span>
+                    <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase opacity-40">Network</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
+                    <ShieldCheck className="size-3.5 text-emerald-600" />
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Verified Vendor</span>
                   </div>
                 </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                    <Check className="size-3 text-emerald-600" />
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">Trusted</span>
-                  </div>
               </div>
 
               {/* Action Stack - MOBILE OPTIMIZED */}
               <div className="flex flex-row md:flex-col items-center gap-2 w-full md:w-auto shrink-0">
-                <button 
-                  onClick={handleToggleFollow}
-                  disabled={followLoading}
-                  className={`px-6 h-10 md:h-11 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all active:scale-95 flex items-center justify-center gap-2 flex-1 md:flex-none ${
-                    isFollowing 
-                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20' 
-                    : 'bg-[var(--accent)] text-white border border-[var(--accent)] hover:brightness-110 shadow-lg shadow-[var(--accent)]/20'
-                  }`}
-                >
-                  {isFollowing ? (
-                    <>
-                      <Check className="size-3" />
-                      Following
-                    </>
-                  ) : '+ Follow'}
-                </button>
+                <VendorFollowButton 
+                  vendorId={vendor?._id?.toString() || id} 
+                  className="!h-10 md:!h-11 !text-[10px] flex-1 md:flex-none"
+                />
                 {user?._id === store.vendor_id?.user_id?._id && (
                    <button 
                     onClick={() => setShowStatusCreator(true)}
@@ -244,19 +226,24 @@ export default function StorePage() {
         <div className="px-6 lg:px-12">
           <div ref={productsAnchor} className="mt-12 md:mt-16 mb-8 md:mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
-               {['Signal Intake', 'Latest Drops', 'Catalogs'].map((tab) => (
+               {[
+                 { id: 'Signal Intake', label: 'Signal Intake', icon: <Activity className="size-3.5" /> },
+                 { id: 'Latest Drops', label: 'Latest Drops', icon: <Package className="size-3.5" /> },
+                 { id: 'Catalogs', label: 'Catalogs', icon: <LayoutGrid className="size-3.5" /> }
+               ].map((tab) => (
                  <motion.button 
-                  key={tab}
-                  onClick={() => { setActiveTab(tab); setPage(1); }}
-                  whileHover={{ scale: 1.02 }}
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setPage(1); }}
+                  whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`h-11 md:h-12 px-6 md:px-8 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black tracking-widest uppercase transition-all shrink-0 border-2 ${
-                    tab === activeTab
-                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' 
+                  className={`h-11 md:h-12 px-6 md:px-8 rounded-2xl flex items-center gap-3 text-[10px] md:text-[11px] font-black tracking-widest uppercase transition-all shrink-0 border-2 ${
+                    tab.id === activeTab
+                    ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-primary)] shadow-2xl' 
                     : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]'
                   }`}
                  >
-                   {tab}
+                   {tab.icon}
+                   {tab.label}
                  </motion.button>
                ))}
             </div>

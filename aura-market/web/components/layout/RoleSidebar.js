@@ -6,6 +6,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
+import { useChat } from '@/context/ChatContext';
 
 const VENDOR_NAV = [
   { icon: 'dashboard',                label: 'Dashboard',        href: '/vendor/dashboard' },
@@ -15,7 +16,7 @@ const VENDOR_NAV = [
   { icon: 'star_rate',                label: 'Client Ratings',   href: '/vendor/ratings' },
   { icon: 'gavel',                    label: 'Disputes',         href: '/vendor/disputes' },
   { icon: 'chat',                     label: 'Messages',         href: '/messages',         badge: 'messages' },
-  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
+  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/vendor/wallet' },
   { icon: 'analytics',                label: 'Analytics',        href: '/vendor/analytics' },
 ];
 
@@ -40,6 +41,15 @@ const ADMIN_NAV = [
   { icon: 'web',            label: 'CMS / Hero',       href: '/admin/homepage' },
 ];
 
+const CUSTOMER_NAV = [
+  { icon: 'home',                     label: 'Marketplace',      href: '/' },
+  { icon: 'shopping_bag',             label: 'My Orders',        href: '/orders' },
+  { icon: 'favorite',                 label: 'Wishlist',         href: '/wishlist' },
+  { icon: 'chat',                     label: 'Messages',         href: '/messages',         badge: 'messages' },
+  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
+  { icon: 'person',                   label: 'Profile',          href: '/profile' },
+];
+
 const LOGISTICS_NAV = [
   { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
@@ -50,6 +60,13 @@ const LOGISTICS_NAV = [
 ];
 
 const ROLE_CONFIG = {
+  customer: {
+    nav: CUSTOMER_NAV,
+    label: 'Aura Member',
+    accent: '#2dd4bf',
+    plan: 'Standard Tier',
+    icon: 'star',
+  },
   vendor: {
     nav: VENDOR_NAV,
     label: 'Vendor Premium',
@@ -78,9 +95,10 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   const { user, logout } = useAuthStore();
   const { theme } = useTheme();
   const router = useRouter();
-  const config = ROLE_CONFIG[role] || ROLE_CONFIG.vendor;
+  const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
 
   const { unreadCount, unreadMessages } = useNotifications();
+  const { openChat } = useChat();
 
   const handleLogout = () => {
     logout();
@@ -152,12 +170,22 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             const isActive = bestMatch?.href === item.href;
             const badge = getBadge(item);
 
+            const isChat = item.label === 'Messages' || item.label === 'System Comms';
+            const Comp = isChat ? 'button' : Link;
+
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => { if(window.innerWidth < 1024) onClose(); }}
-                className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all group ${
+              <Comp
+                key={item.href || item.label}
+                href={isChat ? undefined : item.href}
+                onClick={(e) => { 
+                  if (isChat) {
+                    e.preventDefault();
+                    const isGlobal = item.label === 'System Comms';
+                    openChat(null, null, null, isGlobal);
+                  }
+                  if(window.innerWidth < 1024) onClose(); 
+                }}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all group ${
                   isActive
                     ? 'border-l-[3px]'
                     : 'hover:bg-[var(--accent)]/5 border-l-[3px] border-transparent'
@@ -188,7 +216,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                     {badge > 99 ? '99+' : badge}
                   </span>
                 )}
-              </Link>
+              </Comp>
             );
           })}
 

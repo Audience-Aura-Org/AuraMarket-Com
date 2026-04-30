@@ -28,7 +28,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         >
           {isOpen ? <X className="size-5.5" /> : <Menu className="size-5.5" />}
         </button>
-        <div className="flex items-center gap-2 min-w-0">
+        <Link href="/" className="flex items-center gap-2 min-w-0 active:scale-95 transition-transform">
            {mounted && (
              <img 
                src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'} 
@@ -39,7 +39,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
            <h1 className="text-[11px] font-black tracking-tight text-[var(--nav-text)] uppercase leading-none truncate">
              Aura <span className="text-[var(--accent)]">Market</span>
            </h1>
-        </div>
+        </Link>
       </div>
 
       <div className="flex items-center gap-3">

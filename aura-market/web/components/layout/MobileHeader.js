@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Menu, X, ShoppingCart, MessageCircle, User } from 'lucide-react';
+import { Menu, X, ShoppingCart, MessageCircle, User, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
@@ -17,7 +17,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   }, []);
 
   return (
-    <header className="lg:hidden bg-[var(--nav-bg)] border-b border-[var(--nav-border)] text-[var(--nav-text)] sticky top-0 z-[300] transition-colors duration-500">
+    <header className="lg:hidden bg-[var(--nav-bg)] border-b border-[var(--nav-border)] text-[var(--nav-text)] sticky top-0 z-[500] transition-colors duration-500">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
       <div className="h-14 flex items-center justify-between px-4">
@@ -52,6 +52,16 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         >
           <ShoppingCart className="size-5" />
         </Link>
+
+        {/* Wallet */}
+        {user && (
+          <Link
+            href="/wallet"
+            className="relative p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:text-[var(--accent)] transition-all active:scale-95"
+          >
+            <Wallet className="size-5" />
+          </Link>
+        )}
 
         {/* Messages */}
         {user && (

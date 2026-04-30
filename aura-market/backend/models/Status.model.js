@@ -63,6 +63,11 @@ const StatusSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       index: true
+    },
+    category: {
+      type: String,
+      default: 'General',
+      index: true
     }
   },
   {

@@ -7,7 +7,14 @@ import { useAuthStore } from '@/hooks/useAuth';
 export default function OnboardingWatcher() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, hasHydrated } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated, fetchFollowedVendors, followedVendorIds } = useAuthStore();
+ 
+  // Pre-fetch followed list as soon as authenticated to avoid flicker
+  useEffect(() => {
+    if (isAuthenticated && hasHydrated && followedVendorIds.length === 0) {
+      fetchFollowedVendors();
+    }
+  }, [isAuthenticated, hasHydrated, followedVendorIds.length, fetchFollowedVendors]);
 
   useEffect(() => {
     // Wait for persisted auth state to hydrate before redirecting.

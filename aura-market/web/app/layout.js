@@ -1,19 +1,12 @@
 import '../styles/globals.css';
-import { Poppins, Quicksand } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 import Providers from '@/components/Providers';
 
 const poppins = Poppins({
-  weight: ['300', '400', '500', '600', '700', '800'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-poppins',
-});
-
-const quicksand = Quicksand({
-  weight: ['300', '400', '500', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-quicksand',
 });
 
 export const metadata = {
@@ -27,30 +20,33 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon-192.png?v=8', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png?v=8', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/apple-touch-icon.png?v=8', sizes: '512x512', type: 'image/png' },
     ],
   },
 
 };
 
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
-  themeColor: '#0a0a0a',
-};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={poppins.variable} data-scroll-behavior="smooth">
       <head>
-        {/* Non-render-blocking icon font — loaded async after paint */}
+        {/* Viewport: interactive-widget=resizes-visual prevents iOS PWA keyboard freeze */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual"
+        />
+        <meta name="theme-color" content="#0a050a" />
+        {/* Dynamic Theme-Aware Favicons */}
+        <link rel="icon" href="/icon-192.png?v=8" media="(prefers-color-scheme: light)" />
+        <link rel="icon" href="/icon-512.png?v=8" media="(prefers-color-scheme: dark)" />
+        {/* Fallback for browsers that don't support media queries on icons */}
+        <link rel="shortcut icon" href="/icon-512.png?v=8" />
+        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -63,7 +59,7 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
       </head>
-      <body className="font-[Poppins,sans-serif] min-h-screen flex flex-col">
+      <body className="font-sans min-h-screen flex flex-col">
         <Providers>{children}</Providers>
       </body>
     </html>

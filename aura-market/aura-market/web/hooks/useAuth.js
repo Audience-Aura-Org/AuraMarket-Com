@@ -11,11 +11,14 @@ export const useAuthStore = create(
     (set, get) => ({
       user: null,
       token: null,
+      rememberedEmail: '', // New field to keep track of the last logged-in email
+      followedVendorIds: [], // Global list for instant checks
       isAuthenticated: false,
       hasHydrated: false,
       loading: false,
       error: null,
       setHasHydrated: (value) => set({ hasHydrated: value }),
+      setRememberedEmail: (email) => set({ rememberedEmail: email }),
 
       // Login functionality
       login: async (credentials) => {
@@ -35,7 +38,7 @@ export const useAuthStore = create(
 
           const { token, data } = res.data;
           const { user } = data;
-          set({ user, token, isAuthenticated: true, loading: false });
+          set({ user, token, isAuthenticated: true, loading: false, rememberedEmail: user.email });
           localStorage.setItem('aura_token', token);
           return { success: true };
         } catch (err) {
@@ -93,6 +96,40 @@ export const useAuthStore = create(
       updateUser: (data) => {
         set((state) => ({
           user: { ...state.user, ...data }
+        }));
+      },
+
+      // Fetch followed list for instant status across site
+      fetchFollowedVendors: async () => {
+        if (!get().isAuthenticated) return;
+        try {
+          const res = await api.get('/users/followed-vendors');
+          if (res.data.success) {
+            const ids = (res.data.data.follows || [])
+              .map(f => f.vendor_id?._id || f.vendor_id)
+              .filter(id => id != null)
+              .map(id => id.toString());
+            set({ followedVendorIds: ids });
+          }
+        } catch (err) {
+          console.error('Failed to pre-fetch followed vendors:', err);
+        }
+      },
+
+      // Optimistic updates for zero-flicker UI
+      addFollowedVendor: (vendorId) => {
+        const id = vendorId.toString();
+        set((state) => ({
+          followedVendorIds: state.followedVendorIds.includes(id) 
+            ? state.followedVendorIds 
+            : [...state.followedVendorIds, id]
+        }));
+      },
+
+      removeFollowedVendor: (vendorId) => {
+        const id = vendorId.toString();
+        set((state) => ({
+          followedVendorIds: state.followedVendorIds.filter(vId => vId !== id)
         }));
       }
     }),

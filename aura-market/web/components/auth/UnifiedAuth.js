@@ -141,8 +141,8 @@ export default function UnifiedAuth() {
               className="space-y-6"
             >
               <div className="text-center space-y-1">
-                <h1 className="text-[22px] font-black text-[var(--text-primary)] font-display tracking-tight">Welcome to Aura</h1>
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-50">
+                <h1 className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight">Welcome to Aura</h1>
+                <p className="text-[13px] text-[var(--text-secondary)] opacity-60">
                   Enter your email to continue
                 </p>
               </div>
@@ -164,7 +164,7 @@ export default function UnifiedAuth() {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-semibold text-[15px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
                 >
                   Continue
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -172,13 +172,13 @@ export default function UnifiedAuth() {
               </form>
 
               <div className="pt-4 border-t border-[var(--glass-border)] text-center">
-                <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-40 mb-3">New to Aura Market?</p>
+                <p className="text-[12px] text-[var(--text-secondary)] opacity-50 mb-3">New to Aura Market?</p>
                 <button
                   onClick={() => {
                     setIsNewUser(true);
                     setStep('CHALLENGE');
                   }}
-                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)] font-black text-[10px] uppercase tracking-widest hover:bg-[var(--accent)]/5 transition-all"
+                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)] font-semibold text-[14px] hover:bg-[var(--accent)]/5 transition-all"
                 >
                   Create an account
                 </button>
@@ -195,15 +195,15 @@ export default function UnifiedAuth() {
             >
               <button
                 onClick={prevStep}
-                className="inline-flex items-center gap-2 text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest hover:text-[var(--text-primary)] transition-all mb-2"
+                className="inline-flex items-center gap-2 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all mb-2"
               >
                 <ArrowLeft className="w-3 h-3" />
-                Change Email
+                Change email
               </button>
 
               <div className="space-y-0.5">
-                <h2 className="text-[18px] font-black text-[var(--text-primary)] font-display tracking-tight">
-                  {isNewUser ? 'Create your node' : 'Enter password'}
+                <h2 className="text-[18px] font-bold text-[var(--text-primary)] tracking-tight">
+                  {isNewUser ? 'Create your account' : 'Enter your password'}
                 </h2>
                 <p className="text-[10px] font-bold text-[var(--accent)] truncate max-w-full opacity-80">
                   {formData.email}
@@ -299,21 +299,21 @@ export default function UnifiedAuth() {
                   <button
                     type="button"
                     onClick={() => setIsNewUser(!isNewUser)}
-                    className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest hover:opacity-70 transition-all"
+                    className="text-[12px] font-medium text-[var(--accent)] hover:opacity-70 transition-all"
                   >
-                    {isNewUser ? 'Wait, I have an account' : 'I am new to Aura market'}
+                    {isNewUser ? 'I already have an account' : 'I\'m new to Aura Market'}
                   </button>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-semibold text-[15px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    isNewUser ? 'Join Aura' : 'Continue'
+                    isNewUser ? 'Join Aura' : 'Sign in'
                   )}
                 </button>
               </form>
@@ -323,7 +323,6 @@ export default function UnifiedAuth() {
       </div>
 
       <p className="mt-8 text-center text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3em] opacity-40">
-        © 2026 Aura Ecosystem
       </p>
     </div>
   );

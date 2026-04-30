@@ -1,336 +1,781 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, useMemo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import {
-  X, Heart, ShoppingBag, MessageCircle,
-  ChevronLeft, ChevronRight, Volume2, VolumeX,
-  Eye, Flame
+  X, Heart, ShoppingBag,
+  Volume2, VolumeX,
+  Eye, Send, Share2, Pause, Play, Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useChat } from '@/context/ChatContext';
 import api from '@/services/api';
+import BlurUpImage from '@/components/common/BlurUpImage';
 
 const STORY_DURATION = 5000;
+const VIDEO_PRELOAD_AHEAD = 4;
+const VIDEO_WAIT_TIMEOUT_MS = 15000; // Increased for mobile networks
+const VIDEO_STALL_TIMEOUT_MS = 5000; // Max time to wait for stall recovery
 
-/**
- * StatusViewer — Ultra-fast fullscreen story viewer.
- * - Preloads ALL images on mount for zero lag
- * - Pure CSS progress bar (no JS interval)
- * - Simple tap-left/right navigation
- * - Swipe with dead-zone to prevent conflict
- * - Long-press to pause
- */
-export default function StatusViewer({ initialStatuses, onClose }) {
-  const router = useRouter();
-  const { openChat } = useChat();
+// ─── Preload helper ──────────────────────────────────────────────────────────
+const preloadCache = new Set();
+const videoPreloadMap = new Map();
+function preloadMedia(url, type) {
+  if (!url || preloadCache.has(url)) return;
+  preloadCache.add(url);
+  if (type === 'video') {
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.src = url;
+    v.muted = true;
+    v.load();
+    videoPreloadMap.set(url, v);
+  } else {
+    const img = new Image();
+    img.src = url;
+  }
+}
 
-  const [idx, setIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [imgReady, setImgReady] = useState(false);
+function cleanupVideoPreloads(keepUrls = []) {
+  const keep = new Set(keepUrls.filter(Boolean));
+  for (const [url, video] of videoPreloadMap.entries()) {
+    if (keep.has(url)) continue;
+    video.src = '';
+    videoPreloadMap.delete(url);
+    preloadCache.delete(url);
+  }
+}
 
-  const videoRef = useRef(null);
-  const holdTimer = useRef(null);
-  const touchStart = useRef({ x: 0, y: 0, t: 0 });
-  const progressKey = useRef(0);
+// ─── Cloudinary poster helper ────────────────────────────────────────────────
+const getVideoPoster = (src) => {
+  if (!src || !src.includes('res.cloudinary.com')) return null;
+  try {
+    return src
+      .replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/')
+      .replace(/\.[^/.]+$/, '.jpg');
+  } catch {
+    return null;
+  }
+};
 
-  const story = initialStatuses[idx];
-  const total = initialStatuses.length;
-  const isVideo = story?.type === 'video';
+// Global cache for loaded videos to prevent re-shimmering
+const loadedVideos = new Set();
 
-  // ── Preload ALL images at mount ────────────────────────────
+function getRetryableVideoUrl(url) {
+  if (!url) return null;
+  try {
+    const encoded = encodeURI(url);
+    return encoded !== url ? encoded : null;
+  } catch {
+    return null;
+  }
+}
+
+function addCacheBust(url) {
+  if (!url) return null;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}cb=${Date.now()}`;
+}
+
+// ─── StoryVideo ──────────────────────────────────────────────────────────────
+const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
+  const ref = useRef(null);
+  const [playbackSrc, setPlaybackSrc] = useState(src);
+  const [poster, setPoster]       = useState(() => getVideoPoster(src));
+  const [videoReady, setVideoReady] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [didRetryUrl, setDidRetryUrl] = useState(false);
+  const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
+  const waitTimeoutRef = useRef(null);
+  const stallTimeoutRef = useRef(null);
+  const visibilityRef = useRef(null);
+
   useEffect(() => {
-    initialStatuses.forEach(s => {
-      if (s.type === 'image' && s.content_url) {
-        const img = new Image();
-        img.src = s.content_url;
+    const instant = getVideoPoster(src);
+    setPoster(instant);
+    setVideoReady(loadedVideos.has(src));
+    setPlaybackSrc(src);
+    setDidRetryUrl(false);
+    setDidRetryCacheBust(false);
+    setIsWaiting(false);
+    setHasStarted(false);
+  }, [src]);
+
+  // Handle page visibility change (pause when tab in background)
+  useEffect(() => {
+    if (!active) return;
+    
+    const handleVisibilityChange = () => {
+      const v = ref.current;
+      if (!v) return;
+      
+      if (document.hidden) {
+        v.pause();
+        console.log('[Video] Page hidden, pausing video');
+      } else {
+        if (!paused) {
+          v.play().catch(err => {
+            console.warn('[Video] Resume after visibility change failed:', err.message);
+          });
+        }
+        console.log('[Video] Page visible, resuming video');
       }
-    });
-  }, []);
+    };
 
-  // ── Lock body scroll ───────────────────────────────────────
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [active, paused]);
 
-  // ── Track view (fire-and-forget) ───────────────────────────
+  // Play / pause
   useEffect(() => {
-    if (story) {
-      api.post(`/statuses/${story._id}/view`).catch(() => {});
-      setLiked(story.isLiked || false);
-      setImgReady(false);
-      progressKey.current++;
+    const v = ref.current;
+    if (!v) return;
+    if (active && !paused) {
+      v.play().catch(err => {
+        console.warn('[Video] Playback blocked or failed:', err.message);
+      });
+    } else {
+      v.pause();
+      if (!active) {
+        v.currentTime = 0;
+        setHasStarted(false);
+      }
     }
-  }, [idx]);
+  }, [active, paused]);
 
-  // ── Auto-advance (CSS animation end) ──────────────────────
-  const handleProgressEnd = useCallback(() => {
-    if (!paused) goNext();
-  }, [idx, total, paused]);
+  // Timeout for waiting (loading timeout)
+  useEffect(() => {
+    if (!active || paused || !isWaiting) {
+      if (waitTimeoutRef.current) {
+        clearTimeout(waitTimeoutRef.current);
+        waitTimeoutRef.current = null;
+      }
+      return;
+    }
+    waitTimeoutRef.current = setTimeout(() => {
+      console.warn('[Video] Load timeout reached, skipping story:', src);
+      onEnded();
+    }, VIDEO_WAIT_TIMEOUT_MS);
+    return () => {
+      if (waitTimeoutRef.current) {
+        clearTimeout(waitTimeoutRef.current);
+        waitTimeoutRef.current = null;
+      }
+    };
+  }, [active, paused, isWaiting, src, onEnded]);
 
-  // ── Navigation ─────────────────────────────────────────────
+  // Timeout for stall recovery
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !active || paused || !isWaiting) {
+      if (stallTimeoutRef.current) {
+        clearTimeout(stallTimeoutRef.current);
+        stallTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    stallTimeoutRef.current = setTimeout(() => {
+      console.warn('[Video] Stall timeout, attempting recovery by resuming play');
+      if (v && !paused) {
+        v.play().catch(err => {
+          console.warn('[Video] Stall recovery failed:', err.message);
+        });
+      }
+    }, VIDEO_STALL_TIMEOUT_MS);
+
+    return () => {
+      if (stallTimeoutRef.current) {
+        clearTimeout(stallTimeoutRef.current);
+        stallTimeoutRef.current = null;
+      }
+    };
+  }, [active, paused, isWaiting]);
+
+  // Mute
+  useEffect(() => {
+    const v = ref.current;
+    if (v) v.muted = muted;
+  }, [muted]);
+
+  const handleReady = useCallback(() => {
+    if (src) loadedVideos.add(src);
+    if (playbackSrc) loadedVideos.add(playbackSrc);
+    setVideoReady(true);
+    setIsWaiting(false);
+    console.log('[Video] Ready to play:', playbackSrc || src);
+  }, [src, playbackSrc]);
+
+  const handleError = useCallback((e) => {
+    const mediaErrorCode = e?.currentTarget?.error?.code;
+    const retryUrl = getRetryableVideoUrl(playbackSrc);
+    if (!didRetryUrl && retryUrl) {
+      setDidRetryUrl(true);
+      setPlaybackSrc(retryUrl);
+      setVideoReady(false);
+      setIsWaiting(true);
+      console.warn('[Video] Initial load failed. Retrying with encoded URL.');
+      return;
+    }
+    if (!didRetryCacheBust) {
+      setDidRetryCacheBust(true);
+      setPlaybackSrc(addCacheBust(playbackSrc || src));
+      setVideoReady(false);
+      setIsWaiting(true);
+      console.warn('[Video] Encoded retry failed. Retrying with cache-busted URL.');
+      return;
+    }
+    console.warn('[Video] Media load failed after retries, skipping story:', {
+      url: playbackSrc || src,
+      mediaErrorCode,
+    });
+    onEnded();
+  }, [src, playbackSrc, didRetryUrl, didRetryCacheBust, onEnded]);
+
+  return (
+    <div className="absolute inset-0 bg-black">
+      {/* Fallback Shimmer if no poster and not ready */}
+      {!videoReady && !poster && (
+        <div className="absolute inset-0 z-10 animate-shimmer flex items-center justify-center">
+          <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+            <Play className="size-7 text-white/20 ml-1" />
+          </div>
+        </div>
+      )}
+
+      {/* Buffering Indicator */}
+      {active && (isWaiting || !videoReady) && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <Loader2 className="size-8 text-[var(--accent)]/60 animate-spin" />
+        </div>
+      )}
+
+      <video
+        ref={ref}
+        src={playbackSrc}
+        poster={poster}
+        autoPlay
+        playsInline
+        webkit-playsinline=""
+        muted={true}
+        crossOrigin="anonymous"
+        preload="auto"
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${videoReady ? 'opacity-100' : 'opacity-80'}`}
+        onCanPlayThrough={handleReady}
+        onPlaying={handleReady}
+        onPlay={() => {
+          setIsWaiting(false);
+          setHasStarted(true);
+        }}
+        onSeeking={() => setIsWaiting(true)}
+        onSeeked={() => setIsWaiting(false)}
+        onStalled={() => {
+          console.warn('[Video] Stalled, waiting for recovery...');
+          setIsWaiting(true);
+        }}
+        onWaiting={() => {
+          console.warn('[Video] Waiting for data...');
+          setIsWaiting(true);
+        }}
+        onLoadedData={handleReady}
+        onLoadedMetadata={handleReady}
+        onError={handleError}
+        onEnded={onEnded}
+        onTimeUpdate={(e) => {
+          if (!hasStarted || paused || isWaiting) return;
+          onProgress(e);
+        }}
+      />
+    </div>
+  );
+});
+
+// ─── Progress Bar ─────────────────────────────────────────────────────────────
+// activeBarRef: forwarded ref — parent writes transform directly for video (zero re-renders)
+const ProgressBar = forwardRef(function ProgressBar(
+  { count, current, paused, isReplying, isVideo, onEnd },
+  activeBarRef
+) {
+  const timerRef = useRef(null);
+  const startRef = useRef(null);
+  const elapsed  = useRef(0);
+  const localBarRef = useRef(null);
+
+  // Sync the forwarded ref with localBarRef
+  const setBarRef = useCallback((el) => {
+    localBarRef.current = el;
+    if (activeBarRef) activeBarRef.current = el;
+  }, [activeBarRef]);
+
+  const stop = useCallback(() => {
+    if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    if (localBarRef.current && startRef.current) {
+      elapsed.current = Date.now() - startRef.current;
+    }
+  }, []);
+
+  const run = useCallback(() => {
+    startRef.current = Date.now() - elapsed.current;
+    const tick = () => {
+      if (!localBarRef.current) return;
+      const pct = Math.min(((Date.now() - startRef.current) / STORY_DURATION) * 100, 100);
+      localBarRef.current.style.transform = `scaleX(${pct / 100})`;
+      if (pct < 100) {
+        timerRef.current = requestAnimationFrame(tick);
+      } else {
+        elapsed.current = 0;
+        onEnd();
+      }
+    };
+    timerRef.current = requestAnimationFrame(tick);
+  }, [onEnd]);
+
+  // Reset on story change
+  useEffect(() => {
+    elapsed.current = 0;
+    if (localBarRef.current) localBarRef.current.style.transform = 'scaleX(0)';
+    if (!isVideo && !paused && !isReplying) run();
+    return () => { if (timerRef.current) cancelAnimationFrame(timerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current]);
+
+  // Pause/resume for images
+  useEffect(() => {
+    if (isVideo) return;
+    if (paused || isReplying) stop(); else run();
+  }, [paused, isReplying, isVideo, run, stop]);
+
+  return (
+    <div className="flex gap-1 w-full">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="h-[3px] flex-1 rounded-full overflow-hidden bg-white/25">
+          {i < current ? (
+            <div className="h-full w-full bg-white rounded-full" />
+          ) : i === current ? (
+            <div
+              ref={setBarRef}
+              className="h-full w-full bg-white rounded-full origin-left"
+              style={{ transform: 'scaleX(0)', willChange: 'transform' }}
+            />
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+});
+
+// ─── StatusViewer ─────────────────────────────────────────────────────────────
+export default function StatusViewer({ initialStatuses, initialStoryId, onClose }) {
+  const router = useRouter();
+
+  const vendorGroups = useMemo(() => {
+    const groups = [];
+    const seen   = new Set();
+    for (const s of initialStatuses) {
+      const vId = (s.vendor_id?._id || s.vendor_id)?.toString();
+      if (!seen.has(vId)) {
+        seen.add(vId);
+        groups.push({
+          vendorId: vId,
+          stories: initialStatuses
+            .filter(x => (x.vendor_id?._id || x.vendor_id)?.toString() === vId)
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
+        });
+      }
+    }
+    return groups;
+  }, [initialStatuses]);
+
+  const initialPos = useMemo(() => {
+    if (!initialStoryId) return { vIdx: 0, sIdx: 0 };
+    for (let vIdx = 0; vIdx < vendorGroups.length; vIdx++) {
+      const sIdx = vendorGroups[vIdx].stories.findIndex(s => s._id === initialStoryId);
+      if (sIdx !== -1) return { vIdx, sIdx };
+    }
+    return { vIdx: 0, sIdx: 0 };
+  }, [vendorGroups, initialStoryId]);
+
+  const [vendorIdx,  setVendorIdx]  = useState(initialPos.vIdx);
+  const [storyIdx,   setStoryIdx]   = useState(initialPos.sIdx);
+  const [paused,     setPaused]     = useState(false);
+  const [liked,      setLiked]      = useState(false);
+  const [muted,      setMuted]      = useState(false);
+  const [replyText,  setReplyText]  = useState('');
+  const [isReplying, setIsReplying] = useState(false);
+
+  // Direct DOM ref for video progress bar — zero re-renders on timeupdate
+  const videoBarRef = useRef(null);
+  const holdTimer   = useRef(null);
+  const touchStart  = useRef({ x: 0, y: 0, t: 0 });
+  const transitionLockRef = useRef(false);
+  const transitionUnlockRef = useRef(null);
+
+  const currentGroup = vendorGroups[vendorIdx];
+  const story        = currentGroup?.stories[storyIdx];
+  const totalInGroup = currentGroup?.stories.length || 1;
+  const totalVendors = vendorGroups.length;
+  const isVideo      = story?.type === 'video';
+
+  // Preload adjacent with a bounded window and cleanup stale preloads.
+  useEffect(() => {
+    if (!initialStatuses?.length || !story?._id) return;
+    const globalIdx = initialStatuses.findIndex((s) => s._id === story._id);
+    if (globalIdx === -1) return;
+
+    const keepVideoUrls = [story.content_url];
+    const prev = initialStatuses[globalIdx - 1];
+    if (prev) {
+      preloadMedia(prev.content_url, prev.type);
+      if (prev.type === 'video') keepVideoUrls.push(prev.content_url);
+    }
+
+    for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
+      const nextStory = initialStatuses[i];
+      if (!nextStory) break;
+      preloadMedia(nextStory.content_url, nextStory.type);
+      if (nextStory.type === 'video') keepVideoUrls.push(nextStory.content_url);
+    }
+
+    cleanupVideoPreloads(keepVideoUrls);
+  }, [story?._id, story?.content_url, initialStatuses]);
+
+  // Register view
+  useEffect(() => {
+    if (!story?._id) return;
+    api.post(`/statuses/${story._id}/view`).catch(() => {});
+  }, [story?._id]);
+
+  const resetStoryState = useCallback(() => {
+    setLiked(false);
+    setReplyText('');
+    setIsReplying(false);
+    setPaused(false);
+  }, []);
+
+  const lockTransition = useCallback(() => {
+    transitionLockRef.current = true;
+    if (transitionUnlockRef.current) clearTimeout(transitionUnlockRef.current);
+    transitionUnlockRef.current = setTimeout(() => {
+      transitionLockRef.current = false;
+      transitionUnlockRef.current = null;
+    }, 220);
+  }, []);
+
   const goNext = useCallback(() => {
-    if (idx < total - 1) setIdx(i => i + 1);
-    else onClose();
-  }, [idx, total, onClose]);
+    if (transitionLockRef.current) return;
+    lockTransition();
+    if (storyIdx < totalInGroup - 1) {
+      setStoryIdx(s => s + 1); resetStoryState();
+    } else if (vendorIdx < totalVendors - 1) {
+      setVendorIdx(v => v + 1); setStoryIdx(0); resetStoryState();
+    } else {
+      onClose();
+    }
+  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState, lockTransition]);
 
   const goPrev = useCallback(() => {
-    if (idx > 0) setIdx(i => i - 1);
-  }, [idx]);
-
-  // ── Keyboard ───────────────────────────────────────────────
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'ArrowRight') goNext();
-      else if (e.key === 'ArrowLeft') goPrev();
-      else if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [goNext, goPrev, onClose]);
-
-  // ── Touch: swipe (>60px) vs hold-to-pause (>200ms) ────────
-  const onTouchStart = (e) => {
-    touchStart.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-      t: Date.now()
-    };
-    holdTimer.current = setTimeout(() => setPaused(true), 200);
-  };
-
-  const onTouchEnd = (e) => {
-    clearTimeout(holdTimer.current);
-    if (paused) { setPaused(false); return; }
-    
-    const dx = touchStart.current.x - e.changedTouches[0].clientX;
-    const dy = touchStart.current.y - e.changedTouches[0].clientY;
-    
-    // WhatsApp Gestures: Swipe down to close, swipe up to chat
-    if (dy < -80) { onClose(); return; }
-    if (dy > 80 && !story?.linked_product) { handleChat(); return; }
-    
-    // Original: Horizontal swipe
-    if (Math.abs(dx) > 60) {
-      dx > 0 ? goNext() : goPrev();
+    if (transitionLockRef.current) return;
+    lockTransition();
+    if (storyIdx > 0) {
+      setStoryIdx(s => s - 1); resetStoryState();
+    } else if (vendorIdx > 0) {
+      const prevGroup = vendorGroups[vendorIdx - 1];
+      setVendorIdx(v => v - 1);
+      setStoryIdx(prevGroup.stories.length - 1);
+      resetStoryState();
     }
+  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition]);
+
+  // Video progress: write directly to DOM, no state update
+  const handleVideoProgress = useCallback((e) => {
+    const { currentTime, duration } = e.target;
+    if (duration && duration > 0 && videoBarRef.current) {
+      const progress = Math.min(currentTime / duration, 1);
+      videoBarRef.current.style.transform = `scaleX(${progress})`;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      if (transitionUnlockRef.current) clearTimeout(transitionUnlockRef.current);
+    };
+  }, []);
+
+  const ago = (date) => {
+    const s = Math.floor((new Date() - new Date(date)) / 1000);
+    if (s < 60)    return 'Just now';
+    if (s < 3600)  return `${Math.floor(s / 60)}m`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h`;
+    return `${Math.floor(s / 86400)}d`;
   };
 
-  // ── Actions ────────────────────────────────────────────────
-  const toggleLike = async () => {
-    setLiked(l => !l);
-    try { await api.post(`/statuses/${story._id}/react`); } catch {}
-  };
-
-  const handleChat = () => {
-    const vName = story.vendor_id?.store_name || 'Vendor';
-    openChat(story.vendor_id?.user_id?._id, story.linked_product, {
-      store_name: vName,
-      initialMessage: `Hi, I saw this on your story 👇`
-    });
+  const handleViewProduct = useCallback(() => {
+    if (!story?.linked_product?._id) return;
     onClose();
-  };
+    router.push(`/products/${story.linked_product._id}`);
+  }, [story, onClose, router]);
 
-  const handleViewProduct = () => {
-    const pid = story.linked_product?._id || story.linked_product;
-    if (pid) router.push(`/products/${pid}`);
-  };
+  const toggleLike = useCallback(() => {
+    setLiked(l => !l);
+    api.post(`/statuses/${story._id}/react`).catch(() => {});
+  }, [story?._id]);
+
+  const handleSendReply = useCallback(() => {
+    if (!replyText.trim()) return;
+    const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
+    if (!recipientUserId) return;
+    const text = replyText.trim();
+    setReplyText('');
+    setIsReplying(false);
+    api.post('/chat', {
+      receiver_id: recipientUserId,
+      text,
+      metadata: { type: 'story_reply', storyId: story._id, storyPreview: story.type === 'text' ? story.text_content : story.content_url }
+    }).catch(() => {});
+    window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
+    setPaused(false);
+  }, [replyText, story]);
+
+  const onPointerDown = useCallback((e) => {
+    if (isReplying) return;
+    touchStart.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+    holdTimer.current = setTimeout(() => setPaused(true), 200);
+  }, [isReplying]);
+
+  const onPointerUp = useCallback((e) => {
+    if (isReplying) return;
+    clearTimeout(holdTimer.current);
+    const duration = Date.now() - touchStart.current.t;
+    const distY    = e.clientY - touchStart.current.y;
+    if (paused) { setPaused(false); return; }
+    if (distY > 120 && duration < 400) { onClose(); return; }
+  }, [isReplying, paused, onClose]);
 
   if (!story) return null;
 
+  const storeName  = story.vendor_id?.store_name || 'Aura Vendor';
   const vendorLogo = story.vendor_id?.user_id?.branding?.logo || story.vendor_id?.user_id?.avatar;
-  const storeName = story.vendor_id?.store_name || '';
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="fixed inset-0 z-[2000] bg-black flex items-center justify-center"
-      style={{ touchAction: 'none' }}
+      onClick={onClose}
+      className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
     >
-      {/* Background dismiss */}
-      <div className="absolute inset-0 bg-black/95" onClick={onClose} />
-
-      {/* Story container */}
-      <div 
-        className="relative w-full h-full max-w-[420px] mx-auto flex flex-col overflow-hidden select-none"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+      {/* Story Container */}
+      <div
+        onClick={e => e.stopPropagation()}
+        className="relative w-full h-full md:max-w-[420px] bg-black overflow-hidden select-none touch-none"
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => clearTimeout(holdTimer.current)}
       >
-        {/* ── Progress bars (CSS animation driven) ── */}
-        <div className={`absolute top-3 inset-x-3 z-50 flex gap-1 transition-opacity duration-200 ${paused ? 'opacity-0' : 'opacity-100'}`}>
-          {initialStatuses.map((_, i) => (
-            <div key={i} className="h-[3px] flex-1 rounded-full overflow-hidden bg-white/20">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: i < idx ? '100%' : i > idx ? '0%' : undefined,
-                  background: 'white',
-                  ...(i === idx ? {
-                    width: paused ? undefined : '100%',
-                    animation: paused ? 'none' : `progress-fill ${isVideo ? '30s' : `${STORY_DURATION}ms`} linear forwards`,
-                  } : {})
-                }}
-                onAnimationEnd={i === idx ? handleProgressEnd : undefined}
-                key={i === idx ? `p-${progressKey.current}` : `done-${i}`}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* ── Header ── */}
-        <div className={`absolute top-8 inset-x-4 z-50 flex items-center justify-between transition-opacity duration-200 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-full overflow-hidden border-2 border-white/30 shadow-md bg-black/40">
-              {vendorLogo
-                ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
-                : <div className="size-full flex items-center justify-center text-xs font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">{storeName[0]}</div>
-              }
-            </div>
-            <div>
-              <p className="text-[13px] font-black text-white leading-tight tracking-tight drop-shadow">{storeName}</p>
-              <span className="text-[9px] font-bold text-white/50">{new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isVideo && (
-              <button
-                onClick={() => { setMuted(m => !m); if (videoRef.current) videoRef.current.muted = !muted; }}
-                className="size-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center"
-              >
-                {muted ? <VolumeX className="size-4 text-white" /> : <Volume2 className="size-4 text-white" />}
-              </button>
-            )}
-            <button onClick={onClose} className="size-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
-              <X className="size-4 text-white" />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Content (instant swap, no AnimatePresence) ── */}
-        <div className="absolute inset-0 z-10" key={idx}>
-          {story.type === 'video' ? (
-            <video
-              ref={videoRef}
+        {/* Media Layer */}
+        <div className="absolute inset-0 z-10">
+          {isVideo ? (
+            <StoryVideo
+              key={story._id}
               src={story.content_url}
-              autoPlay playsInline muted={muted}
-              className="w-full h-full object-cover"
+              muted={muted}
+              active={true}
+              paused={paused || isReplying}
               onEnded={goNext}
+              onProgress={handleVideoProgress}
             />
           ) : story.type === 'image' ? (
-            <img
+            <BlurUpImage
+              key={story._id}
               src={story.content_url}
               alt=""
-              className="w-full h-full object-cover"
-              draggable={false}
-              onLoad={() => setImgReady(true)}
+              priority="high"
+              className="absolute inset-0 w-full h-full"
+              objectFit="cover"
             />
           ) : (
             <div
-              className="w-full h-full flex items-center justify-center p-10 text-center"
-              style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%)' }}
+              className="absolute inset-0 flex items-center justify-center p-12 text-center"
+              style={{ background: 'linear-gradient(165deg,#050505 0%,#150824 100%)' }}
             >
-              <div className="absolute inset-0 opacity-40">
-                <div className="absolute top-1/3 left-1/2 -translate-x-1/2 size-64 rounded-full bg-[var(--accent)] blur-[100px]" />
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[350px] rounded-full bg-[var(--accent)]/12 blur-[100px]" />
               </div>
-              <p className="relative z-10 text-3xl font-black italic text-white leading-snug tracking-tight">
+              <p className="relative z-10 text-3xl font-bold text-white leading-tight drop-shadow-2xl">
                 {story.text_content}
               </p>
             </div>
           )}
-          {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85 pointer-events-none z-20" />
         </div>
 
-        {/* ── Tap zones ── */}
-        <div className="absolute inset-x-0 top-20 bottom-32 z-30 flex pointer-events-auto">
-          <div className="flex-1" onClick={goPrev} />
-          <div className="w-8" />
-          <div className="flex-1" onClick={goNext} />
+        {/* Progress Bars */}
+        <div className={`absolute top-[max(env(safe-area-inset-top,0px),14px)] inset-x-4 z-50 pointer-events-none transition-opacity duration-200 ${(paused || isReplying) ? 'opacity-0' : 'opacity-100'}`}>
+          <ProgressBar
+            ref={videoBarRef}
+            key={`${vendorIdx}-${storyIdx}`}
+            count={totalInGroup}
+            current={storyIdx}
+            paused={paused}
+            isReplying={isReplying}
+            isVideo={isVideo}
+            onEnd={goNext}
+          />
         </div>
 
-        {/* ── Footer ── */}
-        <div className={`absolute bottom-0 inset-x-0 z-40 px-5 pb-8 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-300 ${paused ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          {story.caption && (
-            <p className="text-sm text-white/90 font-medium mb-4 leading-relaxed line-clamp-3 bg-white/5 backdrop-blur-sm px-4 py-3 rounded-2xl border border-white/10">
-              {story.caption}
-            </p>
-          )}
-
-          <div className="flex items-center gap-2.5">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={toggleLike}
-              className={`flex items-center justify-center gap-2 h-11 px-5 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-colors ${
-                liked
-                  ? 'bg-red-500 border-red-500 text-white'
-                  : 'bg-white/10 border-white/15 text-white'
-              }`}
-            >
-              <Heart className={`size-3.5 ${liked ? 'fill-current' : ''}`} />
-              {liked ? 'Liked' : 'Like'}
-            </motion.button>
-
-            {story.linked_product && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleViewProduct}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-purple-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg"
-              >
-                <ShoppingBag className="size-3.5" />
-                View Product
-              </motion.button>
-            )}
-
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleChat}
-              className={`flex items-center justify-center gap-2 h-11 rounded-2xl bg-white/10 border border-white/15 text-white font-black text-[10px] uppercase tracking-widest ${
-                story.linked_product ? 'px-3.5' : 'flex-1'
-              }`}
-            >
-              <MessageCircle className="size-3.5" />
-              {!story.linked_product && 'Chat'}
-            </motion.button>
+        {/* Header */}
+        <div
+          className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none ${(paused || isReplying) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}`}
+          style={{ top: 'calc(max(env(safe-area-inset-top, 0px), 14px) + 14px)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-lg shrink-0">
+              <div className="size-full rounded-full overflow-hidden border-2 border-black bg-black">
+                {vendorLogo
+                  ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
+                  : <div className="size-full flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">{storeName[0]}</div>
+                }
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[14px] font-bold text-white tracking-tight drop-shadow">{storeName}</p>
+                <span className="text-[9px] text-white/50 font-semibold">{ago(story.createdAt)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[9px] font-bold text-[var(--accent)]">{story.category || 'General'}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between mt-3 px-1">
-            <div className="flex items-center gap-1.5 text-white/35">
-              <Eye className="size-3" />
-              <span className="text-[8px] font-bold uppercase tracking-widest">{story.views_count || 0} views</span>
+          <div className="flex items-center gap-2 pointer-events-auto">
+            {paused && (
+              <div className="size-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                <Pause className="size-4 text-white" />
+              </div>
+            )}
+            {isVideo && (
+              <button
+                onClick={e => { e.stopPropagation(); setMuted(m => !m); }}
+                className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white"
+              >
+                {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+              </button>
+            )}
+            <button
+              onClick={e => { e.stopPropagation(); onClose(); }}
+              className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white"
+            >
+              <X className="size-4.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Tap zones */}
+        <div className="absolute inset-0 z-40 flex pointer-events-none">
+          <div className="w-[35%] h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goPrev(); }} />
+          <div className="flex-1 h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goNext(); }} />
+        </div>
+
+        {/* Bottom Stack */}
+        <div
+          className={`absolute bottom-0 inset-x-0 z-50 px-5 pb-[calc(max(env(safe-area-inset-bottom,0px),16px)+12px)] pt-20 transition-all duration-300 pointer-events-none flex flex-col justify-end
+            ${isReplying ? 'translate-y-[-10px] opacity-100' : (paused ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0')}`}
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)' }}
+        >
+          <div className="flex flex-col gap-4 pointer-events-none">
+            {/* Linked Product */}
+            {story.linked_product && (story.linked_product.name || typeof story.linked_product === 'object') && (
+              <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                <button
+                  onClick={handleViewProduct}
+                  className="w-full px-4 py-3 rounded-[1.5rem] bg-white/10 backdrop-blur-3xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-all shadow-2xl"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
+                      {(() => {
+                        const p = story.linked_product;
+                        const imgSrc = typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || null;
+                        return imgSrc
+                          ? <img src={imgSrc} alt="" className="size-full object-cover" />
+                          : <div className="size-full flex items-center justify-center bg-white/5"><ShoppingBag className="size-5 text-white/20" /></div>;
+                      })()}
+                    </div>
+                    <div className="text-left min-w-0">
+                      <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] leading-none mb-1.5">Market Link</p>
+                      <p className="text-[14px] font-bold text-white truncate leading-tight uppercase tracking-tight">{story.linked_product.name || 'View Product'}</p>
+                      {story.linked_product.price && (
+                        <p className="text-[12px] font-black text-white/90 mt-1 font-mono">{story.linked_product.price?.toLocaleString()} XAF</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="size-10 rounded-full bg-white text-black flex items-center justify-center shrink-0 shadow-xl ml-3 hover:scale-110 transition-transform">
+                    <ShoppingBag className="size-5" />
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {/* Caption */}
+            {story.caption && (
+              <div className="pointer-events-auto px-1 py-1">
+                <p className="text-[14px] md:text-[15px] text-white/95 font-medium leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] line-clamp-4">
+                  {story.caption}
+                </p>
+              </div>
+            )}
+
+            {/* Reply row */}
+            <div className="flex items-center gap-2.5 pointer-events-auto mt-1">
+              <div className="flex-1 relative flex items-center">
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  onFocus={() => { setIsReplying(true); setPaused(true); }}
+                  onBlur={() => { setIsReplying(false); setPaused(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) { e.preventDefault(); handleSendReply(); } }}
+                  placeholder="Reply..."
+                  className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner"
+                />
+                <button
+                  onClick={handleSendReply}
+                  disabled={!replyText.trim()}
+                  className={`absolute right-1.5 size-9 rounded-full flex items-center justify-center transition-all ${replyText.trim() ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-white/5 text-white/20'}`}
+                >
+                  <Send className="size-4" />
+                </button>
+              </div>
+
+              <button
+                onClick={e => { e.stopPropagation(); toggleLike(); }}
+                className={`size-12 rounded-full flex items-center justify-center border transition-all shadow-lg ${liked ? 'bg-red-500 border-red-500 scale-110' : 'bg-white/10 border-white/15 backdrop-blur-xl'}`}
+              >
+                <Heart className={`size-5 text-white ${liked ? 'fill-current' : ''}`} />
+              </button>
+
+              <button
+                onClick={e => e.stopPropagation()}
+                className="size-12 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl flex items-center justify-center text-white shadow-lg"
+              >
+                <Share2 className="size-5" />
+              </button>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Flame className="size-3 text-orange-400" />
-              <span className="text-[8px] font-bold text-white/35 uppercase tracking-widest">{idx + 1}/{total}</span>
+
+            {/* Metadata */}
+            <div className="flex items-center justify-between px-1 opacity-40 pt-2">
+              <div className="flex items-center gap-1.5 text-white">
+                <Eye className="size-3" />
+                <span className="text-[9px] font-black uppercase tracking-tighter">{story.views_count || 0}</span>
+              </div>
+              <span className="text-[9px] font-black text-white uppercase tracking-tighter">
+                {storyIdx + 1} / {totalInGroup}
+                {totalVendors > 1 && <span className="opacity-50"> · V {vendorIdx + 1}/{totalVendors}</span>}
+              </span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Desktop nav */}
-      <button onClick={goPrev} disabled={idx === 0}
-        className="hidden lg:flex absolute left-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-50 disabled:opacity-20"
-      >
-        <ChevronLeft className="size-6" />
-      </button>
-      <button onClick={goNext}
-        className="hidden lg:flex absolute right-8 top-1/2 -translate-y-1/2 size-12 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm items-center justify-center text-white hover:bg-white/10 transition-all z-50"
-      >
-        <ChevronRight className="size-6" />
-      </button>
-
-      {/* CSS animation for progress bar */}
-      <style jsx global>{`
-        @keyframes progress-fill {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-      `}</style>
     </motion.div>
   );
 }

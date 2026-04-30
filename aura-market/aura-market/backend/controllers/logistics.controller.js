@@ -375,6 +375,34 @@ const getProfile = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────
+// @route   PATCH /api/logistics/profile
+// @desc    Update logistics firm name, contact, logo/banner
+// ─────────────────────────────────────────────
+const updateProfile = async (req, res, next) => {
+  try {
+    const { company_name, contact_email, contact_phone, logo, banner } = req.body;
+
+    const firm = await LogisticsCompany.findOneAndUpdate(
+      { user_id: req.user._id },
+      {
+        company_name,
+        contact_email,
+        contact_phone,
+        logo,
+        banner
+      },
+      { returnDocument: 'after', runValidators: true }
+    );
+
+    if (!firm) return res.status(404).json({ success: false, message: 'Logistics profile not found.' });
+
+    res.status(200).json({ success: true, message: 'Logistics profile updated successfully.', data: { firm } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
 // @route   PATCH /api/logistics/pricing
 // @desc    Update route pricing & pickup regions
 // ─────────────────────────────────────────────
@@ -390,7 +418,7 @@ const updatePricing = async (req, res, next) => {
     const firm = await LogisticsCompany.findOneAndUpdate(
       { user_id: req.user._id },
       {
-        quartier_prices: sanitisedPrices,
+        quartier_prices: sanitizedPrices,
         supported_pickup_regions: supported_pickup_regions || []
       },
       { returnDocument: 'after', runValidators: true }
@@ -413,5 +441,6 @@ module.exports = {
   getPublicLogisticsFirms,
   getZones,
   getProfile,
+  updateProfile,
   updatePricing
 };

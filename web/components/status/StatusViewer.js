@@ -11,21 +11,35 @@ import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
 
 const STORY_DURATION = 5000;
+const VIDEO_PRELOAD_AHEAD = 4;
+const VIDEO_WAIT_TIMEOUT_MS = 8000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
+const videoPreloadMap = new Map();
 function preloadMedia(url, type) {
   if (!url || preloadCache.has(url)) return;
   preloadCache.add(url);
   if (type === 'video') {
     const v = document.createElement('video');
-    v.preload = 'metadata'; // Optimized: only fetch headers to save bandwidth
+    v.preload = 'metadata';
     v.src = url;
     v.muted = true;
     v.load();
+    videoPreloadMap.set(url, v);
   } else {
     const img = new Image();
     img.src = url;
+  }
+}
+
+function cleanupVideoPreloads(keepUrls = []) {
+  const keep = new Set(keepUrls.filter(Boolean));
+  for (const [url, video] of videoPreloadMap.entries()) {
+    if (keep.has(url)) continue;
+    video.src = '';
+    videoPreloadMap.delete(url);
+    preloadCache.delete(url);
   }
 }
 
@@ -44,12 +58,87 @@ const getVideoPoster = (src) => {
 // Global cache for loaded videos to prevent re-shimmering
 const loadedVideos = new Set();
 
+function getRetryableVideoUrl(url) {
+  if (!url) return null;
+  try {
+    const encoded = encodeURI(url);
+    return encoded !== url ? encoded : null;
+  } catch {
+    return null;
+  }
+}
+
+function addCacheBust(url) {
+  if (!url) return null;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}cb=${Date.now()}`;
+}
+
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
   const ref = useRef(null);
-  const [poster] = useState(() => getVideoPoster(src));
-  const [videoReady, setVideoReady] = useState(false);
-  const [isWaiting, setIsWaiting] = useState(false);
+  const [playbackSrc, setPlaybackSrc] = useState(src);
+  const [poster, setPoster]       = useState(() => getVideoPoster(src));
+  const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
+  const [isWaiting, setIsWaiting]   = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [didRetryUrl, setDidRetryUrl] = useState(false);
+  const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
+  const waitTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    setPlaybackSrc(src);
+    setDidRetryUrl(false);
+    setDidRetryCacheBust(false);
+    setVideoReady(loadedVideos.has(src));
+    setIsWaiting(false);
+    setHasStarted(false);
+  }, [src]);
+
+  // Poster extraction (only needed for non-Cloudinary)
+  useEffect(() => {
+    if (loadedVideos.has(src)) {
+      setVideoReady(true);
+      return;
+    }
+    const instant = getVideoPoster(src);
+    if (instant) { 
+      setPoster(instant); 
+      setVideoReady(false); 
+      return; 
+    }
+
+    setPoster(null);
+    setVideoReady(false);
+    if (!src) return;
+
+    let cancelled = false;
+    const probe = document.createElement('video');
+    probe.setAttribute('crossOrigin', 'anonymous');
+    probe.muted   = true;
+    probe.preload = 'metadata';
+    probe.src     = src;
+
+    probe.addEventListener('loadedmetadata', () => {
+      if (cancelled) return;
+      try { probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1); } catch {}
+    }, { once: true });
+
+    probe.addEventListener('seeked', () => {
+      if (cancelled) return;
+      try {
+        const w = Math.min(probe.videoWidth, 640);
+        const h = Math.round(w * (probe.videoHeight / (probe.videoWidth || 1)));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(probe, 0, 0, w, h);
+        if (!cancelled) setPoster(c.toDataURL('image/jpeg', 0.35));
+      } catch {}
+    }, { once: true });
+
+    probe.load();
+    return () => { cancelled = true; probe.src = ''; };
+  }, [src]);
 
   // Play / pause
   useEffect(() => {
@@ -61,9 +150,32 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       });
     } else {
       v.pause();
-      if (!active) v.currentTime = 0;
+      if (!active) {
+        v.currentTime = 0;
+        setHasStarted(false);
+      }
     }
   }, [active, paused]);
+
+  useEffect(() => {
+    if (!active || paused || !isWaiting) {
+      if (waitTimeoutRef.current) {
+        clearTimeout(waitTimeoutRef.current);
+        waitTimeoutRef.current = null;
+      }
+      return;
+    }
+    waitTimeoutRef.current = setTimeout(() => {
+      console.warn('[Video] Wait timeout reached, skipping story:', src);
+      onEnded();
+    }, VIDEO_WAIT_TIMEOUT_MS);
+    return () => {
+      if (waitTimeoutRef.current) {
+        clearTimeout(waitTimeoutRef.current);
+        waitTimeoutRef.current = null;
+      }
+    };
+  }, [active, paused, isWaiting, src, onEnded]);
 
   // Mute
   useEffect(() => {
@@ -73,61 +185,96 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
 
   const handleReady = useCallback(() => {
     if (src) loadedVideos.add(src);
+    if (playbackSrc) loadedVideos.add(playbackSrc);
     setVideoReady(true);
     setIsWaiting(false);
-  }, [src]);
+  }, [src, playbackSrc]);
 
-  const handleError = useCallback(() => {
-    console.warn('[Video] Media load failed, holding story:', src);
-    setIsWaiting(false);
-    // Removed onEnded() to prevent aggressive skipping on mobile/flaky connections
-  }, [src]);
+  const handleError = useCallback((e) => {
+    const mediaErrorCode = e?.currentTarget?.error?.code;
+    const retryUrl = getRetryableVideoUrl(playbackSrc);
+    if (!didRetryUrl && retryUrl) {
+      setDidRetryUrl(true);
+      setPlaybackSrc(retryUrl);
+      setVideoReady(false);
+      setIsWaiting(true);
+      console.warn('[Video] Initial load failed. Retrying with encoded URL.');
+      return;
+    }
+    if (!didRetryCacheBust) {
+      setDidRetryCacheBust(true);
+      setPlaybackSrc(addCacheBust(playbackSrc || src));
+      setVideoReady(false);
+      setIsWaiting(true);
+      console.warn('[Video] Encoded retry failed. Retrying with cache-busted URL.');
+      return;
+    }
+    console.warn('[Video] Media load failed after retries, skipping story:', {
+      url: playbackSrc || src,
+      mediaErrorCode,
+    });
+    onEnded();
+  }, [src, playbackSrc, didRetryUrl, didRetryCacheBust, onEnded]);
 
   return (
     <div className="absolute inset-0 bg-black">
-      {/* Fallback Shimmer if no poster and not ready */}
-      {!videoReady && !poster && (
-        <div className="absolute inset-0 z-10 animate-shimmer flex items-center justify-center">
-          <div className="size-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-            <Play className="size-7 text-white/20 ml-1" />
+      {/* Poster / Loading Layer */}
+      <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {poster ? (
+          <div className="relative w-full h-full">
+            <img src={poster} alt="" className="w-full h-full object-cover blur-2xl scale-110" aria-hidden="true" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+               <Loader2 className="size-10 text-white/60 animate-spin" />
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="w-full h-full bg-black flex items-center justify-center">
+            <Loader2 className="size-10 text-white/20 animate-spin" />
+          </div>
+        )}
+      </div>
 
-      {/* Buffering Indicator */}
-      {active && (isWaiting || !videoReady) && (
+      {/* Buffering Indicator (During playback) */}
+      {active && isWaiting && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-          <Loader2 className="size-8 text-[var(--accent)]/60 animate-spin" />
+          <Loader2 className="size-10 text-[var(--accent)] animate-spin" />
         </div>
       )}
 
+      {/* Video */}
       <video
         ref={ref}
-        src={src}
-        poster={poster}
-        autoPlay
+        src={playbackSrc}
         playsInline
         webkit-playsinline="true"
         muted={true}
         crossOrigin="anonymous"
         preload="auto"
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${videoReady ? 'opacity-100' : 'opacity-80'}`}
-        onCanPlayThrough={handleReady}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
+        onCanPlay={handleReady}
         onPlaying={handleReady}
-        onPlay={() => setIsWaiting(false)}
+        onPlay={() => {
+          setIsWaiting(false);
+          setHasStarted(true);
+        }}
+        onSeeking={() => setIsWaiting(true)}
+        onSeeked={() => setIsWaiting(false)}
+        onStalled={() => setIsWaiting(true)}
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
         onLoadedMetadata={handleReady}
         onError={handleError}
         onEnded={onEnded}
-        onTimeUpdate={onProgress}
+        onTimeUpdate={(e) => {
+          if (!hasStarted || paused || isWaiting) return;
+          onProgress(e);
+        }}
       />
     </div>
   );
 });
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
-// activeBarRef: forwarded ref — parent writes transform directly for video (zero re-renders)
 const ProgressBar = forwardRef(function ProgressBar(
   { count, current, paused, isReplying, isVideo, onEnd },
   activeBarRef
@@ -137,7 +284,6 @@ const ProgressBar = forwardRef(function ProgressBar(
   const elapsed  = useRef(0);
   const localBarRef = useRef(null);
 
-  // Sync the forwarded ref with localBarRef
   const setBarRef = useCallback((el) => {
     localBarRef.current = el;
     if (activeBarRef) activeBarRef.current = el;
@@ -166,16 +312,13 @@ const ProgressBar = forwardRef(function ProgressBar(
     timerRef.current = requestAnimationFrame(tick);
   }, [onEnd]);
 
-  // Reset on story change
   useEffect(() => {
     elapsed.current = 0;
     if (localBarRef.current) localBarRef.current.style.transform = 'scaleX(0)';
     if (!isVideo && !paused && !isReplying) run();
     return () => { if (timerRef.current) cancelAnimationFrame(timerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current]);
+  }, [current, isVideo, paused, isReplying, run]);
 
-  // Pause/resume for images
   useEffect(() => {
     if (isVideo) return;
     if (paused || isReplying) stop(); else run();
@@ -239,10 +382,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const [replyText,  setReplyText]  = useState('');
   const [isReplying, setIsReplying] = useState(false);
 
-  // Direct DOM ref for video progress bar — zero re-renders on timeupdate
   const videoBarRef = useRef(null);
   const holdTimer   = useRef(null);
   const touchStart  = useRef({ x: 0, y: 0, t: 0 });
+  const transitionLockRef = useRef(false);
+  const transitionUnlockRef = useRef(null);
 
   const currentGroup = vendorGroups[vendorIdx];
   const story        = currentGroup?.stories[storyIdx];
@@ -250,23 +394,28 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const totalVendors = vendorGroups.length;
   const isVideo      = story?.type === 'video';
 
-  // Preload Sliding Window: Next 10 stories in the global queue
+  // Preload adjacent with a bounded window and cleanup stale preloads.
   useEffect(() => {
     if (!initialStatuses?.length || !story?._id) return;
-    
-    // Find current index in the global list
-    const globalIdx = initialStatuses.findIndex(s => s._id === story._id);
+    const globalIdx = initialStatuses.findIndex((s) => s._id === story._id);
     if (globalIdx === -1) return;
 
-    // Preload next 10 stories to keep the buffer warm
-    initialStatuses.slice(globalIdx + 1, globalIdx + 11).forEach(s => {
-      preloadMedia(s.content_url, s.type);
-    });
-
-    // Also preload the immediate previous one for reverse navigation
+    const keepVideoUrls = [story.content_url];
     const prev = initialStatuses[globalIdx - 1];
-    if (prev) preloadMedia(prev.content_url, prev.type);
-  }, [story?._id, initialStatuses]);
+    if (prev) {
+      preloadMedia(prev.content_url, prev.type);
+      if (prev.type === 'video') keepVideoUrls.push(prev.content_url);
+    }
+
+    for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
+      const nextStory = initialStatuses[i];
+      if (!nextStory) break;
+      preloadMedia(nextStory.content_url, nextStory.type);
+      if (nextStory.type === 'video') keepVideoUrls.push(nextStory.content_url);
+    }
+
+    cleanupVideoPreloads(keepVideoUrls);
+  }, [story?._id, story?.content_url, initialStatuses]);
 
   // Register view
   useEffect(() => {
@@ -281,7 +430,18 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     setPaused(false);
   }, []);
 
+  const lockTransition = useCallback(() => {
+    transitionLockRef.current = true;
+    if (transitionUnlockRef.current) clearTimeout(transitionUnlockRef.current);
+    transitionUnlockRef.current = setTimeout(() => {
+      transitionLockRef.current = false;
+      transitionUnlockRef.current = null;
+    }, 220);
+  }, []);
+
   const goNext = useCallback(() => {
+    if (transitionLockRef.current) return;
+    lockTransition();
     if (storyIdx < totalInGroup - 1) {
       setStoryIdx(s => s + 1); resetStoryState();
     } else if (vendorIdx < totalVendors - 1) {
@@ -289,9 +449,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     } else {
       onClose();
     }
-  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState]);
+  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState, lockTransition]);
 
   const goPrev = useCallback(() => {
+    if (transitionLockRef.current) return;
+    lockTransition();
     if (storyIdx > 0) {
       setStoryIdx(s => s - 1); resetStoryState();
     } else if (vendorIdx > 0) {
@@ -300,15 +462,21 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       setStoryIdx(prevGroup.stories.length - 1);
       resetStoryState();
     }
-  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState]);
+  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition]);
 
-  // Video progress: write directly to DOM, no state update
   const handleVideoProgress = useCallback((e) => {
     const { currentTime, duration } = e.target;
     if (duration && duration > 0 && videoBarRef.current) {
       const progress = Math.min(currentTime / duration, 1);
       videoBarRef.current.style.transform = `scaleX(${progress})`;
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      if (transitionUnlockRef.current) clearTimeout(transitionUnlockRef.current);
+    };
   }, []);
 
   const ago = (date) => {
@@ -374,7 +542,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       onClick={onClose}
       className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
     >
-      {/* Story Container */}
       <div
         onClick={e => e.stopPropagation()}
         className="relative w-full h-full md:max-w-[420px] bg-black overflow-hidden select-none touch-none"
@@ -499,28 +666,31 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                 <button
                   onClick={handleViewProduct}
-                  className="w-full px-4 py-3 rounded-[1.5rem] bg-white/10 backdrop-blur-3xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-all shadow-2xl"
+                  className="w-full px-3 py-2.5 rounded-[1.2rem] bg-white/10 backdrop-blur-3xl border border-white/15 flex items-center justify-between active:scale-[0.98] transition-all shadow-xl"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-10 rounded-lg overflow-hidden border border-white/10 bg-black/40 shrink-0">
                       {(() => {
                         const p = story.linked_product;
                         const imgSrc = typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || null;
                         return imgSrc
                           ? <img src={imgSrc} alt="" className="size-full object-cover" />
-                          : <div className="size-full flex items-center justify-center bg-white/5"><ShoppingBag className="size-5 text-white/20" /></div>;
+                          : <div className="size-full flex items-center justify-center bg-white/5"><ShoppingBag className="size-4 text-white/20" /></div>;
                       })()}
                     </div>
                     <div className="text-left min-w-0">
-                      <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] leading-none mb-1.5">Market Link</p>
-                      <p className="text-[14px] font-bold text-white truncate leading-tight uppercase tracking-tight">{story.linked_product.name || 'View Product'}</p>
+                      <p className="text-[12px] font-bold text-white truncate leading-tight tracking-tight">
+                        {story.linked_product.name || 'View Product'}
+                      </p>
                       {story.linked_product.price && (
-                        <p className="text-[12px] font-black text-white/90 mt-1 font-mono">{story.linked_product.price?.toLocaleString()} XAF</p>
+                        <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">
+                          {story.linked_product.price?.toLocaleString()} XAF
+                        </p>
                       )}
                     </div>
                   </div>
-                  <div className="size-10 rounded-full bg-white text-black flex items-center justify-center shrink-0 shadow-xl ml-3 hover:scale-110 transition-transform">
-                    <ShoppingBag className="size-5" />
+                  <div className="size-8 rounded-full bg-white text-black flex items-center justify-center shrink-0 shadow-lg ml-2 active:scale-90 transition-transform">
+                    <ShoppingBag className="size-4" />
                   </div>
                 </button>
               </div>

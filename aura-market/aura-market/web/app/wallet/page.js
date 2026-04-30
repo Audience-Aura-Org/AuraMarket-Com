@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, 
-  Loader2, X, CircleCheck, AlertCircle,
+  Loader2, X, CheckCircle2, AlertCircle,
   Lock, ArrowRightLeft, Sparkles, Building2
 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';

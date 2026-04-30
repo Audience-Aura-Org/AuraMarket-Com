@@ -31,7 +31,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         <Link href="/" className="flex items-center gap-2 min-w-0 active:scale-95 transition-transform">
            {mounted && (
              <img 
-               src={theme === 'dark' ? '/logo-black.png' : '/logo-white.png'} 
+               src="/icon-512.png" 
                alt="Aura" 
                className="h-4.5 w-auto shrink-0"
              />

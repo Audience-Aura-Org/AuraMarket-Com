@@ -37,6 +37,10 @@ const MessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // Updated to true when recipient opens the chat tab natively
     },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
   },
   {
     timestamps: true,

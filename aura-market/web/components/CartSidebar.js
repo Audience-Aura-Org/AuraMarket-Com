@@ -16,7 +16,7 @@ export default function CartSidebar() {
   const navRef = useRef(null);
   const [navHeight, setNavHeight] = useState(65);
 
-  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/chat', '/discovery', '/onboarding'];
+  const hidden = ['/cart', '/checkout', '/login', '/register', '/admin', '/vendor', '/logistics', '/onboarding'];
   const shouldHide = hidden.some(r => pathname?.startsWith(r));
 
   // Measure actual TopNav height so we position correctly
@@ -29,6 +29,7 @@ export default function CartSidebar() {
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
+
 
   useEffect(() => {
     const unsub = cartStore.subscribe(({ items: newItems }) => {
@@ -79,13 +80,19 @@ export default function CartSidebar() {
   const totalQty = items.reduce((s, it) => s + it.quantity, 0);
   const open = !shouldHide && items.length > 0;
 
+  // Signal cart open state globally via HTML class for CSS grid adaptation
+  useEffect(() => {
+    document.documentElement.classList.toggle('cart-open', open);
+    return () => document.documentElement.classList.remove('cart-open');
+  }, [open]);
+
   return (
     <>
       {/* Width placeholder — reserves space in the flex layout to push content left */}
       <div
         className={`
           hidden lg:block flex-shrink-0
-          transition-all duration-500 ease-in-out
+          transition-[width] duration-150 ease-out
           ${open ? 'w-[260px]' : 'w-0'}
         `}
         aria-hidden="true"
@@ -100,7 +107,7 @@ export default function CartSidebar() {
           w-[260px]
           border-l border-[var(--glass-border)]
           bg-[var(--bg-primary)]
-          transition-all duration-500 ease-in-out
+          transition-transform duration-150 ease-out
           z-40
           ${open ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}
         `}
@@ -128,7 +135,7 @@ export default function CartSidebar() {
                 <div className="flex items-center gap-3">
                   {/* Thumbnail */}
                   <div className="size-10 rounded-lg overflow-hidden border border-[var(--glass-border)] shrink-0">
-                    <img src={it.image} className="size-full object-cover" alt={it.name} />
+                    <img src={it.image || null} className="size-full object-cover" alt={it.name} />
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -189,6 +196,12 @@ export default function CartSidebar() {
               className="w-full py-2.5 bg-white/5 border border-[var(--glass-border)] text-[var(--text-primary)] text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all flex items-center justify-center"
             >
               Full Cart View
+            </Link>
+            <Link
+              href="/overtime"
+              className="w-full py-2 bg-transparent text-[var(--text-secondary)] text-[8px] font-black uppercase tracking-widest hover:text-[var(--accent)] transition-all flex items-center justify-center gap-1.5 opacity-60 hover:opacity-100"
+            >
+              <ArrowRight className="size-2.5 rotate-180" /> Continue Shopping
             </Link>
           </div>
         </div>

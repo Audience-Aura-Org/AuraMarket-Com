@@ -15,6 +15,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -86,11 +87,7 @@ export default function OrdersPage() {
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const currentOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-      <div className="size-12 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-all duration-500 pb-32">
@@ -138,7 +135,7 @@ export default function OrdersPage() {
                <h3 className="text-xl font-black uppercase tracking-tight">No Order Records Found</h3>
                <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Your transaction manifest is currently empty</p>
             </div>
-            <Link href="/shop" className="px-10 py-4 bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.3em] rounded-2xl shadow-xl shadow-[var(--accent)]/30 hover:scale-[1.05] active:scale-95 transition-all uppercase">
+            <Link href="/discovery" className="px-10 py-4 bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.3em] rounded-2xl shadow-xl shadow-[var(--accent)]/30 hover:scale-[1.05] active:scale-95 transition-all uppercase">
               Start Shopping
             </Link>
           </div>
