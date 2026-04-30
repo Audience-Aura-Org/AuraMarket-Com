@@ -17,14 +17,9 @@ export default function LoginPage() {
       <header className="flex items-center justify-between px-6 lg:px-12 py-6 bg-transparent">
         <Link href="/" className="flex items-center gap-3 group">
           <img
-            src="/logo-black-main.png"
+            src="/icon-512.png"
             alt="Aura Market"
-            className="h-8 w-auto object-contain group-hover:scale-105 transition-transform dark:hidden"
-          />
-          <img
-            src="/logo-white-main.png"
-            alt="Aura Market"
-            className="h-8 w-auto object-contain group-hover:scale-105 transition-transform hidden dark:block"
+            className="h-10 w-auto object-contain group-hover:scale-110 transition-transform"
           />
           <h1 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">
             Aura<span className="text-[var(--accent)]">Market</span>
