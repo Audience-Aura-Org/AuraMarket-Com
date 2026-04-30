@@ -74,7 +74,7 @@ export default function Hero({ data, config }) {
                   
                   <div className="pt-2 md:pt-4">
                     <button 
-                      onClick={() => router.push(banner.link_to || '/shop')}
+                      onClick={() => router.push(banner.link_to || '/overtime')}
                       className="group bg-white text-black px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-2xl hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-3 uppercase tracking-widest active:scale-95"
                     >
                       <span className="whitespace-nowrap">{banner.cta_text || 'Explore Collection'}</span>

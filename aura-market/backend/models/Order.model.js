@@ -18,6 +18,7 @@ const OrderItemSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true }, // price locked at time of purchase
   image: { type: String },
+  variant: { type: mongoose.Schema.Types.Mixed, default: null }
 });
 
 const OrderSchema = new mongoose.Schema(
@@ -49,7 +50,7 @@ const OrderSchema = new mongoose.Schema(
     },
     payment_method: {
       type: String,
-      enum: ['wallet', 'escrow', 'direct_card', 'pay_on_delivery'],
+      enum: ['wallet', 'escrow', 'direct_card', 'pay_on_delivery', 'eversend'],
       required: true,
     },
     payment_status: {

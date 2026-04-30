@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,7 @@ import RoleSidebar from '@/components/layout/RoleSidebar';
 import { useAuthStore } from '@/hooks/useAuth';
 
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function AdminReviewsPage() {
   const router = useRouter();
@@ -107,7 +108,7 @@ export default function AdminReviewsPage() {
 
          {/* Content */}
          {loading ? (
-           <div className="py-20 flex justify-center"><div className="animate-spin size-8 border-2 border-[var(--accent)] border-t-transparent rounded-full" /></div>
+           <LoadingSpinner fullScreen />
          ) : filtered.length === 0 ? (
            <div className="py-32 flex flex-col items-center justify-center text-center opacity-40">
               <AlertTriangle className="size-16 mb-4 text-[var(--text-secondary)]" />
@@ -163,7 +164,7 @@ export default function AdminReviewsPage() {
                             </td>
                             <td className="px-8 py-6">
                                <div className="max-w-[300px]">
-                                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic line-clamp-2">"{r.comment}"</p>
+                                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-2">"{r.comment}"</p>
                                </div>
                             </td>
                             <td className="px-8 py-6 text-right">

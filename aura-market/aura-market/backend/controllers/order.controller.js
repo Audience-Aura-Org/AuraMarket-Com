@@ -380,10 +380,18 @@ const getOrderById = async (req, res, next) => {
       .populate('customer_id', 'name email phone')
       .populate({
         path: 'vendor_id',
-        select: 'store_name user_id',
+        select: 'store_name user_id name',
         populate: {
           path: 'user_id',
           select: 'name avatar branding'
+        }
+      })
+      .populate({
+        path: 'products.product_id',
+        select: 'name images vendor_id',
+        populate: {
+          path: 'vendor_id',
+          select: 'store_name user_id branding name'
         }
       });
 

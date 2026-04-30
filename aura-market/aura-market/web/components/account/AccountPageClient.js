@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, User, Bell, Shield, Lock, Power, ChevronRight,
-  Store, ShieldAlert, Palette, Database, BarChart3,
+  Store, ShieldAlert, Database, BarChart3,
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
-  Truck, LayoutGrid, ShoppingBag,
-  Users, Heart, Phone, Moon, Sun, ShieldCheck, X
+  Truck, LayoutGrid, ShoppingBag, Activity,
+  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
+import StatusManager from '@/components/status/StatusManager';
 
 const TABS = [
   { id: 'general', label: 'Profile', icon: User, roles: ['customer', 'vendor', 'admin', 'logistics'] },
@@ -24,8 +25,9 @@ const TABS = [
   { id: 'security', label: 'Security', icon: Shield, roles: ['customer', 'vendor', 'admin', 'logistics'] },
   { id: 'network', label: 'Network', icon: Users, roles: ['customer', 'vendor'] },
   { id: 'audience', label: 'Audience', icon: Heart, roles: ['vendor'] },
-  { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },
-  { id: 'fleet', label: 'Fleet', icon: Truck, roles: ['logistics'] },
+   { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },
+   { id: 'statuses', label: 'Stories', icon: Activity, roles: ['vendor', 'admin'] },
+   { id: 'fleet', label: 'Fleet', icon: Truck, roles: ['logistics'] },
   { id: 'governance', label: 'Governance', icon: ShieldAlert, roles: ['admin'] },
   { id: 'kyc', label: 'Verification', icon: Shield, roles: ['customer', 'vendor'] },
   { id: 'notifications', label: 'Alerts', icon: Bell, roles: ['customer', 'vendor', 'admin', 'logistics'] },
@@ -92,6 +94,7 @@ export default function AccountPageClient() {
 
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderView, setOrderView] = useState(user?.role === 'vendor' ? 'sales' : 'purchases');
 
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
@@ -104,17 +107,18 @@ export default function AccountPageClient() {
      if (!user) return;
      setOrdersLoading(true);
      try {
-       const endpoint = user?.role === 'vendor' ? '/orders/vendor-orders' : '/orders/my-orders';
+       const endpoint = orderView === 'sales' ? '/orders/vendor-orders' : '/orders/my-orders';
        const res = await api.get(endpoint);
        if (res.data.success) {
-          setOrders(res.data.data.orders || []);
+          const sortedOrders = (res.data.data.orders || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setOrders(sortedOrders);
        }
      } catch (err) {
        console.error("Orders fetch failed", err);
      } finally {
        setOrdersLoading(false);
      }
-  }, [user]);
+  }, [user, orderView]);
 
   useEffect(() => {
     if (activeTab === 'orders') fetchOrders();
@@ -142,6 +146,14 @@ export default function AccountPageClient() {
     } catch (err) { console.error(err); }
     finally { setAudienceLoading(false); }
   };
+
+  useEffect(() => {
+    const handleGlobalUpdate = () => {
+      fetchNetwork();
+    };
+    window.addEventListener('aura_follow_update', handleGlobalUpdate);
+    return () => window.removeEventListener('aura_follow_update', handleGlobalUpdate);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -212,9 +224,23 @@ export default function AccountPageClient() {
     }
   }, []);
 
+  const fetchLogisticsProfile = useCallback(async () => {
+    try {
+      const res = await api.get('/logistics/profile');
+      if (res.data.success) {
+        const firm = res.data.data.firm;
+        // The identity header uses user.branding which we update anyway,
+        // but we fetch to ensure we have the latest corporate data if needed.
+      }
+    } catch (err) {
+      console.error("Failed to fetch logistics profile", err);
+    }
+  }, []);
+
   useEffect(() => {
     if (user?.role === 'vendor') fetchVendorProfile();
-  }, [user, fetchVendorProfile]);
+    if (user?.role === 'logistics') fetchLogisticsProfile();
+  }, [user, fetchVendorProfile, fetchLogisticsProfile]);
 
   const handleUpdateStore = async () => {
     setLoading(true);
@@ -235,12 +261,15 @@ export default function AccountPageClient() {
     }
   };
 
-  const handleUpdateBranding = async () => {
+  const handleUpdateBranding = async (overrides = {}) => {
     setBrandingStatus('Updating branding...');
     try {
+      const logo = overrides.logo || profileBranding.logo;
+      const banner = overrides.banner || profileBranding.banner;
+
       const brandingPayload = canUseBanner
-        ? { logo: profileBranding.logo, banner: profileBranding.banner }
-        : { logo: profileBranding.logo };
+        ? { logo, banner }
+        : { logo };
       
       const res = await api.patch('/users/me', {
         branding: brandingPayload
@@ -248,8 +277,15 @@ export default function AccountPageClient() {
 
       if (user?.role === 'vendor') {
         await api.patch('/vendors/store', { 
-          logo: profileBranding.logo, 
-          banner: profileBranding.banner 
+          logo, 
+          banner 
+        });
+      }
+
+      if (user?.role === 'logistics') {
+        await api.patch('/logistics/profile', { 
+          logo, 
+          banner 
         });
       }
 
@@ -275,15 +311,18 @@ export default function AccountPageClient() {
 
       const res = await uploadService.uploadSingle(file, uploadType);
       if (res?.success && res?.data?.url) {
+        const url = res.data.url;
         if (field === 'kyc_front') {
-          setKycData((p) => ({ ...p, file_url_front: res.data.url }));
+          setKycData((p) => ({ ...p, file_url_front: url }));
           setBrandingStatus(`ID front uploaded.`);
         } else if (field === 'kyc_back') {
-          setKycData((p) => ({ ...p, file_url_back: res.data.url }));
+          setKycData((p) => ({ ...p, file_url_back: url }));
           setBrandingStatus(`ID back uploaded.`);
         } else {
-          setProfileBranding((p) => ({ ...p, [field]: res.data.url }));
-          setBrandingStatus(`${field} uploaded. Save to apply.`);
+          setProfileBranding((p) => ({ ...p, [field]: url }));
+          setBrandingStatus(`${field} uploaded. Syncing profile...`);
+          // Immediately sync to prevent race conditions with state updates
+          await handleUpdateBranding({ [field]: url });
         }
       } else {
         setBrandingStatus('Upload failed.');
@@ -324,15 +363,15 @@ export default function AccountPageClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)]">
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-2xl bg-[var(--bg-primary)]/80">
+      <div className="sticky top-0 z-50 border-b border-[var(--glass-border)] backdrop-blur-2xl bg-[var(--bg-primary)]/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+            <button onClick={() => router.back()} className="p-2 hover:bg-[var(--bg-secondary)]/50 rounded-[1.5rem] transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-lg font-bold tracking-tight">Account Settings</h1>
           </div>
-          <button onClick={() => { logout(); router.push('/login'); }} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-colors">
+          <button onClick={() => { logout(); router.push('/login'); }} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-[1.5rem] transition-colors">
             <Power className="w-5 h-5" />
           </button>
         </div>
@@ -343,9 +382,9 @@ export default function AccountPageClient() {
         <div className="lg:col-span-1">
           <div className="sticky top-24 space-y-6">
             {/* Profile Card */}
-            <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-4 space-y-4">
+            <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[3rem] p-6 backdrop-blur-3xl shadow-xl transition-all duration-500 hover:shadow-2xl space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center">
                   {profileBranding.logo ? (
                     <img src={profileBranding.logo} className="w-full h-full object-cover" alt="" />
                   ) : (
@@ -354,11 +393,11 @@ export default function AccountPageClient() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{user?.name}</p>
-                  <p className="text-xs text-white/50 capitalize truncate">{user?.role}</p>
+                  <p className="text-xs text-[var(--text-secondary)] capitalize truncate">{user?.role}</p>
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={toggleTheme} className="flex-1 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                <button onClick={toggleTheme} className="flex-1 p-2 rounded-[1.5rem] bg-[var(--bg-secondary)]/50 hover:bg-[var(--glass-border)] transition-colors flex items-center justify-center gap-2">
                   {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 </button>
               </div>
@@ -376,10 +415,10 @@ export default function AccountPageClient() {
                       setActiveTab(tab.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-[1.5rem] transition-all text-left ${
                       isActive
                         ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                        : 'hover:bg-white/5 text-white/70 hover:text-white'
+                        : 'hover:bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
@@ -405,448 +444,611 @@ export default function AccountPageClient() {
             >
               {activeTab === 'general' && (
                 <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Profile Settings</h2>
-                    <p className="text-white/50 text-sm mt-1">Manage your account information and preferences</p>
-                  </div>
-
-                  {/* Avatar Section */}
-                  <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-8 space-y-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold">Profile Picture</h3>
-                        <p className="text-sm text-white/50 mt-1">Upload your profile image</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-end gap-6">
-                      <div className="relative group">
-                        <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-white/10 bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center">
+                  {/* Identity Header Card */}
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-8 shadow-xl w-full">
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8">
+                      <div className="relative group shrink-0">
+                        <div className="size-28 md:size-32 rounded-full border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-4xl font-black text-[var(--accent)]">
                           {profileBranding.logo ? (
-                            <img src={profileBranding.logo} className="w-full h-full object-cover" alt="" />
+                            <img src={profileBranding.logo} className="size-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
                           ) : (
-                            <User className="w-10 h-10 text-white/20" />
+                            user?.name?.[0]?.toUpperCase()
                           )}
                         </div>
-                        <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform">
-                          <Camera className="w-4 h-4 text-white" />
+                        <label className="absolute bottom-0 right-0 size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-primary)] border-4 border-[var(--bg-primary)] flex items-center justify-center hover:scale-110 hover:text-[var(--accent)] transition-all shadow-xl cursor-pointer z-20">
+                          <Camera className="size-4" />
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
                         </label>
                       </div>
-                      <div>
-                        <p className="text-xs text-white/50">JPG, PNG up to 5MB</p>
+
+                      <div className="flex-1 text-center md:text-left space-y-1">
+                        <h3 className="text-2xl md:text-3xl font-black uppercase text-[var(--text-primary)] tracking-tight">
+                          {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
+                        </h3>
+                        <p className="text-[var(--text-secondary)] font-medium flex items-center justify-center md:justify-start gap-2 text-sm">
+                          <Mail className="size-4 opacity-40 shrink-0" /> {user?.email}
+                        </p>
+                        <div className="pt-2">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest uppercase border border-[var(--accent)]/20 shadow-sm">
+                            {user?.role || 'User'} Profile
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-8 md:gap-12 shrink-0 px-4 md:px-8 border-l border-[var(--glass-border)] hidden md:grid">
+                        <div className="text-center group-hover:scale-110 transition-transform cursor-pointer" onClick={() => setActiveTab('network')}>
+                          <p className="text-xl md:text-2xl font-black text-[var(--accent)] drop-shadow-[0_0_10px_var(--accent-light)]">{followedVendors.length}</p>
+                          <p className="text-[8px] md:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest mt-1">Protocols</p>
+                        </div>
+                        <div className="text-center group-hover:scale-110 transition-transform cursor-pointer" onClick={() => setActiveTab('orders')}>
+                          <p className="text-xl md:text-2xl font-black text-[var(--text-primary)]">{orders.filter(o => o.order_status !== 'delivered').length}</p>
+                          <p className="text-[8px] md:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest mt-1">Active</p>
+                        </div>
                       </div>
                     </div>
-
-                    <button
-                      onClick={handleUpdateBranding}
-                      className="w-full px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium text-sm hover:bg-[var(--accent)]/90 transition-colors"
-                    >
-                      {brandingUploading ? 'Uploading...' : 'Update Picture'}
-                    </button>
                   </div>
 
-                  {/* Personal Info */}
-                  <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-8 space-y-6">
-                    <h3 className="font-semibold">Personal Information</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        label="Full Name"
-                        value={userData.name}
-                        onChange={(v) => setUserData({ ...userData, name: v })}
-                        icon={User}
-                        placeholder="Your name"
-                      />
-                      <FormField
-                        label="Phone Number"
-                        value={userData.phone}
-                        onChange={(v) => setUserData({ ...userData, phone: v })}
-                        icon={Phone}
-                        placeholder="+237..."
-                      />
+                  <div className="space-y-6 md:space-y-8">
+                    <div className="flex items-center gap-6 px-4 md:px-6">
+                      <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Identity Parameters</h3>
+                      <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                     </div>
 
-                    <FormField
-                      label="Email"
-                      value={user?.email}
-                      disabled={true}
-                      icon={Mail}
-                    />
+                    <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                      <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                      
+                      <div className="relative z-10 space-y-6 md:space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            label="Full Name"
+                            value={userData.name}
+                            onChange={(v) => setUserData({ ...userData, name: v })}
+                            icon={User}
+                            placeholder="Your name"
+                          />
+                          <FormField
+                            label="Phone Number"
+                            value={userData.phone}
+                            onChange={(v) => setUserData({ ...userData, phone: v })}
+                            icon={Phone}
+                            placeholder="+237..."
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormSelect
-                        label="City"
-                        value={userData.onboarding_location.city}
-                        onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, city: v, quartier: ''}})}
-                        options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
-                        icon={MapPin}
-                        placeholder="Select city"
-                      />
-                      <FormSelect
-                        label="Quartier"
-                        value={userData.onboarding_location.quartier}
-                        onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, quartier: v}})}
-                        options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === userData.onboarding_location.city).map(z => ({ label: z.name, value: z.name }))}
-                        icon={MapPin}
-                        placeholder="Select quartier"
-                        disabled={!userData.onboarding_location.city}
-                      />
+                        <FormField
+                          label="Email"
+                          value={user?.email}
+                          disabled={true}
+                          icon={Mail}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormSelect
+                            label="City"
+                            value={userData.onboarding_location.city}
+                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, city: v, quartier: ''}})}
+                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select city"
+                          />
+                          <FormSelect
+                            label="Quartier"
+                            value={userData.onboarding_location.quartier}
+                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, quartier: v}})}
+                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === userData.onboarding_location.city).map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select quartier"
+                            disabled={!userData.onboarding_location.city}
+                          />
+                        </div>
+
+                        <FormField
+                          label="Address Description"
+                          value={userData.onboarding_location.address_description}
+                          onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })}
+                          icon={MapPin}
+                          placeholder="Additional address details..."
+                          textarea={true}
+                        />
+
+                        <button
+                          onClick={handleUpdateProfile}
+                          disabled={profileSaving}
+                          className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                        >
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                          <span className="relative z-10 text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
+                            {profileSaving ? 'Synchronizing State...' : 'Save Identity Configuration'}
+                          </span>
+                        </button>
+                      </div>
                     </div>
-
-                    <FormField
-                      label="Address Description"
-                      value={userData.onboarding_location.address_description}
-                      onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })}
-                      icon={MapPin}
-                      placeholder="Additional address details..."
-                      textarea={true}
-                    />
-
-                    <button
-                      onClick={handleUpdateProfile}
-                      disabled={profileSaving}
-                      className="w-full px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium text-sm hover:bg-[var(--accent)]/90 transition-colors disabled:opacity-50"
-                    >
-                      {profileSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
                   </div>
                 </div>
               )}
 
               {activeTab === 'orders' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Order History</h2>
-                    <p className="text-white/50 text-sm mt-1">View and track your orders</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Transaction Logs</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  {ordersLoading ? (
-                    <div className="flex items-center justify-center py-16">
-                      <RefreshCw className="w-6 h-6 animate-spin" />
-                    </div>
-                  ) : orders.length === 0 ? (
-                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-12 text-center">
-                      <ShoppingBag className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                      <p className="text-white/50">No orders yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => (
-                        <Link key={order._id} href={`/orders/${order._id}`}>
-                          <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-6 hover:border-[var(--accent)]/30 transition-all">
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex-1">
-                                <p className="font-semibold line-clamp-1">{order.products?.[0]?.name || 'Order'}</p>
-                                <p className="text-xs text-white/50 mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-semibold">{(order.total_amount).toLocaleString()} XAF</p>
-                                <p className="text-xs text-emerald-400 capitalize mt-1">{order.order_status}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                      {orders.length > itemsPerPage && (
-                        <Pagination
-                          currentPage={currentPage}
-                          totalPages={Math.ceil(orders.length / itemsPerPage)}
-                          onPageChange={setCurrentPage}
-                        />
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+
+                    <div className="relative z-10">
+                      {user?.role === 'vendor' && (
+                        <div className="flex p-1.5 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] w-fit mb-8">
+                          <button
+                            onClick={() => setOrderView('purchases')}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                          >
+                            My Purchases
+                          </button>
+                          <button
+                            onClick={() => setOrderView('sales')}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                          >
+                            Store Sales
+                          </button>
+                        </div>
+                      )}
+
+                      {ordersLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                          <RefreshCw className="w-8 h-8 text-[var(--accent)] animate-spin" />
+                        </div>
+                      ) : orders.length === 0 ? (
+                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
+                          <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No {orderView === 'sales' ? 'Sales' : 'Purchase'} Manifest Found</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
+                            const firstItem = order.products?.[0] || order.items?.[0];
+                            const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white.png';
+                            const title = firstItem?.name || firstItem?.product?.name || `Order #${order._id.substring(0, 8)}`;
+                            
+                            return (
+                              <Link key={order._id} href={`/orders/${order._id}`} className="block group">
+                                <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] p-5 md:p-6 hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--accent)]/30 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5">
+                                  <div className="flex items-center gap-5">
+                                    <div className="size-16 rounded-[1.25rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 group-hover:border-[var(--accent)]/30 transition-colors shadow-sm">
+                                      <img src={imageUrl} alt="Product Thumbnail" className="size-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[11px] md:text-xs font-black tracking-widest uppercase truncate text-[var(--text-primary)] mb-1">{title}</p>
+                                      <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <p className="text-xs md:text-sm font-black tracking-wider text-[var(--text-primary)]">{(order.total_amount).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
+                                      <div className="mt-1 flex justify-end">
+                                        <span className={`px-3 py-1 rounded-full text-[8px] font-black tracking-widest uppercase border ${order.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : order.order_status === 'shipped' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                                          {order.order_status || 'Pending'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <ChevronRight className="size-5 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-[var(--accent)] ml-2 hidden md:block" />
+                                  </div>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                          {orders.length > itemsPerPage && (
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={Math.ceil(orders.length / itemsPerPage)}
+                              onPageChange={setCurrentPage}
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
               {activeTab === 'security' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Security</h2>
-                    <p className="text-white/50 text-sm mt-1">Manage your account security settings</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Security Matrix</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-8 space-y-4">
-                    <button className="w-full flex items-center justify-between p-4 hover:bg-white/5 rounded-lg transition-colors">
-                      <div className="flex items-center gap-3">
-                        <Lock className="w-5 h-5 text-[var(--accent)]" />
-                        <div className="text-left">
-                          <p className="font-medium">Change Password</p>
-                          <p className="text-xs text-white/50">Update your security passphrase</p>
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-4">
+                      <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
+                        <div className="flex items-center gap-4">
+                          <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
+                            <Lock className="size-5 text-[var(--accent)]" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Change Passphrase</p>
+                            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                    <button className="w-full flex items-center justify-between p-4 hover:bg-white/5 rounded-lg transition-colors">
-                      <div className="flex items-center gap-3">
-                        <RefreshCw className="w-5 h-5 text-[var(--accent)]" />
-                        <div className="text-left">
-                          <p className="font-medium">Active Sessions</p>
-                          <p className="text-xs text-white/50">Manage your logged in devices</p>
+                        <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
+                      </button>
+
+                      <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
+                        <div className="flex items-center gap-4">
+                          <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
+                            <RefreshCw className="size-5 text-[var(--accent)]" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Active Node Sessions</p>
+                            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                        <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
 
               {activeTab === 'store' && user?.role === 'vendor' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Store Settings</h2>
-                    <p className="text-white/50 text-sm mt-1">Manage your storefront information</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-8 space-y-6">
-                    <FormField
-                      label="Store Name"
-                      value={storeData.store_name}
-                      onChange={(v) => setStoreData({ ...storeData, store_name: v })}
-                      icon={Store}
-                      placeholder="Your store name"
-                    />
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-6 md:space-y-8">
+                      <FormField
+                        label="Store Name"
+                        value={storeData.store_name}
+                        onChange={(v) => setStoreData({ ...storeData, store_name: v })}
+                        icon={Store}
+                        placeholder="Your store name"
+                      />
 
-                    <FormField
-                      label="Store Description"
-                      value={storeData.description}
-                      onChange={(v) => setStoreData({ ...storeData, description: v })}
-                      icon={Database}
-                      placeholder="Describe your store..."
-                      textarea={true}
-                    />
+                      <FormField
+                        label="Store Description"
+                        value={storeData.description}
+                        onChange={(v) => setStoreData({ ...storeData, description: v })}
+                        icon={Database}
+                        placeholder="Describe your store..."
+                        textarea={true}
+                      />
 
-                    <div>
-                      <h4 className="font-semibold mb-4">Pickup Location</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormSelect
-                          label="City"
-                          value={storeData.pickup_address.city}
-                          onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})}
-                          options={zones.filter(z => z.type === 'city').map(z => ({ label: z.name, value: z.name }))}
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-4">
+                          <MapPin className="size-4 text-[var(--accent)]" />
+                          <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Pickup Node Configuration</h4>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormSelect
+                            label="City"
+                            value={storeData.pickup_address.city}
+                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})}
+                            options={zones.filter(z => z.type === 'city').map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select city"
+                          />
+                          <FormSelect
+                            label="Quartier"
+                            value={storeData.pickup_address.quartier}
+                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
+                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === storeData.pickup_address.city).map(z => ({ label: z.name, value: z.name }))}
+                            icon={MapPin}
+                            placeholder="Select quartier"
+                            disabled={!storeData.pickup_address.city}
+                          />
+                        </div>
+
+                        <FormField
+                          label="Pickup Address Description"
+                          value={storeData.pickup_address.address_description}
+                          onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })}
                           icon={MapPin}
-                          placeholder="Select city"
-                        />
-                        <FormSelect
-                          label="Quartier"
-                          value={storeData.pickup_address.quartier}
-                          onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
-                          options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === storeData.pickup_address.city).map(z => ({ label: z.name, value: z.name }))}
-                          icon={MapPin}
-                          placeholder="Select quartier"
-                          disabled={!storeData.pickup_address.city}
+                          placeholder="Specific address details..."
+                          textarea={true}
                         />
                       </div>
 
-                      <FormField
-                        label="Pickup Address"
-                        value={storeData.pickup_address.address_description}
-                        onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })}
-                        icon={MapPin}
-                        placeholder="Specific address details..."
-                        textarea={true}
-                      />
+                      <button
+                        onClick={handleUpdateStore}
+                        disabled={loading}
+                        className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                      >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                        <div className="relative z-10 flex items-center gap-3">
+                          {loading && <RefreshCw className="size-4 animate-spin" />}
+                          <span className="text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
+                            {loading ? 'Updating Storefront...' : 'Commit Store Configuration'}
+                          </span>
+                        </div>
+                      </button>
                     </div>
-
-                    <button
-                      onClick={handleUpdateStore}
-                      disabled={loading}
-                      className="w-full px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium text-sm hover:bg-[var(--accent)]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
-                      {loading ? 'Saving...' : 'Save Store Settings'}
-                    </button>
                   </div>
                 </div>
               )}
 
               {activeTab === 'kyc' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Identity Verification</h2>
-                    <p className="text-white/50 text-sm mt-1">Verify your identity to unlock advanced features</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Identity Validation</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-8 space-y-6">
-                    {kycStatus === 'approved' ? (
-                      <div className="flex items-center gap-4 p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                        <ShieldCheck className="w-6 h-6 text-emerald-500 shrink-0" />
-                        <div>
-                          <p className="font-semibold text-emerald-500">Verified</p>
-                          <p className="text-sm text-emerald-500/70">Your identity has been verified</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {kycStatus === 'pending' && (
-                          <div className="flex items-center gap-4 p-6 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                            <Clock className="w-6 h-6 text-amber-500 shrink-0" />
-                            <div>
-                              <p className="font-semibold text-amber-500">Pending</p>
-                              <p className="text-sm text-amber-500/70">Your verification is being reviewed</p>
-                            </div>
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      {kycStatus === 'approved' ? (
+                        <div className="flex flex-col items-center justify-center text-center p-12 bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem]">
+                          <div className="size-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
+                            <ShieldCheck className="size-10 text-emerald-500" />
                           </div>
-                        )}
-
-                        <FormField
-                          label="Full Name"
-                          value={kycData.full_name}
-                          onChange={(v) => setKycData({...kycData, full_name: v})}
-                          icon={User}
-                          placeholder="Your full name"
-                        />
-
-                        <div>
-                          <label className="block text-sm font-medium mb-2">ID Type</label>
-                          <select
-                            value={kycData.id_type}
-                            onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:border-[var(--accent)]/50"
-                          >
-                            <option value="national_id">National ID</option>
-                            <option value="passport">Passport</option>
-                            <option value="drivers_license">Driver's License</option>
-                          </select>
+                          <h4 className="text-xl font-black uppercase tracking-tight text-emerald-500 mb-2">Verified Identity</h4>
+                          <p className="text-sm text-emerald-500/60 font-medium max-w-xs">Your identity matrix has been fully synchronized and validated.</p>
                         </div>
+                      ) : (
+                        <div className="space-y-8">
+                          {kycStatus === 'pending' && (
+                            <div className="flex items-center gap-5 p-6 bg-amber-500/5 border border-amber-500/20 rounded-[2rem]">
+                              <div className="size-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
+                                <Clock className="size-6 text-amber-500 animate-pulse" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-black tracking-widest uppercase text-amber-500">Validation in Progress</p>
+                                <p className="text-sm text-amber-500/60 font-medium">Our node controllers are reviewing your credentials.</p>
+                              </div>
+                            </div>
+                          )}
 
-                        <FormField
-                          label="ID Number"
-                          value={kycData.id_number}
-                          onChange={(v) => setKycData({...kycData, id_number: v})}
-                          icon={Lock}
-                          placeholder="Your ID number"
-                        />
-
-                        <div>
-                          <h4 className="font-semibold mb-4">ID Scans</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                              label="Legal Full Name"
+                              value={kycData.full_name}
+                              onChange={(v) => setKycData({...kycData, full_name: v})}
+                              icon={User}
+                              placeholder="Your full name"
+                            />
+
                             <div>
-                              <p className="text-sm text-white/50 mb-2">Front of ID</p>
-                              <label className="block w-full aspect-[4/3] border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-[var(--accent)]/50 transition-colors overflow-hidden">
-                                {kycData.file_url_front ? (
-                                  <img src={kycData.file_url_front} className="w-full h-full object-contain p-2" alt="" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Camera className="w-6 h-6 text-white/20" />
-                                  </div>
-                                )}
-                                <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_front', e.target.files?.[0])} />
-                              </label>
-                            </div>
-                            <div>
-                              <p className="text-sm text-white/50 mb-2">Back of ID</p>
-                              <label className="block w-full aspect-[4/3] border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-[var(--accent)]/50 transition-colors overflow-hidden">
-                                {kycData.file_url_back ? (
-                                  <img src={kycData.file_url_back} className="w-full h-full object-contain p-2" alt="" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Camera className="w-6 h-6 text-white/20" />
-                                  </div>
-                                )}
-                                <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_back', e.target.files?.[0])} />
-                              </label>
+                              <label className="block text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
+                              <select
+                                value={kycData.id_type}
+                                onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
+                                className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
+                              >
+                                <option value="national_id">National Identification</option>
+                                <option value="passport">Global Passport</option>
+                                <option value="drivers_license">Driver Authorization</option>
+                              </select>
                             </div>
                           </div>
-                        </div>
 
-                        <button
-                          onClick={handleKYCSubmit}
-                          disabled={kycLoading || kycStatus === 'pending'}
-                          className="w-full px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium text-sm hover:bg-[var(--accent)]/90 transition-colors disabled:opacity-50"
-                        >
-                          {kycLoading ? 'Submitting...' : 'Submit for Verification'}
-                        </button>
-                      </div>
-                    )}
+                          <FormField
+                            label="Document Serial Number"
+                            value={kycData.id_number}
+                            onChange={(v) => setKycData({...kycData, id_number: v})}
+                            icon={Lock}
+                            placeholder="Your ID number"
+                          />
+
+                          <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                              <Camera className="size-4 text-[var(--accent)]" />
+                              <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Biometric Scans</h4>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-3">
+                                <p className="text-[9px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
+                                <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
+                                  {kycData.file_url_front ? (
+                                    <img src={kycData.file_url_front} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                                  ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                      <Camera className="size-8 text-[var(--glass-border)] group-hover:scale-110 group-hover:text-[var(--accent)] transition-all" />
+                                      <span className="text-[10px] font-bold text-[var(--glass-border)] uppercase tracking-wider">Initialize Scan</span>
+                                    </div>
+                                  )}
+                                  <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_front', e.target.files?.[0])} />
+                                </label>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <p className="text-[9px] font-black tracking-widest uppercase text-[var(--text-secondary)] opacity-50 px-1">Secondary Face (Back)</p>
+                                <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
+                                  {kycData.file_url_back ? (
+                                    <img src={kycData.file_url_back} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                                  ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                      <Camera className="size-8 text-[var(--glass-border)] group-hover:scale-110 group-hover:text-[var(--accent)] transition-all" />
+                                      <span className="text-[10px] font-bold text-[var(--glass-border)] uppercase tracking-wider">Initialize Scan</span>
+                                    </div>
+                                  )}
+                                  <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_back', e.target.files?.[0])} />
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={handleKYCSubmit}
+                            disabled={kycLoading || kycStatus === 'pending'}
+                            className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                          >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                            <div className="relative z-10 flex items-center gap-3">
+                              {kycLoading && <RefreshCw className="size-4 animate-spin" />}
+                              <span className="text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
+                                {kycLoading ? 'Encrypting Credentials...' : 'Submit to Validation Node'}
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
 
               {activeTab === 'network' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Followed Vendors</h2>
-                    <p className="text-white/50 text-sm mt-1">Vendors you're following</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Followed Protocols</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  {networkLoading ? (
-                    <div className="flex items-center justify-center py-16">
-                      <RefreshCw className="w-6 h-6 animate-spin" />
-                    </div>
-                  ) : followedVendors.length === 0 ? (
-                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-12 text-center">
-                      <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                      <p className="text-white/50">No followed vendors</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(vendor => (
-                        <Link key={vendor._id} href={`/stores/${vendor.vendor_id?._id}`}>
-                          <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-6 hover:border-[var(--accent)]/30 transition-all group">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 bg-white/5 shrink-0">
-                                <img src={vendor.vendor_id?.user_id?.branding?.logo || vendor.vendor_id?.user_id?.avatar} className="w-full h-full object-cover" alt="" />
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      {networkLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                          <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
+                        </div>
+                      ) : followedVendors.length === 0 ? (
+                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
+                          <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Followed Vendors</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+                          {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(vendor => (
+                            <Link 
+                              key={vendor._id} 
+                              href={`/stores/${vendor.vendor_id?._id || ''}`} 
+                              className="group relative rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[var(--accent)]/10 hover:-translate-y-2 glass-panel"
+                            >
+                              {/* Banner Background */}
+                              <div className="absolute top-0 left-0 w-full h-24 overflow-hidden">
+                                <img 
+                                  src={vendor.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000'} 
+                                  className="w-full h-full object-cover brightness-[0.4] group-hover:scale-110 transition-transform duration-1000"
+                                  alt=""
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)] to-transparent opacity-90"></div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold truncate group-hover:text-[var(--accent)] transition-colors">{vendor.vendor_id?.store_name}</p>
-                                <p className="text-xs text-white/50">{vendor.vendor_id?.follower_count || 0} followers</p>
+
+                              <div className="relative pt-12 px-6 pb-6 flex flex-col items-center text-center">
+                                {/* Profile Avatar */}
+                                <div className="size-20 rounded-2xl overflow-hidden border-4 border-[var(--bg-primary)] shadow-xl relative z-10 bg-[var(--bg-secondary)] group-hover:scale-105 transition-transform">
+                                  <img 
+                                    src={vendor.vendor_id?.user_id?.branding?.logo || vendor.vendor_id?.user_id?.avatar || '/logo-white.png'} 
+                                    alt={vendor.vendor_id?.store_name}
+                                    className="size-full object-cover"
+                                  />
+                                </div>
+
+                                <div className="mt-4 space-y-2 relative z-10 w-full">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <h3 className="text-sm font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight line-clamp-1 uppercase">
+                                      {vendor.vendor_id?.store_name}
+                                    </h3>
+                                    <ShieldCheck className="size-3.5 text-blue-500" />
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[8px] font-black tracking-widest w-fit mx-auto uppercase">
+                                    <Star className="size-2.5 fill-current" /> {vendor.vendor_id?.rating || '4.9'}
+                                  </div>
+
+                                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-tighter">
+                                    {vendor.vendor_id?.follower_count || 0} Synchronized Nodes
+                                  </p>
+                                </div>
+
+                                <div className="mt-6 pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
+                                  <div className="flex flex-col items-start gap-1">
+                                    <span className="text-[7px] font-black text-[var(--text-secondary)]/40 tracking-[0.3em] uppercase">Status</span>
+                                    <span className="text-[9px] font-bold text-emerald-500 flex items-center gap-1 uppercase">
+                                      <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Active
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="size-8 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-secondary)] group-hover:bg-[var(--accent)] group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-sm">
+                                    <ChevronRight className="size-4" />
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
               {activeTab === 'audience' && user?.role === 'vendor' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Your Followers</h2>
-                    <p className="text-white/50 text-sm mt-1">Users following your store</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Audience</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  {audienceLoading ? (
-                    <div className="flex items-center justify-center py-16">
-                      <RefreshCw className="w-6 h-6 animate-spin" />
-                    </div>
-                  ) : audience.length === 0 ? (
-                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-12 text-center">
-                      <Heart className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                      <p className="text-white/50">No followers yet</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {audience.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(follower => (
-                        <div key={follower._id} className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 bg-white/5 shrink-0">
-                              <img src={follower.user_id?.branding?.logo || follower.user_id?.avatar} className="w-full h-full object-cover" alt="" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold truncate">{follower.user_id?.name}</p>
-                              <p className="text-xs text-white/50">{new Date(follower.createdAt).toLocaleDateString()}</p>
-                            </div>
-                          </div>
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10">
+                      {audienceLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                          <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
                         </div>
-                      ))}
+                      ) : audience.length === 0 ? (
+                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
+                          <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Connected Nodes</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {audience.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(follower => (
+                            <div key={follower._id} className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] p-5 hover:bg-[var(--accent)]/5 transition-all duration-300">
+                              <div className="flex items-center gap-4">
+                                <div className="size-14 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0">
+                                  <img src={follower.user_id?.branding?.logo || follower.user_id?.avatar || '/logo-white.png'} className="size-full object-cover" alt="" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-black uppercase tracking-widest truncate text-[var(--text-primary)]">{follower.user_id?.name}</p>
+                                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-tighter">Synchronized {new Date(follower.createdAt).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Propagation</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
+                  <StatusManager />
                 </div>
               )}
 
               {activeTab === 'notifications' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Notifications</h2>
-                    <p className="text-white/50 text-sm mt-1">Manage your notification preferences</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Signal Parameters</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-8 space-y-4">
-                    <NotificationToggle label="Email Notifications" icon={Mail} active={true} />
-                    <NotificationToggle label="Push Notifications" icon={Bell} active={true} />
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-4">
+                      <NotificationToggle label="Internal Node Signals" icon={Bell} active={true} />
+                      <NotificationToggle label="External Multi-cast (Email)" icon={Mail} active={true} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -863,24 +1065,24 @@ export default function AccountPageClient() {
 function FormField({ label, value, onChange, icon: Icon, placeholder, disabled = false, textarea = false }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2">{label}</label>
+      <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</label>
       {textarea ? (
         <textarea
-          value={value}
+          value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
           rows={4}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
         />
       ) : (
         <input
           type="text"
-          value={value}
+          value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       )}
     </div>
@@ -890,12 +1092,12 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
 function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, disabled = false }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2">{label}</label>
+      <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
+        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
       >
         <option value="">{placeholder}</option>
         {options.map(opt => (
@@ -908,13 +1110,13 @@ function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, 
 
 function NotificationToggle({ label, icon: Icon, active }) {
   return (
-    <div className="flex items-center justify-between p-4 hover:bg-white/5 rounded-lg transition-colors">
+    <div className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)] rounded-[1.5rem] transition-colors border border-[var(--glass-border)]">
       <div className="flex items-center gap-3">
         <Icon className="w-5 h-5 text-[var(--accent)]" />
-        <p className="font-medium text-sm">{label}</p>
+        <p className="font-medium text-sm text-[var(--text-primary)]">{label}</p>
       </div>
-      <div className={`w-12 h-6 rounded-full transition-colors ${active ? 'bg-[var(--accent)]' : 'bg-white/10'}`}>
-        <div className={`w-5 h-5 rounded-full bg-white mt-0.5 transition-transform ${active ? 'ml-6' : 'ml-0.5'}`} />
+      <div className={`w-12 h-6 rounded-full transition-colors relative ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}>
+        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--text-primary)] transition-transform ${active ? 'left-[26px]' : 'left-0.5'}`} />
       </div>
     </div>
   );

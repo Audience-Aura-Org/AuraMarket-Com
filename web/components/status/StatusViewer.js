@@ -58,7 +58,11 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       return;
     }
     const instant = getVideoPoster(src);
-    if (instant) { setPoster(instant); setVideoReady(false); return; }
+    if (instant) { 
+      setPoster(instant); 
+      setVideoReady(false); 
+      return; 
+    }
 
     setPoster(null);
     setVideoReady(false);
@@ -99,7 +103,6 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     if (active && !paused) {
       v.play().catch(err => {
         console.warn('[Video] Playback blocked or failed:', err.message);
-        // If it's a critical error, we might want to skip, but usually it's just a pause
       });
     } else {
       v.pause();
@@ -146,7 +149,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         </div>
       )}
 
-      {/* Video — no native poster attr; overlay handles it */}
+      {/* Video */}
       <video
         ref={ref}
         src={src}
@@ -168,7 +171,6 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
 });
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
-// activeBarRef: forwarded ref — parent writes transform directly for video (zero re-renders)
 const ProgressBar = forwardRef(function ProgressBar(
   { count, current, paused, isReplying, isVideo, onEnd },
   activeBarRef
@@ -178,7 +180,6 @@ const ProgressBar = forwardRef(function ProgressBar(
   const elapsed  = useRef(0);
   const localBarRef = useRef(null);
 
-  // Sync the forwarded ref with localBarRef
   const setBarRef = useCallback((el) => {
     localBarRef.current = el;
     if (activeBarRef) activeBarRef.current = el;
@@ -207,16 +208,13 @@ const ProgressBar = forwardRef(function ProgressBar(
     timerRef.current = requestAnimationFrame(tick);
   }, [onEnd]);
 
-  // Reset on story change
   useEffect(() => {
     elapsed.current = 0;
     if (localBarRef.current) localBarRef.current.style.transform = 'scaleX(0)';
     if (!isVideo && !paused && !isReplying) run();
     return () => { if (timerRef.current) cancelAnimationFrame(timerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current]);
+  }, [current, isVideo, paused, isReplying, run]);
 
-  // Pause/resume for images
   useEffect(() => {
     if (isVideo) return;
     if (paused || isReplying) stop(); else run();
@@ -280,7 +278,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const [replyText,  setReplyText]  = useState('');
   const [isReplying, setIsReplying] = useState(false);
 
-  // Direct DOM ref for video progress bar — zero re-renders on timeupdate
   const videoBarRef = useRef(null);
   const holdTimer   = useRef(null);
   const touchStart  = useRef({ x: 0, y: 0, t: 0 });
@@ -334,7 +331,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     }
   }, [storyIdx, vendorIdx, vendorGroups, resetStoryState]);
 
-  // Video progress: write directly to DOM, no state update
   const handleVideoProgress = useCallback((e) => {
     const { currentTime, duration } = e.target;
     if (duration > 0 && videoBarRef.current) {
@@ -405,7 +401,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       onClick={onClose}
       className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
     >
-      {/* Story Container */}
       <div
         onClick={e => e.stopPropagation()}
         className="relative w-full h-full md:max-w-[420px] bg-black overflow-hidden select-none touch-none"

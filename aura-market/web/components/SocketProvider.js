@@ -49,6 +49,9 @@ export default function SocketProvider({ children }) {
 
       const senderName = msg.sender_id?.name || 'Aura User';
       const text = msg.text || (msg.product_reference ? '📦 Shared a product' : 'Sent you a message');
+      
+      // Dispatch global event for unread highlighting
+      window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: msg }));
 
       setChatToast({ id: msg._id || Date.now(), sender: senderName, text });
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import api from '@/services/api';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function VendorDashboard() {
   const { user, token, logout } = useAuthStore();
@@ -12,6 +13,7 @@ export default function VendorDashboard() {
   const [orders, setOrders] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [pendingEscrow, setPendingEscrow] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function VendorDashboard() {
 
     
     if (!authToken) {
+      setLoading(false);
       setError(null);
       return;
     }
@@ -58,6 +61,7 @@ export default function VendorDashboard() {
         
         if (!vendorRes.data.success) {
           setError('Vendor profile not found or unauthorized.');
+          setLoading(false);
           return;
         }
 
@@ -88,11 +92,13 @@ export default function VendorDashboard() {
           if (vendorProfileRes.data.success) {
             setPendingEscrow(vendorProfileRes.data.data.escrow_balance || 0);
           }
+          setLoading(false);
         }
       } catch (err) {
         console.error('[VendorDashboard] Error:', err.response?.status, err.response?.data?.message || err.message);
         if (isMounted) {
           setError(err.response?.data?.message || err.message || 'Failed to fetch data');
+          setLoading(false);
         }
       }
     };
@@ -125,6 +131,10 @@ export default function VendorDashboard() {
     blue: { bg: 'bg-indigo-600/10', text: 'text-indigo-600', bar: 'bg-indigo-600', badgeBg: 'bg-indigo-600/10', badgeText: 'text-indigo-600', glow: '#4f46e5', w: '85%' },
     purple: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: '', badgeBg: '', badgeText: '', glow: 'var(--accent)', w: '60%' },
   };
+
+  if (loading) {
+    return <LoadingSpinner fullScreen />;
+  }
 
   if (!mounted) return null;
 
@@ -307,7 +317,7 @@ export default function VendorDashboard() {
                   </div>
                 ))}
                 {orders.length === 0 && (
-                  <div className="flex-1 flex items-center justify-center text-[var(--text-secondary)] text-sm italic">No orders yet</div>
+                  <div className="flex-1 flex items-center justify-center text-[var(--text-secondary)] text-sm">No orders yet</div>
                 )}
               </div>
             </div>
@@ -370,7 +380,7 @@ export default function VendorDashboard() {
                   })}
                   {orders.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)] italic">No orders to display.</td>
+                      <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)]">No orders to display.</td>
                     </tr>
                   )}
                 </tbody>

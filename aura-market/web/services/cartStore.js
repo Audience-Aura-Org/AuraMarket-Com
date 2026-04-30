@@ -45,7 +45,7 @@ function parseItems(raw) {
 
 function notify() {
   const snapshot = { 
-    items: _items, 
+    items: [..._items],   // always a new reference so React re-renders
     count: _items.reduce((s, i) => s + i.quantity, 0),
     isSidebarOpen: _sidebarOpen
   };
@@ -227,12 +227,14 @@ export const cartStore = {
       vendor_id: product.vendor_id?._id || product.vendor_id || null,
     };
 
-    // If item exists, increment quantity, else append
     const existingIndex = _items.findIndex(it => it.id === newItem.id);
     if (existingIndex !== -1) {
-      _items[existingIndex].quantity += quantity;
+      // Immutable update — new array + new item object
+      _items = _items.map((it, i) =>
+        i === existingIndex ? { ...it, quantity: it.quantity + quantity } : it
+      );
     } else {
-      _items.push(newItem);
+      _items = [..._items, newItem]; // new array reference
     }
     
     notify();

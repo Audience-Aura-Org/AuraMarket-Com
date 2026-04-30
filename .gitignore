@@ -1,12 +1,21 @@
-backend/.env
+# Environment variables
+**/.env
+**/.env.local
+**/.env.*
+!**/.env.example
 
-# Ignore Next.js build artifacts and local dev files
-/web/.next/
-/web/node_modules/
-/web/.env.local
-
-# Ignore legacy nested workspace build artifacts
-/aura-market/web/.next/
-
-# Ignore all node_modules at any depth
+# Dependencies
 **/node_modules/
+
+# Build artifacts
+**/dist/
+**/build/
+**/.next/
+**/out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Legacy nested workspace ignore
+/aura-market/web/.next/

@@ -13,11 +13,11 @@ const router = express.Router();
 const memoryStorage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  // Accept only images
-  if (file.mimetype.startsWith('image/')) {
+  // Accept images and videos (for statuses)
+  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed'), false);
+    cb(new Error('Only image and video files are allowed'), false);
   }
 };
 

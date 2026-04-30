@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,7 @@ import {
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function AdminLogistics() {
   const [mounted, setMounted] = useState(false);
@@ -76,6 +77,10 @@ export default function AdminLogistics() {
       toast.error(err?.response?.data?.message || 'Failed to update shipment');
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner fullScreen />;
+  }
 
   if (!mounted) return null;
 
@@ -212,7 +217,7 @@ export default function AdminLogistics() {
                              </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
-                             <p className="text-[9px] lg:text-xs font-bold text-[var(--text-primary)] opacity-50 font-mono italic flex items-center gap-2 uppercase tracking-tight">
+                             <p className="text-[9px] lg:text-xs font-bold text-[var(--text-primary)] opacity-50 font-mono flex items-center gap-2 uppercase tracking-tight">
                                 {f.vehicle_types?.map(v => v.charAt(0).toUpperCase()).join(', ')}
                              </p>
                           </td>
@@ -436,7 +441,7 @@ export default function AdminLogistics() {
                          {(!selectedFirm.quartier_prices || selectedFirm.quartier_prices.length === 0) && (
                             <div className="py-16 flex flex-col items-center gap-4 opacity-20 border-2 border-dashed border-[var(--glass-border)] rounded-[32px]">
                                <Scale className="size-10" />
-                               <p className="text-[9px] font-black italic uppercase tracking-widest text-center px-6">Matrix void.<br/>System ready for provisioning.</p>
+                               <p className="text-[9px] font-black uppercase tracking-widest text-center px-6">Matrix void.<br/>System ready for provisioning.</p>
                             </div>
                          )}
                       </div>

@@ -1,12 +1,13 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Package, Search, Loader2, Ban, Eye, Building2, MoreVertical, Star, CheckCircle } from 'lucide-react';
+import { Package, Search, Loader2, Ban, Eye, Building2, MoreVertical, Star, CheckCircle, Trash2 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
 
 export default function AdminProductsPage() {
@@ -17,10 +18,43 @@ export default function AdminProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   useEffect(() => {
     fetchProducts();
     setCurrentPage(1);
+    setSelectedIds([]);
   }, [statusFilter]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === currentProducts.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(currentProducts.map(p => p._id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to PURGE ${selectedIds.length} products? This is irreversible.`)) return;
+    setBulkDeleting(true);
+    try {
+      const res = await api.post('/admin/products/bulk-delete', { ids: selectedIds });
+      if (res.data.success) {
+        toast.success(res.data.message);
+        setProducts(prev => prev.filter(p => !selectedIds.includes(p._id)));
+        setSelectedIds([]);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk purge failed');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -58,6 +92,12 @@ export default function AdminProductsPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <header className="h-16 lg:h-20 flex items-center justify-between px-4 lg:px-6 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 flex-1">
+          <button 
+             onClick={toggleSelectAll}
+             className={`size-5 rounded-lg border flex items-center justify-center transition-all ${selectedIds.length === currentProducts.length && currentProducts.length > 0 ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
+           >
+              {selectedIds.length === currentProducts.length && currentProducts.length > 0 && <CheckCircle className="size-3" />}
+           </button>
           <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Global <span className="text-[var(--accent)]">Assets</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
           <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
@@ -114,9 +154,18 @@ export default function AdminProductsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 min-h-[600px]">
                 {currentProducts.map(p => {
                   const statusClass = p.status === 'active' ? 'bg-emerald-500/80 text-white border-emerald-400' : p.status === 'pending' ? 'bg-amber-500/80 text-white border-amber-400' : 'bg-rose-500/80 text-white border-rose-400';
+                  const isSelected = selectedIds.includes(p._id);
+                  
                   return (
-                    <div key={p._id} className="p-6 lg:p-8 glass-panel border border-[var(--glass-border)] hover:border-[var(--accent)]/40 rounded-[32px] lg:rounded-[48px] bg-[var(--bg-primary)]/50 group transition-all flex flex-col h-fit relative overflow-hidden shadow-sm hover:shadow-xl shrink-0">
-                      <div className="aspect-[1.5] lg:aspect-[1.6] rounded-[24px] lg:rounded-[32px] overflow-hidden border border-[var(--glass-border)] mb-6 lg:mb-8 bg-[var(--bg-secondary)]/50 relative shadow-inner shrink-0">
+                    <div key={p._id} className={`p-6 lg:p-8 glass-panel border rounded-[32px] lg:rounded-[48px] group transition-all flex flex-col h-fit relative overflow-hidden shadow-sm hover:shadow-xl shrink-0 ${isSelected ? 'bg-[var(--accent)]/5 border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/50 hover:border-[var(--accent)]/40'}`}>
+                      <button 
+                        onClick={() => toggleSelect(p._id)}
+                        className={`absolute top-6 left-6 z-20 size-8 rounded-2xl border flex items-center justify-center transition-all ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-white/10 backdrop-blur-md border-white/20 text-transparent opacity-0 group-hover:opacity-100'}`}
+                      >
+                         <CheckCircle className="size-4 text-white" />
+                      </button>
+
+                      <div className="aspect-[1.5] lg:aspect-[1.6] rounded-[24px] lg:rounded-[32px] overflow-hidden border border-[var(--glass-border)] mb-6 lg:mb-8 bg-[var(--bg-secondary)]/50 relative shadow-inner shrink-0 text-white">
                         <img src={p.images?.[0]?.url || '/placeholder.png'} className="size-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
                         <div className="absolute top-3 right-3 lg:top-4 lg:right-4 flex gap-2">
                           <span className={'px-3 lg:px-4 py-1 lg:py-1.5 rounded-full text-[7px] lg:text-[8px] font-black uppercase tracking-widest border backdrop-blur-md shadow-2xl ' + statusClass}>
@@ -195,6 +244,39 @@ export default function AdminProductsPage() {
           )}
         </div>
       </div>
+      {/* BULK ACTION BAR */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 px-10 py-5 bg-[var(--bg-primary)]/80 backdrop-blur-2xl border border-[var(--accent)]/30 rounded-full shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[360px] justify-between"
+          >
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)]">Batch Selection</span>
+              <span className="text-sm font-black">{selectedIds.length} Asset Nodes</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setSelectedIds([])}
+                className="px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[var(--bg-secondary)] transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="px-8 py-4 rounded-full bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all flex items-center gap-2 shadow-lg shadow-rose-500/30 disabled:opacity-50"
+              >
+                {bulkDeleting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                Purge Assets
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

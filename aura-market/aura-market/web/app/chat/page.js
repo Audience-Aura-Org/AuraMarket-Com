@@ -162,7 +162,7 @@ function ChatContent() {
   }, [inbox, searchQuery]);
 
   const partnerName = activeChat?.store_name || activeChat?.branding?.store_name || activeChat?.name || 'User';
-  const partnerAvatar = activeChat?.branding?.logo || activeChat?.avatar || activeChat?.profile_picture;
+  const partnerAvatar = activeChat?.store?.logo || activeChat?.branding?.logo || activeChat?.avatar || activeChat?.profile_picture;
 
   // Track product context changes for thread rendering
   let lastProductRef = null;
@@ -201,9 +201,9 @@ function ChatContent() {
              <div className="flex justify-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
            ) : (
              filteredInbox.map(chat => (
-               <button key={chat.partner?._id} onClick={() => setActiveChat(chat.partner)} className={`w-full h-[72px] px-3 flex items-center gap-3 hover:bg-[#202c33] transition-all relative ${activeChat?._id === chat.partner?._id ? 'bg-[#2a3942]' : ''}`}>
+               <button key={chat._id || chat.partner?._id || `inbox-${chat.date}`} onClick={() => setActiveChat(chat.partner)} className={`w-full h-[72px] px-3 flex items-center gap-3 hover:bg-[#202c33] transition-all relative ${activeChat?._id === chat.partner?._id ? 'bg-[#2a3942]' : ''}`}>
                  <div className="size-12 rounded-full overflow-hidden shrink-0 border border-white/5 bg-[#111b21]">
-                    {chat.partner?.branding?.logo || chat.partner?.avatar ? <img src={chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center bg-[var(--accent)] text-xs font-black">{chat.partner?.name?.[0]}</div>}
+                    {chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar ? <img src={chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center bg-[var(--accent)] text-xs font-black">{chat.partner?.name?.[0]}</div>}
                  </div>
                  <div className="flex-1 border-b border-[#202c33] h-full flex flex-col justify-center min-w-0 pr-2 transition-all">
                     <div className="flex justify-between items-center mb-0.5">
@@ -254,25 +254,44 @@ function ChatContent() {
                   </div>
                </div>
                <div className="flex items-center gap-7 text-[#aebac1]">
-                  <Search className="size-5 opacity-60 hover:opacity-100" />
-                  <Phone className="size-5 opacity-60 hover:opacity-100" />
-                  <Video className="size-5 opacity-60 hover:opacity-100" />
-                  <MoreVertical className="size-5 opacity-60 hover:opacity-100" />
+                  <Search onClick={() => alert('Diagnostic Search: Feature Encrypting...')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
+                  <Phone onClick={() => alert('Encrypted Voice Pipeline: Operational Check Pending')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
+                  <Video onClick={() => alert('Secure Video Transmission: Protocol Required')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
+                  <MoreVertical onClick={() => alert('Node Configuration Menu')} className="size-5 opacity-60 hover:opacity-100 cursor-pointer" />
                </div>
             </div>
 
             {/* Persistent Product Context Highlight */}
             {contextProduct && (
-              <div className="bg-[#111b21] px-6 py-3 border-b border-[#202c33] flex items-center gap-4 z-20 shadow-lg">
-                 <div className="size-14 rounded-xl overflow-hidden bg-[#202c33] border border-white/5 shrink-0">
+              <div className="bg-[#111b21]/95 backdrop-blur-xl px-4 md:px-8 py-3 md:py-4 border-b border-[#202c33] flex items-center gap-4 md:gap-5 z-20 shadow-2xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-64 h-full bg-[var(--accent)]/10 blur-3xl pointer-events-none group-hover:bg-[var(--accent)]/20 transition-all duration-700" />
+                 
+                 <div className="relative z-10 size-14 md:size-16 rounded-xl md:rounded-2xl overflow-hidden bg-[#202c33] border border-white/10 shrink-0 shadow-lg transition-transform group-hover:scale-[1.02] active:scale-95 duration-500">
                     <img src={contextProduct.images?.[0]?.url || contextProduct.images?.[0]} className="size-full object-cover" alt="" />
                  </div>
-                 <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] mb-1">Current Subject</p>
-                    <h4 className="text-sm font-bold text-white truncate uppercase tracking-tighter">{contextProduct.name}</h4>
-                    <p className="text-xs font-black text-[#aebac1] opacity-60">{contextProduct.price?.toLocaleString()} XAF</p>
+
+                 <div className="flex-1 min-w-0 relative z-10">
+                    <div className="flex items-center gap-2 mb-1">
+                       <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-[0.2em] opacity-90">Subject Payload</span>
+                       <div className="size-1 rounded-full bg-[var(--accent)] opacity-40 animate-pulse" />
+                    </div>
+                    <h4 className="text-sm md:text-base font-black text-white truncate uppercase tracking-tight leading-tight mb-1">{contextProduct.name}</h4>
+                    <div className="flex items-center gap-3">
+                       <p className="text-xs md:text-sm font-black text-[#aebac1] tabular-nums">{contextProduct.price?.toLocaleString()} <span className="text-[10px] text-[var(--accent)] opacity-60">XAF</span></p>
+                       <div className="h-3 w-px bg-white/10" />
+                       <button 
+                         onClick={() => router.push(`/products/${contextProduct._id}`)}
+                         className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[var(--accent)] hover:text-white transition-colors group/btn"
+                       >
+                         <ExternalLink className="size-3 group-hover/btn:rotate-12 transition-transform" />
+                         <span>Inspect Node</span>
+                       </button>
+                    </div>
                  </div>
-                 <button onClick={() => setContextProduct(null)} className="p-2 text-[#aebac1] hover:text-white opacity-40 hover:opacity-100 transition-all"><X className="size-5" /></button>
+
+                 <div className="flex items-center gap-2 relative z-10">
+                    <button onClick={() => setContextProduct(null)} className="p-2.5 md:p-3 rounded-full bg-white/5 text-[#aebac1] hover:text-white hover:bg-white/10 transition-all border border-white/5"><X className="size-5" /></button>
+                 </div>
               </div>
             )}
 
@@ -289,16 +308,34 @@ function ChatContent() {
                     return (
                       <div key={msg._id || i} className="space-y-4">
                         {showProductContext && msg.product_reference && (
-                          <div className="flex justify-center my-6">
-                            <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-[#202c33] border border-white/5 shadow-xl animate-in fade-in slide-in-from-bottom-2">
-                               <div className="size-8 rounded-lg overflow-hidden border border-white/5 bg-[#111b21]">
-                                  <img src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=50&q=80'} className="size-full object-cover" alt="" />
+                          <div className="flex justify-center my-8">
+                            <button 
+                              onClick={() => window.open(`/products/${msg.product_reference._id || msg.product_reference}`, '_blank')}
+                              className="group flex flex-col md:flex-row items-center gap-4 p-4 rounded-3xl bg-[#202c33]/50 border border-white/5 shadow-2xl hover:bg-[#202c33]/80 hover:border-[var(--accent)]/30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4"
+                            >
+                               <div className="size-20 md:size-24 rounded-2xl overflow-hidden border border-white/10 bg-[#111b21] shrink-0 group-hover:scale-[1.03] transition-transform duration-500">
+                                  <img 
+                                    src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80'} 
+                                    className="size-full object-cover" 
+                                    alt="" 
+                                  />
                                </div>
-                               <div className="min-w-0">
-                                  <p className="text-[8px] font-bold text-[var(--accent)] uppercase tracking-widest leading-none mb-1">Topic Change</p>
-                                  <h5 className="text-[11px] font-black text-[#e9edef] truncate max-w-[150px] uppercase tracking-tight">{msg.product_reference.name}</h5>
+                               <div className="text-center md:text-left min-w-0 pr-4">
+                                  <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5 ">
+                                     <div className="size-1 rounded-full bg-[var(--accent)]" />
+                                     <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest leading-none">Product Synchronization</p>
+                                  </div>
+                                  <h5 className="text-sm font-black text-[#e9edef] truncate max-w-[200px] uppercase tracking-tight mb-2 group-hover:text-[var(--accent)] transition-colors">{msg.product_reference.name}</h5>
+                                  <div className="flex items-center justify-center md:justify-start gap-4">
+                                     <p className="text-xs font-black text-[#aebac1] tabular-nums">{(msg.product_reference.price || 0).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
+                                     <div className="h-3 w-px bg-white/10 hidden md:block" />
+                                     <div className="hidden md:flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#aebac1] group-hover:text-white transition-colors">
+                                        <ExternalLink className="size-3" />
+                                        <span>Navigate</span>
+                                     </div>
+                                  </div>
                                </div>
-                            </div>
+                            </button>
                           </div>
                         )}
                         <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>

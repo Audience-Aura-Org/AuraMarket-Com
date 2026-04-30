@@ -492,27 +492,6 @@ const getFollowing = async (req, res, next) => {
   }
 };
 
-const getPromotedVendors = async (req, res, next) => {
-  try {
-    // Return verified vendors with high ratings as ‘promoted’
-    const stores = await Vendor.find({ is_onboarded: true, verified: true })
-      .select('store_name rating verified description user_id follower_count createdAt')
-      .populate('store', 'logo banner categories')
-      .populate('user_id', 'branding avatar')
-      .sort('-rating')
-      .limit(6)
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      count: stores.length,
-      data: stores
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
   onboardVendor,
   getVendorProfile,
@@ -526,5 +505,4 @@ module.exports = {
   getFollowers,
   getFollowing,
   checkFollowStatus,
-  getPromotedVendors,
 };

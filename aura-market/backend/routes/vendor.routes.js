@@ -22,6 +22,7 @@ const {
   getFollowers,
   getFollowing,
   checkFollowStatus,
+  getVendorAnalytics
 } = require('../controllers/vendor.controller');
 
 const {
@@ -73,6 +74,7 @@ router.get('/products', getVendorProducts);
 router.get('/orders', getVendorOrders);
 router.get('/disputes', getVendorDisputes);
 router.get('/reviews', getVendorReviews);
+router.get('/analytics', getVendorAnalytics);
 router.get('/:id/followers', getFollowers);
 
 module.exports = router;

@@ -20,6 +20,7 @@ import socketService from '@/services/socket';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '@/services/api';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
@@ -154,14 +155,7 @@ export default function OrderDetailPage() {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-      <div className="relative">
-        <div className="size-16 border-4 border-[var(--accent)]/20 rounded-full" />
-        <div className="absolute inset-0 size-16 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-      </div>
-    </div>
-  );
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!order) return (
     <div className="min-h-screen bg-[var(--bg-secondary)] flex flex-col items-center justify-center p-6 text-center">
@@ -328,6 +322,15 @@ export default function OrderDetailPage() {
                                   {item.name || item.product_id?.name || 'Archived Item'}
                                </h3>
                             </Link>
+                            {item.variant && (
+                              <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-2">
+                                {Object.entries(item.variant).map(([k, v]) => (
+                                  <span key={k} className="text-[9px] font-black bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg uppercase border border-[var(--accent)]/10">
+                                    {k}: {v}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex items-center justify-center md:justify-start gap-4">
                                <div className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                                   <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">
@@ -409,7 +412,7 @@ export default function OrderDetailPage() {
                             <Clock className="size-8" />
                          </div>
                          <h4 className="text-xs font-black uppercase tracking-[0.2em]">Synchronization Pending</h4>
-                         <p className="text-[10px] font-medium max-w-[240px] mx-auto italic">Waiting for vendor node to manifest tracking identification.</p>
+                         <p className="text-[10px] font-medium max-w-[240px] mx-auto">Waiting for vendor node to manifest tracking identification.</p>
                       </div>
                     )}
                  </div>

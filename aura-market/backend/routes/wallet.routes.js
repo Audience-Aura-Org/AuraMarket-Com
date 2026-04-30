@@ -24,6 +24,8 @@ const {
   processWithdrawal,
   getAllWithdrawals,
   payOrderWithWallet,
+  getEscrowTransactions,
+  getPlatformFinancialStats,
 } = require('../controllers/wallet.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
@@ -34,11 +36,13 @@ router.use(protect);
 // ── General Customer / Vendor ─────────────────
 router.get('/', getWalletBalance);
 router.get('/transactions', getTransactionHistory);
+router.get('/escrow', restrictTo('vendor'), getEscrowTransactions); // Vendor only
 router.post('/deposit', initiateDeposit);
 router.post('/withdraw', requestWithdrawal);
 router.post('/pay-order', payOrderWithWallet); // Direct Wallet Payment checkout
 
 // ── Admin Tools ───────────────────────────────
+router.get('/admin/stats', restrictTo('admin'), getPlatformFinancialStats);
 router.get('/admin/withdrawals', restrictTo('admin'), getAllWithdrawals);
 router.patch('/admin/withdrawals/:id', restrictTo('admin'), processWithdrawal);
 

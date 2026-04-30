@@ -14,7 +14,7 @@ export default function CategoryCarousel({ title, data }) {
           </h2>
           <div className="h-1 w-12 md:w-20 bg-[var(--accent)] mt-1 md:mt-2 rounded-full" />
         </div>
-        <Link href="/shop" className="text-[var(--accent)] text-xs md:text-base font-bold flex items-center gap-1 md:gap-2 hover:translate-x-1 transition-transform group shrink-0">
+        <Link href="/overtime" className="text-[var(--accent)] text-xs md:text-base font-bold flex items-center gap-1 md:gap-2 hover:translate-x-1 transition-transform group shrink-0">
           Browse All <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
         </Link>
       </div>

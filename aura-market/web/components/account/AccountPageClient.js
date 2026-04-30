@@ -6,7 +6,7 @@ import {
   Store, ShieldAlert, Database, BarChart3,
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
   Truck, LayoutGrid, ShoppingBag, Activity,
-  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock
+  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -91,6 +91,10 @@ export default function AccountPageClient() {
   const [kycStatus, setKycStatus] = useState(null);
   const [kycLoading, setKycLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+
+  const [passphraseData, setPassphraseData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passphraseStatus, setPassphraseStatus] = useState('');
+  const [passphraseLoading, setPassphraseLoading] = useState(false);
 
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -199,6 +203,34 @@ export default function AccountPageClient() {
     } finally {
       setProfileSaving(false);
       setTimeout(() => setBrandingStatus(''), 2500);
+    }
+  };
+
+  const handleChangePassphrase = async () => {
+    if (passphraseData.newPassword !== passphraseData.confirmPassword) {
+      setPassphraseStatus('New passwords do not match.');
+      return;
+    }
+    if (passphraseData.newPassword.length < 6) {
+      setPassphraseStatus('Password must be at least 6 characters.');
+      return;
+    }
+    setPassphraseLoading(true);
+    setPassphraseStatus('Updating passphrase...');
+    try {
+      const res = await api.patch('/auth/change-password', {
+        currentPassword: passphraseData.currentPassword,
+        newPassword: passphraseData.newPassword
+      });
+      if (res.data?.success) {
+        setPassphraseStatus('Passphrase updated successfully.');
+        setPassphraseData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }
+    } catch (err) {
+      setPassphraseStatus(err.response?.data?.error || 'Failed to update passphrase.');
+    } finally {
+      setPassphraseLoading(false);
+      setTimeout(() => setPassphraseStatus(''), 3000);
     }
   };
 
@@ -475,16 +507,7 @@ export default function AccountPageClient() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-8 md:gap-12 shrink-0 px-4 md:px-8 border-l border-[var(--glass-border)] hidden md:grid">
-                        <div className="text-center group-hover:scale-110 transition-transform cursor-pointer" onClick={() => setActiveTab('network')}>
-                          <p className="text-xl md:text-2xl font-black text-[var(--accent)] drop-shadow-[0_0_10px_var(--accent-light)]">{followedVendors.length}</p>
-                          <p className="text-[8px] md:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest mt-1">Protocols</p>
-                        </div>
-                        <div className="text-center group-hover:scale-110 transition-transform cursor-pointer" onClick={() => setActiveTab('orders')}>
-                          <p className="text-xl md:text-2xl font-black text-[var(--text-primary)]">{orders.filter(o => o.order_status !== 'delivered').length}</p>
-                          <p className="text-[8px] md:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-widest mt-1">Active</p>
-                        </div>
-                      </div>
+
                     </div>
                   </div>
 
@@ -620,6 +643,15 @@ export default function AccountPageClient() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-[11px] md:text-xs font-black tracking-widest uppercase truncate text-[var(--text-primary)] mb-1">{title}</p>
+                                      {firstItem?.variant && (
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                          {Object.entries(firstItem.variant).map(([k, v]) => (
+                                            <span key={k} className="text-[8px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded-md uppercase">
+                                              {k}: {v}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
                                       <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     <div className="text-right shrink-0">
@@ -661,8 +693,8 @@ export default function AccountPageClient() {
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
-                      <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
-                        <div className="flex items-center gap-4">
+                      <div className="w-full p-5 md:p-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group space-y-6">
+                        <div className="flex items-center gap-4 border-b border-[var(--glass-border)] pb-4">
                           <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
                             <Lock className="size-5 text-[var(--accent)]" />
                           </div>
@@ -671,8 +703,50 @@ export default function AccountPageClient() {
                             <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
                           </div>
                         </div>
-                        <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
-                      </button>
+
+                        <div className="space-y-4">
+                          <FormField
+                            label="Current Passphrase"
+                            type="password"
+                            value={passphraseData.currentPassword}
+                            onChange={(v) => setPassphraseData({ ...passphraseData, currentPassword: v })}
+                            icon={Lock}
+                            placeholder="••••••••"
+                          />
+                          <FormField
+                            label="New Passphrase"
+                            type="password"
+                            value={passphraseData.newPassword}
+                            onChange={(v) => setPassphraseData({ ...passphraseData, newPassword: v })}
+                            icon={Lock}
+                            placeholder="••••••••"
+                          />
+                          <FormField
+                            label="Confirm New Passphrase"
+                            type="password"
+                            value={passphraseData.confirmPassword}
+                            onChange={(v) => setPassphraseData({ ...passphraseData, confirmPassword: v })}
+                            icon={Lock}
+                            placeholder="••••••••"
+                          />
+                        </div>
+
+                        {passphraseStatus && (
+                          <div className="text-[10px] font-bold text-center mt-2 px-4 py-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+                            {passphraseStatus}
+                          </div>
+                        )}
+
+                        <button 
+                          onClick={handleChangePassphrase}
+                          disabled={passphraseLoading || !passphraseData.currentPassword || !passphraseData.newPassword}
+                          className="w-full py-3 md:py-4 rounded-full font-black text-xs tracking-widest bg-[var(--accent)] text-white hover:bg-opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20"
+                        >
+                          {passphraseLoading ? (
+                            <><div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin"/> SECURING...</>
+                          ) : 'UPDATE PASSPHRASE'}
+                        </button>
+                      </div>
 
                       <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
                         <div className="flex items-center gap-4">
@@ -680,7 +754,7 @@ export default function AccountPageClient() {
                             <RefreshCw className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
-                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Active Node Sessions</p>
+                            <p className="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">Active Device Sessions</p>
                             <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
                           </div>
                         </div>
@@ -722,7 +796,7 @@ export default function AccountPageClient() {
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
-                          <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Pickup Node Configuration</h4>
+                          <h4 className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">Pickup Address Configuration</h4>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -885,7 +959,7 @@ export default function AccountPageClient() {
                             <div className="relative z-10 flex items-center gap-3">
                               {kycLoading && <RefreshCw className="size-4 animate-spin" />}
                               <span className="text-[11px] md:text-xs font-black tracking-[0.2em] uppercase transition-colors">
-                                {kycLoading ? 'Encrypting Credentials...' : 'Submit to Validation Node'}
+                                {kycLoading ? 'Encrypting Credentials...' : 'Submit for Validation'}
                               </span>
                             </div>
                           </button>
@@ -899,7 +973,7 @@ export default function AccountPageClient() {
               {activeTab === 'network' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Followed Protocols</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Followed Vendors</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -957,7 +1031,7 @@ export default function AccountPageClient() {
                                   </div>
 
                                   <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-tighter">
-                                    {vendor.vendor_id?.follower_count || 0} Synchronized Nodes
+                                    {vendor.vendor_id?.follower_count || 0} Followers
                                   </p>
                                 </div>
 
@@ -986,7 +1060,7 @@ export default function AccountPageClient() {
               {activeTab === 'audience' && user?.role === 'vendor' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Audience</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Store Audience</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -1001,7 +1075,7 @@ export default function AccountPageClient() {
                       ) : audience.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Connected Nodes</p>
+                          <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)]">No Followers Yet</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1028,7 +1102,7 @@ export default function AccountPageClient() {
               {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Node Propagation</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase text-[var(--accent)] shadow-sm">Story Management</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
                   <StatusManager />
@@ -1046,7 +1120,7 @@ export default function AccountPageClient() {
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
-                      <NotificationToggle label="Internal Node Signals" icon={Bell} active={true} />
+                      <NotificationToggle label="App Notifications" icon={Bell} active={true} />
                       <NotificationToggle label="External Multi-cast (Email)" icon={Mail} active={true} />
                     </div>
                   </div>

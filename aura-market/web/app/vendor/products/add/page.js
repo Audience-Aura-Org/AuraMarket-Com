@@ -27,6 +27,12 @@ export default function AddProductPage() {
   const [showStoryPrompt, setShowStoryPrompt] = useState(false);
   const [createdProduct, setCreatedProduct] = useState(null);
 
+  // Variable Product State
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variantTypes, setVariantTypes] = useState([{ name: 'Color', options: [], metadata: {} }]);
+  const [skuVariants, setSkuVariants] = useState([]);
+
+
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -42,6 +48,77 @@ export default function AddProductPage() {
       setTags(prev => [...prev, tagInput.trim()]);
       setTagInput('');
     }
+  };
+
+  const addVariantType = () => {
+    setVariantTypes([...variantTypes, { name: '', options: [], metadata: {} }]);
+  };
+
+  const updateVariantType = (idx, name) => {
+    const newTypes = [...variantTypes];
+    newTypes[idx].name = name;
+    setVariantTypes(newTypes);
+  };
+
+  const addOption = (idx, opt) => {
+    if (!opt.trim()) return;
+    const newTypes = [...variantTypes];
+    const cleanOpt = opt.trim();
+    if (newTypes[idx].options.includes(cleanOpt)) return;
+    
+    newTypes[idx].options.push(cleanOpt);
+    
+    // If it's a color, assign a default hex if not present
+    if (newTypes[idx].name.toLowerCase() === 'color') {
+      if (!newTypes[idx].metadata) newTypes[idx].metadata = {};
+      newTypes[idx].metadata[cleanOpt] = '#000000';
+    }
+    
+    setVariantTypes(newTypes);
+    generateSKUs(newTypes);
+  };
+
+  const updateColorMetadata = (tIdx, option, color) => {
+    const newTypes = [...variantTypes];
+    if (!newTypes[tIdx].metadata) newTypes[tIdx].metadata = {};
+    newTypes[tIdx].metadata[option] = color;
+    setVariantTypes(newTypes);
+  };
+
+  const removeOption = (tIdx, oIdx) => {
+    const newTypes = [...variantTypes];
+    newTypes[tIdx].options.splice(oIdx, 1);
+    setVariantTypes(newTypes);
+    generateSKUs(newTypes);
+  };
+
+  const generateSKUs = (types) => {
+    const validTypes = types.filter(t => t.name && t.options.length > 0);
+    if (validTypes.length === 0) {
+      setSkuVariants([]);
+      return;
+    }
+
+    const combs = [];
+    const helper = (depth, current) => {
+      if (depth === validTypes.length) {
+        combs.push({ combination: { ...current }, price: form.price || 0, stock: form.stock || 0 });
+        return;
+      }
+      const type = validTypes[depth];
+      type.options.forEach(opt => {
+        current[type.name] = opt;
+        helper(depth + 1, current);
+      });
+    };
+    helper(0, {});
+    setSkuVariants(combs);
+  };
+
+  const updateSKU = (idx, field, val) => {
+    const newSkus = [...skuVariants];
+    newSkus[idx][field] = val;
+    setSkuVariants(newSkus);
   };
 
   const handleSubmit = async (e) => {
@@ -61,6 +138,12 @@ export default function AddProductPage() {
       formData.append('tags', JSON.stringify(tags));
       formData.append('type', 'products');
       
+      if (hasVariants) {
+        formData.append('has_variants', 'true');
+        formData.append('variant_types', JSON.stringify(variantTypes.filter(t => t.name && t.options.length > 0)));
+        formData.append('sku_variants', JSON.stringify(skuVariants));
+      }
+
       const res = await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
       toast.success(`"${form.name}" has been published!`, { icon: '🚀' });
@@ -117,6 +200,170 @@ export default function AddProductPage() {
             
             {/* ── LEFT: Product Details */}
             <div className="xl:col-span-8 space-y-8 w-full">
+              
+              {/* Product Type Selector */}
+              <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                      <Package className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black uppercase tracking-tight">Product Type</h2>
+                      <p className="text-xs text-[var(--text-secondary)] font-medium">Select how you want to manage this product's inventory</p>
+                    </div>
+                  </div>
+                  <div className="flex p-1 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)]">
+                    <button 
+                      type="button"
+                      onClick={() => setHasVariants(false)}
+                      className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      Simple
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setHasVariants(true)}
+                      className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      Variable
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Variations Configuration (Only if Variable is selected) */}
+              {hasVariants && (
+                <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
+                    <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><Plus className="w-5 h-5" /></div>
+                    <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm uppercase">Configure Variations</h2>
+                  </div>
+
+                  <div className="space-y-8">
+                    {/* Define Types */}
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
+                        <button 
+                          type="button"
+                          onClick={addVariantType}
+                          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--accent)] hover:bg-[var(--accent)]/5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/20 transition-all"
+                        >
+                          <Plus className="w-3 h-3" /> Add Attribute
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {variantTypes.map((type, tIdx) => (
+                          <div key={tIdx} className="p-6 bg-[var(--bg-secondary)]/50 rounded-3xl border border-[var(--glass-border)] space-y-4 relative group">
+                            <button 
+                              type="button"
+                              onClick={() => setVariantTypes(prev => prev.filter((_, i) => i !== tIdx))}
+                              className="absolute top-4 right-4 p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Attribute Name</label>
+                              <input 
+                                placeholder="e.g. Color"
+                                value={type.name}
+                                onChange={e => updateVariantType(tIdx, e.target.value)}
+                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Options</label>
+                              <div className="flex flex-wrap gap-2">
+                                {type.options.map((opt, oIdx) => (
+                                  <div key={oIdx} className="flex flex-col gap-2">
+                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black uppercase rounded-full border border-[var(--accent)]/20">
+                                      {type.name.toLowerCase() === 'color' && (
+                                        <div 
+                                          className="size-3 rounded-full border border-black/10" 
+                                          style={{ backgroundColor: type.metadata?.[opt] || '#000' }} 
+                                        />
+                                      )}
+                                      {opt}
+                                      <X className="w-3 h-3 cursor-pointer hover:scale-110" onClick={() => removeOption(tIdx, oIdx)} />
+                                    </span>
+                                    {type.name.toLowerCase() === 'color' && (
+                                      <input 
+                                        type="color" 
+                                        value={type.metadata?.[opt] || '#000000'}
+                                        onChange={(e) => updateColorMetadata(tIdx, opt, e.target.value)}
+                                        className="w-full h-4 bg-transparent border-none cursor-pointer p-0"
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                                <input 
+                                  placeholder="Add option..."
+                                  onKeyDown={e => { if(e.key === 'Enter') { addOption(tIdx, e.target.value); e.target.value = ''; } }}
+                                  className="bg-transparent border-none outline-none text-[10px] font-bold text-[var(--text-primary)] w-24 placeholder:text-[var(--text-secondary)]/30"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Matrix */}
+                    {skuVariants.length > 0 && (
+                      <div className="space-y-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
+                        <div className="overflow-hidden border border-[var(--glass-border)] rounded-[2rem] bg-[var(--bg-primary)] shadow-xl shadow-black/5">
+                          <table className="w-full text-left border-collapse">
+                            <thead className="bg-[var(--bg-secondary)] text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
+                              <tr>
+                                <th className="p-5">Combination</th>
+                                <th className="p-5 w-40">Price (XAF)</th>
+                                <th className="p-5 w-32">Stock</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-xs font-bold divide-y divide-[var(--glass-border)]">
+                              {skuVariants.map((sku, idx) => (
+                                <tr key={idx} className="hover:bg-[var(--accent)]/5 transition-colors group">
+                                  <td className="p-5">
+                                    <div className="flex flex-wrap gap-2">
+                                      {Object.entries(sku.combination).map(([k, v]) => (
+                                        <span key={k} className="px-2 py-0.5 bg-[var(--bg-secondary)] rounded-md border border-[var(--glass-border)] text-[9px] font-black text-[var(--text-secondary)]">
+                                          {k}: <span className="text-[var(--text-primary)]">{v}</span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="p-5">
+                                    <div className="relative">
+                                      <input 
+                                        type="number"
+                                        value={sku.price}
+                                        onChange={e => updateSKU(idx, 'price', e.target.value)}
+                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="p-5">
+                                    <input 
+                                      type="number"
+                                      value={sku.stock}
+                                      onChange={e => updateSKU(idx, 'stock', e.target.value)}
+                                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
               
               {/* Basic Info */}
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
@@ -209,7 +456,9 @@ export default function AddProductPage() {
                   </div>
                 )}
               </section>
+
             </div>
+
 
             {/* ── RIGHT: Settings Panel */}
             <div className="xl:col-span-4 space-y-6 w-full">

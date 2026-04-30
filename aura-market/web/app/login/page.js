@@ -44,7 +44,7 @@ export default function LoginPage() {
           <Link href="/privacy" className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">Privacy</Link>
         </div>
         <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">
-          Aura Protocol — Identity Layer Verified
+          {/* Identity Metadata Removed */}
         </p>
       </footer>
     </div>

@@ -5,7 +5,7 @@ const Vendor = require('../models/Vendor.model');
 // POST /api/cart -> add/update item
 const addToCart = async (req, res, next) => {
   try {
-    const { product_id, quantity = 1 } = req.body;
+    const { product_id, quantity = 1, variant = null } = req.body;
     const userId = req.user._id;
     
     if (!product_id) {
@@ -40,14 +40,18 @@ const addToCart = async (req, res, next) => {
     if (!cart) {
       cart = await Cart.create({ 
         user_id: userId, 
-        items: [{ product: product_id, quantity }] 
+        items: [{ product: product_id, quantity, variant }] 
       });
     } else {
-      const existingItem = cart.items.find(i => i.product.toString() === product_id.toString());
+      // Find item with same product AND same variant
+      const existingItem = cart.items.find(i => 
+        i.product.toString() === product_id.toString() && 
+        JSON.stringify(i.variant) === JSON.stringify(variant)
+      );
       if (existingItem) {
         existingItem.quantity = Math.max(1, existingItem.quantity + quantity);
       } else {
-        cart.items.push({ product: product_id, quantity });
+        cart.items.push({ product: product_id, quantity, variant });
       }
       await cart.save();
     }
