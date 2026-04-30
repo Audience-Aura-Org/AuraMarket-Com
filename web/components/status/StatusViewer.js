@@ -530,28 +530,31 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               <div className="pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                 <button
                   onClick={handleViewProduct}
-                  className="w-full px-4 py-3 rounded-[1.5rem] bg-white/10 backdrop-blur-3xl border border-white/20 flex items-center justify-between active:scale-[0.98] transition-all shadow-2xl"
+                  className="w-full px-3 py-2.5 rounded-[1.2rem] bg-white/10 backdrop-blur-3xl border border-white/15 flex items-center justify-between active:scale-[0.98] transition-all shadow-xl"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-10 rounded-lg overflow-hidden border border-white/10 bg-black/40 shrink-0">
                       {(() => {
                         const p = story.linked_product;
                         const imgSrc = typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url || null;
                         return imgSrc
                           ? <img src={imgSrc} alt="" className="size-full object-cover" />
-                          : <div className="size-full flex items-center justify-center bg-white/5"><ShoppingBag className="size-5 text-white/20" /></div>;
+                          : <div className="size-full flex items-center justify-center bg-white/5"><ShoppingBag className="size-4 text-white/20" /></div>;
                       })()}
                     </div>
                     <div className="text-left min-w-0">
-                      <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em] leading-none mb-1.5">Market Link</p>
-                      <p className="text-[14px] font-bold text-white truncate leading-tight uppercase tracking-tight">{story.linked_product.name || 'View Product'}</p>
+                      <p className="text-[12px] font-bold text-white truncate leading-tight tracking-tight">
+                        {story.linked_product.name || 'View Product'}
+                      </p>
                       {story.linked_product.price && (
-                        <p className="text-[12px] font-black text-white/90 mt-1 font-mono">{story.linked_product.price?.toLocaleString()} XAF</p>
+                        <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">
+                          {story.linked_product.price?.toLocaleString()} XAF
+                        </p>
                       )}
                     </div>
                   </div>
-                  <div className="size-10 rounded-full bg-white text-black flex items-center justify-center shrink-0 shadow-xl ml-3 hover:scale-110 transition-transform">
-                    <ShoppingBag className="size-5" />
+                  <div className="size-8 rounded-full bg-white text-black flex items-center justify-center shrink-0 shadow-lg ml-2 active:scale-90 transition-transform">
+                    <ShoppingBag className="size-4" />
                   </div>
                 </button>
               </div>
