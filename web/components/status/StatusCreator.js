@@ -76,7 +76,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (!f) return;
     if (type === 'video') {
       if (!f.type.startsWith('video/'))  { setError('Select a video file.'); return; }
-      if (f.size > 100 * 1024 * 1024)   { setError('Max 100MB video.'); return; }
+      if (f.size > 500 * 1024 * 1024)   { setError('Max 500MB video.'); return; }
       const vid = document.createElement('video');
       vid.preload = 'metadata';
       vid.onloadedmetadata = () => {
@@ -256,7 +256,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     </div>
                     <div>
                       <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Upload {type === 'image' ? 'Image' : 'Video'}</p>
-                      <p className="text-[11px] text-[var(--text-secondary)] opacity-40 mt-1">Max {type === 'image' ? '10MB' : '100MB · under 1 min'}</p>
+                      <p className="text-[11px] text-[var(--text-secondary)] opacity-40 mt-1">Max {type === 'image' ? '10MB' : '500MB · under 1 min'}</p>
                     </div>
                   </label>
                 )}
