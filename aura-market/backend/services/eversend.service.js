@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
-const { EVERSEND_CLIENT_ID, EVERSEND_CLIENT_SECRET, EVERSEND_WEBHOOK_SECRET, EVERSEND_BASE_URL } = require('../config/env');
+const { EVERSEND_CLIENT_ID, EVERSEND_CLIENT_SECRET, EVERSEND_WEBHOOK_SECRET, EVERSEND_BASE_URL, EVERSEND_ORIGIN } = require('../config/env');
 
 // ── In-memory token cache ────────────────────────────────────────────────────
 let _tokenCache = { token: null, expiresAt: 0 };
@@ -52,8 +52,8 @@ const eversendClient = async () => {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'Origin': 'https://aura-market-com.vercel.app',
-      'Referer': 'https://aura-market-com.vercel.app/'
+      'Origin': EVERSEND_ORIGIN,
+      'Referer': EVERSEND_ORIGIN.endsWith('/') ? EVERSEND_ORIGIN : EVERSEND_ORIGIN + '/'
     },
   });
 };

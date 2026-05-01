@@ -132,7 +132,7 @@ api.interceptors.response.use(
           // Note: We deliberately DO NOT wipe localStorage here anymore.
           // Random 401s (e.g. hitting a protected route before Zustand hydrates)
           // were incorrectly logging users out on refresh.
-          console.warn(`[API] 401 Unauthorized at ${config.url}. Session may be missing or expired.`);
+          console.warn(`[API] 401 (UNAUTHORIZED) — ${config.url} — SERVER_MSG: ${message}`);
         }
       } else {
         console.warn(`[API Network/Unknown Error] at ${config.url}: ${error.message}`);

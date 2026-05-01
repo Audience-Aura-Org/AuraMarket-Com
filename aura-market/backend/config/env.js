@@ -50,5 +50,7 @@ module.exports = {
   EVERSEND_CLIENT_SECRET: process.env.EVERSEND_CLIENT_SECRET,
   EVERSEND_WEBHOOK_SECRET: process.env.EVERSEND_WEBHOOK_SECRET,
   EVERSEND_BASE_URL: process.env.EVERSEND_BASE_URL || 'https://api.eversend.co/v1',
+  EVERSEND_ORIGIN: process.env.EVERSEND_ORIGIN || 'http://localhost:3000',
+  EVERSEND_SANDBOX_MODE: process.env.EVERSEND_SANDBOX_MODE === 'true',
 };
 

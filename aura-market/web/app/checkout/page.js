@@ -49,6 +49,8 @@ function CheckoutContent() {
   };
 
   const [loading, setLoading] = useState(false);
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [error, setError] = useState(null);
   const [order, setOrder] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -222,7 +224,6 @@ function CheckoutContent() {
   }, [orderId]);
 
   const handlePlaceOrder = async () => {
-    // Compute amounts from the authoritative sources, not stale state
     const computedSubtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
     const computedDelivery = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
     const totalAmount = computedSubtotal + computedDelivery;
@@ -238,7 +239,6 @@ function CheckoutContent() {
     setLoading(true);
     setError(null);
     try {
-      // Sync profile fields if updated during checkout (keeps fields in sync as requested)
       if (user?._id) {
           const updates = {};
           if (formData.phone && formData.phone !== user.phone) updates.phone = formData.phone;
@@ -284,14 +284,19 @@ function CheckoutContent() {
           }
         }
       } else {
-        const evRes = await api.post('/payments/eversend/initialize', {
+        // Eversend Handshake
+        const payload = {
            amount: totalAmount,
            currency: formData.eversend.currency,
-           phone: formData.eversend.phone, // Use dedicated collection number
+           phone: formData.eversend.phone || formData.phone,
            country: formData.eversend.country,
            order_ids: finalOrderIds,
+           pinId: formData.eversend.pinId,
+           pin: formData.eversend.pin,
            redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`
-        });
+        };
+
+        const evRes = await api.post('/payments/eversend/initialize', payload);
 
         if (!evRes.data.success) {
           throw new Error(evRes.data.message || 'Eversend initialization failed.');
@@ -307,7 +312,6 @@ function CheckoutContent() {
         }
 
         if (ref) {
-          // If in sandbox mode, skip the verify page and go straight to Step 3 for instant feedback
           if (transaction_id?.startsWith('SBX-')) {
              toast.success('Sandbox order processed successfully!');
              cartStore.clearCart();
@@ -319,8 +323,6 @@ function CheckoutContent() {
           router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${ref}`);
           return;
         }
-
-        throw new Error('No transaction reference returned from payment gateway.');
       }
 
       if (isPayOnDelivery) {
@@ -329,13 +331,16 @@ function CheckoutContent() {
         toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
       }
       
-      // Clear cart immediately across all components
       cartStore.clearCart();
-      
-      // Show Success State instead of immediate redirect
-      setStep(3); // Success step
+      setStep(3);
       
     } catch (err) {
+      if (err?.response?.status === 400 && err.response.data?.message?.includes('OTP')) {
+        setOtpRequired(true);
+        setFormData(f => ({ ...f, eversend: { ...f.eversend, pinId: err.response.data.pinId || f.eversend.pinId }}));
+        toast.success("Security PIN required. Please enter the code sent to your SMS.");
+        return;
+      }
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       toast.error(msg);
@@ -398,25 +403,22 @@ function CheckoutContent() {
             <div className="flex items-center gap-4 mb-4">
                {[
                   { id: 1, label: 'Fulfillment' },
-                  { id: 2, label: 'Confirmation' },
                   { id: 3, label: 'Success' }
                 ].map((s) => (
-                  <button 
+                  <div 
                    key={s.id}
-                   onClick={() => s.id < step && setStep(s.id)}
                    className={`flex-1 h-2 rounded-full transition-all duration-700 relative group overflow-hidden ${step >= s.id ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
                   >
                      {step === s.id && <div className="absolute inset-x-0 h-full bg-white/30 animate-pulse" />}
                      <span className={`absolute top-4 left-0 text-[8px] font-black uppercase tracking-widest transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
                        {s.label}
                      </span>
-                  </button>
+                  </div>
                 ))}
             </div>
 
             <div className="pt-8">
-              {/* Existing Step 1 & 2 content ... */}
-              {step === 1 && (
+              {step !== 3 && (
                 <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <div className="space-y-10">
                     <div className="flex items-center gap-6">
@@ -658,93 +660,66 @@ function CheckoutContent() {
                         </div>
 
                         <button 
-                         onClick={() => setStep(2)}
-                         disabled={!formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
-                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
+                         onClick={handlePlaceOrder}
+                         disabled={loading || (otpRequired && !formData.eversend.pin) || !formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
+                         className="w-full h-24 rounded-[40px] bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[14px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-4 group"
                         >
-                          Review Matrix & Finalize
+                          {(loading || otpLoading) ? (
+                            <>
+                              <div className="size-6 border-2 border-[var(--bg-primary)] border-t-transparent rounded-full animate-spin" />
+                              {otpLoading ? "REQUESTING OTP..." : (otpRequired ? "VERIFYING..." : "PROCESSING...")}
+                            </>
+                          ) : (
+                            <>
+                              {otpRequired ? "VERIFY OTP & COMPLETE" : "SECURE CHECKOUT"}
+                              <ArrowRight className="size-6 group-hover:translate-x-2 transition-transform duration-500" />
+                            </>
+                          )}
                         </button>
                      </div>
                   </div>
                 </section>
               )}
 
-              {step === 2 && (
-                <section className="animate-in fade-in zoom-in-95 duration-700">
-                   <div className="space-y-12">
-                      <div className="flex items-center gap-6">
-                        <div className="size-16 rounded-[28px] bg-black text-white flex items-center justify-center shadow-2xl"><CheckCircle2 className="size-8" /></div>
-                        <div>
-                          <h2 className="text-4xl font-black tracking-tighter uppercase leading-none">Matrix <span className="text-[var(--accent)]">Review</span></h2>
-                          <p className="text-sm font-medium text-[var(--text-secondary)] mt-2">Validate full transaction vector before execution.</p>
-                        </div>
+              {step === 3 && (
+                <section className="animate-in fade-in zoom-in-95 duration-1000">
+                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
+                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
+                        <CheckCircle2 className="size-16 animate-bounce" />
                       </div>
+                    </div>
+                    
+                    <div>
+                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Order <span className="text-[var(--accent)]">Successful</span></h2>
+                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
+                    </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                         <div className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-2">
-                            <p className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-6 opacity-40">Authorized Consignee</p>
-                            <p className="text-xl font-black text-[var(--text-primary)]">{formData.name}</p>
-                            <p className="text-xs text-[var(--text-secondary)] font-bold mb-2">{formData.email}</p>
-                            <p className="text-sm font-bold text-[var(--text-secondary)] flex items-start gap-2">
-                               <MapPin className="size-4 shrink-0 mt-0.5 text-[var(--accent)]" /> {formData.address}
-                            </p>
-                         </div>
-                         <div className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex flex-col justify-between">
-                            <div className="flex items-center gap-4">
-                              {formData.paymentMethod === 'pay_on_delivery'
-                                 ? <Truck className="size-10 text-emerald-500" />
-                                 : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? <ShieldCheck className="size-10 text-emerald-500" /> : <CreditCard className="size-10 text-emerald-500" />)}
-                               <div>
-                                  <p className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">{formData.paymentMethod === 'pay_on_delivery' ? 'Pay on Delivery' : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Escrow Secured' : 'Direct Payout')}</p>
-                                  <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">{formData.paymentMethod === 'pay_on_delivery' ? 'Payment after delivery confirmation' : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Handshake secured' : 'Immediate transfer protocol')}</p>
-                               </div>
-                            </div>
-                             {selectedLogistics && (
-                                <div className="mt-6 pt-6 border-t border-[var(--glass-border)] flex items-center gap-5 group">
-                                   <div className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden group-hover:scale-105 transition-all">
-                                      {selectedLogistics.user_id?.branding?.logo || selectedLogistics.user_id?.avatar
-                                        ? <img src={selectedLogistics.user_id?.branding?.logo || selectedLogistics.user_id?.avatar} className="w-full h-full object-cover" alt="Node Logo" />
-                                        : <Truck className="size-6 text-[var(--accent)] opacity-20" />
-                                      }
-                                   </div>
-                                   <div className="flex-1">
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-1 opacity-60">Logistics Assigned</p>
-                                      <p className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight truncate leading-none">
-                                         {selectedLogistics.company_name}
-                                      </p>
-                                      <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-widest mt-1 opacity-80">Verified AURA Node</p>
-                                   </div>
-                                </div>
-                             )}
-
-                          </div>
-                      </div>
-
-                      <div className={`${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} border p-8 rounded-[40px] flex items-start gap-6 relative overflow-hidden`}>
-                         <div className={`absolute inset-y-0 left-0 w-1.5 ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
-                         {formData.escrowEnabled && formData.paymentMethod === 'wallet' ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
-                         <div className="space-y-2">
-                            <h5 className={`text-[10px] font-black uppercase tracking-[0.2em] ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
-                            <p className="text-xs font-medium text-[var(--text-secondary)]">
-                               {formData.paymentMethod === 'pay_on_delivery'
-                                 ? <>By executing this order, payment stays pending and is completed on delivery confirmation for test logistics flow.</>
-                                 : formData.escrowEnabled && formData.paymentMethod === 'wallet'
-                                 ? <>By executing this order, you authorize the platform to hold <span className="text-[var(--text-primary)] font-black">{(totalAmount).toLocaleString()} XAF</span> in Escrow vault.</>
-                                 : <>By executing this order, you authorize the immediate transfer of <span className="text-[var(--text-primary)] font-black">{(totalAmount).toLocaleString()} XAF</span> to the vendor's wallet.</>
-                               }
-                            </p>
-                         </div>
-                      </div>
-                   </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link 
+                        href="/orders"
+                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
+                      >
+                         <Package className="size-4" /> Go to My Orders
+                      </Link>
+                      <Link 
+                        href="/discovery"
+                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                      >
+                         Continue Exploring <ArrowRight className="size-4" />
+                      </Link>
+                    </div>
+                  </div>
                 </section>
               )}
             </div>
           </div>
 
           <div className="lg:col-span-4 h-fit sticky top-36">
-            <div className="glass-panel p-10 rounded-[56px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
-               <h3 className="text-3xl font-black mb-10 tracking-tighter uppercase leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
-               <div className="space-y-6 max-h-[300px] overflow-y-auto no-scrollbar pr-2 mb-12">
+              <div className="glass-panel p-10 rounded-[56px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
+               <h3 className="text-3xl font-black mb-10 tracking-tighter uppercase leading-none">Checkout <span className="text-[var(--accent)]">Summary</span></h3>
+               <div className="space-y-6 max-h-[400px] overflow-y-auto no-scrollbar pr-2 mb-12">
                   {matrixItems.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-4 group">
                        <img src={item.image || '/placeholder.png'} className="size-14 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
@@ -791,53 +766,7 @@ function CheckoutContent() {
                       <p className="text-[10px] font-black text-[var(--text-secondary)] opacity-40 uppercase pb-2">XAF</p>
                    </div>
                 </div>
-
-                {step === 2 && (
-                 <button 
-                  onClick={handlePlaceOrder}
-                  disabled={loading}
-                  className="w-full h-20 mt-10 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group"
-                 >
-                   {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
-                 </button>
-               )}
-
-               {step === 3 && (
-                <section className="animate-in fade-in zoom-in-95 duration-1000">
-                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
-                    <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
-                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
-                        <CheckCircle2 className="size-16 animate-bounce" />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Order <span className="text-[var(--accent)]">Successful</span></h2>
-                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
-                    </div>
-
-
-
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <Link 
-                        href="/orders"
-                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
-                      >
-                         <Package className="size-4" /> Go to My Orders
-                      </Link>
-                      <Link 
-                        href="/discovery"
-                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
-                      >
-                         Continue Exploring <ArrowRight className="size-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </section>
-               )}
-            </div>
-          </div>
+           </div>
         </div>
       </main>
     </div>

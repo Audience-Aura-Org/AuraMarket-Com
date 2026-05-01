@@ -299,7 +299,7 @@ const payDirectly = async (req, res, next) => {
     await vendorUser.save({ session });
 
     // Log Transactions
-    await Transaction.create([{
+    await Transaction.insertMany([{
       user_id:     user._id,
       type:        'payment',
       amount:      order.total_amount,

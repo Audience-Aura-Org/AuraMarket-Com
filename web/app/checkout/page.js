@@ -43,6 +43,9 @@ function CheckoutContent() {
   const [cartItems, setCartItems] = useState([]);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [createdOrderIds, setCreatedOrderIds] = useState(null);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [logisticsFirms, setLogisticsFirms] = useState([]);
   const [logisticsLoading, setLogisticsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -238,9 +241,9 @@ function CheckoutContent() {
           }
       }
 
-      let finalOrderIds = orderId ? [orderId] : [];
+      let finalOrderIds = orderId ? [orderId] : (createdOrderIds || []);
       
-      if (!orderId) {
+      if (!orderId && finalOrderIds.length === 0) {
          const splitRes = await api.post('/orders/cart-split', {
             shipping_address: {
                street: formData.address,
@@ -258,6 +261,7 @@ function CheckoutContent() {
 
          if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;
+            setCreatedOrderIds(finalOrderIds); // Cache orders in case Eversend requires OTP
          } else {
             throw new Error("Failed to split cart into vendor nodes.");
          }
@@ -273,18 +277,20 @@ function CheckoutContent() {
           }
         }
       } else {
-        const evRes = await api.post('/payments/eversend/initialize', {
-           amount: totalAmount,
-           currency: formData.eversend.currency,
-           phone: formData.phone, // Use primary contact
-           country: formData.eversend.country,
-           order_ids: finalOrderIds,
-           redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`
-        });
+        try {
+          const evRes = await api.post('/payments/eversend/initialize', {
+             amount: totalAmount,
+             currency: formData.eversend.currency,
+             phone: formData.eversend.phone || formData.phone, // Use collection number
+             country: formData.eversend.country,
+             order_ids: finalOrderIds,
+             redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`,
+             otp: otpRequired ? { pinId: formData.eversend.pinId, pin: formData.eversend.pin } : undefined
+          });
 
-        if (!evRes.data.success) {
-          throw new Error(evRes.data.message || 'Eversend initialization failed.');
-        }
+          if (!evRes.data.success) {
+            throw new Error(evRes.data.message || 'Eversend initialization failed.');
+          }
 
         const { checkout_url, reference, transaction_id } = evRes.data.data;
         const ref = reference || transaction_id;
@@ -310,26 +316,90 @@ function CheckoutContent() {
         }
 
         throw new Error('No transaction reference returned from payment gateway.');
-      }
+        } catch (err) {
+          console.log('[Checkout Debug] Caught Error:', err.response?.status, err.response?.data);
+          const errorMessage = err.response?.data?.message || err.message || "";
+          
+          if (err.response?.status === 400 && (errorMessage.toLowerCase().includes('otp') || errorMessage.toLowerCase().includes('pin'))) {
+             console.log('[Checkout Debug] Triggering OTP Flow...');
+             setOtpLoading(true);
+             try {
+               const targetPhone = formData.eversend.phone || formData.phone;
+               console.log('[Checkout Debug] Requesting OTP for:', targetPhone);
+               
+               const otpRes = await api.post('/payments/eversend/otp', { phone: targetPhone });
+               console.log('[Checkout Debug] OTP Response:', otpRes.data);
+               
+               if (otpRes.data.success) {
+                  setOtpRequired(true);
+                  setFormData(f => ({ 
+                    ...f, 
+                    eversend: { ...f.eversend, pinId: otpRes.data.data.pinId } 
+                  }));
+                  toast.success("Security OTP sent to your phone! Please enter it to authorize the payment.");
+               } else {
+                  throw new Error("Failed to dispatch OTP to your phone.");
+               }
+             } catch (otpErr) {
+               console.error('[Checkout Debug] OTP Dispatch Error:', otpErr);
+               toast.error(otpErr.response?.data?.message || otpErr.message || "Could not request OTP.");
+             } finally {
+               setOtpLoading(false);
+               setLoading(false);
+             }
+             return; // Halt checkout until OTP is provided
+          }
+          throw err;
+        }
 
       if (isPayOnDelivery) {
         toast.success("Order placed. Payment will be settled on delivery.");
       } else {
         toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
       }
-      
+      }
+
       // Clear cart immediately across all components
       cartStore.clearCart();
       
       // Show Success State instead of immediate redirect
-      setStep(3); // Success step
-      
+      toast.success('Order successfully executed!');
+      setStep(3);
     } catch (err) {
+      console.log('[Checkout Error Interceptor]', err.response?.status, err.response?.data);
+      
+      const isOtpError = err.response?.status === 400 && 
+                         (err.response?.data?.message?.toLowerCase().includes('otp') || 
+                          err.response?.data?.message?.toLowerCase().includes('pin'));
+
+      if (isOtpError) {
+        setOtpLoading(true);
+        try {
+          const targetPhone = formData.eversend.phone || formData.phone;
+          const otpRes = await api.post('/payments/eversend/otp', { phone: targetPhone });
+          
+          if (otpRes.data.success) {
+            setOtpRequired(true);
+            setFormData(f => ({ 
+              ...f, 
+              eversend: { ...f.eversend, pinId: otpRes.data.data.pinId } 
+            }));
+            toast.success("Security PIN required. Check your phone!");
+          }
+        } catch (otpErr) {
+          toast.error("Failed to trigger security SMS.");
+        } finally {
+          setOtpLoading(false);
+          setLoading(false);
+        }
+        return;
+      }
+
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       toast.error(msg);
     } finally {
-      setLoading(false);
+      if (!otpLoading) setLoading(false);
     }
   };
 
@@ -633,19 +703,50 @@ function CheckoutContent() {
                            )}
                         </div>
 
+                        {otpRequired && (
+                           <div className="mt-8 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/30 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <div className="flex items-center gap-4 mb-4">
+                                 <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
+                                    <Lock className="size-5" />
+                                 </div>
+                                 <div>
+                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-[var(--text-primary)]">Security PIN Required</h4>
+                                    <p className="text-[9px] text-[var(--text-secondary)] font-medium uppercase tracking-tighter">Enter the PIN sent to your device</p>
+                                 </div>
+                              </div>
+                              <input 
+                                 type="text"
+                                 placeholder="ENTER OTP PIN"
+                                 className="w-full h-14 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl px-6 text-sm font-black tracking-[0.5em] text-center focus:border-[var(--accent)] transition-all uppercase placeholder:tracking-normal placeholder:font-bold"
+                                 value={formData.eversend.pin}
+                                 onChange={e => setFormData({...formData, eversend: {...formData.eversend, pin: e.target.value}})}
+                              />
+                           </div>
+                        )}
+
                         <button 
-                         onClick={() => setStep(2)}
-                         disabled={!formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
-                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
+                         onClick={handlePlaceOrder}
+                         disabled={loading || otpLoading}
+                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-3"
                         >
-                          Review Matrix & Finalize
+                          {(loading || otpLoading) ? (
+                            <>
+                              <div className="size-4 border-2 border-[var(--bg-primary)] border-t-transparent rounded-full animate-spin" />
+                              {otpLoading ? "REQUESTING OTP..." : (otpRequired ? "VERIFYING..." : "PROCESSING...")}
+                            </>
+                          ) : (
+                            <>
+                              {otpRequired ? "VERIFY OTP & COMPLETE" : "SECURE CHECKOUT"}
+                              <ArrowRight className="size-4" />
+                            </>
+                          )}
                         </button>
                      </div>
                   </div>
                 </section>
               )}
 
-              {step === 2 && (
+              {step === 999 && (
                 <section className="animate-in fade-in zoom-in-95 duration-700">
                    <div className="space-y-12">
                       <div className="flex items-center gap-6">
@@ -768,14 +869,45 @@ function CheckoutContent() {
                    </div>
                 </div>
 
-                {step === 2 && (
-                 <button 
-                  onClick={handlePlaceOrder}
-                  disabled={loading}
-                  className="w-full h-20 mt-10 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group"
-                 >
-                   {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
-                 </button>
+                {step === 999 && (
+                 <div className="space-y-6">
+                   {otpRequired && (
+                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-8 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/30">
+                        <div className="space-y-3">
+                           <label className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)] ml-1 flex items-center gap-2">
+                             <Lock className="size-3" /> Security Authorization
+                           </label>
+                           <p className="text-[10px] text-[var(--text-secondary)] font-medium mb-2">
+                             An OTP has been sent to your phone. Enter it to authorize the transaction.
+                           </p>
+                           <input 
+                              type="text"
+                              placeholder="Enter OTP PIN"
+                              value={formData.eversend.pin || ''}
+                              onChange={e => setFormData({...formData, eversend: {...formData.eversend, pin: e.target.value}})}
+                              className="w-full h-16 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-sm font-black tracking-widest text-center outline-none focus:border-[var(--accent)] transition-all shadow-inner"
+                           />
+                        </div>
+                     </div>
+                   )}
+                   <button 
+                    onClick={handlePlaceOrder}
+                    disabled={loading || (otpRequired && !formData.eversend.pin)}
+                    className="w-full h-20 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {loading ? (
+                       <span className="flex items-center gap-3">
+                         <Loader2 className="size-5 animate-spin" /> 
+                         {otpLoading ? "Requesting OTP..." : "Processing Transaction..."}
+                       </span>
+                     ) : (
+                       <>
+                         {otpRequired ? "Verify OTP & Pay" : "Secure Checkout"} 
+                         <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" />
+                       </>
+                     )}
+                   </button>
+                 </div>
                )}
 
                {step === 3 && (
