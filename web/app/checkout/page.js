@@ -819,8 +819,6 @@ function CheckoutContent() {
 
 
 
-                           <input 
-
                    <button 
                     onClick={handlePlaceOrder}
                     disabled={loading}
