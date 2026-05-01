@@ -132,31 +132,6 @@ const handleWebhook = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * @route   POST /api/payments/eversend/otp
- * @desc    Request an OTP for an unverified collection flow (sandbox testing)
- * @access  Private
- * @body    { phone }
- */
-const eversendRequestOTP = async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
-
-    const result = await eversend.requestOTP(phone);
-    // Eversend returns { code, data: { pinId }, success }
-    return res.status(200).json({ success: true, data: result.data });
-  } catch (error) {
-    const errorData = error.response?.data || { message: error.message };
-    console.error('Eversend OTP Handshake Error:', errorData);
-    res.status(error.response?.status || 500).json({ 
-      success: false, 
-      message: 'Failed to dispatch OTP.', 
-      detail: errorData 
-    });
-  }
-};
-
-/**
  * Utility: Sanitize phone number to E.164 format for Eversend
  */
 const sanitizePhone = (phone, country = 'CM') => {
@@ -178,6 +153,35 @@ const sanitizePhone = (phone, country = 'CM') => {
   }
   
   return cleaned;
+};
+
+/**
+ * @route   POST /api/payments/eversend/otp
+ * @desc    Request an OTP for an unverified collection flow (sandbox testing)
+ * @access  Private
+ * @body    { phone, country }
+ */
+const eversendRequestOTP = async (req, res) => {
+  try {
+    let { phone, country } = req.body;
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
+
+    // Sanitize to E.164 — same logic as eversendInitialize so Eversend accepts the number
+    phone = sanitizePhone(phone, country || 'CM');
+    console.log('[Eversend OTP] Requesting OTP for sanitized phone:', phone);
+
+    const result = await eversend.requestOTP(phone);
+    // Eversend returns { code, data: { pinId }, success }
+    return res.status(200).json({ success: true, data: result.data });
+  } catch (error) {
+    const errorData = error.response?.data || { message: error.message };
+    console.error('Eversend OTP Handshake Error:', errorData);
+    res.status(error.response?.status || 500).json({ 
+      success: false, 
+      message: 'Failed to dispatch OTP.', 
+      detail: errorData 
+    });
+  }
 };
 
 /**

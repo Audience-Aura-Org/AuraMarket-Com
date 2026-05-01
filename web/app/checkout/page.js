@@ -325,9 +325,10 @@ function CheckoutContent() {
              setOtpLoading(true);
              try {
                const targetPhone = formData.eversend.phone || formData.phone;
-               console.log('[Checkout Debug] Requesting OTP for:', targetPhone);
+               const targetCountry = formData.eversend.country || 'CM';
+               console.log('[Checkout Debug] Requesting OTP for:', targetPhone, 'country:', targetCountry);
                
-               const otpRes = await api.post('/payments/eversend/otp', { phone: targetPhone });
+               const otpRes = await api.post('/payments/eversend/otp', { phone: targetPhone, country: targetCountry });
                console.log('[Checkout Debug] OTP Response:', otpRes.data);
                
                if (otpRes.data.success) {
@@ -376,7 +377,8 @@ function CheckoutContent() {
         setOtpLoading(true);
         try {
           const targetPhone = formData.eversend.phone || formData.phone;
-          const otpRes = await api.post('/payments/eversend/otp', { phone: targetPhone });
+          const targetCountry = formData.eversend.country || 'CM';
+          const otpRes = await api.post('/payments/eversend/otp', { phone: targetPhone, country: targetCountry });
           
           if (otpRes.data.success) {
             setOtpRequired(true);
