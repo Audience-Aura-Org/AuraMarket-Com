@@ -136,22 +136,22 @@ const handleWebhook = async (req, res, next) => {
  */
 const sanitizePhone = (phone, country = 'CM') => {
   if (!phone) return phone;
-  // Remove all non-numeric characters except +
-  let cleaned = phone.replace(/[^\d+]/g, '');
+  // Remove all non-numeric characters
+  let cleaned = phone.replace(/\D/g, '');
   
-  // If it starts with 00, replace with +
-  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
-  
-  // Handle local 9-digit numbers for Cameroon
-  if (country === 'CM' && cleaned.length === 9 && !cleaned.startsWith('+')) {
-    cleaned = '+237' + cleaned;
+  // Cameroon (CM) normalization
+  if (country === 'CM') {
+    // If it starts with 237 followed by 9 digits, it's already full format
+    if (cleaned.startsWith('237') && cleaned.length === 12) return cleaned;
+    // If it starts with 6 (local 9-digit), prepend 237
+    if (cleaned.length === 9 && cleaned.startsWith('6')) return '237' + cleaned;
   }
   
-  // Ensure it starts with + if it has a country code but no prefix
-  if (cleaned.length > 5 && !cleaned.startsWith('+')) {
-    cleaned = '+' + cleaned;
+  // Default fallback for CM if no country provided
+  if (cleaned.length === 9 && cleaned.startsWith('6')) {
+    return '237' + cleaned;
   }
-  
+
   return cleaned;
 };
 
