@@ -668,35 +668,28 @@ function CheckoutContent() {
                               </div>
                            )}
                         </div>
-
-                         </div>
-                      </div>
-                   </div>
-                </section>
-             )}
-
-                        <button 
-                         onClick={handlePlaceOrder}
-                         disabled={loading}
-                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-3"
-                        >
-                          {loading ? (
-                            <>
-                              <div className="size-4 border-2 border-[var(--bg-primary)] border-t-transparent rounded-full animate-spin" />
-                              PROCESSING...
-                            </>
-                          ) : (
-                            <>
-                              SECURE CHECKOUT
-                              <ArrowRight className="size-4" />
-                            </>
-                          )}
-                        </button>
                      </div>
+
+                     <button 
+                        onClick={handlePlaceOrder}
+                        disabled={loading}
+                        className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-3"
+                      >
+                        {loading ? (
+                          <>
+                            <div className="size-4 border-2 border-[var(--bg-primary)] border-t-transparent rounded-full animate-spin" />
+                            PROCESSING...
+                          </>
+                        ) : (
+                          <>
+                            SECURE CHECKOUT
+                            <ArrowRight className="size-4" />
+                          </>
+                        )}
+                      </button>
                   </div>
                 </section>
               )}
-
               {step === 999 && (
                 <section className="animate-in fade-in zoom-in-95 duration-700">
                    <div className="space-y-12">
