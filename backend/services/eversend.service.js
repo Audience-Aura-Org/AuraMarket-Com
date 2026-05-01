@@ -93,6 +93,7 @@ const initiateCollection = async (opts) => {
     phone: opts.phone,
     country: opts.country,
     transactionRef: opts.transactionRef,
+    payment_method: 'momo',
   };
 
   // Optional stringified customer schema
