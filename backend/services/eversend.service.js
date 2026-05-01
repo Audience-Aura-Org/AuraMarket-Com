@@ -73,8 +73,15 @@ const eversendClient = async () => {
  */
 const requestOTP = async (phone) => {
   const client = await eversendClient();
-  const res = await client.post('/collections/otp', { phone });
-  return res.data; // { success, data: { pinId, message, ... } }
+  console.log('[Eversend OTP] POST /collections/otp payload:', { phone });
+  try {
+    const res = await client.post('/collections/otp', { phone });
+    console.log('[Eversend OTP] Response:', JSON.stringify(res.data));
+    return res.data; // { success, data: { pinId, message, ... } }
+  } catch (err) {
+    console.error('[Eversend OTP] FAILED — status:', err.response?.status, 'body:', JSON.stringify(err.response?.data));
+    throw err;
+  }
 };
 
 const initiateCollection = async (opts) => {
