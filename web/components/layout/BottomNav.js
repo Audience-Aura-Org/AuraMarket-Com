@@ -42,24 +42,18 @@ export default function BottomNav() {
   const isCustomer = !user || user.role === 'customer';
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
-  const menu = [
-    { 
-      label: isCustomer ? "Marketplace" : "Dashboard", 
-      href: isCustomer ? "/discovery?tab=discover" : dashboardHref, 
-      icon: isCustomer ? Compass : LayoutDashboard 
-    },
-    { 
-      label: isCustomer ? "Stories" : "Aura Story", 
-      href: "/discovery?tab=status", 
-      icon: isCustomer ? Activity : Activity 
-    },
-    { 
-      label: isCustomer ? "Vendors" : "Shop", 
-      href: isCustomer ? "/" : "/discovery?tab=discover", 
-      icon: isCustomer ? Store : ShoppingBag 
-    },
+  const menu = isCustomer ? [
+    { label: "Shop", href: "/discovery?tab=discover", icon: Compass },
+    { label: "Vendors", href: "/discovery?tab=vendors", icon: Store },
+    { label: "Stories", href: "/discovery?tab=status", icon: Activity },
     { label: "Overtime", href: "/overtime", icon: House },
-    { label: "Profile", href: "/profile", icon: User },
+    { label: "Profile", href: "/profile", icon: User }
+  ] : [
+    { label: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
+    { label: "Shop", href: "/discovery?tab=discover", icon: Compass },
+    { label: "Aura Story", href: "/discovery?tab=status", icon: Activity },
+    { label: "Overtime", href: "/overtime", icon: House },
+    { label: "Profile", href: "/profile", icon: User }
   ];
 
   return (

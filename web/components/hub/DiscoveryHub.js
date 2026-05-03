@@ -340,17 +340,23 @@ DiscoveryContent.displayName = 'DiscoveryContent';
 export default function DiscoveryHub() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('status');
+  const [activeTab, setActiveTab] = useState('discover');
 
   const isCustomer = !user || user.role === 'customer';
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
-  const TABS = [
-    { id: 'discover', icon: isCustomer ? Compass : LayoutDashboard, label: isCustomer ? 'Marketplace' : 'Dashboard', href: isCustomer ? '/discovery?tab=discover' : dashboardHref },
-    { id: 'status', icon: Activity, label: isCustomer ? 'Stories' : 'Aura Story' },
-    { id: 'home', icon: isCustomer ? Store : ShoppingBag, label: isCustomer ? 'Vendors' : 'Shop', href: isCustomer ? '/' : '/discovery?tab=discover' },
-    { id: 'overtime', icon: House, label: 'Overtime' },
-    { id: 'profile', icon: User, label: 'Profile' },
+  const TABS = isCustomer ? [
+    { id: 'discover', label: "Shop", href: "/discovery?tab=discover", icon: Compass },
+    { id: 'vendors', label: "Vendors", href: "/discovery?tab=vendors", icon: Store },
+    { id: 'status', label: "Stories", href: "/discovery?tab=status", icon: Activity },
+    { id: 'overtime', label: "Overtime", href: "/overtime", icon: House },
+    { id: 'profile', label: "Profile", href: "/profile", icon: User }
+  ] : [
+    { id: 'dashboard', label: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
+    { id: 'discover', label: "Shop", href: "/discovery?tab=discover", icon: Compass },
+    { id: 'status', label: "Aura Story", href: "/discovery?tab=status", icon: Activity },
+    { id: 'overtime', label: "Overtime", href: "/overtime", icon: House },
+    { id: 'profile', label: "Profile", href: "/profile", icon: User }
   ];
 
   useEffect(() => {

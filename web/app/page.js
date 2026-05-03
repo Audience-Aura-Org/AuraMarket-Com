@@ -29,6 +29,8 @@ export default function VendorsDirectoryPage() {
     if (!authLoading) {
       if (!isAuthenticated) {
         router.replace('/login');
+      } else {
+        router.replace('/discovery?tab=discover');
       }
     }
   }, [isAuthenticated, authLoading, router]);
