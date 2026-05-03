@@ -136,14 +136,12 @@ export default function ProductDetailsPage() {
   const handleBuyNow = async () => {
     if (!user) return router.push('/login');
     if (!product.vendor_id) return;
-    setBuyingNow(true);
-    try {
-      trackCart(product);
-      cartStore.addItem(product, quantity);
-      await api.post('/cart', { product_id: id, quantity }).catch(() => {});
-      router.push('/checkout');
-    } catch { hotToast.error('Checkout failed'); }
-    finally { setBuyingNow(false); }
+    
+    let url = `/checkout?productId=${id}&quantity=${quantity}`;
+    if (currentVariant) {
+      url += `&variant=${encodeURIComponent(JSON.stringify(currentVariant.combination))}`;
+    }
+    router.push(url);
   };
 
   const handleChat = () => {

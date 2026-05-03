@@ -6,6 +6,7 @@
 
 const WEB_URL = process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app/';
 const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/logo-white.png';
+const SUPPORT_EMAIL = process.env.EMAIL_USER || 'info@audienceaura.org';
 
 // App brand colors
 const COLORS = {
@@ -105,7 +106,7 @@ const wrap = (title, heading, body) => `
       </div>
       <div class="footer">
         <p class="footer-brand">Aura Market</p>
-        <p>Questions? <a href="mailto:support@auramarket.com">support@auramarket.com</a></p>
+        <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
         <p>© ${new Date().getFullYear()} Aura Market • Audience Aura Org</p>
       </div>
     </div>
@@ -114,7 +115,8 @@ const wrap = (title, heading, body) => `
 </html>`;
 
 /* ─── Welcome / Sign Up (new template) ─── */
-const welcomeEmail = ({ user }) => {
+const welcomeEmail = ({ user, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const subject = '🎉 Welcome to Aura Market';
   const body = `
     <p>Hi <strong>${user.name || 'there'}</strong>,</p>
@@ -132,7 +134,7 @@ const welcomeEmail = ({ user }) => {
       </div>
     </div>
     
-    ${user.role === 'vendor' ? `<p><strong>Ready to start selling?</strong> Complete your store setup to begin listing products and reaching customers worldwide.</p><a href="${WEB_URL}/vendor/dashboard" class="btn">Complete Setup</a>` : `<p><strong>Ready to shop?</strong> Explore our curated collection of premium products from verified vendors.</p><a href="${WEB_URL}/discovery" class="btn">Start Shopping</a>`}
+    ${user.role === 'vendor' ? `<p><strong>Ready to start selling?</strong> Complete your store setup to begin listing products and reaching customers worldwide.</p><a href="${baseUrl}/vendor/dashboard" class="btn">Complete Setup</a>` : `<p><strong>Ready to shop?</strong> Explore our curated collection of premium products from verified vendors.</p><a href="${baseUrl}/discovery" class="btn">Start Shopping</a>`}
     
     <p style="margin-top: 24px; font-size: 13px; color: #888888;">If you didn't create this account, please ignore this email.</p>
   `;
@@ -141,7 +143,8 @@ const welcomeEmail = ({ user }) => {
 };
 
 /* ─── Password Reset ─── */
-const passwordReset = ({ user, resetLink }) => {
+const passwordReset = ({ user, resetLink, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const subject = '🔐 Reset Your Password';
   const body = `
     <p>Hi <strong>${user.name || 'there'}</strong>,</p>
@@ -215,7 +218,8 @@ const qrSection = (qrCode) => {
 };
 
 /* ─── ORDER PLACED (Customer) ─── */
-const orderPlaced = ({ order, customer, qrCode }) => {
+const orderPlaced = ({ order, customer, qrCode, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `✅ Order Confirmed — #${ref}`;
   const body = `
@@ -246,7 +250,7 @@ const orderPlaced = ({ order, customer, qrCode }) => {
     
     ${formatProducts(order.products || [])}
     
-    <a href="${WEB_URL}/orders" class="btn">View Order Details</a>
+    <a href="${baseUrl}/orders" class="btn">View Order Details</a>
     
     <p style="margin-top: 20px; font-size: 13px; color: #888888;">You'll receive a tracking number once your order ships.</p>
   `;
@@ -255,7 +259,8 @@ const orderPlaced = ({ order, customer, qrCode }) => {
 };
 
 /* ─── PAYMENT CONFIRMED (Customer) ─── */
-const paymentConfirmed = ({ order, customer, qrCode }) => {
+const paymentConfirmed = ({ order, customer, qrCode, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `💳 Payment Confirmed — #${ref}`;
   const body = `
@@ -280,14 +285,15 @@ const paymentConfirmed = ({ order, customer, qrCode }) => {
     
     ${qrSection(qrCode)}
     
-    <a href="${WEB_URL}/orders" class="btn">Track Your Order</a>
+    <a href="${baseUrl}/orders" class="btn">Track Your Order</a>
   `;
   const html = wrap(subject, '💳 Payment Received', body);
   return { subject, html, text: `Payment confirmed for Order #${ref}.` };
 };
 
 /* ─── SHIPMENT STATUS CHANGED (Customer) ─── */
-const shipmentStatusChanged = ({ shipment, order, recipient, status }) => {
+const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const track = shipment.tracking_code;
   
@@ -321,14 +327,15 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status }) => {
       </div>
     </div>
     
-    <a href="${WEB_URL}/orders" class="btn">View Details</a>
+    <a href="${baseUrl}/orders" class="btn">View Details</a>
   `;
   const html = wrap(subject, '📦 Shipment Update', body);
   return { subject, html, text: `Shipment ${track} is now ${status}.` };
 };
 
 /* ─── REFUND APPROVED (Customer) ─── */
-const refundApproved = ({ order, customer }) => {
+const refundApproved = ({ order, customer, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `✅ Refund Approved — #${ref}`;
   const body = `
@@ -351,14 +358,15 @@ const refundApproved = ({ order, customer }) => {
       </div>
     </div>
     
-    <a href="${WEB_URL}/wallet" class="btn">View Wallet</a>
+    <a href="${baseUrl}/wallet" class="btn">View Wallet</a>
   `;
   const html = wrap(subject, '✅ Refund Processed', body);
   return { subject, html, text: `Refund approved for Order #${ref}.` };
 };
 
 /* ─── ORDER COMPLETED / ESCROW RELEASED (Vendor) ─── */
-const orderCompleted = ({ order, vendor }) => {
+const orderCompleted = ({ order, vendor, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `🎉 Order Completed & Payment Released — #${ref}`;
   const body = `
@@ -381,14 +389,15 @@ const orderCompleted = ({ order, vendor }) => {
       </div>
     </div>
     
-    <a href="${WEB_URL}/vendor/wallet" class="btn">View Wallet</a>
+    <a href="${baseUrl}/vendor/wallet" class="btn">View Wallet</a>
   `;
   const html = wrap(subject, '🎉 Payment Released', body);
   return { subject, html, text: `Order #${ref} completed. Payment released.` };
 };
 
 /* ─── NEW ORDER FOR VENDOR ─── */
-const newOrderForVendor = ({ order, vendor }) => {
+const newOrderForVendor = ({ order, vendor, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `🛒 New Order Received — #${ref}`;
   const body = `
@@ -413,14 +422,15 @@ const newOrderForVendor = ({ order, vendor }) => {
     
     ${formatProducts(order.products || [])}
     
-    <a href="${WEB_URL}/vendor/orders" class="btn">Manage Orders</a>
+    <a href="${baseUrl}/vendor/orders" class="btn">Manage Orders</a>
   `;
   const html = wrap(subject, '🛒 New Order', body);
   return { subject, html, text: `New order #${ref} received.` };
 };
 
 /* ─── SHIPMENT ASSIGNED (Logistics) ─── */
-const shipmentAssigned = ({ shipment, order, logistics, firm }) => {
+const shipmentAssigned = ({ shipment, order, logistics, firm, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const track = shipment?.tracking_code || `ORD-${ref}`;
   const subject = `📦 New Shipment Assigned — ${track}`;
@@ -446,14 +456,15 @@ const shipmentAssigned = ({ shipment, order, logistics, firm }) => {
       </div>
     </div>
     
-    <a href="${WEB_URL}/logistics/shipments" class="btn">View Shipments</a>
+    <a href="${baseUrl}/logistics/shipments" class="btn">View Shipments</a>
   `;
   const html = wrap(subject, '📦 New Delivery Assignment', body);
   return { subject, html, text: `Shipment ${track} assigned.` };
 };
 
 /* ─── REFUND REQUESTED (Vendor) ─── */
-const refundRequested = ({ order, vendor, reason }) => {
+const refundRequested = ({ order, vendor, reason, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `⚠️ Refund Request — #${ref}`;
   const body = `
@@ -480,14 +491,15 @@ const refundRequested = ({ order, vendor, reason }) => {
       </div>
     </div>
     
-    <a href="${WEB_URL}/vendor/orders" class="btn">Review Request</a>
+    <a href="${baseUrl}/vendor/orders" class="btn">Review Request</a>
   `;
   const html = wrap(subject, '⚠️ Refund Request', body);
   return { subject, html, text: `Refund requested for Order #${ref}.` };
 };
 
 /* ─── ORDER STATUS UPDATED (Customer) ─── */
-const orderStatusUpdated = ({ order, customer, qrCode }) => {
+const orderStatusUpdated = ({ order, customer, qrCode, webUrl }) => {
+  const baseUrl = webUrl || WEB_URL;
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `📋 Order Update — #${ref}`;
   const status = order.order_status || 'updated';
@@ -509,7 +521,7 @@ const orderStatusUpdated = ({ order, customer, qrCode }) => {
     
     ${qrSection(qrCode)}
     
-    <a href="${WEB_URL}/orders" class="btn">View Order Details</a>
+    <a href="${baseUrl}/orders" class="btn">View Order Details</a>
   `;
   const html = wrap(subject, '📋 Order Update', body);
   return { subject, html, text: `Order #${ref} status updated to ${status}.` };

@@ -12,11 +12,16 @@ import { useAuthStore } from '@/hooks/useAuth';
  * - Handles the case where permission is granted anew after a re-visit
  */
 export default function PWAInit() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const pathname = usePathname();
   const subscribedRef = useRef(false);
+  const authErrorRef = useRef(false);
 
   const attemptSubscription = async () => {
+    // If we already hit a definitive sync block this session, don't spam
+    if (authErrorRef.current) return;
+    if (!isAuthenticated) return;
+
     let token = localStorage.getItem('aura_token');
     if (!token) {
       try {
@@ -26,9 +31,19 @@ export default function PWAInit() {
     }
     if (!token || token === 'undefined' || token === 'null') return;
     
-    console.log('[PWAInit] Syncing push registration at node:', pathname);
-    const subscription = await subscribeToPush();
-    subscribedRef.current = Boolean(subscription);
+    console.log('[PWAInit] Syncing push registration...');
+    const result = await subscribeToPush();
+    
+    if (result?.success) {
+      subscribedRef.current = true;
+      authErrorRef.current = false;
+    } else if (result?.unauthorized) {
+      console.warn('[PWAInit] Auth required for push sync. Suspending attempts until session refresh.');
+      authErrorRef.current = true;
+    } else if (result?.error === 'SERVICE_UNAVAILABLE') {
+      console.info('[PWAInit] Push service unavailable on this device. Silencing sync.');
+      authErrorRef.current = true;
+    }
   };
 
   // 1. On initial mount, register SW and subscribe if user is logged in
@@ -42,13 +57,16 @@ export default function PWAInit() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 2. Re-subscribe when path changes or user identity changes
-  // This ensures the device always has a valid endpoint even during long sessions
+  // 2. Re-subscribe when user identity changes
+  // This ensures the device always has a valid endpoint linked to the correct user node
   useEffect(() => {
-    if (user?._id) {
+    if (user?._id && isAuthenticated) {
+      // Reset flags on user change to allow fresh attempt
+      subscribedRef.current = false;
+      authErrorRef.current = false;
       attemptSubscription();
     }
-  }, [user?._id, pathname]);
+  }, [user?._id, isAuthenticated]);
 
   // 3. On app resume (coming back from background), check and re-subscribe.
   // This is the CRITICAL FIX: handles permission granted while app was backgrounded

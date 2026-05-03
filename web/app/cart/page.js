@@ -8,10 +8,12 @@ import {
   X, Loader2, CheckCircle2, ChevronLeft 
 } from 'lucide-react';
 import api from '@/services/api';
+import { useRouter } from 'next/navigation';
 import { cartStore } from '@/services/cartStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function CartPage() {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
@@ -23,17 +25,22 @@ export default function CartPage() {
   useEffect(() => {
     setLoading(true);
     
-    // Subscribe to cart changes
+    // subscribe to cart changes
     const unsubscribe = cartStore.subscribe((snapshot) => {
       setCartItems(snapshot.items);
       setLoading(false);
+      
+      // Auto-redirect if cart becomes empty while on this page
+      if (snapshot.items.length === 0 && !loading) {
+        router.push('/overtime');
+      }
     });
 
     // Initial fetch
     cartStore.refresh();
 
     return unsubscribe;
-  }, []);
+  }, [loading, router]);
 
   const updateCartQty = async (id, delta) => {
     cartStore.startMutation();

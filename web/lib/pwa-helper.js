@@ -121,9 +121,10 @@ export async function subscribeToPush() {
     if (res.data?.success) {
       console.log('✅ Push subscription synchronized with Aura Matrix.');
     }
-    return subscription;
+    return { success: true, subscription };
   } catch (err) {
-    // Handle VAPID mismatch, expired or invalid subscription errors
+
+    // 2. Handle VAPID mismatch, expired or invalid subscription errors
     if (err.name === 'InvalidStateError' || err.code === 0 || err.name === 'AbortError') {
       console.warn('[PWA] Subscription error detected — purging stale subscriptions and resubscribing...');
       try {
@@ -147,20 +148,27 @@ export async function subscribeToPush() {
           device_type: window.innerWidth < 768 ? 'mobile' : 'desktop'
         });
         console.log('✅ [PWA] Fresh push subscription registered after recovery.');
-        return newSub;
+        return { success: true, subscription: newSub };
       } catch (retryErr) {
         if (isPushServiceUnavailable(retryErr)) {
           console.info('[PWA] Recovery skipped: push service unavailable for this browser/device.');
-          return null;
+          return { success: false, error: 'SERVICE_UNAVAILABLE' };
         }
         console.error('[PWA] Recovery subscription failed:', retryErr.message);
       }
     }
-    if (isPushServiceUnavailable(err)) {
-      console.info('[PWA] Push registration skipped: push service unavailable.');
-      return null;
+    const isAuthError = /401|unauthorized|unauthenticated/i.test(
+      err?.response?.status || 
+      err?.response?.data?.message || 
+      err?.message || 
+      ''
+    );
+
+    if (isAuthError) {
+      return { success: false, unauthorized: true };
     }
+
     console.error('❌ Push Subscription Error:', err.name, err.message);
-    return null;
+    return { success: false, error: 'UNKNOWN', message: err.message };
   }
 }

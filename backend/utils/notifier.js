@@ -33,14 +33,15 @@ const templates = require('./emailTemplates');
  * Signal Template: Standard Order/Status Email (Updated with app colors)
  * This now uses the shared premium templates to ensure consistency.
  */
-const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink, qrCode) => {
+const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink, qrCode, webUrl) => {
   // If we have full order details, use the premium order template
   if (orderDetails) {
     if (role === 'customer' || role === 'user') {
       const templateData = templates.orderPlaced({ 
         order: orderDetails, 
         customer: { name: orderDetails.customer_name || 'Valued Customer' },
-        qrCode: qrCode || orderDetails.qrCode
+        qrCode: qrCode || orderDetails.qrCode,
+        webUrl: webUrl
       });
       return templateData.html;
     }
@@ -48,27 +49,29 @@ const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink, qrCo
     if (role === 'logistics') {
       const templateData = templates.shipmentAssigned({ 
         order: orderDetails,
-        logistics: { company_name: 'Logistics Partner' } // Generic label, notifier will fetch contact_email
+        logistics: { company_name: 'Logistics Partner' }, // Generic label, notifier will fetch contact_email
+        webUrl: webUrl
       });
       return templateData.html;
     }
-
+ 
     if (role === 'vendor') {
       const templateData = templates.newOrderForVendor({ 
         order: orderDetails,
-        vendor: { store_name: orderDetails.vendor_name || 'Vendor' }
+        vendor: { store_name: orderDetails.vendor_name || 'Vendor' },
+        webUrl: webUrl
       });
       return templateData.html;
     }
   }
-
+ 
   // Fallback to a styled generic notification using the shared wrapper
   return templates.wrap(title, title, `
     <p>${message}</p>
     ${emailLink ? `<div style="text-align: center; margin-top: 32px;"><a href="${emailLink}" class="btn">View Details</a></div>` : ''}
   `);
 };
-
+ 
 const sendNotification = async (app, recipientId, data) => {
   try {
     const { 
@@ -82,7 +85,8 @@ const sendNotification = async (app, recipientId, data) => {
       role = 'user', 
       overrideEmail = null, 
       emailTemplate = null,
-      qrCode = null
+      qrCode = null,
+      webUrl = null
     } = data;
 
     // 1. Create DB Record (Synchronous to ensure ID exists)
@@ -153,7 +157,7 @@ const sendNotification = async (app, recipientId, data) => {
               to: targetEmail,
               subject: title,
               text: message,
-              html: emailTemplate?.html || buildOrderEmailHtml(title, message, orderDetails, role, emailLink, qrCode),
+              html: emailTemplate?.html || buildOrderEmailHtml(title, message, orderDetails, role, emailLink, qrCode, webUrl),
               role: role || 'user'
             });
 

@@ -9,6 +9,7 @@ const logisticsService = require('../services/logistics.service');
 const { PAYSTACK_SECRET_KEY } = require('../config/env');
 const eversend = require('../services/eversend.service');
 const { sendNotification } = require('../utils/notifier');
+const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
 const Vendor = require('../models/Vendor.model');
 const Shipment = require('../models/Shipment.model');
@@ -215,9 +216,10 @@ const eversendInitialize = async (req, res) => {
     const redirectUrl = customRedirect || `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=eversend&ref=${transactionRef}`;
 
     // ── SANDBOX SIMULATION MODE ───────────────────────────────────────────────
-    // Set EVERSEND_SANDBOX_MODE=true in .env to bypass the live gateway and test
-    // the full checkout → order settlement flow locally.
-    if (process.env.EVERSEND_SANDBOX_MODE === 'true') {
+    // Check both process.env and config/env (if applicable)
+    const isSandbox = process.env.EVERSEND_SANDBOX_MODE === 'true';
+    
+    if (isSandbox) {
       console.log('[Eversend] SANDBOX MODE — simulating successful collection');
       const sandboxTxId = `SBX-${Date.now()}`;
       
@@ -347,10 +349,13 @@ const eversendInitialize = async (req, res) => {
       userMessage = 'Eversend Collections not authorized for this account. Enable Collections in your Eversend dashboard under API Settings.';
     } else if (evError?.message && typeof evError.message === 'string') {
       userMessage = evError.message;
+    } else if (statusCode === 400 && evError?.message?.includes('OTP')) {
+      // Direct pass-through if OTP is disabled but server returns this error
+      userMessage = 'Verification Required: Please check your account settings or re-enable OTP for this transaction.';
     }
 
     res.status(statusCode < 500 ? statusCode : 500).json({
-      success: false,
+      success: false, 
       message: userMessage,
       detail: evError
     });
@@ -416,6 +421,7 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
       orderForNotify.vendor_id = vendor;
 
       // ── Dispatch notifications in background (Post-Commit handled by app logic or setImmediate)
+      const webUrl = getWebUrl(req);
       setImmediate(async () => {
          try {
            // A. Notify Vendor
@@ -427,7 +433,8 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
                 metadata: { order_id: order._id, link: '/vendor/orders' },
                 sendEmail: true,
                 orderDetails: orderForNotify,
-                role: 'vendor'
+                role: 'vendor',
+                webUrl: webUrl
               });
            }
 
@@ -439,7 +446,8 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
              metadata: { order_id: order._id, link: '/orders' },
              sendEmail: true,
              orderDetails: orderForNotify,
-             role: 'customer'
+             role: 'customer',
+             webUrl: webUrl
            });
 
            // C. Notify Logistics Partner if applicable
@@ -454,7 +462,8 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
                    type: 'system_alert',
                    metadata: { order_id: order._id, link: '/logistics/dashboard' },
                    sendEmail: true,
-                   role: 'logistics'
+                   role: 'logistics',
+                   webUrl: webUrl
                  });
                }
              }

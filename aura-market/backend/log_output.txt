@@ -1,5 +1,0 @@
-﻿[dotenv@17.3.1] injecting env (20) from .env -- tip: ΓÜí∩╕Å secrets for agents: https://dotenvx.com/as2
-=== LATEST 3 EMAIL LOGS (Last 10 mins) ===
-[2026-03-27T07:35:22.362Z] To: logistics1@auramarket.com | Role: logistics | Status: sent | Err: None | Sub: New Shipment Assigned
-[2026-03-27T07:35:21.490Z] To: ashoctavia118@gmail.com | Role: vendor | Status: sent | Err: None | Sub: New Order Received
-[2026-03-27T07:35:21.483Z] To: brandonasah11@gmail.com | Role: customer | Status: sent | Err: None | Sub: Order Segment Placed

@@ -22,6 +22,10 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order');
+  const productId = searchParams.get('productId');
+  const quantity = parseInt(searchParams.get('quantity') || '1');
+  const variantStr = searchParams.get('variant');
+  const variant = variantStr ? JSON.parse(decodeURIComponent(variantStr)) : null;
   const { user } = useAuthStore();
   
   const [step, setStep] = useState(1);
@@ -190,6 +194,24 @@ function CheckoutContent() {
           console.error('Order Sync Error:', err);
           toast.error("Failed to sync order node.");
         });
+    } else if (productId) {
+      // Direct product checkout
+      api.get(`/products/${productId}`)
+        .then(res => {
+          if (res.data.success) {
+            const p = res.data.data.product;
+            setCartItems([{
+              product_id: p._id,
+              vendor_id: p.vendor_id?._id || p.vendor_id,
+              vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
+              name: p.name,
+              price: p.price,
+              quantity: quantity,
+              image: p.images?.[0]?.url || p.images?.[0]
+            }]);
+          }
+        })
+        .catch(() => toast.error("Failed to load product for checkout"));
     } else {
       api.get('/cart')
         .then(res => {
@@ -205,11 +227,16 @@ function CheckoutContent() {
              }));
 
              setCartItems(items);
+             
+             // Auto-redirect if cart is empty and not viewing a specific order
+             if (items.length === 0 && !orderId && !productId) {
+               router.push('/overtime');
+             }
           }
         })
         .catch(() => {});
     }
-  }, [orderId]);
+  }, [orderId, productId, quantity, router]);
 
   const handlePlaceOrder = async () => {
     // Compute amounts from the authoritative sources, not stale state
@@ -242,7 +269,7 @@ function CheckoutContent() {
       let finalOrderIds = orderId ? [orderId] : (createdOrderIds || []);
       
       if (!orderId && finalOrderIds.length === 0) {
-         const splitRes = await api.post('/orders/cart-split', {
+         const orderPayload = {
             shipping_address: {
                street: formData.address,
                city: formData.city,
@@ -255,11 +282,22 @@ function CheckoutContent() {
             shipping_method: 'logistics_partner',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
-         });
+         };
+
+         // If direct checkout, pass the items manually to bypass cart DB
+         if (productId) {
+            orderPayload.items = cartItems.map(it => ({
+               product_id: it.product_id,
+               quantity: it.quantity,
+               variant: variant // Use the extracted variant from searchParams
+            }));
+         }
+
+         const splitRes = await api.post('/orders/cart-split', orderPayload);
 
          if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;
-            setCreatedOrderIds(finalOrderIds); // Cache orders in case Eversend requires OTP
+            setCreatedOrderIds(finalOrderIds); // Cache orders for transaction persistence
          } else {
             throw new Error("Failed to split cart into vendor nodes.");
          }
@@ -333,39 +371,11 @@ function CheckoutContent() {
     } catch (err) {
       console.log('[Checkout Error Interceptor]', err.response?.status, err.response?.data);
       
-      const isOtpError = err.response?.status === 400 && 
-                         (err.response?.data?.message?.toLowerCase().includes('otp') || 
-                          err.response?.data?.message?.toLowerCase().includes('pin'));
-
-      if (isOtpError) {
-        setOtpLoading(true);
-        try {
-          const targetPhone = formData.eversend.phone || formData.phone;
-          const targetCountry = formData.eversend.country || 'CM';
-          const otpRes = await api.post('/payments/eversend/otp', { phone: targetPhone, country: targetCountry });
-          
-          if (otpRes.data.success) {
-            setOtpRequired(true);
-            setFormData(f => ({ 
-              ...f, 
-              eversend: { ...f.eversend, pinId: otpRes.data.data.pinId } 
-            }));
-            toast.success("Security PIN required. Check your phone!");
-          }
-        } catch (otpErr) {
-          toast.error("Failed to trigger security SMS.");
-        } finally {
-          setOtpLoading(false);
-          setLoading(false);
-        }
-        return;
-      }
-
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       toast.error(msg);
     } finally {
-      if (!otpLoading) setLoading(false);
+      setLoading(false);
     }
   };
 
