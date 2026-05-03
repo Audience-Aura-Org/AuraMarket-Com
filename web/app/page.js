@@ -29,10 +29,6 @@ export default function VendorsDirectoryPage() {
     if (!authLoading) {
       if (!isAuthenticated) {
         router.replace('/login');
-      } else {
-        // Logged-in users should land on the Discovery Hub to see active content
-        // instead of a potentially empty followed feed.
-        router.replace('/discovery');
       }
     }
   }, [isAuthenticated, authLoading, router]);
