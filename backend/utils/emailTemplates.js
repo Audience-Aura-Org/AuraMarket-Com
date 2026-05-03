@@ -5,18 +5,19 @@
  */
 
 const WEB_URL = process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app/';
-const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/aura-round-icon.png';
+const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/icon-512.png';
 const SUPPORT_EMAIL = process.env.EMAIL_USER || 'info@audienceaura.org';
 
-// App brand colors
+// App brand colors (Minimalist structure with brand accents)
 const COLORS = {
-  accent: '#f20df2',        // Primary magenta
-  accentLight: '#f472b6',   // Light pink
-  accentGlow: 'rgba(242, 13, 242, 0.12)',
   bgPrimary: '#ffffff',
-  bgSecondary: '#f8f5f8',
-  textPrimary: '#0f172a',
-  textSecondary: '#64748b',
+  bgSecondary: '#f5f5f5',
+  border: '#e5e5e5',
+  textPrimary: '#111111',
+  textSecondary: '#666666',
+  accent: '#f20df2', // Primary magenta
+  accentDark: '#d90bd9',
+  accentGlow: 'rgba(242, 13, 242, 0.08)', // Subtle brand tint
 };
 
 /* ─── Premium Email Wrapper ─── */
@@ -30,73 +31,58 @@ const wrap = (title, heading, body) => `
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: ${COLORS.accentGlow}; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif; color: ${COLORS.textPrimary}; line-height: 1.6; font-size: 16px; padding: 0; }
+    body { background: ${COLORS.bgSecondary}; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif; color: ${COLORS.textPrimary}; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
     
-    .email-wrapper { width: 100%; background: linear-gradient(180deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 40px 16px; }
-    .email-container { max-width: 600px; width: 100%; margin: 0 auto; background: ${COLORS.bgPrimary}; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .email-wrapper { width: 100%; padding: 40px 16px; background: ${COLORS.bgSecondary}; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: ${COLORS.bgPrimary}; border: 1px solid ${COLORS.accentGlow}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px ${COLORS.accentGlow}; }
     
-    .header { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); padding: 24px 32px; text-align: center; position: relative; }
-    .header::before { content: ''; position: absolute; top: -30%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
-    .header::after { content: ''; position: absolute; bottom: -20%; left: -5%; width: 150px; height: 150px; background: rgba(255,255,255,0.08); border-radius: 50%; }
-    .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 12px; }
-    .header-logo { height: 48px; width: 48px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); object-fit: cover; }
-    .header-title { color: #ffffff; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; margin: 0; font-family: 'Poppins', sans-serif; }
+    .header { padding: 24px; border-bottom: 1px solid ${COLORS.accentGlow}; display: flex; align-items: center; gap: 12px; background: ${COLORS.bgPrimary}; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid ${COLORS.border}; object-fit: cover; }
+    .header-title { color: ${COLORS.textPrimary}; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
     
-    .content { padding: 40px 32px; }
-    .content h2 { font-size: 24px; color: ${COLORS.textPrimary}; margin-bottom: 20px; font-weight: 800; letter-spacing: -0.5px; font-family: 'Poppins', sans-serif; }
-    .content p { font-size: 15px; color: ${COLORS.textSecondary}; margin-bottom: 16px; line-height: 1.7; font-family: 'Poppins', sans-serif; }
-    .content strong { color: ${COLORS.textPrimary}; font-weight: 700; font-family: 'Poppins', sans-serif; }
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: ${COLORS.textPrimary}; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: ${COLORS.textSecondary}; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: ${COLORS.textPrimary}; font-weight: 600; }
     
-    .card { background: ${COLORS.bgPrimary}; border: 1px solid ${COLORS.accentGlow}; border-radius: 16px; padding: 24px; margin: 24px 0; box-shadow: 0 4px 20px rgba(242,13,242,0.08); }
-    .card-row { display: flex; justify-content: space-between; padding: 14px 0; font-size: 15px; align-items: center; font-family: 'Poppins', sans-serif; }
-    .card-row:not(:last-child) { border-bottom: 1px solid ${COLORS.accentGlow}; }
-    .card-label { color: ${COLORS.textSecondary}; font-weight: 600; font-size: 14px; font-family: 'Poppins', sans-serif; }
-    .card-value { color: ${COLORS.textPrimary}; font-weight: 700; text-align: right; font-family: 'Poppins', sans-serif; }
-    .card-value.accent { color: ${COLORS.accent}; }
+    .card { background: ${COLORS.bgPrimary}; border: 1px solid ${COLORS.accentGlow}; border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid ${COLORS.border}; }
+    .card-label { color: ${COLORS.textSecondary}; font-weight: 500; }
+    .card-value { color: ${COLORS.textPrimary}; font-weight: 600; text-align: right; }
     
-    .status-badge { display: inline-block; padding: 8px 16px; border-radius: 50px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; font-family: 'Poppins', sans-serif; }
-    .badge-pending { background: #fef3cd; color: #856404; }
-    .badge-processing { background: ${COLORS.accentGlow}; color: ${COLORS.accent}; }
-    .badge-placed { background: ${COLORS.accentGlow}; color: ${COLORS.accent}; }
-    .badge-shipped { background: ${COLORS.accentGlow}; color: ${COLORS.accent}; }
-    .badge-delivered { background: #d1e7dd; color: #0f5132; }
-    .badge-completed { background: #d1e7dd; color: #0f5132; }
-    .badge-refunded { background: #e2e3e5; color: #404245; }
-    .badge-failed { background: #f8d7da; color: #842029; }
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: ${COLORS.accentGlow}; color: ${COLORS.accentDark}; border: 1px solid rgba(242, 13, 242, 0.2); }
     
-    .btn { display: inline-block; background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); color: #ffffff !important; text-decoration: none; padding: 12px 32px; border-radius: 12px; font-weight: 600; font-size: 15px; text-transform: capitalize; margin: 24px 0; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(242,13,242,0.3); border: none; cursor: pointer; font-family: 'Poppins', sans-serif; }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(242,13,242,0.4); }
+    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid ${COLORS.accent}; text-align: center; }
+    .btn:hover { background: ${COLORS.accentDark}; border-color: ${COLORS.accentDark}; }
     
-    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 14px; font-family: 'Poppins', sans-serif; border-radius: 12px; overflow: hidden; }
-    .table-products thead { background: linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentLight} 100%); }
-    .table-products th { padding: 16px; text-align: left; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; font-family: 'Poppins', sans-serif; }
-    .table-products td { padding: 16px; border-bottom: 1px solid ${COLORS.accentGlow}; color: ${COLORS.textSecondary}; font-family: 'Poppins', sans-serif; background: ${COLORS.bgPrimary}; }
-    .table-products td.number { text-align: center; font-weight: 600; }
-    .table-products td.amount { text-align: right; font-weight: 700; color: ${COLORS.accent}; }
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid ${COLORS.accentGlow}; border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: ${COLORS.accentGlow}; border-bottom: 1px solid ${COLORS.accentGlow}; }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: ${COLORS.textPrimary}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textSecondary}; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.textPrimary}; }
     .table-products tbody tr:last-child td { border-bottom: none; }
-    .table-products tbody tr:hover td { background: ${COLORS.bgSecondary}; }
     
-    .footer { background: ${COLORS.textPrimary}; padding: 32px; text-align: center; font-family: 'Poppins', sans-serif; }
-    .footer p { font-size: 13px; color: rgba(255,255,255,0.7); margin: 6px 0; font-family: 'Poppins', sans-serif; }
-    .footer a { color: ${COLORS.accentLight}; text-decoration: none; font-weight: 700; font-family: 'Poppins', sans-serif; }
-    .footer-brand { font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 8px !important; }
+    .footer { border-top: 1px solid ${COLORS.accentGlow}; padding: 20px; text-align: center; background: ${COLORS.bgPrimary}; }
+    .footer p { font-size: 11px; color: ${COLORS.textSecondary}; margin: 4px 0; }
+    .footer a { color: ${COLORS.accentDark}; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: ${COLORS.textPrimary}; margin-bottom: 6px !important; letter-spacing: -0.2px; }
     
-    .highlight { background: ${COLORS.accentGlow}; border-left: 4px solid ${COLORS.accent}; padding: 20px; margin: 24px 0; border-radius: 0 12px 12px 0; font-family: 'Poppins', sans-serif; }
-    .highlight p { margin: 0; font-size: 14px; color: ${COLORS.textSecondary}; line-height: 1.7; font-family: 'Poppins', sans-serif; }
+    .highlight { background: ${COLORS.accentGlow}; border-left: 3px solid ${COLORS.accent}; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: ${COLORS.textPrimary}; }
     
-    .qr-container { text-align: center; margin: 32px 0; padding: 24px; background: ${COLORS.bgSecondary}; border-radius: 20px; border: 2px dashed ${COLORS.accentGlow}; }
-    .qr-image { width: 160px; height: 160px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .qr-text { font-size: 13px; color: ${COLORS.textSecondary}; font-weight: 500; font-family: 'Poppins', sans-serif; }
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed ${COLORS.accent}; border-radius: 8px; background: ${COLORS.accentGlow}; }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: ${COLORS.accentDark}; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="email-wrapper">
     <div class="email-container">
       <div class="header">
-        <div class="header-content">
-          <img src="${LOGO_URL}" alt="Aura" class="header-logo" />
-          <h1 class="header-title">Aura Market</h1>
-        </div>
+        <img src="${LOGO_URL}" alt="Aura" class="header-logo" />
+        <h1 class="header-title">Aura Market</h1>
       </div>
       <div class="content">
         <h2>${heading}</h2>

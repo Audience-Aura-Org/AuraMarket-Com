@@ -31,7 +31,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         <Link href={user ? "/discovery?tab=discover" : "/"} className="flex items-center gap-2 min-w-0 active:scale-95 transition-transform">
            {mounted && (
              <img 
-               src="/aura-round-icon.png" 
+               src="/icon-512.png" 
                alt="Aura" 
                className="h-4.5 w-auto shrink-0"
              />

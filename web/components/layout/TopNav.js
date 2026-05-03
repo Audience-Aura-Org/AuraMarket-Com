@@ -110,7 +110,7 @@ export default function TopNav() {
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
           <Link href={user ? "/discovery?tab=discover" : "/"} className="flex items-center gap-2 md:gap-3 group">
             <img
-              src="/aura-round-icon.png"
+              src="/icon-512.png"
               alt="Aura Market"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />

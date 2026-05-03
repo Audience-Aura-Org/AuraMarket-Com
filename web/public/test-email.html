@@ -1,0 +1,1116 @@
+
+    <html>
+      <head>
+        <title>Aura Email Previews</title>
+        <style>
+          body { font-family: sans-serif; background: #e0e0e0; padding: 40px; margin: 0; }
+          .preview-section { margin-bottom: 60px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          .preview-header { border-bottom: 2px solid #f20df2; padding-bottom: 10px; margin-bottom: 20px; }
+          .preview-header h2 { margin: 0; color: #333; }
+          .preview-header p { margin: 5px 0 0 0; color: #666; font-size: 14px; }
+          iframe { width: 100%; height: 800px; border: 1px solid #ccc; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <h1>Aura Market — All Email Templates</h1>
+        <p>Because the local network is blocking outbound SMTP traffic, all templates have been rendered below for instant preview.</p>
+  
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Welcome Email</h2>
+          <p><strong>Subject:</strong> 🎉 Welcome to Aura Market</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>🎉 Welcome to Aura Market</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Welcome to Aura</h2>
+        
+    <p>Hi <strong>Brandon</strong>,</p>
+    <p>Welcome to Aura Market! Your account is active and ready for use.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;>
+        <span class=&quot;card-label&quot;>Email</span>
+        <span class=&quot;card-value&quot;>brandonasah11@gmail.com</span>
+      </div>
+      <div class=&quot;card-row&quot;>
+        <span class=&quot;card-label&quot;>Type</span>
+        <span class=&quot;card-value&quot; style=&quot;text-transform: capitalize;&quot;>customer</span>
+      </div>
+    </div>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//discovery&quot; class=&quot;btn&quot;>Start Shopping</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Password Reset</h2>
+          <p><strong>Subject:</strong> 🔐 Reset Your Password</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>🔐 Reset Your Password</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Reset Your Password</h2>
+        
+    <p>Hi <strong>Brandon</strong>,</p>
+    <p>Tap below to reset your password. This link expires in 1 hour.</p>
+    
+    <a href=&quot;https://aura-market-com.vercel.app/reset-password?token=123&quot; class=&quot;btn&quot;>Reset Password</a>
+    
+    <p style=&quot;font-size: 11px; color: #888888; margin-top: 20px;&quot;>If you didn&apos;t request this, please ignore this email.</p>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Order Placed (Customer)</h2>
+          <p><strong>Subject:</strong> ✅ Order Confirmed — #E4F5G6</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>✅ Order Confirmed — #E4F5G6</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Order Confirmed</h2>
+        
+    <p>Hi <strong>Brandon</strong>,</p>
+    <p>Your order has been confirmed and is being prepared.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Ref</span><span class=&quot;card-value&quot;>#E4F5G6</span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Status</span><span class=&quot;card-value&quot;><span class=&quot;status-badge badge-placed&quot;>PLACED</span></span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Total</span><span class=&quot;card-value&quot;>XAF 15,000</span></div>
+    </div>
+    
+    
+    <div class=&quot;qr-container&quot;>
+      <img src=&quot;https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=AURA-TRACK-9921&quot; alt=&quot;Scan to Track&quot; class=&quot;qr-image&quot; />
+      <p class=&quot;qr-text&quot;>Scan this code to track your order on your mobile device</p>
+    </div>
+  
+    
+    <table class=&quot;table-products&quot;>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th style=&quot;text-align: center;&quot;>Qty</th>
+          <th style=&quot;text-align: right;&quot;>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+    <tr>
+      <td>Premium Theme</td>
+      <td class=&quot;number&quot;>1</td>
+      <td class=&quot;amount&quot;>XAF 10,000</td>
+    </tr>
+    <tr>
+      <td>Support Package</td>
+      <td class=&quot;number&quot;>1</td>
+      <td class=&quot;amount&quot;>XAF 5,000</td>
+    </tr></tbody>
+    </table>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//orders&quot; class=&quot;btn&quot;>View Order</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Payment Confirmed (Customer)</h2>
+          <p><strong>Subject:</strong> 💳 Payment Confirmed — #E4F5G6</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>💳 Payment Confirmed — #E4F5G6</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Payment Received</h2>
+        
+    <p>Hi <strong>Brandon</strong>,</p>
+    <p>Payment received. Your order is now in processing.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Ref</span><span class=&quot;card-value&quot;>#E4F5G6</span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Amount</span><span class=&quot;card-value&quot;>XAF 15,000</span></div>
+    </div>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//orders&quot; class=&quot;btn&quot;>Track Order</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Shipment Status (Customer)</h2>
+          <p><strong>Subject:</strong> 📦 Delivery Update — IN TRANSIT</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>📦 Delivery Update — IN TRANSIT</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Shipment Update</h2>
+        
+    <p>Hi <strong>Brandon</strong>,</p>
+    <p>Your order is currently in transit.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Track</span><span class=&quot;card-value&quot;>AURA-TRACK-9921</span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Status</span><span class=&quot;card-value&quot;><span class=&quot;status-badge badge-shipped&quot;>IN TRANSIT</span></span></div>
+    </div>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//orders&quot; class=&quot;btn&quot;>View Details</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Refund Approved (Customer)</h2>
+          <p><strong>Subject:</strong> ✅ Refund Approved — #E4F5G6</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>✅ Refund Approved — #E4F5G6</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Refund Processed</h2>
+        
+    <p>Hi <strong>Brandon</strong>,</p>
+    <p>Your refund has been processed and returned to your wallet.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Amount</span><span class=&quot;card-value&quot;>XAF 15,000</span></div>
+    </div>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//wallet&quot; class=&quot;btn&quot;>View Wallet</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Order Completed (Vendor)</h2>
+          <p><strong>Subject:</strong> 🎉 Order Completed & Payment Released — #E4F5G6</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>🎉 Order Completed & Payment Released — #E4F5G6</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Payment Released</h2>
+        
+    <p>Hi <strong>Aura Premium Store</strong>,</p>
+    <p>Order completed! Funds have been released to your wallet.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Ref</span><span class=&quot;card-value&quot;>#E4F5G6</span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Amount</span><span class=&quot;card-value&quot;>XAF 15,000</span></div>
+    </div>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//vendor/wallet&quot; class=&quot;btn&quot;>View Wallet</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>New Order (Vendor)</h2>
+          <p><strong>Subject:</strong> 🛒 New Order Received — #E4F5G6</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>🛒 New Order Received — #E4F5G6</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>New Order</h2>
+        
+    <p>Hi <strong>Aura Premium Store</strong>,</p>
+    <p>You have a new order! Please prepare it for shipment.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Ref</span><span class=&quot;card-value&quot;>#E4F5G6</span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Total</span><span class=&quot;card-value&quot;>XAF 15,000</span></div>
+    </div>
+    
+    
+    <table class=&quot;table-products&quot;>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th style=&quot;text-align: center;&quot;>Qty</th>
+          <th style=&quot;text-align: right;&quot;>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+    <tr>
+      <td>Premium Theme</td>
+      <td class=&quot;number&quot;>1</td>
+      <td class=&quot;amount&quot;>XAF 10,000</td>
+    </tr>
+    <tr>
+      <td>Support Package</td>
+      <td class=&quot;number&quot;>1</td>
+      <td class=&quot;amount&quot;>XAF 5,000</td>
+    </tr></tbody>
+    </table>
+    <a href=&quot;https://aura-market-com.vercel.app//vendor/orders&quot; class=&quot;btn&quot;>Manage Order</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Shipment Assigned (Logistics)</h2>
+          <p><strong>Subject:</strong> 📦 New Shipment Assigned — AURA-TRACK-9921</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>📦 New Shipment Assigned — AURA-TRACK-9921</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>New Assignment</h2>
+        
+    <p>Hi <strong>Aura Express</strong>,</p>
+    <p>A new delivery assignment is ready for pickup.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Track</span><span class=&quot;card-value&quot;>AURA-TRACK-9921</span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Fee</span><span class=&quot;card-value&quot;>XAF 0</span></div>
+    </div>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//logistics/shipments&quot; class=&quot;btn&quot;>View Assignment</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Refund Requested (Vendor)</h2>
+          <p><strong>Subject:</strong> ⚠️ Refund Request — #E4F5G6</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>⚠️ Refund Request — #E4F5G6</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>⚠️ Refund Request</h2>
+        
+    <p>Hi <strong>Aura Premium Store</strong>,</p>
+    <p>A customer has requested a refund for their order. Please review and take action.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;>
+        <span class=&quot;card-label&quot;>Order Reference</span>
+        <span class=&quot;card-value&quot;>#E4F5G6</span>
+      </div>
+      <div class=&quot;card-row&quot;>
+        <span class=&quot;card-label&quot;>Amount</span>
+        <span class=&quot;card-value&quot;>XAF 15,000</span>
+      </div>
+      <div class=&quot;card-divider&quot;></div>
+      <div class=&quot;card-row&quot;>
+        <span class=&quot;card-label&quot;>Reason</span>
+        <span class=&quot;card-value&quot; style=&quot;text-align: right;&quot;>Item defective</span>
+      </div>
+      <div class=&quot;card-row&quot;>
+        <span class=&quot;card-label&quot;>Status</span>
+        <span class=&quot;card-value&quot;><span class=&quot;status-badge badge-pending&quot;>REFUND PENDING</span></span>
+      </div>
+    </div>
+    
+    <a href=&quot;https://aura-market-com.vercel.app//vendor/orders&quot; class=&quot;btn&quot;>Review Request</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      <div class="preview-section">
+        <div class="preview-header">
+          <h2>Order Status Updated (Customer)</h2>
+          <p><strong>Subject:</strong> 📋 Order Update — #E4F5G6</p>
+        </div>
+        <iframe srcdoc="
+<!DOCTYPE html>
+<html lang=&quot;en&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;/>
+  <title>📋 Order Update — #E4F5G6</title>
+  <link href=&quot;https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap&quot; rel=&quot;stylesheet&quot;>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: &apos;Poppins&apos;, -apple-system, BlinkMacSystemFont, sans-serif; color: #111111; line-height: 1.6; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
+    
+    .email-wrapper { width: 100%; padding: 40px 16px; background: #f5f5f5; }
+    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(242, 13, 242, 0.08); }
+    
+    .header { padding: 24px; border-bottom: 1px solid rgba(242, 13, 242, 0.08); display: flex; align-items: center; gap: 12px; background: #ffffff; }
+    .header-logo { height: 32px; width: 32px; border-radius: 50%; border: 1px solid #e5e5e5; object-fit: cover; }
+    .header-title { color: #111111; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+    
+    .content { padding: 32px; }
+    .content h2 { font-size: 18px; color: #111111; margin-bottom: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .content p { font-size: 13px; color: #666666; margin-bottom: 16px; line-height: 1.6; }
+    .content strong { color: #111111; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; padding: 16px; margin: 24px 0; }
+    .card-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; align-items: center; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #e5e5e5; }
+    .card-label { color: #666666; font-weight: 500; }
+    .card-value { color: #111111; font-weight: 600; text-align: right; }
+    
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(242, 13, 242, 0.08); color: #d90bd9; border: 1px solid rgba(242, 13, 242, 0.2); }
+    
+    .btn { display: inline-block; background: #f20df2; color: #ffffff !important; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin: 24px 0; transition: background 0.2s ease; border: 1px solid #f20df2; text-align: center; }
+    .btn:hover { background: #d90bd9; border-color: #d90bd9; }
+    
+    .table-products { width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 13px; border: 1px solid rgba(242, 13, 242, 0.08); border-radius: 8px; overflow: hidden; }
+    .table-products thead { background: rgba(242, 13, 242, 0.08); border-bottom: 1px solid rgba(242, 13, 242, 0.08); }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: #111111; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-products td { padding: 14px; border-bottom: 1px solid #e5e5e5; color: #666666; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: #111111; }
+    .table-products tbody tr:last-child td { border-bottom: none; }
+    
+    .footer { border-top: 1px solid rgba(242, 13, 242, 0.08); padding: 20px; text-align: center; background: #ffffff; }
+    .footer p { font-size: 11px; color: #666666; margin: 4px 0; }
+    .footer a { color: #d90bd9; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 6px !important; letter-spacing: -0.2px; }
+    
+    .highlight { background: rgba(242, 13, 242, 0.08); border-left: 3px solid #f20df2; padding: 14px; margin: 24px 0; border-radius: 0 6px 6px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: #111111; }
+    
+    .qr-container { text-align: center; margin: 24px 0; padding: 20px; border: 1px dashed #f20df2; border-radius: 8px; background: rgba(242, 13, 242, 0.08); }
+    .qr-image { width: 120px; height: 120px; margin-bottom: 10px; border-radius: 6px; }
+    .qr-text { font-size: 11px; color: #d90bd9; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class=&quot;email-wrapper&quot;>
+    <div class=&quot;email-container&quot;>
+      <div class=&quot;header&quot;>
+        <img src=&quot;https://aura-market-com.vercel.app/icon-512.png&quot; alt=&quot;Aura&quot; class=&quot;header-logo&quot; />
+        <h1 class=&quot;header-title&quot;>Aura Market</h1>
+      </div>
+      <div class=&quot;content&quot;>
+        <h2>Order Update</h2>
+        
+    <p>Hi <strong>Brandon</strong>,</p>
+    <p>Order status updated to <strong>UPDATED</strong>.</p>
+    
+    <div class=&quot;card&quot;>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Ref</span><span class=&quot;card-value&quot;>#E4F5G6</span></div>
+      <div class=&quot;card-row&quot;><span class=&quot;card-label&quot;>Status</span><span class=&quot;card-value&quot;><span class=&quot;status-badge badge-pending&quot;>UPDATED</span></span></div>
+    </div>
+    
+    
+    <div class=&quot;qr-container&quot;>
+      <img src=&quot;https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=AURA-TRACK-9921&quot; alt=&quot;Scan to Track&quot; class=&quot;qr-image&quot; />
+      <p class=&quot;qr-text&quot;>Scan this code to track your order on your mobile device</p>
+    </div>
+  
+    <a href=&quot;https://aura-market-com.vercel.app//orders&quot; class=&quot;btn&quot;>View Details</a>
+  
+      </div>
+      <div class=&quot;footer&quot;>
+        <p class=&quot;footer-brand&quot;>Aura Market</p>
+        <p>Questions? <a href=&quot;mailto:info@audienceaura.org&quot;>info@audienceaura.org</a></p>
+        <p>© 2026 Aura Market • Audience Aura Org</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>"></iframe>
+      </div>
+    
+      </body>
+    </html>
+  
