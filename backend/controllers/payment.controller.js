@@ -9,6 +9,7 @@ const logisticsService = require('../services/logistics.service');
 const { PAYSTACK_SECRET_KEY } = require('../config/env');
 const eversend = require('../services/eversend.service');
 const { sendNotification } = require('../utils/notifier');
+const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
 const Vendor = require('../models/Vendor.model');
 const Shipment = require('../models/Shipment.model');
@@ -132,15 +133,49 @@ const handleWebhook = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Utility: Sanitize phone number to E.164 format for Eversend
+ */
+const sanitizePhone = (phone, country = 'CM') => {
+  if (!phone) return phone;
+  // Remove all non-numeric characters except +
+  let cleaned = phone.replace(/[^\d+]/g, '');
+  
+  // If it starts with 00, replace with +
+  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
+  
+  // Cameroon (CM) normalization
+  if (country === 'CM') {
+    if (cleaned.startsWith('237')) return '+' + cleaned;
+    if (cleaned.startsWith('6')) return '+237' + cleaned;
+  }
+  
+  // Default fallback for CM if no country provided
+  if (cleaned.length === 9 && (cleaned.startsWith('6') || cleaned.startsWith('2'))) {
+    return '+237' + cleaned;
+  }
+
+  // Ensure it starts with + if it has a country code but no prefix
+  if (cleaned.length > 5 && !cleaned.startsWith('+')) {
+    cleaned = '+' + cleaned;
+  }
+
+  return cleaned;
+};
+
+/**
  * @route   POST /api/payments/eversend/otp
  * @desc    Request an OTP for an unverified collection flow (sandbox testing)
  * @access  Private
- * @body    { phone }
+ * @body    { phone, country }
  */
 const eversendRequestOTP = async (req, res) => {
   try {
-    const { phone } = req.body;
+    let { phone, country } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
+
+    // Sanitize to E.164 — same logic as eversendInitialize so Eversend accepts the number
+    phone = sanitizePhone(phone, country || 'CM');
+    console.log('[Eversend OTP] Requesting OTP for sanitized phone:', phone);
 
     const result = await eversend.requestOTP(phone);
     // Eversend returns { code, data: { pinId }, success }
@@ -199,7 +234,7 @@ const sanitizePhone = (phone, country = 'CM') => {
  */
 const eversendInitialize = async (req, res) => {
   try {
-    let { amount, currency, phone, country, order_ids, redirect_url: customRedirect, otp } = req.body;
+    let { amount, currency, phone, country, order_ids, redirect_url: customRedirect } = req.body;
 
     // 1. Sanitize phone number early
     phone = sanitizePhone(phone, country);
@@ -216,9 +251,10 @@ const eversendInitialize = async (req, res) => {
     const redirectUrl = customRedirect || `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=eversend&ref=${transactionRef}`;
 
     // ── SANDBOX SIMULATION MODE ───────────────────────────────────────────────
-    // Set EVERSEND_SANDBOX_MODE=true in .env to bypass the live gateway and test
-    // the full checkout → order settlement flow locally.
-    if (process.env.EVERSEND_SANDBOX_MODE === 'true') {
+    // Check both process.env and config/env (if applicable)
+    const isSandbox = process.env.EVERSEND_SANDBOX_MODE === 'true';
+    
+    if (isSandbox) {
       console.log('[Eversend] SANDBOX MODE — simulating successful collection');
       const sandboxTxId = `SBX-${Date.now()}`;
       
@@ -285,7 +321,6 @@ const eversendInitialize = async (req, res) => {
       email: user.email,
       redirectUrl,
       transactionRef,
-      otp,
     });
 
     // Eversend may return errors in different shapes — normalise
@@ -348,10 +383,13 @@ const eversendInitialize = async (req, res) => {
       userMessage = 'Eversend Collections not authorized for this account. Enable Collections in your Eversend dashboard under API Settings.';
     } else if (evError?.message && typeof evError.message === 'string') {
       userMessage = evError.message;
+    } else if (statusCode === 400 && evError?.message?.includes('OTP')) {
+      // Direct pass-through if OTP is disabled but server returns this error
+      userMessage = 'Verification Required: Please check your account settings or re-enable OTP for this transaction.';
     }
 
     res.status(statusCode < 500 ? statusCode : 500).json({
-      success: false,
+      success: false, 
       message: userMessage,
       detail: evError
     });
@@ -417,6 +455,7 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
       orderForNotify.vendor_id = vendor;
 
       // ── Dispatch notifications in background (Post-Commit handled by app logic or setImmediate)
+      const webUrl = getWebUrl(req);
       setImmediate(async () => {
          try {
            // A. Notify Vendor
@@ -428,7 +467,8 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
                 metadata: { order_id: order._id, link: '/vendor/orders' },
                 sendEmail: true,
                 orderDetails: orderForNotify,
-                role: 'vendor'
+                role: 'vendor',
+                webUrl: webUrl
               });
            }
 
@@ -440,7 +480,8 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
              metadata: { order_id: order._id, link: '/orders' },
              sendEmail: true,
              orderDetails: orderForNotify,
-             role: 'customer'
+             role: 'customer',
+             webUrl: webUrl
            });
 
            // C. Notify Logistics Partner if applicable
@@ -455,7 +496,8 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
                    type: 'system_alert',
                    metadata: { order_id: order._id, link: '/logistics/dashboard' },
                    sendEmail: true,
-                   role: 'logistics'
+                   role: 'logistics',
+                   webUrl: webUrl
                  });
                }
              }

@@ -24,6 +24,7 @@ const qrcode         = require('qrcode');
 const { sendNotification }    = require('../utils/notifier');
 const { sendEmail }           = require('../utils/emailService');
 const { generateInvoice }     = require('../utils/invoiceGenerator');
+const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
 const templates               = require('../utils/emailTemplates');
 
@@ -590,11 +591,24 @@ const createOrdersFromCart = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const cart = await Cart.findOne({ user_id: req.user._id }).populate('items.product').session(session);
-    if (!cart || cart.items.length === 0) throw new Error('Cart is empty.');
+    let itemsForProcessing = [];
+    
+    // Support direct items passing for "Buy Now" (bypasses cart DB)
+    if (req.body.items && Array.isArray(req.body.items)) {
+       // Manual population of product info for each passed item
+       for (const item of req.body.items) {
+          const product = await Product.findById(item.product_id).session(session);
+          if (!product) throw new Error(`Product ${item.product_id} not found.`);
+          itemsForProcessing.push({ ...item, product });
+       }
+    } else {
+       const cart = await Cart.findOne({ user_id: req.user._id }).populate('items.product').session(session);
+       if (!cart || cart.items.length === 0) throw new Error('Cart is empty.');
+       itemsForProcessing = cart.items;
+    }
 
     const itemsByVendor = {};
-    for (const item of cart.items) {
+    for (const item of itemsForProcessing) {
       if (!item.product) continue;
       const vId = item.product.vendor_id.toString();
       if (!itemsByVendor[vId]) itemsByVendor[vId] = [];
@@ -677,12 +691,19 @@ const createOrdersFromCart = async (req, res, next) => {
       }
     }
 
-    cart.items = [];
-    await cart.save({ session });
+    // Only clear the cart if we processed the cart, not a direct "Buy Now" item
+    if (!req.body.items) {
+       const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
+       if (cart) {
+          cart.items = [];
+          await cart.save({ session });
+       }
+    }
     await session.commitTransaction();
     session.endSession();
 
     // Background notifications
+    const webUrl = getWebUrl(req);
     if (payment_method === 'pay_on_delivery') {
       setImmediate(async () => {
         for (const orderId of createdOrderIds) {
@@ -696,16 +717,18 @@ const createOrdersFromCart = async (req, res, next) => {
             type: 'order_status',
             sendEmail: true,
             orderDetails: orderForEmail,
-            emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders/${o._id}`
+            emailLink: `${webUrl}/vendor/orders/${o._id}`,
+            webUrl: webUrl
           });
 
-          const trackingLink = `${process.env.WEB_CLIENT_URL}/orders/${o._id}`;
+          const trackingLink = `${webUrl}/orders/${o._id}`;
           const qrCodeDataUrl = await qrcode.toDataURL(trackingLink);
 
           const customerEmailTemplate = templates.orderPlaced({ 
             order: o, 
             customer: req.user,
-            qrCode: qrCodeDataUrl
+            qrCode: qrCodeDataUrl,
+            webUrl: webUrl
           });
 
           sendNotification(req.app, req.user._id, {
@@ -718,7 +741,8 @@ const createOrdersFromCart = async (req, res, next) => {
             emailTemplate: customerEmailTemplate,
             orderDetails: orderForEmail,
             qrCode: qrCodeDataUrl,
-            role: 'customer'
+            role: 'customer',
+            webUrl: webUrl
           });
 
           // 3. Notify Logistics Partner if segment is assigned
@@ -732,9 +756,10 @@ const createOrdersFromCart = async (req, res, next) => {
                 metadata: { order_id: o._id, link: '/logistics/dashboard' },
                 sendEmail: true,
                 overrideEmail: logisticsComp.contact_email,
-                emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+                emailLink: `${webUrl}/logistics/dashboard`,
                 orderDetails: orderForEmail,
-                role: 'logistics'
+                role: 'logistics',
+                webUrl: webUrl
               });
             }
           }

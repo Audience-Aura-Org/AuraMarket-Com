@@ -33,6 +33,24 @@ const addToCart = async (req, res, next) => {
       });
     }
 
+    // Stock Validation
+    if (product.has_variants && variant) {
+      const targetVariant = product.sku_variants?.find(v => 
+        JSON.stringify(v.combination) === JSON.stringify(variant)
+      );
+      if (!targetVariant || targetVariant.stock < quantity) {
+        return res.status(400).json({
+          success: false,
+          message: targetVariant ? `Insufficient stock for selected variant (Only ${targetVariant.stock} left)` : 'Selected variant not found'
+        });
+      }
+    } else if (!product.has_variants && (product.stock < quantity)) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient stock (Only ${product.stock} left)`
+      });
+    }
+
     // Fast cart update using findOneAndUpdate (atomic operation)
     // First try to find existing cart and update, or create new one
     let cart = await Cart.findOne({ user_id: userId });
@@ -100,7 +118,24 @@ const updateCartQty = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Item not found in cart' });
     }
 
-    item.quantity = Math.max(1, item.quantity + (Number(quantity_delta) || 0));
+    const newQty = Math.max(1, item.quantity + (Number(quantity_delta) || 0));
+    
+    // Check stock for the new quantity
+    const product = await Product.findById(item.product).lean();
+    if (product) {
+      if (product.has_variants && item.variant) {
+        const targetVariant = product.sku_variants?.find(v => 
+          JSON.stringify(v.combination) === JSON.stringify(item.variant)
+        );
+        if (targetVariant && targetVariant.stock < newQty) {
+          return res.status(400).json({ success: false, message: `Only ${targetVariant.stock} items left in stock` });
+        }
+      } else if (!product.has_variants && product.stock < newQty) {
+        return res.status(400).json({ success: false, message: `Only ${product.stock} items left in stock` });
+      }
+    }
+
+    item.quantity = newQty;
     await cart.save();
 
     const populated = await Cart.findById(cart._id).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });

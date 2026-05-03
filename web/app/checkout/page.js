@@ -22,6 +22,10 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order');
+  const productId = searchParams.get('productId');
+  const quantity = parseInt(searchParams.get('quantity') || '1');
+  const variantStr = searchParams.get('variant');
+  const variant = variantStr ? JSON.parse(decodeURIComponent(variantStr)) : null;
   const { user } = useAuthStore();
   
   const [step, setStep] = useState(1);
@@ -54,6 +58,7 @@ function CheckoutContent() {
   const [cartItems, setCartItems] = useState([]);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [createdOrderIds, setCreatedOrderIds] = useState(null);
   const [logisticsFirms, setLogisticsFirms] = useState([]);
   const [logisticsLoading, setLogisticsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -200,6 +205,24 @@ function CheckoutContent() {
           console.error('Order Sync Error:', err);
           toast.error("Failed to sync order node.");
         });
+    } else if (productId) {
+      // Direct product checkout
+      api.get(`/products/${productId}`)
+        .then(res => {
+          if (res.data.success) {
+            const p = res.data.data.product;
+            setCartItems([{
+              product_id: p._id,
+              vendor_id: p.vendor_id?._id || p.vendor_id,
+              vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
+              name: p.name,
+              price: p.price,
+              quantity: quantity,
+              image: p.images?.[0]?.url || p.images?.[0]
+            }]);
+          }
+        })
+        .catch(() => toast.error("Failed to load product for checkout"));
     } else {
       api.get('/cart')
         .then(res => {
@@ -215,11 +238,16 @@ function CheckoutContent() {
              }));
 
              setCartItems(items);
+             
+             // Auto-redirect if cart is empty and not viewing a specific order
+             if (items.length === 0 && !orderId && !productId) {
+               router.push('/overtime');
+             }
           }
         })
         .catch(() => {});
     }
-  }, [orderId]);
+  }, [orderId, productId, quantity, router]);
 
   const handlePlaceOrder = async () => {
     // Compute amounts from the authoritative sources, not stale state
@@ -249,10 +277,10 @@ function CheckoutContent() {
           }
       }
 
-      let finalOrderIds = orderId ? [orderId] : [];
+      let finalOrderIds = orderId ? [orderId] : (createdOrderIds || []);
       
-      if (!orderId) {
-         const splitRes = await api.post('/orders/cart-split', {
+      if (!orderId && finalOrderIds.length === 0) {
+         const orderPayload = {
             shipping_address: {
                street: formData.address,
                city: formData.city,
@@ -265,10 +293,22 @@ function CheckoutContent() {
             shipping_method: 'logistics_partner',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
-         });
+         };
+
+         // If direct checkout, pass the items manually to bypass cart DB
+         if (productId) {
+            orderPayload.items = cartItems.map(it => ({
+               product_id: it.product_id,
+               quantity: it.quantity,
+               variant: variant // Use the extracted variant from searchParams
+            }));
+         }
+
+         const splitRes = await api.post('/orders/cart-split', orderPayload);
 
          if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;
+            setCreatedOrderIds(finalOrderIds); // Cache orders for transaction persistence
          } else {
             throw new Error("Failed to split cart into vendor nodes.");
          }
@@ -287,10 +327,10 @@ function CheckoutContent() {
         const evRes = await api.post('/payments/eversend/initialize', {
            amount: totalAmount,
            currency: formData.eversend.currency,
-           phone: formData.eversend.phone, // Use dedicated collection number
+           phone: formData.eversend.phone || formData.phone, // Use collection number
            country: formData.eversend.country,
            order_ids: finalOrderIds,
-           redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`
+           redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`,
         });
 
         if (!evRes.data.success) {
@@ -321,21 +361,23 @@ function CheckoutContent() {
         }
 
         throw new Error('No transaction reference returned from payment gateway.');
-      }
 
       if (isPayOnDelivery) {
         toast.success("Order placed. Payment will be settled on delivery.");
       } else {
         toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
       }
-      
+      }
+
       // Clear cart immediately across all components
       cartStore.clearCart();
       
       // Show Success State instead of immediate redirect
-      setStep(3); // Success step
-      
+      toast.success('Order successfully executed!');
+      setStep(3);
     } catch (err) {
+      console.log('[Checkout Error Interceptor]', err.response?.status, err.response?.data);
+      
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       toast.error(msg);
@@ -656,20 +698,29 @@ function CheckoutContent() {
                               </div>
                            )}
                         </div>
-
-                        <button 
-                         onClick={() => setStep(2)}
-                         disabled={!formData.name || !formData.address || !formData.email || !formData.phone || !formData.logistics_company_id}
-                         className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20"
-                        >
-                          Review Matrix & Finalize
-                        </button>
                      </div>
+
+                     <button 
+                        onClick={handlePlaceOrder}
+                        disabled={loading}
+                        className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-3"
+                      >
+                        {loading ? (
+                          <>
+                            <div className="size-4 border-2 border-[var(--bg-primary)] border-t-transparent rounded-full animate-spin" />
+                            PROCESSING...
+                          </>
+                        ) : (
+                          <>
+                            SECURE CHECKOUT
+                            <ArrowRight className="size-4" />
+                          </>
+                        )}
+                      </button>
                   </div>
                 </section>
               )}
-
-              {step === 2 && (
+              {step === 999 && (
                 <section className="animate-in fade-in zoom-in-95 duration-700">
                    <div className="space-y-12">
                       <div className="flex items-center gap-6">
@@ -792,14 +843,30 @@ function CheckoutContent() {
                    </div>
                 </div>
 
-                {step === 2 && (
-                 <button 
-                  onClick={handlePlaceOrder}
-                  disabled={loading}
-                  className="w-full h-20 mt-10 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group"
-                 >
-                   {loading ? <Loader2 className="size-6 animate-spin" /> : <>Secure Checkout <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" /></>}
-                 </button>
+                {step === 999 && (
+                 <div className="space-y-6">
+
+
+
+
+                   <button 
+                    onClick={handlePlaceOrder}
+                    disabled={loading}
+                    className="w-full h-20 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {loading ? (
+                       <span className="flex items-center gap-3">
+                         <Loader2 className="size-5 animate-spin" /> 
+                         Processing Transaction...
+                       </span>
+                     ) : (
+                       <>
+                         Secure Checkout 
+                         <ArrowRight className="size-6 group-hover:translate-x-2 transition-all" />
+                       </>
+                     )}
+                   </button>
+                 </div>
                )}
 
                {step === 3 && (

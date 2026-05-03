@@ -82,11 +82,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     }
 
     // Direct Buy Now logic
-    cartStore.addItem(product, 1);
-    api.post('/cart', { product_id: productId, quantity: 1 })
-      .then(() => {
-        window.location.href = '/checkout';
-      });
+    window.location.href = `/checkout?productId=${productId}&quantity=1`;
   };
 
   const handleVariantConfirm = async (variantOrProduct) => {
@@ -99,13 +95,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     };
 
     if (modalActionType === 'buy') {
-      cartStore.addItem(enriched, 1);
-      await api.post('/cart', { 
-        product_id: productId, 
-        quantity: 1, 
-        variant: variantOrProduct.combination 
-      });
-      window.location.href = '/checkout';
+      window.location.href = `/checkout?productId=${productId}&quantity=1&variant=${encodeURIComponent(JSON.stringify(variantOrProduct.combination))}`;
     } else {
       setAddingToCart(true);
       cartStore.addItem(enriched, 1);
@@ -211,12 +201,22 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             </div>
 
             <div className="flex items-center gap-3 mt-auto">
-              <button onClick={handleBuyNow} className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black tracking-widest rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95">BUY NOW</button>
+              <button 
+                onClick={handleBuyNow} 
+                disabled={!product.has_variants && product.stock <= 0}
+                className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black tracking-widest rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {(!product.has_variants && product.stock <= 0) ? 'OUT OF STOCK' : 'BUY NOW'}
+              </button>
               <div className="flex items-center gap-2">
                 <button onClick={handleChat} className="size-9 rounded-2xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                   <MessageSquare className="size-4.5" />
                 </button>
-                <button onClick={handleAddToCart} disabled={addingToCart} className="size-9 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm">
+                <button 
+                  onClick={handleAddToCart} 
+                  disabled={addingToCart || (!product.has_variants && product.stock <= 0)} 
+                  className="size-9 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                >
                   <Plus className={`size-4.5 ${addingToCart ? 'animate-spin' : ''}`} />
                 </button>
               </div>
@@ -225,6 +225,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         </div>
       );
     }
+
+    const inStock = product.has_variants ? true : (product.stock > 0);
 
     return (
       <div 
@@ -237,7 +239,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             trackAction({ product_id: productId, action_type: 'view', category, vendor_id });
           }
         }}
-        className="group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer"
+        className={`group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer ${!inStock ? 'grayscale-[0.5]' : ''}`}
       >
         <div className="p-2 sm:p-2.5 md:p-3 flex items-center justify-between gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
            <Link href={`/stores/${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
@@ -259,6 +261,11 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           <Link href={`/products/${productId}`} className="block h-full w-full" onClick={e => e.stopPropagation()}>
             <BlurUpImage src={mainImage} alt={name} className="w-full h-full" imgClassName="transition-transform duration-1000 group-hover:scale-110" />
           </Link>
+          {!inStock && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+              <span className="px-4 py-2 bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-xl">Out of Stock</span>
+            </div>
+          )}
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>
             <Heart className={`size-3.5 ${wishlisted ? 'fill-current' : ''}`} />
           </button>
@@ -281,9 +288,21 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             </div>
           </div>
           <div className="flex items-center gap-1 md:gap-1.5 mt-auto">
-            <button onClick={handleBuyNow} className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95">BUY NOW</button>
+            <button 
+              onClick={handleBuyNow} 
+              disabled={!inStock}
+              className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {inStock ? 'BUY NOW' : 'SOLD OUT'}
+            </button>
             <button onClick={handleChat} className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"><MessageSquare className="size-4 md:size-4.5" /></button>
-            <button onClick={handleAddToCart} disabled={addingToCart} className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"><Plus className={`size-4 md:size-5 ${addingToCart ? 'animate-spin' : ''}`} /></button>
+            <button 
+              onClick={handleAddToCart} 
+              disabled={addingToCart || !inStock} 
+              className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Plus className={`size-4 md:size-5 ${addingToCart ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
       </div>

@@ -1,2 +1,0 @@
-﻿[dotenv@17.3.1] injecting env (20) from .env -- tip: ΓÜÖ∩╕Å  enable debug logging with { debug: true }
-ROLE_CHECK: zeroxerxes8@gmail.com -> logistics

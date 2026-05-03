@@ -167,7 +167,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-      className="fixed inset-y-0 right-0 z-[450] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden"
+      className="fixed inset-y-0 right-0 z-[600] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden"
     >
       {/* --- Optimized Header --- */}
       <div className="flex items-center gap-3.5 px-4 py-4 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-30">
