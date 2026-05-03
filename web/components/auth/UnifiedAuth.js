@@ -64,6 +64,12 @@ export default function UnifiedAuth() {
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
+    
+    // Force dismiss the mobile keyboard to prevent iOS PWA routing freeze
+    if (typeof document !== 'undefined' && document.activeElement) {
+      document.activeElement.blur();
+    }
+
     setLoading(true);
     setError('');
 

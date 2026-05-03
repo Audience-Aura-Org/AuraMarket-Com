@@ -35,10 +35,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={poppins.variable} data-scroll-behavior="smooth">
       <head>
-        {/* Viewport: interactive-widget=resizes-visual prevents iOS PWA keyboard freeze */}
+        {/* Viewport: Removed interactive-widget=resizes-visual to fix iOS PWA freeze bug */}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
         <meta name="theme-color" content="#0a050a" />
         {/* Dynamic Theme-Aware Favicons */}
