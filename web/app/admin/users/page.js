@@ -205,27 +205,73 @@ export default function AdminUsersPage() {
         {editingUser && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setEditingUser(null)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-lg font-black uppercase tracking-tight">Node Calibrator</h3>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-md bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
+                    <Activity className="size-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-tight">Node Calibrator</h3>
+                    <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Surgical Identity Override</p>
+                  </div>
+                </div>
                 <button onClick={() => setEditingUser(null)} className="p-2 rounded-full hover:bg-[var(--bg-secondary)] transition-all"><X className="size-4 opacity-40" /></button>
               </div>
+
               <form onSubmit={handleEditSubmit} className="space-y-4">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Alias</p>
-                  <input type="text" value={editForm.name} onChange={e=>setEditForm(f=>({...f,name:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Alias</p>
+                    <input type="text" value={editForm.name} onChange={e=>setEditForm(f=>({...f,name:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="Name" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Matrix Role</p>
+                    <select value={editForm.role} onChange={e=>setEditForm(f=>({...f,role:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer">
+                      <option value="customer">Customer</option>
+                      <option value="vendor">Vendor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Matrix Role</p>
-                  <select value={editForm.role} onChange={e=>setEditForm(f=>({...f,role:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none appearance-none">
-                    <option value="customer">Customer</option>
-                    <option value="vendor">Vendor</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                  <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Identity Email</p>
+                  <input type="email" value={editForm.email} onChange={e=>setEditForm(f=>({...f,email:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="email@example.com" />
                 </div>
-                <button type="submit" disabled={submitting} className="w-full h-12 bg-[var(--accent)] text-white rounded-xl font-black text-[10px] uppercase tracking-widest mt-4 shadow-lg shadow-[var(--accent)]/20">
-                  {submitting ? 'Calibrating...' : 'Update Node'}
-                </button>
+
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Signal Phone</p>
+                  <input type="tel" value={editForm.phone} onChange={e=>setEditForm(f=>({...f,phone:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="+237..." />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Node Status</p>
+                    <select value={editForm.verification_status} onChange={e=>setEditForm(f=>({...f,verification_status:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer">
+                      <option value="unverified">Unverified</option>
+                      <option value="verified">Verified</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Cipher Override</p>
+                    <input type="password" value={editForm.password} onChange={e=>setEditForm(f=>({...f,password:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="••••••••" />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button type="submit" disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
+                    {submitting ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="size-4 animate-spin" />
+                        <span>Recalibrating...</span>
+                      </div>
+                    ) : (
+                      'Update Identity Node'
+                    )}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>

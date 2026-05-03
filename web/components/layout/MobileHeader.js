@@ -81,7 +81,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         {/* User Profile / Logo */}
         <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden flex items-center justify-center shrink-0">
           {user?.branding?.logo || user?.avatar ? (
-            <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt="" />
+            <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt="" />
           ) : (
             <User className="size-4 opacity-40 text-[var(--text-secondary)]" />
           )}
