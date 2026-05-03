@@ -346,24 +346,24 @@ export default function DiscoveryHub() {
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const TABS = isCustomer ? [
-    { id: 'discover', label: "Shop", href: "/discovery?tab=discover", icon: Compass },
-    { id: 'vendors', label: "Vendors", href: "/discovery?tab=vendors", icon: Store },
-    { id: 'status', label: "Stories", href: "/discovery?tab=status", icon: Activity },
+    { id: 'discover', label: "Shop", icon: Compass },
+    { id: 'vendors', label: "Vendors", icon: Store },
+    { id: 'status', label: "Stories", icon: Activity },
     { id: 'overtime', label: "Overtime", href: "/overtime", icon: House },
-    { id: 'profile', label: "Profile", href: "/profile", icon: User }
+    { id: 'profile', label: "Profile", icon: User }
   ] : [
     { id: 'dashboard', label: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
-    { id: 'discover', label: "Shop", href: "/discovery?tab=discover", icon: Compass },
-    { id: 'status', label: "Aura Story", href: "/discovery?tab=status", icon: Activity },
+    { id: 'discover', label: "Shop", icon: Compass },
+    { id: 'status', label: "Aura Story", icon: Activity },
     { id: 'overtime', label: "Overtime", href: "/overtime", icon: House },
-    { id: 'profile', label: "Profile", href: "/profile", icon: User }
+    { id: 'profile', label: "Profile", icon: User }
   ];
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
-      if (tab && ['home', 'status', 'discover', 'overtime', 'profile'].includes(tab)) {
+      if (tab && ['dashboard', 'vendors', 'status', 'discover', 'overtime', 'profile'].includes(tab)) {
         setActiveTab(tab);
       }
     }
@@ -415,7 +415,14 @@ export default function DiscoveryHub() {
       router.push(tab.href);
       return;
     }
+    
+    // Internal switch for instant feel
     setActiveTab(id);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location);
+      url.searchParams.set('tab', id);
+      window.history.pushState({}, '', url);
+    }
   };
 
   return (
@@ -423,7 +430,7 @@ export default function DiscoveryHub() {
       <AuraAssistant user={user} />
       
       <main className="flex-1 relative">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {activeTab === 'vendors' && (
             <motion.div 
               key="vendors"
