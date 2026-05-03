@@ -108,9 +108,9 @@ export default function TopNav() {
         
         {/* Logo Section */}
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
-          <Link href="/" className="flex items-center gap-2 md:gap-3 group">
+          <Link href={user ? "/discovery?tab=discover" : "/"} className="flex items-center gap-2 md:gap-3 group">
             <img
-              src="/icon-512.png"
+              src="/aura-round-icon.png"
               alt="Aura Market"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
@@ -211,8 +211,8 @@ export default function TopNav() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
-              placeholder="Search discovery network..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-3.5 pl-6 pr-14 text-sm text-[var(--text-primary)] font-bold focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all shadow-inner"
+              placeholder="Search products, vendors, and management..."
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-3.5 pl-6 pr-14 text-sm text-[var(--text-primary)] font-bold focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all shadow-inner placeholder:opacity-30"
             />
             <button 
               onClick={() => { trackSearch(search); router.push(`/shop?q=${search}`); setIsSearchOpen(false); }} 

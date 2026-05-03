@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Heavy sidebar & overlay — deferred until after hydration
 const CartSidebar = dynamic(() => import('@/components/CartSidebar'), { ssr: false });
@@ -53,7 +54,18 @@ export default function Providers({ children }) {
 
           <div className="flex w-full items-stretch flex-1 relative">
             <main className="flex-1 flex flex-col min-h-screen min-w-0">
-              {children}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="flex-1 flex flex-col"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
               {!isDashboardRoute && !isAuthRoute && <Footer />}
             </main>
             {/* Cart sidebar — only on storefront routes */}

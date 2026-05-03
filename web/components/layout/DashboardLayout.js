@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import RoleSidebar from './RoleSidebar';
 import MobileHeader from './MobileHeader';
 import Footer from './Footer';
+import Breadcrumbs from './Breadcrumbs';
+import QuickActionsFAB from './QuickActionsFAB';
 
 export default function DashboardLayout({ children, role, hideSidebar = false, hideFooter = false }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -44,11 +46,13 @@ export default function DashboardLayout({ children, role, hideSidebar = false, h
         )}
         
         <main className="flex-1 relative z-10 w-full pb-24 lg:pb-8">
+          {!hideSidebar && <Breadcrumbs role={role} />}
           {children}
         </main>
 
         {!hideSidebar && !hideFooter && <Footer />}
       </div>
+      {!hideSidebar && <QuickActionsFAB role={role} />}
     </div>
   );
 }

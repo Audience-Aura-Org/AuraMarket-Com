@@ -5,7 +5,7 @@
  */
 
 const WEB_URL = process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app/';
-const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/logo-white.png';
+const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/aura-round-icon.png';
 const SUPPORT_EMAIL = process.env.EMAIL_USER || 'info@audienceaura.org';
 
 // App brand colors
@@ -39,9 +39,8 @@ const wrap = (title, heading, body) => `
     .header::before { content: ''; position: absolute; top: -30%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
     .header::after { content: ''; position: absolute; bottom: -20%; left: -5%; width: 150px; height: 150px; background: rgba(255,255,255,0.08); border-radius: 50%; }
     .header-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 12px; }
-    .header-logo { height: 36px; }
-    .header-title { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin: 0; font-family: 'Poppins', sans-serif; }
-    .header-subtitle { display: none; }
+    .header-logo { height: 48px; width: 48px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); object-fit: cover; }
+    .header-title { color: #ffffff; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; margin: 0; font-family: 'Poppins', sans-serif; }
     
     .content { padding: 40px 32px; }
     .content h2 { font-size: 24px; color: ${COLORS.textPrimary}; margin-bottom: 20px; font-weight: 800; letter-spacing: -0.5px; font-family: 'Poppins', sans-serif; }
@@ -95,9 +94,8 @@ const wrap = (title, heading, body) => `
     <div class="email-container">
       <div class="header">
         <div class="header-content">
-          <img src="${LOGO_URL}" alt="Aura Market" class="header-logo" onerror="this.style.display='none'" />
+          <img src="${LOGO_URL}" alt="Aura" class="header-logo" />
           <h1 class="header-title">Aura Market</h1>
-          <p class="header-subtitle">Premium Commerce Platform</p>
         </div>
       </div>
       <div class="content">
@@ -120,25 +118,22 @@ const welcomeEmail = ({ user, webUrl }) => {
   const subject = '🎉 Welcome to Aura Market';
   const body = `
     <p>Hi <strong>${user.name || 'there'}</strong>,</p>
-    <p>Welcome to Aura Market! Your account has been successfully created and you're ready to start shopping or selling on our platform.</p>
+    <p>Welcome to Aura Market! Your account is active and ready for use.</p>
     
     <div class="card">
       <div class="card-row">
-        <span class="card-label">Account Email</span>
+        <span class="card-label">Email</span>
         <span class="card-value">${user.email}</span>
       </div>
-      <div class="card-divider"></div>
       <div class="card-row">
-        <span class="card-label">Account Type</span>
+        <span class="card-label">Type</span>
         <span class="card-value" style="text-transform: capitalize;">${user.role || 'Customer'}</span>
       </div>
     </div>
     
-    ${user.role === 'vendor' ? `<p><strong>Ready to start selling?</strong> Complete your store setup to begin listing products and reaching customers worldwide.</p><a href="${baseUrl}/vendor/dashboard" class="btn">Complete Setup</a>` : `<p><strong>Ready to shop?</strong> Explore our curated collection of premium products from verified vendors.</p><a href="${baseUrl}/discovery" class="btn">Start Shopping</a>`}
-    
-    <p style="margin-top: 24px; font-size: 13px; color: #888888;">If you didn't create this account, please ignore this email.</p>
+    ${user.role === 'vendor' ? `<a href="${baseUrl}/vendor/dashboard" class="btn">Go to Dashboard</a>` : `<a href="${baseUrl}/discovery" class="btn">Start Shopping</a>`}
   `;
-  const html = wrap(subject, '✨ Welcome to Aura Market', body);
+  const html = wrap(subject, 'Welcome to Aura', body);
   return { subject, html, text: `Welcome to Aura Market, ${user.name}!` };
 };
 
@@ -148,17 +143,13 @@ const passwordReset = ({ user, resetLink, webUrl }) => {
   const subject = '🔐 Reset Your Password';
   const body = `
     <p>Hi <strong>${user.name || 'there'}</strong>,</p>
-    <p>We received a request to reset your password. Click the button below to set a new password. This link expires in 1 hour.</p>
-    
-    <div class="highlight">
-      <p><strong>If you didn't request this,</strong> your account may be at risk. Please contact support immediately.</p>
-    </div>
+    <p>Tap below to reset your password. This link expires in 1 hour.</p>
     
     <a href="${resetLink}" class="btn">Reset Password</a>
     
-    <p style="font-size: 13px; color: #888888; margin-top: 20px;">Or copy and paste this link:<br/><code style="word-break: break-all; color: #666666;">${resetLink}</code></p>
+    <p style="font-size: 11px; color: #888888; margin-top: 20px;">If you didn't request this, please ignore this email.</p>
   `;
-  const html = wrap(subject, 'Password Reset Request', body);
+  const html = wrap(subject, 'Reset Your Password', body);
   return { subject, html, text: `Reset your password: ${resetLink}` };
 };
 
@@ -223,38 +214,21 @@ const orderPlaced = ({ order, customer, qrCode, webUrl }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `✅ Order Confirmed — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'Valued Customer'}</strong>,</p>
-    <p>Thank you for your order! We've received it and it's being prepared for shipment.</p>
+    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
+    <p>Your order has been confirmed and is being prepared.</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Status</span>
-        <span class="card-value">${badge('placed')}</span>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-row">
-        <span class="card-label">Payment Method</span>
-        <span class="card-value">${(order.payment_method || '').replace(/_/g, ' ')}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Order Total</span>
-        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
+      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge('placed')}</span></div>
+      <div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
     </div>
     
     ${qrSection(qrCode)}
-    
     ${formatProducts(order.products || [])}
     
-    <a href="${baseUrl}/orders" class="btn">View Order Details</a>
-    
-    <p style="margin-top: 20px; font-size: 13px; color: #888888;">You'll receive a tracking number once your order ships.</p>
+    <a href="${baseUrl}/orders" class="btn">View Order</a>
   `;
-  const html = wrap(subject, '✅ Order Confirmed', body);
+  const html = wrap(subject, 'Order Confirmed', body);
   return { subject, html, text: `Order #${ref} confirmed. Total: XAF ${(order.total_amount || 0).toLocaleString()}.` };
 };
 
@@ -264,30 +238,17 @@ const paymentConfirmed = ({ order, customer, qrCode, webUrl }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `💳 Payment Confirmed — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'Valued Customer'}</strong>,</p>
-    <p>Your payment has been successfully received. Your order is now being processed and packaged for shipment.</p>
+    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
+    <p>Payment received. Your order is now in processing.</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Amount Paid</span>
-        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-row">
-        <span class="card-label">Status</span>
-        <span class="card-value">${badge('processing')}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
+      <div class="card-row"><span class="card-label">Amount</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
     </div>
     
-    ${qrSection(qrCode)}
-    
-    <a href="${baseUrl}/orders" class="btn">Track Your Order</a>
+    <a href="${baseUrl}/orders" class="btn">Track Order</a>
   `;
-  const html = wrap(subject, '💳 Payment Received', body);
+  const html = wrap(subject, 'Payment Received', body);
   return { subject, html, text: `Payment confirmed for Order #${ref}.` };
 };
 
@@ -312,24 +273,13 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl }) =
     <p>${msg}</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Tracking Code</span>
-        <span class="card-value">${track}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-row">
-        <span class="card-label">Current Status</span>
-        <span class="card-value">${badge(status)}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Track</span><span class="card-value">${track}</span></div>
+      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>
     </div>
     
     <a href="${baseUrl}/orders" class="btn">View Details</a>
   `;
-  const html = wrap(subject, '📦 Shipment Update', body);
+  const html = wrap(subject, 'Shipment Update', body);
   return { subject, html, text: `Shipment ${track} is now ${status}.` };
 };
 
@@ -339,28 +289,16 @@ const refundApproved = ({ order, customer, webUrl }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `✅ Refund Approved — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'Valued Customer'}</strong>,</p>
-    <p>Your refund has been approved and the funds have been returned to your wallet.</p>
+    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
+    <p>Your refund has been processed and returned to your wallet.</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Refunded Amount</span>
-        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-row">
-        <span class="card-label">Status</span>
-        <span class="card-value">${badge('refunded')}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Amount</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
     </div>
     
     <a href="${baseUrl}/wallet" class="btn">View Wallet</a>
   `;
-  const html = wrap(subject, '✅ Refund Processed', body);
+  const html = wrap(subject, 'Refund Processed', body);
   return { subject, html, text: `Refund approved for Order #${ref}.` };
 };
 
@@ -370,28 +308,17 @@ const orderCompleted = ({ order, vendor, webUrl }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `🎉 Order Completed & Payment Released — #${ref}`;
   const body = `
-    <p>Hi <strong>${vendor.store_name || 'Vendor'}</strong>,</p>
-    <p>Delivery has been confirmed! Your payment for this order has been released to your wallet.</p>
+    <p>Hi <strong>${vendor.store_name || 'there'}</strong>,</p>
+    <p>Order completed! Funds have been released to your wallet.</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Amount</span>
-        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-row">
-        <span class="card-label">Status</span>
-        <span class="card-value">${badge('completed')}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
+      <div class="card-row"><span class="card-label">Amount</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
     </div>
     
     <a href="${baseUrl}/vendor/wallet" class="btn">View Wallet</a>
   `;
-  const html = wrap(subject, '🎉 Payment Released', body);
+  const html = wrap(subject, 'Payment Released', body);
   return { subject, html, text: `Order #${ref} completed. Payment released.` };
 };
 
@@ -401,30 +328,18 @@ const newOrderForVendor = ({ order, vendor, webUrl }) => {
   const ref = order._id.toString().slice(-6).toUpperCase();
   const subject = `🛒 New Order Received — #${ref}`;
   const body = `
-    <p>Hi <strong>${vendor.store_name || 'Vendor'}</strong>,</p>
-    <p>A customer just placed a new order from your store! Please review and prepare for shipment.</p>
+    <p>Hi <strong>${vendor.store_name || 'there'}</strong>,</p>
+    <p>You have a new order! Please prepare it for shipment.</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Order Total</span>
-        <span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-row">
-        <span class="card-label">Status</span>
-        <span class="card-value">${badge('placed')}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
+      <div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
     </div>
     
     ${formatProducts(order.products || [])}
-    
-    <a href="${baseUrl}/vendor/orders" class="btn">Manage Orders</a>
+    <a href="${baseUrl}/vendor/orders" class="btn">Manage Order</a>
   `;
-  const html = wrap(subject, '🛒 New Order', body);
+  const html = wrap(subject, 'New Order', body);
   return { subject, html, text: `New order #${ref} received.` };
 };
 
@@ -437,28 +352,17 @@ const shipmentAssigned = ({ shipment, order, logistics, firm, webUrl }) => {
   const firmInfo = logistics || firm || {};
   
   const body = `
-    <p>Hi <strong>${firmInfo.company_name || 'Logistics Partner'}</strong>,</p>
-    <p>A new delivery assignment has been created for your company. Please pick up and deliver according to the details below.</p>
+    <p>Hi <strong>${firmInfo.company_name || 'Partner'}</strong>,</p>
+    <p>A new delivery assignment is ready for pickup.</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Tracking Code</span>
-        <span class="card-value" style="font-family: monospace;">${track}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-divider"></div>
-      <div class="card-row">
-        <span class="card-label">Delivery Fee</span>
-        <span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Track</span><span class="card-value">${track}</span></div>
+      <div class="card-row"><span class="card-label">Fee</span><span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span></div>
     </div>
     
-    <a href="${baseUrl}/logistics/shipments" class="btn">View Shipments</a>
+    <a href="${baseUrl}/logistics/shipments" class="btn">View Assignment</a>
   `;
-  const html = wrap(subject, '📦 New Delivery Assignment', body);
+  const html = wrap(subject, 'New Assignment', body);
   return { subject, html, text: `Shipment ${track} assigned.` };
 };
 
@@ -505,25 +409,18 @@ const orderStatusUpdated = ({ order, customer, qrCode, webUrl }) => {
   const status = order.order_status || 'updated';
   
   const body = `
-    <p>Hi <strong>${customer.name || 'Valued Customer'}</strong>,</p>
-    <p>Your order status has been updated to <strong>${status.replace(/_/g, ' ').toUpperCase()}</strong>.</p>
+    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
+    <p>Order status updated to <strong>${status.replace(/_/g, ' ').toUpperCase()}</strong>.</p>
     
     <div class="card">
-      <div class="card-row">
-        <span class="card-label">Order Reference</span>
-        <span class="card-value">#${ref}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">New Status</span>
-        <span class="card-value">${badge(status)}</span>
-      </div>
+      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
+      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>
     </div>
     
     ${qrSection(qrCode)}
-    
-    <a href="${baseUrl}/orders" class="btn">View Order Details</a>
+    <a href="${baseUrl}/orders" class="btn">View Details</a>
   `;
-  const html = wrap(subject, '📋 Order Update', body);
+  const html = wrap(subject, 'Order Update', body);
   return { subject, html, text: `Order #${ref} status updated to ${status}.` };
 };
 

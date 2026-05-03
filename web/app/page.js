@@ -24,10 +24,16 @@ export default function VendorsDirectoryPage() {
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
 
-  // Authentication check
+  // Authentication & Dynamic Landing Logic
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace('/login');
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.replace('/login');
+      } else {
+        // Logged-in users should land on the Discovery Hub to see active content
+        // instead of a potentially empty followed feed.
+        router.replace('/discovery');
+      }
     }
   }, [isAuthenticated, authLoading, router]);
 

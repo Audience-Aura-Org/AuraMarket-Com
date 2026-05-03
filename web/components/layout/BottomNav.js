@@ -22,7 +22,20 @@ export default function BottomNav() {
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/onboarding');
   const isDiscoveryPage = pathname?.startsWith('/discovery');
   
-  if (!mounted || isChatPage || isAuthPage) return null;
+  // ─── Skeleton State ────────────────────────────────────────────────────────
+  if (!mounted) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-[500] w-full h-[72px] bg-white/[0.02] border-t border-white/[0.08] rounded-t-[32px] sm:hidden animate-pulse">
+        <div className="flex items-center justify-around h-full px-6">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="size-10 rounded-xl bg-white/5" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isChatPage || isAuthPage) return null;
   // If discovery hub uses its own exact replica, we can hide this one to prevent double rendering.
   if (isDiscoveryPage) return null;
 
@@ -31,12 +44,20 @@ export default function BottomNav() {
 
   const menu = [
     { 
-      label: isCustomer ? "Vendor" : "Dashboard", 
-      href: isCustomer ? "/" : dashboardHref, 
-      icon: isCustomer ? Store : LayoutDashboard 
+      label: isCustomer ? "Marketplace" : "Dashboard", 
+      href: isCustomer ? "/discovery?tab=discover" : dashboardHref, 
+      icon: isCustomer ? Compass : LayoutDashboard 
     },
-    { label: "Aura Story", href: "/discovery?tab=status", icon: Activity },
-    { label: "Shop", href: "/discovery?tab=discover", icon: ShoppingBag },
+    { 
+      label: isCustomer ? "Stories" : "Aura Story", 
+      href: "/discovery?tab=status", 
+      icon: isCustomer ? Activity : Activity 
+    },
+    { 
+      label: isCustomer ? "Vendors" : "Shop", 
+      href: isCustomer ? "/discovery?tab=vendors" : "/discovery?tab=discover", 
+      icon: isCustomer ? Store : ShoppingBag 
+    },
     { label: "Overtime", href: "/overtime", icon: House },
     { label: "Profile", href: "/profile", icon: User },
   ];
