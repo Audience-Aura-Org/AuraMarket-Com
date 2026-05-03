@@ -5,7 +5,7 @@ import {
   Compass, User, Store,
   Search, X, Home, ChevronRight, ShoppingBag,
   Activity, Circle, LayoutGrid, List, Check,
-  Heart, Package, ShieldCheck
+  Heart, Package, ShieldCheck, LayoutDashboard, House
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -27,14 +27,6 @@ const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'),
 
 // Shared tab data for sub-pages
 const ProfileContent = dynamic(() => import('./HubSubTabs').then(mod => mod.ProfileContent), { ssr: false });
-
-const TABS = [
-  { id: 'home', icon: Store, label: 'Vendor' },
-  { id: 'status', icon: Activity, label: 'Aura Story' },
-  { id: 'discover', icon: ShoppingBag, label: 'Shop' },
-  { id: 'overtime', icon: Home, label: 'Overtime' },
-  { id: 'profile', icon: User, label: 'Profile' },
-];
 
 const PRICE_RANGES = [
   { id: 'under-5000', name: 'Under 5,000 XAF', min: 0, max: 5000 },
@@ -350,6 +342,17 @@ export default function DiscoveryHub() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('status');
 
+  const isCustomer = !user || user.role === 'customer';
+  const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
+
+  const TABS = [
+    { id: 'home', icon: isCustomer ? Store : LayoutDashboard, label: isCustomer ? 'Vendor' : 'Dashboard', href: isCustomer ? '/' : dashboardHref },
+    { id: 'status', icon: Activity, label: 'Aura Story' },
+    { id: 'discover', icon: ShoppingBag, label: 'Shop' },
+    { id: 'overtime', icon: House, label: 'Overtime' },
+    { id: 'profile', icon: User, label: 'Profile' },
+  ];
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -401,12 +404,9 @@ export default function DiscoveryHub() {
   }, [fetchFollowedStatuses]);
 
   const handleTabChange = (id) => {
-    if (id === 'home') {
-      router.push('/');
-      return;
-    }
-    if (id === 'overtime') {
-      router.push('/overtime');
+    const tab = TABS.find(t => t.id === id);
+    if (tab && tab.href) {
+      router.push(tab.href);
       return;
     }
     setActiveTab(id);

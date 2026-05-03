@@ -179,7 +179,10 @@ export default function TopNav() {
           </div>
           
           {user ? (
-            <Link href="/profile" className="shrink-0">
+            <Link 
+              href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'logistics' ? '/logistics/dashboard' : user.role === 'vendor' ? '/vendor/dashboard' : '/profile'} 
+              className="shrink-0"
+            >
                <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all">
                  <div className="size-full bg-[var(--bg-primary)] rounded-full flex items-center justify-center overflow-hidden">
                     {user.branding?.logo || user.avatar ? (

@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
 const dotenv = require('dotenv');
+
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 const path = require('path');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -10,7 +13,10 @@ const User = require('./models/User.model');
 
 async function check() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      family: 4,
+      serverSelectionTimeoutMS: 15000,
+    });
     console.log('Connected');
     
     const now = new Date();

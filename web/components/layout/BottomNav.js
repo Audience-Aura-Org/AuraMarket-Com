@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Compass, ShoppingBag, User, House, Store, Activity
+  Compass, ShoppingBag, User, House, Store, Activity, LayoutDashboard
 } from "lucide-react";
 import { useAuthStore } from '@/hooks/useAuth';
 import { motion } from "framer-motion";
@@ -20,16 +20,21 @@ export default function BottomNav() {
 
   const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages') || pathname?.startsWith('/admin/messages');
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/onboarding');
-  const isRolePage = (pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/logistics')) && pathname !== '/vendor/wallet' && pathname !== '/wallet';
-  // We DO want to show this on discovery page if discovery doesn't have its own, but currently discovery has its own.
   const isDiscoveryPage = pathname?.startsWith('/discovery');
-
-  if (!mounted || isChatPage || isAuthPage || isRolePage) return null;
+  
+  if (!mounted || isChatPage || isAuthPage) return null;
   // If discovery hub uses its own exact replica, we can hide this one to prevent double rendering.
   if (isDiscoveryPage) return null;
 
+  const isCustomer = !user || user.role === 'customer';
+  const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
+
   const menu = [
-    { label: "Vendor", href: "/", icon: Store },
+    { 
+      label: isCustomer ? "Vendor" : "Dashboard", 
+      href: isCustomer ? "/" : dashboardHref, 
+      icon: isCustomer ? Store : LayoutDashboard 
+    },
     { label: "Aura Story", href: "/discovery?tab=status", icon: Activity },
     { label: "Shop", href: "/discovery?tab=discover", icon: ShoppingBag },
     { label: "Overtime", href: "/overtime", icon: House },

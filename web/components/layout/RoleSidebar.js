@@ -9,6 +9,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
 
 const VENDOR_NAV = [
+  { icon: 'home',                     label: 'Marketplace',      href: '/' },
   { icon: 'dashboard',                label: 'Dashboard',        href: '/vendor/dashboard' },
   { icon: 'inventory_2',              label: 'Products',         href: '/vendor/products' },
   { icon: 'auto_awesome',             label: 'Aura Stories',     href: '/vendor/stories' },
@@ -21,6 +22,7 @@ const VENDOR_NAV = [
 ];
 
 const ADMIN_NAV = [
+  { icon: 'home',           label: 'Marketplace',      href: '/' },
   { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
   { icon: 'person',         label: 'Users',            href: '/admin/users' },
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
@@ -51,6 +53,7 @@ const CUSTOMER_NAV = [
 ];
 
 const LOGISTICS_NAV = [
+  { icon: 'home',                label: 'Marketplace',  href: '/' },
   { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
   { icon: 'payments',            label: 'Route Pricing',href: '/logistics/pricing' },

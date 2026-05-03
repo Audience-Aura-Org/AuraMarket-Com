@@ -16,7 +16,7 @@ import socketService from '@/services/socket';
  * ChatSlideOverlay - Global Pop-out Messaging Center
  * High-density WhatsApp-style interface with persistent product context.
  */
-export default function ChatSlideOverlay({ vendorId: initialVendorId, product, initialData, onClose }) {
+export default function ChatSlideOverlay({ vendorId: initialVendorId, product, initialData, onClose, fullPage = false }) {
   const { user } = useAuthStore();
   const { isSystemWide } = useChat();
   const [activePartnerId, setActivePartnerId] = useState(initialVendorId);
@@ -163,11 +163,16 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
 
   return (
     <motion.div
-      initial={{ x: '100%' }}
-      animate={{ x: 0 }}
-      exit={{ x: '100%' }}
+      {...(!fullPage && {
+        initial: { x: '100%' },
+        animate: { x: 0 },
+        exit: { x: '100%' }
+      })}
       transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-      className="fixed inset-y-0 right-0 z-[600] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden"
+      className={fullPage 
+        ? "flex-1 flex flex-col bg-[var(--bg-secondary)] w-full h-full overflow-hidden"
+        : "fixed inset-y-0 right-0 z-[600] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden"
+      }
     >
       {/* --- Optimized Header --- */}
       <div className="flex items-center gap-3.5 px-4 py-4 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] sticky top-0 z-30">

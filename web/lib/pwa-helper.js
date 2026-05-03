@@ -157,14 +157,14 @@ export async function subscribeToPush() {
         console.error('[PWA] Recovery subscription failed:', retryErr.message);
       }
     }
-    const isAuthError = /401|unauthorized|unauthenticated/i.test(
+    const isUnauthorizedError = /401|unauthorized|unauthenticated/i.test(
       err?.response?.status || 
       err?.response?.data?.message || 
       err?.message || 
       ''
     );
 
-    if (isAuthError) {
+    if (isUnauthorizedError) {
       return { success: false, unauthorized: true };
     }
 

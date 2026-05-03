@@ -143,22 +143,25 @@ const sanitizePhone = (phone, country = 'CM') => {
   // If it starts with 00, replace with +
   if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
   
-  // Cameroon (CM) normalization
-  if (country === 'CM') {
-    if (cleaned.startsWith('237')) return '+' + cleaned;
-    if (cleaned.startsWith('6')) return '+237' + cleaned;
+  // Handle local numbers by prepending country codes if missing
+  if (!cleaned.startsWith('+')) {
+    const prefixes = {
+      'CM': '237',
+      'KE': '254',
+      'UG': '256',
+      'RW': '250',
+      'GH': '233',
+      'NG': '234',
+      'CI': '225'
+    };
+    const prefix = prefixes[country] || '237';
+    
+    // If user provided a local number (e.g. starting with 0), strip it
+    if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
+    
+    cleaned = `+${prefix}${cleaned}`;
   }
   
-  // Default fallback for CM if no country provided
-  if (cleaned.length === 9 && (cleaned.startsWith('6') || cleaned.startsWith('2'))) {
-    return '+237' + cleaned;
-  }
-
-  // Ensure it starts with + if it has a country code but no prefix
-  if (cleaned.length > 5 && !cleaned.startsWith('+')) {
-    cleaned = '+' + cleaned;
-  }
-
   return cleaned;
 };
 
@@ -189,41 +192,6 @@ const eversendRequestOTP = async (req, res) => {
       detail: errorData 
     });
   }
-};
-
-/**
- * Utility: Sanitize phone number to E.164 format for Eversend
- */
-const sanitizePhone = (phone, country = 'CM') => {
-  if (!phone) return phone;
-  // Remove all non-numeric characters except +
-  let cleaned = phone.replace(/[^\d+]/g, '');
-  
-  // If it starts with 00, replace with +
-  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
-  
-  // Handle local numbers by prepending country codes if missing
-  if (!cleaned.startsWith('+')) {
-    const prefixes = {
-      'CM': '237',
-      'KE': '254',
-      'UG': '256',
-      'RW': '250',
-      'GH': '233',
-      'NG': '234',
-      'CI': '225'
-    };
-    const prefix = prefixes[country];
-    if (prefix) {
-      // If user provided a local number (e.g. starting with 0 or 6/7/8/9), normalize it
-      if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
-      cleaned = `+${prefix}${cleaned}`;
-    } else {
-      cleaned = '+' + cleaned;
-    }
-  }
-  
-  return cleaned;
 };
 
 /**

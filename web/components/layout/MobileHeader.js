@@ -66,26 +66,29 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         {/* Messages */}
         {user && (
           <Link
-            href="/messages"
+            href="/chat"
             className="relative p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:text-[var(--accent)] transition-all active:scale-95"
           >
             <MessageCircle className="size-5" />
-            {unreadMessages > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
-                {unreadMessages > 99 ? '99+' : unreadMessages}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </Link>
         )}
 
         {/* User Profile / Logo */}
-        <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden flex items-center justify-center shrink-0">
+        <Link 
+          href={user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : user?.role === 'vendor' ? '/vendor/dashboard' : '/profile'} 
+          className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+        >
           {user?.branding?.logo || user?.avatar ? (
             <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt="" />
           ) : (
             <User className="size-4 opacity-40 text-[var(--text-secondary)]" />
           )}
-        </div>
+        </Link>
       </div>
       </div>{/* end h-14 row */}
     </header>
