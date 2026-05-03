@@ -55,7 +55,7 @@ export default function BottomNav() {
     },
     { 
       label: isCustomer ? "Vendors" : "Shop", 
-      href: isCustomer ? "/discovery?tab=vendors" : "/discovery?tab=discover", 
+      href: isCustomer ? "/" : "/discovery?tab=discover", 
       icon: isCustomer ? Store : ShoppingBag 
     },
     { label: "Overtime", href: "/overtime", icon: House },

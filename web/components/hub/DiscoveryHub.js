@@ -346,9 +346,9 @@ export default function DiscoveryHub() {
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const TABS = [
-    { id: 'home', icon: isCustomer ? Store : LayoutDashboard, label: isCustomer ? 'Vendor' : 'Dashboard', href: isCustomer ? '/' : dashboardHref },
-    { id: 'status', icon: Activity, label: 'Aura Story' },
-    { id: 'discover', icon: ShoppingBag, label: 'Shop' },
+    { id: 'discover', icon: isCustomer ? Compass : LayoutDashboard, label: isCustomer ? 'Marketplace' : 'Dashboard', href: isCustomer ? '/discovery?tab=discover' : dashboardHref },
+    { id: 'status', icon: Activity, label: isCustomer ? 'Stories' : 'Aura Story' },
+    { id: 'home', icon: isCustomer ? Store : ShoppingBag, label: isCustomer ? 'Vendors' : 'Shop', href: isCustomer ? '/' : '/discovery?tab=discover' },
     { id: 'overtime', icon: House, label: 'Overtime' },
     { id: 'profile', icon: User, label: 'Profile' },
   ];
