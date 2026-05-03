@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import ChatSlideOverlay from '@/components/hub/ChatSlideOverlay';
 
-export default function ChatPage() {
+function ChatContent() {
   const { user, loading: authLoading } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const vendorId = searchParams.get('vendorId');
-  const productId = searchParams.get('productId');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -30,5 +29,13 @@ export default function ChatPage() {
         onClose={() => router.push('/')}
       />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-full bg-[var(--bg-secondary)] animate-pulse" />}>
+      <ChatContent />
+    </Suspense>
   );
 }
