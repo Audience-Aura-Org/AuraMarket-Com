@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wallet, CheckCircle2, XCircle, Clock, AlertCircle, Loader2,
-  RefreshCw, Search, User, ChevronRight, ShieldCheck, Lock,
+  RefreshCw, Search, User, Users, ChevronRight, ShieldCheck, Lock,
   Zap, RotateCcw, Copy, Phone, Building2, Tag, Globe
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
