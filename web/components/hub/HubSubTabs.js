@@ -108,7 +108,7 @@ export const OrdersContent = memo(({ user }) => {
                    <Package className="size-5 text-[var(--accent)] opacity-40 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold  text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
+                  <p className="text-[11px] font-bold  text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
                   <p className="text-[9px] text-[var(--text-secondary)] opacity-50 tracking-tight">{new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -116,7 +116,7 @@ export const OrdersContent = memo(({ user }) => {
                 <div className="text-right">
                   <p className="text-xs font-bold text-[var(--text-primary)]">{order.total_amount?.toLocaleString() || order.total?.toLocaleString()} XAF</p>
                   <div className="flex items-center gap-1.5 justify-end mt-1">
-                    <span className="text-[8px] font-bold tracking-tight text-emerald-400">{order.order_status || order.status}</span>
+                    <span className="text-[11px] font-bold tracking-tight text-emerald-400">{order.order_status || order.status}</span>
                     <CheckCircle2 className="size-3 text-emerald-400" />
                   </div>
                 </div>
@@ -127,7 +127,7 @@ export const OrdersContent = memo(({ user }) => {
         ) : (
           <div className="flex flex-col items-center justify-center p-12 text-[var(--text-secondary)]">
             <ShoppingBag className="size-10 mb-4 opacity-10" />
-            <p className="text-[10px] font-bold tracking-tight opacity-40">No Order Records</p>
+            <p className="text-[11px] font-bold tracking-tight opacity-40">No Order Records</p>
           </div>
         )}
       </div>
@@ -162,7 +162,7 @@ export const WishlistContent = memo(({ user }) => {
           ) : (
              <div className="flex flex-col items-center justify-center p-12">
                 <Heart className="size-10 text-[var(--accent)] opacity-10 mb-4" />
-                <p className="text-[10px] font-bold tracking-tight opacity-40 text-[var(--text-secondary)]">Zero Savings Found</p>
+                <p className="text-[11px] font-bold tracking-tight opacity-40 text-[var(--text-secondary)]">Zero Savings Found</p>
              </div>
           )}
        </div>

@@ -134,7 +134,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             </div>
             <div className="flex flex-col min-w-0">
                <h1 className="text-[12px] font-bold tracking-tighter text-[var(--text-primary)] leading-none  whitespace-nowrap overflow-hidden text-ellipsis">Aura <span className="text-[var(--accent)]">Market</span></h1>
-               <p className="text-[10px] font-bold tracking-tight opacity-80 mt-1 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: config.accent }}>{config.label}</p>
+               <p className="text-[11px] font-bold tracking-tight opacity-80 mt-1 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors shrink-0">
@@ -153,7 +153,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Signals</span>
             {unreadCount > 0 && (
               <span
-                className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[9px] font-bold rounded-full flex items-center justify-center animate-pulse"
+                className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[11px] font-bold rounded-full flex items-center justify-center animate-pulse"
                 style={{ background: config.accent }}
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
@@ -213,7 +213,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                 </span>
                 {badge > 0 && (
                   <span
-                    className="min-w-[20px] h-5 px-1.5 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
+                    className="min-w-[20px] h-5 px-1.5 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
                     style={{ background: item.badge === 'messages' ? '#ef4444' : config.accent }}
                   >
                     {badge > 99 ? '99+' : badge}
@@ -224,7 +224,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
           })}
 
           <div className="pt-8 pb-2 px-4">
-            <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">Preferences</p>
+            <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">Preferences</p>
           </div>
 
           <Link href="/settings" className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-[var(--accent)]/5 transition-all group border-l-[3px] border-transparent">

@@ -113,14 +113,14 @@ export default function AdminReviewsPage() {
            <div className="py-32 flex flex-col items-center justify-center text-center opacity-40">
               <AlertTriangle className="size-16 mb-4 text-[var(--text-secondary)]" />
               <h3 className="text-xl font-bold  tracking-tighter">No Feedback Records</h3>
-              <p className="text-[10px] font-bold  tracking-[0.2em] mt-2">The platform has not registered any reviews matching these criteria.</p>
+              <p className="text-[11px] font-bold  tracking-[0.2em] mt-2">The platform has not registered any reviews matching these criteria.</p>
            </div>
          ) : (
            <div className="glass-panel rounded-[24px] lg:rounded-[32px] border border-[var(--glass-border)] overflow-hidden bg-[var(--bg-primary)]/40 shadow-sm">
               <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                       <tr className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/60 text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">
+                       <tr className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/60 text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">
                           <th className="px-8 py-5">Customer</th>
                           <th className="px-8 py-5">Product</th>
                           <th className="px-8 py-5">Rating</th>

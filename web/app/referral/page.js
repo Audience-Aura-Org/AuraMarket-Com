@@ -46,7 +46,7 @@ export default function RewardsPage() {
           {/* Balance Card */}
           <section className="relative overflow-hidden p-12 rounded-[48px] bg-[var(--bg-primary)]/80 border border-[var(--accent)]/20 shadow-2xl glass-panel">
             <div className="relative z-10">
-              <p className="text-[10px] font-bold text-[var(--accent)] tracking-[0.4em] mb-4  opacity-80">Accumulated Points</p>
+              <p className="text-[11px] font-bold text-[var(--accent)] tracking-[0.4em] mb-4  opacity-80">Accumulated Points</p>
               <div className="flex items-baseline gap-3">
                 <h2 className="text-7xl font-bold text-[var(--text-primary)] tracking-tighter font-mono">2,840</h2>
                 <span className="text-3xl font-bold text-[var(--accent)]">AUR</span>
@@ -55,7 +55,7 @@ export default function RewardsPage() {
                 <div className="flex-1 h-3 bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--glass-border)] shadow-inner">
                   <div className="h-full bg-[var(--accent)] w-[70%] rounded-full shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] animate-pulse" />
                 </div>
-                <span className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] whitespace-nowrap ">70% to Gold Tier</span>
+                <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] whitespace-nowrap ">70% to Gold Tier</span>
               </div>
             </div>
             <div className="absolute -right-16 -top-16 size-64 bg-[var(--accent)]/10 blur-[80px] rounded-full" />
@@ -65,7 +65,7 @@ export default function RewardsPage() {
           <section>
             <div className="flex items-center justify-between mb-8 px-2">
               <h3 className="text-2xl font-bold tracking-tight ">Redeem Nexus</h3>
-              <button className="text-[10px] font-bold tracking-[0.2em] text-[var(--accent)] hover:underline transition-all ">View Matrix</button>
+              <button className="text-[11px] font-bold tracking-[0.2em] text-[var(--accent)] hover:underline transition-all ">View Matrix</button>
             </div>
             <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
               <RewardCard icon={Tag} title="15% Off Total" points="500" action="Redeem" color="bg-[var(--accent)] text-white" />
@@ -134,9 +134,9 @@ function RewardCard({ icon: Icon, title, points, action, color, disabled }) {
       </div>
       <div>
         <p className="text-xl font-bold text-[var(--text-primary)] tracking-tight">{title}</p>
-        <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] mt-2  opacity-60">{points} AUR Points</p>
+        <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] mt-2  opacity-60">{points} AUR Points</p>
       </div>
-      <button disabled={disabled} className={`w-full py-4 text-[10px] font-bold tracking-tight rounded-2xl transition-all  mt-2 shadow-sm ${color} ${!disabled && 'hover:scale-95'}`}>
+      <button disabled={disabled} className={`w-full py-4 text-[11px] font-bold tracking-tight rounded-2xl transition-all  mt-2 shadow-sm ${color} ${!disabled && 'hover:scale-95'}`}>
         {action}
       </button>
     </div>
@@ -153,7 +153,7 @@ function ActivityRow({ icon: Icon, title, subtitle, amount, type }) {
         </div>
         <div>
           <p className="text-xl font-bold tracking-tight text-[var(--text-primary)] ">{title}</p>
-          <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] mt-1.5  opacity-30">{subtitle}</p>
+          <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] mt-1.5  opacity-30">{subtitle}</p>
         </div>
       </div>
       <span className={`text-xl font-bold font-mono ${isPos ? 'text-emerald-600' : 'text-rose-600'}`}>

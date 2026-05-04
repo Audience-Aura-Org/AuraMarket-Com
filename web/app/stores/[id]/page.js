@@ -165,7 +165,7 @@ export default function StorePage() {
                     <span className="text-[11px] font-bold text-[var(--text-primary)]">
                       {vendor?.rating ? vendor.rating.toFixed(1) : '5.0'}
                     </span>
-                    <span className="text-[8px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
+                    <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
                   </div>
 
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
@@ -173,12 +173,12 @@ export default function StorePage() {
                     <span className="text-[11px] font-bold text-[var(--text-primary)]">
                       {vendor?.follower_count ? (vendor.follower_count >= 1000 ? (vendor.follower_count / 1000).toFixed(1) + 'k' : vendor.follower_count) : '0'}
                     </span>
-                    <span className="text-[8px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
+                    <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
                   </div>
 
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                     <ShieldCheck className="size-3.5 text-emerald-600" />
-                    <span className="text-[9px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
+                    <span className="text-[11px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
                   </div>
                 </div>
               </div>
@@ -267,7 +267,7 @@ export default function StorePage() {
                    <button 
                     disabled={page === 1}
                     onClick={() => handlePageChange(page - 1)}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                    >
                      Previous
                    </button>
@@ -279,7 +279,7 @@ export default function StorePage() {
                             <button 
                                key={p}
                                onClick={() => handlePageChange(p)}
-                               className={`size-10 rounded-xl flex items-center justify-center text-[10px] font-bold transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
+                               className={`size-10 rounded-xl flex items-center justify-center text-[11px] font-bold transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
                             >
                                {p}
                             </button>
@@ -289,7 +289,7 @@ export default function StorePage() {
                    <button 
                     disabled={products.length < 20}
                     onClick={() => handlePageChange(page + 1)}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                    >
                      Next
                    </button>

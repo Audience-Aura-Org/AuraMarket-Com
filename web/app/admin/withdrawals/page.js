@@ -40,7 +40,7 @@ function KPICard({ title, value, icon: Icon, color, sub }) {
         </div>
       </div>
       <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[10px] font-bold tracking-[0.2em]  opacity-50">{title}</p>
+        <p className="text-[var(--text-secondary)] text-[11px] font-bold tracking-[0.2em]  opacity-50">{title}</p>
         <h3 className="text-fluid-base lg:text-fluid-xl font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
         {sub && <p className="text-[11px] text-[var(--text-secondary)] font-bold mt-1 opacity-50  tracking-tighter truncate">{sub}</p>}
       </div>
@@ -101,14 +101,14 @@ function RequestDetails({ request, onClose, onAction, processing, onMessage }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-              <p className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight mb-2 opacity-40">Payout Method</p>
+              <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-2 opacity-40">Payout Method</p>
               <p className="text-sm font-bold text-[var(--text-primary)]">{METHOD_LABEL[method]}</p>
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] mt-1 opacity-60">{details.account_number}</p>
+              <p className="text-[11px] font-bold text-[var(--text-secondary)] mt-1 opacity-60">{details.account_number}</p>
             </div>
             <div className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-              <p className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight mb-2 opacity-40">Account Name</p>
+              <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-2 opacity-40">Account Name</p>
               <p className="text-sm font-bold text-[var(--text-primary)] truncate">{details.holder_name || '—'}</p>
-              <p className="text-[10px] font-bold text-emerald-500 mt-1 flex items-center gap-1"><ShieldCheck className="size-3" /> VERIFIED</p>
+              <p className="text-[11px] font-bold text-emerald-500 mt-1 flex items-center gap-1"><ShieldCheck className="size-3" /> VERIFIED</p>
             </div>
           </div>
 
@@ -255,7 +255,7 @@ export default function AdminWithdrawalsPage() {
               <div className="flex p-1 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl w-full md:w-auto">
                 {['pending', 'completed', 'rejected', 'all'].map(f => (
                   <button key={f} onClick={() => setFilter(f)}
-                    className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-[10px] font-bold tracking-tight transition-all ${filter === f ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}>
+                    className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${filter === f ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}>
                     {f}
                   </button>
                 ))}
@@ -283,11 +283,11 @@ export default function AdminWithdrawalsPage() {
                    </div>
                    <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-[var(--text-primary)] truncate ">{w.user_id?.name || 'Unknown Vendor'}</p>
-                      <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">{w.reference} • {new Date(w.createdAt).toLocaleDateString()}</p>
+                      <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">{w.reference} • {new Date(w.createdAt).toLocaleDateString()}</p>
                    </div>
                    <div className="text-right">
                       <p className="text-base font-bold text-[var(--text-primary)]">{fmt(w.amount)}</p>
-                      <p className="text-[8px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Review Request</p>
+                      <p className="text-[11px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Review Request</p>
                    </div>
                 </div>
               ))}

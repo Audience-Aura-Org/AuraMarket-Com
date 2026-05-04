@@ -78,7 +78,7 @@ export default function BrandingSuitePage() {
                     <div className="space-y-4">
                         <div className="flex items-center gap-3 px-4 py-1.5 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-full w-fit shadow-sm">
                             <Palette className="size-3.5 text-[var(--accent)]" />
-                            <span className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">Creative Ops</span>
+                            <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">Creative Ops</span>
                         </div>
                         <h1 className="text-5xl md:text-7xl font-bold tracking-tighter  leading-none">
                             Branding <span className="text-[var(--accent)]">Suite</span>
@@ -88,7 +88,7 @@ export default function BrandingSuitePage() {
 
                     <div className="hidden lg:flex items-center gap-4 px-6 py-3 glass-panel rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
                          <div className="size-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                         <span className="text-[10px] font-bold tracking-tight">Network Node Sync: Active</span>
+                         <span className="text-[11px] font-bold tracking-tight">Network Node Sync: Active</span>
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@ export default function BrandingSuitePage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-bold tracking-tight">Identity Node</h3>
-                                    <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">Primary Brand Icon</p>
+                                    <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">Primary Brand Icon</p>
                                 </div>
                             </div>
 
@@ -118,7 +118,7 @@ export default function BrandingSuitePage() {
                                     ) : (
                                         <div className="text-center space-y-2 opacity-20 group-hover:opacity-40 transition-opacity">
                                             <CloudUpload className="size-10 mx-auto" />
-                                            <span className="text-[8px] font-bold tracking-tight block">Upload Preview</span>
+                                            <span className="text-[11px] font-bold tracking-tight block">Upload Preview</span>
                                         </div>
                                     )}
                                 </div>
@@ -133,7 +133,7 @@ export default function BrandingSuitePage() {
                                         <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} className="hidden" />
                                         <div className="w-full h-14 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center gap-3 cursor-pointer hover:bg-[var(--accent)] hover:text-white transition-all group/btn shadow-sm">
                                             <Camera className="size-4 group-hover/btn:scale-110 transition-transform" />
-                                            <span className="text-[10px] font-bold tracking-tight">Deploy Icon</span>
+                                            <span className="text-[11px] font-bold tracking-tight">Deploy Icon</span>
                                         </div>
                                     </label>
                                 </div>
@@ -163,7 +163,7 @@ export default function BrandingSuitePage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-bold tracking-tight">Environmental Node</h3>
-                                    <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">Primary Presence Banner</p>
+                                    <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">Primary Presence Banner</p>
                                 </div>
                             </div>
 
@@ -178,21 +178,21 @@ export default function BrandingSuitePage() {
                                     ) : (
                                         <div className="size-full flex flex-col items-center justify-center gap-3 opacity-20 group-hover:opacity-40 transition-opacity">
                                             <Sparkles className="size-10 text-indigo-400" />
-                                            <span className="text-[9px] font-bold tracking-tight">Matrix Preview</span>
+                                            <span className="text-[11px] font-bold tracking-tight">Matrix Preview</span>
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="space-y-6 mt-auto">
                                     <div className="p-6 rounded-3xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-center">
-                                         <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 italic leading-relaxed">"The environment node sets the emotional frequency of your storefront. We recommend rich textures or clean product photography."</p>
+                                         <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60 italic leading-relaxed">"The environment node sets the emotional frequency of your storefront. We recommend rich textures or clean product photography."</p>
                                     </div>
                                     
                                     <label className="block w-full">
                                         <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} className="hidden" />
                                         <div className="w-full h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-600 flex items-center justify-center gap-3 cursor-pointer hover:bg-indigo-600 hover:text-white transition-all group/env shadow-sm">
                                             <CloudUpload className="size-5 group-hover/env:-translate-y-1 transition-transform" />
-                                            <span className="text-[10px] font-bold  tracking-[0.2em]">Map Environment</span>
+                                            <span className="text-[11px] font-bold  tracking-[0.2em]">Map Environment</span>
                                         </div>
                                     </label>
                                 </div>
@@ -204,9 +204,9 @@ export default function BrandingSuitePage() {
                 {/* Fixed Action Footer */}
                 <div className="mt-20 flex flex-col sm:flex-row items-center justify-end gap-6 pt-10 border-t border-[var(--glass-border)]/50">
                     <div className="flex items-center gap-3 opacity-40">
-                         <span className="text-[8px] font-bold tracking-tight">Ready for Deployment</span>
+                         <span className="text-[11px] font-bold tracking-tight">Ready for Deployment</span>
                          <div className="size-1 rounded-full bg-[var(--text-secondary)]" />
-                         <span className="text-[8px] font-bold tracking-tight">Encryption Level 4</span>
+                         <span className="text-[11px] font-bold tracking-tight">Encryption Level 4</span>
                     </div>
                     <button 
                         onClick={handleSave}

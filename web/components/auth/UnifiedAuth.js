@@ -219,13 +219,13 @@ export default function UnifiedAuth() {
                 <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">
                   {isNewUser ? 'Create your account' : 'Enter your password'}
                 </h2>
-                <p className="text-[8px] font-bold text-[var(--accent)] truncate max-w-full opacity-80">
+                <p className="text-[11px] font-bold text-[var(--accent)] truncate max-w-full opacity-80">
                   {formData.email}
                 </p>
               </div>
 
               {error && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold text-center">
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-bold text-center">
                   {error}
                 </div>
               )}
@@ -290,7 +290,7 @@ export default function UnifiedAuth() {
                            {r === 'customer' && <ShoppingBag className="w-4 h-4" />}
                            {r === 'vendor' && <Store className="w-4 h-4" />}
                            {r === 'logistics' && <Truck className="w-4 h-4" />}
-                           <span className="text-[8px] font-bold  tracking-tighter">{r}</span>
+                           <span className="text-[11px] font-bold  tracking-tighter">{r}</span>
                          </button>
                        ))}
                     </div>
@@ -336,7 +336,7 @@ export default function UnifiedAuth() {
         </AnimatePresence>
       </div>
 
-      <p className="mt-8 text-center text-[10px] font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
+      <p className="mt-8 text-center text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
       </p>
     </div>
   );

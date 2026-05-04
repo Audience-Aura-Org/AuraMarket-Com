@@ -150,7 +150,7 @@ export default function SocketProvider({ children }) {
               <MessageCircle className="size-5 text-[var(--accent)]" />
             </div>
             <div className="flex-1 min-w-0 pt-0.5">
-              <p className="text-[9px] font-bold tracking-tight text-[var(--accent)] mb-1 leading-none">New Message</p>
+              <p className="text-[11px] font-bold tracking-tight text-[var(--accent)] mb-1 leading-none">New Message</p>
               <p className="text-sm font-bold text-[var(--text-primary)] truncate leading-tight">{chatToast.sender}</p>
               <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5 leading-snug">{chatToast.text}</p>
             </div>
@@ -189,7 +189,7 @@ export default function SocketProvider({ children }) {
                   <Icon className="size-5" style={{ color }} />
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <p className="text-[9px] font-bold tracking-tight mb-1 leading-none" style={{ color }}>
+                  <p className="text-[11px] font-bold tracking-tight mb-1 leading-none" style={{ color }}>
                     Aura Market
                   </p>
                   <p className="text-sm font-bold text-[var(--text-primary)] leading-tight truncate">{notifToast.title}</p>
@@ -221,7 +221,7 @@ export default function SocketProvider({ children }) {
                {cartToast.image ? <img src={cartToast.image} className="size-full object-cover" /> : <div className="size-full flex items-center justify-center font-bold">📦</div>}
             </div>
             <div className="flex-1 min-w-0">
-               <p className="text-[10px] font-bold tracking-tight text-white/70 mb-0.5 leading-none">Added to Stack</p>
+               <p className="text-[11px] font-bold tracking-tight text-white/70 mb-0.5 leading-none">Added to Stack</p>
                <p className="text-sm font-bold truncate leading-tight">{cartToast.name}</p>
             </div>
           </div>

@@ -42,10 +42,10 @@ function CompactStat({ title, value, sub, icon: Icon, color }) {
         <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
           <Icon className="size-4" />
         </div>
-        <p className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50">{title}</p>
+        <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50">{title}</p>
       </div>
       <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tighter">{value}</h3>
-      {sub && <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 tracking-tight">{sub}</p>}
+      {sub && <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 tracking-tight">{sub}</p>}
     </div>
   );
 }
@@ -144,13 +144,13 @@ export default function WalletPage() {
               </div>
               <div>
                 <h1 className="text-lg font-bold  tracking-tighter">Financial Nexus</h1>
-                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Liquid Capital Hub</p>
+                <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Liquid Capital Hub</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                   <ShieldCheck className="size-3 text-emerald-500" />
-                  <span className="text-[9px] font-bold text-emerald-500 tracking-tight">Secured</span>
+                  <span className="text-[11px] font-bold text-emerald-500 tracking-tight">Secured</span>
                </div>
                <button onClick={fetchWallet} className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                   <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -184,11 +184,11 @@ export default function WalletPage() {
              <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-[11px] font-bold  tracking-[0.3em] opacity-40">Transaction Matrix</h3>
-                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">Structural Ledger History</p>
+                  <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">Structural Ledger History</p>
                 </div>
                 <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5">
                   {['all', 'in', 'out'].map(t => (
-                    <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-lg text-[9px] font-bold tracking-tight transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                    <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-lg text-[11px] font-bold tracking-tight transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}>
                       {t}
                     </button>
                   ))}
@@ -208,11 +208,11 @@ export default function WalletPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-bold  tracking-tighter truncate">{tx.description || tx.type}</p>
-                        <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                        <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
                         <p className={`text-base font-bold tracking-tighter ${isCredit ? 'text-emerald-500' : 'text-red-500'}`}>{isCredit ? '+' : '-'}{fmt(tx.amount)}</p>
-                        <p className="text-[8px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity tracking-tight flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Record Details</p>
+                        <p className="text-[11px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity tracking-tight flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Record Details</p>
                       </div>
                     </div>
                   );

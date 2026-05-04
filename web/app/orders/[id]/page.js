@@ -161,8 +161,8 @@ export default function OrderDetailPage() {
     <div className="min-h-screen bg-[var(--bg-secondary)] flex flex-col items-center justify-center p-6 text-center">
        <AlertTriangle className="size-16 text-red-500 mb-6 opacity-20" />
        <h1 className="text-3xl font-bold  tracking-tighter">Manifest Lost</h1>
-       <p className="text-[10px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 mt-4 font-mono">Order ID: {id}</p>
-       <Link href="/discovery" className="mt-8 px-10 py-4 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-bold tracking-tight shadow-xl shadow-[var(--accent)]/30 transition-all hover:scale-105 active:scale-95">Return to Network</Link>
+       <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 mt-4 font-mono">Order ID: {id}</p>
+       <Link href="/discovery" className="mt-8 px-10 py-4 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-bold tracking-tight shadow-xl shadow-[var(--accent)]/30 transition-all hover:scale-105 active:scale-95">Return to Network</Link>
     </div>
   );
 
@@ -191,7 +191,7 @@ export default function OrderDetailPage() {
                <ChevronLeft className="size-6" />
              </div>
              <div>
-               <p className="text-[9px] font-bold tracking-tight  opacity-40">Back to Sequence</p>
+               <p className="text-[11px] font-bold tracking-tight  opacity-40">Back to Sequence</p>
                <h4 className="text-xs font-bold tracking-tight">Identity Profile</h4>
              </div>
            </Link>
@@ -201,13 +201,13 @@ export default function OrderDetailPage() {
                 <Box className="size-5 text-[var(--accent)]" />
               </div>
               <div className="space-y-0.5">
-                <p className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Secure Manifest ID</p>
+                <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Secure Manifest ID</p>
                 <h3 className="text-[11px] font-bold tracking-tight font-mono">#{order._id.toUpperCase()}</h3>
               </div>
               <div className="h-8 w-px bg-[var(--glass-border)]" />
               <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                <span className="text-[9px] font-bold tracking-tight  text-emerald-500">Live Sync</span>
+                <span className="text-[11px] font-bold tracking-tight  text-emerald-500">Live Sync</span>
               </div>
            </div>
         </div>
@@ -229,7 +229,7 @@ export default function OrderDetailPage() {
 
                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
                     <div className="space-y-6">
-                       <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em]  border shadow-sm ${getStatusColor(order.order_status)}`}>
+                       <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[11px] font-bold tracking-[0.2em]  border shadow-sm ${getStatusColor(order.order_status)}`}>
                          Protocol: {order.order_status}
                        </span>
                        <div className="space-y-2">
@@ -280,7 +280,7 @@ export default function OrderDetailPage() {
                        <ShoppingBag className="size-5 text-[var(--accent)]" />
                        <h3 className="text-xs font-bold  tracking-[0.3em]">Asset Manifest</h3>
                     </div>
-                    <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight font-mono">LTS-SYNC v4.2</span>
+                    <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight font-mono">LTS-SYNC v4.2</span>
                  </div>
 
                  <div className="grid grid-cols-1 gap-4 md:gap-6">
@@ -304,13 +304,13 @@ export default function OrderDetailPage() {
                          <div className="flex-1 text-center md:text-left min-w-0 space-y-2">
                             <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-2 md:gap-4 mb-2">
                                <Link href={`/products/${item.product_id?._id || '#'}`} className="inline-block group/link">
-                                  <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight opacity-60 flex items-center justify-center md:justify-start gap-2">
+                                  <p className="text-[11px] font-bold text-[var(--accent)] tracking-tight opacity-60 flex items-center justify-center md:justify-start gap-2">
                                      <CornerDownRight className="size-3" />
                                      Item Registry
                                   </p>
                                </Link>
                                {(item.product_id?.vendor_id || order.vendor_id) && (
-                                 <Link href={`/stores/${item.product_id?.vendor_id?._id || item.product_id?.vendor_id || order.vendor_id?._id || ''}`} className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] w-fit mx-auto md:mx-0">
+                                 <Link href={`/stores/${item.product_id?.vendor_id?._id || item.product_id?.vendor_id || order.vendor_id?._id || ''}`} className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] w-fit mx-auto md:mx-0">
                                    <Store className="size-3" />
                                    {item.product_id?.vendor_id?.branding?.store_name || item.product_id?.vendor_id?.name || order.vendor_id?.store_name || order.vendor_id?.user_id?.name || 'Authorized Merchant'}
                                  </Link>
@@ -325,7 +325,7 @@ export default function OrderDetailPage() {
                             {item.variant && (
                               <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-2">
                                 {Object.entries(item.variant).map(([k, v]) => (
-                                  <span key={k} className="text-[9px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg  border border-[var(--accent)]/10">
+                                  <span key={k} className="text-[11px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg  border border-[var(--accent)]/10">
                                     {k}: {v}
                                   </span>
                                 ))}
@@ -333,12 +333,12 @@ export default function OrderDetailPage() {
                             )}
                             <div className="flex items-center justify-center md:justify-start gap-4">
                                <div className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                                  <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight">
+                                  <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight">
                                      Qty: <span className="text-[var(--text-primary)] font-bold">{item.quantity}</span>
                                   </p>
                                </div>
                                <div className="px-3 py-1 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/10">
-                                  <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight">
+                                  <p className="text-[11px] font-bold text-[var(--accent)] tracking-tight">
                                      Price: <span className="font-bold">{(item.price || 0).toLocaleString()} ₳</span>
                                   </p>
                                </div>
@@ -349,13 +349,13 @@ export default function OrderDetailPage() {
                             {order.order_status === 'completed' && (
                                <button 
                                  onClick={() => { setReviewData({ ...reviewData, product_id: item.product_id?._id }); setReviewModal(true); }}
-                                 className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2"
+                                 className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2"
                                >
                                   <Star className="size-3" />
                                   Broadcast Feedback
                                </button>
                             )}
-                            <button className="px-6 py-3 rounded-2xl bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] text-[9px] font-bold tracking-tight hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2">
+                            <button className="px-6 py-3 rounded-2xl bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] text-[11px] font-bold tracking-tight hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2">
                                <ShieldCheck className="size-3 opacity-40" />
                                Verify Quality
                             </button>
@@ -384,22 +384,22 @@ export default function OrderDetailPage() {
                                        <h4 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
                                           {ship.shipping_carrier || 'Independent Courier'}
                                        </h4>
-                                       <p className="text-[10px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 mt-1">Carrier Identification</p>
+                                       <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 mt-1">Carrier Identification</p>
                                     </div>
                                     <div className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center gap-3">
                                        <Info className="size-3.5 text-[var(--accent)]" />
-                                       <code className="text-[10px] font-bold tracking-tight">{ship.tracking_number}</code>
+                                       <code className="text-[11px] font-bold tracking-tight">{ship.tracking_number}</code>
                                     </div>
                                  </div>
 
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                       <p className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50 mb-2">Transit Method</p>
-                                       <p className="text-[10px] font-bold tracking-tight">{ship.shipping_method || 'Ground Standard'}</p>
+                                       <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50 mb-2">Transit Method</p>
+                                       <p className="text-[11px] font-bold tracking-tight">{ship.shipping_method || 'Ground Standard'}</p>
                                     </div>
                                     <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                                       <p className="text-[8px] font-bold tracking-tight text-emerald-500 opacity-50 mb-2">Node Dispatch</p>
-                                       <p className="text-[10px] font-bold tracking-tight font-mono">{ship.shipped_at ? new Date(ship.shipped_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Awaiting Sync'}</p>
+                                       <p className="text-[11px] font-bold tracking-tight text-emerald-500 opacity-50 mb-2">Node Dispatch</p>
+                                       <p className="text-[11px] font-bold tracking-tight font-mono">{ship.shipped_at ? new Date(ship.shipped_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Awaiting Sync'}</p>
                                     </div>
                                  </div>
                               </div>
@@ -431,11 +431,11 @@ export default function OrderDetailPage() {
                           Ledger Summary
                        </h3>
                        <div className="space-y-4">
-                          <div className="flex justify-between text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">
+                          <div className="flex justify-between text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">
                              <span>Asset Subtotal</span>
                              <span className="text-[var(--text-primary)]">{(order.total_amount - (order.shipping_fee || 0)).toLocaleString()} ₳</span>
                           </div>
-                          <div className="flex justify-between text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">
+                          <div className="flex justify-between text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">
                              <span>Logistics Protocol</span>
                              <span className="text-[var(--text-primary)]">{(order.shipping_fee || 0).toLocaleString()} ₳</span>
                           </div>
@@ -444,7 +444,7 @@ export default function OrderDetailPage() {
 
                     <div className="space-y-4">
                        <div className="flex justify-between items-end">
-                          <p className="text-[10px] font-bold tracking-tight text-[var(--accent)]">Final Settlement</p>
+                          <p className="text-[11px] font-bold tracking-tight text-[var(--accent)]">Final Settlement</p>
                           <h2 className="text-3xl font-bold tracking-tighter ">{order.total_amount.toLocaleString()} ₳</h2>
                        </div>
                        <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] space-y-3">
@@ -452,7 +452,7 @@ export default function OrderDetailPage() {
                              <div className="size-6 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
                                 <Wallet className="size-3 text-[var(--accent)]" />
                              </div>
-                             <p className="text-[9px] font-bold tracking-tight">Escrow Protection Active</p>
+                             <p className="text-[11px] font-bold tracking-tight">Escrow Protection Active</p>
                           </div>
                           <div className="h-1.5 w-full bg-[var(--bg-primary)] rounded-full overflow-hidden">
                              <div className="h-full bg-[var(--accent)] rounded-full w-[100%] animate-pulse shadow-[0_0_10px_var(--accent)]" />
@@ -470,12 +470,12 @@ export default function OrderDetailPage() {
                     <div className="space-y-6">
                        <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                           <h4 className="text-[11px] font-bold tracking-tight mb-1">{order.shipping_address?.full_name || user?.name}</h4>
-                          <p className="text-[10px] font-bold text-[var(--text-secondary)] leading-relaxed">{order.shipping_address?.address || 'Quartier specified during onboarding'}</p>
-                          <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight mt-2">{order.shipping_address?.city}, {order.shipping_address?.quartier}</p>
+                          <p className="text-[11px] font-bold text-[var(--text-secondary)] leading-relaxed">{order.shipping_address?.address || 'Quartier specified during onboarding'}</p>
+                          <p className="text-[11px] font-bold text-[var(--accent)] tracking-tight mt-2">{order.shipping_address?.city}, {order.shipping_address?.quartier}</p>
                        </div>
                        <div className="flex items-center gap-3 px-2">
                           <Phone className="size-3.5 text-[var(--text-secondary)] opacity-40" />
-                          <span className="text-[10px] font-bold font-mono tracking-tight">{order.shipping_address?.phone || user?.phone || 'No contact provided'}</span>
+                          <span className="text-[11px] font-bold font-mono tracking-tight">{order.shipping_address?.phone || user?.phone || 'No contact provided'}</span>
                        </div>
                     </div>
                  </div>
@@ -487,7 +487,7 @@ export default function OrderDetailPage() {
                        className="p-5 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 hover:bg-[var(--accent)] hover:text-white transition-all group"
                      >
                         <Receipt className="size-5 opacity-40 group-hover:opacity-100" />
-                        <span className="text-[8px] font-bold tracking-tight">Invoice PDF</span>
+                        <span className="text-[11px] font-bold tracking-tight">Invoice PDF</span>
                      </button>
                     <button 
                       onClick={() => {
@@ -505,7 +505,7 @@ export default function OrderDetailPage() {
                       className="p-5 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 hover:bg-[var(--accent)] hover:text-white transition-all group"
                     >
                        <Share2 className="size-5 opacity-40 group-hover:opacity-100" />
-                       <span className="text-[8px] font-bold tracking-tight">Transmit</span>
+                       <span className="text-[11px] font-bold tracking-tight">Transmit</span>
                     </button>
                  </div>
               </div>
@@ -535,12 +535,12 @@ export default function OrderDetailPage() {
                <div className="relative space-y-8">
                   <div className="space-y-2">
                     <h2 className="text-3xl font-bold  tracking-tighter">Initiate Intervention</h2>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Escrow funds will be frozen during adjudication.</p>
+                    <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Escrow funds will be frozen during adjudication.</p>
                   </div>
 
                   <form onSubmit={handleRaiseDispute} className="space-y-6">
                     <div className="space-y-3">
-                       <label className="text-[10px] font-bold tracking-tight  opacity-40 ml-4">Intervention Reason</label>
+                       <label className="text-[11px] font-bold tracking-tight  opacity-40 ml-4">Intervention Reason</label>
                        <select 
                          value={disputeData.reason}
                          onChange={e => setDisputeData({ ...disputeData, reason: e.target.value })}
@@ -554,7 +554,7 @@ export default function OrderDetailPage() {
                     </div>
 
                     <div className="space-y-3">
-                       <label className="text-[10px] font-bold tracking-tight  opacity-40 ml-4">Detailed Manifest</label>
+                       <label className="text-[11px] font-bold tracking-tight  opacity-40 ml-4">Detailed Manifest</label>
                        <textarea 
                          required
                          rows={4}
@@ -568,7 +568,7 @@ export default function OrderDetailPage() {
                     <div className="flex gap-4">
                        <button 
                         type="button" onClick={() => setDisputeModal(false)}
-                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                        >
                          Cancel
                        </button>
@@ -609,12 +609,12 @@ export default function OrderDetailPage() {
                <div className="relative space-y-8">
                   <div className="space-y-2">
                     <h2 className="text-3xl font-bold  tracking-tighter">Broadcast Feedback</h2>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Help calibrate the Aura marketplace node registry.</p>
+                    <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Help calibrate the Aura marketplace node registry.</p>
                   </div>
 
                   <form onSubmit={handleSubmitReview} className="space-y-8">
                     <div className="flex flex-col items-center gap-6 p-8 rounded-[2.5rem] bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-inner">
-                       <span className="text-[9px] font-bold tracking-[0.4em]  text-[var(--accent)]">Protocol Rating</span>
+                       <span className="text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)]">Protocol Rating</span>
                        <div className="flex gap-4">
                           {[1,2,3,4,5].map((num) => (
                             <button 
@@ -629,7 +629,7 @@ export default function OrderDetailPage() {
                     </div>
 
                     <div className="space-y-4">
-                       <label className="text-[10px] font-bold tracking-tight  opacity-40 ml-4">Registry Comment</label>
+                       <label className="text-[11px] font-bold tracking-tight  opacity-40 ml-4">Registry Comment</label>
                        <textarea 
                          required
                          rows={4}
@@ -643,7 +643,7 @@ export default function OrderDetailPage() {
                     <div className="flex gap-4">
                        <button 
                         type="button" onClick={() => setReviewModal(false)}
-                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                        >
                          Discard
                        </button>

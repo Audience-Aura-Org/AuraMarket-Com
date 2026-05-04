@@ -58,7 +58,7 @@ export default function OrderTrackingPage() {
               <div className="flex-1">
                 <div className="flex justify-between items-baseline mb-1">
                   <h4 className={`font-bold  tracking-tight ${i <= activeStep ? 'text-gray-900' : 'text-gray-300'}`}>{s.label}</h4>
-                  <span className="text-[10px] font-bold text-gray-300  tracking-tight">{s.time}</span>
+                  <span className="text-[11px] font-bold text-gray-300  tracking-tight">{s.time}</span>
                 </div>
                 <p className={`text-sm font-medium leading-relaxed ${i <= activeStep ? 'text-gray-500' : 'text-gray-200'}`}>{s.desc}</p>
               </div>
@@ -72,7 +72,7 @@ export default function OrderTrackingPage() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400"><MapPin className="w-6 h-6" /></div>
                 <div>
-                   <p className="text-[10px] font-bold text-gray-300 ">Live Location</p>
+                   <p className="text-[11px] font-bold text-gray-300 ">Live Location</p>
                    <p className="font-bold text-gray-900">Bastos District, YDE</p>
                 </div>
               </div>

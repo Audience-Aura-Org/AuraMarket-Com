@@ -103,7 +103,7 @@ export default function CartPreview() {
 
   return (
     <div className="absolute right-0 top-full mt-4 w-80 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] shadow-2xl p-4 transition-all duration-300 transform-gpu translate-y-2 z-50 md:opacity-0 md:pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:translate-y-0 backdrop-blur-xl">
-      <h4 className="text-[10px] font-bold  tracking-[0.2em] mb-4 text-[var(--text-secondary)]">Cart Preview</h4>
+      <h4 className="text-[11px] font-bold  tracking-[0.2em] mb-4 text-[var(--text-secondary)]">Cart Preview</h4>
       {loading ? (
         <div className="py-8 text-center text-[var(--text-secondary)] font-bold text-xs">Syncing nodes…</div>
       ) : items.length === 0 ? (

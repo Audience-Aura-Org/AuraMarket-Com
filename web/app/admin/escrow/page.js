@@ -99,7 +99,7 @@ export default function AdminEscrow() {
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-lg lg:text-xl font-bold text-[var(--text-primary)] tracking-tight ">Escrow <span className="text-[var(--accent)]">Vault</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <div className="hidden sm:block px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight  shadow-sm">
+          <div className="hidden sm:block px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[11px] font-bold tracking-tight  shadow-sm">
               Monitoring Active
            </div>
         </div>
@@ -118,7 +118,7 @@ export default function AdminEscrow() {
               { label: 'Platform Trust Level', value: 'Immutable', icon: History, color: 'text-amber-500' }
             ].map(s => (
               <div key={s.label} className="glass-panel p-4 lg:p-5 rounded-2xl lg:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:scale-[1.02] transition-all shadow-sm">
-                 <p className="text-[7px] lg:text-[9px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
+                 <p className="text-[7px] lg:text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
                  <h3 className={`text-base lg:text-xl font-bold ${s.color} tracking-tight`}>{s.value}</h3>
               </div>
             ))}
@@ -129,7 +129,7 @@ export default function AdminEscrow() {
             <div className="overflow-x-auto scroll-smooth">
                <table className="w-full text-left min-w-[800px] lg:min-w-0">
                   <thead>
-                     <tr className="text-[8px] lg:text-[10px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                     <tr className="text-[8px] lg:text-[11px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
                         <th className="px-6 lg:px-8 py-4 lg:py-5">Vault Trace</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Counterparties</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Amount (XAF)</th>
@@ -148,7 +148,7 @@ export default function AdminEscrow() {
                                 </div>
                                 <div className="min-w-0">
                                    <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight font-mono">Order #{l.order_id?._id?.slice(-8) || 'LEGACY'}</p>
-                                   <p className="text-[8px] lg:text-[9px] font-bold text-[var(--text-secondary)] opacity-50">ID: {l._id.slice(-12)}</p>
+                                   <p className="text-[8px] lg:text-[11px] font-bold text-[var(--text-secondary)] opacity-50">ID: {l._id.slice(-12)}</p>
                                 </div>
                              </div>
                           </td>
@@ -164,7 +164,7 @@ export default function AdminEscrow() {
                              </p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
-                             <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-bold  tracking-[0.2em] border shrink-0 inline-block transition-all shadow-sm ${
+                             <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[11px] font-bold  tracking-[0.2em] border shrink-0 inline-block transition-all shadow-sm ${
                                 l.status === 'held' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
                                 l.status === 'released' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
                                 'bg-rose-500/10 text-rose-500 border-rose-500/20'
@@ -182,14 +182,14 @@ export default function AdminEscrow() {
                                  <button
                                    onClick={() => handleRelease(l.order_id?._id)}
                                    disabled={loadingAction === l.order_id?._id}
-                                   className={`px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-bold tracking-normal ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                   className={`px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:scale-105 transition-all text-[9px] lg:text-[11px] font-bold tracking-tight ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                  >
                                    Release
                                  </button>
                                  <button
                                    onClick={() => handleRefund(l.order_id?._id)}
                                    disabled={loadingAction === l.order_id?._id}
-                                   className={`px-3 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-bold tracking-normal ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                   className={`px-3 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:scale-105 transition-all text-[9px] lg:text-[11px] font-bold tracking-tight ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                  >
                                    Refund
                                  </button>

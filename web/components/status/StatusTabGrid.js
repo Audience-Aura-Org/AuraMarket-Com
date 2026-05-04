@@ -77,7 +77,7 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
                 </div>
               )}
             </div>
-            <p className="text-[9px] font-bold text-white truncate flex-1">{name}</p>
+            <p className="text-[11px] font-bold text-white truncate flex-1">{name}</p>
             {isNew && (
               <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[7px] font-bold shrink-0">
                 <Sparkles className="size-2" /> New
@@ -87,11 +87,11 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[8px] font-bold text-white/60">
+              <div className="flex items-center gap-1 text-[11px] font-bold text-white/60">
                 <Heart className="size-2 text-red-400 fill-red-400/20" />
                 <span>{status.likes_count || 0}</span>
               </div>
-              <div className="flex items-center gap-1 text-[8px] font-bold text-white/60">
+              <div className="flex items-center gap-1 text-[11px] font-bold text-white/60">
                 <Eye className="size-2 text-blue-400" />
                 <span>{status.views_count || 0}</span>
               </div>
@@ -113,13 +113,13 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
         <div className="absolute top-2.5 left-2.5 z-30">
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
             <Flame className={`size-2.5 ${rank === 1 ? 'text-orange-400' : 'text-white/50'}`} />
-            <span className="text-[8px] font-bold text-white">#{rank}</span>
+            <span className="text-[11px] font-bold text-white">#{rank}</span>
           </div>
         </div>
       )}
       {urgent && (
         <div className="absolute top-2.5 right-2.5 z-30">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[8px] font-bold text-white animate-pulse">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[11px] font-bold text-white animate-pulse">
             <Clock className="size-2.5" /> {Math.floor(expH)}h
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
                 </span>
-                <span className="text-[9px] font-bold text-emerald-400 tracking-normal">Active Now</span>
+                <span className="text-[11px] font-bold text-emerald-400 tracking-normal">Active Now</span>
               </div>
             </div>
 
@@ -249,13 +249,13 @@ export default function StatusTabGrid({ onSelectStatus }) {
           <div className="flex p-1 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)]">
             <button
               onClick={() => setActiveTab('inner')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
             >
               <Users className="size-3" /> Inner Circle
             </button>
             <button
               onClick={() => setActiveTab('pulse')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
             >
               <Globe className="size-3" /> Global Pulse
             </button>
@@ -267,7 +267,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
               <button
                 key={c}
                 onClick={() => setSelectedCategory(c)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full border transition-all text-[10px] font-bold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-md' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full border transition-all text-[11px] font-bold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-md' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
               >
                 {c}
               </button>
@@ -367,7 +367,7 @@ function Empty({ icon, title, desc, action, onAction }) {
       {action && (
         <button
           onClick={onAction}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-bold shadow-lg hover:scale-105 transition-all active:scale-95"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[var(--accent)] text-white text-[11px] font-bold shadow-lg hover:scale-105 transition-all active:scale-95"
         >
           {action}
         </button>

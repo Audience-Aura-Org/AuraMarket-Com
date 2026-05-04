@@ -287,7 +287,7 @@ export default function HubContent() {
                          <Search className="size-3" />
                        </button>
                      </div>
-                     <p className="text-[10px] font-bold  tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
+                     <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
                      {loadingInbox ? (
                         <div className="flex flex-col items-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
                      ) : filteredInbox.length === 0 ? (
@@ -338,7 +338,7 @@ export default function HubContent() {
                         <div className="relative">
                           <button 
                             onClick={() => setIsSortOpen(!isSortOpen)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] font-bold tracking-tight text-[var(--text-primary)] shadow-sm"
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-bold tracking-tight text-[var(--text-primary)] shadow-sm"
                           >
                             <span className="text-[var(--text-secondary)] font-normal opacity-50 ">Sort:</span> 
                             {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
@@ -367,7 +367,7 @@ export default function HubContent() {
                         </div>
                       </div>
                       
-                      <p className="text-[10px] font-bold  tracking-[0.3em] opacity-40 mb-1">
+                      <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40 mb-1">
                         {activeCategoryName === 'All' ? 'Calibrated Discovery' : activeCategoryName}
                       </p>
                       {loadingFeed ? (
@@ -390,7 +390,7 @@ export default function HubContent() {
                             <button
                               onClick={() => setPage(p => p + 1)}
                               disabled={loadingFeed}
-                              className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
+                              className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
                             >
                               Synchronize More
                             </button>
@@ -512,7 +512,7 @@ export default function HubContent() {
                   {/* Messages Section */}
                   <div className="space-y-4">
                      <div className="flex items-center justify-between px-2">
-                        <p className="text-[10px] font-bold  tracking-[0.3em] opacity-40">Operational Dialogues</p>
+                        <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40">Operational Dialogues</p>
                         <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                      </div>
                      <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-2 min-h-[400px] shadow-sm backdrop-blur-xl">
@@ -531,7 +531,7 @@ export default function HubContent() {
                   {/* Followed Section */}
                   <div className="space-y-4">
                      <div className="flex items-center justify-between px-2">
-                        <p className="text-[10px] font-bold  tracking-[0.3em] opacity-40">Followed Vendors</p>
+                        <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40">Followed Vendors</p>
                         <Heart className="size-3.5 text-[var(--accent)] fill-[var(--accent)]" />
                      </div>
                      <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-3 min-h-[400px] shadow-sm backdrop-blur-xl">
@@ -570,7 +570,7 @@ export default function HubContent() {
                   <div className="relative">
                     <button 
                       onClick={() => setIsSortOpen(!isSortOpen)}
-                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] font-bold tracking-tight shadow-sm"
+                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-bold tracking-tight shadow-sm"
                     >
                       <span className="text-[var(--text-secondary)] font-normal opacity-60">Sort:</span> 
                       {SORT_OPTIONS.find(s => s.value === sortBy)?.label}

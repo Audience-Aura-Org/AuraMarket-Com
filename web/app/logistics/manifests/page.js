@@ -85,11 +85,11 @@ export default function LogisticsManifestsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg lg:text-2xl font-bold tracking-tight">Shipment Manifests</h1>
-          <p className="text-[10px] lg:text-xs font-bold tracking-normal opacity-60">
+          <p className="text-[10px] lg:text-xs font-bold tracking-tight opacity-60">
             Assigned tickets for your logistics company
           </p>
         </div>
-        <div className="hidden lg:flex px-4 py-1.5 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 text-[9px] font-bold tracking-tight ">
+        <div className="hidden lg:flex px-4 py-1.5 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 text-[11px] font-bold tracking-tight ">
            {shipments.length} Total Assignments
         </div>
       </div>

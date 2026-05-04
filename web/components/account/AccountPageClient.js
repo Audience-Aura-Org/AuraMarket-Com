@@ -501,7 +501,7 @@ export default function AccountPageClient() {
                           <Mail className="size-4 opacity-40 shrink-0" /> {user?.email}
                         </p>
                         <div className="pt-2">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold tracking-tight  border border-[var(--accent)]/20 shadow-sm">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold tracking-tight  border border-[var(--accent)]/20 shadow-sm">
                             {user?.role || 'User'} Profile
                           </span>
                         </div>
@@ -605,13 +605,13 @@ export default function AccountPageClient() {
                         <div className="flex p-1.5 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] w-fit mb-8">
                           <button
                             onClick={() => setOrderView('purchases')}
-                            className={`px-6 py-2 rounded-xl text-[9px] font-bold tracking-tight transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                            className={`px-6 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
                           >
                             My Purchases
                           </button>
                           <button
                             onClick={() => setOrderView('sales')}
-                            className={`px-6 py-2 rounded-xl text-[9px] font-bold tracking-tight transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                            className={`px-6 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
                           >
                             Store Sales
                           </button>
@@ -625,7 +625,7 @@ export default function AccountPageClient() {
                       ) : orders.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">No {orderView === 'sales' ? 'Sales' : 'Purchase'} Manifest Found</p>
+                          <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">No {orderView === 'sales' ? 'Sales' : 'Purchase'} Manifest Found</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -646,18 +646,18 @@ export default function AccountPageClient() {
                                       {firstItem?.variant && (
                                         <div className="flex flex-wrap gap-1 mb-1">
                                           {Object.entries(firstItem.variant).map(([k, v]) => (
-                                            <span key={k} className="text-[8px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded-md ">
+                                            <span key={k} className="text-[11px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded-md ">
                                               {k}: {v}
                                             </span>
                                           ))}
                                         </div>
                                       )}
-                                      <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
+                                      <p className="text-[9px] md:text-[11px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     <div className="text-right shrink-0">
                                       <p className="text-xs md:text-sm font-bold tracking-tight text-[var(--text-primary)]">{(order.total_amount).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
                                       <div className="mt-1 flex justify-end">
-                                        <span className={`px-3 py-1 rounded-full text-[8px] font-bold tracking-tight  border ${order.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : order.order_status === 'shipped' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-tight  border ${order.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : order.order_status === 'shipped' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                                           {order.order_status || 'Pending'}
                                         </span>
                                       </div>
@@ -700,7 +700,7 @@ export default function AccountPageClient() {
                           </div>
                           <div className="text-left">
                             <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Change Passphrase</p>
-                            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
+                            <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
                           </div>
                         </div>
 
@@ -732,7 +732,7 @@ export default function AccountPageClient() {
                         </div>
 
                         {passphraseStatus && (
-                          <div className="text-[10px] font-bold text-center mt-2 px-4 py-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+                          <div className="text-[11px] font-bold text-center mt-2 px-4 py-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
                             {passphraseStatus}
                           </div>
                         )}
@@ -755,7 +755,7 @@ export default function AccountPageClient() {
                           </div>
                           <div className="text-left">
                             <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Active Device Sessions</p>
-                            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
+                            <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
                           </div>
                         </div>
                         <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
@@ -796,7 +796,7 @@ export default function AccountPageClient() {
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
-                          <h4 className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">Pickup Address Configuration</h4>
+                          <h4 className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">Pickup Address Configuration</h4>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -874,7 +874,7 @@ export default function AccountPageClient() {
                                 <Clock className="size-6 text-amber-500 animate-pulse" />
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold tracking-tight  text-amber-500">Validation in Progress</p>
+                                <p className="text-[11px] font-bold tracking-tight  text-amber-500">Validation in Progress</p>
                                 <p className="text-sm text-amber-500/60 font-medium">Our node controllers are reviewing your credentials.</p>
                               </div>
                             </div>
@@ -890,7 +890,7 @@ export default function AccountPageClient() {
                             />
 
                             <div>
-                              <label className="block text-[10px] font-bold tracking-tight  text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
+                              <label className="block text-[11px] font-bold tracking-tight  text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
                               <select
                                 value={kycData.id_type}
                                 onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
@@ -914,19 +914,19 @@ export default function AccountPageClient() {
                           <div className="space-y-6">
                             <div className="flex items-center gap-4">
                               <Camera className="size-4 text-[var(--accent)]" />
-                              <h4 className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">Biometric Scans</h4>
+                              <h4 className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">Biometric Scans</h4>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div className="space-y-3">
-                                <p className="text-[9px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
+                                <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
                                 <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
                                   {kycData.file_url_front ? (
                                     <img src={kycData.file_url_front} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
                                   ) : (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                                       <Camera className="size-8 text-[var(--glass-border)] group-hover:scale-110 group-hover:text-[var(--accent)] transition-all" />
-                                      <span className="text-[10px] font-bold text-[var(--glass-border)] tracking-normal">Initialize Scan</span>
+                                      <span className="text-[11px] font-bold text-[var(--glass-border)] tracking-normal">Initialize Scan</span>
                                     </div>
                                   )}
                                   <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_front', e.target.files?.[0])} />
@@ -934,14 +934,14 @@ export default function AccountPageClient() {
                               </div>
                               
                               <div className="space-y-3">
-                                <p className="text-[9px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Secondary Face (Back)</p>
+                                <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Secondary Face (Back)</p>
                                 <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
                                   {kycData.file_url_back ? (
                                     <img src={kycData.file_url_back} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
                                   ) : (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                                       <Camera className="size-8 text-[var(--glass-border)] group-hover:scale-110 group-hover:text-[var(--accent)] transition-all" />
-                                      <span className="text-[10px] font-bold text-[var(--glass-border)] tracking-normal">Initialize Scan</span>
+                                      <span className="text-[11px] font-bold text-[var(--glass-border)] tracking-normal">Initialize Scan</span>
                                     </div>
                                   )}
                                   <input type="file" className="hidden" onChange={(e) => handleBrandingFileUpload('kyc_back', e.target.files?.[0])} />
@@ -988,7 +988,7 @@ export default function AccountPageClient() {
                       ) : followedVendors.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">No Followed Vendors</p>
+                          <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">No Followed Vendors</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
@@ -1026,11 +1026,11 @@ export default function AccountPageClient() {
                                     <ShieldCheck className="size-3.5 text-blue-500" />
                                   </div>
                                   
-                                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[8px] font-bold tracking-tight w-fit mx-auto ">
+                                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[11px] font-bold tracking-tight w-fit mx-auto ">
                                     <Star className="size-2.5 fill-current" /> {vendor.vendor_id?.rating || '4.9'}
                                   </div>
 
-                                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60  tracking-tighter">
+                                  <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60  tracking-tighter">
                                     {vendor.vendor_id?.follower_count || 0} Followers
                                   </p>
                                 </div>
@@ -1038,7 +1038,7 @@ export default function AccountPageClient() {
                                 <div className="mt-6 pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                                   <div className="flex flex-col items-start gap-1">
                                     <span className="text-[7px] font-bold text-[var(--text-secondary)]/40 tracking-[0.3em] ">Status</span>
-                                    <span className="text-[9px] font-bold text-emerald-500 flex items-center gap-1 ">
+                                    <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1 ">
                                       <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Active
                                     </span>
                                   </div>
@@ -1075,7 +1075,7 @@ export default function AccountPageClient() {
                       ) : audience.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">No Followers Yet</p>
+                          <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">No Followers Yet</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1087,7 +1087,7 @@ export default function AccountPageClient() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs font-bold tracking-tight truncate text-[var(--text-primary)]">{follower.user_id?.name}</p>
-                                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60  tracking-tighter">Synchronized {new Date(follower.createdAt).toLocaleDateString()}</p>
+                                  <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60  tracking-tighter">Synchronized {new Date(follower.createdAt).toLocaleDateString()}</p>
                                 </div>
                               </div>
                             </div>

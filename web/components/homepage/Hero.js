@@ -122,7 +122,7 @@ export default function Hero({ data, config }) {
                   />
                 ))}
                </div>
-               <span className="text-[10px] font-bold text-white/40 tracking-tight ml-2 hidden md:inline">
+               <span className="text-[11px] font-bold text-white/40 tracking-tight ml-2 hidden md:inline">
                   {String(current + 1).padStart(2, '0')} / {String(data.length).padStart(2, '0')}
                </span>
             </div>

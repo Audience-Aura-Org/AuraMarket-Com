@@ -342,7 +342,7 @@ export default function AccountPageClient() {
               </button>
               <div className="flex flex-col">
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight  leading-none">Account</h1>
-                <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--accent)]  mt-1 opacity-60">Control Panel</span>
+                <span className="text-[11px] font-bold tracking-[0.2em] text-[var(--accent)]  mt-1 opacity-60">Control Panel</span>
               </div>
             </div>
 
@@ -363,8 +363,8 @@ export default function AccountPageClient() {
                   )}
                </div>
                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold tracking-tight  truncate">{user?.name}</p>
-                  <p className="text-[8px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 truncate">{user?.role}</p>
+                  <p className="text-[11px] font-bold tracking-tight  truncate">{user?.name}</p>
+                  <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 truncate">{user?.role}</p>
                </div>
             </div>
 
@@ -427,7 +427,7 @@ export default function AccountPageClient() {
             >
               <div className="flex items-center gap-4">
                 <Power className="size-5" />
-                <span className="text-[10px] font-bold tracking-tight ">Terminate Session</span>
+                <span className="text-[11px] font-bold tracking-tight ">Terminate Session</span>
               </div>
               <ChevronRight className="size-4 opacity-40 group-hover:translate-x-1 transition-all" />
             </button>
@@ -478,10 +478,10 @@ export default function AccountPageClient() {
                          <Mail className="size-4 opacity-40" /> {user?.email}
                        </p>
                        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                         <span className="px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-bold tracking-tight  border border-[var(--accent)]/20 shadow-sm">
+                         <span className="px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold tracking-tight  border border-[var(--accent)]/20 shadow-sm">
                            {user?.role === 'vendor' ? 'Nexus Vendor' : user?.role === 'admin' ? 'Root Administrator' : user?.role === 'logistics' ? 'Logistics Node' : 'Node User'}
                          </span>
-                         <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-bold tracking-tight  border border-emerald-500/20 shadow-sm">
+                         <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[11px] font-bold tracking-tight  border border-emerald-500/20 shadow-sm">
                            Active Session
                          </span>
                        </div>
@@ -490,14 +490,14 @@ export default function AccountPageClient() {
                     {/* Branding Suite Integrated */}
                     <div className="border-t border-[var(--glass-border)]/50 pt-10 space-y-8 relative z-10">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-[10px] font-bold tracking-[0.3em]  text-[var(--text-secondary)]">Platform Branding</h4>
-                        {brandingStatus && <span className="text-[9px] font-bold text-[var(--accent)]  animate-pulse">{brandingStatus}</span>}
+                        <h4 className="text-[11px] font-bold tracking-[0.3em]  text-[var(--text-secondary)]">Platform Branding</h4>
+                        {brandingStatus && <span className="text-[11px] font-bold text-[var(--accent)]  animate-pulse">{brandingStatus}</span>}
                       </div>
 
                       <div className={`grid grid-cols-1 ${canUseBanner ? 'md:grid-cols-2' : ''} gap-8`}>
                          <div className="space-y-4">
                             <div className="flex items-center justify-between px-2">
-                               <span className="text-[8px] font-bold tracking-tight  opacity-40">Identity Logo</span>
+                               <span className="text-[11px] font-bold tracking-tight  opacity-40">Identity Logo</span>
                                {brandingUploading === 'logo' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
                             </div>
                             <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
@@ -516,7 +516,7 @@ export default function AccountPageClient() {
                          {canUseBanner && (
                          <div className="space-y-4">
                             <div className="flex items-center justify-between px-2">
-                               <span className="text-[8px] font-bold tracking-tight  opacity-40">Immersion Banner</span>
+                               <span className="text-[11px] font-bold tracking-tight  opacity-40">Immersion Banner</span>
                                {brandingUploading === 'banner' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
                             </div>
                             <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
@@ -558,7 +558,7 @@ export default function AccountPageClient() {
                       </div>
 
                       <div className="pt-4 flex items-center justify-between">
-                         <p className="text-[9px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 max-w-xs">
+                         <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 max-w-xs">
                             {user?.role === 'vendor' ? 'Changes synchronize with your digital storefront node.' : 'Branding reflects across all platform interaction vectors.'}
                          </p>
                          <button
@@ -622,7 +622,7 @@ export default function AccountPageClient() {
                         <button
                           onClick={handleUpdateProfile}
                           disabled={profileSaving}
-                          className="px-8 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight  hover:bg-[var(--accent)] hover:text-white transition-all"
+                          className="px-8 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight  hover:bg-[var(--accent)] hover:text-white transition-all"
                         >
                           {profileSaving ? 'Saving...' : 'Synchronize Records'}
                         </button>
@@ -638,7 +638,7 @@ export default function AccountPageClient() {
                          </div>
                          <div>
                            <p className="text-[11px] font-bold tracking-tight">System Appearance</p>
-                           <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">Toggle between Dark and Light protocol modes.</p>
+                           <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60">Toggle between Dark and Light protocol modes.</p>
                          </div>
                        </div>
                        <button 
@@ -684,15 +684,15 @@ export default function AccountPageClient() {
                                     <div>
                                        <h4 className="text-lg font-bold tracking-tight group-hover:text-[var(--accent)] transition-colors line-clamp-1">{o.products?.[0]?.name || 'Encrypted Order'}</h4>
                                        <div className="flex items-center gap-3 mt-1.5 grayscale group-hover:grayscale-0 transition-all opacity-40 group-hover:opacity-100">
-                                          <span className="text-[10px] font-bold tracking-tight">{new Date(o.createdAt).toLocaleDateString()}</span>
+                                          <span className="text-[11px] font-bold tracking-tight">{new Date(o.createdAt).toLocaleDateString()}</span>
                                           <div className="size-1 rounded-full bg-[var(--accent)]" />
-                                          <span className="text-[10px] font-bold tracking-tight text-[var(--accent)]">{o.order_status}</span>
+                                          <span className="text-[11px] font-bold tracking-tight text-[var(--accent)]">{o.order_status}</span>
                                        </div>
                                     </div>
                                  </div>
                                  <div className="flex items-center justify-between md:justify-end gap-10 border-t md:border-t-0 border-[var(--glass-border)] pt-6 md:pt-0">
                                     <div className="text-right">
-                                       <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mb-1">Vault Value</p>
+                                       <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mb-1">Vault Value</p>
                                        <p className="text-2xl font-bold font-mono text-[var(--text-primary)]">{(o.total_amount).toLocaleString()} <span className="text-xs">XAF</span></p>
                                     </div>
                                     <div className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
@@ -740,7 +740,7 @@ export default function AccountPageClient() {
                       <p className="text-[var(--text-secondary)] font-medium max-w-lg">Customize your organization&apos;s digital storefront presence.</p>
                     </div>
                     {saveStatus && (
-                      <span className="px-6 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold tracking-tight  border border-[var(--accent)] animate-pulse">
+                      <span className="px-6 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold tracking-tight  border border-[var(--accent)] animate-pulse">
                         {saveStatus}
                       </span>
                     )}
@@ -756,13 +756,13 @@ export default function AccountPageClient() {
                         </div>
                         <div className="flex-1 relative z-10">
                           <p className="text-sm font-bold tracking-tight">Unified Platform Branding</p>
-                          <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 leading-relaxed mt-1 max-w-md">
+                          <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60 leading-relaxed mt-1 max-w-md">
                             Your storefront visuals (Logo & Banner) are synchronized with your <span className="text-[var(--accent)]">General Profile</span> settings to maintain cross-platform brand integrity.
                           </p>
                         </div>
                         <button 
                           onClick={() => setActiveTab('general')}
-                          className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-bold tracking-tight hover:border-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all relative z-10"
+                          className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:border-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all relative z-10"
                         >
                           Modify Assets
                         </button>
@@ -866,7 +866,7 @@ export default function AccountPageClient() {
                          </div>
                          <div>
                            <h3 className="text-xl font-bold tracking-tight ">Verification Status</h3>
-                           <p className={`text-[10px] font-bold tracking-tight mt-1 ${
+                           <p className={`text-[11px] font-bold tracking-tight mt-1 ${
                              kycStatus === 'approved' ? 'text-emerald-500' :
                              kycStatus === 'pending' ? 'text-amber-500' :
                              kycStatus === 'rejected' ? 'text-rose-500' : 'text-[var(--text-secondary)]'
@@ -877,7 +877,7 @@ export default function AccountPageClient() {
                        </div>
                        
                        {kycStatus === 'approved' && (
-                         <div className="px-6 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[10px] font-bold tracking-tight ">
+                         <div className="px-6 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[11px] font-bold tracking-tight ">
                            Global Node Verified
                          </div>
                        )}
@@ -886,7 +886,7 @@ export default function AccountPageClient() {
                      {kycStatus === 'approved' ? (
                        <div className="py-10 text-center space-y-4">
                          <p className="text-sm font-bold text-[var(--text-secondary)]">Your identity has been fully verified by the Aura Protocol.</p>
-                         <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight">Enhanced node privileges activated</p>
+                         <p className="text-[11px] font-bold text-[var(--accent)] tracking-tight">Enhanced node privileges activated</p>
                        </div>
                      ) : (
                        <div className="space-y-8">
@@ -901,7 +901,7 @@ export default function AccountPageClient() {
                            <div className="space-y-4">
                              <div className="flex items-center gap-3 ml-4">
                                <Shield className="size-4 text-[var(--accent)] opacity-40" />
-                               <span className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] ">ID Document Type</span>
+                               <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] ">ID Document Type</span>
                              </div>
                              <select 
                                value={kycData.id_type}
@@ -926,7 +926,7 @@ export default function AccountPageClient() {
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                              <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
-                                   <span className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">ID Front Scan</span>
+                                   <span className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">ID Front Scan</span>
                                    {brandingUploading === 'kyc_front' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
                                 </div>
                                 <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
@@ -934,7 +934,7 @@ export default function AccountPageClient() {
                                      <>
                                        <img src={kycData.file_url_front} className="absolute inset-0 size-full object-contain p-4" alt="ID front" />
                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <p className="text-white text-[10px] font-bold tracking-tight">Replace Front</p>
+                                          <p className="text-white text-[11px] font-bold tracking-tight">Replace Front</p>
                                        </div>
                                      </>
                                    ) : (
@@ -949,7 +949,7 @@ export default function AccountPageClient() {
 
                              <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
-                                   <span className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">ID Back Scan</span>
+                                   <span className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">ID Back Scan</span>
                                    {brandingUploading === 'kyc_back' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
                                 </div>
                                 <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
@@ -957,7 +957,7 @@ export default function AccountPageClient() {
                                      <>
                                        <img src={kycData.file_url_back} className="absolute inset-0 size-full object-contain p-4" alt="ID back" />
                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <p className="text-white text-[10px] font-bold tracking-tight">Replace Back</p>
+                                          <p className="text-white text-[11px] font-bold tracking-tight">Replace Back</p>
                                        </div>
                                      </>
                                    ) : (
@@ -1011,7 +1011,7 @@ export default function AccountPageClient() {
                       <Toggle active />
                     </div>
                     <Link href="/notifications" className="block p-8 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-center group transition-all hover:bg-[var(--accent)] hover:text-white mt-10 shadow-xl">
-                       <p className="text-[10px] font-bold  tracking-[0.4em]">Initialize Full Frequency Scan</p>
+                       <p className="text-[11px] font-bold  tracking-[0.4em]">Initialize Full Frequency Scan</p>
                     </Link>
                   </SectionBox>
                 </div>
@@ -1027,7 +1027,7 @@ export default function AccountPageClient() {
                     {networkLoading ? (
                       <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
                          <RefreshCw className="size-16 animate-spin mb-4" />
-                         <p className="text-[10px] font-bold tracking-tight">Resolving Followed Nodes...</p>
+                         <p className="text-[11px] font-bold tracking-tight">Resolving Followed Nodes...</p>
                       </div>
                     ) : followedVendors.length === 0 ? (
                        <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
@@ -1047,7 +1047,7 @@ export default function AccountPageClient() {
                                       <h4 className="text-lg font-bold tracking-tight truncate group-hover:text-[var(--accent)] transition-colors">{f.vendor_id?.store_name}</h4>
                                       {f.vendor_id?.verified && <ShieldCheck className="size-4 text-emerald-500 shrink-0" />}
                                    </div>
-                                   <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-1">{(f.vendor_id?.follower_count || 0).toLocaleString()} Subscribers</p>
+                                   <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-1">{(f.vendor_id?.follower_count || 0).toLocaleString()} Subscribers</p>
                                 </div>
                              </Link>
                           ))}
@@ -1074,7 +1074,7 @@ export default function AccountPageClient() {
                     {audienceLoading ? (
                       <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
                          <RefreshCw className="size-16 animate-spin mb-4" />
-                         <p className="text-[10px] font-bold tracking-tight">Scanning Audience Signal...</p>
+                         <p className="text-[11px] font-bold tracking-tight">Scanning Audience Signal...</p>
                       </div>
                     ) : audience.length === 0 ? (
                        <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
@@ -1091,9 +1091,9 @@ export default function AccountPageClient() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                    <h4 className="text-base font-bold tracking-tight truncate">{a.user_id?.name}</h4>
-                                   <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-1">Status: Active Monitor</p>
+                                   <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-1">Status: Active Monitor</p>
                                 </div>
-                                <span className="text-[8px] font-bold tracking-tight opacity-20">{new Date(a.createdAt).toLocaleDateString()}</span>
+                                <span className="text-[11px] font-bold tracking-tight opacity-20">{new Date(a.createdAt).toLocaleDateString()}</span>
                              </div>
                           ))}
                        </div>
@@ -1144,7 +1144,7 @@ export default function AccountPageClient() {
                                       </div>
                                       <div>
                                          <p className="text-[11px] font-bold tracking-tight">{u.name}</p>
-                                         <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">{u.email} • {u.role}</p>
+                                         <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60">{u.email} • {u.role}</p>
                                       </div>
                                    </div>
                                    <div className="flex items-center gap-2">
@@ -1153,7 +1153,7 @@ export default function AccountPageClient() {
                                             const nextStatus = u.verification_status === 'held' ? 'unverified' : 'held';
                                             try { await api.patch(`/admin/users/${u._id}/status`, { status: nextStatus }); setBrandingStatus(`User ${u.name} ${nextStatus}.`); } catch (_) {}
                                          }}
-                                         className={`px-4 py-2 rounded-xl text-[8px] font-bold tracking-tight border transition-all ${u.verification_status === 'held' ? 'bg-amber-500 text-white' : 'bg-transparent border-[var(--glass-border)] hover:bg-amber-500/10 text-amber-500'}`}
+                                         className={`px-4 py-2 rounded-xl text-[11px] font-bold tracking-tight border transition-all ${u.verification_status === 'held' ? 'bg-amber-500 text-white' : 'bg-transparent border-[var(--glass-border)] hover:bg-amber-500/10 text-amber-500'}`}
                                       >
                                          {u.verification_status === 'held' ? 'Release Node' : 'Hold Node'}
                                       </button>
@@ -1161,7 +1161,7 @@ export default function AccountPageClient() {
                                          onClick={async () => {
                                             try { await api.patch(`/admin/users/${u._id}/status`, { status: 'unverified' }); setBrandingStatus(`Verification requested for ${u.name}`); } catch (_) {}
                                          }}
-                                         className="px-4 py-2 rounded-xl text-[8px] font-bold tracking-tight bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all"
+                                         className="px-4 py-2 rounded-xl text-[11px] font-bold tracking-tight bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all"
                                       >
                                          Request Verify
                                       </button>
@@ -1228,7 +1228,7 @@ function InputModule({ label, value, onChange, icon: Icon, placeholder, area = f
     <div className="space-y-3 px-1 md:px-2">
       <div className="flex items-center gap-3 ml-2 md:ml-4">
         {Icon && <Icon className="size-4 text-[var(--accent)] opacity-60" />}
-        <label className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] text-[var(--text-secondary)] ">{label}</label>
+        <label className="text-[9px] md:text-[11px] font-bold tracking-[0.2em] text-[var(--text-secondary)] ">{label}</label>
       </div>
       {area ? (
         <textarea
@@ -1255,8 +1255,8 @@ function InputModule({ label, value, onChange, icon: Icon, placeholder, area = f
 function InputRow({ label, value, disable }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] gap-2 md:gap-0">
-      <span className="text-[10px] font-bold tracking-[0.2em]  text-[var(--text-secondary)]">{label}</span>
-      <span className={`text-[11px] md:text-xs font-bold tracking-normal ${disable ? 'opacity-60 text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{value}</span>
+      <span className="text-[11px] font-bold tracking-[0.2em]  text-[var(--text-secondary)]">{label}</span>
+      <span className={`text-[11px] md:text-xs font-bold tracking-tight ${disable ? 'opacity-60 text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{value}</span>
     </div>
   );
 }
@@ -1279,7 +1279,7 @@ function ActionButton({ icon: Icon, label, desc }) {
         </div>
         <div>
           <p className="text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">{label}</p>
-          <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60 group-hover:text-white group-hover:opacity-80 transition-colors mt-0.5">{desc}</p>
+          <p className="text-[9px] md:text-[11px] font-bold text-[var(--text-secondary)] opacity-60 group-hover:text-white group-hover:opacity-80 transition-colors mt-0.5">{desc}</p>
         </div>
       </div>
       <ChevronRight className="size-5 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 relative z-10" />
@@ -1292,7 +1292,7 @@ function SelectModule({ label, value, onChange, options, icon: Icon, placeholder
     <div className="space-y-3 px-2">
       <div className="flex items-center gap-3">
         {Icon && <Icon className="size-4 text-[var(--accent)] opacity-40" />}
-        <label className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] ">{label}</label>
+        <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] ">{label}</label>
       </div>
       <select
         value={value}

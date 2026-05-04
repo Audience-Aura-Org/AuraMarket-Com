@@ -139,7 +139,7 @@ function VerifyContent() {
             <p className="text-[var(--accent)] font-bold text-sm tracking-tight">
               Please check your phone and approve the request.
             </p>
-            <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-4">
+            <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-4">
               Checking status… {pollCount > 0 && `(${pollCount}/${MAX_POLLS})`}
             </p>
           </div>
@@ -187,12 +187,12 @@ function VerifyContent() {
       )}
 
       {status === 'success' && type === 'checkout' && (
-        <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 animate-pulse">
+        <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 animate-pulse">
           Redirecting to your orders…
         </p>
       )}
 
-      <p className="text-[9px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-20">
+      <p className="text-[11px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-20">
         Secured by Eversend · Aura Market
       </p>
     </div>

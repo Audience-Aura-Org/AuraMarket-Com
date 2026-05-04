@@ -346,7 +346,7 @@ function ShopContent() {
                         <span className="text-[11px] font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.rating ? activeVendor.vendor_id.rating.toFixed(1) : '5.0'}
                         </span>
-                        <span className="text-[8px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
+                        <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
@@ -354,12 +354,12 @@ function ShopContent() {
                         <span className="text-[11px] font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
                         </span>
-                        <span className="text-[8px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
+                        <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                         <ShieldCheck className="size-3.5 text-emerald-600" />
-                        <span className="text-[9px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
+                        <span className="text-[11px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
                       </div>
                     </div>
                   </div>

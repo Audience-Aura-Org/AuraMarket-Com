@@ -35,32 +35,32 @@ export default function KYCPage() {
 
             {/* Left Side: Progress HUD */}
             <div className="w-full md:w-80 bg-[var(--bg-primary)]/40 border-r border-[var(--glass-border)] p-12 flex flex-col gap-12">
-               <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-bold tracking-tight  opacity-40 hover:opacity-100 transition-opacity">
+               <button onClick={() => router.back()} className="flex items-center gap-2 text-[11px] font-bold tracking-tight  opacity-40 hover:opacity-100 transition-opacity">
                   <ArrowLeft className="size-4" /> Go Back
                </button>
 
                <div className="space-y-4">
                   <ShieldCheck className="size-10 text-[var(--accent)]" />
                   <h1 className="text-3xl font-bold tracking-tighter  leading-tight">KYC Port Protocol</h1>
-                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 tracking-tight">Aura Market Partner Compliance v6.0</p>
+                  <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60 tracking-tight">Aura Market Partner Compliance v6.0</p>
                </div>
 
                <nav className="space-y-8 mt-12">
                   {steps.map((s, i) => (
                      <div key={s.id} className={`flex items-start gap-4 transition-all ${step >= s.id ? 'opacity-100' : 'opacity-20'}`}>
-                        <div className={`size-8 rounded-xl flex items-center justify-center text-[10px] font-bold border ${step === s.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}>
+                        <div className={`size-8 rounded-xl flex items-center justify-center text-[11px] font-bold border ${step === s.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}>
                            {step > s.id ? <CheckCircle2 className="size-4" /> : s.id}
                         </div>
                         <div className="space-y-1">
-                           <span className="text-[10px] font-bold tracking-tight block">{s.title}</span>
-                           <p className="text-[8px] font-bold text-[var(--text-secondary)] ">{s.desc}</p>
+                           <span className="text-[11px] font-bold tracking-tight block">{s.title}</span>
+                           <p className="text-[11px] font-bold text-[var(--text-secondary)] ">{s.desc}</p>
                         </div>
                      </div>
                   ))}
                </nav>
 
                <div className="mt-auto space-y-4 border-t border-[var(--glass-border)] pt-8">
-                  <div className="flex items-center gap-3 text-[9px] font-bold tracking-tight  opacity-40">
+                  <div className="flex items-center gap-3 text-[11px] font-bold tracking-tight  opacity-40">
                      <Clock className="size-4" /> ETA: 4m Total
                   </div>
                </div>
@@ -84,7 +84,7 @@ export default function KYCPage() {
 
                         <div className="space-y-6">
                            <div className="space-y-3">
-                              <label className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] ml-2">ID Protocol Type</label>
+                              <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] ml-2">ID Protocol Type</label>
                               <select className="w-full h-16 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl px-6 text-sm font-bold tracking-tight outline-none focus:ring-2 focus:ring-[var(--accent)]/30">
                                  <option>National Electronic ID</option>
                                  <option>Diplomatic Passport</option>
@@ -126,8 +126,8 @@ export default function KYCPage() {
                               <Upload className="size-10" />
                            </div>
                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold tracking-tight block">Drop Proof Artifact Here</span>
-                              <p className="text-[9px] font-bold text-[var(--text-secondary)]  opacity-40">PDF / JPEG / PNG MAX 10MB</p>
+                              <span className="text-[11px] font-bold tracking-tight block">Drop Proof Artifact Here</span>
+                              <p className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">PDF / JPEG / PNG MAX 10MB</p>
                            </div>
                         </div>
 
@@ -179,7 +179,7 @@ function UploadCard({ label, icon: Icon }) {
    return (
       <div className="flex flex-col items-center justify-center p-8 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] cursor-pointer hover:border-[var(--accent)]/30 group transition-all">
          <div className="size-10 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--accent)] mb-4"><Icon className="size-5" /></div>
-         <span className="text-[9px] font-bold tracking-tight text-center">{label}</span>
+         <span className="text-[11px] font-bold tracking-tight text-center">{label}</span>
       </div>
    );
 }

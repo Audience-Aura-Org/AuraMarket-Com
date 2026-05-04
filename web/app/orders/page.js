@@ -105,7 +105,7 @@ export default function OrdersPage() {
             </h1>
             <div className="flex items-center gap-3">
                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-               <p className="text-[9px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-60">Synchronized with Aura Protocol</p>
+               <p className="text-[11px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-60">Synchronized with Aura Protocol</p>
             </div>
           </div>
 
@@ -114,7 +114,7 @@ export default function OrdersPage() {
                <button 
                 key={f}
                 onClick={() => { setFilter(f); setCurrentPage(1); }}
-                className={`px-4 py-2 rounded-xl text-[9px] font-bold tracking-tight transition-all ${
+                className={`px-4 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${
                   filter === f 
                   ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' 
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
@@ -133,7 +133,7 @@ export default function OrdersPage() {
             </div>
             <div className="space-y-2">
                <h3 className="text-xl font-bold tracking-tight">No Order Records Found</h3>
-               <p className="text-[9px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40">Your transaction manifest is currently empty</p>
+               <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40">Your transaction manifest is currently empty</p>
             </div>
             <Link href="/discovery" className="px-10 py-4 bg-[var(--accent)] text-white font-bold text-[10px] tracking-[0.3em] rounded-2xl shadow-xl shadow-[var(--accent)]/30 hover:scale-[1.05] active:scale-95 transition-all ">
               Start Shopping
@@ -159,7 +159,7 @@ export default function OrdersPage() {
                       </div>
                     ))}
                     {(order.products || []).length > 3 && (
-                      <div className="size-16 md:size-20 rounded-2xl bg-[var(--bg-secondary)] border-2 border-[var(--bg-primary)] flex items-center justify-center text-[9px] font-bold tracking-tight text-[var(--text-secondary)] shadow-xl" style={{ zIndex: 0 }}>
+                      <div className="size-16 md:size-20 rounded-2xl bg-[var(--bg-secondary)] border-2 border-[var(--bg-primary)] flex items-center justify-center text-[11px] font-bold tracking-tight text-[var(--text-secondary)] shadow-xl" style={{ zIndex: 0 }}>
                           +{(order.products || []).length - 3}
                       </div>
                     )}
@@ -168,11 +168,11 @@ export default function OrdersPage() {
                   {/* Center: Info */}
                   <div className="flex-1 space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[8px] font-bold tracking-tight ${getStatusColor(order.order_status)}`}>
+                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-bold tracking-tight ${getStatusColor(order.order_status)}`}>
                           {getStatusIcon(order.order_status)}
                           {order.order_status}
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[8px] font-bold tracking-tight opacity-60">
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight opacity-60">
                           < Clock className="size-3" />
                           {new Date(order.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                         </div>
@@ -202,7 +202,7 @@ export default function OrdersPage() {
                                   alt="Store"
                                 />
                               </div>
-                              <span className="text-[9px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[120px]">
+                              <span className="text-[11px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[120px]">
                                 {order.vendor_id?.store_name}
                               </span>
                             </Link>
@@ -214,7 +214,7 @@ export default function OrdersPage() {
                   {/* Right: Price & CTA */}
                   <div className="flex items-center md:flex-col md:items-end justify-between gap-4 py-4 md:py-0 border-t md:border-t-0 md:border-l border-[var(--glass-border)] md:pl-10">
                     <div className="md:text-right">
-                        <p className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight opacity-40 mb-1">Total Value</p>
+                        <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-40 mb-1">Total Value</p>
                         <p className="text-xl font-bold font-mono text-[var(--accent)]">{(order.total_amount || 0).toLocaleString()} XAF</p>
                     </div>
                     <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
@@ -244,7 +244,7 @@ export default function OrdersPage() {
                 <div className={`size-12 rounded-2xl bg-[var(--bg-secondary)] flex items-center justify-center border border-[var(--glass-border)] shadow-sm ${info.color}`}>
                    <info.icon className="size-6" />
                 </div>
-                <h5 className="text-[10px] font-bold  tracking-[0.2em]">{info.title}</h5>
+                <h5 className="text-[11px] font-bold  tracking-[0.2em]">{info.title}</h5>
                 <p className="text-[9px] font-semibold text-[var(--text-secondary)] leading-relaxed opacity-60 tracking-tight">{info.desc}</p>
              </div>
            ))}

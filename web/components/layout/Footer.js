@@ -91,11 +91,11 @@ export default function Footer() {
             <div className="hidden md:flex items-center gap-2 md:gap-3 flex-wrap">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
                 <Zap className="size-3" />
-                <span className="text-[8px] md:text-[9px] font-bold tracking-tight">Live</span>
+                <span className="text-[8px] md:text-[11px] font-bold tracking-tight">Live</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]">
                 <ShieldCheck className="size-3 text-[var(--accent)]" />
-                <span className="text-[8px] md:text-[9px] font-bold tracking-tight">Secured</span>
+                <span className="text-[8px] md:text-[11px] font-bold tracking-tight">Secured</span>
               </div>
             </div>
           </div>
@@ -103,7 +103,7 @@ export default function Footer() {
           {/* Newsletter block — hidden on mobile */}
           <div className="hidden md:flex flex-col gap-3 md:gap-4 w-full md:max-w-sm lg:max-w-md lg:text-right">
             <div>
-              <p className="text-[9px] md:text-[10px] font-bold  tracking-[0.3em] text-[var(--accent)] mb-2 md:mb-1">Stay in the loop</p>
+              <p className="text-[9px] md:text-[11px] font-bold  tracking-[0.3em] text-[var(--accent)] mb-2 md:mb-1">Stay in the loop</p>
               <h3 className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tight leading-tight">
                 Early access.<br />Exclusive drops.
               </h3>
@@ -141,7 +141,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8 mb-12">
           {NAV.map(section => (
             <div key={section.label} className="flex flex-col gap-3">
-              <h4 className="text-[8px] md:text-[9px] font-bold  tracking-[0.35em] text-[var(--text-secondary)] opacity-40">
+              <h4 className="text-[8px] md:text-[11px] font-bold  tracking-[0.35em] text-[var(--text-secondary)] opacity-40">
                 {section.label}
               </h4>
               <ul className="flex flex-col gap-2 md:gap-3">
@@ -169,7 +169,7 @@ export default function Footer() {
               <div className="size-8 md:size-10 rounded-lg md:rounded-xl bg-black p-2 ring-1 ring-white/10 mb-3 md:mb-4 group-hover:ring-[var(--accent)]/30 transition-all">
                 <img src="/icon-512.png" alt="Aura" className="w-full h-full object-contain" />
               </div>
-              <p className="text-[8px] md:text-[9px] font-bold  tracking-[0.3em] text-[var(--accent)] mb-1">Install App</p>
+              <p className="text-[8px] md:text-[11px] font-bold  tracking-[0.3em] text-[var(--accent)] mb-1">Install App</p>
               <h5 className="text-xs md:text-sm font-bold text-[var(--text-primary)] leading-tight">
                 Aura on your homescreen
               </h5>
@@ -177,7 +177,7 @@ export default function Footer() {
                 Fast. Offline-ready. Native feel.
               </p>
             </div>
-            <div className="relative z-10 mt-3 md:mt-4 flex items-center gap-1 text-[var(--accent)] text-[8px] md:text-[10px] font-bold tracking-normal opacity-60 group-hover:opacity-100 transition-opacity">
+            <div className="relative z-10 mt-3 md:mt-4 flex items-center gap-1 text-[var(--accent)] text-[8px] md:text-[11px] font-bold tracking-tight opacity-60 group-hover:opacity-100 transition-opacity">
               Get the app <ArrowUpRight className="size-3" />
             </div>
           </div>

@@ -417,17 +417,17 @@ function CheckoutContent() {
           <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
             <ArrowLeft className="size-5" />
           </div>
-          <span className="text-[10px] font-bold tracking-tight ">Terminate Checkout</span>
+          <span className="text-[11px] font-bold tracking-tight ">Terminate Checkout</span>
         </Link>
         <div className="flex items-center gap-8">
            <div className="hidden md:flex items-center gap-3">
               <ShieldCheck className="size-4 text-emerald-500" />
-              <p className="text-[10px] font-bold tracking-tight  opacity-40">Encryption Protocol V3.1 Active</p>
+              <p className="text-[11px] font-bold tracking-tight  opacity-40">Encryption Protocol V3.1 Active</p>
            </div>
            <div className="h-8 w-px bg-[var(--glass-border)] md:block hidden" />
            <div className="flex items-center gap-4">
               <div className="text-right">
-                 <p className="text-[9px] font-bold tracking-[0.2em]  text-[var(--text-secondary)]">Your Balance</p>
+                 <p className="text-[11px] font-bold tracking-[0.2em]  text-[var(--text-secondary)]">Your Balance</p>
                  <p className="text-sm font-bold font-mono">{walletBalance.toLocaleString()} XAF</p>
               </div>
            </div>
@@ -449,7 +449,7 @@ function CheckoutContent() {
                    className={`flex-1 h-2 rounded-full transition-all duration-700 relative group overflow-hidden ${step >= s.id ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
                   >
                      {step === s.id && <div className="absolute inset-x-0 h-full bg-white/30 animate-pulse" />}
-                     <span className={`absolute top-4 left-0 text-[8px] font-bold tracking-tight transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
+                     <span className={`absolute top-4 left-0 text-[11px] font-bold tracking-tight transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
                        {s.label}
                      </span>
                   </button>
@@ -472,7 +472,7 @@ function CheckoutContent() {
                     <div className="glass-panel p-5 md:p-10 rounded-3xl md:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-6 md:space-y-10">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-10">
                           <div className="space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Consignee Name</label>
+                            <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Consignee Name</label>
                             <input 
                               placeholder="Full Name"
                               value={formData.name}
@@ -481,7 +481,7 @@ function CheckoutContent() {
                             />
                           </div>
                           <div className="space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Comms Protocol (Phone)</label>
+                            <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Comms Protocol (Phone)</label>
                             <input 
                               placeholder="+237 ..."
                               value={formData.phone}
@@ -490,7 +490,7 @@ function CheckoutContent() {
                             />
                           </div>
                           <div className="md:col-span-2 space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Handshake Email</label>
+                            <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Handshake Email</label>
                             <input 
                               type="email"
                               placeholder="email@example.com"
@@ -502,7 +502,7 @@ function CheckoutContent() {
                           
 
                           <div className="md:col-span-2 space-y-3 md:space-y-4">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
+                            <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
                             <div className="relative">
                                <button 
                                   type="button"
@@ -530,7 +530,7 @@ function CheckoutContent() {
                           </div>
 
                           <div className="md:col-span-2 space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Precise Landing Details (Build/Street No.)</label>
+                            <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Precise Landing Details (Build/Street No.)</label>
                             <textarea 
                               placeholder="House number, color of gate, or specific landmarks..."
                               rows={3}
@@ -543,7 +543,7 @@ function CheckoutContent() {
                        </div>
 
                        <div className="pt-4 space-y-4">
-                          <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Logistics Partner</label>
+                          <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Logistics Partner</label>
                           <div className="relative">
                              <button 
                                 type="button"
@@ -565,15 +565,15 @@ function CheckoutContent() {
                                    <div className="text-left min-w-0">
                                       {formData.logistics_company_id && selectedLogistics ? (
                                         <>
-                                          <p className="text-[10px] font-bold tracking-tight truncate">
+                                          <p className="text-[11px] font-bold tracking-tight truncate">
                                              {selectedLogistics.company_name}
                                           </p>
-                                          <p className="text-[8px] font-bold  text-[var(--text-secondary)] opacity-60 truncate">
+                                          <p className="text-[11px] font-bold  text-[var(--text-secondary)] opacity-60 truncate">
                                              {selectedLogistics.user_id?.name || 'Verified Node'}
                                           </p>
                                         </>
                                       ) : (
-                                        <span className="text-[10px] font-bold tracking-tight opacity-30">Select Logistics Node</span>
+                                        <span className="text-[11px] font-bold tracking-tight opacity-30">Select Logistics Node</span>
                                       )}
                                    </div>
                                 </div>
@@ -593,7 +593,7 @@ function CheckoutContent() {
                        </div>
 
                        <div className="pt-4 space-y-4">
-                           <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Payment Strategy</label>
+                           <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  ml-1">Payment Strategy</label>
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                <button 
                                 onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
@@ -602,7 +602,7 @@ function CheckoutContent() {
                                   <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-2">
                                         <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[10px] font-bold  tracking-tighter">Mobile Money / Card</span>
+                                        <span className="text-[11px] font-bold  tracking-tighter">Mobile Money / Card</span>
                                      </div>
                                      {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                   </div>
@@ -616,7 +616,7 @@ function CheckoutContent() {
                                   <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-2">
                                         <CreditCard className={`size-5 ${formData.paymentMethod === 'wallet' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[10px] font-bold  tracking-tighter">Aura Wallet</span>
+                                        <span className="text-[11px] font-bold  tracking-tighter">Aura Wallet</span>
                                      </div>
                                      {formData.paymentMethod === 'wallet' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                   </div>
@@ -630,7 +630,7 @@ function CheckoutContent() {
                                  <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
                                        <Truck className={`size-5 ${formData.paymentMethod === 'pay_on_delivery' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                       <span className="text-[10px] font-bold  tracking-tighter">Pay on Delivery</span>
+                                       <span className="text-[11px] font-bold  tracking-tighter">Pay on Delivery</span>
                                     </div>
                                     {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                  </div>
@@ -660,17 +660,17 @@ function CheckoutContent() {
                               <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                       <label className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
+                                       <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
                                        <input 
                                           type="text"
                                           placeholder="+237..."
                                           value={formData.eversend.phone}
                                           onChange={e => setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}})}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold  outline-none focus:border-[var(--accent)] transition-all"
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold  outline-none focus:border-[var(--accent)] transition-all"
                                        />
                                     </div>
                                     <div className="space-y-2">
-                                       <label className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
+                                       <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
                                        <select 
                                           value={formData.eversend.currency}
                                           onChange={e => {
@@ -684,7 +684,7 @@ function CheckoutContent() {
                                                }
                                              });
                                           }}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold  outline-none focus:border-[var(--accent)] transition-all"
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold  outline-none focus:border-[var(--accent)] transition-all"
                                        >
                                           <option value="XAF">XAF (Cameroon/Central Africa)</option>
                                           <option value="KES">KES (Kenya)</option>
@@ -733,7 +733,7 @@ function CheckoutContent() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                          <div className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-2">
-                            <p className="text-[9px] font-bold  text-[var(--text-secondary)] tracking-tight mb-6 opacity-40">Authorized Consignee</p>
+                            <p className="text-[11px] font-bold  text-[var(--text-secondary)] tracking-tight mb-6 opacity-40">Authorized Consignee</p>
                             <p className="text-xl font-bold text-[var(--text-primary)]">{formData.name}</p>
                             <p className="text-xs text-[var(--text-secondary)] font-bold mb-2">{formData.email}</p>
                             <p className="text-sm font-bold text-[var(--text-secondary)] flex items-start gap-2">
@@ -759,11 +759,11 @@ function CheckoutContent() {
                                       }
                                    </div>
                                    <div className="flex-1">
-                                      <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] mb-1 opacity-60">Logistics Assigned</p>
+                                      <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] mb-1 opacity-60">Logistics Assigned</p>
                                       <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight truncate leading-none">
                                          {selectedLogistics.company_name}
                                       </p>
-                                      <p className="text-[9px] font-bold text-[var(--accent)] tracking-tight mt-1 opacity-80">Verified AURA Node</p>
+                                      <p className="text-[11px] font-bold text-[var(--accent)] tracking-tight mt-1 opacity-80">Verified AURA Node</p>
                                    </div>
                                 </div>
                              )}
@@ -775,7 +775,7 @@ function CheckoutContent() {
                          <div className={`absolute inset-y-0 left-0 w-1.5 ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
                          {formData.escrowEnabled && formData.paymentMethod === 'wallet' ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
                          <div className="space-y-2">
-                            <h5 className={`text-[10px] font-bold  tracking-[0.2em] ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
+                            <h5 className={`text-[11px] font-bold  tracking-[0.2em] ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
                             <p className="text-xs font-medium text-[var(--text-secondary)]">
                                {formData.paymentMethod === 'pay_on_delivery'
                                  ? <>By executing this order, payment stays pending and is completed on delivery confirmation for test logistics flow.</>
@@ -808,7 +808,7 @@ function CheckoutContent() {
                </div>
                
                <div className="space-y-6 py-10 border-t border-[var(--glass-border)]">
-                   <div className="flex justify-between items-center text-[10px] font-bold tracking-[0.2em] text-[var(--text-secondary)] ">
+                   <div className="flex justify-between items-center text-[11px] font-bold tracking-[0.2em] text-[var(--text-secondary)] ">
                       <span className="opacity-40">Cart Subtotal</span>
                       <span className="text-xs font-mono">{subtotal.toLocaleString()} XAF</span>
                    </div>
@@ -816,7 +816,7 @@ function CheckoutContent() {
                    {compatibleFee > 0 && selectedLogistics && (
                       <div className="space-y-4 pt-4 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
-                           <p className="text-[10px] font-bold  text-[var(--accent)] tracking-tight flex items-center gap-2">
+                           <p className="text-[11px] font-bold  text-[var(--accent)] tracking-tight flex items-center gap-2">
                              <Truck className="size-3" /> Delivery Fees
                            </p>
                            <p className="text-[11px] font-mono font-bold text-[var(--accent)]">{compatibleFee.toLocaleString()} XAF</p>
@@ -824,7 +824,7 @@ function CheckoutContent() {
                          <div className="space-y-2">
                            {vendorList.map((v, i) => (
                              <div key={i} className="flex justify-between items-center opacity-70">
-                               <p className="text-[9px] font-bold  text-[var(--text-secondary)]">
+                               <p className="text-[11px] font-bold  text-[var(--text-secondary)]">
                                  From {v.name}
                                </p>
                                <p className="text-[10px] font-mono">+{v.fee.toLocaleString()} XAF</p>
@@ -836,10 +836,10 @@ function CheckoutContent() {
 
                    <div className="flex justify-between items-end pt-8 border-t border-[var(--glass-border)]/50">
                       <div>
-                         <p className="text-[9px] font-bold text-[var(--accent)]  tracking-[0.4em] mb-1">Final Settlement</p>
+                         <p className="text-[11px] font-bold text-[var(--accent)]  tracking-[0.4em] mb-1">Final Settlement</p>
                          <p className="text-5xl font-bold text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">{totalAmount.toLocaleString()}</p>
                       </div>
-                      <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
+                      <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
                    </div>
                 </div>
 
@@ -930,14 +930,14 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                placeholder="Search Quartier..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[10px] font-bold tracking-tight outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[11px] font-bold tracking-tight outline-none"
             />
          </div>
       </div>
       <div className="max-h-[300px] overflow-y-auto no-scrollbar">
          {filtered.length === 0 ? (
             <div className="p-8 text-center opacity-30">
-               <p className="text-[10px] font-bold tracking-tight">No zones found</p>
+               <p className="text-[11px] font-bold tracking-tight">No zones found</p>
             </div>
          ) : (
             filtered.map(z => (
@@ -948,7 +948,7 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                >
                   <MapPin className="size-4 opacity-20 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
-                     <p className="text-[10px] font-bold tracking-tight truncate">{z.name}</p>
+                     <p className="text-[11px] font-bold tracking-tight truncate">{z.name}</p>
                   </div>
                   {selected === z.name && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                </button>
@@ -980,7 +980,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                placeholder="Search Logistics Node..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[10px] font-bold tracking-tight outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[11px] font-bold tracking-tight outline-none"
             />
          </div>
       </div>
@@ -991,7 +991,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
             </div>
          ) : filtered.length === 0 ? (
             <div className="p-8 text-center opacity-30">
-               <p className="text-[10px] font-bold tracking-tight">No nodes found</p>
+               <p className="text-[11px] font-bold tracking-tight">No nodes found</p>
             </div>
          ) : (
             filtered.map(f => (
@@ -1008,8 +1008,8 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                      )}
                   </div>
                   <div className="min-w-0 flex-1">
-                     <p className="text-[10px] font-bold tracking-tight truncate">{f.company_name}</p>
-                     <p className="text-[8px] font-bold  text-[var(--text-secondary)] opacity-60 truncate">
+                     <p className="text-[11px] font-bold tracking-tight truncate">{f.company_name}</p>
+                     <p className="text-[11px] font-bold  text-[var(--text-secondary)] opacity-60 truncate">
                         {f.user_id?.name || 'Authorized Lead'}
                      </p>
                   </div>

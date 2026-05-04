@@ -165,7 +165,7 @@ export default function StoresDirectoryPage() {
 
                     <div className="mt-auto pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                         <span className="text-[8px] font-bold text-[var(--text-secondary)]/50 tracking-tight">Status</span>
+                         <span className="text-[11px] font-bold text-[var(--text-secondary)]/50 tracking-tight">Status</span>
                          <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1.5">
                             <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
                          </span>

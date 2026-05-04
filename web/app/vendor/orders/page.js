@@ -91,7 +91,7 @@ export default function VendorOrdersPage() {
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-fluid-lg lg:text-fluid-xl font-bold text-[var(--text-primary)] tracking-tight ">Sales <span className="text-[var(--accent)]">History</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <p className="text-[var(--text-secondary)] text-[8px] lg:text-[9px] font-bold  tracking-[0.3em] opacity-40"><span>{orders.length}</span> Orders</p>
+          <p className="text-[var(--text-secondary)] text-[8px] lg:text-[11px] font-bold  tracking-[0.3em] opacity-40"><span>{orders.length}</span> Orders</p>
         </div>
 
         <div className="flex items-center gap-3 lg:gap-4 self-end lg:self-auto">
@@ -100,7 +100,7 @@ export default function VendorOrdersPage() {
                <button 
                  key={tab}
                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[10px] font-bold tracking-tight transition-all ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
+                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[11px] font-bold tracking-tight transition-all ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
                >
                  {tab}
                </button>
@@ -121,7 +121,7 @@ export default function VendorOrdersPage() {
                   { label: 'All Orders', value: orders.length, color: 'blue' }
                 ].map(s => (
                   <div key={s.label} className="glass-panel p-4 lg:p-6 rounded-[24px] lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:-translate-y-1 transition-all shadow-sm group">
-                     <p className="text-[7px] lg:text-[9px] font-bold  tracking-[0.25em] text-[var(--text-secondary)] opacity-50 mb-1 lg:mb-2 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden text-ellipsis">{s.label}</p>
+                     <p className="text-[7px] lg:text-[11px] font-bold  tracking-[0.25em] text-[var(--text-secondary)] opacity-50 mb-1 lg:mb-2 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden text-ellipsis">{s.label}</p>
                      <p className="text-fluid-base lg:text-fluid-2xl font-bold text-[var(--text-primary)] tracking-tight font-mono whitespace-nowrap">{s.value}</p>
                   </div>
                 ))}
@@ -161,7 +161,7 @@ export default function VendorOrdersPage() {
                                  </div>
                                  <div className="min-w-0">
                                    <h3 className="font-bold text-[var(--text-primary)] text-xs lg:text-sm font-mono tracking-tighter  group-hover/row:text-[var(--accent)] transition-colors">#{order._id?.slice(-8).toUpperCase()}</h3>
-                                   <p className="text-[7px] lg:text-[8px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-0.5">Verified Transaction</p>
+                                   <p className="text-[7px] lg:text-[11px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-0.5">Verified Transaction</p>
                                  </div>
                               </div>
                            </td>
@@ -176,16 +176,16 @@ export default function VendorOrdersPage() {
                            <td className="px-6 py-5">
                               <div className="flex flex-col">
                                  <span className="text-xs lg:text-sm font-bold text-[var(--text-primary)] font-mono">{(order.total_amount || 0).toLocaleString()}</span>
-                                 <span className="text-[7px] lg:text-[8px] font-bold text-[var(--accent)]  tracking-tighter opacity-40">XAF Total</span>
+                                 <span className="text-[7px] lg:text-[11px] font-bold text-[var(--accent)]  tracking-tighter opacity-40">XAF Total</span>
                               </div>
                            </td>
                            <td className="px-6 py-5">
-                              <span className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-[7px] lg:text-[8px] font-bold  tracking-[0.2em] border shadow-sm inline-block transition-all ${status.bg} ${status.color} ${status.border}`}>
+                              <span className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-[7px] lg:text-[11px] font-bold  tracking-[0.2em] border shadow-sm inline-block transition-all ${status.bg} ${status.color} ${status.border}`}>
                                 {status.label}
                               </span>
                            </td>
                            <td className="px-8 py-5 text-right whitespace-nowrap">
-                               <button onClick={() => setOpenDetails(isOpen ? null : order._id)} className={`px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[8px] lg:text-[9px] font-bold tracking-tight transition-all shadow-lg active:scale-95 ${isOpen ? 'bg-[var(--accent)] text-white shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 shadow-sm'}`}>
+                               <button onClick={() => setOpenDetails(isOpen ? null : order._id)} className={`px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[8px] lg:text-[11px] font-bold tracking-tight transition-all shadow-lg active:scale-95 ${isOpen ? 'bg-[var(--accent)] text-white shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 shadow-sm'}`}>
                                  View Details
                                </button>
                            </td>

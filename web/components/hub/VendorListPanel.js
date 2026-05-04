@@ -109,7 +109,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             </p>
             <button 
               onClick={() => router.push('/shop')}
-              className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[9px] font-bold tracking-tight rounded-full shadow-lg"
+              className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight rounded-full shadow-lg"
             >
               Explore Shop
             </button>
@@ -180,7 +180,7 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
           <h3 className="font-bold text-base text-[var(--text-primary)] truncate">
             {vendor.store_name || 'Store'}
           </h3>
-          <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
+          <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
             {isOnline ? 'Online' : lastSeen}
           </span>
         </div>
@@ -191,12 +191,12 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
         
         <div className="flex items-center gap-1.5 mt-1">
           {isOnline ? (
-            <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-500  tracking-tighter">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-500  tracking-tighter">
               <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
               Available
             </span>
           ) : (
-            <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40  tracking-tighter">
+            <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40  tracking-tighter">
               Replies fast
             </span>
           )}

@@ -322,7 +322,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                 All products from the general market are indexed here.
               </p>
             </div>
-            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[10px] font-bold rounded-full shadow-lg">Reset Feed</button>
+            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[11px] font-bold rounded-full shadow-lg">Reset Feed</button>
           </div>
         )}
 
@@ -572,7 +572,7 @@ export default function DiscoveryHub() {
                   )}
                 </div>
                 
-                <span className={`text-[10px] font-bold mt-1 transition-all ${
+                <span className={`text-[11px] font-bold mt-1 transition-all ${
                   isActive ? 'text-[var(--accent)] opacity-100' : 'text-[var(--text-secondary)] opacity-60'
                 }`}>
                   {tab.label}
@@ -606,7 +606,7 @@ export default function DiscoveryHub() {
                   }`}
                 >
                    <Icon className={`size-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                   <span className="text-[10px] font-bold mt-1">{tab.label}</span>
+                   <span className="text-[11px] font-bold mt-1">{tab.label}</span>
                 </button>
               </div>
             );

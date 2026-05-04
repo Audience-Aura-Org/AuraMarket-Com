@@ -26,13 +26,13 @@ export default function ShipmentStatusModal({
         <div className="mb-6 flex items-start justify-between">
           <div>
             <h3 className="text-base font-bold tracking-tight">Update Shipment</h3>
-            <p className="text-[10px] font-bold tracking-tight text-[var(--accent)]">
+            <p className="text-[11px] font-bold tracking-tight text-[var(--accent)]">
               {shipment.tracking_code}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg border border-[var(--glass-border)] px-3 py-1 text-[10px] font-bold "
+            className="rounded-lg border border-[var(--glass-border)] px-3 py-1 text-[11px] font-bold "
           >
             Close
           </button>
@@ -40,7 +40,7 @@ export default function ShipmentStatusModal({
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[9px] font-bold tracking-normal text-[var(--text-secondary)]">
+            <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">
               Status
             </label>
             <div className="relative">
@@ -103,7 +103,7 @@ export default function ShipmentStatusModal({
 
           <button
             disabled={updating}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-3 text-[10px] font-bold  tracking-[0.2em] text-[var(--bg-primary)] disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-3 text-[11px] font-bold  tracking-[0.2em] text-[var(--bg-primary)] disabled:opacity-50"
           >
             {updating ? <Loader2 className="size-4 animate-spin" /> : "Save Status"}
           </button>

@@ -225,7 +225,7 @@ export default function CartPage() {
                          {couponLoading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" /> : 'Apply'}
                        </button>
                     </div>
-                    {couponError && <p className="text-[10px] font-bold text-red-500 ml-1 tracking-tighter ">{couponError}</p>}
+                    {couponError && <p className="text-[11px] font-bold text-red-500 ml-1 tracking-tighter ">{couponError}</p>}
                   </div>
                 )}
               </div>
@@ -256,11 +256,11 @@ export default function CartPage() {
               </Link>
 
               <div className="flex items-center justify-center gap-6 py-4 border-t border-[var(--glass-border)]">
-                <div className="flex items-center gap-2 text-[8px] font-bold tracking-tight text-[var(--text-secondary)] ">
+                <div className="flex items-center gap-2 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] ">
                    <Truck className="w-3 h-3 text-[var(--accent)]" /> Aura Node
                 </div>
                 <div className="size-1 rounded-full bg-[var(--glass-border)]"></div>
-                <div className="flex items-center gap-2 text-[8px] font-bold tracking-tight text-[var(--text-secondary)] ">
+                <div className="flex items-center gap-2 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] ">
                    <ShieldCheck className="w-3 h-3 text-emerald-500" /> Secure
                 </div>
               </div>

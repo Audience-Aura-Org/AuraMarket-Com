@@ -71,7 +71,7 @@ export default function CookiePolicyPage() {
               <div className="mt-8 overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50">
                  <table className="w-full text-left border-collapse">
                     <thead>
-                       <tr className="bg-[var(--bg-primary)]/80 text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">
+                       <tr className="bg-[var(--bg-primary)]/80 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">
                           <th className="p-5 border-b border-[var(--glass-border)]">Designation</th>
                           <th className="p-5 border-b border-[var(--glass-border)]">Purpose</th>
                           <th className="p-5 border-b border-[var(--glass-border)]">Expiration</th>
@@ -81,17 +81,17 @@ export default function CookiePolicyPage() {
                        <tr className="hover:bg-white/5 transition-colors">
                           <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] ">aura_session_node</td>
                           <td className="p-5 text-xs opacity-70">Secure user authentication and token storage</td>
-                          <td className="p-5 text-[10px] font-bold  opacity-40">30 Solar Cycles</td>
+                          <td className="p-5 text-[11px] font-bold  opacity-40">30 Solar Cycles</td>
                        </tr>
                        <tr className="hover:bg-white/5 transition-colors">
                           <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] ">aura_theme_pref</td>
                           <td className="p-5 text-xs opacity-70">Visual rendering configuration (Dark/Light)</td>
-                          <td className="p-5 text-[10px] font-bold  opacity-40">Immortal Node</td>
+                          <td className="p-5 text-[11px] font-bold  opacity-40">Immortal Node</td>
                        </tr>
                        <tr className="hover:bg-white/5 transition-colors">
                           <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] ">aura_cart_manifest</td>
                           <td className="p-5 text-xs opacity-70">Persistence of local selection inventory</td>
-                          <td className="p-5 text-[10px] font-bold  opacity-40">Session-Specific</td>
+                          <td className="p-5 text-[11px] font-bold  opacity-40">Session-Specific</td>
                        </tr>
                     </tbody>
                  </table>
@@ -105,7 +105,7 @@ export default function CookiePolicyPage() {
         </div>
 
         <div className="mt-16 text-center">
-           <p className="text-[9px] font-bold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
+           <p className="text-[11px] font-bold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
               Aura Market Global Cookie Governance v1.0
            </p>
         </div>

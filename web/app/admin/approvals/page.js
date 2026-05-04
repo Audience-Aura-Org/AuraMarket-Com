@@ -94,13 +94,13 @@ export default function AdminApprovals() {
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
              <button 
                onClick={() => setActiveTab('Vendors')} 
-               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === 'Vendors' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
+               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[11px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === 'Vendors' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
              >
                Vendors
              </button>
              <button 
                onClick={() => setActiveTab('Products')} 
-               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === 'Products' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
+               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[11px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === 'Products' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
              >
                Products
              </button>
@@ -110,7 +110,7 @@ export default function AdminApprovals() {
            <button onClick={fetchData} className="p-2 rounded-lg border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-primary)]">
               <RefreshCw className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
-           <div className="hidden xs:flex px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight ">
+           <div className="hidden xs:flex px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[11px] font-bold tracking-tight ">
               System Active
            </div>
         </div>
@@ -128,7 +128,7 @@ export default function AdminApprovals() {
                  { label: 'Safety Index', value: '99.2%', icon: ShieldCheck }
                ].map(s => (
                  <div key={s.label} className="glass-panel p-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
-                    <p className="text-[9px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1">{s.label}</p>
+                    <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1">{s.label}</p>
                     <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">{s.value}</h3>
                  </div>
                ))}
@@ -139,7 +139,7 @@ export default function AdminApprovals() {
                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                      <thead>
-                        <tr className="text-[10px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                        <tr className="text-[11px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
                            <th className="px-8 py-5">Ident Node</th>
                            <th className="px-6 py-5">Descriptor</th>
                            <th className="px-6 py-5">Protocol State</th>
@@ -156,7 +156,7 @@ export default function AdminApprovals() {
                                    </div>
                                    <div>
                                       <p className="text-sm font-bold text-[var(--text-primary)] line-clamp-1">{v.vendor_id?.store_name || v.user_id?.name}</p>
-                                      <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">ID: #{v._id.slice(-6).toUpperCase()}</p>
+                                      <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60">ID: #{v._id.slice(-6).toUpperCase()}</p>
                                    </div>
                                 </div>
                              </td>
@@ -169,7 +169,7 @@ export default function AdminApprovals() {
                                 </div>
                              </td>
                              <td className="px-6 py-5">
-                                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[8px] font-bold  tracking-[0.2em] border border-amber-500/20">
+                                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[11px] font-bold  tracking-[0.2em] border border-amber-500/20">
                                    Pending Sync
                                 </span>
                              </td>
@@ -204,7 +204,7 @@ export default function AdminApprovals() {
                                    </div>
                                    <div className="max-w-[200px]">
                                       <p className="text-sm font-bold text-[var(--text-primary)] truncate">{p.name}</p>
-                                      <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">PRICE: {p.price?.toLocaleString()} XAF</p>
+                                      <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60">PRICE: {p.price?.toLocaleString()} XAF</p>
                                    </div>
                                 </div>
                              </td>
@@ -213,7 +213,7 @@ export default function AdminApprovals() {
                                 <p className="text-[9px] text-[var(--text-secondary)] font-bold tracking-tight mt-1 opacity-60">Vendor Node</p>
                              </td>
                              <td className="px-6 py-5">
-                                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[8px] font-bold  tracking-[0.2em] border border-blue-500/20">
+                                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-bold  tracking-[0.2em] border border-blue-500/20">
                                    Inventory Lock
                                 </span>
                              </td>
@@ -246,7 +246,7 @@ export default function AdminApprovals() {
                              <td colSpan={4} className="px-8 py-20 text-center">
                                 <div className="flex flex-col items-center gap-4 opacity-30">
                                    <ShieldCheck className="size-12" />
-                                   <p className="text-[10px] font-bold tracking-tight">Protocol Sync Complete (Queue Empty)</p>
+                                   <p className="text-[11px] font-bold tracking-tight">Protocol Sync Complete (Queue Empty)</p>
                                 </div>
                              </td>
                           </tr>

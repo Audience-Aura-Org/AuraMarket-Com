@@ -65,7 +65,7 @@ function KPICard({ title, value, icon: Icon, color, sub }) {
         </div>
       </div>
       <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[10px] font-bold tracking-[0.2em]  opacity-50">{title}</p>
+        <p className="text-[var(--text-secondary)] text-[11px] font-bold tracking-[0.2em]  opacity-50">{title}</p>
         <h3 className="text-fluid-base lg:text-fluid-xl font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
         {sub && <p className="text-[11px] text-[var(--text-secondary)] font-bold mt-1 opacity-50  tracking-tighter truncate">{sub}</p>}
       </div>
@@ -95,7 +95,7 @@ function ReceiptModal({ tx, onClose }) {
              <Wallet className="size-8" />
           </div>
           <h3 className="text-xl font-bold tracking-tight">Aura Market</h3>
-          <p className="text-[10px] font-bold text-slate-400 tracking-tight">Official Transaction Receipt</p>
+          <p className="text-[11px] font-bold text-slate-400 tracking-tight">Official Transaction Receipt</p>
         </div>
 
         <div className="space-y-4 mb-8 text-sm">
@@ -108,7 +108,7 @@ function ReceiptModal({ tx, onClose }) {
             <span className="font-bold text-slate-800">{new Date(tx.createdAt).toLocaleString()}</span>
           </div>
           <div className="py-4 text-center">
-            <p className="text-[10px] font-bold text-slate-400 tracking-tight mb-1">Amount</p>
+            <p className="text-[11px] font-bold text-slate-400 tracking-tight mb-1">Amount</p>
             <h4 className="text-3xl font-bold text-slate-900">{fmt(tx.amount)} XAF</h4>
           </div>
         </div>
@@ -159,7 +159,7 @@ function WithdrawPanel({ balance, onClose, onSuccess }) {
     <div className="flex items-center gap-2 mb-8">
       {[1, 2, 3].map(i => (
         <div key={i} className="flex items-center gap-2">
-          <div className={`size-6 rounded-full flex items-center justify-center text-[10px] font-bold ${i <= step ? 'bg-[var(--accent)] text-white' : 'bg-white/10 text-white/30'}`}>
+          <div className={`size-6 rounded-full flex items-center justify-center text-[11px] font-bold ${i <= step ? 'bg-[var(--accent)] text-white' : 'bg-white/10 text-white/30'}`}>
             {i < step ? <CheckCircle2 className="size-3.5" /> : i}
           </div>
           {i < 3 && <div className={`w-8 h-px ${i < step ? 'bg-[var(--accent)]' : 'bg-white/10'}`} />}
@@ -348,11 +348,11 @@ export default function VendorWalletPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                            <p className="font-bold text-sm text-[var(--text-primary)] truncate ">{tx.description || tx.type}</p>
-                           <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                           <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
                            <p className={`text-base font-bold ${['payout', 'deposit'].includes(tx.type) ? 'text-emerald-500' : 'text-red-500'}`}>{['payout', 'deposit'].includes(tx.type) ? '+' : '-'}{fmt(tx.amount)}</p>
-                           <p className="text-[8px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><Printer className="size-2" /> Receipt</p>
+                           <p className="text-[11px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><Printer className="size-2" /> Receipt</p>
                         </div>
                      </div>
                    ))}
@@ -361,7 +361,7 @@ export default function VendorWalletPage() {
                 <div className="space-y-4">
                    <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
                       <Shield className="size-5 text-amber-500" />
-                      <p className="text-[10px] font-bold text-amber-600/70  leading-relaxed tracking-tight">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
+                      <p className="text-[11px] font-bold text-amber-600/70  leading-relaxed tracking-tight">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
                    </div>
                    {escrowTxs.length === 0 ? (
                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently in pipeline</div>
@@ -370,11 +370,11 @@ export default function VendorWalletPage() {
                         <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Clock className="size-5" /></div>
                         <div className="flex-1 min-w-0">
                            <p className="font-bold text-sm text-[var(--text-primary)]">Order #{tx.order_id?._id?.slice(-6).toUpperCase()}</p>
-                           <p className="text-[10px] font-bold  text-amber-500 tracking-tight">{tx.order_id?.order_status}</p>
+                           <p className="text-[11px] font-bold  text-amber-500 tracking-tight">{tx.order_id?.order_status}</p>
                         </div>
                         <div className="text-right">
                            <p className="text-sm font-bold text-[var(--text-primary)]">{fmt(tx.amount)} XAF</p>
-                           <p className="text-[8px] font-bold  opacity-30">Escrowed</p>
+                           <p className="text-[11px] font-bold  opacity-30">Escrowed</p>
                         </div>
                      </div>
                    ))}

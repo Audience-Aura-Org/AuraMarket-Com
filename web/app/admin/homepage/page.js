@@ -86,9 +86,9 @@ export default function AdminHomepagePage() {
               <div className="space-y-1">
                  <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">CMS <span className="text-[var(--accent)]">Architect</span></h1>
                  <div className="flex items-center gap-3">
-                    <p className="text-[10px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Homepage Topology Control</p>
+                    <p className="text-[11px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Homepage Topology Control</p>
                     <div className="h-1 w-1 rounded-full bg-[var(--glass-border)]" />
-                    <span className="text-[10px] font-bold text-[var(--accent)] tracking-tight">{sections.length} Active Nodes</span>
+                    <span className="text-[11px] font-bold text-[var(--accent)] tracking-tight">{sections.length} Active Nodes</span>
                  </div>
               </div>
            </div>
@@ -143,15 +143,15 @@ export default function AdminHomepagePage() {
 
                          <div className="flex-1 lg:w-full space-y-1">
                             <div className="flex items-center gap-2">
-                               <span className="text-[8px] font-bold  tracking-[0.2em] bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg shadow-[var(--accent)]/20">
+                               <span className="text-[11px] font-bold  tracking-[0.2em] bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg shadow-[var(--accent)]/20">
                                   {section.type.replace('_', ' ')}
                                </span>
-                               <span className={`text-[8px] font-bold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} tracking-tight`}>
+                               <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} tracking-tight`}>
                                   {section.is_active ? 'Live' : 'Offline'}
                                </span>
                             </div>
                             <h3 className="text-xl font-bold text-[var(--text-primary)] leading-tight tracking-tight  truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
-                            <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-40  tracking-[0.2em]">
+                            <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-secondary)] opacity-40  tracking-[0.2em]">
                                <span>{section.data?.length || 0} Elements</span>
                                {section.scheduled_start && (
                                  <div className="flex items-center gap-1 text-[var(--accent)] opacity-100">
@@ -184,7 +184,7 @@ export default function AdminHomepagePage() {
                             </button>
                             <button 
                               onClick={() => { setEditingSection(section); setIsFormOpen(true); }}
-                              className="h-10 px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[9px] font-bold tracking-tight"
+                              className="h-10 px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[11px] font-bold tracking-tight"
                             >
                                <Settings2 className="size-4" /> Modify
                             </button>
@@ -212,7 +212,7 @@ export default function AdminHomepagePage() {
                                        ) : item.category_name ? (
                                          <div className="size-full flex flex-col items-center justify-center gap-2 opacity-20 bg-gradient-to-br from-[var(--glass-border)] to-transparent">
                                             <Tag className="size-8" />
-                                            <span className="text-[8px] font-bold  tracking-[0.2em]">Category Mapping</span>
+                                            <span className="text-[11px] font-bold  tracking-[0.2em]">Category Mapping</span>
                                          </div>
                                        ) : (
                                          <div className="size-full flex flex-col items-center justify-center gap-2 opacity-10">
@@ -222,7 +222,7 @@ export default function AdminHomepagePage() {
                                        
                                        {/* Quick action bar */}
                                        <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between translate-y-4 opacity-0 group-hover/preview:translate-y-0 group-hover/preview:opacity-100 transition-all duration-300">
-                                          <span className="text-[8px] font-bold text-white tracking-tight truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || vendorName || 'NODE'}</span>
+                                          <span className="text-[11px] font-bold text-white tracking-tight truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || vendorName || 'NODE'}</span>
                                           <ArrowRight className="size-3 text-[var(--accent)]" />
                                        </div>
                                     </div>
@@ -239,7 +239,7 @@ export default function AdminHomepagePage() {
                          ) : (
                             <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-20 space-y-3">
                                <Grid className="size-8" />
-                               <p className="text-[10px] font-bold  tracking-[0.3em]">Module Devoid of Content</p>
+                               <p className="text-[11px] font-bold  tracking-[0.3em]">Module Devoid of Content</p>
                             </div>
                          )}
                       </div>
@@ -260,19 +260,19 @@ export default function AdminHomepagePage() {
         {!loading && sections.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-16 border-t border-[var(--glass-border)] animate-in fade-in slide-in-from-bottom-10 duration-1000">
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40  tracking-[0.3em]">Total Components</span>
+                <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40  tracking-[0.3em]">Total Components</span>
                 <span className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter">{sections.length}</span>
              </div>
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-bold text-emerald-500 opacity-40  tracking-[0.3em]">Live Components</span>
+                <span className="text-[11px] font-bold text-emerald-500 opacity-40  tracking-[0.3em]">Live Components</span>
                 <span className="text-4xl font-bold text-emerald-500 tracking-tighter">{sections.filter(s => s.is_active).length}</span>
              </div>
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-bold text-blue-500 opacity-40  tracking-[0.3em]">Scheduled Tasks</span>
+                <span className="text-[11px] font-bold text-blue-500 opacity-40  tracking-[0.3em]">Scheduled Tasks</span>
                 <span className="text-4xl font-bold text-blue-500 tracking-tighter">{sections.filter(s => s.scheduled_start).length}</span>
              </div>
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-bold text-[var(--accent)] opacity-40  tracking-[0.3em]">Complexity Score</span>
+                <span className="text-[11px] font-bold text-[var(--accent)] opacity-40  tracking-[0.3em]">Complexity Score</span>
                 <span className="text-4xl font-bold text-[var(--accent)] tracking-tighter">{sections.reduce((acc, s) => acc + (s.data?.length || 0), 0)}</span>
              </div>
           </div>

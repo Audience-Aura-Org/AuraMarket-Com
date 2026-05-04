@@ -67,7 +67,7 @@ export default function AdminSubscriptionsPage() {
               <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Subscription Management</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-bold tracking-tight text-emerald-600 ">System Live</p>
+                <p className="text-[11px] font-bold tracking-tight text-emerald-600 ">System Live</p>
               </div>
             </div>
           </div>
@@ -96,13 +96,13 @@ export default function AdminSubscriptionsPage() {
               <div className="p-6 border-b border-[var(--glass-border)] flex flex-wrap items-center justify-between gap-4 bg-[var(--bg-primary)]/50">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold text-[var(--text-primary)]">Vendor Subscription Overview</h2>
-                  <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold tracking-tight px-2.5 py-0.5 rounded-full border border-[var(--accent)]/20 ">Live Data</span>
+                  <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold tracking-tight px-2.5 py-0.5 rounded-full border border-[var(--accent)]/20 ">Live Data</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[10px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all ">
+                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[11px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all ">
                     <Filter className="w-4 h-4" /> Filter
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-xl text-[10px] font-bold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all text-white ">
+                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-xl text-[11px] font-bold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all text-white ">
                     <Plus className="w-4 h-4" /> Add Subscription
                   </button>
                 </div>
@@ -111,7 +111,7 @@ export default function AdminSubscriptionsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] text-[10px] font-bold tracking-tight border-b border-[var(--glass-border)] ">
+                    <tr className="bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] text-[11px] font-bold tracking-tight border-b border-[var(--glass-border)] ">
                       <th className="px-6 py-4">Vendor Name</th>
                       <th className="px-6 py-4">Plan Type</th>
                       <th className="px-6 py-4">Renewal Date</th>
@@ -186,7 +186,7 @@ export default function AdminSubscriptionsPage() {
                    <p className="text-sm text-[var(--text-secondary)] mb-6 font-bold">Based on payment delays and account activity in the last 30 days.</p>
                    <div className="flex items-end gap-2">
                       <span className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter">2.4%</span>
-                      <span className="text-emerald-600 text-[10px] font-bold mb-2 flex items-center gap-1 tracking-tight">
+                      <span className="text-emerald-600 text-[11px] font-bold mb-2 flex items-center gap-1 tracking-tight">
                          <TrendingDown className="w-3 h-3" /> 0.8%
                       </span>
                    </div>
@@ -217,12 +217,12 @@ function StatCard({ label, value, sub, trend, positive, warn, Icon, color }) {
       <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-10 transition-opacity group-hover:opacity-20 ${glows[color]}`} />
       <div className="flex items-center justify-between mb-4 relative z-10">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${colors[color]}`}><Icon className="w-5 h-5" /></div>
-        <span className={`text-[10px] font-bold tracking-tight flex items-center gap-1  ${warn ? 'text-amber-600' : positive ? 'text-emerald-600' : 'text-red-600'}`}>
+        <span className={`text-[11px] font-bold tracking-tight flex items-center gap-1  ${warn ? 'text-amber-600' : positive ? 'text-emerald-600' : 'text-red-600'}`}>
           {!warn && (positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />)}
           {trend}
         </span>
       </div>
-      <p className="text-[var(--text-secondary)] text-[10px] font-bold tracking-tight  relative z-10">{label}</p>
+      <p className="text-[var(--text-secondary)] text-[11px] font-bold tracking-tight  relative z-10">{label}</p>
       <h3 className="text-3xl font-bold text-[var(--text-primary)] mt-1 relative z-10">{value}</h3>
       {sub && <p className="text-[10px] text-[var(--text-secondary)] mt-2 font-bold tracking-tight  opacity-60">{sub}</p>}
     </div>
@@ -234,7 +234,7 @@ function TierBar({ label, pct, color }) {
   const txt = { fuchsia: 'text-[var(--accent)]', blue: 'text-blue-600', slate: 'text-[var(--text-secondary)]' };
   return (
     <div>
-      <div className="flex justify-between text-[10px] font-bold tracking-tight mb-2 ">
+      <div className="flex justify-between text-[11px] font-bold tracking-tight mb-2 ">
         <span className="text-[var(--text-secondary)]">{label}</span>
         <span className={txt[color]}>{pct}</span>
       </div>

@@ -620,7 +620,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                 <span className="text-[9px] text-white/50 font-semibold">{ago(story.createdAt)}</span>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[9px] font-bold text-[var(--accent)]">{story.category || 'General'}</span>
+                <span className="text-[11px] font-bold text-[var(--accent)]">{story.category || 'General'}</span>
               </div>
             </div>
           </div>
@@ -746,9 +746,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             <div className="flex items-center justify-between px-1 opacity-40 pt-2">
               <div className="flex items-center gap-1.5 text-white">
                 <Eye className="size-3" />
-                <span className="text-[9px] font-bold  tracking-tighter">{story.views_count || 0}</span>
+                <span className="text-[11px] font-bold  tracking-tighter">{story.views_count || 0}</span>
               </div>
-              <span className="text-[9px] font-bold text-white  tracking-tighter">
+              <span className="text-[11px] font-bold text-white  tracking-tighter">
                 {storyIdx + 1} / {totalInGroup}
                 {totalVendors > 1 && <span className="opacity-50"> · V {vendorIdx + 1}/{totalVendors}</span>}
               </span>

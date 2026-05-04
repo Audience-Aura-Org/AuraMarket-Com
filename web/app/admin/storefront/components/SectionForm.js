@@ -266,7 +266,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                       <div>
                         <h4 className="font-bold text-[var(--text-primary)]">{product.name}</h4>
                         <div className="flex items-center gap-3 mt-0.5">
-                           <span className="text-[9px] font-bold tracking-tight bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-0.5 rounded border border-[var(--accent)]/20">{product.brand}</span>
+                           <span className="text-[11px] font-bold tracking-tight bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-0.5 rounded border border-[var(--accent)]/20">{product.brand}</span>
                            <span className="text-[10px] opacity-40 font-mono">{product._id}</span>
                         </div>
                       </div>
@@ -277,7 +277,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                         alert('Product ID Copied!');
                         setShowProductLookup(false);
                       }}
-                      className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-2"
+                      className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-2"
                     >
                       <Package className="w-3.5 h-3.5" /> Select ID
                     </button>
@@ -386,7 +386,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                   <div className="grid md:grid-cols-2 gap-6">
                     {(['hero', 'promo_banner', 'categories'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[10px] font-bold tracking-tight opacity-40">Image URL / Upload</label>
+                         <label className="text-[11px] font-bold tracking-tight opacity-40">Image URL / Upload</label>
                          <div className="flex gap-2">
                            <input 
                              value={item.image_url}
@@ -414,7 +414,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     {(['hero', 'promo_banner'].includes(formData.type)) && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold tracking-tight opacity-40">Headline</label>
+                          <label className="text-[11px] font-bold tracking-tight opacity-40">Headline</label>
                           <input 
                             value={item.headline}
                             onChange={(e) => updateDataItem(i, 'headline', e.target.value)}
@@ -422,7 +422,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold tracking-tight opacity-40">Subtext</label>
+                          <label className="text-[11px] font-bold tracking-tight opacity-40">Subtext</label>
                           <input 
                             value={item.subtext}
                             onChange={(e) => updateDataItem(i, 'subtext', e.target.value)}
@@ -430,7 +430,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <label className="text-[10px] font-bold tracking-tight opacity-40">CTA Button Text (Optional)</label>
+                          <label className="text-[11px] font-bold tracking-tight opacity-40">CTA Button Text (Optional)</label>
                           <input 
                             value={item.cta_text}
                             onChange={(e) => updateDataItem(i, 'cta_text', e.target.value)}
@@ -443,7 +443,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['featured_products', 'collection', 'trending'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[10px] font-bold tracking-tight opacity-40">Search & Select Product</label>
+                         <label className="text-[11px] font-bold tracking-tight opacity-40">Search & Select Product</label>
                          <div className="relative" ref={activeProductDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
@@ -495,7 +495,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                          {item.product_id && typeof item.product_id !== 'object' && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Package className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[9px] font-bold  text-[var(--accent)]">ID: {item.product_id}</span>
+                             <span className="text-[11px] font-bold  text-[var(--accent)]">ID: {item.product_id}</span>
                            </div>
                          )}
                       </div>
@@ -503,7 +503,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['categories'].includes(formData.type)) && (
                       <div className="space-y-2">
-                         <label className="text-[10px] font-bold tracking-tight opacity-40">Category Selection</label>
+                         <label className="text-[11px] font-bold tracking-tight opacity-40">Category Selection</label>
                          <div className="relative" ref={activeCategoryDropdown === i ? dropdownRef : null}>
                             <div 
                               onClick={() => {
@@ -555,7 +555,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     )}
 
                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold tracking-tight opacity-40">Link Destination</label>
+                        <label className="text-[11px] font-bold tracking-tight opacity-40">Link Destination</label>
                         <div className="relative" ref={activeLinkDropdown === i ? dropdownRef : null}>
                            <div className="flex gap-2">
                               <input 
@@ -620,7 +620,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(formData.type === 'stores') && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[10px] font-bold tracking-tight opacity-40">Search & Select Vendor</label>
+                         <label className="text-[11px] font-bold tracking-tight opacity-40">Search & Select Vendor</label>
                          <div className="relative" ref={activeVendorDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
@@ -671,7 +671,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                          {item.vendor_id && typeof item.vendor_id !== 'object' && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Store className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[9px] font-bold  text-[var(--accent)]">ID: {item.vendor_id}</span>
+                             <span className="text-[11px] font-bold  text-[var(--accent)]">ID: {item.vendor_id}</span>
                            </div>
                          )}
                       </div>
@@ -748,7 +748,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 </h4>
                 <div className="grid gap-4">
                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold  opacity-40 ml-1">Starts (Optional)</label>
+                      <label className="text-[11px] font-bold  opacity-40 ml-1">Starts (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_start}
@@ -757,7 +757,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                       />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold  opacity-40 ml-1">Ends (Optional)</label>
+                      <label className="text-[11px] font-bold  opacity-40 ml-1">Ends (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_end}

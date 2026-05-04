@@ -107,7 +107,7 @@ export default function AdminDisputes() {
                <div className="p-3 bg-[var(--accent)]/10 text-[var(--accent)] rounded-2xl"><Scale className="w-6 h-6" /></div>
                <div>
                   <h2 className="text-xl lg:text-2xl font-bold text-[var(--text-primary)] tracking-tight  leading-none">Inspect Case #{selectedCase._id.slice(-6).toUpperCase()}</h2>
-                  <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight  mt-2 opacity-50">High-level arbitration in progress</p>
+                  <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight  mt-2 opacity-50">High-level arbitration in progress</p>
                </div>
             </div>
 
@@ -132,7 +132,7 @@ export default function AdminDisputes() {
                      </div>
                   ) : (
                     <div className="p-10 border-2 border-dashed border-[var(--glass-border)] rounded-3xl text-center opacity-30">
-                       <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">No visual evidence provided by customer</p>
+                       <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">No visual evidence provided by customer</p>
                     </div>
                   )}
                </div>
@@ -153,7 +153,7 @@ export default function AdminDisputes() {
                        <div className="bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/10">
                           <div className="flex items-center gap-2 mb-2">
                              <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                             <p className="text-[10px] font-bold tracking-tight text-emerald-600">Shipment Operational Log</p>
+                             <p className="text-[11px] font-bold tracking-tight text-emerald-600">Shipment Operational Log</p>
                           </div>
                           <p className="text-xs font-bold text-[var(--text-primary)]">Recipient: <span className="text-[var(--accent)]">{caseShipment.proof_of_delivery.receiver_name || 'Verified Signatory'}</span></p>
                           <p className="text-[10px] text-[var(--text-secondary)] mt-1.5 opacity-70 leading-normal">{caseShipment.proof_of_delivery.note || 'No additional courier notes recorded.'}</p>
@@ -177,12 +177,12 @@ export default function AdminDisputes() {
                   </div>
                   <div>
                     <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]  leading-none mb-1">{selectedCase.initiator_id?.name}</p>
-                    <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-50">{selectedCase.initiator_id?.email}</p>
+                    <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-50">{selectedCase.initiator_id?.email}</p>
                   </div>
                </div>
 
                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold  text-[var(--text-secondary)] opacity-40 mr-4 tracking-tight">Final Resolution:</span>
+                  <span className="text-[11px] font-bold  text-[var(--text-secondary)] opacity-40 mr-4 tracking-tight">Final Resolution:</span>
                   {selectedCase.status === 'resolved' ? (
                     <div className="px-8 py-3 rounded-2xl bg-emerald-500 text-white font-bold text-xs tracking-tight shadow-xl">
                        {selectedCase.resolution_type?.replace('_', ' ')} Applied
@@ -220,7 +220,7 @@ export default function AdminDisputes() {
                <button 
                  key={tab}
                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[9px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
+                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[11px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
                >
                  {tab}
                </button>
@@ -231,7 +231,7 @@ export default function AdminDisputes() {
            <button onClick={fetchDisputes} className="p-2 lg:p-2.5 rounded-lg border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-secondary)]">
               <RefreshCw className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
-           <div className="px-3 lg:px-4 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight  shadow-sm">
+           <div className="px-3 lg:px-4 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-[8px] lg:text-[11px] font-bold tracking-tight  shadow-sm">
               Protocol Active
            </div>
         </div>
@@ -247,7 +247,7 @@ export default function AdminDisputes() {
               { label: 'Equity Balance', value: 'High', icon: ShieldCheck, color: 'text-amber-500' }
             ].map(s => (
               <div key={s.label} className="glass-panel p-4 lg:p-5 rounded-2xl lg:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-sm hover:translate-y-[-2px] transition-all">
-                 <p className="text-[7px] lg:text-[9px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
+                 <p className="text-[7px] lg:text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
                  <h3 className={`text-base lg:text-xl font-bold ${s.color} tracking-tight`}>{s.value}</h3>
               </div>
             ))}
@@ -258,7 +258,7 @@ export default function AdminDisputes() {
             <div className="overflow-x-auto scroll-smooth">
                <table className="w-full text-left min-w-[800px] lg:min-w-0">
                   <thead>
-                     <tr className="text-[8px] lg:text-[10px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                     <tr className="text-[8px] lg:text-[11px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
                         <th className="px-6 lg:px-8 py-4 lg:py-5">Case Identifier</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Initiator / Parties</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Reasoning</th>
@@ -278,7 +278,7 @@ export default function AdminDisputes() {
                                 <div className={`size-2 rounded-full flex-shrink-0 ${d.status === 'resolved' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.4)]'}`} />
                                 <div>
                                    <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight font-mono">#{d._id?.slice(-6).toUpperCase()}</p>
-                                   <p className="text-[8px] lg:text-[9px] font-bold text-[var(--text-secondary)] opacity-50">ORDER: #{d.order_id?._id?.slice(-6) || '—'}</p>
+                                   <p className="text-[8px] lg:text-[11px] font-bold text-[var(--text-secondary)] opacity-50">ORDER: #{d.order_id?._id?.slice(-6) || '—'}</p>
                                 </div>
                              </div>
                           </td>
@@ -303,7 +303,7 @@ export default function AdminDisputes() {
                           </td>
                           <td className="px-6 lg:px-8 py-4 lg:py-5 text-right">
                              {d.status === 'resolved' ? (
-                               <span className="px-3 lg:px-4 py-1 lg:py-1.5 rounded flex-shrink-0 border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[8px] lg:text-[9px] font-bold tracking-tight">
+                               <span className="px-3 lg:px-4 py-1 lg:py-1.5 rounded flex-shrink-0 border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[8px] lg:text-[11px] font-bold tracking-tight">
                                   {d.resolution_type?.replace('_', ' ')}
                                </span>
                              ) : (
@@ -311,14 +311,14 @@ export default function AdminDisputes() {
                                   <button 
                                      onClick={(e) => { e.stopPropagation(); handleResolve(d._id, 'full_refund'); }}
                                      disabled={actioning === d._id}
-                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[8px] lg:text-[11px] font-bold tracking-tight hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
                                   >
                                      Refund
                                   </button>
                                   <button 
                                      onClick={(e) => { e.stopPropagation(); handleResolve(d._id, 'release_payment'); }}
                                      disabled={actioning === d._id}
-                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight hover:bg-emerald-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[11px] font-bold tracking-tight hover:bg-emerald-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
                                   >
                                      Release
                                   </button>

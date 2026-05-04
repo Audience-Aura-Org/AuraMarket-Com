@@ -283,11 +283,11 @@ export default function EditProductPage() {
                     {/* Define Types */}
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-bold  tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
+                        <h3 className="text-[11px] font-bold  tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
                         <button 
                           type="button"
                           onClick={addVariantType}
-                          className="flex items-center gap-2 text-[10px] font-bold tracking-tight text-[var(--accent)] hover:bg-[var(--accent)]/5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/20 transition-all"
+                          className="flex items-center gap-2 text-[11px] font-bold tracking-tight text-[var(--accent)] hover:bg-[var(--accent)]/5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/20 transition-all"
                         >
                           <Plus className="w-3 h-3" /> Add Attribute
                         </button>
@@ -304,7 +304,7 @@ export default function EditProductPage() {
                               <X className="w-4 h-4" />
                             </button>
                             <div className="space-y-1">
-                              <label className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Attribute Name</label>
+                              <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Attribute Name</label>
                               <input 
                                 placeholder="e.g. Color"
                                 value={type.name}
@@ -313,11 +313,11 @@ export default function EditProductPage() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Options</label>
+                              <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Options</label>
                               <div className="flex flex-wrap gap-2">
                                 {type.options.map((opt, oIdx) => (
                                   <div key={oIdx} className="flex flex-col gap-2">
-                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold  rounded-full border border-[var(--accent)]/20">
+                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-bold  rounded-full border border-[var(--accent)]/20">
                                       {type.name.toLowerCase() === 'color' && (
                                         <div 
                                           className="size-3 rounded-full border border-black/10" 
@@ -340,7 +340,7 @@ export default function EditProductPage() {
                                 <input 
                                   placeholder="Add option..."
                                   onKeyDown={e => { if(e.key === 'Enter') { addOption(tIdx, e.target.value); e.target.value = ''; } }}
-                                  className="bg-transparent border-none outline-none text-[10px] font-bold text-[var(--text-primary)] w-24 placeholder:text-[var(--text-secondary)]/30"
+                                  className="bg-transparent border-none outline-none text-[11px] font-bold text-[var(--text-primary)] w-24 placeholder:text-[var(--text-secondary)]/30"
                                 />
                               </div>
                             </div>
@@ -352,10 +352,10 @@ export default function EditProductPage() {
                     {/* Matrix */}
                     {skuVariants.length > 0 && (
                       <div className="space-y-6">
-                        <h3 className="text-[10px] font-bold  tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
+                        <h3 className="text-[11px] font-bold  tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
                         <div className="overflow-hidden border border-[var(--glass-border)] rounded-[2rem] bg-[var(--bg-primary)] shadow-xl shadow-black/5">
                           <table className="w-full text-left border-collapse">
-                            <thead className="bg-[var(--bg-secondary)] text-[10px] font-bold tracking-tight text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
+                            <thead className="bg-[var(--bg-secondary)] text-[11px] font-bold tracking-tight text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
                               <tr>
                                 <th className="p-5">Combination</th>
                                 <th className="p-5 w-40">Price (XAF)</th>
@@ -368,7 +368,7 @@ export default function EditProductPage() {
                                   <td className="p-5">
                                     <div className="flex flex-wrap gap-2">
                                       {Object.entries(sku.combination).map(([k, v]) => (
-                                        <span key={k} className="px-2 py-0.5 bg-[var(--bg-secondary)] rounded-md border border-[var(--glass-border)] text-[9px] font-bold text-[var(--text-secondary)]">
+                                        <span key={k} className="px-2 py-0.5 bg-[var(--bg-secondary)] rounded-md border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-secondary)]">
                                           {k}: <span className="text-[var(--text-primary)]">{v}</span>
                                         </span>
                                       ))}
