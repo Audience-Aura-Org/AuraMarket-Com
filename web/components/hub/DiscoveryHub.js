@@ -572,7 +572,7 @@ export default function DiscoveryHub() {
                   )}
                 </div>
                 
-                <span className={`text-[9px] font-bold mt-1 transition-all ${
+                <span className={`text-[10px] font-bold mt-1 transition-all ${
                   isActive ? 'text-[var(--accent)] opacity-100' : 'text-[var(--text-secondary)] opacity-60'
                 }`}>
                   {tab.label}
