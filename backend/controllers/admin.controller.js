@@ -165,7 +165,10 @@ const getPlatformAnalytics = async (req, res, next) => {
           pending_products: pendingProducts,
           orders: totalOrders,
           revenue: totalRevenue,
-          escrow_vault: totalHeldFunds
+          escrow_vault: totalHeldFunds,
+          failed_transactions: await Transaction.countDocuments({ status: 'failed' }),
+          delivered_orders: await Order.countDocuments({ order_status: 'delivered' }),
+          active_orders: await Order.countDocuments({ order_status: { $in: ['placed', 'processing', 'shipped'] } })
         }
       }
     });
@@ -256,7 +259,12 @@ const updateSettings = async (req, res, next) => {
 const getAllOrders = async (req, res, next) => {
   try {
     const { status, search, page = 1, limit = 30 } = req.query;
-    const query = {};
+    const query = { 
+      $or: [
+        { payment_status: 'paid' },
+        { payment_method: 'pay_on_delivery' }
+      ]
+    }; 
     if (status && status !== 'all') query.order_status = status;
     const orders = await Order.find(query).populate('customer_id', 'name email phone avatar').populate('logistics_company_id', 'company_name contact_phone').populate({ path: 'vendor_id', select: 'store_name user_id', populate: { path: 'user_id', select: 'name email phone avatar' } }).populate('products.product_id', 'name price images').sort('-createdAt').skip((page - 1) * limit).limit(Number(limit));
     const total = await Order.countDocuments(query);
@@ -798,6 +806,133 @@ const bulkDeleteProducts = async (req, res, next) => {
   }
 };
 
+const getAllTransactions = async (req, res, next) => {
+  try {
+    const { status, type, gateway, search, page = 1, limit = 50 } = req.query;
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+    if (type && type !== 'all') query.type = type;
+    if (gateway && gateway !== 'all') query.gateway = gateway;
+    
+    if (search) {
+      query.$or = [
+        { reference: new RegExp(search, 'i') },
+        { gateway_transaction_id: new RegExp(search, 'i') },
+        { description: new RegExp(search, 'i') }
+      ];
+    }
+
+    const transactions = await Transaction.find(query)
+      .populate('user_id', 'name email avatar role')
+      .populate({
+        path: 'order_id',
+        select: 'vendor_id',
+        populate: {
+          path: 'vendor_id',
+          select: 'store_name branding'
+        }
+      })
+      .populate({
+        path: 'order_ids',
+        select: 'vendor_id',
+        populate: {
+          path: 'vendor_id',
+          select: 'store_name branding'
+        }
+      })
+      .sort('-createdAt')
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await Transaction.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      count: transactions.length,
+      total,
+      data: { transactions }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const fulfillOrderFromTransaction = async (req, res, next) => {
+  try {
+    const { transactionId } = req.params;
+    const transaction = await Transaction.findById(transactionId);
+    
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    if (transaction.status !== 'completed') return res.status(400).json({ success: false, message: 'Only completed transactions can trigger order fulfillment.' });
+    if (!transaction.order_ids || transaction.order_ids.length === 0) return res.status(400).json({ success: false, message: 'No orders linked to this transaction.' });
+
+    const { settleOrdersInSession } = require('./payment.controller');
+    await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, null, false, '');
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Orders synchronized and fulfilled successfully.' 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const syncWithEversend = async (req, res, next) => {
+  try {
+    const eversend = require('../services/eversend.service');
+    const authRes = await eversend.getAccessToken(); // Ensure we can connect
+    
+    // Fetch latest 20 transactions from Eversend
+    const eversendClient = require('axios').create({
+      baseURL: process.env.EVERSEND_BASE_URL,
+      headers: { Authorization: `Bearer ${authRes}` }
+    });
+    
+    const txRes = await eversendClient.get('/transactions', { params: { limit: 20 } });
+    const remoteTxs = txRes.data?.data?.transactions || [];
+    
+    let importedCount = 0;
+    for (const rt of remoteTxs) {
+      // Only sync transactions that were initiated by our platform (identified by AURA or TEST prefix)
+      const isPlatformTx = rt.transactionRef && (rt.transactionRef.startsWith('AURA') || rt.transactionRef.startsWith('TEST'));
+      if (!isPlatformTx) continue;
+
+      const exists = await Transaction.findOne({ 
+        $or: [
+          { gateway_transaction_id: rt.transactionId },
+          { reference: rt.transactionRef }
+        ]
+      });
+      
+      if (!exists && rt.transactionId) {
+        // Create an "Imported" transaction record
+        await Transaction.create({
+          user_id: req.user._id, // Assign to current admin as importer? Or system user if we had one.
+          type: rt.type === 'collection' ? 'deposit' : 'withdrawal',
+          amount: parseFloat(rt.amount),
+          currency: rt.currency,
+          reference: rt.transactionRef || `IMP-${rt.transactionId}`,
+          gateway_transaction_id: rt.transactionId,
+          status: rt.status === 'successful' ? 'completed' : rt.status === 'failed' ? 'failed' : 'pending',
+          gateway: 'eversend',
+          description: `Imported via Gateway Sync: ${rt.type} (${rt.status})`,
+          gateway_response: rt
+        });
+        importedCount++;
+      }
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Gateway reconciliation complete. ${importedCount} new records discovered and imported.`,
+      importedCount
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -833,4 +968,7 @@ module.exports = {
   deleteUser,
   bulkDeleteUsers,
   bulkDeleteProducts,
+  getAllTransactions,
+  fulfillOrderFromTransaction,
+  syncWithEversend,
 };

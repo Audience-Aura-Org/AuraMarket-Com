@@ -33,6 +33,7 @@ const ADMIN_NAV = [
   { icon: 'how_to_reg',     label: 'Vendor KYC',       href: '/admin/approvals' },
   { icon: 'gavel',          label: 'Disputes',         href: '/admin/disputes' },
   { icon: 'account_balance_wallet',label: 'Withdrawals',    href: '/admin/withdrawals' },
+  { icon: 'receipt_long',   label: 'Transactions',    href: '/admin/transactions' },
   { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
   { icon: 'payments',       label: 'Logistics Earnings',href: '/admin/logistics/earnings' },
   { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },
@@ -134,8 +135,8 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                />
             </div>
             <div className="flex flex-col min-w-0">
-               <h1 className="text-[12px] font-bold tracking-tighter text-[var(--text-primary)] leading-none  whitespace-nowrap overflow-hidden text-ellipsis">Aura <span className="text-[var(--accent)]">Market</span></h1>
-               <p className="text-[11px] font-bold tracking-tight opacity-80 mt-1 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: config.accent }}>{config.label}</p>
+               <h1 className="text-[12px] font-bold tracking-tighter text-[var(--text-primary)] leading-none uppercase">Aura <span className="text-[var(--accent)]">Market</span></h1>
+               <p className="text-[10px] font-medium tracking-[0.1em] uppercase opacity-80 mt-1" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors shrink-0">
@@ -151,7 +152,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             className="flex-1 flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent)]/5 transition-all group"
           >
             <span className="material-symbols-outlined text-xl text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors">notifications</span>
-            <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Signals</span>
+            <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Signals</span>
             {unreadCount > 0 && (
               <span
                 className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[11px] font-bold rounded-full flex items-center justify-center animate-pulse"
@@ -189,7 +190,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                   }
                   if(window.innerWidth < 1024) onClose(); 
                 }}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all group ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
                   isActive
                     ? 'border-l-[3px]'
                     : 'hover:bg-[var(--accent)]/5 border-l-[3px] border-transparent'
@@ -209,7 +210,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                 >
                   {item.icon}
                 </span>
-                <span className={`text-[11px] font-bold tracking-tight transition-colors truncate flex-1 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                <span className={`text-[10px] font-medium tracking-[0.1em] uppercase transition-colors truncate flex-1 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                   {item.label}
                 </span>
                 {badge > 0 && (
@@ -225,20 +226,20 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
           })}
 
           <div className="pt-8 pb-2 px-4">
-            <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">Preferences</p>
+            <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-[var(--text-secondary)] opacity-40">Preferences</p>
           </div>
 
-          <Link href="/settings" className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-[var(--accent)]/5 transition-all group border-l-[3px] border-transparent">
+          <Link href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--accent)]/5 transition-all group border-l-[3px] border-transparent">
             <span className="material-symbols-outlined text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">settings</span>
-            <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Settings</span>
+            <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Settings</span>
           </Link>
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-red-500/10 transition-all group w-full border-l-[3px] border-transparent"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 transition-all group w-full border-l-[3px] border-transparent"
           >
             <span className="material-symbols-outlined text-[var(--text-secondary)] group-hover:text-red-500">logout</span>
-            <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] group-hover:text-red-500">Sign Out</span>
+            <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[var(--text-secondary)] group-hover:text-red-500">Sign Out</span>
           </button>
         </nav>
 

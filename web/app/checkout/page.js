@@ -266,6 +266,11 @@ function CheckoutContent() {
       setError(`Your wallet balance (${walletBalance.toLocaleString()} XAF) is insufficient for this order (${totalAmount.toLocaleString()} XAF).`);
       return;
     }
+    if (isEversend && totalAmount < 500) {
+      setError(`Eversend requires a minimum payment of 500 XAF. Your current total is ${totalAmount.toLocaleString()} XAF.`);
+      toast.error("Minimum amount for Eversend is 500 XAF");
+      return;
+    }
     setBlockReason(null);
 
     setLoading(true);

@@ -13,6 +13,7 @@ const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const logisticsService = require('../services/logistics.service');
+const Cart = require('../models/Cart.model');
 const { sendNotification } = require('../utils/notifier');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
@@ -81,6 +82,13 @@ const holdFunds = async (req, res, next) => {
     order.payment_status = 'paid'; // The system got the money
     order.order_status = 'processing'; // Vendor can begin shipping
     await order.save({ session });
+
+    // Clear cart after funds are secured in escrow
+    const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
+    if (cart) {
+      cart.items = [];
+      await cart.save({ session });
+    }
 
     await session.commitTransaction();
     session.endSession();

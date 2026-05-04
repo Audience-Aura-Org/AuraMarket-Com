@@ -31,6 +31,10 @@ export const paymentService = {
    * @param {Object} data - { amount, currency, phone, country, order_ids, redirect_url, otp }
    */
   initializeEversend: async (data) => {
+    // Eversend hard minimum for XAF is 500
+    if (data.currency === 'XAF' && data.amount < 500) {
+      throw new Error('Eversend requires a minimum of 500 XAF for processing.');
+    }
     const res = await api.post('/payments/eversend/initialize', data);
     return res.data;
   },

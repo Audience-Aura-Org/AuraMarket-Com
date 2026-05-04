@@ -4,6 +4,7 @@ const Transaction = require('../models/Transaction.model');
 const User = require('../models/User.model');
 const Order = require('../models/Order.model');
 const Escrow = require('../models/Escrow.model');
+const Cart = require('../models/Cart.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const logisticsService = require('../services/logistics.service');
 const { PAYSTACK_SECRET_KEY } = require('../config/env');
@@ -204,6 +205,14 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
     }
 
     await user.save({ session });
+
+    // Clear user cart once all orders in the session are paid/settled
+    const cart = await Cart.findOne({ user_id: userId }).session(session);
+    if (cart) {
+      cart.items = [];
+      await cart.save({ session });
+    }
+
     if (!externalSession) await session.commitTransaction();
     console.log(`✅ Aura settlement: orders ${orderIds.join(', ')} finalized for user ${userId}`);
   } catch (error) {
@@ -570,4 +579,5 @@ module.exports = {
   eversendVerify,
   eversendRecheck,
   eversendWebhook,
+  settleOrdersInSession,
 };

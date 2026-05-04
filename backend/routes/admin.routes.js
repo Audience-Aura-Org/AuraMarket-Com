@@ -43,7 +43,10 @@ const {
   getAllProducts,
   deleteUser,
   bulkDeleteUsers,
-  bulkDeleteProducts
+  bulkDeleteProducts,
+  getAllTransactions,
+  fulfillOrderFromTransaction,
+  syncWithEversend
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
@@ -111,6 +114,11 @@ router.get('/notifications/email-logs', getEmailLogs);
 
 // Audit Logging
 router.get('/audit', getAuditLogs);
+
+// Global Transactions Monitoring
+router.get('/transactions', getAllTransactions);
+router.post('/transactions/sync-eversend', syncWithEversend);
+router.post('/transactions/:transactionId/fulfill', fulfillOrderFromTransaction);
 
 // Queue Moderation
 router.get('/vendors/pending', getPendingVendors);

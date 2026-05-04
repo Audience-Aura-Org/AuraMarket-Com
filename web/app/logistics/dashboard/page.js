@@ -28,14 +28,14 @@ export default function LogisticsDashboard() {
       setLoading(true);
       const [resShip, resWallet] = await Promise.all([
         api.get('/logistics/shipments'),
-        api.get('/wallet/balance')
+        api.get('/wallet')
       ]);
       
       if (resShip.data.success) {
         setShipments(resShip.data.data?.shipments || resShip.data.shipments || []);
       }
       if (resWallet.data.success) {
-        setBalance(resWallet.data.data.wallet_balance || 0);
+        setBalance(resWallet.data.data.balance || 0);
       }
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err);

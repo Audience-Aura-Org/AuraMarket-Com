@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +42,18 @@ export default function AdminOrdersPage() {
   const [expanded, setExpanded] = useState(null);
   const [savingOrderId, setSavingOrderId] = useState(null);
   const [orderEdits, setOrderEdits] = useState({});
+  const [stats, setStats] = useState(null);
+
+  const fetchStats = async () => {
+    try {
+      const res = await api.get('/admin/analytics');
+      if (res.data.success) {
+        setStats(res.data.data.stats);
+      }
+    } catch (err) {
+      console.error('Failed to fetch platform metrics');
+    }
+  };
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -58,6 +70,7 @@ export default function AdminOrdersPage() {
 
   useEffect(() => { 
     fetchOrders(); 
+    fetchStats();
     setCurrentPage(1);
   }, [fetchOrders]);
 
@@ -136,18 +149,32 @@ export default function AdminOrdersPage() {
 
       <div className="p-4 lg:p-8 space-y-6 pb-20">
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          {[
-            { label: 'Total Orders', value: filtered.length, color: 'text-[var(--accent)]' },
-            { label: 'Revenue', value: `${(totalRevenue / 1000).toFixed(1)}k`, color: 'text-emerald-500' },
-            { label: 'Delivered', value: filtered.filter(o => o.order_status === 'delivered').length, color: 'text-emerald-500' },
-            { label: 'Active', value: filtered.filter(o => ['placed','processing','shipped'].includes(o.order_status)).length, color: 'text-amber-500' },
-          ].map(s => (
-            <div key={s.label} className="p-4 lg:p-5 rounded-2xl lg:rounded-3xl glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:border-[var(--accent)]/20 transition-all shadow-sm">
-              <p className="text-[7px] lg:text-[11px] font-bold tracking-tight text-[var(--text-secondary)]  opacity-50">{s.label}</p>
-              <p className={`text-lg lg:text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+           {[
+              { label: 'Total Orders', value: stats ? stats.orders : '...', icon: Package, color: 'var(--accent)', sub: 'ORDER_MANIFEST' },
+              { label: 'Total Revenue', value: stats ? `${(stats.revenue / 1000).toFixed(1)}k` : '...', icon: ArrowUpRight, color: '#10b981', sub: 'FINANCIAL_RESOLUTION' },
+              { label: 'Delivered Nodes', value: stats ? stats.delivered_orders : '...', icon: CheckCircle2, color: '#6366f1', sub: 'LOGISTICS_END' },
+              { label: 'Active Pipeline', value: stats ? stats.active_orders : '...', icon: Truck, color: '#f59e0b', sub: 'FLOW_ACTIVE' }
+           ].map(s => (
+              <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
+                 {/* Decorative Radial Glow */}
+                 <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
+                 
+                 <div className="relative flex flex-col justify-between h-full space-y-8">
+                    <div className="flex items-center justify-between">
+                       <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
+                          <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
+                       </div>
+                       <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                    </div>
+
+                    <div>
+                       <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
+                       <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                    </div>
+                 </div>
+              </div>
+           ))}
         </div>
 
         {/* Search & Tabs */}

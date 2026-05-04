@@ -322,6 +322,13 @@ const payDirectly = async (req, res, next) => {
     order.order_status   = 'processing';
     await order.save({ session });
 
+    // Clear cart upon successful direct payment
+    const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
+    if (cart) {
+      cart.items = [];
+      await cart.save({ session });
+    }
+
     // ── AUTOMATIC LOGISTICS SHIPMENT TRIGGER ──
     let logisticsNotification = null;
     if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
@@ -366,7 +373,13 @@ const payDirectly = async (req, res, next) => {
 
 const getCustomerOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ customer_id: req.user._id })
+    const orders = await Order.find({ 
+      customer_id: req.user._id,
+      $or: [
+        { payment_status: 'paid' },
+        { payment_method: 'pay_on_delivery' }
+      ]
+    })
       .populate({
         path: 'vendor_id',
         select: 'store_name user_id',
@@ -382,7 +395,13 @@ const getCustomerOrders = async (req, res, next) => {
 
 const getVendorOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ vendor_id: req.vendor._id })
+    const orders = await Order.find({ 
+      vendor_id: req.vendor._id,
+      $or: [
+        { payment_status: 'paid' },
+        { payment_method: 'pay_on_delivery' }
+      ]
+    })
       .populate('customer_id', 'name email phone avatar')
       .populate({
         path: 'vendor_id',
@@ -691,8 +710,8 @@ const createOrdersFromCart = async (req, res, next) => {
       }
     }
 
-    // Only clear the cart if we processed the cart, not a direct "Buy Now" item
-    if (!req.body.items) {
+    // Only clear the cart if we processed the cart, and it's Pay on Delivery (no separate payment step)
+    if (!req.body.items && payment_method === 'pay_on_delivery') {
        const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
        if (cart) {
           cart.items = [];
