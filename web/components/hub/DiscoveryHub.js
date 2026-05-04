@@ -572,7 +572,7 @@ export default function DiscoveryHub() {
                   )}
                 </div>
                 
-                <span className={`text-[8.5px] font-semibold tracking-[0.05em] mt-1.5 transition-all ${
+                <span className={`text-[10px] font-medium tracking-[0.02em] mt-1.5 transition-all ${
                   isActive ? 'text-[var(--accent)] opacity-100' : 'text-[var(--text-secondary)] opacity-60'
                 }`}>
                   {tab.label}
@@ -606,7 +606,7 @@ export default function DiscoveryHub() {
                   }`}
                 >
                    <Icon className={`size-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                   <span className="text-[8.5px] font-semibold tracking-[0.05em] mt-1.5">{tab.label}</span>
+                   <span className="text-[10px] font-medium tracking-[0.02em] mt-1.5">{tab.label}</span>
                 </button>
               </div>
             );
