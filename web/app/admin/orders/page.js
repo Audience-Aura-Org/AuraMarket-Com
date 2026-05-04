@@ -30,6 +30,7 @@ const PAYMENT_STATUS = {
 };
 
 import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -214,11 +215,7 @@ export default function AdminOrdersPage() {
         {/* Orders Table/List */}
         <div className="space-y-8">
           {loading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 lg:h-24 rounded-[20px] lg:rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] animate-pulse" />
-              ))}
-            </div>
+            <LoadingSpinner text="Retrieving Manifests" />
           ) : filtered.length === 0 ? (
             <div className="py-20 lg:py-32 flex flex-col items-center text-center opacity-30">
               <ShoppingBag className="w-16 h-16 lg:w-20 lg:h-20 mb-6 opacity-10" />
