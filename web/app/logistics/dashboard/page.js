@@ -63,10 +63,10 @@ export default function LogisticsDashboard() {
               <Truck className="w-6 h-6 text-[var(--accent)]" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight">Logistics Hub</h1>
+              <h1 className="text-2xl font-black tracking-tighter">Logistics Hub</h1>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Network Operational</p>
+                <p className="text-[9px] font-black text-[var(--text-secondary)] tracking-wide opacity-60">Network Operational</p>
               </div>
             </div>
           </div>
@@ -80,7 +80,7 @@ export default function LogisticsDashboard() {
             </button>
             <div className="hidden md:flex flex-col items-end">
               <p className="text-xs font-black">{new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</p>
-              <p className="text-[10px] text-[var(--text-secondary)] opacity-40 uppercase font-black">GMT +1</p>
+              <p className="text-[10px] text-[var(--text-secondary)] opacity-40  font-black">GMT +1</p>
             </div>
           </div>
         </div>
@@ -107,9 +107,9 @@ export default function LogisticsDashboard() {
               <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
                 <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
               </div>
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-1">{stat.label}</p>
+              <p className="text-[9px] font-black text-[var(--text-secondary)] tracking-wide mb-1">{stat.label}</p>
               <h4 className="text-3xl font-black tracking-tighter mb-1">{stat.value}</h4>
-              <p className="text-[9px] font-bold opacity-40 uppercase tracking-wide">{stat.sub}</p>
+              <p className="text-[9px] font-black opacity-40 tracking-wide">{stat.sub}</p>
             </motion.div>
           ))}
         </div>
@@ -125,10 +125,10 @@ export default function LogisticsDashboard() {
             
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-xl font-black tracking-tight">Node Saturation</h3>
-                <p className="text-xs text-[var(--text-secondary)] opacity-60">Regional manifest distribution</p>
+                <h3 className="text-xl font-black tracking-tighter">Node Saturation</h3>
+                <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-60">Regional manifest distribution</p>
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-widest hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.4)] transition-all">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[9px] font-black tracking-wide hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.4)] transition-all">
                 Full Map <ArrowUpRight className="w-3 h-3" />
               </button>
             </div>
@@ -142,7 +142,7 @@ export default function LogisticsDashboard() {
                 { location: 'Garoua - Hub', load: 15, color: 'bg-blue-500' }
               ].map((node, i) => (
                 <div key={i} className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                  <div className="flex justify-between text-[9px] font-black tracking-wide">
                     <span className="text-[var(--text-secondary)]">{node.location}</span>
                     <span className="text-[var(--text-primary)]">{node.load}%</span>
                   </div>
@@ -162,22 +162,22 @@ export default function LogisticsDashboard() {
           {/* Quick Actions & Recent Updates */}
           <div className="space-y-4">
             <div className="p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)]">
-              <h3 className="text-sm font-black uppercase tracking-widest mb-4">Quick Command</h3>
+              <h3 className="text-[9px] font-black tracking-wide mb-4">Quick Command</h3>
               <div className="grid grid-cols-2 gap-3">
                 <button className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)] transition-all flex flex-col items-center gap-2 group">
                   <Package className="w-5 h-5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold">New Manifest</span>
+                  <span className="text-[9px] font-black tracking-wide">New Manifest</span>
                 </button>
                 <button className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)] transition-all flex flex-col items-center gap-2 group">
                   <MapPin className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold">Manage Nodes</span>
+                  <span className="text-[9px] font-black tracking-wide">Manage Nodes</span>
                 </button>
               </div>
             </div>
 
             <div className="p-6 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)]">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-black uppercase tracking-widest">Recent Alarms</h3>
+                <h3 className="text-[9px] font-black tracking-wide">Recent Alarms</h3>
                 <AlertCircle className="w-4 h-4 text-rose-500 animate-pulse" />
               </div>
               <div className="space-y-4">
@@ -185,9 +185,9 @@ export default function LogisticsDashboard() {
                   { msg: 'Weather delay at Node A', time: '2m ago' },
                   { msg: 'System check complete', time: '1h ago' }
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold opacity-60">{item.msg}</span>
-                    <span className="opacity-30 whitespace-nowrap">{item.time}</span>
+                  <div key={i} className="flex items-center justify-between text-[9px]">
+                    <span className="font-black tracking-wide opacity-60">{item.msg}</span>
+                    <span className="opacity-30 whitespace-nowrap font-black tracking-wide">{item.time}</span>
                   </div>
                 ))}
               </div>
@@ -200,11 +200,11 @@ export default function LogisticsDashboard() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Activity className="w-5 h-5 text-[var(--accent)]" />
-              <h3 className="text-xl font-black">Shipment Stream</h3>
+              <h3 className="text-xl font-black tracking-tighter ">Shipment Stream</h3>
             </div>
             
             <div className="flex gap-2">
-              <button className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-black uppercase flex items-center gap-2 hover:bg-white/5 transition-all">
+              <button className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[9px] font-black tracking-wide flex items-center gap-2 hover:bg-white/5 transition-all">
                 <Filter className="w-3 h-3" /> Filter
               </button>
             </div>
@@ -213,7 +213,7 @@ export default function LogisticsDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">
+                <tr className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">
                   <th className="pb-4 pr-4">Shipment ID</th>
                   <th className="pb-4 pr-4">Destination</th>
                   <th className="pb-4 pr-4">Status</th>
@@ -225,15 +225,15 @@ export default function LogisticsDashboard() {
                 {shipments.slice(0, 8).map((s) => (
                   <tr key={s._id} className="group hover:bg-white/[0.02] transition-colors">
                     <td className="py-4 pr-4">
-                      <p className="text-xs font-black">#{s._id?.slice(-8).toUpperCase()}</p>
-                      <p className="text-[9px] opacity-40 uppercase font-black">{s.tracking_number || 'TRK-PENDING'}</p>
+                      <p className="text-[11px] font-black tracking-tighter ">#{s._id?.slice(-8).toUpperCase()}</p>
+                      <p className="text-[9px] opacity-40  font-black tracking-widest">{s.tracking_number || 'TRK-PENDING'}</p>
                     </td>
                     <td className="py-4 pr-4">
                       <p className="text-xs font-bold truncate max-w-[150px]">{s.destination_address?.city || 'Unknown'}</p>
-                      <p className="text-[9px] opacity-40 uppercase font-black">{s.destination_address?.region || 'N/A'}</p>
+                      <p className="text-[9px] opacity-40  font-black">{s.destination_address?.region || 'N/A'}</p>
                     </td>
                     <td className="py-4 pr-4">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black tracking-wide ${
                         s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' : 
                         s.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
                         'bg-blue-500/10 text-blue-500'

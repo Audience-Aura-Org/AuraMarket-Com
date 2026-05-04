@@ -21,7 +21,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
         
         <div className="flex items-center px-6 gap-2">
            <span className="text-[10px] font-black text-[var(--text-primary)] font-mono">{currentPage}</span>
-           <span className="text-[9px] font-black text-[var(--text-secondary)] opacity-20 uppercase tracking-widest whitespace-nowrap">Of {totalPages} NODES</span>
+           <span className="text-[9px] font-black text-[var(--text-secondary)] opacity-20 tracking-wide whitespace-nowrap">Of {totalPages} NODES</span>
         </div>
 
         <PaginationButton 

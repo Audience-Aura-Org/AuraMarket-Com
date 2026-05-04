@@ -41,7 +41,7 @@ export default function FloatingCart() {
             
             {/* Expanded Header */}
             <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-[288px] mb-2 whitespace-nowrap">
-               <h3 className="font-black text-[var(--text-primary)] text-sm tracking-widest uppercase">Your Stack</h3>
+               <h3 className="font-black text-[var(--text-primary)] text-sm tracking-widest ">Your Stack</h3>
                <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black px-2 py-0.5 rounded-full">{totalItems} ITEMS</span>
             </div>
             
@@ -53,7 +53,7 @@ export default function FloatingCart() {
                    {totalItems}
                  </span>
                </div>
-               <div className="text-[9px] font-black uppercase text-[var(--text-secondary)] mt-6 -rotate-90 tracking-[0.3em] whitespace-nowrap overflow-visible">
+               <div className="text-[9px] font-black  text-[var(--text-secondary)] mt-6 -rotate-90 tracking-[0.3em] whitespace-nowrap overflow-visible">
                  CART
                </div>
             </div>
@@ -70,7 +70,7 @@ export default function FloatingCart() {
                     </div>
                     <div className="min-w-0 flex-1 whitespace-nowrap overflow-hidden pr-2">
                       <p className="font-bold text-xs text-[var(--text-primary)] truncate">{item.name}</p>
-                      <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-0.5">QTY: {item.quantity}</p>
+                      <p className="text-[10px] text-[var(--text-secondary)] font-black tracking-wide mt-0.5">QTY: {item.quantity}</p>
                     </div>
                     <div className="shrink-0 text-right">
                        <p className="text-sm font-black text-[var(--accent)]">{(item.price * item.quantity).toLocaleString()} XAF</p>
@@ -83,11 +83,11 @@ export default function FloatingCart() {
             {/* Expanded Footer / Actions */}
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 pt-2 border-t border-[var(--glass-border)] w-[288px] shrink-0 bg-[var(--bg-primary)]/80 backdrop-blur-sm shadow-lg shadow-black/10 -mx-4 -mb-4 px-4 py-4">
                <div className="flex justify-between items-center mb-3 pr-2">
-                 <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Estimated Total</span>
+                 <span className="text-[10px] font-black  text-[var(--text-secondary)] tracking-widest">Estimated Total</span>
                  <span className="font-black text-lg text-[var(--text-primary)]">{totalPrice.toLocaleString()} XAF</span>
                </div>
                <div className="pr-2">
-                 <Link href="/cart" className="w-full py-3 bg-[var(--accent)] text-white rounded-xl text-[10px] font-black tracking-widest uppercase flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all shadow-lg shadow-[var(--accent)]/30 active:scale-95">
+                 <Link href="/cart" className="w-full py-3 bg-[var(--accent)] text-white rounded-xl text-[10px] font-black tracking-widest  flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all shadow-lg shadow-[var(--accent)]/30 active:scale-95">
                    Proceed to Checkout <ArrowRight className="w-3 h-3" />
                  </Link>
                </div>
@@ -106,12 +106,12 @@ export default function FloatingCart() {
                </span>
              </div>
              <div>
-               <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] leading-none mb-1">Subtotal</p>
+               <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] leading-none mb-1">Subtotal</p>
                <p className="font-black text-sm text-[var(--text-primary)] leading-none">{totalPrice.toLocaleString()} XAF</p>
              </div>
            </div>
            
-           <Link href="/cart" className="px-6 py-2.5 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-[14px] text-[10px] font-black tracking-widest uppercase active:scale-95 transition-all shadow-md">
+           <Link href="/cart" className="px-6 py-2.5 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-[14px] text-[10px] font-black tracking-widest  active:scale-95 transition-all shadow-md">
              View Cart
            </Link>
         </div>

@@ -147,15 +147,15 @@ export default function VendorDashboard() {
         {/* Top Header */}
         <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-2 min-w-0 text-[var(--text-primary)]">
           <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
-            <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
+            <h2 className="text-base sm:text-xl font-black text-[var(--text-primary)] tracking-tighter  truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
             <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-            <p className="hidden md:block text-[var(--text-secondary)] text-[10px] font-black tracking-[0.18em] uppercase opacity-60">Status: <span className="text-[var(--text-primary)]">Online</span></p>
+            <p className="hidden md:block text-[var(--text-secondary)] text-[9px] font-black tracking-widest  opacity-60">Status: <span className="text-[var(--text-primary)]">Online</span></p>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="relative hidden lg:flex items-center group">
               <span className="material-symbols-outlined absolute left-4 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
               <input 
-                className="glass-panel border border-[var(--glass-border)] rounded-full py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-widest uppercase" 
+                className="glass-panel border border-[var(--glass-border)] rounded-full py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-widest " 
                 placeholder="Search..." 
                 type="text" 
               />
@@ -171,8 +171,8 @@ export default function VendorDashboard() {
             </div>
             <div className="flex items-center gap-3 sm:gap-4 pl-3 sm:pl-4 border-l border-[var(--glass-border)]/30">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
-                <p className="text-[10px] text-[var(--accent)] font-black tracking-widest uppercase opacity-80">Store Owner</p>
+                <p className="text-sm font-black text-[var(--text-primary)] tracking-tighter">{user?.name || 'Vendor'}</p>
+                <p className="text-[9px] text-[var(--accent)] font-black tracking-widest  opacity-80">Store Owner</p>
               </div>
               <div className="size-9 sm:size-10 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-black text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
@@ -207,23 +207,23 @@ export default function VendorDashboard() {
                       <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">{stat.icon}</span>
                     </div>
                     {stat.pct ? (
-                      <span className={`text-[8px] font-black px-3 py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-widest uppercase`}>{stat.pct}</span>
+                      <span className={`text-[9px] font-black px-3 py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-widest `}>{stat.pct}</span>
                     ) : (
                       <Link href="/wallet" className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                         <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
                       </Link>
                     )}
                   </div>
-                  <p className="text-[var(--text-secondary)] text-[9px] font-black tracking-widest uppercase opacity-40 mb-1">{stat.label}</p>
-                  <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tight font-mono">{stat.value}</h3>
+                  <p className="text-[var(--text-secondary)] text-[9px] font-black tracking-widest  opacity-40 mb-1">{stat.label}</p>
+                  <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tighter font-mono">{stat.value}</h3>
                   {stat.color !== 'purple' ? (
                     <div className="mt-4 h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden shadow-inner">
                       <div className={`${c.bar} h-full transition-all duration-1000`} style={{ width: c.w, boxShadow: `0 0 10px ${c.glow}` }} />
                     </div>
                   ) : (
                     <div className="mt-4 flex gap-2">
-                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[8px] font-black py-2 rounded-full shadow-lg shadow-[var(--accent)]/20 transition-all uppercase tracking-widest active:scale-95 text-center">Withdraw</Link>
-                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[8px] font-black py-2 rounded-full transition-all text-center border border-[var(--glass-border)] uppercase tracking-widest active:scale-95 flex items-center justify-center">Wallet</Link>
+                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[9px] font-black py-2 rounded-full shadow-lg shadow-[var(--accent)]/20 transition-all tracking-wide active:scale-95 text-center">Withdraw</Link>
+                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[9px] font-black py-2 rounded-full transition-all text-center border border-[var(--glass-border)] tracking-wide active:scale-95 flex items-center justify-center">Wallet</Link>
                     </div>
                   )}
                 </div>
@@ -232,19 +232,19 @@ export default function VendorDashboard() {
           </div>
 
           <div className="glass-panel p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
-            <p className="text-[10px] font-black tracking-widest uppercase text-[var(--text-secondary)] mb-4">Finance Intelligence</p>
+            <p className="text-[9px] font-black tracking-widest  text-[var(--text-secondary)] mb-4">Finance Intelligence</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
               <div className="rounded-2xl border border-[var(--glass-border)] p-4 bg-[var(--bg-secondary)]/20">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-50 mb-1">Available</p>
-                <p className="font-black text-[var(--text-primary)] text-lg">{walletBalance.toLocaleString()} XAF</p>
+                <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-50 mb-1">Available</p>
+                <p className="font-black text-[var(--text-primary)] text-lg tracking-tighter">{walletBalance.toLocaleString()} XAF</p>
               </div>
               <div className="rounded-2xl border border-[var(--glass-border)] p-4 bg-[var(--bg-secondary)]/20">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-50 mb-1">In Escrow</p>
-                <p className="font-black text-[var(--text-primary)] text-lg">{pendingEscrow.toLocaleString()} XAF</p>
+                <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-50 mb-1">In Escrow</p>
+                <p className="font-black text-[var(--text-primary)] text-lg tracking-tighter">{pendingEscrow.toLocaleString()} XAF</p>
               </div>
               <div className="rounded-2xl border border-[var(--glass-border)] p-4 bg-[var(--bg-secondary)]/20">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-50 mb-1">Recent Paid</p>
-                <p className="font-black text-[var(--text-primary)] text-lg">{recentPaid.toLocaleString()} XAF</p>
+                <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-50 mb-1">Recent Paid</p>
+                <p className="font-black text-[var(--text-primary)] text-lg tracking-tighter">{recentPaid.toLocaleString()} XAF</p>
               </div>
             </div>
           </div>
@@ -256,11 +256,11 @@ export default function VendorDashboard() {
                 <span className="material-symbols-outlined text-2xl">auto_awesome</span>
               </div>
               <div>
-                <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight">Aura Stories Manager</h3>
-                <p className="text-[9px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest">Share updates & engage with your followers</p>
+                <h3 className="text-sm font-black text-[var(--text-primary)]  tracking-tighter">Aura Stories Manager</h3>
+                <p className="text-[9px] text-[var(--text-secondary)] font-black opacity-50 tracking-wide">Share updates & engage with your followers</p>
               </div>
             </div>
-            <Link href="/vendor/stories" className="px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
+            <Link href="/vendor/stories" className="px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[9px] font-black tracking-wide shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
               Launch Story Hub
             </Link>
           </div>
@@ -271,10 +271,10 @@ export default function VendorDashboard() {
             <div className="lg:col-span-2 glass-panel rounded-[2rem] p-6 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase">Sales Growth</h3>
-                  <p className="text-[8px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest">Monthly sales trends</p>
+                  <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tighter ">Sales Growth</h3>
+                  <p className="text-[9px] text-[var(--text-secondary)] font-black opacity-50 tracking-wide">Monthly sales trends</p>
                 </div>
-                <select className="bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] text-[8px] font-black rounded-full px-4 py-2 focus:outline-none uppercase tracking-widest">
+                <select className="bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] text-[9px] font-black rounded-full px-4 py-2 focus:outline-none tracking-wide">
                   <option>Last 6 Months</option>
                   <option>Last Year</option>
                 </select>
@@ -290,7 +290,7 @@ export default function VendorDashboard() {
                   />
                 ))}
               </div>
-              <div className="flex justify-between mt-3 px-1 text-[8px] font-black text-[var(--text-secondary)] tracking-widest uppercase opacity-40">
+              <div className="flex justify-between mt-3 px-1 text-[9px] font-black text-[var(--text-secondary)] tracking-widest  opacity-40">
                 {['Jan','Feb','Mar','Apr','May','Jun'].map(m => <span key={m}>{m}</span>)}
               </div>
             </div>
@@ -298,8 +298,8 @@ export default function VendorDashboard() {
             {/* Recent Orders */}
             <div className="glass-panel rounded-[2rem] p-6 flex flex-col border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight">Recent Activity</h3>
-                <Link href="/vendor/orders" className="text-[var(--accent)] text-[9px] font-black uppercase tracking-widest hover:underline">View All</Link>
+                <h3 className="text-sm font-black text-[var(--text-primary)]  tracking-tighter">Recent Activity</h3>
+                <Link href="/vendor/orders" className="text-[var(--accent)] text-[9px] font-black tracking-wide hover:underline">View All</Link>
               </div>
               <div className="space-y-5 flex-1">
                 {orders.slice(0, 4).map((order, i) => (
@@ -308,8 +308,8 @@ export default function VendorDashboard() {
                       {order.user_id?.name?.[0] || order.customer?.[0] || 'C'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{order.items?.[0]?.product_id?.name || 'Order Item'}</p>
-                      <p className="text-[10px] text-[var(--text-secondary)]">
+                      <p className="text-sm font-black text-[var(--text-primary)] truncate tracking-tighter">{order.items?.[0]?.product_id?.name || 'Order Item'}</p>
+                      <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">
                         #{order._id?.slice(-5) || i} • {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : '—'}
                       </p>
                     </div>
@@ -326,23 +326,23 @@ export default function VendorDashboard() {
           {/* Live Order Tracking Table */}
           <div className="glass-panel rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
             <div className="p-6 border-b border-[var(--glass-border)] flex justify-between items-center">
-              <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tight uppercase">Active Transmissions</h3>
+              <h3 className="text-sm font-black text-[var(--text-primary)] tracking-tighter ">Active Transmissions</h3>
               <div className="flex gap-2">
-                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase">ALL</button>
-                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase hover:bg-[var(--accent)]/5">PROCESSING</button>
-                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest uppercase hover:bg-[var(--accent)]/5">SHIPPED</button>
+                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest ">ALL</button>
+                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest  hover:bg-[var(--accent)]/5">PROCESSING</button>
+                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-black tracking-widest  hover:bg-[var(--accent)]/5">SHIPPED</button>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-[10px] tracking-widest text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50">
-                    <th className="px-6 py-4 font-bold">Product</th>
-                    <th className="px-6 py-4 font-bold">Order ID</th>
-                    <th className="px-6 py-4 font-bold">Customer</th>
-                    <th className="px-6 py-4 font-bold">Status</th>
-                    <th className="px-6 py-4 font-bold">Amount</th>
-                    <th className="px-6 py-4 font-bold text-right">Action</th>
+                  <tr className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50">
+                    <th className="px-6 py-4">Product</th>
+                    <th className="px-6 py-4">Order ID</th>
+                    <th className="px-6 py-4">Customer</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Amount</th>
+                    <th className="px-6 py-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--glass-border)]">
@@ -364,7 +364,7 @@ export default function VendorDashboard() {
                         <td className="px-6 py-4 text-xs text-[var(--text-secondary)]">#{order._id?.slice(-6) || i}</td>
                         <td className="px-6 py-4 text-sm text-[var(--text-primary)]">{order.user_id?.name || '—'}</td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-bold ${statusStyles[status] || statusStyles.processing}`}>
+                          <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[9px] font-black tracking-wide ${statusStyles[status] || statusStyles.processing}`}>
                             <span className="size-1.5 rounded-full bg-current animate-pulse" />
                             {status}
                           </span>

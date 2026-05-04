@@ -39,10 +39,10 @@ function CompactStat({ title, value, sub, icon: Icon, color }) {
         <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
           <Icon className="size-4" />
         </div>
-        <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-50">{title}</p>
+        <p className="text-[10px] font-black text-[var(--text-secondary)] tracking-wide opacity-50">{title}</p>
       </div>
       <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{value}</h3>
-      {sub && <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 uppercase">{sub}</p>}
+      {sub && <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 ">{sub}</p>}
     </div>
   );
 }
@@ -95,8 +95,8 @@ export default function AdminAnalyticsPage() {
               <Layers className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg font-black uppercase tracking-tight">Intelligence Matrix</h1>
-              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Global Platform Insight</p>
+              <h1 className="text-lg font-black tracking-tight">Intelligence Matrix</h1>
+              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-wide">Global Platform Insight</p>
             </div>
           </div>
 
@@ -105,7 +105,7 @@ export default function AdminAnalyticsPage() {
               {['overview', 'revenue', 'inventory'].map(t => (
                 <button
                   key={t} onClick={() => setActiveTab(t)}
-                  className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                  className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
                 >
                   {t}
                 </button>
@@ -136,8 +136,8 @@ export default function AdminAnalyticsPage() {
           <div className="lg:col-span-2 p-8 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] relative overflow-hidden">
              <div className="flex items-center justify-between mb-8 relative z-10">
                 <div>
-                   <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40">Revenue Velocity (30D)</h3>
-                   <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest mt-1">Real-Time Market Pulse</p>
+                   <h3 className="text-[10px] font-black tracking-wide opacity-40">Revenue Velocity (30D)</h3>
+                   <p className="text-[9px] font-black text-[var(--accent)] tracking-wide mt-1">Real-Time Market Pulse</p>
                 </div>
                 <TrendingUp className="size-5 text-[var(--accent)] opacity-20" />
              </div>
@@ -162,7 +162,7 @@ export default function AdminAnalyticsPage() {
                       <YAxis hide />
                       <Tooltip 
                          contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '12px', fontSize: '10px' }}
-                         itemStyle={{ fontWeight: 900, textTransform: 'uppercase' }}
+                         itemStyle={{ fontWeight: 900, textTransform: '' }}
                       />
                       <Area type="monotone" dataKey="dailyRevenue" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorAdminRev)" />
                    </AreaChart>
@@ -173,14 +173,14 @@ export default function AdminAnalyticsPage() {
 
           {/* Market Share Distribution / Category Distribution */}
           <div className="p-8 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
-             <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-8">
+             <h3 className="text-[10px] font-black tracking-wide opacity-40 mb-8">
                {activeTab === 'inventory' ? 'Category Density' : 'Node Distribution'}
              </h3>
              <div className="space-y-6">
                 {(activeTab === 'inventory' ? category_stats : role_breakdown)?.map((item, i) => (
                    <div key={i} className="space-y-2">
                       <div className="flex items-center justify-between">
-                         <span className="text-[10px] font-black uppercase">{item._id || 'Standard'}</span>
+                         <span className="text-[10px] font-black ">{item._id || 'Standard'}</span>
                          <span className="text-[10px] font-black">{item.count}</span>
                       </div>
                       <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -195,11 +195,11 @@ export default function AdminAnalyticsPage() {
              </div>
 
              <div className="mt-12 pt-8 border-t border-[var(--glass-border)]">
-                <h4 className="text-[9px] font-black uppercase tracking-widest opacity-20 mb-6">Inventory Health</h4>
+                <h4 className="text-[9px] font-black tracking-wide opacity-20 mb-6">Inventory Health</h4>
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
                    <div className="flex items-center gap-3">
                       <Zap className="size-4 text-red-500" />
-                      <span className="text-[9px] font-black uppercase">Stock Alerts</span>
+                      <span className="text-[9px] font-black ">Stock Alerts</span>
                    </div>
                    <span className="text-sm font-black text-red-500">{platform_summary?.stock_alerts}</span>
                 </div>
@@ -210,7 +210,7 @@ export default function AdminAnalyticsPage() {
         {/* Asset Performance Table */}
         <div className="p-8 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40">Asset Conversion Performance</h3>
+              <h3 className="text-[10px] font-black tracking-wide opacity-40">Asset Conversion Performance</h3>
               <Activity className="size-4 opacity-20" />
            </div>
            
@@ -221,18 +221,18 @@ export default function AdminAnalyticsPage() {
                        {p.images?.[0]?.url ? (
                          <img src={p.images[0].url} className="size-full object-cover" />
                        ) : (
-                         <div className="size-full bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--accent)]/5 flex items-center justify-center text-[10px] font-black opacity-20 uppercase">
+                         <div className="size-full bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--accent)]/5 flex items-center justify-center text-[10px] font-black opacity-20 ">
                            {p.name?.charAt(0)}
                          </div>
                        )}
                     </div>
                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black uppercase truncate">{p.name}</p>
-                      <p className="text-[8px] font-black text-[var(--accent)] uppercase mt-0.5">XAF {fmt(p.price)}</p>
+                      <p className="text-[10px] font-black  truncate">{p.name}</p>
+                      <p className="text-[8px] font-black text-[var(--accent)]  mt-0.5">XAF {fmt(p.price)}</p>
                    </div>
                    <div className="text-right">
                       <p className="text-[11px] font-black">{p.purchase_count || 0}</p>
-                      <p className="text-[7px] font-black opacity-30 uppercase">Sold</p>
+                      <p className="text-[7px] font-black opacity-30 ">Sold</p>
                    </div>
                 </div>
               ))}

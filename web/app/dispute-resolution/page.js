@@ -32,10 +32,10 @@ export default function DisputeResolution() {
     <div className="min-h-screen bg-[var(--bg-secondary)] py-32 px-6 lg:px-20 selection:bg-[var(--accent)]/30">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16 space-y-6">
-          <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 animate-pulse">
+          <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-black tracking-wide shadow-lg shadow-[var(--accent)]/20 animate-pulse">
             <ShieldAlert className="size-4" /> Secure Escrow
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[var(--text-primary)] tracking-tighter uppercase drop-shadow-sm">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[var(--text-primary)] tracking-tighter  drop-shadow-sm">
             Dispute <span className="text-[var(--accent)]">Resolution</span>
           </h1>
           <p className="text-[var(--text-secondary)] font-medium max-w-2xl mx-auto leading-relaxed">
@@ -55,7 +55,7 @@ export default function DisputeResolution() {
               <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 md:p-10 shadow-xl group-hover:border-[var(--accent)]/50 transition-colors duration-500 relative overflow-hidden backdrop-blur-xl">
                  <div className={`absolute top-0 right-0 w-[300px] h-[300px] bg-gradient-to-br ${step.color} opacity-5 blur-[80px] pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2`} />
                  
-                 <h3 className="text-xl md:text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight mb-4 flex gap-4 items-center">
+                 <h3 className="text-xl md:text-2xl font-black text-[var(--text-primary)] tracking-tight mb-4 flex gap-4 items-center">
                    <span className="text-[var(--text-secondary)]/50 text-sm font-black">STEP {idx + 1}</span>
                    {step.title}
                  </h3>
@@ -75,7 +75,7 @@ export default function DisputeResolution() {
           </p>
           <a 
             href="/orders" 
-            className="px-8 py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black uppercase text-xs tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg"
+            className="px-8 py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black  text-xs tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg"
           >
             Go to My Orders
           </a>

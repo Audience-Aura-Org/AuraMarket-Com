@@ -133,7 +133,7 @@ export default function VariantSelectorModal({
                   <p className="text-[11px] font-black text-[var(--text-primary)] truncate leading-tight">{product.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-sm font-black text-[var(--accent)]">{displayPrice?.toLocaleString()} XAF</span>
-                    <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${inStock ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                    <span className={`text-[8px] font-bold tracking-normal px-1.5 py-0.5 rounded-full ${inStock ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                       {inStock ? 'In stock' : 'Out of stock'}
                     </span>
                   </div>
@@ -153,7 +153,7 @@ export default function VariantSelectorModal({
               {product.has_variants && product.variant_types?.map((type) => (
                 <div key={type.name}>
                   <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                    <span className="text-[9px] font-black  tracking-[0.15em] text-[var(--text-secondary)]">
                       {type.name}
                     </span>
                     {selectedOptions[type.name] && (
@@ -213,7 +213,7 @@ export default function VariantSelectorModal({
               <button
                 onClick={handleConfirm}
                 disabled={loading || !inStock}
-                className={`w-full h-12 rounded-2xl flex items-center justify-center gap-2.5 text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`w-full h-12 rounded-2xl flex items-center justify-center gap-2.5 text-[11px] font-black tracking-wide transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
                   actionType === 'buy'
                     ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--accent)] hover:text-white'
                     : 'bg-[var(--accent)] text-white hover:brightness-110'

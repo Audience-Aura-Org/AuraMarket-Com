@@ -59,7 +59,7 @@ export default function Hero({ data, config }) {
             <div className="absolute inset-0 z-20 flex items-center justify-start px-4 sm:px-8 md:px-20">
               <div className={`w-full sm:max-w-2xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0 hidden'}`}>
                 <div className="liquid-glass p-6 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2.5rem] space-y-4 md:space-y-6">
-                  <div className="flex items-center gap-3 text-[var(--accent)] font-black text-[8px] md:text-[10px] uppercase tracking-[0.3em] mb-1 md:mb-2">
+                  <div className="flex items-center gap-3 text-[var(--accent)] font-black text-[8px] md:text-[10px]  tracking-[0.3em] mb-1 md:mb-2">
                     <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
                     <span>Exclusive Release</span>
                   </div>
@@ -75,7 +75,7 @@ export default function Hero({ data, config }) {
                   <div className="pt-2 md:pt-4">
                     <button 
                       onClick={() => router.push(banner.link_to || '/overtime')}
-                      className="group bg-white text-black px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-2xl hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-3 uppercase tracking-widest active:scale-95"
+                      className="group bg-white text-black px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-2xl hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-3 tracking-wide active:scale-95"
                     >
                       <span className="whitespace-nowrap">{banner.cta_text || 'Explore Collection'}</span>
                       <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-2 transition-transform" />

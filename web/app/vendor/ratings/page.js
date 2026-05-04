@@ -71,7 +71,7 @@ export default function VendorRatingsPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Public Ratings</h1>
-                <p className="text-xs text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-40">Reputation Intelligence</p>
+                <p className="text-xs text-[var(--text-secondary)] font-bold tracking-wide opacity-40">Reputation Intelligence</p>
               </div>
             </div>
             <button 
@@ -101,9 +101,9 @@ export default function VendorRatingsPage() {
                 <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:scale-110 transition-transform`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
                 </div>
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wide mb-1">{stat.label}</p>
                 <h4 className="text-3xl font-black tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[9px] font-bold opacity-40 uppercase">{stat.sub}</p>
+                <p className="text-[9px] font-bold opacity-40 ">{stat.sub}</p>
               </motion.div>
             ))}
           </div>

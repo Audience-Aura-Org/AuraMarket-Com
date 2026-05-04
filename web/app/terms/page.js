@@ -21,9 +21,9 @@ export default function TermsAndConditions() {
           <div className="flex flex-col gap-4">
              <div className="flex items-center gap-2 text-[var(--accent)]">
                 <Scale className="size-5" />
-                <span className="text-xs font-black uppercase tracking-[0.4em]">System Node</span>
+                <span className="text-xs font-black  tracking-[0.4em]">System Node</span>
              </div>
-             <h1 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-tight">
+             <h1 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter  leading-tight">
                 Market <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Protocol</span>
              </h1>
              <p className="text-[var(--text-secondary)] max-w-xl opacity-60">
@@ -40,7 +40,7 @@ export default function TermsAndConditions() {
               <section className="flex flex-col gap-4">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <UserCheck className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-black uppercase tracking-tight">User Integrity</h3>
+                    <h3 className="text-lg font-black tracking-tight">User Integrity</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     By creating an Aura profile, you agree to maintain professional conduct and absolute honesty in your vendor-customer interactions. Manipulation of ratings or identity is strictly prohibited.
@@ -50,7 +50,7 @@ export default function TermsAndConditions() {
               <section className="flex flex-col gap-4">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Globe className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-black uppercase tracking-tight">Global Compliance</h3>
+                    <h3 className="text-lg font-black tracking-tight">Global Compliance</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     All vendors must adhere to local and international trade regulations. Aura Market provides the infrastructure for commerce but is never the merchant of record for third-party products.
@@ -60,7 +60,7 @@ export default function TermsAndConditions() {
               <section className="flex flex-col gap-4 text-emerald-500">
                  <div className="flex items-center gap-3">
                     <CheckCircle className="size-5" />
-                    <h3 className="text-lg font-black uppercase tracking-tight">Financial Protocol</h3>
+                    <h3 className="text-lg font-black tracking-tight">Financial Protocol</h3>
                  </div>
                  <p className="opacity-70 leading-relaxed text-sm">
                     All payment settlements are handled via our secure wallet nodes and escrow services. Attempting to bypass the Aura payment protocol results in immediate profile suspension.
@@ -75,7 +75,7 @@ export default function TermsAndConditions() {
         </div>
 
         <div className="mt-16 text-center">
-           <p className="text-[9px] font-black tracking-[0.5em] text-[var(--text-secondary)] uppercase opacity-30">
+           <p className="text-[9px] font-black tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
               Aura Market Global Terms of Service v1.0
            </p>
         </div>

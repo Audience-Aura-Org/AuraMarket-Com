@@ -21,9 +21,9 @@ export default function CookiePolicyPage() {
           <div className="flex flex-col gap-4">
              <div className="flex items-center gap-2 text-[var(--accent)]">
                 <Cookie className="size-5" />
-                <span className="text-xs font-black uppercase tracking-[0.4em]">Tracking Node</span>
+                <span className="text-xs font-black  tracking-[0.4em]">Tracking Node</span>
              </div>
-             <h1 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-tight">
+             <h1 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter  leading-tight">
                 Cookie <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Policy</span>
              </h1>
              <p className="text-[var(--text-secondary)] max-w-xl opacity-60 font-medium">
@@ -40,7 +40,7 @@ export default function CookiePolicyPage() {
               <section className="flex flex-col gap-6">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Database className="size-6 text-[var(--accent)]" />
-                    <h3 className="text-xl font-black uppercase tracking-tight">Essential Nodes</h3>
+                    <h3 className="text-xl font-black tracking-tight">Essential Nodes</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     These cookies are strictly necessary for the core functionality of Aura Market. They handle session authentication, secure wallet encryption, and regional storefront calibration. Disabling these will result in system-level instability.
@@ -50,7 +50,7 @@ export default function CookiePolicyPage() {
               <section className="flex flex-col gap-6">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Settings className="size-6 text-[var(--accent)]" />
-                    <h3 className="text-xl font-black uppercase tracking-tight">Personalization Sync</h3>
+                    <h3 className="text-xl font-black tracking-tight">Personalization Sync</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     We utilize preferences cookies to remember your visual settings (Light/Dark mode), currency nodes (XAF/BTC/Digital Assets), and filtered merchant layouts across multiple sessions.
@@ -60,7 +60,7 @@ export default function CookiePolicyPage() {
               <section className="flex flex-col gap-6">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Server className="size-6 text-[var(--accent)]" />
-                    <h3 className="text-xl font-black uppercase tracking-tight">Analytical Insights</h3>
+                    <h3 className="text-xl font-black tracking-tight">Analytical Insights</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     Surgical data collection via anonymized cookies helps us optimize the Aura infrastructure. We monitor performance latency, heatmaps of high-traffic products, and merchant conversion benchmarks.
@@ -71,7 +71,7 @@ export default function CookiePolicyPage() {
               <div className="mt-8 overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50">
                  <table className="w-full text-left border-collapse">
                     <thead>
-                       <tr className="bg-[var(--bg-primary)]/80 text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-50">
+                       <tr className="bg-[var(--bg-primary)]/80 text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-50">
                           <th className="p-5 border-b border-[var(--glass-border)]">Designation</th>
                           <th className="p-5 border-b border-[var(--glass-border)]">Purpose</th>
                           <th className="p-5 border-b border-[var(--glass-border)]">Expiration</th>
@@ -79,19 +79,19 @@ export default function CookiePolicyPage() {
                     </thead>
                     <tbody className="divide-y divide-[var(--glass-border)] text-[var(--text-secondary)]">
                        <tr className="hover:bg-white/5 transition-colors">
-                          <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] uppercase">aura_session_node</td>
+                          <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] ">aura_session_node</td>
                           <td className="p-5 text-xs opacity-70">Secure user authentication and token storage</td>
-                          <td className="p-5 text-[10px] font-black uppercase opacity-40">30 Solar Cycles</td>
+                          <td className="p-5 text-[10px] font-black  opacity-40">30 Solar Cycles</td>
                        </tr>
                        <tr className="hover:bg-white/5 transition-colors">
-                          <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] uppercase">aura_theme_pref</td>
+                          <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] ">aura_theme_pref</td>
                           <td className="p-5 text-xs opacity-70">Visual rendering configuration (Dark/Light)</td>
-                          <td className="p-5 text-[10px] font-black uppercase opacity-40">Immortal Node</td>
+                          <td className="p-5 text-[10px] font-black  opacity-40">Immortal Node</td>
                        </tr>
                        <tr className="hover:bg-white/5 transition-colors">
-                          <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] uppercase">aura_cart_manifest</td>
+                          <td className="p-5 font-bold text-[11px] text-[var(--text-primary)] ">aura_cart_manifest</td>
                           <td className="p-5 text-xs opacity-70">Persistence of local selection inventory</td>
-                          <td className="p-5 text-[10px] font-black uppercase opacity-40">Session-Specific</td>
+                          <td className="p-5 text-[10px] font-black  opacity-40">Session-Specific</td>
                        </tr>
                     </tbody>
                  </table>
@@ -105,7 +105,7 @@ export default function CookiePolicyPage() {
         </div>
 
         <div className="mt-16 text-center">
-           <p className="text-[9px] font-black tracking-[0.5em] text-[var(--text-secondary)] uppercase opacity-30">
+           <p className="text-[9px] font-black tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
               Aura Market Global Cookie Governance v1.0
            </p>
         </div>

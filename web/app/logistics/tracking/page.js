@@ -52,8 +52,8 @@ export default function LogisticsTrackingPage() {
   return (
     <div className="p-4 lg:p-10 space-y-6">
       <div>
-        <h1 className="text-lg lg:text-2xl font-black uppercase tracking-tight">Live Tracking</h1>
-        <p className="text-[10px] lg:text-xs font-bold uppercase tracking-wider opacity-60">
+        <h1 className="text-lg lg:text-2xl font-black tracking-tight">Live Tracking</h1>
+        <p className="text-[10px] lg:text-xs font-bold tracking-normal opacity-60">
           Shipment flow by current status
         </p>
       </div>
@@ -67,7 +67,7 @@ export default function LogisticsTrackingPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {cards.map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4">
-                <p className="text-[9px] font-black uppercase tracking-widest opacity-50">{label}</p>
+                <p className="text-[9px] font-black tracking-wide opacity-50">{label}</p>
                 <p className="text-xl font-black">{value}</p>
               </div>
             ))}
@@ -75,8 +75,8 @@ export default function LogisticsTrackingPage() {
 
           <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4 lg:p-6 min-h-[400px] flex flex-col">
             <div className="flex items-center justify-between mb-6">
-               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Recent activity</p>
-               <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{shipments.length} Total Logs</p>
+               <p className="text-[10px] font-black tracking-wide opacity-60">Recent activity</p>
+               <p className="text-[10px] font-bold opacity-40 tracking-wide">{shipments.length} Total Logs</p>
             </div>
             
             <div className="space-y-2 flex-1">
@@ -84,17 +84,17 @@ export default function LogisticsTrackingPage() {
                 <div key={s._id} className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] px-3 py-2 hover:bg-[var(--accent)]/5 transition-colors">
                   <div>
                     <p className="text-xs font-black">{s.tracking_code}</p>
-                    <p className="text-[10px] font-black text-[var(--accent)] uppercase">
+                    <p className="text-[10px] font-black text-[var(--accent)] ">
                       Order #{(s.order_id?._id || s.order_id || "").toString().slice(-8).toUpperCase()}
                     </p>
                     <p className="text-[10px] font-bold opacity-60 truncate max-w-[200px]">
                       {s.delivery_address?.quartier || s.delivery_address?.city || "Unknown destination"}
                     </p>
                   </div>
-                  <span className="text-[10px] font-black uppercase bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-2.5 py-1 rounded-lg">{(s.status || "").replace(/_/g, " ")}</span>
+                  <span className="text-[10px] font-black  bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-2.5 py-1 rounded-lg">{(s.status || "").replace(/_/g, " ")}</span>
                 </div>
               ))}
-              {!shipments.length && <p className="text-[10px] font-black uppercase opacity-40 py-20 text-center">No shipment activity yet</p>}
+              {!shipments.length && <p className="text-[10px] font-black  opacity-40 py-20 text-center">No shipment activity yet</p>}
             </div>
 
             <div className="mt-8 pt-6 border-t border-[var(--glass-border)]/50">

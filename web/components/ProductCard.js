@@ -180,7 +180,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                     <div className="size-5 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                       <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
                     </div>
-                    <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider truncate whitespace-nowrap block flex-1">{vendor_id?.store_name || 'Verified Vendor'}</span>
+                    <span className="text-[10px] font-bold text-[var(--accent)] tracking-normal truncate whitespace-nowrap block flex-1">{vendor_id?.store_name || 'Verified Vendor'}</span>
                   </Link>
                   {user?._id !== vendorUserId && (
                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`text-[9px] font-bold tracking-tight ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
@@ -206,7 +206,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 disabled={!product.has_variants && product.stock <= 0}
                 className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black tracking-widest rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {(!product.has_variants && product.stock <= 0) ? 'OUT OF STOCK' : 'BUY NOW'}
+                {(!product.has_variants && product.stock <= 0) ? 'Out of Stock' : 'Buy Now'}
               </button>
               <div className="flex items-center gap-2">
                 <button onClick={handleChat} className="size-9 rounded-2xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
@@ -263,14 +263,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           </Link>
           {!inStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-              <span className="px-4 py-2 bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-xl">Out of Stock</span>
+              <span className="px-4 py-2 bg-red-500 text-white text-[10px] font-black  tracking-[0.2em] rounded-full shadow-xl">Out of Stock</span>
             </div>
           )}
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>
             <Heart className={`size-3.5 ${wishlisted ? 'fill-current' : ''}`} />
           </button>
           <Link href={`/shop?vendorId=${vendorId}`} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[8px] font-black tracking-[0.2em] transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
-            <Compass className="size-3" /> DISCOVERY
+            <Compass className="size-3" /> Discovery
           </Link>
         </div>
 
@@ -293,7 +293,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               disabled={!inStock}
               className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              {inStock ? 'BUY NOW' : 'SOLD OUT'}
+              {inStock ? 'Buy Now' : 'Sold Out'}
             </button>
             <button onClick={handleChat} className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"><MessageSquare className="size-4 md:size-4.5" /></button>
             <button 

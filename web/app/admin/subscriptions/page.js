@@ -67,7 +67,7 @@ export default function AdminSubscriptionsPage() {
               <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Subscription Management</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-black tracking-widest text-emerald-600 uppercase">System Live</p>
+                <p className="text-[10px] font-black tracking-widest text-emerald-600 ">System Live</p>
               </div>
             </div>
           </div>
@@ -96,13 +96,13 @@ export default function AdminSubscriptionsPage() {
               <div className="p-6 border-b border-[var(--glass-border)] flex flex-wrap items-center justify-between gap-4 bg-[var(--bg-primary)]/50">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold text-[var(--text-primary)]">Vendor Subscription Overview</h2>
-                  <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest px-2.5 py-0.5 rounded-full border border-[var(--accent)]/20 uppercase">Live Data</span>
+                  <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest px-2.5 py-0.5 rounded-full border border-[var(--accent)]/20 ">Live Data</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[10px] font-black tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all uppercase">
+                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[10px] font-black tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all ">
                     <Filter className="w-4 h-4" /> Filter
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-xl text-[10px] font-black tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all text-white uppercase">
+                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-xl text-[10px] font-black tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all text-white ">
                     <Plus className="w-4 h-4" /> Add Subscription
                   </button>
                 </div>
@@ -111,7 +111,7 @@ export default function AdminSubscriptionsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] text-[10px] font-black tracking-widest border-b border-[var(--glass-border)] uppercase">
+                    <tr className="bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] text-[10px] font-black tracking-widest border-b border-[var(--glass-border)] ">
                       <th className="px-6 py-4">Vendor Name</th>
                       <th className="px-6 py-4">Plan Type</th>
                       <th className="px-6 py-4">Renewal Date</th>
@@ -131,7 +131,7 @@ export default function AdminSubscriptionsPage() {
                             </div>
                             <div>
                               <p className="text-sm font-bold text-[var(--text-primary)]">{s.vendor}</p>
-                              <p className="text-[10px] text-[var(--text-secondary)] font-bold tracking-widest uppercase">{s.id}</p>
+                              <p className="text-[10px] text-[var(--text-secondary)] font-bold tracking-widest ">{s.id}</p>
                             </div>
                           </div>
                         </td>
@@ -142,7 +142,7 @@ export default function AdminSubscriptionsPage() {
                         </td>
                         <td className="px-6 py-5">
                           <p className="text-sm font-bold text-[var(--text-primary)]">{s.renewal}</p>
-                          <p className="text-[10px] text-[var(--text-secondary)] font-bold tracking-widest mt-0.5 uppercase">{s.billing}</p>
+                          <p className="text-[10px] text-[var(--text-secondary)] font-bold tracking-widest mt-0.5 ">{s.billing}</p>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export default function AdminSubscriptionsPage() {
             {/* Plan Distribution + Churn */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
               <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-8 glass-panel">
-                <h3 className="text-lg font-black tracking-widest text-[var(--text-primary)] mb-6 uppercase">Plan Tier Distribution</h3>
+                <h3 className="text-lg font-black tracking-widest text-[var(--text-primary)] mb-6 ">Plan Tier Distribution</h3>
                 <div className="space-y-5">
                   <TierBar label="Premium" pct="42%" color="fuchsia" />
                   <TierBar label="Pro" pct="35%" color="blue" />
@@ -182,15 +182,15 @@ export default function AdminSubscriptionsPage() {
               </div>
               <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-8 flex items-center gap-6 glass-panel">
                 <div className="flex-1">
-                   <h3 className="text-lg font-black tracking-widest text-[var(--text-primary)] mb-2 uppercase">Churn Prediction</h3>
+                   <h3 className="text-lg font-black tracking-widest text-[var(--text-primary)] mb-2 ">Churn Prediction</h3>
                    <p className="text-sm text-[var(--text-secondary)] mb-6 font-bold">Based on payment delays and account activity in the last 30 days.</p>
                    <div className="flex items-end gap-2">
                       <span className="text-4xl font-black text-[var(--text-primary)] tracking-tighter">2.4%</span>
-                      <span className="text-emerald-600 text-[10px] font-black mb-2 flex items-center gap-1 uppercase tracking-widest">
+                      <span className="text-emerald-600 text-[10px] font-black mb-2 flex items-center gap-1 tracking-wide">
                          <TrendingDown className="w-3 h-3" /> 0.8%
                       </span>
                    </div>
-                   <p className="text-[10px] text-[var(--text-secondary)] tracking-[0.2em] font-black mt-1 uppercase opacity-60">Stable Outlook</p>
+                   <p className="text-[10px] text-[var(--text-secondary)] tracking-[0.2em] font-black mt-1  opacity-60">Stable Outlook</p>
                 </div>
                 <div className="w-24 h-24 rounded-full border-4 border-[var(--accent)]/10 flex items-center justify-center relative flex-shrink-0">
                   <div className="absolute inset-0 rounded-full border-4 border-[var(--accent)] border-t-transparent border-r-transparent -rotate-45 shadow-[0_0_15px_rgba(242,13,242,0.1)]" />
@@ -217,14 +217,14 @@ function StatCard({ label, value, sub, trend, positive, warn, Icon, color }) {
       <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-10 transition-opacity group-hover:opacity-20 ${glows[color]}`} />
       <div className="flex items-center justify-between mb-4 relative z-10">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${colors[color]}`}><Icon className="w-5 h-5" /></div>
-        <span className={`text-[10px] font-black tracking-widest flex items-center gap-1 uppercase ${warn ? 'text-amber-600' : positive ? 'text-emerald-600' : 'text-red-600'}`}>
+        <span className={`text-[10px] font-black tracking-widest flex items-center gap-1  ${warn ? 'text-amber-600' : positive ? 'text-emerald-600' : 'text-red-600'}`}>
           {!warn && (positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />)}
           {trend}
         </span>
       </div>
-      <p className="text-[var(--text-secondary)] text-[10px] font-black tracking-widest uppercase relative z-10">{label}</p>
+      <p className="text-[var(--text-secondary)] text-[10px] font-black tracking-widest  relative z-10">{label}</p>
       <h3 className="text-3xl font-bold text-[var(--text-primary)] mt-1 relative z-10">{value}</h3>
-      {sub && <p className="text-[10px] text-[var(--text-secondary)] mt-2 font-bold tracking-widest uppercase opacity-60">{sub}</p>}
+      {sub && <p className="text-[10px] text-[var(--text-secondary)] mt-2 font-bold tracking-widest  opacity-60">{sub}</p>}
     </div>
   );
 }
@@ -234,7 +234,7 @@ function TierBar({ label, pct, color }) {
   const txt = { fuchsia: 'text-[var(--accent)]', blue: 'text-blue-600', slate: 'text-[var(--text-secondary)]' };
   return (
     <div>
-      <div className="flex justify-between text-[10px] font-black tracking-widest mb-2 uppercase">
+      <div className="flex justify-between text-[10px] font-black tracking-widest mb-2 ">
         <span className="text-[var(--text-secondary)]">{label}</span>
         <span className={txt[color]}>{pct}</span>
       </div>

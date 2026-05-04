@@ -55,7 +55,7 @@ export default function AdminLogisticsEarningsPage() {
               </div>
               <div className="space-y-0.5">
                  <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Earnings <span className="text-[var(--accent)]">Intelligence</span></h1>
-                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-40">Settlement Manifest 2026</p>
+                 <p className="text-[10px] font-black  tracking-[0.2em] text-[var(--text-secondary)] opacity-40">Settlement Manifest 2026</p>
               </div>
            </div>
 
@@ -64,13 +64,13 @@ export default function AdminLogisticsEarningsPage() {
                  <select 
                    value={timeframe} 
                    onChange={(e) => setTimeframe(e.target.value)}
-                   className="bg-transparent text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] outline-none"
+                   className="bg-transparent text-[9px] font-black tracking-wide text-[var(--text-secondary)] outline-none"
                  >
                     <option value="current">Current Cycle</option>
                     <option value="past">Archived Cycles</option>
                  </select>
               </div>
-              <button className="h-10 px-6 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-[var(--accent)] hover:text-white transition-all">
+              <button className="h-10 px-6 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-wide flex items-center gap-3 hover:bg-[var(--accent)] hover:text-white transition-all">
                  <Download className="size-3" /> Export CSV
               </button>
            </div>
@@ -84,13 +84,13 @@ export default function AdminLogisticsEarningsPage() {
                     <Activity className="size-6" />
                  </div>
                  <div>
-                    <h4 className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">Gross Marketplace Volume</h4>
+                    <h4 className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 tracking-wide">Gross Marketplace Volume</h4>
                     <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{totalRev.toLocaleString()} <span className="text-xs opacity-20">XAF</span></p>
                  </div>
               </div>
               <div className="text-right hidden sm:block">
                  <p className="text-[10px] font-black text-emerald-500">+12.4%</p>
-                 <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 uppercase">Growth vs Prev</p>
+                 <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 ">Growth vs Prev</p>
               </div>
            </div>
            
@@ -100,13 +100,13 @@ export default function AdminLogisticsEarningsPage() {
                     <Truck className="size-6" />
                  </div>
                  <div>
-                    <h4 className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">Total Logistics Burn</h4>
+                    <h4 className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 tracking-wide">Total Logistics Burn</h4>
                     <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{totalShip.toLocaleString()} <span className="text-xs opacity-20">XAF</span></p>
                  </div>
               </div>
               <div className="text-right hidden sm:block">
                  <p className="text-[10px] font-black text-indigo-500">OPTIMIZED</p>
-                 <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 uppercase">Fuel Index 0.82</p>
+                 <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 ">Fuel Index 0.82</p>
               </div>
            </div>
         </div>
@@ -117,8 +117,8 @@ export default function AdminLogisticsEarningsPage() {
            {/* Vendor Matrix */}
            <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Merchant Nodes</h2>
-                 <span className="text-[8px] font-black text-[var(--accent)] uppercase">{vendors.length} Live</span>
+                 <h2 className="text-xs font-black  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Merchant Nodes</h2>
+                 <span className="text-[8px] font-black text-[var(--accent)] ">{vendors.length} Live</span>
               </div>
               <div className="space-y-2">
                  {vendors.map((v) => (
@@ -128,8 +128,8 @@ export default function AdminLogisticsEarningsPage() {
                              {v._id?.store_name?.[0] || 'V'}
                           </div>
                           <div>
-                             <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase truncate w-32">{v.store_name || "Unknown Merchant"}</h3>
-                             <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{v.total_orders || 0} Successful Transmissions</p>
+                             <h3 className="text-xs font-bold text-[var(--text-primary)]  truncate w-32">{v.store_name || "Unknown Merchant"}</h3>
+                             <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 tracking-wide">{v.total_orders || 0} Successful Transmissions</p>
                           </div>
                        </div>
                        <div className="text-right">
@@ -147,8 +147,8 @@ export default function AdminLogisticsEarningsPage() {
            {/* Logistics Matrix */}
            <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Logistics Partners</h2>
-                 <span className="text-[8px] font-black text-indigo-500 uppercase">{partners.length} Active</span>
+                 <h2 className="text-xs font-black  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Logistics Partners</h2>
+                 <span className="text-[8px] font-black text-indigo-500 ">{partners.length} Active</span>
               </div>
               <div className="space-y-2">
                  {partners.map((p) => (
@@ -158,8 +158,8 @@ export default function AdminLogisticsEarningsPage() {
                              {p._id?.company_name?.[0] || 'L'}
                           </div>
                           <div>
-                             <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase truncate w-32">{p.company_name || "Unknown Partner"}</h3>
-                             <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{p.total_shipments || 0} Global Dispatches</p>
+                             <h3 className="text-xs font-bold text-[var(--text-primary)]  truncate w-32">{p.company_name || "Unknown Partner"}</h3>
+                             <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 tracking-wide">{p.total_shipments || 0} Global Dispatches</p>
                           </div>
                        </div>
                        <div className="text-right">
@@ -177,7 +177,7 @@ export default function AdminLogisticsEarningsPage() {
 
         {/* Global Registry Footer */}
         <div className="pt-12 text-center opacity-30">
-           <p className="text-[8px] font-black tracking-[0.5em] text-[var(--text-secondary)] uppercase">
+           <p className="text-[8px] font-black tracking-[0.5em] text-[var(--text-secondary)] ">
               Aura Fiscal Systems // Consolidated Earnings Hub v2.1.0
            </p>
         </div>
@@ -191,7 +191,7 @@ function EmptyState({ label }) {
    return (
       <div className="py-12 border border-dashed border-[var(--glass-border)] rounded-2xl flex flex-col items-center justify-center opacity-20">
          <Zap className="size-6 mb-3" />
-         <p className="text-[9px] font-black uppercase tracking-widest">No active {label} detected</p>
+         <p className="text-[9px] font-black tracking-wide">No active {label} detected</p>
       </div>
    );
 }

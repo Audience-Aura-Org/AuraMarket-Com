@@ -22,9 +22,9 @@ export default function GlobalLogisticsPage() {
            <div className="space-y-4">
               <div className="flex items-center gap-2 text-[var(--accent)] bg-white/5 px-3 py-1 rounded-full border border-white/10 w-fit">
                  <Activity className="size-3 animate-pulse" />
-                 <span className="text-[8px] font-black uppercase tracking-[0.4em]">Fulfillment Sync</span>
+                 <span className="text-[8px] font-black  tracking-[0.4em]">Fulfillment Sync</span>
               </div>
-              <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter uppercase leading-[0.85]">
+              <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
                  Unified <span className="text-[var(--accent)]">Transit</span>
               </h1>
               <p className="text-xs font-medium text-[var(--text-secondary)] max-w-sm opacity-40 leading-relaxed">
@@ -32,10 +32,10 @@ export default function GlobalLogisticsPage() {
               </p>
            </div>
            <div className="flex gap-2">
-              <Link href="/logistics/tracking" className="h-10 px-6 bg-[var(--accent)] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[var(--accent)]/10">
+              <Link href="/logistics/tracking" className="h-10 px-6 bg-[var(--accent)] text-white rounded-xl text-[10px] font-bold tracking-wide flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[var(--accent)]/10">
                  Track Signal <RefreshCw className="size-3" />
               </Link>
-              <Link href="/logistics/dashboard" className="h-10 px-6 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all text-[var(--text-primary)]">
+              <Link href="/logistics/dashboard" className="h-10 px-6 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold tracking-wide flex items-center gap-2 hover:bg-white/10 transition-all text-[var(--text-primary)]">
                  Dashboard
               </Link>
            </div>
@@ -54,7 +54,7 @@ export default function GlobalLogisticsPage() {
                     <stat.icon className="size-4" />
                  </div>
                  <div>
-                    <h4 className="text-[9px] font-black tracking-widest text-[var(--text-secondary)] opacity-40 uppercase">{stat.label}</h4>
+                    <h4 className="text-[9px] font-black tracking-widest text-[var(--text-secondary)] opacity-40 ">{stat.label}</h4>
                     <p className="text-xl font-bold text-[var(--text-primary)] tracking-tight">{stat.value}</p>
                  </div>
               </div>
@@ -67,7 +67,7 @@ export default function GlobalLogisticsPage() {
            <div className="space-y-8 relative z-10">
               <div className="space-y-2">
                  <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Active Transmit Nodes</h2>
-                 <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Real-time settlement mapping</p>
+                 <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 tracking-wide">Real-time settlement mapping</p>
               </div>
               
               <div className="space-y-2">
@@ -77,11 +77,11 @@ export default function GlobalLogisticsPage() {
                     { node: 'Node_US-9', status: 'Delivered', progress: 100 }
                  ].map(item => (
                     <div key={item.node} className="p-4 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-between gap-6 hover:bg-[var(--bg-secondary)] transition-all">
-                       <p className="text-[10px] font-black text-[var(--text-primary)] opacity-60 uppercase">{item.node}</p>
+                       <p className="text-[10px] font-black text-[var(--text-primary)] opacity-60 ">{item.node}</p>
                        <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
                           <div className="h-full bg-[var(--accent)] transition-all duration-1000" style={{ width: `${item.progress}%` }} />
                        </div>
-                       <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest w-20 text-right">{item.status}</p>
+                       <p className="text-[9px] font-black text-[var(--accent)] tracking-wide w-20 text-right">{item.status}</p>
                     </div>
                  ))}
               </div>
@@ -90,7 +90,7 @@ export default function GlobalLogisticsPage() {
 
         {/* Global Registry Footer */}
         <div className="pt-12 text-center opacity-30">
-           <p className="text-[8px] font-black tracking-[0.5em] text-[var(--text-secondary)] uppercase">
+           <p className="text-[8px] font-black tracking-[0.5em] text-[var(--text-secondary)] ">
               Aura Logistics Dispatch // Unified Fulfillment Systems v4.0
            </p>
         </div>

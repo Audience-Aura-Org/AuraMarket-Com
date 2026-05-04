@@ -227,7 +227,7 @@ export default function EditProductPage() {
               type="button"
               onClick={handleSubmit} 
               disabled={loading}
-              className="px-8 py-2 rounded-xl bg-[var(--accent)] text-white font-bold shadow-xl shadow-[var(--accent)]/25 hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 uppercase tracking-widest"
+              className="px-8 py-2 rounded-xl bg-[var(--accent)] text-white font-bold shadow-xl shadow-[var(--accent)]/25 hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 tracking-wide"
             >
               {loading ? 'Updating...' : 'Update Product'}
             </button>
@@ -248,7 +248,7 @@ export default function EditProductPage() {
                       <Package className="w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-black uppercase tracking-tight">Product Type</h2>
+                      <h2 className="text-lg font-black tracking-tight">Product Type</h2>
                       <p className="text-xs text-[var(--text-secondary)] font-medium">Select how you want to manage this product's inventory</p>
                     </div>
                   </div>
@@ -256,14 +256,14 @@ export default function EditProductPage() {
                     <button 
                       type="button"
                       onClick={() => setHasVariants(false)}
-                      className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`px-6 py-2 rounded-xl text-xs font-black tracking-wide transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                       Simple
                     </button>
                     <button 
                       type="button"
                       onClick={() => setHasVariants(true)}
-                      className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`px-6 py-2 rounded-xl text-xs font-black tracking-wide transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                       Variable
                     </button>
@@ -276,18 +276,18 @@ export default function EditProductPage() {
                 <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 animate-in fade-in slide-in-from-top-4 duration-500">
                   <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                     <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><Plus className="w-5 h-5" /></div>
-                    <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm uppercase">Configure Variations</h2>
+                    <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm ">Configure Variations</h2>
                   </div>
 
                   <div className="space-y-8">
                     {/* Define Types */}
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
+                        <h3 className="text-[10px] font-black  tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
                         <button 
                           type="button"
                           onClick={addVariantType}
-                          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--accent)] hover:bg-[var(--accent)]/5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/20 transition-all"
+                          className="flex items-center gap-2 text-[10px] font-black tracking-wide text-[var(--accent)] hover:bg-[var(--accent)]/5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/20 transition-all"
                         >
                           <Plus className="w-3 h-3" /> Add Attribute
                         </button>
@@ -304,7 +304,7 @@ export default function EditProductPage() {
                               <X className="w-4 h-4" />
                             </button>
                             <div className="space-y-1">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Attribute Name</label>
+                              <label className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-50">Attribute Name</label>
                               <input 
                                 placeholder="e.g. Color"
                                 value={type.name}
@@ -313,11 +313,11 @@ export default function EditProductPage() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Options</label>
+                              <label className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-50">Options</label>
                               <div className="flex flex-wrap gap-2">
                                 {type.options.map((opt, oIdx) => (
                                   <div key={oIdx} className="flex flex-col gap-2">
-                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black uppercase rounded-full border border-[var(--accent)]/20">
+                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black  rounded-full border border-[var(--accent)]/20">
                                       {type.name.toLowerCase() === 'color' && (
                                         <div 
                                           className="size-3 rounded-full border border-black/10" 
@@ -352,10 +352,10 @@ export default function EditProductPage() {
                     {/* Matrix */}
                     {skuVariants.length > 0 && (
                       <div className="space-y-6">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
+                        <h3 className="text-[10px] font-black  tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
                         <div className="overflow-hidden border border-[var(--glass-border)] rounded-[2rem] bg-[var(--bg-primary)] shadow-xl shadow-black/5">
                           <table className="w-full text-left border-collapse">
-                            <thead className="bg-[var(--bg-secondary)] text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
+                            <thead className="bg-[var(--bg-secondary)] text-[10px] font-black tracking-wide text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
                               <tr>
                                 <th className="p-5">Combination</th>
                                 <th className="p-5 w-40">Price (XAF)</th>
@@ -408,11 +408,11 @@ export default function EditProductPage() {
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><Package className="w-5 h-5" /></div>
-                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm uppercase">Product Details</h2>
+                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm ">Product Details</h2>
                 </div>
                 <div className="space-y-6">
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Product Name *</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Product Name *</label>
                     <input 
                       value={form.name}
                       onChange={e => setForm({...form, name: e.target.value})}
@@ -422,7 +422,7 @@ export default function EditProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Description *</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Description *</label>
                     <textarea 
                       value={form.description}
                       onChange={e => setForm({...form, description: e.target.value})}
@@ -433,7 +433,7 @@ export default function EditProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Long Description</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Long Description</label>
                     <textarea 
                       value={form.long_description}
                       onChange={e => setForm({...form, long_description: e.target.value})}
@@ -443,7 +443,7 @@ export default function EditProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Specifications</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Specifications</label>
                     <textarea 
                       value={form.specifications}
                       onChange={e => setForm({...form, specifications: e.target.value})}
@@ -459,8 +459,8 @@ export default function EditProductPage() {
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><ImageIcon className="w-5 h-5" /></div>
-                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm uppercase">Media Assets</h2>
-                  <span className="text-[10px] text-[var(--text-secondary)] ml-auto font-black uppercase tracking-widest">Max 5MB per image</span>
+                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm ">Media Assets</h2>
+                  <span className="text-[10px] text-[var(--text-secondary)] ml-auto font-black tracking-wide">Max 5MB per image</span>
                 </div>
                 
                 <div 
@@ -505,11 +505,11 @@ export default function EditProductPage() {
               {/* Pricing & Inventory */}
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
-                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm uppercase">Inventory</h2>
+                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm ">Inventory</h2>
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Price (XAF) *</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Price (XAF) *</label>
                     <input 
                       type="number" min="0"
                       value={form.price}
@@ -520,7 +520,7 @@ export default function EditProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Stock Quantity *</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Stock Quantity *</label>
                     <input 
                       type="number" min="0"
                       value={form.stock}
@@ -536,11 +536,11 @@ export default function EditProductPage() {
               {/* Category & Tags */}
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
-                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm uppercase">Organization</h2>
+                  <h2 className="font-bold tracking-widest text-[var(--text-primary)] text-sm ">Organization</h2>
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Category *</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Category *</label>
                     <CategoryPicker
                       value={form.category}
                       onChange={(name) => setForm({...form, category: name})}
@@ -548,7 +548,7 @@ export default function EditProductPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block uppercase font-black">Tags</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-widest mb-2 block  font-black">Tags</label>
                     <div className="flex flex-wrap gap-2 p-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl min-h-[60px]">
                       {tags.map((tag, i) => (
                         <span key={i} className="flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/30 text-xs text-[var(--text-primary)] font-bold">

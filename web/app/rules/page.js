@@ -22,9 +22,9 @@ export default function MarketRulesPage() {
           <div className="space-y-6">
              <div className="flex items-center gap-3 text-[var(--accent)] bg-[var(--accent)]/5 w-fit px-5 py-2 rounded-full border border-[var(--accent)]/10">
                 <Gavel className="size-5" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em]">Administrative Node</span>
+                <span className="text-[10px] font-black  tracking-[0.4em]">Administrative Node</span>
              </div>
-             <h1 className="text-6xl font-black text-[var(--text-primary)] tracking-tighter uppercase leading-[0.85]">
+             <h1 className="text-6xl font-black text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
                 Market <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Rules</span>
              </h1>
              <p className="text-[var(--text-secondary)] max-w-xl font-medium text-lg opacity-60 leading-relaxed">
@@ -75,8 +75,8 @@ export default function MarketRulesPage() {
                     </div>
                     <div className="space-y-6 flex-1">
                        <div className="flex items-center justify-between">
-                          <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight">{rule.title}</h3>
-                          <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${rule.severity === 'Critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-amber-500/10 border-amber-500/20 text-amber-500'}`}>
+                          <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">{rule.title}</h3>
+                          <div className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-wide border ${rule.severity === 'Critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-amber-500/10 border-amber-500/20 text-amber-500'}`}>
                              {rule.severity} Priority
                           </div>
                        </div>
@@ -91,12 +91,12 @@ export default function MarketRulesPage() {
            {/* Legal Footer */}
            <div className="glass-panel p-12 rounded-[4rem] border-2 border-[var(--glass-border)] bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)] text-center space-y-8 group">
               <ShieldCheck className="size-16 mx-auto text-emerald-500 mb-4 group-hover:scale-110 transition-transform duration-700" />
-              <h2 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tighter leading-none">Global Governance</h2>
+              <h2 className="text-3xl font-black text-[var(--text-primary)]  tracking-tighter leading-none">Global Governance</h2>
               <p className="text-[var(--text-secondary)] font-medium opacity-60 leading-relaxed max-w-xl mx-auto">
                  By operating within the Aura ecosystem, you definitively agree to these rules. We reserve the right to recalibrate profiles found in violation of these protocols.
               </p>
               <div className="pt-6">
-                 <p className="text-[9px] font-black tracking-[0.5em] text-[var(--text-secondary)] uppercase opacity-30">
+                 <p className="text-[9px] font-black tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
                     Aura Market Governance Protocol v1.4.0
                  </p>
               </div>

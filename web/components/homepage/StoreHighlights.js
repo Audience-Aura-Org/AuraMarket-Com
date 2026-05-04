@@ -32,7 +32,7 @@ export default function StoreHighlights({ title, data }) {
         </div>
         <Link href="/discovery?tab=vendors" className="flex items-center gap-2 group cursor-pointer">
            <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
+           <span className="text-[10px] font-black  tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
         </Link>
       </div>
 
@@ -79,7 +79,7 @@ export default function StoreHighlights({ title, data }) {
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
                          <StarIcon />
-                         <span className="text-[10px] font-bold uppercase tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
+                         <span className="text-[10px] font-bold tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
                       </div>
                     </div>
                     <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shrink-0">

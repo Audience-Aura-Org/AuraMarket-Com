@@ -1,12 +1,14 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/ThemeContext';
 import SocketProvider from '@/components/SocketProvider';
 import OnboardingWatcher from '@/components/layout/OnboardingWatcher';
 import TopNav from '@/components/layout/TopNav';
 import { ChatProvider } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
+import SplashScreen from '@/components/layout/SplashScreen';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -24,6 +26,16 @@ const Footer = dynamic(() => import('@/components/layout/Footer'), { ssr: false 
 
 export default function Providers({ children }) {
   const pathname = usePathname();
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Show splash for at least 2s to ensure brand impact
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
   
   const isDashboardRoute = pathname?.startsWith('/admin') || 
                           pathname?.startsWith('/vendor') ||
@@ -33,6 +45,10 @@ export default function Providers({ children }) {
   
   return (
     <ThemeProvider>
+      <AnimatePresence>
+        {showSplash && <SplashScreen />}
+      </AnimatePresence>
+
       <Toaster
         position="top-right"
         toastOptions={{

@@ -246,7 +246,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       className="flex-1 bg-transparent text-2xl font-black text-white text-center outline-none placeholder:text-white/15 resize-none pt-12 leading-tight"
                       maxLength={300}
                     />
-                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest text-center pb-2">{textContent.length} / 300</span>
+                    <span className="text-[10px] font-bold text-white/20 tracking-wide text-center pb-2">{textContent.length} / 300</span>
                   </div>
                 ) : (
                   <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-4 text-center px-6">
@@ -275,7 +275,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
               {/* Duration */}
               <div className="space-y-3">
-                <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+                <label className="flex items-center gap-2 text-[11px] font-black  tracking-[0.18em] text-[var(--text-secondary)]">
                   <Clock className="size-3.5 text-[var(--accent)]" /> Story Duration
                 </label>
                 <div className="grid grid-cols-3 gap-2.5">
@@ -292,7 +292,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                         }`}
                       >
                         {opt.recommended && (
-                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-black bg-[var(--accent)] text-white px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-black bg-[var(--accent)] text-white px-2 py-0.5 rounded-full tracking-normal whitespace-nowrap">
                             Best
                           </span>
                         )}
@@ -307,8 +307,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               {/* Category */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">Category</label>
-                  {!selectedCategory && <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Required</span>}
+                  <label className="text-[11px] font-black  tracking-[0.18em] text-[var(--text-secondary)]">Category</label>
+                  {!selectedCategory && <span className="text-[9px] font-bold text-red-400 tracking-wide">Required</span>}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map(cat => (
@@ -329,7 +329,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
               {/* Caption */}
               <div className="space-y-3">
-                <label className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">Caption</label>
+                <label className="text-[11px] font-black  tracking-[0.18em] text-[var(--text-secondary)]">Caption</label>
                 <div className="relative">
                   <textarea
                     value={caption}
@@ -345,10 +345,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               {/* Link Product */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)] flex items-center gap-2">
+                  <label className="text-[11px] font-black  tracking-[0.18em] text-[var(--text-secondary)] flex items-center gap-2">
                     <ShoppingBag className="size-3.5 text-[var(--accent)]" /> Tag Product
                   </label>
-                  <span className="text-[9px] font-bold text-[var(--accent)] opacity-70 uppercase tracking-widest">Optional</span>
+                  <span className="text-[9px] font-bold text-[var(--accent)] opacity-70 tracking-wide">Optional</span>
                 </div>
 
                 {linkedProduct ? (
@@ -395,7 +395,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                             </div>
                           </button>
                         )) : (
-                          <div className="p-6 text-center text-[10px] font-bold uppercase tracking-widest opacity-30">No products found</div>
+                          <div className="p-6 text-center text-[10px] font-bold tracking-wide opacity-30">No products found</div>
                         )}
                       </div>
                     )}
@@ -410,7 +410,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               <button
                 onClick={handlePost}
                 disabled={loading || !canPost}
-                className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-black tracking-wide hover:brightness-110 transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {loading
                   ? <><Loader2 className="size-4 animate-spin" /> Publishing...</>

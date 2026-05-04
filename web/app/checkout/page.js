@@ -417,17 +417,17 @@ function CheckoutContent() {
           <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
             <ArrowLeft className="size-5" />
           </div>
-          <span className="text-[10px] font-black tracking-widest uppercase">Terminate Checkout</span>
+          <span className="text-[10px] font-black tracking-widest ">Terminate Checkout</span>
         </Link>
         <div className="flex items-center gap-8">
            <div className="hidden md:flex items-center gap-3">
               <ShieldCheck className="size-4 text-emerald-500" />
-              <p className="text-[10px] font-black tracking-widest uppercase opacity-40">Encryption Protocol V3.1 Active</p>
+              <p className="text-[10px] font-black tracking-widest  opacity-40">Encryption Protocol V3.1 Active</p>
            </div>
            <div className="h-8 w-px bg-[var(--glass-border)] md:block hidden" />
            <div className="flex items-center gap-4">
               <div className="text-right">
-                 <p className="text-[9px] font-black tracking-[0.2em] uppercase text-[var(--text-secondary)]">Your Balance</p>
+                 <p className="text-[9px] font-black tracking-[0.2em]  text-[var(--text-secondary)]">Your Balance</p>
                  <p className="text-sm font-black font-mono">{walletBalance.toLocaleString()} XAF</p>
               </div>
            </div>
@@ -449,7 +449,7 @@ function CheckoutContent() {
                    className={`flex-1 h-2 rounded-full transition-all duration-700 relative group overflow-hidden ${step >= s.id ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
                   >
                      {step === s.id && <div className="absolute inset-x-0 h-full bg-white/30 animate-pulse" />}
-                     <span className={`absolute top-4 left-0 text-[8px] font-black uppercase tracking-widest transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
+                     <span className={`absolute top-4 left-0 text-[8px] font-black tracking-wide transition-opacity duration-300 ${step === s.id ? 'opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
                        {s.label}
                      </span>
                   </button>
@@ -464,7 +464,7 @@ function CheckoutContent() {
                     <div className="flex items-center gap-6">
                        <div className="size-16 rounded-[28px] bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center shadow-lg"><MapPin className="size-8" /></div>
                        <div>
-                          <h2 className="text-4xl font-black tracking-tighter uppercase leading-none">Fulfillment <span className="text-[var(--accent)]">Node</span></h2>
+                          <h2 className="text-4xl font-black tracking-tighter  leading-none">Fulfillment <span className="text-[var(--accent)]">Node</span></h2>
                           <p className="text-sm font-medium text-[var(--text-secondary)] mt-2">Specify delivery coordinates and security protocol.</p>
                        </div>
                     </div>
@@ -472,7 +472,7 @@ function CheckoutContent() {
                     <div className="glass-panel p-5 md:p-10 rounded-3xl md:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-6 md:space-y-10">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-10">
                           <div className="space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Consignee Name</label>
+                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest  ml-1">Consignee Name</label>
                             <input 
                               placeholder="Full Name"
                               value={formData.name}
@@ -481,7 +481,7 @@ function CheckoutContent() {
                             />
                           </div>
                           <div className="space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Comms Protocol (Phone)</label>
+                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest  ml-1">Comms Protocol (Phone)</label>
                             <input 
                               placeholder="+237 ..."
                               value={formData.phone}
@@ -490,7 +490,7 @@ function CheckoutContent() {
                             />
                           </div>
                           <div className="md:col-span-2 space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Handshake Email</label>
+                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest  ml-1">Handshake Email</label>
                             <input 
                               type="email"
                               placeholder="email@example.com"
@@ -502,7 +502,7 @@ function CheckoutContent() {
                           
 
                           <div className="md:col-span-2 space-y-3 md:space-y-4">
-                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Delivery Quartier (Zone)</label>
+                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest  ml-1">Delivery Quartier (Zone)</label>
                             <div className="relative">
                                <button 
                                   type="button"
@@ -530,7 +530,7 @@ function CheckoutContent() {
                           </div>
 
                           <div className="md:col-span-2 space-y-2 md:space-y-3">
-                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Precise Landing Details (Build/Street No.)</label>
+                            <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest  ml-1">Precise Landing Details (Build/Street No.)</label>
                             <textarea 
                               placeholder="House number, color of gate, or specific landmarks..."
                               rows={3}
@@ -543,7 +543,7 @@ function CheckoutContent() {
                        </div>
 
                        <div className="pt-4 space-y-4">
-                          <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Logistics Partner</label>
+                          <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest  ml-1">Logistics Partner</label>
                           <div className="relative">
                              <button 
                                 type="button"
@@ -565,15 +565,15 @@ function CheckoutContent() {
                                    <div className="text-left min-w-0">
                                       {formData.logistics_company_id && selectedLogistics ? (
                                         <>
-                                          <p className="text-[10px] font-black uppercase tracking-tight truncate">
+                                          <p className="text-[10px] font-black tracking-tight truncate">
                                              {selectedLogistics.company_name}
                                           </p>
-                                          <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] opacity-60 truncate">
+                                          <p className="text-[8px] font-black  text-[var(--text-secondary)] opacity-60 truncate">
                                              {selectedLogistics.user_id?.name || 'Verified Node'}
                                           </p>
                                         </>
                                       ) : (
-                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-30">Select Logistics Node</span>
+                                        <span className="text-[10px] font-black tracking-wide opacity-30">Select Logistics Node</span>
                                       )}
                                    </div>
                                 </div>
@@ -593,7 +593,7 @@ function CheckoutContent() {
                        </div>
 
                        <div className="pt-4 space-y-4">
-                           <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest uppercase ml-1">Payment Strategy</label>
+                           <label className="text-[9px] font-black text-[var(--text-secondary)] tracking-widest  ml-1">Payment Strategy</label>
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                <button 
                                 onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
@@ -602,7 +602,7 @@ function CheckoutContent() {
                                   <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-2">
                                         <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[10px] font-black uppercase tracking-tighter">Mobile Money / Card</span>
+                                        <span className="text-[10px] font-black  tracking-tighter">Mobile Money / Card</span>
                                      </div>
                                      {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                   </div>
@@ -616,7 +616,7 @@ function CheckoutContent() {
                                   <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-2">
                                         <CreditCard className={`size-5 ${formData.paymentMethod === 'wallet' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[10px] font-black uppercase tracking-tighter">Aura Wallet</span>
+                                        <span className="text-[10px] font-black  tracking-tighter">Aura Wallet</span>
                                      </div>
                                      {formData.paymentMethod === 'wallet' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                   </div>
@@ -630,7 +630,7 @@ function CheckoutContent() {
                                  <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
                                        <Truck className={`size-5 ${formData.paymentMethod === 'pay_on_delivery' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                       <span className="text-[10px] font-black uppercase tracking-tighter">Pay on Delivery</span>
+                                       <span className="text-[10px] font-black  tracking-tighter">Pay on Delivery</span>
                                     </div>
                                     {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                  </div>
@@ -646,8 +646,8 @@ function CheckoutContent() {
                                        <ShieldCheck className="size-6" />
                                     </div>
                                     <div>
-                                       <p className={`text-[11px] font-black uppercase tracking-widest ${formData.escrowEnabled ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>Aura Escrow Protection</p>
-                                       <p className="text-[9px] text-[var(--text-secondary)] font-medium opacity-60 mt-1 uppercase tracking-tighter">Secure funds until delivery confirmation</p>
+                                       <p className={`text-[11px] font-black tracking-wide ${formData.escrowEnabled ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>Aura Escrow Protection</p>
+                                       <p className="text-[9px] text-[var(--text-secondary)] font-medium opacity-60 mt-1  tracking-tighter">Secure funds until delivery confirmation</p>
                                     </div>
                                  </div>
                                  <div className={`w-12 h-6 rounded-full flex items-center p-1 transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--text-secondary)]/20'}`}>
@@ -660,17 +660,17 @@ function CheckoutContent() {
                               <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                       <label className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
+                                       <label className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
                                        <input 
                                           type="text"
                                           placeholder="+237..."
                                           value={formData.eversend.phone}
                                           onChange={e => setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}})}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black uppercase outline-none focus:border-[var(--accent)] transition-all"
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black  outline-none focus:border-[var(--accent)] transition-all"
                                        />
                                     </div>
                                     <div className="space-y-2">
-                                       <label className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
+                                       <label className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
                                        <select 
                                           value={formData.eversend.currency}
                                           onChange={e => {
@@ -684,7 +684,7 @@ function CheckoutContent() {
                                                }
                                              });
                                           }}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black uppercase outline-none focus:border-[var(--accent)] transition-all"
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black  outline-none focus:border-[var(--accent)] transition-all"
                                        >
                                           <option value="XAF">XAF (Cameroon/Central Africa)</option>
                                           <option value="KES">KES (Kenya)</option>
@@ -703,7 +703,7 @@ function CheckoutContent() {
                      <button 
                         onClick={handlePlaceOrder}
                         disabled={loading}
-                        className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-3"
+                        className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.3em]  hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-3"
                       >
                         {loading ? (
                           <>
@@ -726,14 +726,14 @@ function CheckoutContent() {
                       <div className="flex items-center gap-6">
                         <div className="size-16 rounded-[28px] bg-black text-white flex items-center justify-center shadow-2xl"><CheckCircle2 className="size-8" /></div>
                         <div>
-                          <h2 className="text-4xl font-black tracking-tighter uppercase leading-none">Matrix <span className="text-[var(--accent)]">Review</span></h2>
+                          <h2 className="text-4xl font-black tracking-tighter  leading-none">Matrix <span className="text-[var(--accent)]">Review</span></h2>
                           <p className="text-sm font-medium text-[var(--text-secondary)] mt-2">Validate full transaction vector before execution.</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                          <div className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-2">
-                            <p className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-6 opacity-40">Authorized Consignee</p>
+                            <p className="text-[9px] font-black  text-[var(--text-secondary)] tracking-widest mb-6 opacity-40">Authorized Consignee</p>
                             <p className="text-xl font-black text-[var(--text-primary)]">{formData.name}</p>
                             <p className="text-xs text-[var(--text-secondary)] font-bold mb-2">{formData.email}</p>
                             <p className="text-sm font-bold text-[var(--text-secondary)] flex items-start gap-2">
@@ -746,7 +746,7 @@ function CheckoutContent() {
                                  ? <Truck className="size-10 text-emerald-500" />
                                  : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? <ShieldCheck className="size-10 text-emerald-500" /> : <CreditCard className="size-10 text-emerald-500" />)}
                                <div>
-                                  <p className="text-xl font-black text-[var(--text-primary)] uppercase tracking-tight">{formData.paymentMethod === 'pay_on_delivery' ? 'Pay on Delivery' : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Escrow Secured' : 'Direct Payout')}</p>
+                                  <p className="text-xl font-black text-[var(--text-primary)] tracking-tight">{formData.paymentMethod === 'pay_on_delivery' ? 'Pay on Delivery' : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Escrow Secured' : 'Direct Payout')}</p>
                                   <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">{formData.paymentMethod === 'pay_on_delivery' ? 'Payment after delivery confirmation' : (formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Handshake secured' : 'Immediate transfer protocol')}</p>
                                </div>
                             </div>
@@ -759,11 +759,11 @@ function CheckoutContent() {
                                       }
                                    </div>
                                    <div className="flex-1">
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-1 opacity-60">Logistics Assigned</p>
-                                      <p className="text-sm font-black text-[var(--text-primary)] uppercase tracking-tight truncate leading-none">
+                                      <p className="text-[10px] font-black tracking-wide text-[var(--text-secondary)] mb-1 opacity-60">Logistics Assigned</p>
+                                      <p className="text-sm font-black text-[var(--text-primary)] tracking-tight truncate leading-none">
                                          {selectedLogistics.company_name}
                                       </p>
-                                      <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-widest mt-1 opacity-80">Verified AURA Node</p>
+                                      <p className="text-[9px] font-bold text-[var(--accent)] tracking-wide mt-1 opacity-80">Verified AURA Node</p>
                                    </div>
                                 </div>
                              )}
@@ -775,7 +775,7 @@ function CheckoutContent() {
                          <div className={`absolute inset-y-0 left-0 w-1.5 ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
                          {formData.escrowEnabled && formData.paymentMethod === 'wallet' ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
                          <div className="space-y-2">
-                            <h5 className={`text-[10px] font-black uppercase tracking-[0.2em] ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
+                            <h5 className={`text-[10px] font-black  tracking-[0.2em] ${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
                             <p className="text-xs font-medium text-[var(--text-secondary)]">
                                {formData.paymentMethod === 'pay_on_delivery'
                                  ? <>By executing this order, payment stays pending and is completed on delivery confirmation for test logistics flow.</>
@@ -794,13 +794,13 @@ function CheckoutContent() {
 
           <div className="lg:col-span-4 h-fit sticky top-36">
             <div className="glass-panel p-10 rounded-[56px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
-               <h3 className="text-3xl font-black mb-10 tracking-tighter uppercase leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
+               <h3 className="text-3xl font-black mb-10 tracking-tighter  leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
                <div className="space-y-6 max-h-[300px] overflow-y-auto no-scrollbar pr-2 mb-12">
                   {matrixItems.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-4 group">
                        <img src={item.image || '/placeholder.png'} className="size-14 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-black text-[var(--text-primary)] truncate uppercase">{item.name}</p>
+                          <p className="text-xs font-black text-[var(--text-primary)] truncate ">{item.name}</p>
                           <p className="text-[10px] text-[var(--text-secondary)] font-mono">{item.price?.toLocaleString()} XAF x {item.quantity}</p>
                        </div>
                     </div>
@@ -808,7 +808,7 @@ function CheckoutContent() {
                </div>
                
                <div className="space-y-6 py-10 border-t border-[var(--glass-border)]">
-                   <div className="flex justify-between items-center text-[10px] font-black tracking-[0.2em] text-[var(--text-secondary)] uppercase">
+                   <div className="flex justify-between items-center text-[10px] font-black tracking-[0.2em] text-[var(--text-secondary)] ">
                       <span className="opacity-40">Cart Subtotal</span>
                       <span className="text-xs font-mono">{subtotal.toLocaleString()} XAF</span>
                    </div>
@@ -816,7 +816,7 @@ function CheckoutContent() {
                    {compatibleFee > 0 && selectedLogistics && (
                       <div className="space-y-4 pt-4 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
-                           <p className="text-[10px] font-black uppercase text-[var(--accent)] tracking-widest flex items-center gap-2">
+                           <p className="text-[10px] font-black  text-[var(--accent)] tracking-widest flex items-center gap-2">
                              <Truck className="size-3" /> Delivery Fees
                            </p>
                            <p className="text-[11px] font-mono font-black text-[var(--accent)]">{compatibleFee.toLocaleString()} XAF</p>
@@ -824,7 +824,7 @@ function CheckoutContent() {
                          <div className="space-y-2">
                            {vendorList.map((v, i) => (
                              <div key={i} className="flex justify-between items-center opacity-70">
-                               <p className="text-[9px] font-black uppercase text-[var(--text-secondary)]">
+                               <p className="text-[9px] font-black  text-[var(--text-secondary)]">
                                  From {v.name}
                                </p>
                                <p className="text-[10px] font-mono">+{v.fee.toLocaleString()} XAF</p>
@@ -836,10 +836,10 @@ function CheckoutContent() {
 
                    <div className="flex justify-between items-end pt-8 border-t border-[var(--glass-border)]/50">
                       <div>
-                         <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-[0.4em] mb-1">Final Settlement</p>
+                         <p className="text-[9px] font-black text-[var(--accent)]  tracking-[0.4em] mb-1">Final Settlement</p>
                          <p className="text-5xl font-black text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">{totalAmount.toLocaleString()}</p>
                       </div>
-                      <p className="text-[10px] font-black text-[var(--text-secondary)] opacity-40 uppercase pb-2">XAF</p>
+                      <p className="text-[10px] font-black text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
                    </div>
                 </div>
 
@@ -852,7 +852,7 @@ function CheckoutContent() {
                    <button 
                     onClick={handlePlaceOrder}
                     disabled={loading}
-                    className="w-full h-20 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em] uppercase shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-20 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[11px] tracking-[0.4em]  shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
                    >
                      {loading ? (
                        <span className="flex items-center gap-3">
@@ -880,7 +880,7 @@ function CheckoutContent() {
                     </div>
                     
                     <div>
-                      <h2 className="text-5xl font-black tracking-tighter uppercase mb-4">Order <span className="text-[var(--accent)]">Successful</span></h2>
+                      <h2 className="text-5xl font-black tracking-tighter  mb-4">Order <span className="text-[var(--accent)]">Successful</span></h2>
                       <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
                     </div>
 
@@ -889,13 +889,13 @@ function CheckoutContent() {
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <Link 
                         href="/orders"
-                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
+                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest  flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
                       >
                          <Package className="size-4" /> Go to My Orders
                       </Link>
                       <Link 
                         href="/discovery"
-                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[10px] tracking-widest  flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
                       >
                          Continue Exploring <ArrowRight className="size-4" />
                       </Link>
@@ -930,14 +930,14 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                placeholder="Search Quartier..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[10px] font-black tracking-wide outline-none"
             />
          </div>
       </div>
       <div className="max-h-[300px] overflow-y-auto no-scrollbar">
          {filtered.length === 0 ? (
             <div className="p-8 text-center opacity-30">
-               <p className="text-[10px] font-black uppercase tracking-widest">No zones found</p>
+               <p className="text-[10px] font-black tracking-wide">No zones found</p>
             </div>
          ) : (
             filtered.map(z => (
@@ -948,7 +948,7 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                >
                   <MapPin className="size-4 opacity-20 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
-                     <p className="text-[10px] font-black uppercase tracking-tight truncate">{z.name}</p>
+                     <p className="text-[10px] font-black tracking-tight truncate">{z.name}</p>
                   </div>
                   {selected === z.name && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                </button>
@@ -980,7 +980,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                placeholder="Search Logistics Node..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[10px] font-black tracking-wide outline-none"
             />
          </div>
       </div>
@@ -991,7 +991,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
             </div>
          ) : filtered.length === 0 ? (
             <div className="p-8 text-center opacity-30">
-               <p className="text-[10px] font-black uppercase tracking-widest">No nodes found</p>
+               <p className="text-[10px] font-black tracking-wide">No nodes found</p>
             </div>
          ) : (
             filtered.map(f => (
@@ -1008,8 +1008,8 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                      )}
                   </div>
                   <div className="min-w-0 flex-1">
-                     <p className="text-[10px] font-black uppercase tracking-tight truncate">{f.company_name}</p>
-                     <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] opacity-60 truncate">
+                     <p className="text-[10px] font-black tracking-tight truncate">{f.company_name}</p>
+                     <p className="text-[8px] font-black  text-[var(--text-secondary)] opacity-60 truncate">
                         {f.user_id?.name || 'Authorized Lead'}
                      </p>
                   </div>

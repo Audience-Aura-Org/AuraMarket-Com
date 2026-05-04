@@ -86,9 +86,9 @@ export default function StorefrontBuilder() {
               <div className="space-y-1">
                  <h1 className="text-4xl font-black text-[var(--text-primary)] tracking-tighter leading-none">Storefront <span className="text-[var(--accent)]">Architect</span></h1>
                  <div className="flex items-center gap-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-40">System Topology Control</p>
+                    <p className="text-[10px] font-black  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">System Topology Control</p>
                     <div className="h-1 w-1 rounded-full bg-[var(--glass-border)]" />
-                    <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">{sections.length} Active Nodes</span>
+                    <span className="text-[10px] font-bold text-[var(--accent)] tracking-wide">{sections.length} Active Nodes</span>
                  </div>
               </div>
            </div>
@@ -96,7 +96,7 @@ export default function StorefrontBuilder() {
            <div className="flex items-center gap-4">
               <button 
                 onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
-                className="h-14 px-8 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-4 hover:scale-[1.03] active:scale-95 shadow-2xl transition-all group"
+                className="h-14 px-8 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] font-black  tracking-[0.2em] flex items-center gap-4 hover:scale-[1.03] active:scale-95 shadow-2xl transition-all group"
               >
                  <Plus className="size-4 group-hover:rotate-90 transition-transform duration-300" /> Construct New Sector
               </button>
@@ -115,8 +115,8 @@ export default function StorefrontBuilder() {
                     <Store className="size-10" />
                  </div>
                  <div className="space-y-1">
-                    <h3 className="text-2xl font-black opacity-30 uppercase tracking-widest">No Sectors Synchronized</h3>
-                    <p className="text-xs font-medium opacity-20 uppercase tracking-[0.2em]">Deploy your first storefront node to begin layout architecturing.</p>
+                    <h3 className="text-2xl font-black opacity-30 tracking-wide">No Sectors Synchronized</h3>
+                    <p className="text-xs font-medium opacity-20  tracking-[0.2em]">Deploy your first storefront node to begin layout architecturing.</p>
                  </div>
               </div>
            ) : (
@@ -143,15 +143,15 @@ export default function StorefrontBuilder() {
 
                          <div className="flex-1 lg:w-full space-y-1">
                             <div className="flex items-center gap-2">
-                               <span className="text-[8px] font-black uppercase tracking-[0.2em] bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg shadow-[var(--accent)]/20">
+                               <span className="text-[8px] font-black  tracking-[0.2em] bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg shadow-[var(--accent)]/20">
                                   {section.type.replace('_', ' ')}
                                </span>
-                               <span className={`text-[8px] font-bold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} uppercase tracking-widest`}>
+                               <span className={`text-[8px] font-bold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} tracking-wide`}>
                                   {section.is_active ? 'Online' : 'Offline'}
                                </span>
                             </div>
-                            <h3 className="text-xl font-black text-[var(--text-primary)] leading-tight tracking-tight uppercase truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
-                            <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">{section.data?.length || 0} Linked Elements</p>
+                            <h3 className="text-xl font-black text-[var(--text-primary)] leading-tight tracking-tight  truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
+                            <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40  tracking-[0.2em]">{section.data?.length || 0} Linked Elements</p>
                          </div>
                       </div>
 
@@ -176,7 +176,7 @@ export default function StorefrontBuilder() {
                             </button>
                             <button 
                               onClick={() => { setEditingSection(section); setIsFormOpen(true); }}
-                              className="h-10 px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[9px] font-black uppercase tracking-widest"
+                              className="h-10 px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[9px] font-black tracking-wide"
                             >
                                <Settings2 className="size-4" /> Modify
                             </button>
@@ -204,7 +204,7 @@ export default function StorefrontBuilder() {
                                        ) : item.category_name ? (
                                          <div className="size-full flex flex-col items-center justify-center gap-2 opacity-20 bg-gradient-to-br from-[var(--glass-border)] to-transparent">
                                             <Tag className="size-8" />
-                                            <span className="text-[8px] font-black uppercase tracking-[0.2em]">Category Mapping</span>
+                                            <span className="text-[8px] font-black  tracking-[0.2em]">Category Mapping</span>
                                          </div>
                                        ) : (
                                          <div className="size-full flex flex-col items-center justify-center gap-2 opacity-10">
@@ -214,14 +214,14 @@ export default function StorefrontBuilder() {
                                        
                                        {/* Quick badge */}
                                        <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between translate-y-4 opacity-0 group-hover/preview:translate-y-0 group-hover/preview:opacity-100 transition-all duration-300">
-                                          <span className="text-[8px] font-black text-white uppercase tracking-widest truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || vendorName || 'NODE'}</span>
+                                          <span className="text-[8px] font-black text-white tracking-wide truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || vendorName || 'NODE'}</span>
                                           <ArrowRight className="size-3 text-[var(--accent)]" />
                                        </div>
                                     </div>
                                     
                                     <div className="px-1 space-y-1">
                                        <div className="flex items-center justify-between">
-                                          <h4 className="text-[11px] font-black text-[var(--text-primary)] uppercase tracking-tight truncate max-w-[140px]">{item.headline || item.category_name || item.product_name || vendorName || 'Unnamed Element'}</h4>
+                                          <h4 className="text-[11px] font-black text-[var(--text-primary)] tracking-tight truncate max-w-[140px]">{item.headline || item.category_name || item.product_name || vendorName || 'Unnamed Element'}</h4>
                                           {item.tag && <span className="text-[8px] font-bold text-[var(--accent)]">{item.tag}</span>}
                                        </div>
                                        {(item.subtext || isVendor) && <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 truncate leading-none">{item.subtext || 'Vendor Profile Active'}</p>}
@@ -232,7 +232,7 @@ export default function StorefrontBuilder() {
                          ) : (
                             <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-20 space-y-3">
                                <Grid className="size-8" />
-                               <p className="text-[10px] font-black uppercase tracking-[0.3em]">No Dynamic Objects Linked</p>
+                               <p className="text-[10px] font-black  tracking-[0.3em]">No Dynamic Objects Linked</p>
                             </div>
                          )}
                       </div>
@@ -254,22 +254,22 @@ export default function StorefrontBuilder() {
         {!loading && sections.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-16 border-t border-[var(--glass-border)] animate-in fade-in slide-in-from-bottom-10 duration-1000">
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-black text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.3em]">Total Coverage</span>
+                <span className="text-[10px] font-black text-[var(--text-secondary)] opacity-40  tracking-[0.3em]">Total Coverage</span>
                 <span className="text-4xl font-black text-[var(--text-primary)] tracking-tighter">{sections.length}</span>
                 <div className="h-1 w-8 bg-[var(--accent)] rounded-full mt-2" />
              </div>
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-black text-emerald-500 opacity-40 uppercase tracking-[0.3em]">Live Manifest</span>
+                <span className="text-[10px] font-black text-emerald-500 opacity-40  tracking-[0.3em]">Live Manifest</span>
                 <span className="text-4xl font-black text-emerald-500 tracking-tighter">{sections.filter(s => s.is_active).length}</span>
                 <div className="h-1 w-8 bg-emerald-500 rounded-full mt-2" />
              </div>
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-black text-rose-500 opacity-40 uppercase tracking-[0.3em]">Inactive Nodes</span>
+                <span className="text-[10px] font-black text-rose-500 opacity-40  tracking-[0.3em]">Inactive Nodes</span>
                 <span className="text-4xl font-black text-rose-500 tracking-tighter">{sections.filter(s => !s.is_active).length}</span>
                 <div className="h-1 w-8 bg-rose-500 rounded-full mt-2" />
              </div>
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[10px] font-black text-blue-500 opacity-40 uppercase tracking-[0.3em]">Complexity Score</span>
+                <span className="text-[10px] font-black text-blue-500 opacity-40  tracking-[0.3em]">Complexity Score</span>
                 <span className="text-4xl font-black text-blue-500 tracking-tighter">{sections.reduce((acc, s) => acc + (s.data?.length || 0), 0)}</span>
                 <div className="h-1 w-8 bg-blue-500 rounded-full mt-2" />
              </div>

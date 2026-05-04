@@ -32,10 +32,10 @@ function CompactStat({ title, value, sub, icon: Icon, color, href }) {
         <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
           <Icon className="size-4" />
         </div>
-        <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-50">{title}</p>
+        <p className="text-[10px] font-black text-[var(--text-secondary)] tracking-wide opacity-50">{title}</p>
       </div>
       <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{value}</h3>
-      {sub && <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 uppercase">{sub}</p>}
+      {sub && <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 ">{sub}</p>}
     </div>
   );
 
@@ -74,14 +74,14 @@ export default function AdminDashboard() {
               <LayoutDashboard className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg font-black uppercase tracking-tight">Platform Command</h1>
-              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Global Administrative Hub</p>
+              <h1 className="text-lg font-black tracking-tight">Platform Command</h1>
+              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-wide">Global Administrative Hub</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[8px] font-black text-emerald-500 uppercase">Systems Nominal</span>
+                <span className="text-[8px] font-black text-emerald-500 ">Systems Nominal</span>
              </div>
              <button onClick={fetchStats} className="p-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                 <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -106,8 +106,8 @@ export default function AdminDashboard() {
           <section className="lg:col-span-2 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
              <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] opacity-40">Operational Entities</h3>
-                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 uppercase">High-Density Management Matrix</p>
+                  <h3 className="text-[11px] font-black  tracking-[0.3em] opacity-40">Operational Entities</h3>
+                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 ">High-Density Management Matrix</p>
                 </div>
                 <Zap className="size-4 opacity-20" />
              </div>
@@ -124,8 +124,8 @@ export default function AdminDashboard() {
                       <item.icon className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black uppercase truncate">{item.title}</p>
-                      <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase">{item.desc}</p>
+                      <p className="text-[11px] font-black  truncate">{item.title}</p>
+                      <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 ">{item.desc}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-black">{item.count}</p>
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
                     <div key={i} className="p-4 rounded-xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] text-center group hover:bg-[var(--bg-primary)] transition-all">
                       <item.icon className="size-3 mx-auto mb-2 opacity-20 group-hover:opacity-100 transition-opacity" />
                       <p className="text-lg font-black tracking-tighter leading-none mb-1">{item.value}</p>
-                      <p className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">{item.label}</p>
+                      <p className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">{item.label}</p>
                     </div>
                   ))}
                 </div>
@@ -157,13 +157,13 @@ export default function AdminDashboard() {
           {/* System Security & Logs */}
           <section className="lg:col-span-1 space-y-6">
              <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
-                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] opacity-40 mb-8">Security Terminal</h3>
+                <h3 className="text-[11px] font-black  tracking-[0.3em] opacity-40 mb-8">Security Terminal</h3>
                 <div className="space-y-4">
                    <div className="p-5 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all">
                       <Terminal className="size-5 mb-4 text-[var(--text-secondary)] opacity-20" />
-                      <h4 className="text-sm font-black uppercase mb-1">Authorization Layer</h4>
-                      <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase leading-relaxed mb-6">Control system security and user permission protocols.</p>
-                      <Link href="/admin/security" className="inline-flex items-center gap-2 text-[9px] font-black text-[var(--accent)] uppercase tracking-widest hover:gap-4 transition-all">
+                      <h4 className="text-sm font-black  mb-1">Authorization Layer</h4>
+                      <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50  leading-relaxed mb-6">Control system security and user permission protocols.</p>
+                      <Link href="/admin/security" className="inline-flex items-center gap-2 text-[9px] font-black text-[var(--accent)] tracking-wide hover:gap-4 transition-all">
                         Access Firewall <ChevronRight className="size-3" />
                       </Link>
                    </div>
@@ -172,8 +172,8 @@ export default function AdminDashboard() {
 
              <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] opacity-40">System Pulse</h3>
-                  <Link href="/admin/logs" className="text-[8px] font-black text-[var(--accent)] uppercase tracking-widest hover:underline">View All</Link>
+                  <h3 className="text-[11px] font-black  tracking-[0.3em] opacity-40">System Pulse</h3>
+                  <Link href="/admin/logs" className="text-[8px] font-black text-[var(--accent)] tracking-wide hover:underline">View All</Link>
                 </div>
                 <div className="space-y-6">
                    {[
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
                      <div key={i} className="flex gap-4 group">
                         <div className={`w-1 rounded-full bg-${log.color}-500/30 group-hover:bg-${log.color}-500 transition-all`} />
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-tight">{log.title}</p>
+                          <p className="text-[10px] font-black tracking-tight">{log.title}</p>
                           <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-0.5">{log.desc}</p>
                           <span className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 mt-2 block tracking-widest">{log.time}</span>
                         </div>

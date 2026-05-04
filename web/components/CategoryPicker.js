@@ -50,7 +50,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
 
   if (loadingTree) {
     return (
-      <div className={`bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-4 text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-50 ${className}`}>
+      <div className={`bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-4 text-[10px] font-black tracking-wide text-[var(--text-secondary)] opacity-50 ${className}`}>
         Loading categories...
       </div>
     );
@@ -63,7 +63,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
         <button
           type="button"
           onClick={() => { setBreadcrumb([]); onChange(''); }}
-          className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
+          className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
         >
           All
         </button>
@@ -73,7 +73,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
             <button
               type="button"
               onClick={() => handleBreadcrumbClick(idx)}
-              className={`text-[9px] font-black uppercase tracking-widest transition-colors ${
+              className={`text-[9px] font-black tracking-wide transition-colors ${
                 idx === breadcrumb.length - 1
                   ? 'text-[var(--accent)]'
                   : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'
@@ -90,7 +90,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
         <button
           type="button"
           onClick={handleBack}
-          className="flex items-center gap-1 px-4 py-2 text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors border-b border-[var(--glass-border)] w-full"
+          className="flex items-center gap-1 px-4 py-2 text-[9px] font-black tracking-wide text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors border-b border-[var(--glass-border)] w-full"
         >
           <ChevronLeft className="size-3" /> Back
         </button>
@@ -99,7 +99,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
       {/* Category list */}
       <div className="max-h-52 overflow-y-auto no-scrollbar">
         {currentLevel.length === 0 ? (
-          <p className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">
+          <p className="px-4 py-3 text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">
             No subcategories — "{value}" selected
           </p>
         ) : (
@@ -126,7 +126,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
       {/* Selected value display */}
       {value && (
         <div className="px-4 py-2 border-t border-[var(--glass-border)] bg-[var(--accent)]/5">
-          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent)]">
+          <p className="text-[9px] font-black tracking-wide text-[var(--accent)]">
             ✓ Selected: {value}
           </p>
         </div>

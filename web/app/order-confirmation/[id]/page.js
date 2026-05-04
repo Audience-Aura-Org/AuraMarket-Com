@@ -34,7 +34,7 @@ export default function OrderConfirmationPage() {
              <CheckCircle2 className="size-16" />
            </div>
 
-           <h1 className="text-5xl md:text-8xl font-black text-[var(--text-primary)] tracking-tighter leading-[0.9] mb-8 uppercase">
+           <h1 className="text-5xl md:text-8xl font-black text-[var(--text-primary)] tracking-tighter leading-[0.9] mb-8 ">
              Protocol <br /> <span className="text-[var(--accent)]">Executed.</span>
            </h1>
            
@@ -46,15 +46,15 @@ export default function OrderConfirmationPage() {
               <div className="p-10 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex flex-col items-center gap-4 group/stat hover:bg-[var(--bg-primary)] hover:border-[var(--accent)]/20 transition-all shadow-inner">
                  <Package className="size-8 text-[var(--text-secondary)] group-hover/stat:text-[var(--accent)] transition-colors opacity-40 group-hover/stat:opacity-100" />
                  <div>
-                    <span className="text-[10px] font-black tracking-[0.4em] text-[var(--text-secondary)] uppercase opacity-30">Sanctuary Stash</span>
-                    <p className="text-sm font-black text-[var(--text-primary)] mt-1 uppercase">2 Assets Verified</p>
+                    <span className="text-[10px] font-black tracking-[0.4em] text-[var(--text-secondary)]  opacity-30">Sanctuary Stash</span>
+                    <p className="text-sm font-black text-[var(--text-primary)] mt-1 ">2 Assets Verified</p>
                  </div>
               </div>
               <div className="p-10 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex flex-col items-center gap-4 group/stat hover:bg-[var(--bg-primary)] hover:border-indigo-500/20 transition-all shadow-inner">
                  <Truck className="size-8 text-[var(--text-secondary)] group-hover/stat:text-indigo-500 transition-colors opacity-40 group-hover/stat:opacity-100" />
                  <div>
-                    <span className="text-[10px] font-black tracking-[0.4em] text-[var(--text-secondary)] uppercase opacity-30">Arrival Horizon</span>
-                    <p className="text-sm font-black text-[var(--text-primary)] mt-1 uppercase">Oct 26-28 Cycle</p>
+                    <span className="text-[10px] font-black tracking-[0.4em] text-[var(--text-secondary)]  opacity-30">Arrival Horizon</span>
+                    <p className="text-sm font-black text-[var(--text-primary)] mt-1 ">Oct 26-28 Cycle</p>
                  </div>
               </div>
            </div>
@@ -63,20 +63,20 @@ export default function OrderConfirmationPage() {
               <Link href={`/orders/${id}/tracking`} className="w-full py-7 rounded-[32px] bg-[var(--accent)] text-white font-black text-2xl flex items-center justify-center gap-4 shadow-2xl shadow-[var(--accent)]/20 hover:shadow-[var(--accent)]/40 hover:-translate-y-2 transition-all active:scale-95 group">
                 Trace Signal <ChevronRight className="size-8 group-hover:translate-x-2 transition-transform" />
               </Link>
-              <Link href="/discovery" className="w-full py-6 rounded-[32px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] font-black text-xs tracking-[0.3em] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-all uppercase">
+              <Link href="/discovery" className="w-full py-6 rounded-[32px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] font-black text-xs tracking-[0.3em] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-all ">
                 Return to Discovery
               </Link>
            </div>
 
            <div className="mt-20 flex items-center justify-center gap-12 opacity-30">
-             <div className="flex items-center gap-3 text-[10px] font-black tracking-[0.3em] text-[var(--text-secondary)] uppercase"><ShieldCheck className="size-4 text-emerald-500" /> Vault Active</div>
+             <div className="flex items-center gap-3 text-[10px] font-black tracking-[0.3em] text-[var(--text-secondary)] "><ShieldCheck className="size-4 text-emerald-500" /> Vault Active</div>
              <div className="size-1.5 rounded-full bg-[var(--glass-border)]"></div>
-             <div className="flex items-center gap-3 text-[10px] font-black tracking-[0.3em] text-[var(--text-secondary)] uppercase"><Sparkles className="size-4 text-indigo-500" /> Fully Encrypted</div>
+             <div className="flex items-center gap-3 text-[10px] font-black tracking-[0.3em] text-[var(--text-secondary)] "><Sparkles className="size-4 text-indigo-500" /> Fully Encrypted</div>
            </div>
         </div>
 
         <div className="mt-16 flex flex-col items-center gap-8">
-           <p className="text-[var(--text-secondary)] font-black text-[10px] tracking-[0.5em] uppercase opacity-40">Broadcast Transmission</p>
+           <p className="text-[var(--text-secondary)] font-black text-[10px] tracking-[0.5em]  opacity-40">Broadcast Transmission</p>
            <div className="flex gap-6">
               <button className="size-16 rounded-[24px] bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/50 transition-all flex items-center justify-center shadow-sm group">
                 <Share2 className="size-6 group-hover:scale-110 transition-transform" />

@@ -89,18 +89,18 @@ export default function AdminApprovals() {
       {/* Header */}
       <header className="h-16 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 sticky top-0 z-20 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Queue <span className="text-[var(--accent)]">Control</span></h2>
+          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight ">Queue <span className="text-[var(--accent)]">Control</span></h2>
           <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)]" />
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
              <button 
                onClick={() => setActiveTab('Vendors')} 
-               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'Vendors' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
+               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-black tracking-wide transition-all whitespace-nowrap ${activeTab === 'Vendors' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
              >
                Vendors
              </button>
              <button 
                onClick={() => setActiveTab('Products')} 
-               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'Products' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
+               className={`px-3 lg:px-4 py-1.5 rounded-lg text-[9px] lg:text-[10px] font-black tracking-wide transition-all whitespace-nowrap ${activeTab === 'Products' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'}`}
              >
                Products
              </button>
@@ -110,7 +110,7 @@ export default function AdminApprovals() {
            <button onClick={fetchData} className="p-2 rounded-lg border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-primary)]">
               <RefreshCw className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
-           <div className="hidden xs:flex px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest uppercase">
+           <div className="hidden xs:flex px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest ">
               System Active
            </div>
         </div>
@@ -128,7 +128,7 @@ export default function AdminApprovals() {
                  { label: 'Safety Index', value: '99.2%', icon: ShieldCheck }
                ].map(s => (
                  <div key={s.label} className="glass-panel p-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
-                    <p className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1">{s.label}</p>
+                    <p className="text-[9px] font-black text-[var(--text-secondary)]  tracking-[0.2em] mb-1">{s.label}</p>
                     <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{s.value}</h3>
                  </div>
                ))}
@@ -139,7 +139,7 @@ export default function AdminApprovals() {
                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                      <thead>
-                        <tr className="text-[10px] font-black tracking-[0.3em] uppercase text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                        <tr className="text-[10px] font-black tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
                            <th className="px-8 py-5">Ident Node</th>
                            <th className="px-6 py-5">Descriptor</th>
                            <th className="px-6 py-5">Protocol State</th>
@@ -163,13 +163,13 @@ export default function AdminApprovals() {
                              <td className="px-6 py-5">
                                 <div className="flex flex-col gap-1">
                                    <p className="text-xs font-bold text-[var(--text-primary)]">{v.user_id?.email}</p>
-                                   <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest flex items-center gap-2">
+                                   <p className="text-[10px] text-[var(--text-secondary)] font-black tracking-wide flex items-center gap-2">
                                       <FileText className="size-3" /> {v.id_type?.replace('_', ' ') || 'National ID'}
                                    </p>
                                 </div>
                              </td>
                              <td className="px-6 py-5">
-                                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-[0.2em] border border-amber-500/20">
+                                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[8px] font-black  tracking-[0.2em] border border-amber-500/20">
                                    Pending Sync
                                 </span>
                              </td>
@@ -209,11 +209,11 @@ export default function AdminApprovals() {
                                 </div>
                              </td>
                              <td className="px-6 py-5">
-                                <p className="text-xs font-bold text-[var(--text-primary)] uppercase">{p.vendor_id?.store_name}</p>
-                                <p className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest mt-1 opacity-60">Vendor Node</p>
+                                <p className="text-xs font-bold text-[var(--text-primary)] ">{p.vendor_id?.store_name}</p>
+                                <p className="text-[9px] text-[var(--text-secondary)] font-black tracking-wide mt-1 opacity-60">Vendor Node</p>
                              </td>
                              <td className="px-6 py-5">
-                                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-[0.2em] border border-blue-500/20">
+                                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[8px] font-black  tracking-[0.2em] border border-blue-500/20">
                                    Inventory Lock
                                 </span>
                              </td>
@@ -246,7 +246,7 @@ export default function AdminApprovals() {
                              <td colSpan={4} className="px-8 py-20 text-center">
                                 <div className="flex flex-col items-center gap-4 opacity-30">
                                    <ShieldCheck className="size-12" />
-                                   <p className="text-[10px] font-black uppercase tracking-widest">Protocol Sync Complete (Queue Empty)</p>
+                                   <p className="text-[10px] font-black tracking-wide">Protocol Sync Complete (Queue Empty)</p>
                                 </div>
                              </td>
                           </tr>

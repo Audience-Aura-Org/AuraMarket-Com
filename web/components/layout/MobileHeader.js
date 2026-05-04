@@ -36,7 +36,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
                className="h-4.5 w-auto shrink-0"
              />
            )}
-           <h1 className="text-[11px] font-black tracking-tight text-[var(--nav-text)] uppercase leading-none truncate">
+           <h1 className="text-[11px] font-black tracking-tight text-[var(--nav-text)]  leading-none truncate">
              Aura <span className="text-[var(--accent)]">Market</span>
            </h1>
         </Link>

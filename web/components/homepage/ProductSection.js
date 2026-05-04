@@ -16,14 +16,14 @@ export default function ProductSection({ title, subtitle, data, config }) {
             {title}
           </h2>
           {subtitle && (
-            <p className="text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-widest opacity-40">
+            <p className="text-[var(--text-secondary)] text-[10px] font-black tracking-wide opacity-40">
               {subtitle}
             </p>
           )}
         </div>
         <Link href="/discovery" className="flex items-center gap-2 group cursor-pointer">
            <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--accent)]">Explore</span>
+           <span className="text-[10px] font-black  tracking-[0.3em] text-[var(--accent)]">Explore</span>
         </Link>
       </div>
 

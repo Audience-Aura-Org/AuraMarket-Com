@@ -65,7 +65,7 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
               <Sparkles className="size-3 text-white" />
             </div>
           </div>
-          <span className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">Add Story</span>
+          <span className="text-[9px] font-black text-[var(--accent)] tracking-wide">Add Story</span>
         </button>
       )}
 

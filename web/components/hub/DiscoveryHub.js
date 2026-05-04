@@ -551,7 +551,7 @@ export default function DiscoveryHub() {
         </AnimatePresence>
       </main>
 
-      {/* ── THE DISCOVERY BOTTOM NAV ── */}
+      {/* ── THE Discovery BOTTOM NAV ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-[400] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
         <div className="flex items-center justify-around h-[72px] px-2 pb-2 pt-1 relative">
           {TABS.map((tab, idx) => {

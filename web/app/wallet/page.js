@@ -42,10 +42,10 @@ function CompactStat({ title, value, sub, icon: Icon, color }) {
         <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
           <Icon className="size-4" />
         </div>
-        <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest opacity-50">{title}</p>
+        <p className="text-[9px] font-black text-[var(--text-secondary)] tracking-wide opacity-50">{title}</p>
       </div>
-      <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{value}</h3>
-      {sub && <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 uppercase">{sub}</p>}
+      <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tighter">{value}</h3>
+      {sub && <p className="text-[9px] font-black text-[var(--text-secondary)] opacity-40 mt-1 tracking-wide">{sub}</p>}
     </div>
   );
 }
@@ -143,14 +143,14 @@ export default function WalletPage() {
                 <Wallet className="size-5" />
               </div>
               <div>
-                <h1 className="text-lg font-black uppercase tracking-tight">Financial Nexus</h1>
-                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Liquid Capital Hub</p>
+                <h1 className="text-lg font-black  tracking-tighter">Financial Nexus</h1>
+                <p className="text-[9px] font-black text-[var(--text-secondary)] opacity-40 tracking-wide">Liquid Capital Hub</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                   <ShieldCheck className="size-3 text-emerald-500" />
-                  <span className="text-[8px] font-black text-emerald-500 uppercase">Secured</span>
+                  <span className="text-[9px] font-black text-emerald-500 tracking-wide">Secured</span>
                </div>
                <button onClick={fetchWallet} className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                   <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -171,10 +171,10 @@ export default function WalletPage() {
 
           {/* Action Hub */}
           <div className="grid grid-cols-2 gap-4">
-             <button onClick={() => setModal('deposit')} className="h-14 rounded-2xl bg-emerald-500 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all">
+             <button onClick={() => setModal('deposit')} className="h-14 rounded-2xl bg-emerald-500 text-white font-black text-[9px] tracking-wide flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all">
                 <ArrowDownLeft className="size-5" /> Deposit Funds
              </button>
-             <button onClick={() => setModal('withdraw')} className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all">
+             <button onClick={() => setModal('withdraw')} className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[9px] tracking-wide flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all">
                 <ArrowUpRight className="size-5" /> Withdraw
              </button>
           </div>
@@ -183,12 +183,12 @@ export default function WalletPage() {
           <section className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
              <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.3em] opacity-40">Transaction Matrix</h3>
-                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 uppercase">Structural Ledger History</p>
+                  <h3 className="text-[11px] font-black  tracking-[0.3em] opacity-40">Transaction Matrix</h3>
+                  <p className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 mt-1 tracking-wide">Structural Ledger History</p>
                 </div>
                 <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5">
                   {['all', 'in', 'out'].map(t => (
-                    <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                    <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}>
                       {t}
                     </button>
                   ))}
@@ -207,12 +207,12 @@ export default function WalletPage() {
                         <config.Icon className="size-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-black uppercase truncate">{tx.description || tx.type}</p>
-                        <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                        <p className="text-[11px] font-black  tracking-tighter truncate">{tx.description || tx.type}</p>
+                        <p className="text-[9px] font-black text-[var(--text-secondary)] opacity-40 tracking-wide">{new Date(tx.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-base font-black ${isCredit ? 'text-emerald-500' : 'text-red-500'}`}>{isCredit ? '+' : '-'}{fmt(tx.amount)}</p>
-                        <p className="text-[8px] font-black uppercase opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Record Details</p>
+                        <p className={`text-base font-black tracking-tighter ${isCredit ? 'text-emerald-500' : 'text-red-500'}`}>{isCredit ? '+' : '-'}{fmt(tx.amount)}</p>
+                        <p className="text-[8px] font-black  opacity-20 group-hover:opacity-100 transition-opacity tracking-widest flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Record Details</p>
                       </div>
                     </div>
                   );
@@ -228,12 +228,12 @@ export default function WalletPage() {
               <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setModal(null)} />
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl">
                 <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-lg font-black uppercase tracking-tight">{modal === 'deposit' ? 'Add Liquidity' : 'Initiate Outflow'}</h3>
+                  <h3 className="text-lg font-black  tracking-tighter">{modal === 'deposit' ? 'Add Liquidity' : 'Initiate Outflow'}</h3>
                   <button onClick={() => setModal(null)} className="p-2 rounded-full hover:bg-[var(--bg-secondary)] transition-all"><X className="size-4 opacity-40" /></button>
                 </div>
                 <div className="space-y-6">
                   <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full h-20 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-4xl font-black text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10" />
-                  <button onClick={() => handleAction(modal)} disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20">
+                  <button onClick={() => handleAction(modal)} disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-black text-[9px] tracking-wide shadow-lg shadow-[var(--accent)]/20">
                     {submitting ? 'Calibrating...' : 'Confirm Transaction'}
                   </button>
                 </div>

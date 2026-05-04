@@ -89,9 +89,9 @@ export default function VendorOrdersPage() {
     <>
       <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-fluid-lg lg:text-fluid-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Sales <span className="text-[var(--accent)]">History</span></h2>
+          <h2 className="text-fluid-lg lg:text-fluid-xl font-black text-[var(--text-primary)] tracking-tight ">Sales <span className="text-[var(--accent)]">History</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <p className="text-[var(--text-secondary)] text-[8px] lg:text-[9px] font-black uppercase tracking-[0.3em] opacity-40"><span>{orders.length}</span> Orders</p>
+          <p className="text-[var(--text-secondary)] text-[8px] lg:text-[9px] font-black  tracking-[0.3em] opacity-40"><span>{orders.length}</span> Orders</p>
         </div>
 
         <div className="flex items-center gap-3 lg:gap-4 self-end lg:self-auto">
@@ -100,7 +100,7 @@ export default function VendorOrdersPage() {
                <button 
                  key={tab}
                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
+                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[10px] font-black tracking-wide transition-all ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
                >
                  {tab}
                </button>
@@ -121,7 +121,7 @@ export default function VendorOrdersPage() {
                   { label: 'All Orders', value: orders.length, color: 'blue' }
                 ].map(s => (
                   <div key={s.label} className="glass-panel p-4 lg:p-6 rounded-[24px] lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:-translate-y-1 transition-all shadow-sm group">
-                     <p className="text-[7px] lg:text-[9px] font-black uppercase tracking-[0.25em] text-[var(--text-secondary)] opacity-50 mb-1 lg:mb-2 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden text-ellipsis">{s.label}</p>
+                     <p className="text-[7px] lg:text-[9px] font-black  tracking-[0.25em] text-[var(--text-secondary)] opacity-50 mb-1 lg:mb-2 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden text-ellipsis">{s.label}</p>
                      <p className="text-fluid-base lg:text-fluid-2xl font-black text-[var(--text-primary)] tracking-tight font-mono whitespace-nowrap">{s.value}</p>
                   </div>
                 ))}
@@ -132,14 +132,14 @@ export default function VendorOrdersPage() {
                <div className="p-6 lg:p-10 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="size-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] animate-pulse" />
-                  <h3 className="text-sm lg:text-lg font-black text-[var(--text-primary)] uppercase tracking-tight">Order Tracking</h3>
+                  <h3 className="text-sm lg:text-lg font-black text-[var(--text-primary)] tracking-tight">Order Tracking</h3>
                 </div>
               </div>
 
               <div className="overflow-x-auto scroll-smooth no-scrollbar">
                 <table className="w-full text-left font-sm min-w-[900px]">
                   <thead>
-                    <tr className="text-[8px] lg:text-[10px] tracking-[0.3em] text-[var(--text-secondary)] bg-[var(--bg-secondary)]/30 border-b border-[var(--glass-border)] uppercase shadow-sm">
+                    <tr className="text-[8px] lg:text-[10px] tracking-[0.3em] text-[var(--text-secondary)] bg-[var(--bg-secondary)]/30 border-b border-[var(--glass-border)]  shadow-sm">
                       <th className="px-8 py-5 font-black">Order ID</th>
                       <th className="px-6 py-5 font-black">Customer</th>
                       <th className="px-6 py-5 font-black">Amount</th>
@@ -160,32 +160,32 @@ export default function VendorOrdersPage() {
                                    <div className={`size-1 rounded-full ${status.color.replace('text', 'bg')}`} />
                                  </div>
                                  <div className="min-w-0">
-                                   <h3 className="font-black text-[var(--text-primary)] text-xs lg:text-sm font-mono tracking-tighter uppercase group-hover/row:text-[var(--accent)] transition-colors">#{order._id?.slice(-8).toUpperCase()}</h3>
-                                   <p className="text-[7px] lg:text-[8px] font-black text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-0.5">Verified Transaction</p>
+                                   <h3 className="font-black text-[var(--text-primary)] text-xs lg:text-sm font-mono tracking-tighter  group-hover/row:text-[var(--accent)] transition-colors">#{order._id?.slice(-8).toUpperCase()}</h3>
+                                   <p className="text-[7px] lg:text-[8px] font-black text-[var(--text-secondary)] opacity-30 tracking-wide mt-0.5">Verified Transaction</p>
                                  </div>
                               </div>
                            </td>
                            <td className="px-6 py-5">
-                              <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] uppercase tracking-tight">{order.customer_id?.name || 'GUEST CUSTOMER'}</p>
+                              <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] tracking-tight">{order.customer_id?.name || 'GUEST CUSTOMER'}</p>
                               <div className="flex items-center gap-2 mt-1 lg:mt-1.5">
-                                <span className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-black opacity-30 uppercase tracking-[0.2em]">{new Date(order.createdAt).toLocaleDateString([], {month: 'short', day: '2-digit'})}</span>
+                                <span className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-black opacity-30  tracking-[0.2em]">{new Date(order.createdAt).toLocaleDateString([], {month: 'short', day: '2-digit'})}</span>
                                 <span className="size-1 rounded-full bg-[var(--glass-border)]" />
-                                <span className="text-[7px] lg:text-[8px] text-[var(--accent)] font-black uppercase tracking-widest">{order.products?.length || 1} Item(s)</span>
+                                <span className="text-[7px] lg:text-[8px] text-[var(--accent)] font-black tracking-wide">{order.products?.length || 1} Item(s)</span>
                               </div>
                            </td>
                            <td className="px-6 py-5">
                               <div className="flex flex-col">
                                  <span className="text-xs lg:text-sm font-black text-[var(--text-primary)] font-mono">{(order.total_amount || 0).toLocaleString()}</span>
-                                 <span className="text-[7px] lg:text-[8px] font-black text-[var(--accent)] uppercase tracking-tighter opacity-40">XAF Total</span>
+                                 <span className="text-[7px] lg:text-[8px] font-black text-[var(--accent)]  tracking-tighter opacity-40">XAF Total</span>
                               </div>
                            </td>
                            <td className="px-6 py-5">
-                              <span className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-[7px] lg:text-[8px] font-black uppercase tracking-[0.2em] border shadow-sm inline-block transition-all ${status.bg} ${status.color} ${status.border}`}>
+                              <span className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-[7px] lg:text-[8px] font-black  tracking-[0.2em] border shadow-sm inline-block transition-all ${status.bg} ${status.color} ${status.border}`}>
                                 {status.label}
                               </span>
                            </td>
                            <td className="px-8 py-5 text-right whitespace-nowrap">
-                               <button onClick={() => setOpenDetails(isOpen ? null : order._id)} className={`px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[8px] lg:text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 ${isOpen ? 'bg-[var(--accent)] text-white shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 shadow-sm'}`}>
+                               <button onClick={() => setOpenDetails(isOpen ? null : order._id)} className={`px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[8px] lg:text-[9px] font-black tracking-wide transition-all shadow-lg active:scale-95 ${isOpen ? 'bg-[var(--accent)] text-white shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 shadow-sm'}`}>
                                  View Details
                                </button>
                            </td>
@@ -195,23 +195,23 @@ export default function VendorOrdersPage() {
                             <td colSpan={5} className="px-6 py-5 border-t border-[var(--glass-border)]">
                               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                 <div className="rounded-2xl border border-[var(--glass-border)] p-4">
-                                  <p className="text-[8px] uppercase tracking-widest text-[var(--text-secondary)] opacity-60 mb-2">Customer</p>
+                                  <p className="text-[8px] tracking-wide text-[var(--text-secondary)] opacity-60 mb-2">Customer</p>
                                   <p className="text-sm font-black text-[var(--text-primary)]">{order.customer_id?.name || 'Customer'}</p>
                                   <p className="text-[10px] text-[var(--text-secondary)]">{order.customer_id?.email || 'No email'}</p>
                                   <p className="text-[10px] text-[var(--text-secondary)]">{order.customer_id?.phone || 'No phone'}</p>
-                                  <p className="text-[10px] mt-2 text-[var(--text-secondary)] uppercase tracking-widest">Address</p>
+                                  <p className="text-[10px] mt-2 text-[var(--text-secondary)] tracking-wide">Address</p>
                                   <p className="text-[10px] text-[var(--text-primary)]">
                                     {[order.shipping_address?.street, order.shipping_address?.quartier, order.shipping_address?.city].filter(Boolean).join(', ') || 'No address'}
                                   </p>
                                 </div>
                                 <div className="rounded-2xl border border-[var(--glass-border)] p-4 lg:col-span-2">
-                                  <p className="text-[8px] uppercase tracking-widest text-[var(--text-secondary)] opacity-60 mb-2">Items</p>
+                                  <p className="text-[8px] tracking-wide text-[var(--text-secondary)] opacity-60 mb-2">Items</p>
                                   <div className="space-y-2">
                                     {(order.products || []).map((item, idx) => (
                                       <div key={idx} className="flex items-center justify-between rounded-xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] px-3 py-2">
                                         <div className="min-w-0">
-                                          <p className="text-xs font-black text-[var(--text-primary)] truncate uppercase">{item.name}</p>
-                                          <p className="text-[9px] text-[var(--text-secondary)] uppercase tracking-widest">qty {item.quantity}</p>
+                                          <p className="text-xs font-black text-[var(--text-primary)] truncate ">{item.name}</p>
+                                          <p className="text-[9px] text-[var(--text-secondary)] tracking-wide">qty {item.quantity}</p>
                                         </div>
                                         <p className="text-xs font-black text-[var(--text-primary)]">{(item.price * item.quantity).toLocaleString()} XAF</p>
                                       </div>
@@ -230,7 +230,7 @@ export default function VendorOrdersPage() {
                         <td colSpan={5} className="px-8 py-24 text-center">
                            <div className="flex flex-col items-center gap-6 opacity-10">
                               <Package className="size-12 lg:size-16" />
-                               <p className="text-[10px] lg:text-[12px] font-black uppercase tracking-[0.4em] leading-relaxed">
+                               <p className="text-[10px] lg:text-[12px] font-black  tracking-[0.4em] leading-relaxed">
                                   No orders found. Your history is empty.
                                 </p>
                            </div>

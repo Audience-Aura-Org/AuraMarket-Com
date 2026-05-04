@@ -102,16 +102,16 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.45;
   }
 
-  /* Prevent tiny uppercase CTA labels from wrapping to 2 lines on phones */
+  /* Prevent tiny  CTA labels from wrapping to 2 lines on phones */
   button,
   a {
     word-break: normal;
   }
 
-  button[class*='uppercase'][class*='text-[10px]'],
-  a[class*='uppercase'][class*='text-[10px]'],
-  button[class*='uppercase'][class*='text-[9px]'],
-  a[class*='uppercase'][class*='text-[9px]'] {
+  button[class*=''][class*='text-[10px]'],
+  a[class*=''][class*='text-[10px]'],
+  button[class*=''][class*='text-[9px]'],
+  a[class*=''][class*='text-[9px]'] {
     white-space: nowrap;
     letter-spacing: 0.12em;
   }

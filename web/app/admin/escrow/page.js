@@ -97,9 +97,9 @@ export default function AdminEscrow() {
     <>
       <header className="h-20 lg:h-24 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight uppercase">Escrow <span className="text-[var(--accent)]">Vault</span></h2>
+          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight ">Escrow <span className="text-[var(--accent)]">Vault</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <div className="hidden sm:block px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest uppercase shadow-sm">
+          <div className="hidden sm:block px-3 lg:px-4 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest  shadow-sm">
               Monitoring Active
            </div>
         </div>
@@ -118,7 +118,7 @@ export default function AdminEscrow() {
               { label: 'Platform Trust Level', value: 'Immutable', icon: History, color: 'text-amber-500' }
             ].map(s => (
               <div key={s.label} className="glass-panel p-4 lg:p-5 rounded-2xl lg:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:scale-[1.02] transition-all shadow-sm">
-                 <p className="text-[7px] lg:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
+                 <p className="text-[7px] lg:text-[9px] font-black text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
                  <h3 className={`text-base lg:text-xl font-black ${s.color} tracking-tight`}>{s.value}</h3>
               </div>
             ))}
@@ -129,7 +129,7 @@ export default function AdminEscrow() {
             <div className="overflow-x-auto scroll-smooth">
                <table className="w-full text-left min-w-[800px] lg:min-w-0">
                   <thead>
-                     <tr className="text-[8px] lg:text-[10px] font-black tracking-[0.3em] uppercase text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                     <tr className="text-[8px] lg:text-[10px] font-black tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
                         <th className="px-6 lg:px-8 py-4 lg:py-5">Vault Trace</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Counterparties</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Amount (XAF)</th>
@@ -147,15 +147,15 @@ export default function AdminEscrow() {
                                    {l.status === 'held' ? <Lock className="size-3.5 lg:size-4" /> : <Unlock className="size-3.5 lg:size-4" />}
                                 </div>
                                 <div className="min-w-0">
-                                   <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] uppercase tracking-tight font-mono">Order #{l.order_id?._id?.slice(-8) || 'LEGACY'}</p>
+                                   <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] tracking-tight font-mono">Order #{l.order_id?._id?.slice(-8) || 'LEGACY'}</p>
                                    <p className="text-[8px] lg:text-[9px] font-bold text-[var(--text-secondary)] opacity-50">ID: {l._id.slice(-12)}</p>
                                 </div>
                              </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
                              <div className="flex flex-col gap-1 min-w-0">
-                                <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] truncate uppercase max-w-[120px] lg:max-w-[180px]">To: {l.vendor_id?.store_name || 'Protocol'}</p>
-                                <p className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-widest opacity-40 truncate">From: {l.buyer_id?.name || 'Customer'}</p>
+                                <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] truncate  max-w-[120px] lg:max-w-[180px]">To: {l.vendor_id?.store_name || 'Protocol'}</p>
+                                <p className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] font-black tracking-wide opacity-40 truncate">From: {l.buyer_id?.name || 'Customer'}</p>
                              </div>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
@@ -164,7 +164,7 @@ export default function AdminEscrow() {
                              </p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
-                             <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-black uppercase tracking-[0.2em] border shrink-0 inline-block transition-all shadow-sm ${
+                             <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-black  tracking-[0.2em] border shrink-0 inline-block transition-all shadow-sm ${
                                 l.status === 'held' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
                                 l.status === 'released' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
                                 'bg-rose-500/10 text-rose-500 border-rose-500/20'
@@ -173,7 +173,7 @@ export default function AdminEscrow() {
                              </span>
                           </td>
                           <td className="px-6 lg:px-8 py-4 lg:py-5 text-right whitespace-nowrap">
-                             <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] uppercase tracking-tight">{new Date(l.createdAt).toLocaleDateString()}</p>
+                             <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] tracking-tight">{new Date(l.createdAt).toLocaleDateString()}</p>
                              <p className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] opacity-40 lowercase">{new Date(l.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                           </td>
                           <td className="px-6 lg:px-8 py-4 lg:py-5 text-right whitespace-nowrap">
@@ -182,20 +182,20 @@ export default function AdminEscrow() {
                                  <button
                                    onClick={() => handleRelease(l.order_id?._id)}
                                    disabled={loadingAction === l.order_id?._id}
-                                   className={`px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-black uppercase tracking-wider ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                   className={`px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-black tracking-normal ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                  >
                                    Release
                                  </button>
                                  <button
                                    onClick={() => handleRefund(l.order_id?._id)}
                                    disabled={loadingAction === l.order_id?._id}
-                                   className={`px-3 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-black uppercase tracking-wider ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                   className={`px-3 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:scale-105 transition-all text-[9px] lg:text-[10px] font-black tracking-normal ${loadingAction === l.order_id?._id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                  >
                                    Refund
                                  </button>
                                </div>
                              ) : (
-                               <span className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-40">Settled</span>
+                               <span className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] font-bold tracking-wide opacity-40">Settled</span>
                              )}
                           </td>
                        </tr>

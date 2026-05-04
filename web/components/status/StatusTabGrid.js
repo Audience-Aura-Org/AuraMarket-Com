@@ -209,7 +209,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
                 </span>
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider">Active Now</span>
+                <span className="text-[9px] font-black text-emerald-400 tracking-normal">Active Now</span>
               </div>
             </div>
 

@@ -112,7 +112,7 @@ export default function CartPage() {
         </div>
         <h1 className="text-2xl sm:text-3xl font-black mb-2 tracking-tight">Your cart is empty</h1>
         <p className="text-[var(--text-secondary)] mb-8 max-w-xs text-center text-sm">Add products to continue to checkout.</p>
-            <Link href="/overtime" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 uppercase">
+            <Link href="/overtime" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-widest rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 ">
                Browse products
             </Link>
       </div>
@@ -128,7 +128,7 @@ export default function CartPage() {
       <main className="w-full px-4 sm:px-6 lg:px-20 py-6 sm:py-8 relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 sm:mb-8">
           <div>
-            <Link href="/overtime" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[10px] md:text-xs font-black tracking-widest mb-3 md:mb-4 uppercase">
+            <Link href="/overtime" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[10px] md:text-xs font-black tracking-widest mb-3 md:mb-4 ">
               <ChevronLeft className="w-3.5 h-3.5" /> Continue Exploring
             </Link>
             <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-none text-balance">
@@ -137,7 +137,7 @@ export default function CartPage() {
           </div>
           <div className="px-3 md:px-4 py-1.5 glass-panel rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 flex items-center gap-2 shadow-sm self-start md:self-auto">
              <span className="size-1.5 md:size-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <span className="text-[9px] md:text-[11px] font-black tracking-wider text-[var(--text-primary)] uppercase">{cartItems.length} Items</span>
+             <span className="text-[9px] md:text-[11px] font-black tracking-wider text-[var(--text-primary)] ">{cartItems.length} Items</span>
           </div>
         </div>
 
@@ -193,14 +193,14 @@ export default function CartPage() {
             <div className="glass-panel p-4 sm:p-6 lg:p-8 rounded-3xl border border-[var(--glass-border)] shadow-3xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[var(--accent)]/20 transition-all duration-700"></div>
               
-              <h2 className="text-xl font-black mb-5 uppercase tracking-tight">Order summary</h2>
+              <h2 className="text-xl font-black mb-5 tracking-tight">Order summary</h2>
               
               <div className="space-y-4 mb-6">
                 {coupon ? (
                   <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl animate-in zoom-in-95 duration-300 shadow-sm">
                     <div className="flex items-center gap-2">
                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                       <span className="font-black text-emerald-700 text-[10px] tracking-widest uppercase">Code {coupon.code} Active</span>
+                       <span className="font-black text-emerald-700 text-[10px] tracking-widest ">Code {coupon.code} Active</span>
                     </div>
                     <button onClick={removeCoupon} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
                   </div>
@@ -214,53 +214,53 @@ export default function CartPage() {
                            onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
                            onKeyDown={e => e.key === 'Enter' && applyCoupon()}
                            placeholder="Promo code"
-                           className="w-full pl-11 pr-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold tracking-wide text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all uppercase shadow-inner"
+                           className="w-full pl-11 pr-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold tracking-wide text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all  shadow-inner"
                          />
                        </div>
                        <button
                          onClick={applyCoupon}
                          disabled={couponLoading || !couponCode.trim()}
-                         className="px-5 py-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-black rounded-xl text-[10px] tracking-wider disabled:opacity-50 transition-all uppercase shadow-sm"
+                         className="px-5 py-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-black rounded-xl text-[10px] tracking-wider disabled:opacity-50 transition-all  shadow-sm"
                        >
                          {couponLoading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" /> : 'Apply'}
                        </button>
                     </div>
-                    {couponError && <p className="text-[10px] font-black text-red-500 ml-1 tracking-tighter uppercase">{couponError}</p>}
+                    {couponError && <p className="text-[10px] font-black text-red-500 ml-1 tracking-tighter ">{couponError}</p>}
                   </div>
                 )}
               </div>
 
               <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide uppercase">
+                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-wide ">
                   <span>Subtotal</span>
                   <span className="text-[var(--text-primary)] font-mono font-bold">{subtotal.toLocaleString()} XAF</span>
                 </div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-wide uppercase">
+                  <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-wide ">
                     <span>Aura Discount</span>
                     <span className="font-mono font-bold">- {discount.toLocaleString()} XAF</span>
                   </div>
                 )}
                 <div className="h-px bg-[var(--glass-border)] my-6" />
                 <div className="flex justify-between items-baseline">
-                   <span className="text-xs font-black text-[var(--text-secondary)] tracking-[0.2em] uppercase">Total</span>
+                   <span className="text-xs font-black text-[var(--text-secondary)] tracking-[0.2em] ">Total</span>
                    <span className="text-3xl font-black text-[var(--text-primary)] font-mono tracking-tight">{total.toLocaleString()} XAF</span>
                 </div>
               </div>
 
               <Link 
                 href="/checkout" 
-                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.2em] uppercase flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
+                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-black text-[10px] tracking-[0.2em]  flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
               >
                 Go to checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
 
               <div className="flex items-center justify-center gap-6 py-4 border-t border-[var(--glass-border)]">
-                <div className="flex items-center gap-2 text-[8px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
+                <div className="flex items-center gap-2 text-[8px] font-black tracking-widest text-[var(--text-secondary)] ">
                    <Truck className="w-3 h-3 text-[var(--accent)]" /> Aura Node
                 </div>
                 <div className="size-1 rounded-full bg-[var(--glass-border)]"></div>
-                <div className="flex items-center gap-2 text-[8px] font-black tracking-widest text-[var(--text-secondary)] uppercase">
+                <div className="flex items-center gap-2 text-[8px] font-black tracking-widest text-[var(--text-secondary)] ">
                    <ShieldCheck className="w-3 h-3 text-emerald-500" /> Secure
                 </div>
               </div>

@@ -82,14 +82,22 @@ export default function UnifiedAuth() {
         };
         const result = await register(formattedData);
         if (result.success) {
-          handleRedirect();
+          // Small delay to allow iOS keyboard to fully dismiss and viewport to stabilize
+          setTimeout(() => {
+            handleRedirect();
+          }, 300);
         } else {
           setError(result.message || 'Registration failed');
         }
       } else {
         // Logging in
         const result = await login({ email: formData.email, password: formData.password });
-        if (result.success) handleRedirect();
+        if (result.success) {
+          // Small delay to allow iOS keyboard to fully dismiss and viewport to stabilize
+          setTimeout(() => {
+            handleRedirect();
+          }, 300);
+        }
         else setError(result.message || 'Login failed');
       }
     } catch (err) {
@@ -282,7 +290,7 @@ export default function UnifiedAuth() {
                            {r === 'customer' && <ShoppingBag className="w-4 h-4" />}
                            {r === 'vendor' && <Store className="w-4 h-4" />}
                            {r === 'logistics' && <Truck className="w-4 h-4" />}
-                           <span className="text-[8px] font-black uppercase tracking-tighter">{r}</span>
+                           <span className="text-[8px] font-black  tracking-tighter">{r}</span>
                          </button>
                        ))}
                     </div>
@@ -328,7 +336,7 @@ export default function UnifiedAuth() {
         </AnimatePresence>
       </div>
 
-      <p className="mt-8 text-center text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.3em] opacity-40">
+      <p className="mt-8 text-center text-[10px] font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
       </p>
     </div>
   );

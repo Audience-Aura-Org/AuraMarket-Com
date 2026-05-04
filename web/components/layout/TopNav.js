@@ -196,7 +196,7 @@ export default function TopNav() {
           ) : (
             <Link href="/login" className="flex items-center gap-2 bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-2.5 rounded-full font-black text-[10px] tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 whitespace-nowrap active:scale-95">
               <UserIcon className="size-3.5" />
-              <span>LOGIN</span>
+              <span>Login</span>
             </Link>
           )}
         </div>

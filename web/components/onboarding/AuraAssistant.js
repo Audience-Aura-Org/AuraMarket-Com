@@ -139,7 +139,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                     >
                       <button
                         onClick={handleSkip}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-black text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all uppercase tracking-widest"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-black text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all tracking-wide"
                       >
                         Dismiss
                       </button>
@@ -150,7 +150,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                           setVisible(false);
                           router.push('/discovery');
                         }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/30"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[10px] font-black tracking-wide hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/30"
                       >
                         Explore Hub
                         <ArrowRight className="w-3 h-3" />

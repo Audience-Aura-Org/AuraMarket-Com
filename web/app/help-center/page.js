@@ -53,7 +53,7 @@ export default function HelpCenter() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--accent)]/10 blur-[100px] pointer-events-none rounded-full" />
         
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-[var(--text-primary)] mb-6 uppercase">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-[var(--text-primary)] mb-6 ">
             How can we <span className="text-[var(--accent)]">help you?</span>
           </h1>
           <p className="text-[var(--text-secondary)] text-lg mb-10 max-w-2xl mx-auto">
@@ -72,7 +72,7 @@ export default function HelpCenter() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-[var(--text-primary)] font-medium"
               />
-              <button className="bg-[var(--accent)] text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg shadow-[var(--accent)]/20 transition-all uppercase tracking-wider text-xs">
+              <button className="bg-[var(--accent)] text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg shadow-[var(--accent)]/20 transition-all tracking-normal text-xs">
                 Search
               </button>
             </div>
@@ -128,7 +128,7 @@ export default function HelpCenter() {
           <p className="text-[var(--text-secondary)] max-w-md mx-auto mb-8">
             Our support team is available 24/7 to assist you with any questions or concerns.
           </p>
-          <button className="px-8 py-4 bg-[var(--accent)] text-white rounded-xl font-black uppercase tracking-widest text-xs hover:shadow-lg shadow-[var(--accent)]/30 transition-all flex items-center gap-2">
+          <button className="px-8 py-4 bg-[var(--accent)] text-white rounded-xl font-black tracking-wide text-xs hover:shadow-lg shadow-[var(--accent)]/30 transition-all flex items-center gap-2">
             Contact Support <Sparkles className="size-4" />
           </button>
         </div>

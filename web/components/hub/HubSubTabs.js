@@ -43,7 +43,7 @@ export const ProfileContent = memo(({ user, onSelectTab }) => {
             </div>
             
             <div className="space-y-3 relative z-10">
-              <h2 className="text-3xl md:text-5xl font-black text-[var(--text-primary)] uppercase tracking-tighter shadow-sm">{user?.name || 'Aura User'}</h2>
+              <h2 className="text-3xl md:text-5xl font-black text-[var(--text-primary)]  tracking-tighter shadow-sm">{user?.name || 'Aura User'}</h2>
             </div>
         </div>
 
@@ -62,8 +62,8 @@ export const ProfileContent = memo(({ user, onSelectTab }) => {
               </div>
               
               <div className="flex-1 text-left z-10 min-w-0">
-                <h3 className="text-[13px] md:text-[15px] font-black text-[var(--text-primary)] uppercase tracking-tighter truncate">{item.label}</h3>
-                <p className="text-[10px] md:text-[11px] text-[var(--text-secondary)] opacity-60 uppercase tracking-widest mt-0.5 truncate">{item.desc}</p>
+                <h3 className="text-[13px] md:text-[15px] font-black text-[var(--text-primary)]  tracking-tighter truncate">{item.label}</h3>
+                <p className="text-[10px] md:text-[11px] text-[var(--text-secondary)] opacity-60 tracking-wide mt-0.5 truncate">{item.desc}</p>
               </div>
               
               <div className="size-8 rounded-full bg-[var(--text-primary)]/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 z-10 shrink-0">
@@ -92,7 +92,7 @@ export const OrdersContent = memo(({ user }) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full overflow-y-auto px-4 py-6">
       <div className="max-w-xl mx-auto space-y-4">
-        <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-[0.3em] mb-4">Frequency History</h3>
+        <h3 className="text-sm font-black text-[var(--text-primary)]  tracking-[0.3em] mb-4">Frequency History</h3>
         
         {loading ? (
           [...Array(3)].map((_, i) => <div key={i} className="h-24 w-full rounded-3xl bg-[var(--bg-primary)] animate-pulse" />)
@@ -108,15 +108,15 @@ export const OrdersContent = memo(({ user }) => {
                    <Package className="size-5 text-[var(--accent)] opacity-40 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
-                  <p className="text-[9px] text-[var(--text-secondary)] opacity-50 uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  <p className="text-[10px] font-black  text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
+                  <p className="text-[9px] text-[var(--text-secondary)] opacity-50 tracking-wide">{new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-right">
                   <p className="text-xs font-black text-[var(--text-primary)]">{order.total_amount?.toLocaleString() || order.total?.toLocaleString()} XAF</p>
                   <div className="flex items-center gap-1.5 justify-end mt-1">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">{order.order_status || order.status}</span>
+                    <span className="text-[8px] font-black tracking-wide text-emerald-400">{order.order_status || order.status}</span>
                     <CheckCircle2 className="size-3 text-emerald-400" />
                   </div>
                 </div>
@@ -127,7 +127,7 @@ export const OrdersContent = memo(({ user }) => {
         ) : (
           <div className="flex flex-col items-center justify-center p-12 text-[var(--text-secondary)]">
             <ShoppingBag className="size-10 mb-4 opacity-10" />
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">No Order Records</p>
+            <p className="text-[10px] font-black tracking-wide opacity-40">No Order Records</p>
           </div>
         )}
       </div>
@@ -150,7 +150,7 @@ export const WishlistContent = memo(({ user }) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full overflow-y-auto px-4 py-6">
        <div className="max-w-4xl mx-auto">
-          <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-[0.3em] mb-6">Saved Hardware</h3>
+          <h3 className="text-sm font-black text-[var(--text-primary)]  tracking-[0.3em] mb-6">Saved Hardware</h3>
           {loading ? (
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                {[...Array(4)].map((_, i) => <div key={i} className="aspect-square rounded-3xl bg-[var(--bg-primary)] animate-pulse" />)}
@@ -162,7 +162,7 @@ export const WishlistContent = memo(({ user }) => {
           ) : (
              <div className="flex flex-col items-center justify-center p-12">
                 <Heart className="size-10 text-[var(--accent)] opacity-10 mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40 text-[var(--text-secondary)]">Zero Savings Found</p>
+                <p className="text-[10px] font-black tracking-wide opacity-40 text-[var(--text-secondary)]">Zero Savings Found</p>
              </div>
           )}
        </div>
