@@ -60,6 +60,7 @@ const LOGISTICS_NAV = [
   { icon: 'location_on',         label: 'Live Tracking',href: '/logistics/tracking' },
   { icon: 'chat',                label: 'Messages',     href: '/messages',            badge: 'messages' },
   { icon: 'hub',                 label: 'Relay Nodes',  href: '/logistics/nodes' },
+  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
 ];
 
 const ROLE_CONFIG = {

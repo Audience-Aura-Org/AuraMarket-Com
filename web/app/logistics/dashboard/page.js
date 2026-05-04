@@ -19,18 +19,26 @@ export default function LogisticsDashboard() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const [shipments, setShipments] = useState([]);
+  const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active');
 
-  const fetchShipments = async () => {
+  const fetchStats = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/logistics/shipments');
-      if (res.data.success) {
-        setShipments(res.data.data?.shipments || res.data.shipments || []);
+      const [resShip, resWallet] = await Promise.all([
+        api.get('/logistics/shipments'),
+        api.get('/wallet/balance')
+      ]);
+      
+      if (resShip.data.success) {
+        setShipments(resShip.data.data?.shipments || resShip.data.shipments || []);
+      }
+      if (resWallet.data.success) {
+        setBalance(resWallet.data.data.wallet_balance || 0);
       }
     } catch (err) {
-      console.error('Failed to fetch shipments:', err);
+      console.error('Failed to fetch dashboard stats:', err);
     } finally {
       setLoading(false);
     }
@@ -38,8 +46,8 @@ export default function LogisticsDashboard() {
 
   useEffect(() => {
     if (!user || user.role !== 'logistics') return;
-    fetchShipments();
-    const interval = setInterval(fetchShipments, 15000);
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -73,7 +81,7 @@ export default function LogisticsDashboard() {
 
           <div className="flex items-center gap-4">
             <button 
-              onClick={fetchShipments}
+              onClick={fetchStats}
               className="p-2.5 rounded-xl border border-[var(--glass-border)] hover:bg-white/5 text-[var(--text-secondary)] transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -91,7 +99,7 @@ export default function LogisticsDashboard() {
         {/* Core Metrics Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Active Fleet', value: activeCount, sub: 'Shipments in transit', icon: Truck, color: 'blue' },
+            { label: 'Settlement', value: `${balance.toLocaleString()} XAF`, sub: 'Available Balance', icon: BarChart3, color: 'fuchsia', href: '/wallet' },
             { label: 'Network Yield', value: `${networkYield}%`, sub: 'Success vs Failed', icon: Zap, color: 'amber' },
             { label: 'Pending Load', value: pendingCount, sub: 'Awaiting dispatch', icon: Clock, color: 'indigo' },
             { label: 'Total Delivered', value: totalDelivered, sub: 'Success finalization', icon: CheckCircle2, color: 'emerald' }
@@ -102,7 +110,8 @@ export default function LogisticsDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               whileHover={{ y: -5 }}
-              className="p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-[var(--accent)]/50 transition-all cursor-default"
+              onClick={() => stat.href && router.push(stat.href)}
+              className={`p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-[var(--accent)]/50 transition-all ${stat.href ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
             >
               <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
                 <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />

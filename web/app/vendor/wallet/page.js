@@ -15,25 +15,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 
 const MIN_WITHDRAW = 1000;
-
-const METHODS = [
-  {
-    id: 'mtn',
-    label: 'MTN MoMo',
-    sub: 'Mobile Money',
-    color: 'from-yellow-400 to-yellow-500',
-    text: 'text-yellow-900',
-    icon: '📱',
-  },
-  {
-    id: 'orange',
-    label: 'Orange Money',
-    sub: 'Mobile Money',
-    color: 'from-orange-400 to-orange-500',
-    text: 'text-white',
-    icon: '📲',
-  },
-];
+import WithdrawModal from '@/components/wallet/WithdrawModal';
 
 const TX_COLOR = {
   payout:     'text-emerald-500',
@@ -249,6 +231,7 @@ export default function VendorWalletPage() {
   const [toast, setToast]           = useState(null);
   const [tab, setTab]               = useState('history');
   const [selectedTx, setSelectedTx] = useState(null);
+  const [withdrawalRequests, setWithdrawalRequests] = useState([]);
 
   useEffect(() => {
     if (!user) {
@@ -262,10 +245,11 @@ export default function VendorWalletPage() {
 
   const load = useCallback(async () => {
     try {
-      const [balRes, txRes, escrowRes] = await Promise.all([
+      const [balRes, txRes, escrowRes, wdRes] = await Promise.all([
         api.get('/wallet'),
         api.get('/wallet/transactions'),
         api.get('/wallet/escrow'),
+        api.get('/withdrawals/mine'),
       ]);
       if (balRes.data.success) {
         setBalance(balRes.data.data.balance || 0);
@@ -273,6 +257,7 @@ export default function VendorWalletPage() {
       }
       if (txRes.data.success) setTxs(txRes.data.data.transactions || []);
       if (escrowRes.data.success) setEscrowTxs(escrowRes.data.data.transactions || []);
+      if (wdRes.data.success) setWithdrawalRequests(wdRes.data.data.withdrawals || []);
     } catch (e) {
       console.error('Wallet Load Error:', e);
     } finally { setLoading(false); }
@@ -291,7 +276,7 @@ export default function VendorWalletPage() {
     <>
       <AnimatePresence>
         {selectedTx && <ReceiptModal tx={selectedTx} onClose={() => setSelectedTx(null)} />}
-        {showWithdraw && <WithdrawPanel balance={balance} onClose={() => setWithdraw(false)} onSuccess={() => { load(); setWithdraw(false); }} />}
+        {showWithdraw && <WithdrawModal balance={balance} onClose={() => setWithdraw(false)} onSuccess={() => { load(); setWithdraw(false); }} />}
       </AnimatePresence>
 
       <div className="px-4 md:px-8 py-8 w-full space-y-8">
@@ -334,6 +319,10 @@ export default function VendorWalletPage() {
                  <div className="flex items-center gap-2"><Lock className="size-4" /> Escrow Pipeline {escrowTxs.length > 0 && <span className="size-2 rounded-full bg-amber-500 animate-pulse" />}</div>
                  {tab === 'escrow' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
               </button>
+              <button onClick={() => setTab('withdrawals')} className={`pb-4 text-xs font-bold tracking-tight relative ${tab === 'withdrawals' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                 <div className="flex items-center gap-2"><ArrowUpRight className="size-4" /> Withdrawals</div>
+                 {tab === 'withdrawals' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
+              </button>
            </div>
 
            <div className="min-h-[400px]">
@@ -357,29 +346,55 @@ export default function VendorWalletPage() {
                      </div>
                    ))}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                   <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
-                      <Shield className="size-5 text-amber-500" />
-                      <p className="text-[11px] font-bold text-amber-600/70  leading-relaxed tracking-tight">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
-                   </div>
-                   {escrowTxs.length === 0 ? (
-                     <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently in pipeline</div>
-                   ) : escrowTxs.map(tx => (
-                     <div key={tx._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
-                        <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Clock className="size-5" /></div>
-                        <div className="flex-1 min-w-0">
-                           <p className="font-bold text-sm text-[var(--text-primary)]">Order #{tx.order_id?._id?.slice(-6).toUpperCase()}</p>
-                           <p className="text-[11px] font-bold  text-amber-500 tracking-tight">{tx.order_id?.order_status}</p>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-sm font-bold text-[var(--text-primary)]">{fmt(tx.amount)} XAF</p>
-                           <p className="text-[11px] font-bold  opacity-30">Escrowed</p>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-              )}
+              ) : tab === 'escrow' ? (
+                 <div className="space-y-4">
+                    <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
+                       <Shield className="size-5 text-amber-500" />
+                       <p className="text-[11px] font-bold text-amber-600/70  leading-relaxed tracking-tight">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
+                    </div>
+                    {escrowTxs.length === 0 ? (
+                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently in pipeline</div>
+                    ) : escrowTxs.map(tx => (
+                      <div key={tx._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
+                         <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Clock className="size-5" /></div>
+                         <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm text-[var(--text-primary)]">Order #{tx.order_id?._id?.slice(-6).toUpperCase()}</p>
+                            <p className="text-[11px] font-bold  text-amber-500 tracking-tight">{tx.order_id?.order_status}</p>
+                         </div>
+                         <div className="text-right">
+                            <p className="text-sm font-bold text-[var(--text-primary)]">{fmt(tx.amount)} XAF</p>
+                            <p className="text-[11px] font-bold  opacity-30">Escrowed</p>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+               ) : (
+                 <div className="space-y-2">
+                    {withdrawalRequests.length === 0 ? (
+                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No withdrawal requests found</div>
+                    ) : withdrawalRequests.map((wr) => (
+                      <div key={wr._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
+                         <div className={`size-11 rounded-xl flex items-center justify-center ${
+                           wr.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 
+                           wr.status === 'pending' ? 'bg-amber-500/10 text-amber-500' : 
+                           'bg-red-500/10 text-red-500'
+                         }`}>
+                            {wr.status === 'completed' ? <CheckCircle2 className="size-5" /> : 
+                             wr.status === 'pending' ? <Clock className="size-5" /> : 
+                             <AlertCircle className="size-5" />}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm text-[var(--text-primary)] capitalize">{wr.withdrawalMethod} Withdrawal</p>
+                            <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
+                         </div>
+                         <div className="text-right">
+                            <p className="text-base font-bold text-[var(--text-primary)]">{fmt(wr.amount)}</p>
+                            <p className="text-[10px] font-bold opacity-30 uppercase">{wr.currency}</p>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+               )}
            </div>
         </div>
       </div>

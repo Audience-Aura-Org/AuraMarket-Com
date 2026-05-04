@@ -62,8 +62,7 @@ const eversendClient = async (force = false) => {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'Origin': 'https://aura-market-com.vercel.app',
-      'Referer': 'https://aura-market-com.vercel.app/',
+      'User-Agent': 'AuraMarket/1.0.0',
     },
   });
 };
@@ -210,20 +209,111 @@ const getTransactionStatus = async (transactionId) => {
  */
 const getCollectionStatus = getTransactionStatus;
 
-// ── Webhook signature verification ──────────────────────────────────────────
+// ── Payout API ───────────────────────────────────────────────────────────────
 
 /**
- * Verify an incoming Eversend webhook by its HMAC-SHA512 signature.
- * @param {Buffer|string} rawBody   - Raw request body (use express.raw() middleware)
- * @param {string}        signature - Value of the x-eversend-signature header
- * @returns {boolean}
+ * STEP 1: Get a payout quotation token.
+ * Must be called before any payout execution.
+ * @param {number} amount
+ * @param {string} sourceCurrency      - e.g. 'XAF' (Aura wallet currency)
+ * @param {string} destinationCurrency - e.g. 'XAF' (Target currency)
+ * @param {string} destinationCountry  - e.g. 'CM' (ISO 2-letter)
+ * @param {string} type                - 'momo' | 'bank' | 'eversend'
+ * @returns {{ token, fees, exchangeRate, ... }}
  */
-const verifyWebhookSignature = (rawBody, signature) => {
-  const hash = crypto
-    .createHmac('sha512', EVERSEND_WEBHOOK_SECRET)
-    .update(rawBody)
-    .digest('hex');
-  return hash === signature;
+const getPayoutQuotation = async (amount, sourceCurrency, destinationCurrency, destinationCountry, type) => {
+  return withAutoRefresh(async (client) => {
+    // For Eversend Tag transfers, the endpoint is different
+    const endpoint = type === 'eversend' ? '/payouts/quotation/eversend' : '/payouts/quotation';
+    
+    const payload = {
+      amount: Number(amount),
+      sourceWallet: sourceCurrency,
+      destinationCurrency,
+      amountType: 'SOURCE',
+      type,
+    };
+
+    if (type !== 'eversend') {
+      payload.destinationCountry = destinationCountry;
+    }
+
+    const res = await client.post(endpoint, payload);
+    return res.data;
+  });
+};
+
+/**
+ * STEP 2a: Execute a Mobile Money payout.
+ * @param {string} token          - Quotation token from getPayoutQuotation
+ * @param {string} phoneNumber
+ * @param {string} firstName
+ * @param {string} lastName
+ * @param {string} country        - ISO 2-letter code e.g. 'UG'
+ * @param {string} transactionRef - Your internal withdrawal request ID
+ */
+const executeMomoPayout = async (token, phoneNumber, firstName, lastName, country, transactionRef) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.post('/payouts', {
+      token,
+      phoneNumber,
+      firstName,
+      lastName,
+      country,
+      transactionRef,
+    });
+    return res.data;
+  });
+};
+
+/**
+ * STEP 2b: Execute a Bank payout.
+ */
+const executeBankPayout = async (token, bankCode, accountNumber, firstName, lastName, country, transactionRef) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.post('/payouts/bank', {
+      token,
+      bankCode,
+      accountNumber,
+      firstName,
+      lastName,
+      country,
+      transactionRef,
+    });
+    return res.data;
+  });
+};
+
+/**
+ * STEP 2c: Execute an Eversend wallet-to-wallet payout.
+ */
+const executeEversendPayout = async (token, eversendTag, transactionRef) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.post('/payouts/eversend', {
+      token,
+      eversendTag,
+      transactionRef,
+    });
+    return res.data;
+  });
+};
+
+/**
+ * Verify the Eversend webhook signature.
+ * @param {string|Buffer} payload - Raw request body
+ * @param {string} signature      - x-eversend-signature header
+ */
+const verifyWebhookSignature = (payload, signature) => {
+  if (!signature || !EVERSEND_WEBHOOK_SECRET) return false;
+  try {
+    const hmac = crypto.createHmac('sha512', EVERSEND_WEBHOOK_SECRET);
+    const data = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    const digest = hmac.update(data).digest('hex');
+    return digest === signature;
+  } catch (err) {
+    console.error('Webhook signature verification error:', err.message);
+    return false;
+  }
 };
 
 module.exports = {
@@ -238,6 +328,12 @@ module.exports = {
   // Status
   getTransactionStatus,
   getCollectionStatus, // legacy alias
+  // Payouts
+  getPayoutQuotation,
+  executeMomoPayout,
+  executeBankPayout,
+  executeEversendPayout,
   // Webhook
   verifyWebhookSignature,
 };
+

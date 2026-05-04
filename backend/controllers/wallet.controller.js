@@ -14,6 +14,7 @@ const mongoose = require('mongoose');
 const logisticsService = require('../services/logistics.service');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const Message = require('../models/Message.model');
+const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const { sendNotification } = require('../utils/notifier');
 
 // Helper to generate a unique transaction reference
@@ -495,8 +496,8 @@ const getPlatformFinancialStats = async (req, res, next) => {
         { $match: { status: 'held' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
-      Transaction.aggregate([
-        { $match: { type: 'withdrawal', status: 'pending' } },
+      WithdrawalRequest.aggregate([
+        { $match: { status: 'pending' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ])
     ]);

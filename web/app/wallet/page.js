@@ -16,6 +16,7 @@ import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion';
+import WithdrawModal from '@/components/wallet/WithdrawModal';
 
 const TX_ICONS = {
   deposit:    { Icon: ArrowDownLeft,  color: 'emerald' },
@@ -58,6 +59,7 @@ export default function WalletPage() {
   const [pendingBalance, setPendingBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [modal, setModal] = useState(null);
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,15 +77,17 @@ export default function WalletPage() {
 
   const fetchWallet = async () => {
     try {
-      const [balRes, txRes] = await Promise.all([
+      const [balRes, txRes, wdRes] = await Promise.all([
         api.get('/wallet'),
         api.get('/wallet/transactions'),
+        api.get('/withdrawals/mine'),
       ]);
       if (balRes.data.success) {
         setBalance(balRes.data.data.balance || 0);
         setPendingBalance(balRes.data.data.pending_escrow || 0);
       }
       if (txRes.data.success) setTransactions(txRes.data.data.transactions || []);
+      if (wdRes.data.success) setWithdrawalRequests(wdRes.data.data.withdrawals || []);
     } catch (err) {
       console.error('Wallet fetch error:', err);
     } finally {
@@ -129,7 +133,8 @@ export default function WalletPage() {
     return true;
   });
 
-  const currentTransactions = filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const displayItems = activeTab === 'withdrawals' ? withdrawalRequests : filteredTransactions;
+  const currentItems = displayItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <DashboardLayout role={user?.role || 'customer'} hideSidebar={true}>
@@ -186,59 +191,86 @@ export default function WalletPage() {
                   <h3 className="text-[11px] font-bold  tracking-[0.3em] opacity-40">Transaction Matrix</h3>
                   <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">Structural Ledger History</p>
                 </div>
-                <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5">
-                  {['all', 'in', 'out'].map(t => (
-                    <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-1.5 rounded-lg text-[11px] font-bold tracking-tight transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                 <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5 overflow-x-auto scrollbar-hide">
+                   {['all', 'in', 'out', 'withdrawals'].map(t => (
+                     <button key={t} onClick={() => { setActiveTab(t); setCurrentPage(1); }} className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                       {t}
+                     </button>
+                   ))}
+                 </div>
              </div>
 
-             <div className="space-y-2 min-h-[400px]">
-                {loading ? <LoadingSpinner /> : currentTransactions.length === 0 ? (
-                  <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20 text-sm">No activity records found</div>
-                ) : currentTransactions.map((tx, i) => {
-                  const config = TX_ICONS[tx.type] || TX_ICONS.payment;
-                  const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
-                  return (
-                    <div key={tx._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group cursor-pointer">
-                      <div className={`size-10 rounded-xl flex items-center justify-center bg-${config.color}-500/10 text-${config.color}-500 border border-${config.color}-500/20`}>
-                        <config.Icon className="size-4" />
+              <div className="space-y-2 min-h-[400px]">
+                 {loading ? <LoadingSpinner /> : currentItems.length === 0 ? (
+                   <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20 text-sm">No {activeTab} records found</div>
+                 ) : activeTab === 'withdrawals' ? (
+                    currentItems.map((wr, i) => (
+                      <div key={wr._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
+                        <div className={`size-10 rounded-xl flex items-center justify-center ${
+                          wr.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
+                          wr.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                          'bg-red-500/10 text-red-500 border-red-500/20'
+                        }`}>
+                          {wr.status === 'completed' ? <CheckCircle2 className="size-4" /> : 
+                           wr.status === 'pending' ? <Clock className="size-4" /> : 
+                           <AlertCircle className="size-4" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-bold tracking-tighter truncate capitalize">{wr.withdrawalMethod} Withdrawal</p>
+                          <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-base font-bold tracking-tighter">{fmt(wr.amount)}</p>
+                          <p className="text-[10px] font-bold opacity-20 uppercase">{wr.currency}</p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-bold  tracking-tighter truncate">{tx.description || tx.type}</p>
-                        <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-base font-bold tracking-tighter ${isCredit ? 'text-emerald-500' : 'text-red-500'}`}>{isCredit ? '+' : '-'}{fmt(tx.amount)}</p>
-                        <p className="text-[11px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity tracking-tight flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Record Details</p>
-                      </div>
-                    </div>
-                  );
-                })}
-             </div>
+                    ))
+                 ) : (
+                    currentItems.map((tx, i) => {
+                      const config = TX_ICONS[tx.type] || TX_ICONS.payment;
+                      const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
+                      return (
+                        <div key={tx._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group cursor-pointer">
+                          <div className={`size-10 rounded-xl flex items-center justify-center bg-${config.color}-500/10 text-${config.color}-500 border border-${config.color}-500/20`}>
+                            <config.Icon className="size-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold  tracking-tighter truncate">{tx.description || tx.type}</p>
+                            <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-base font-bold tracking-tighter ${isCredit ? 'text-emerald-500' : 'text-red-500'}`}>{isCredit ? '+' : '-'}{fmt(tx.amount)}</p>
+                            <p className="text-[11px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity tracking-tight flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Record Details</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                 )}
+              </div>
           </section>
         </div>
 
         {/* Action Modals - Abstracted for surgical look */}
         <AnimatePresence>
-          {modal && (
+          {modal === 'deposit' && (
             <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setModal(null)} />
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl">
                 <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-lg font-bold  tracking-tighter">{modal === 'deposit' ? 'Add Liquidity' : 'Initiate Outflow'}</h3>
+                  <h3 className="text-lg font-bold  tracking-tighter">Add Liquidity</h3>
                   <button onClick={() => setModal(null)} className="p-2 rounded-full hover:bg-[var(--bg-secondary)] transition-all"><X className="size-4 opacity-40" /></button>
                 </div>
                 <div className="space-y-6">
                   <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full h-20 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-4xl font-bold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10" />
-                  <button onClick={() => handleAction(modal)} disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[9px] tracking-tight shadow-lg shadow-[var(--accent)]/20">
+                  <button onClick={() => handleAction('deposit')} disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[9px] tracking-tight shadow-lg shadow-[var(--accent)]/20">
                     {submitting ? 'Calibrating...' : 'Confirm Transaction'}
                   </button>
                 </div>
               </motion.div>
             </div>
+          )}
+          {modal === 'withdraw' && (
+            <WithdrawModal balance={balance} onClose={() => setModal(null)} onSuccess={() => { fetchWallet(); setModal(null); }} />
           )}
         </AnimatePresence>
       </div>

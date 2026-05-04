@@ -442,7 +442,7 @@ function CheckoutContent() {
 
       <main className="max-w-[1600px] mx-auto px-6 lg:px-20 py-12 relative z-10">
 
-        {/* ── Payment Blocking Screen ─────────────────────────────────────── */}
+        {/* ââ Payment Blocking Screen âââââââââââââââââââââââââââââââââââââââ */}
         <AnimatePresence>
           {blockReason && (
             <motion.div
@@ -743,29 +743,12 @@ function CheckoutContent() {
                                        />
                                     </div>
                                     <div className="space-y-2">
-                                       <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Currency (ISO)</label>
-                                       <select 
-                                          value={formData.eversend.currency}
-                                          onChange={e => {
-                                             const curr = e.target.value;
-                                             setFormData({
-                                               ...formData, 
-                                               eversend: {
-                                                 ...formData.eversend, 
-                                                 currency: curr,
-                                                 country: eversendMap[curr] || 'CM'
-                                               }
-                                             });
-                                          }}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold  outline-none focus:border-[var(--accent)] transition-all"
-                                       >
-                                          <option value="XAF">XAF (Cameroon/Central Africa)</option>
-                                          <option value="KES">KES (Kenya)</option>
-                                          <option value="GHS">GHS (Ghana)</option>
-                                          <option value="RWF">RWF (Rwanda)</option>
-                                          <option value="UGX">UGX (Uganda)</option>
-                                          <option value="NGN">NGN (Nigeria)</option>
-                                       </select>
+                                       <label className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Currency</label>
+                                       <div className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold flex items-center gap-3 cursor-not-allowed select-none">
+                                          <span className="text-[var(--text-primary)]">XAF</span>
+                                          <span className="text-[var(--text-secondary)] opacity-50">— Central African Franc</span>
+                                          <span className="ml-auto text-[9px] font-bold tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg">LOCKED</span>
+                                       </div>
                                     </div>
                                  </div>
                               </div>
@@ -839,9 +822,9 @@ function CheckoutContent() {
                                       <p className="text-[11px] font-bold text-[var(--accent)] tracking-tight mt-1 opacity-80">Verified AURA Node</p>
                                    </div>
                                 </div>
-                             )}
+                            )}
 
-                          </div>
+                      </div>
                       </div>
 
                       <div className={`${formData.escrowEnabled && formData.paymentMethod === 'wallet' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} border p-8 rounded-[40px] flex items-start gap-6 relative overflow-hidden`}>

@@ -2,296 +2,418 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Wallet, CheckCircle2, XCircle, Clock, AlertCircle,
-  Loader2, RefreshCw, Search, Filter, User, ChevronRight,
-  ShieldCheck, Info, ArrowUpRight, Zap, TrendingUp, Lock,
-  ArrowDownLeft, History, Package
+  Wallet, CheckCircle2, XCircle, Clock, AlertCircle, Loader2,
+  RefreshCw, Search, User, ChevronRight, ShieldCheck, Lock,
+  Zap, RotateCcw, Copy, Phone, Building2, Tag, Globe
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
-import { useChat } from '@/context/ChatContext';
 import api from '@/services/api';
 
-function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
+const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
-const STATUS_BADGE = {
-  pending:   'bg-amber-500/10 text-amber-500 border-amber-500/20',
-  completed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  rejected:  'bg-red-500/10 text-red-500 border-red-500/20',
+const STATUS = {
+  pending:          { cls: 'bg-amber-500/10 text-amber-500 border-amber-500/20',   icon: Clock },
+  approved:         { cls: 'bg-blue-500/10 text-blue-500 border-blue-500/20',      icon: Zap },
+  completed:        { cls: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CheckCircle2 },
+  rejected:         { cls: 'bg-red-500/10 text-red-500 border-red-500/20',         icon: XCircle },
+  failed:           { cls: 'bg-red-500/10 text-red-500 border-red-500/20',         icon: XCircle },
+  processing_error: { cls: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: AlertCircle },
 };
 
-const METHOD_LABEL = { mtn: 'MTN MoMo', orange: 'Orange Money', bank: 'Bank Transfer' };
+const METHOD_ICON = { momo: Phone, bank: Building2, eversend: Tag };
 
-function KPICard({ title, value, icon: Icon, color, sub }) {
-  const colorMap = {
-    fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)]',
-    blue: 'bg-indigo-500/10 text-indigo-500',
-    emerald: 'bg-emerald-500/10 text-emerald-500',
-    amber: 'bg-amber-500/10 text-amber-500',
-    red: 'bg-red-500/10 text-red-500',
-  };
-
+function KPI({ title, value, icon: Icon, color, sub }) {
+  const c = { fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)]', blue: 'bg-indigo-500/10 text-indigo-500', emerald: 'bg-emerald-500/10 text-emerald-500', amber: 'bg-amber-500/10 text-amber-500' };
   return (
-    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 group hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden glass-panel shadow-sm w-full">
-      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl opacity-20 ${colorMap[color]?.split(' ')[0]}`} />
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorMap[color]}`}>
-          <Icon className="w-6 h-6" />
-        </div>
-      </div>
-      <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[11px] font-bold tracking-[0.2em]  opacity-50">{title}</p>
-        <h3 className="text-fluid-base lg:text-fluid-xl font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
-        {sub && <p className="text-[11px] text-[var(--text-secondary)] font-bold mt-1 opacity-50  tracking-tighter truncate">{sub}</p>}
-      </div>
+    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 relative overflow-hidden glass-panel">
+      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl opacity-20 ${c[color]?.split(' ')[0]}`} />
+      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-4 ${c[color]}`}><Icon className="w-5 h-5" /></div>
+      <p className="text-[11px] font-bold tracking-[0.15em] text-[var(--text-secondary)] opacity-50">{title}</p>
+      <h3 className="text-2xl font-bold text-[var(--text-primary)] mt-1 tabular-nums">{value}</h3>
+      {sub && <p className="text-[10px] text-[var(--text-secondary)] opacity-40 mt-1">{sub}</p>}
     </div>
   );
 }
 
-function RequestDetails({ request, onClose, onAction, processing, onMessage }) {
-  if (!request) return null;
-  const details = request.gateway_response?.details || {};
-  const method  = request.gateway_response?.method || 'mtn';
+function DetailDrawer({ wr, onClose, onApprove, onReject, onRecheck, processing }) {
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  if (!wr) return null;
+
+  const S = STATUS[wr.status] || STATUS.pending;
+  const SIcon = S.icon;
+  const MIcon = METHOD_ICON[wr.withdrawalMethod] || Wallet;
+  const rd = wr.recipientDetails || {};
+
+  const copy = (text) => { navigator.clipboard.writeText(text); };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-    >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="relative w-full max-w-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
-      >
-        <div className="absolute -top-10 -right-10 size-40 bg-[var(--accent)]/10 blur-3xl rounded-full" />
-        
-        <div className="flex items-center justify-between mb-8">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+        className="relative w-full max-w-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div className="absolute -top-10 -right-10 size-40 bg-[var(--accent)]/5 blur-3xl rounded-full" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Request Review</h2>
-            <p className="text-[10px] text-[var(--text-secondary)] font-bold tracking-tight opacity-40">{request.reference}</p>
+            <h2 className="text-lg font-bold tracking-tight">Withdrawal Review</h2>
+            <p className="text-[10px] text-[var(--text-secondary)] opacity-40 font-mono">{wr._id}</p>
           </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => onMessage(request.user_id._id, request.user_id)}
-              className="size-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-lg shadow-indigo-500/10"
-              title="Message Vendor"
-            >
-              <History className="size-5" />
-            </button>
-            <button onClick={onClose} className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
-              <XCircle className="size-5" />
-            </button>
+          <button onClick={onClose} className="size-9 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+            <XCircle className="size-5" />
+          </button>
+        </div>
+
+        {/* Requester */}
+        <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] mb-6">
+          <div className="size-12 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0">
+            {wr.requestedBy?.avatar
+              ? <img src={wr.requestedBy.avatar} className="size-full object-cover" alt="" />
+              : <User className="size-6 opacity-20" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-[var(--text-primary)] truncate">{wr.requestedBy?.name || '—'}</p>
+            <p className="text-[10px] text-[var(--text-secondary)] opacity-50 truncate">{wr.requestedBy?.email}</p>
+            <span className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">{wr.role?.toUpperCase()}</span>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xl font-bold tabular-nums">{fmt(wr.amount)}</p>
+            <p className="text-[10px] font-bold opacity-30">{wr.currency}</p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-            <div className="size-12 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden">
-               {request.user_id?.avatar ? <img src={request.user_id.avatar} className="size-full object-cover" /> : <User className="size-6 opacity-20" />}
+        {/* Details Grid */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+            <p className="text-[10px] font-bold opacity-40 mb-1">Method</p>
+            <div className="flex items-center gap-2">
+              <MIcon className="size-4 text-[var(--accent)]" />
+              <p className="text-sm font-bold capitalize">{wr.withdrawalMethod}</p>
             </div>
+          </div>
+          <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+            <p className="text-[10px] font-bold opacity-40 mb-1">Status</p>
+            <div className={`flex items-center gap-1 text-xs font-bold ${S.cls.split(' ').slice(1).join(' ')}`}>
+              <SIcon className="size-3" />
+              <span className="capitalize">{wr.status}</span>
+            </div>
+          </div>
+          <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+            <p className="text-[10px] font-bold opacity-40 mb-1">Recipient</p>
+            <p className="text-xs font-bold">{rd.firstName} {rd.lastName}</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <Globe className="size-3 opacity-30" />
+              <p className="text-[10px] opacity-50">{rd.country}</p>
+            </div>
+          </div>
+          <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+            <p className="text-[10px] font-bold opacity-40 mb-1">Destination</p>
+            <p className="text-xs font-bold font-mono truncate">{rd.phoneNumber || rd.accountNumber || rd.eversendTag || '—'}</p>
+            {rd.bankCode && <p className="text-[10px] opacity-50 mt-0.5">{rd.bankCode}</p>}
+          </div>
+        </div>
+
+        {/* Eversend TX ID */}
+        {wr.eversendTransactionId && (
+          <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/20 mb-6 flex items-center gap-3">
+            <Zap className="size-4 text-[var(--accent)] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-[var(--text-primary)] truncate">{request.user_id?.name || 'Unknown User'}</p>
-              <p className="text-[10px] text-[var(--text-secondary)] font-bold opacity-40 truncate">{request.user_id?.email}</p>
+              <p className="text-[10px] font-bold opacity-50">Eversend Transaction ID</p>
+              <p className="text-xs font-mono font-bold truncate">{wr.eversendTransactionId}</p>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-lg font-bold text-[var(--accent)]">{fmt(request.amount)}</p>
-              <p className="text-[10px] text-[var(--text-secondary)] font-bold  opacity-30">XAF</p>
-            </div>
+            <button onClick={() => copy(wr.eversendTransactionId)} className="size-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center hover:bg-[var(--accent)]/20 transition-all">
+              <Copy className="size-3 text-[var(--accent)]" />
+            </button>
           </div>
+        )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-              <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-2 opacity-40">Payout Method</p>
-              <p className="text-sm font-bold text-[var(--text-primary)]">{METHOD_LABEL[method]}</p>
-              <p className="text-[11px] font-bold text-[var(--text-secondary)] mt-1 opacity-60">{details.account_number}</p>
-            </div>
-            <div className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-              <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-2 opacity-40">Account Name</p>
-              <p className="text-sm font-bold text-[var(--text-primary)] truncate">{details.holder_name || '—'}</p>
-              <p className="text-[11px] font-bold text-emerald-500 mt-1 flex items-center gap-1"><ShieldCheck className="size-3" /> VERIFIED</p>
-            </div>
+        {/* Rejection/Failure reason */}
+        {(wr.rejectionReason || wr.failureReason) && (
+          <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 mb-6">
+            <p className="text-[10px] font-bold text-red-500 mb-1">{wr.rejectionReason ? 'Rejection Reason' : 'Failure Reason'}</p>
+            <p className="text-xs text-[var(--text-secondary)]">{wr.rejectionReason || wr.failureReason}</p>
           </div>
+        )}
 
-          {request.status === 'pending' ? (
+        {wr.note && (
+          <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] mb-6">
+            <p className="text-[10px] font-bold opacity-40 mb-1">Requester Note</p>
+            <p className="text-xs">{wr.note}</p>
+          </div>
+        )}
+
+        {/* Actions */}
+        {wr.status === 'pending' && !showRejectForm && (
+          <div className="flex gap-3">
+            <button onClick={() => onApprove(wr._id)} disabled={!!processing}
+              className="flex-1 h-13 bg-emerald-500 text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-emerald-500/20 py-3">
+              {processing === 'approve' ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Approve & Pay
+            </button>
+            <button onClick={() => setShowRejectForm(true)} disabled={!!processing}
+              className="flex-1 h-13 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/20 disabled:opacity-50 transition-all py-3">
+              <XCircle className="size-4" /> Reject
+            </button>
+          </div>
+        )}
+
+        {wr.status === 'pending' && showRejectForm && (
+          <div className="space-y-3">
+            <textarea
+              placeholder="Enter rejection reason (required)..."
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              rows={3}
+              className="w-full p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-xs font-bold outline-none focus:border-red-500 transition-all resize-none"
+            />
             <div className="flex gap-3">
-              <button onClick={() => onAction(request._id, 'approve')} disabled={!!processing}
-                className="flex-1 h-14 bg-emerald-500 text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-emerald-500/20">
-                {processing?.includes('approve') ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Approve & Pay
+              <button onClick={() => onReject(wr._id, rejectReason)} disabled={!!processing || rejectReason.trim().length < 5}
+                className="flex-1 h-12 bg-red-500 text-white rounded-2xl font-bold text-xs disabled:opacity-50 flex items-center justify-center gap-2">
+                {processing === 'reject' ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />} Confirm Rejection
               </button>
-              <button onClick={() => onAction(request._id, 'reject')} disabled={!!processing}
-                className="flex-1 h-14 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/20 disabled:opacity-50 transition-all">
-                {processing?.includes('reject') ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />} Reject
+              <button onClick={() => setShowRejectForm(false)}
+                className="h-12 px-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-xs font-bold">
+                Cancel
               </button>
             </div>
-          ) : (
-            <div className={`p-4 rounded-2xl border text-center font-bold  text-xs tracking-tight ${STATUS_BADGE[request.status]}`}>
-              Status: {request.status}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {(wr.status === 'approved' || wr.status === 'processing_error') && (
+          <button onClick={() => onRecheck(wr._id)} disabled={!!processing}
+            className="w-full h-12 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500/20 disabled:opacity-50 transition-all">
+            {processing === 'recheck' ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />} Recheck Eversend Status
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );
 }
 
+const TABS = ['pending', 'approved', 'completed', 'rejected', 'failed', 'all'];
+
 export default function AdminWithdrawalsPage() {
   const { user } = useAuthStore();
-  const { openChat } = useChat();
-  const router = useRouter();
+  const router   = useRouter();
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [stats, setStats]       = useState({ total_platform_revenue: 0, total_escrow_held: 0, total_pending_withdrawals: 0 });
+  const [pendingCount, setPendingCount] = useState(0);
   const [filter, setFilter]     = useState('pending');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [search, setSearch]     = useState('');
   const [processing, setProc]   = useState(null);
   const [toast, setToast]       = useState(null);
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    if (!user) {
-      router.replace('/login?from=admin-withdrawals');
-    } else if (user.role !== 'admin') {
-      router.replace('/wallet');
-    }
+    if (!user) { router.replace('/login?from=admin-withdrawals'); return; }
+    if (user.role !== 'admin') { router.replace('/wallet'); }
   }, [user, router]);
 
   if (!user || user.role !== 'admin') return null;
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), 4500);
   };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [wRes, sRes] = await Promise.all([
-        api.get('/wallet/admin/withdrawals', { params: { status: filter === 'all' ? undefined : filter } }),
-        api.get('/wallet/admin/stats')
-      ]);
-      if (wRes.data.success) setWithdrawals(wRes.data.data.withdrawals || []);
-      if (sRes.data.success) setStats(sRes.data.data);
+      const params = {};
+      if (filter !== 'all') params.status = filter;
+      if (roleFilter !== 'all') params.role = roleFilter;
+      const res = await api.get('/withdrawals/admin', { params });
+      if (res.data.success) {
+        setWithdrawals(res.data.data.withdrawals || []);
+        setPendingCount(res.data.data.pendingCount || 0);
+      }
     } catch { showToast('Failed to load withdrawals', 'error'); }
     finally { setLoading(false); }
   }, [filter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, filter, roleFilter]);
 
-  const act = async (id, action) => {
-    setProc(id + action);
+  const handleApprove = async (id) => {
+    setProc('approve');
     try {
-      await api.patch(`/wallet/admin/withdrawals/${id}`, { action });
-      showToast(`Withdrawal ${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'held'} successfully.`);
+      const res = await api.post(`/withdrawals/admin/${id}/approve`);
+      showToast(res.data.message || 'Approved. Payout sent to Eversend.');
       setSelected(null);
       load();
     } catch (e) {
-      showToast(e?.response?.data?.message || 'Action failed.', 'error');
+      showToast(e?.response?.data?.message || 'Approval failed.', 'error');
+    } finally { setProc(null); }
+  };
+
+  const handleReject = async (id, reason) => {
+    if (!reason || reason.trim().length < 5) { showToast('Rejection reason too short.', 'error'); return; }
+    setProc('reject');
+    try {
+      await api.post(`/withdrawals/admin/${id}/reject`, { rejectionReason: reason });
+      showToast('Request rejected. User notified.');
+      setSelected(null);
+      load();
+    } catch (e) {
+      showToast(e?.response?.data?.message || 'Rejection failed.', 'error');
+    } finally { setProc(null); }
+  };
+
+  const handleRecheck = async (id) => {
+    setProc('recheck');
+    try {
+      const res = await api.post(`/withdrawals/admin/${id}/recheck`);
+      showToast(res.data.message || 'Status synced from Eversend.');
+      load();
+      // Refresh selected drawer
+      setSelected(prev => prev ? { ...prev, ...res.data.data?.withdrawal } : null);
+    } catch (e) {
+      showToast(e?.response?.data?.message || 'Recheck failed.', 'error');
     } finally { setProc(null); }
   };
 
   const displayed = withdrawals.filter(w => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return (w.user_id?.name || '').toLowerCase().includes(q) ||
-           (w.user_id?.email || '').toLowerCase().includes(q) ||
-           (w.reference || '').toLowerCase().includes(q);
+    return (w.requestedBy?.name || '').toLowerCase().includes(q) ||
+           (w.requestedBy?.email || '').toLowerCase().includes(q) ||
+           (w._id || '').toLowerCase().includes(q);
   });
 
   return (
     <>
+      {/* Toast */}
       <AnimatePresence>
         {toast && (
-          <motion.div 
-            initial={{ y: -20, opacity: 0, x: '-50%' }} animate={{ y: 0, opacity: 1, x: '-50%' }} exit={{ y: -20, opacity: 0, x: '-50%' }}
-            className={`fixed top-20 left-1/2 z-[1000] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-sm font-bold ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}
-          >
+          <motion.div initial={{ y: -20, opacity: 0, x: '-50%' }} animate={{ y: 0, opacity: 1, x: '-50%' }} exit={{ y: -20, opacity: 0, x: '-50%' }}
+            className={`fixed top-20 left-1/2 z-[500] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-sm font-bold ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
             {toast.type === 'error' ? <AlertCircle className="size-4" /> : <CheckCircle2 className="size-4" />}
             {toast.msg}
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Detail Drawer */}
       <AnimatePresence>
         {selected && (
-          <RequestDetails 
-            request={selected} 
-            onClose={() => setSelected(null)} 
-            onAction={act}
+          <DetailDrawer
+            wr={selected}
+            onClose={() => setSelected(null)}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onRecheck={handleRecheck}
             processing={processing}
-            onMessage={openChat}
           />
         )}
       </AnimatePresence>
 
       <div className="px-4 md:px-8 py-8 w-full space-y-8">
-        
-        {/* Header - Matching Vendor Style */}
-        <div className="flex items-center justify-between mb-2">
-           <div className="flex items-center gap-4">
-              <div className="size-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                <ShieldCheck className="size-6 text-purple-500" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-[var(--text-primary)]">Payout Queue</h1>
-                <p className="text-xs text-[var(--text-secondary)] font-bold opacity-60 tracking-tight">Financial Oversight</p>
-              </div>
-           </div>
-           <button onClick={load} className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-              <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
-           </button>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="size-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+              <ShieldCheck className="size-6 text-purple-500" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Payout Queue</h1>
+              <p className="text-xs text-[var(--text-secondary)] opacity-60 font-bold tracking-tight">
+                Eversend Withdrawal Approvals
+                {pendingCount > 0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px]">{pendingCount} PENDING</span>}
+              </p>
+            </div>
+          </div>
+          <button onClick={load} className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+            <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        {/* KPI Grid - Matching Vendor Style */}
+        {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard title="Platform Revenue" value={`${fmt(stats.total_platform_revenue)}`} icon={Zap} color="emerald" sub="Gross Commissions" />
-          <KPICard title="Escrow Volume" value={`${fmt(stats.total_escrow_held)}`} icon={Lock} color="amber" sub="Market Liquidity" />
-          <KPICard title="Pending Payouts" value={`${fmt(stats.total_pending_withdrawals)}`} icon={Wallet} color="fuchsia" sub="XAF Liabilities" />
-          <KPICard title="Requests" value={withdrawals.filter(w => w.status === 'pending').length} icon={Clock} color="blue" sub="Open Queue" />
+          <KPI title="Pending" value={pendingCount} icon={Clock} color="fuchsia" sub="Awaiting Action" />
+          <KPI title="Total Shown" value={displayed.length} icon={Wallet} color="blue" sub="In Current Filter" />
+          <KPI title="Approved" value={withdrawals.filter(w => w.status === 'approved').length} icon={Zap} color="emerald" sub="Sent to Eversend" />
+          <KPI title="Failed" value={withdrawals.filter(w => ['failed','processing_error'].includes(w.status)).length} icon={AlertCircle} color="amber" sub="Need Attention" />
         </div>
 
-        {/* Filters & Search */}
-        <div className="space-y-6">
-           <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div className="flex p-1 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl w-full md:w-auto">
-                {['pending', 'completed', 'rejected', 'all'].map(f => (
-                  <button key={f} onClick={() => setFilter(f)}
-                    className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${filter === f ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}>
-                    {f}
-                  </button>
-                ))}
-              </div>
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-30" />
-                <input 
-                  value={search} onChange={e => setSearch(e.target.value)} 
-                  placeholder="Search Ref, Name, or Email..."
-                  className="w-full h-12 pl-12 pr-6 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl text-xs font-bold text-[var(--text-primary)] placeholder:opacity-20 outline-none focus:border-[var(--accent)] transition-all"
-                />
-              </div>
-           </div>
-
-           {/* Results List - Matching Vendor Transaction Style */}
-           <div className="min-h-[400px] space-y-2">
-              {loading ? (
-                <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div>
-              ) : displayed.length === 0 ? (
-                <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No requests found in queue</div>
-              ) : displayed.map((w) => (
-                <div key={w._id} onClick={() => setSelected(w)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
-                   <div className={`size-11 rounded-xl flex items-center justify-center ${w.status === 'pending' ? 'bg-amber-500/10 text-amber-500' : w.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {w.status === 'pending' ? <Clock className="size-5" /> : w.status === 'completed' ? <CheckCircle2 className="size-5" /> : <XCircle className="size-5" />}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-[var(--text-primary)] truncate ">{w.user_id?.name || 'Unknown Vendor'}</p>
-                      <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">{w.reference} • {new Date(w.createdAt).toLocaleDateString()}</p>
-                   </div>
-                   <div className="text-right">
-                      <p className="text-base font-bold text-[var(--text-primary)]">{fmt(w.amount)}</p>
-                      <p className="text-[11px] font-bold  opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><ChevronRight className="size-2" /> Review Request</p>
-                   </div>
-                </div>
+        {/* Filter Tabs + Search */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="flex flex-wrap gap-1 p-1 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl">
+              {TABS.map(f => (
+                <button key={f} onClick={() => setFilter(f)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-tight transition-all capitalize ${filter === f ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}>
+                  {f}
+                </button>
               ))}
-           </div>
+            </div>
+
+            <div className="flex items-center gap-2 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-3 py-2">
+               <Users className="size-3.5 opacity-40" />
+               <select 
+                 value={roleFilter} 
+                 onChange={e => setRoleFilter(e.target.value)}
+                 className="bg-transparent text-[10px] font-bold tracking-tight text-[var(--text-secondary)] outline-none"
+               >
+                  <option value="all">All Roles</option>
+                  <option value="vendor">Vendors</option>
+                  <option value="logistics">Logistics</option>
+                  <option value="user">Customers</option>
+               </select>
+            </div>
+            <div className="relative flex-1 w-full sm:w-auto">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3.5 opacity-30" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search name, email, or ID..."
+                className="w-full h-11 pl-10 pr-5 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" />
+            </div>
+          </div>
+
+          {/* Results */}
+          <div className="space-y-2 min-h-[300px]">
+            {loading ? (
+              <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin size-8" /></div>
+            ) : displayed.length === 0 ? (
+              <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">
+                <Wallet className="size-10 mx-auto mb-4" />
+                <p className="text-sm font-bold">No withdrawal requests in this filter</p>
+              </div>
+            ) : displayed.map(w => {
+              const S = STATUS[w.status] || STATUS.pending;
+              const SIcon = S.icon;
+              const MIcon = METHOD_ICON[w.withdrawalMethod] || Wallet;
+              return (
+                <div key={w._id} onClick={() => setSelected(w)}
+                  className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
+                  <div className={`size-11 rounded-xl flex items-center justify-center border ${S.cls}`}>
+                    <SIcon className="size-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-sm text-[var(--text-primary)] truncate">{w.requestedBy?.name || '—'}</p>
+                      <span className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60 shrink-0">
+                        {w.role?.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <div className="flex items-center gap-1 text-[10px] text-[var(--text-secondary)] opacity-50">
+                        <MIcon className="size-3" />
+                        <span className="capitalize">{w.withdrawalMethod}</span>
+                      </div>
+                      <span className="text-[10px] opacity-30">•</span>
+                      <p className="text-[10px] text-[var(--text-secondary)] opacity-40">{new Date(w.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-base font-bold tabular-nums">{fmt(w.amount)}</p>
+                    <p className="text-[10px] font-bold opacity-30">{w.currency}</p>
+                  </div>
+                  <ChevronRight className="size-4 opacity-20 group-hover:opacity-60 group-hover:translate-x-1 transition-all" />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </>
