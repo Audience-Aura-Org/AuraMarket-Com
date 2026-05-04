@@ -124,7 +124,7 @@ function VerifyContent() {
 
       {/* Heading */}
       <div className="space-y-3">
-        <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)]">
+        <h1 className="text-4xl font-bold tracking-tighter text-[var(--text-primary)]">
           {status === 'verifying' && (isEversendPending ? 'Awaiting Approval' : 'Verifying Payment')}
           {status === 'success'   && 'Payment Confirmed!'}
           {status === 'error'     && 'Verification Issue'}
@@ -136,10 +136,10 @@ function VerifyContent() {
             <p className="text-[var(--text-secondary)] font-semibold max-w-sm mx-auto">
               A payment request has been sent to your mobile phone.
             </p>
-            <p className="text-[var(--accent)] font-black text-sm tracking-wide">
+            <p className="text-[var(--accent)] font-bold text-sm tracking-tight">
               Please check your phone and approve the request.
             </p>
-            <p className="text-[10px] font-bold tracking-wide text-[var(--text-secondary)] opacity-40 mt-4">
+            <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-4">
               Checking status… {pollCount > 0 && `(${pollCount}/${MAX_POLLS})`}
             </p>
           </div>
@@ -173,13 +173,13 @@ function VerifyContent() {
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={handleRetry}
-            className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--accent)] text-white font-black text-xs tracking-wide hover:opacity-90 transition-all shadow-xl"
+            className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--accent)] text-white font-bold text-xs tracking-tight hover:opacity-90 transition-all shadow-xl"
           >
             <RefreshCw className="w-4 h-4" /> Check Again
           </button>
           <button
             onClick={() => router.push('/wallet')}
-            className="px-8 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-xs tracking-wide hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+            className="px-8 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-xs tracking-tight hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
           >
             Return to Wallet
           </button>
@@ -187,12 +187,12 @@ function VerifyContent() {
       )}
 
       {status === 'success' && type === 'checkout' && (
-        <p className="text-[10px] font-black tracking-wide text-[var(--text-secondary)] opacity-40 animate-pulse">
+        <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 animate-pulse">
           Redirecting to your orders…
         </p>
       )}
 
-      <p className="text-[9px] font-black  tracking-[0.3em] text-[var(--text-secondary)] opacity-20">
+      <p className="text-[9px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-20">
         Secured by Eversend · Aura Market
       </p>
     </div>

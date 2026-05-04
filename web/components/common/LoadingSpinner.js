@@ -5,7 +5,7 @@ export default function LoadingSpinner({ fullScreen = false, text = '' }) {
         <img src="/icon-512.png" alt="Aura Logo" className="h-10 opacity-50" />
       </div>
       <div className="size-12 rounded-full border-4 border-[var(--accent)]/10 border-t-[var(--accent)] animate-spin" />
-      {text && <p className="text-[10px] font-black  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">{text}</p>}
+      {text && <p className="text-[10px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">{text}</p>}
     </div>
   );
 

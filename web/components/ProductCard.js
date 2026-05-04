@@ -190,10 +190,10 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                </div>
 
               <Link href={`/products/${productId}`} className="block">
-                <h3 className="text-xs md:text-sm font-black text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{name}</h3>
+                <h3 className="text-xs md:text-sm font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{name}</h3>
               </Link>
               <div className="flex items-center gap-4">
-                <p className="text-[14px] md:text-[18px] font-black text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
+                <p className="text-[14px] md:text-[18px] font-bold text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
                 <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-secondary)] opacity-70">
                    <span className="flex items-center gap-1"><ShoppingCart className="size-3.5 text-emerald-500" /> {product.purchase_count || 0} sold</span>
                 </div>
@@ -204,7 +204,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <button 
                 onClick={handleBuyNow} 
                 disabled={!product.has_variants && product.stock <= 0}
-                className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black tracking-widest rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-bold tracking-tight rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {(!product.has_variants && product.stock <= 0) ? 'Out of Stock' : 'Buy Now'}
               </button>
@@ -263,13 +263,13 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           </Link>
           {!inStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-              <span className="px-4 py-2 bg-red-500 text-white text-[10px] font-black  tracking-[0.2em] rounded-full shadow-xl">Out of Stock</span>
+              <span className="px-4 py-2 bg-red-500 text-white text-[10px] font-bold  tracking-[0.2em] rounded-full shadow-xl">Out of Stock</span>
             </div>
           )}
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>
             <Heart className={`size-3.5 ${wishlisted ? 'fill-current' : ''}`} />
           </button>
-          <Link href={`/shop?vendorId=${vendorId}`} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[8px] font-black tracking-[0.2em] transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
+          <Link href={`/shop?vendorId=${vendorId}`} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[8px] font-bold tracking-[0.2em] transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
             <Compass className="size-3" /> Discovery
           </Link>
         </div>
@@ -291,7 +291,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             <button 
               onClick={handleBuyNow} 
               disabled={!inStock}
-              className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-black tracking-widest rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-bold tracking-tight rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               {inStock ? 'Buy Now' : 'Sold Out'}
             </button>

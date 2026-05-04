@@ -88,14 +88,14 @@ export default function AdminLogistics() {
     <>
       <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight ">Platform <span className="text-[var(--accent)]">Transit</span></h2>
+          <h2 className="text-lg lg:text-xl font-bold text-[var(--text-primary)] tracking-tight ">Platform <span className="text-[var(--accent)]">Transit</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
              {['Shipments', 'Delivery Partners', 'Zones'].map(tab => (
                <button 
                  key={tab}
                  onClick={() => setActiveTab(tab)} 
-                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[10px] font-black tracking-wide transition-all whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
+                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[10px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
                >
                  {tab}
                </button>
@@ -117,8 +117,8 @@ export default function AdminLogistics() {
               { label: 'On-Route Issues', value: shipments.filter(s => s.status === 'failed').length + ' Alerts', icon: AlertTriangle, color: 'text-rose-500' }
             ].map(s => (
               <div key={s.label} className="glass-panel p-4 lg:p-5 rounded-2xl lg:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-sm transition-all">
-                 <p className="text-[7px] lg:text-[9px] font-black text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
-                 <h3 className={`text-base lg:text-xl font-black ${s.color} tracking-tight`}>{s.value}</h3>
+                 <p className="text-[7px] lg:text-[9px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
+                 <h3 className={`text-base lg:text-xl font-bold ${s.color} tracking-tight`}>{s.value}</h3>
               </div>
             ))}
          </div>
@@ -128,7 +128,7 @@ export default function AdminLogistics() {
             <div className="overflow-x-auto scroll-smooth">
                <table className="w-full text-left min-w-[800px] lg:min-w-0 font-sm">
                   <thead>
-                     <tr className="text-[8px] lg:text-[10px] font-black tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                     <tr className="text-[8px] lg:text-[10px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
                         {activeTab === 'Shipments' ? (
                           <>
                             <th className="px-6 lg:px-8 py-4 lg:py-5">Transit Node</th>
@@ -165,8 +165,8 @@ export default function AdminLogistics() {
                                    <Truck className="size-3.5 lg:size-4" />
                                 </div>
                                 <div className="min-w-0">
-                                   <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] tracking-tight font-mono truncate">{s.tracking_code}</p>
-                                   <p className="text-[8px] lg:text-[9px] font-black text-[var(--accent)] tracking-wide opacity-80 truncate">
+                                   <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight font-mono truncate">{s.tracking_code}</p>
+                                   <p className="text-[8px] lg:text-[9px] font-bold text-[var(--accent)] tracking-tight opacity-80 truncate">
                                      Order #{(s.order_id?._id || s.order_id || '').toString().slice(-8).toUpperCase()}
                                    </p>
                                    <p className="text-[8px] lg:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 flex items-center gap-1 truncate"><MapPin className="size-2 text-[var(--accent)]" /> {s.delivery_address?.quartier || s.delivery_address?.city || 'Unspecified'}</p>
@@ -175,13 +175,13 @@ export default function AdminLogistics() {
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5 min-w-0">
                              <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] truncate max-w-[120px] lg:max-w-[150px] ">{s.logistics_id?.company_name || s.logistics_company_id?.company_name || 'Carrier Pending'}</p>
-                             <p className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-black tracking-wide opacity-30 truncate">From: {s.vendor_id?.store_name || s.vendor_id?.name}</p>
+                             <p className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-bold tracking-tight opacity-30 truncate">From: {s.vendor_id?.store_name || s.vendor_id?.name}</p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
-                             <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] font-mono whitespace-nowrap">{(s.price || 0).toLocaleString()} <span className="text-[8px] opacity-40">XAF</span></p>
+                             <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] font-mono whitespace-nowrap">{(s.price || 0).toLocaleString()} <span className="text-[8px] opacity-40">XAF</span></p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
-                             <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-black  tracking-[0.2em] border shadow-sm shrink-0 inline-block transition-all ${
+                             <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-bold  tracking-[0.2em] border shadow-sm shrink-0 inline-block transition-all ${
                                s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-500/10' : 
                                s.status === 'failed' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-rose-500/10' :
                                ['in_transit', 'out_for_delivery'].includes(s.status) ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20 shadow-indigo-500/10' :
@@ -200,11 +200,11 @@ export default function AdminLogistics() {
                        <tr key={f._id} className="hover:bg-[var(--accent)]/5 transition-colors group">
                           <td className="px-6 lg:px-8 py-4 lg:py-5">
                              <div className="flex items-center gap-3 lg:gap-4">
-                                <div className="size-9 lg:size-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-black border border-indigo-500/10 overflow-hidden shadow-sm flex-shrink-0">
+                                <div className="size-9 lg:size-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold border border-indigo-500/10 overflow-hidden shadow-sm flex-shrink-0">
                                    {f.user_id?.branding?.logo ? <img src={f.user_id.branding.logo} className="size-full object-cover" /> : f.company_name[0].toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
-                                   <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] tracking-tight truncate">{f.company_name}</p>
+                                   <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight truncate">{f.company_name}</p>
                                    <p className="text-[8px] lg:text-[9px] font-bold text-[var(--text-secondary)] opacity-50 lowercase truncate">{f.user_id?.email}</p>
                                 </div>
                              </div>
@@ -222,7 +222,7 @@ export default function AdminLogistics() {
                              </p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
-                              <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-black  tracking-[0.2em] border shadow-sm shrink-0 inline-block transition-all ${f.is_verified ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-500/10' : 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-500/10'}`}>
+                              <span className={`px-2.5 lg:px-3 py-1 rounded-full text-[7px] lg:text-[8px] font-bold  tracking-[0.2em] border shadow-sm shrink-0 inline-block transition-all ${f.is_verified ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-500/10' : 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-500/10'}`}>
                                  {f.is_verified ? 'Verified' : 'Pending'}
                               </span>
                            </td>
@@ -246,7 +246,7 @@ export default function AdminLogistics() {
                                       toast.error("Handshake failed.");
                                     }
                                   }}
-                                  className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-[8px] lg:text-[9px] font-black tracking-wide transition-all shadow-sm active:scale-95 ${f.is_verified ? 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'}`}
+                                  className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-[8px] lg:text-[9px] font-bold tracking-tight transition-all shadow-sm active:scale-95 ${f.is_verified ? 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'}`}
                                 >
                                    {f.is_verified ? 'De-verify' : 'Verify'}
                                 </button>
@@ -255,15 +255,15 @@ export default function AdminLogistics() {
                        </tr>
                      )) : zones.map(z => (
                         <tr key={z._id} className="hover:bg-[var(--accent)]/5 transition-colors group">
-                           <td className="px-6 lg:px-8 py-4 lg:py-5 text-xs lg:text-sm font-black tracking-tight font-mono">{z.name}</td>
+                           <td className="px-6 lg:px-8 py-4 lg:py-5 text-xs lg:text-sm font-bold tracking-tight font-mono">{z.name}</td>
                            <td className="px-4 lg:px-6 py-4 lg:py-5"><span className="px-2 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[7px] lg:text-[8px] font-bold  border border-[var(--glass-border)]/20">{z.type}</span></td>
                            <td className="px-4 lg:px-6 py-4 lg:py-5 text-[10px] lg:text-xs font-bold text-[var(--text-secondary)] tracking-tight">{z.parent_id?.name || 'ROOT'}</td>
-                           <td className="px-4 lg:px-6 py-4 lg:py-5 text-[8px] lg:text-[10px] font-black  text-emerald-500 tracking-widest flex items-center gap-1.5">
+                           <td className="px-4 lg:px-6 py-4 lg:py-5 text-[8px] lg:text-[10px] font-bold  text-emerald-500 tracking-tight flex items-center gap-1.5">
                               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse" />
                               Active Node
                            </td>
                            <td className="px-6 lg:px-8 py-4 lg:py-5 text-right whitespace-nowrap">
-                              <button className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg border border-[var(--glass-border)] hover:bg-rose-500 hover:text-white transition-all text-[8px] lg:text-[10px] font-black tracking-wide shadow-sm active:scale-95 text-rose-500">Delete</button>
+                              <button className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg border border-[var(--glass-border)] hover:bg-rose-500 hover:text-white transition-all text-[8px] lg:text-[10px] font-bold tracking-tight shadow-sm active:scale-95 text-rose-500">Delete</button>
                            </td>
                         </tr>
                      ))}
@@ -272,7 +272,7 @@ export default function AdminLogistics() {
                           <td colSpan={5} className="px-8 py-20 lg:py-32 text-center">
                              <div className="flex flex-col items-center gap-4 lg:gap-6 opacity-20">
                                 <Truck className="size-10 lg:size-16" />
-                                <p className="text-[9px] lg:text-[11px] font-black tracking-wide leading-relaxed">System scan complete.<br/>Transit records clear.</p>
+                                <p className="text-[9px] lg:text-[11px] font-bold tracking-tight leading-relaxed">System scan complete.<br/>Transit records clear.</p>
                              </div>
                           </td>
                        </tr>
@@ -287,7 +287,7 @@ export default function AdminLogistics() {
                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
                   <MapPin className="size-32 lg:size-48" />
                </div>
-               <h3 className="text-xs lg:text-sm font-black  tracking-[0.2em] mb-6 lg:mb-8 text-[var(--accent)] flex items-center gap-3">
+               <h3 className="text-xs lg:text-sm font-bold  tracking-[0.2em] mb-6 lg:mb-8 text-[var(--accent)] flex items-center gap-3">
                   <div className="h-4 lg:h-5 w-1 bg-[var(--accent)] rounded-full" />
                   Provision New Zone
                </h3>
@@ -308,7 +308,7 @@ export default function AdminLogistics() {
                   } catch { toast.error("Deployment failed."); }
                }}>
                   <div className="space-y-2">
-                     <label className="text-[8px] lg:text-[9px] font-black tracking-wide text-[var(--text-secondary)] ml-1">Zone Identifier</label>
+                     <label className="text-[8px] lg:text-[9px] font-bold tracking-tight text-[var(--text-secondary)] ml-1">Zone Identifier</label>
                      <input 
                         placeholder="e.g. Akwa, Douala V"
                         value={newZone.name}
@@ -318,7 +318,7 @@ export default function AdminLogistics() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div className="space-y-2">
-                        <label className="text-[8px] lg:text-[9px] font-black tracking-wide text-[var(--text-secondary)] ml-1">Topology Type</label>
+                        <label className="text-[8px] lg:text-[9px] font-bold tracking-tight text-[var(--text-secondary)] ml-1">Topology Type</label>
                         <select 
                            value={newZone.type}
                            onChange={e => setNewZone({...newZone, type: e.target.value, parent_id: ''})}
@@ -330,7 +330,7 @@ export default function AdminLogistics() {
                      </div>
                      {newZone.type === 'quartier' && (
                         <div className="space-y-2">
-                           <label className="text-[8px] lg:text-[9px] font-black tracking-wide text-[var(--text-secondary)] ml-1">Parent Cluster</label>
+                           <label className="text-[8px] lg:text-[9px] font-bold tracking-tight text-[var(--text-secondary)] ml-1">Parent Cluster</label>
                            <select 
                               value={newZone.parent_id}
                               onChange={e => setNewZone({...newZone, parent_id: e.target.value})}
@@ -344,7 +344,7 @@ export default function AdminLogistics() {
                         </div>
                      )}
                   </div>
-                  <button className="w-full py-4 lg:py-5 bg-[var(--accent)] text-white rounded-xl lg:rounded-2xl font-black text-[9px] lg:text-[10px] tracking-widest  shadow-lg shadow-[var(--accent)]/30 hover:shadow-[var(--accent)]/50 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-30 mt-2">
+                  <button className="w-full py-4 lg:py-5 bg-[var(--accent)] text-white rounded-xl lg:rounded-2xl font-bold text-[9px] lg:text-[10px] tracking-tight  shadow-lg shadow-[var(--accent)]/30 hover:shadow-[var(--accent)]/50 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-30 mt-2">
                      Sync Repository
                   </button>
                </form>
@@ -359,16 +359,16 @@ export default function AdminLogistics() {
           <div className="max-w-4xl w-full glass-panel rounded-[32px] lg:rounded-[48px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 backdrop-blur-3xl p-6 lg:p-12 relative z-10 animate-in fade-in zoom-in-95 duration-500 flex flex-col max-h-[90vh] shadow-[0_0_80px_rgba(0,0,0,0.5)]">
              <div className="flex items-start justify-between mb-8 lg:mb-10 shrink-0">
                 <div className="flex items-center gap-4 lg:gap-6">
-                   <div className="size-14 lg:size-16 rounded-[20px] lg:rounded-[24px] bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-black border border-[var(--accent)]/20 text-xl lg:text-2xl shadow-lg relative overflow-hidden">
+                   <div className="size-14 lg:size-16 rounded-[20px] lg:rounded-[24px] bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-bold border border-[var(--accent)]/20 text-xl lg:text-2xl shadow-lg relative overflow-hidden">
                       {selectedFirm.user_id?.branding?.logo ? <img src={selectedFirm.user_id.branding.logo} className="size-full object-cover" /> : selectedFirm.company_name[0].toUpperCase()}
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent" />
                    </div>
                    <div>
-                      <h3 className="text-xl lg:text-3xl font-black tracking-tight  leading-tight">{selectedFirm.company_name}</h3>
-                      <p className="text-[9px] lg:text-[11px] font-black text-[var(--accent)] tracking-[0.3em]  opacity-70">Grid Pricing Matrix</p>
+                      <h3 className="text-xl lg:text-3xl font-bold tracking-tight  leading-tight">{selectedFirm.company_name}</h3>
+                      <p className="text-[9px] lg:text-[11px] font-bold text-[var(--accent)] tracking-[0.3em]  opacity-70">Grid Pricing Matrix</p>
                    </div>
                 </div>
-                <button onClick={() => setSelectedFirm(null)} className="size-10 lg:size-12 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all text-[8px] font-black tracking-widest  shadow-sm active:scale-90">
+                <button onClick={() => setSelectedFirm(null)} className="size-10 lg:size-12 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all text-[8px] font-bold tracking-tight  shadow-sm active:scale-90">
                    ESC
                 </button>
              </div>
@@ -376,10 +376,10 @@ export default function AdminLogistics() {
              <div className="flex-1 overflow-y-auto no-scrollbar pr-1 lg:pr-2">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                    <div className="space-y-6 lg:space-y-8">
-                      <h4 className="text-[10px] lg:text-xs font-black  tracking-[0.25em] opacity-40 ml-1 border-l-2 border-[var(--accent)] pl-3">Update Price Point</h4>
+                      <h4 className="text-[10px] lg:text-xs font-bold  tracking-[0.25em] opacity-40 ml-1 border-l-2 border-[var(--accent)] pl-3">Update Price Point</h4>
                       <div className="space-y-4 lg:space-y-5">
                          <div className="space-y-2">
-                            <label className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] ml-1">Quartier Descriptor</label>
+                            <label className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] ml-1">Quartier Descriptor</label>
                             <select 
                               value={priceEditor.quartier}
                               onChange={e => setPriceEditor({...priceEditor, quartier: e.target.value})}
@@ -392,14 +392,14 @@ export default function AdminLogistics() {
                             </select>
                          </div>
                          <div className="space-y-2">
-                            <label className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] ml-1">Tariff (XAF)</label>
+                            <label className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] ml-1">Tariff (XAF)</label>
                             <div className="relative">
                                <input 
                                   type="number"
                                   placeholder="0.00"
                                   value={priceEditor.price}
                                   onChange={e => setPriceEditor({...priceEditor, price: e.target.value})}
-                                  className="w-full p-3.5 lg:p-4 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-xs lg:text-sm font-black outline-none focus:border-[var(--accent)] transition-all shadow-inner font-mono pl-12"
+                                  className="w-full p-3.5 lg:p-4 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-xs lg:text-sm font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner font-mono pl-12"
                                />
                                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--accent)] opacity-50" />
                             </div>
@@ -422,7 +422,7 @@ export default function AdminLogistics() {
                                  }
                               } catch { toast.error("Sync protocol failure."); }
                            }}
-                           className="w-full py-4 lg:py-5 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-xl lg:rounded-2xl font-black text-[9px] lg:text-[10px] tracking-[0.2em]  disabled:opacity-30 shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
+                           className="w-full py-4 lg:py-5 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-xl lg:rounded-2xl font-bold text-[9px] lg:text-[10px] tracking-[0.2em]  disabled:opacity-30 shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
                          >
                             Commute Update
                          </button>
@@ -430,18 +430,18 @@ export default function AdminLogistics() {
                    </div>
 
                    <div className="space-y-6 lg:space-y-8 pt-6 lg:pt-0 border-t lg:border-t-0 border-[var(--glass-border)]/20">
-                      <h4 className="text-[10px] lg:text-xs font-black  tracking-[0.25em] opacity-40 ml-1 border-l-2 border-emerald-500 pl-3">Active Pricing Matrix</h4>
+                      <h4 className="text-[10px] lg:text-xs font-bold  tracking-[0.25em] opacity-40 ml-1 border-l-2 border-emerald-500 pl-3">Active Pricing Matrix</h4>
                       <div className="space-y-2 lg:space-y-3 max-h-[300px] lg:max-h-[400px] overflow-y-auto no-scrollbar pb-10">
                          {(selectedFirm.quartier_prices || []).map(p => (
                             <div key={p.quartier} className="flex justify-between items-center p-3.5 lg:p-4 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)]/50 hover:bg-[var(--accent)]/5 hover:border-[var(--accent)]/30 transition-all group/item shadow-sm">
-                               <span className="text-[10px] lg:text-xs font-black  truncate mr-4 tracking-tight text-[var(--text-primary)]">{p.quartier}</span>
-                               <span className="text-xs lg:text-sm font-mono font-black text-[var(--accent)] group-hover/item:scale-110 transition-transform">{p.price.toLocaleString()} <span className="text-[8px] opacity-40">XAF</span></span>
+                               <span className="text-[10px] lg:text-xs font-bold  truncate mr-4 tracking-tight text-[var(--text-primary)]">{p.quartier}</span>
+                               <span className="text-xs lg:text-sm font-mono font-bold text-[var(--accent)] group-hover/item:scale-110 transition-transform">{p.price.toLocaleString()} <span className="text-[8px] opacity-40">XAF</span></span>
                             </div>
                          ))}
                          {(!selectedFirm.quartier_prices || selectedFirm.quartier_prices.length === 0) && (
                             <div className="py-16 flex flex-col items-center gap-4 opacity-20 border-2 border-dashed border-[var(--glass-border)] rounded-[32px]">
                                <Scale className="size-10" />
-                               <p className="text-[9px] font-black tracking-wide text-center px-6">Matrix void.<br/>System ready for provisioning.</p>
+                               <p className="text-[9px] font-bold tracking-tight text-center px-6">Matrix void.<br/>System ready for provisioning.</p>
                             </div>
                          )}
                       </div>
@@ -457,13 +457,13 @@ export default function AdminLogistics() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedShipment(null)} />
           <div className="relative z-10 w-full max-w-2xl rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 lg:p-8">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-sm lg:text-base font-black tracking-wide">Edit Shipment Package</h3>
-              <button onClick={() => setSelectedShipment(null)} className="px-3 py-1 rounded-lg border border-[var(--glass-border)] text-[10px] font-black ">Close</button>
+              <h3 className="text-sm lg:text-base font-bold tracking-tight">Edit Shipment Package</h3>
+              <button onClick={() => setSelectedShipment(null)} className="px-3 py-1 rounded-lg border border-[var(--glass-border)] text-[10px] font-bold ">Close</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input value={shipmentEdit.tracking_code} onChange={(e) => setShipmentEdit((s) => ({ ...s, tracking_code: e.target.value }))} placeholder="Tracking code" className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black" />
-              <input type="number" value={shipmentEdit.price} onChange={(e) => setShipmentEdit((s) => ({ ...s, price: e.target.value }))} placeholder="Shipping price" className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black" />
-              <select value={shipmentEdit.status} onChange={(e) => setShipmentEdit((s) => ({ ...s, status: e.target.value }))} className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black ">
+              <input value={shipmentEdit.tracking_code} onChange={(e) => setShipmentEdit((s) => ({ ...s, tracking_code: e.target.value }))} placeholder="Tracking code" className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-bold" />
+              <input type="number" value={shipmentEdit.price} onChange={(e) => setShipmentEdit((s) => ({ ...s, price: e.target.value }))} placeholder="Shipping price" className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-bold" />
+              <select value={shipmentEdit.status} onChange={(e) => setShipmentEdit((s) => ({ ...s, status: e.target.value }))} className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-bold ">
                 <option value="pending">Pending</option>
                 <option value="assigned">Assigned</option>
                 <option value="picked_up">Picked Up</option>
@@ -472,15 +472,15 @@ export default function AdminLogistics() {
                 <option value="delivered">Delivered</option>
                 <option value="failed">Failed</option>
               </select>
-              <select value={shipmentEdit.logistics_id} onChange={(e) => setShipmentEdit((s) => ({ ...s, logistics_id: e.target.value }))} className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black">
+              <select value={shipmentEdit.logistics_id} onChange={(e) => setShipmentEdit((s) => ({ ...s, logistics_id: e.target.value }))} className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-bold">
                 <option value="">Select logistics firm</option>
                 {firms.map((f) => (
                   <option key={f._id} value={f._id}>{f.company_name}</option>
                 ))}
               </select>
             </div>
-            <textarea rows={3} value={shipmentEdit.note} onChange={(e) => setShipmentEdit((s) => ({ ...s, note: e.target.value }))} placeholder="Admin note" className="mt-3 w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-black" />
-            <button onClick={saveShipmentEdit} className="mt-4 w-full rounded-xl bg-[var(--accent)] text-white px-4 py-3 text-[10px] font-black tracking-wide">Save Shipment</button>
+            <textarea rows={3} value={shipmentEdit.note} onChange={(e) => setShipmentEdit((s) => ({ ...s, note: e.target.value }))} placeholder="Admin note" className="mt-3 w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-xs font-bold" />
+            <button onClick={saveShipmentEdit} className="mt-4 w-full rounded-xl bg-[var(--accent)] text-white px-4 py-3 text-[10px] font-bold tracking-tight">Save Shipment</button>
           </div>
         </div>
       )}

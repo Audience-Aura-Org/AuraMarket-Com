@@ -24,7 +24,7 @@ export default function OrderTrackingPage() {
       {/* Mobile Header */}
       <div className="sticky top-0 z-50 bg-white/70 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-gray-100 transition-colors"><ArrowLeft className="w-6 h-6" /></button>
-        <h1 className="font-black text-gray-900">Track Order #8812</h1>
+        <h1 className="font-bold text-gray-900">Track Order #8812</h1>
         <div className="w-10" /> {/* Spacer */}
       </div>
 
@@ -37,7 +37,7 @@ export default function OrderTrackingPage() {
             <div className="w-20 h-20 rounded-3xl bg-indigo-600 flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-200 animate-pulse">
               <Truck className="w-10 h-10" />
             </div>
-            <h2 className="text-2xl font-black text-gray-900">In Transit</h2>
+            <h2 className="text-2xl font-bold text-gray-900">In Transit</h2>
             <p className="text-gray-500 font-medium mt-1">Expected Delivery: <span className="text-gray-900 font-bold">Today, Oct 26</span></p>
           </div>
         </div>
@@ -57,8 +57,8 @@ export default function OrderTrackingPage() {
               
               <div className="flex-1">
                 <div className="flex justify-between items-baseline mb-1">
-                  <h4 className={`font-black  tracking-tight ${i <= activeStep ? 'text-gray-900' : 'text-gray-300'}`}>{s.label}</h4>
-                  <span className="text-[10px] font-black text-gray-300  tracking-widest">{s.time}</span>
+                  <h4 className={`font-bold  tracking-tight ${i <= activeStep ? 'text-gray-900' : 'text-gray-300'}`}>{s.label}</h4>
+                  <span className="text-[10px] font-bold text-gray-300  tracking-tight">{s.time}</span>
                 </div>
                 <p className={`text-sm font-medium leading-relaxed ${i <= activeStep ? 'text-gray-500' : 'text-gray-200'}`}>{s.desc}</p>
               </div>
@@ -72,7 +72,7 @@ export default function OrderTrackingPage() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400"><MapPin className="w-6 h-6" /></div>
                 <div>
-                   <p className="text-[10px] font-black text-gray-300 ">Live Location</p>
+                   <p className="text-[10px] font-bold text-gray-300 ">Live Location</p>
                    <p className="font-bold text-gray-900">Bastos District, YDE</p>
                 </div>
               </div>

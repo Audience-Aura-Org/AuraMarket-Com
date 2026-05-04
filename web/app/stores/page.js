@@ -99,7 +99,7 @@ export default function StoresDirectoryPage() {
                <Store className="size-8 text-[var(--accent)]/60" />
              </div>
              <div>
-               <h2 className="text-2xl font-black text-[var(--text-primary)]/70">No stores found</h2>
+               <h2 className="text-2xl font-bold text-[var(--text-primary)]/70">No stores found</h2>
                <p className="text-[var(--text-secondary)] font-medium mt-2 text-sm">Try adjusting your search criteria.</p>
              </div>
           </motion.div>
@@ -165,7 +165,7 @@ export default function StoresDirectoryPage() {
 
                     <div className="mt-auto pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                         <span className="text-[8px] font-bold text-[var(--text-secondary)]/50 tracking-wide">Status</span>
+                         <span className="text-[8px] font-bold text-[var(--text-secondary)]/50 tracking-tight">Status</span>
                          <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1.5">
                             <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
                          </span>

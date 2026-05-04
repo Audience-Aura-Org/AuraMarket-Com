@@ -25,14 +25,14 @@ export default function ShipmentStatusModal({
       <div className="relative z-10 w-full max-w-xl rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 lg:p-8 shadow-2xl">
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h3 className="text-base font-black tracking-tight">Update Shipment</h3>
-            <p className="text-[10px] font-black tracking-wide text-[var(--accent)]">
+            <h3 className="text-base font-bold tracking-tight">Update Shipment</h3>
+            <p className="text-[10px] font-bold tracking-tight text-[var(--accent)]">
               {shipment.tracking_code}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg border border-[var(--glass-border)] px-3 py-1 text-[10px] font-black "
+            className="rounded-lg border border-[var(--glass-border)] px-3 py-1 text-[10px] font-bold "
           >
             Close
           </button>
@@ -40,14 +40,14 @@ export default function ShipmentStatusModal({
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[9px] font-black tracking-normal text-[var(--text-secondary)]">
+            <label className="text-[9px] font-bold tracking-normal text-[var(--text-secondary)]">
               Status
             </label>
             <div className="relative">
               <select
                 value={updateData.status}
                 onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-xs font-black  outline-none"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-xs font-bold  outline-none"
               >
                 <option value="pending">Pending</option>
                 <option value="assigned">Assigned</option>
@@ -82,7 +82,7 @@ export default function ShipmentStatusModal({
             <select
               value={updateData.failure_reason}
               onChange={(e) => setUpdateData({ ...updateData, failure_reason: e.target.value })}
-              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-xs font-black outline-none"
+              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-xs font-bold outline-none"
             >
               <option value="">Select failure reason</option>
               {FAILURE_OPTIONS.map((opt) => (
@@ -103,7 +103,7 @@ export default function ShipmentStatusModal({
 
           <button
             disabled={updating}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-3 text-[10px] font-black  tracking-[0.2em] text-[var(--bg-primary)] disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-3 text-[10px] font-bold  tracking-[0.2em] text-[var(--bg-primary)] disabled:opacity-50"
           >
             {updating ? <Loader2 className="size-4 animate-spin" /> : "Save Status"}
           </button>

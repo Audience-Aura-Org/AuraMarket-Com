@@ -301,13 +301,13 @@ export default function ProductDetailsPage() {
             {/* Verified badge */}
             <div className="flex items-center justify-center lg:justify-start gap-1.5">
               <Shield className="size-3 text-[var(--accent)] shrink-0" />
-              <span className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-wide">
+              <span className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-tight">
                 Aura Market Verified
               </span>
             </div>
 
             {/* Product name */}
-            <h1 className="text-2xl md:text-[2.5rem] font-black tracking-tighter text-[var(--text-primary)] leading-[1.08]">
+            <h1 className="text-2xl md:text-[2.5rem] font-bold tracking-tighter text-[var(--text-primary)] leading-[1.08]">
               {product.name}
             </h1>
 
@@ -317,7 +317,7 @@ export default function ProductDetailsPage() {
               <div>
                 <p className="text-[10px] font-medium text-[var(--text-secondary)] mb-0.5">Price</p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl md:text-3xl font-black text-[var(--text-primary)] tracking-tight leading-none">
+                  <span className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] tracking-tight leading-none">
                     {displayPrice?.toLocaleString()}
                   </span>
                   <span className="text-xs font-bold text-[var(--accent)] leading-none pb-0.5">XAF</span>
@@ -348,7 +348,7 @@ export default function ProductDetailsPage() {
               {product.variant_types.map((type) => (
                 <div key={type.name} className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-black  tracking-[0.15em] text-[var(--text-primary)]">
+                    <span className="text-xs font-bold  tracking-[0.15em] text-[var(--text-primary)]">
                       Select {type.name}
                     </span>
                     <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full ">
@@ -406,14 +406,14 @@ export default function ProductDetailsPage() {
 
           {/* Short Description */}
           <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-4">
-            <h2 className="text-xs md:text-sm font-black  tracking-[0.15em] text-[var(--text-primary)]">Description</h2>
+            <h2 className="text-xs md:text-sm font-bold  tracking-[0.15em] text-[var(--text-primary)]">Description</h2>
             <p className="text-sm md:text-[15px] text-[var(--text-secondary)] leading-[1.8]">{product.description}</p>
           </div>
 
           {/* Reviews */}
           <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black  tracking-[0.15em] text-[var(--text-primary)]">
+              <h2 className="text-xs font-bold  tracking-[0.15em] text-[var(--text-primary)]">
                 Reviews ({reviews.length})
               </h2>
               <button className="text-[11px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-4 decoration-2">See all</button>
@@ -451,13 +451,13 @@ export default function ProductDetailsPage() {
             {/* Price + Quantity + CTAs */}
             <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.06)] p-8 space-y-8">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black  tracking-[0.1em] text-[var(--text-primary)]">Quantity</span>
+                <span className="text-[11px] font-bold  tracking-[0.1em] text-[var(--text-primary)]">Quantity</span>
                 <div className="flex items-center gap-4 bg-[var(--bg-secondary)] px-4 py-2 rounded-full">
                   <button onClick={() => setQuantity(q => Math.max(1, q - 1))}
                     className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all">
                     <Minus className="size-4" />
                   </button>
-                  <span className="text-sm font-black w-6 text-center">{quantity}</span>
+                  <span className="text-sm font-bold w-6 text-center">{quantity}</span>
                   <button onClick={() => setQuantity(q => q + 1)}
                     className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all">
                     <Plus className="size-4" />
@@ -469,14 +469,14 @@ export default function ProductDetailsPage() {
                 {isOwnProduct ? (
                   <div className="w-full h-14 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center gap-2">
                     <Store className="size-5 text-[var(--text-secondary)]" />
-                    <span className="text-xs font-black  tracking-[0.1em] text-[var(--text-secondary)]">Your Listed Item</span>
+                    <span className="text-xs font-bold  tracking-[0.1em] text-[var(--text-secondary)]">Your Listed Item</span>
                   </div>
                 ) : (
                   <>
                     <button
                       onClick={handleBuyNow}
                       disabled={buyingNow || !inStock}
-                      className="w-full h-14 bg-[var(--text-primary)] border-2 border-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] text-sm font-black  tracking-[0.15em] rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full h-14 bg-[var(--text-primary)] border-2 border-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] text-sm font-bold  tracking-[0.15em] rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {buyingNow && <Loader2 className="size-4 animate-spin" />}
                       Buy Now
@@ -484,7 +484,7 @@ export default function ProductDetailsPage() {
                     <button
                       onClick={handleAddToCart}
                       disabled={addingToCart || !inStock}
-                      className="w-full h-14 bg-[var(--bg-primary)] border-2 border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] text-sm font-black  tracking-[0.15em] rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full h-14 bg-[var(--bg-primary)] border-2 border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] text-sm font-bold  tracking-[0.15em] rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {addingToCart && <Loader2 className="size-4 animate-spin" />}
                       Add to Cart
@@ -500,7 +500,7 @@ export default function ProductDetailsPage() {
 
             {/* Delivery Info */}
             <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-6">
-              <h3 className="text-xs font-black  tracking-[0.15em] text-[var(--text-primary)]">Delivery & Returns</h3>
+              <h3 className="text-xs font-bold  tracking-[0.15em] text-[var(--text-primary)]">Delivery & Returns</h3>
               <div className="space-y-6">
                 <div className="flex gap-4 items-start">
                   <div className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center shrink-0">
@@ -526,7 +526,7 @@ export default function ProductDetailsPage() {
             {/* Seller Card */}
             {vendor && (
               <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-6">
-                <h3 className="text-xs font-black  tracking-[0.15em] text-[var(--text-primary)]">Sold by</h3>
+                <h3 className="text-xs font-bold  tracking-[0.15em] text-[var(--text-primary)]">Sold by</h3>
                 <div className="flex items-center gap-4">
                   <div className="size-14 rounded-full overflow-hidden bg-[var(--bg-secondary)] shrink-0">
                     <img
@@ -567,7 +567,7 @@ export default function ProductDetailsPage() {
         <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] overflow-hidden">
           {/* Header tabs */}
           <div className="flex items-center px-10 pt-8">
-            <div className="pb-3 border-b-[3px] border-[var(--text-primary)] text-sm font-black text-[var(--text-primary)] mr-8 tracking-[0.1em] ">
+            <div className="pb-3 border-b-[3px] border-[var(--text-primary)] text-sm font-bold text-[var(--text-primary)] mr-8 tracking-[0.1em] ">
               Details
             </div>
           </div>
@@ -585,7 +585,7 @@ export default function ProductDetailsPage() {
 
             {/* Right: Key specs / highlights */}
             <div className="space-y-6 lg:pl-12">
-              <h2 className="text-sm font-black  tracking-[0.1em] text-[var(--text-primary)]">Specifications</h2>
+              <h2 className="text-sm font-bold  tracking-[0.1em] text-[var(--text-primary)]">Specifications</h2>
               <div className="flex flex-col gap-4 pt-2">
                 {[
                   { label: 'Category', value: product.category || 'General' },
@@ -596,7 +596,7 @@ export default function ProductDetailsPage() {
                   { label: 'Seller', value: vendor?.store_name || 'Official Store' },
                 ].map(({ label, value }) => value && (
                   <div key={label} className="flex items-start justify-between gap-4 border-b border-[var(--glass-border)]/60 pb-4 last:border-0 last:pb-0">
-                    <span className="text-[10px] font-black tracking-wide text-[var(--text-secondary)] shrink-0 pt-0.5">{label}</span>
+                    <span className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] shrink-0 pt-0.5">{label}</span>
                     <span className="text-[14px] text-[var(--text-primary)] font-bold text-right leading-tight">{value}</span>
                   </div>
                 ))}
@@ -610,7 +610,7 @@ export default function ProductDetailsPage() {
       {related.length > 0 && (
         <section className="w-full px-4 md:px-6 pb-24 space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl md:text-3xl font-black text-[var(--text-primary)] tracking-tighter">You may also like</h2>
+            <h2 className="text-xl md:text-3xl font-bold text-[var(--text-primary)] tracking-tighter">You may also like</h2>
             <Link href="/discovery"
               className="text-xs font-bold  tracking-[0.1em] text-[var(--text-primary)] hover:opacity-70 transition-opacity flex items-center gap-1 pb-1 border-b-2 border-transparent hover:border-[var(--text-primary)]">
               View all
@@ -638,14 +638,14 @@ export default function ProductDetailsPage() {
           {isOwnProduct ? (
             <div className="flex-1 h-14 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center gap-2">
               <Store className="size-4 text-[var(--text-secondary)]" />
-              <span className="text-xs font-black  tracking-[0.1em] text-[var(--text-secondary)]">Your Listed Item</span>
+              <span className="text-xs font-bold  tracking-[0.1em] text-[var(--text-secondary)]">Your Listed Item</span>
             </div>
           ) : (
             <div className="flex-1 flex gap-3">
               <button
                 onClick={handleAddToCart}
                 disabled={addingToCart || !inStock}
-                className="flex-1 h-14 bg-[var(--bg-primary)] border-2 border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] text-[11px] font-black  tracking-[0.1em] rounded-full transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 h-14 bg-[var(--bg-primary)] border-2 border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] text-[11px] font-bold  tracking-[0.1em] rounded-full transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {addingToCart && <Loader2 className="size-4 animate-spin" />}
                 Add to Cart
@@ -653,7 +653,7 @@ export default function ProductDetailsPage() {
               <button
                 onClick={handleBuyNow}
                 disabled={buyingNow || !inStock}
-                className="flex-1 h-14 bg-[var(--text-primary)] border-2 border-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] text-[11px] font-black  tracking-[0.1em] rounded-full transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 h-14 bg-[var(--text-primary)] border-2 border-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] text-[11px] font-bold  tracking-[0.1em] rounded-full transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {buyingNow && <Loader2 className="size-4 animate-spin" />}
                 Buy Now

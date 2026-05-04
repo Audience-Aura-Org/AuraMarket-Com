@@ -66,8 +66,8 @@ export default function VendorDisputesPage() {
                 <AlertTriangle className="w-6 h-6 text-rose-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Resolution Center</h1>
-                <p className="text-xs text-[var(--text-secondary)] font-bold tracking-wide opacity-40">Conflict Management</p>
+                <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Resolution Center</h1>
+                <p className="text-xs text-[var(--text-secondary)] font-bold tracking-tight opacity-40">Conflict Management</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -97,8 +97,8 @@ export default function VendorDisputesPage() {
                 <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
                 </div>
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wide mb-1">{stat.label}</p>
-                <h4 className="text-3xl font-black tracking-tighter mb-1">{stat.value}</h4>
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
+                <h4 className="text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
                 <p className="text-[9px] font-bold opacity-40 ">{stat.sub}</p>
               </div>
             ))}
@@ -124,7 +124,7 @@ export default function VendorDisputesPage() {
               <div className="size-20 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
                 <Shield className="w-8 h-8 text-[var(--text-secondary)]/30" />
               </div>
-              <h3 className="text-xl font-black text-[var(--text-primary)]">No Disputes</h3>
+              <h3 className="text-xl font-bold text-[var(--text-primary)]">No Disputes</h3>
               <p className="text-xs text-[var(--text-secondary)] opacity-60 mt-2">No active disputes found.</p>
             </div>
           ) : (
@@ -161,7 +161,7 @@ export default function VendorDisputesPage() {
                     </div>
                     
                     <div className="text-right">
-                      <p className="text-sm font-black text-[var(--text-primary)]">
+                      <p className="text-sm font-bold text-[var(--text-primary)]">
                         {(d.order_id?.total_amount || 0).toLocaleString()}
                       </p>
                       <p className="text-[9px] text-[var(--text-secondary)] opacity-60">XAF</p>

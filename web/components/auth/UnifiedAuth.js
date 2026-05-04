@@ -290,7 +290,7 @@ export default function UnifiedAuth() {
                            {r === 'customer' && <ShoppingBag className="w-4 h-4" />}
                            {r === 'vendor' && <Store className="w-4 h-4" />}
                            {r === 'logistics' && <Truck className="w-4 h-4" />}
-                           <span className="text-[8px] font-black  tracking-tighter">{r}</span>
+                           <span className="text-[8px] font-bold  tracking-tighter">{r}</span>
                          </button>
                        ))}
                     </div>

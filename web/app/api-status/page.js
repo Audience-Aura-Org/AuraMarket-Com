@@ -49,9 +49,9 @@ export default function NetworkStatusPage() {
               <div className="space-y-4">
                  <div className="flex items-center gap-3 text-emerald-500 bg-emerald-500/10 w-fit px-4 py-1.5 rounded-full border border-emerald-500/20">
                     <Activity className="size-4 animate-pulse" />
-                    <span className="text-[10px] font-black  tracking-[0.4em]">All Systems Nominal</span>
+                    <span className="text-[10px] font-bold  tracking-[0.4em]">All Systems Nominal</span>
                  </div>
-                 <h1 className="text-6xl lg:text-8xl font-black text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
+                 <h1 className="text-6xl lg:text-8xl font-bold text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
                     Network <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Status</span>
                  </h1>
                  <p className="text-[var(--text-secondary)] font-medium text-lg opacity-60 leading-relaxed max-w-lg">
@@ -61,7 +61,7 @@ export default function NetworkStatusPage() {
 
               <button 
                 onClick={handleRefresh}
-                className="h-16 px-10 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-xs  tracking-[0.3em] flex items-center gap-4 transition-all hover:bg-white/5 disabled:opacity-50"
+                className="h-16 px-10 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-xs  tracking-[0.3em] flex items-center gap-4 transition-all hover:bg-white/5 disabled:opacity-50"
                 disabled={refreshing}
               >
                 {refreshing ? <RefreshCw className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
@@ -88,27 +88,27 @@ export default function NetworkStatusPage() {
                        {i === 5 && <Globe className="size-8" />}
                     </div>
                     <div className="space-y-1">
-                       <h3 className="text-lg font-black text-[var(--text-primary)] tracking-tight">{node.name}</h3>
-                       <p className="text-[10px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">{node.region}</p>
+                       <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">{node.name}</h3>
+                       <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">{node.region}</p>
                     </div>
                  </div>
 
                  <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-10">
                     <div className="space-y-2">
-                       <p className="text-[8px] font-black  tracking-[0.4em] text-[var(--text-secondary)] opacity-40">Operational Status</p>
+                       <p className="text-[8px] font-bold  tracking-[0.4em] text-[var(--text-secondary)] opacity-40">Operational Status</p>
                        <div className="flex items-center gap-2 text-emerald-500">
                           <CheckCircle className="size-4" />
-                          <span className="text-[11px] font-black tracking-wide leading-none">Operational</span>
+                          <span className="text-[11px] font-bold tracking-tight leading-none">Operational</span>
                        </div>
                     </div>
                     <div className="h-10 w-px bg-[var(--glass-border)] hidden md:block" />
                     <div className="space-y-2">
-                       <p className="text-[8px] font-black  tracking-[0.4em] text-[var(--text-secondary)] opacity-40">System Latency</p>
+                       <p className="text-[8px] font-bold  tracking-[0.4em] text-[var(--text-secondary)] opacity-40">System Latency</p>
                        <div className="flex items-end gap-1.5 h-4">
                           {[1,2,3,4,5].map(j => (
                              <div key={j} className={`w-1 rounded-full ${j <= 4 ? 'bg-emerald-500' : 'bg-emerald-500/20'}`} style={{ height: `${Math.random() * 100}%` }} />
                           ))}
-                          <span className="text-[11px] font-black text-[var(--text-primary)] leading-none ml-2">{node.latency}</span>
+                          <span className="text-[11px] font-bold text-[var(--text-primary)] leading-none ml-2">{node.latency}</span>
                        </div>
                     </div>
                  </div>
@@ -119,8 +119,8 @@ export default function NetworkStatusPage() {
         {/* Historical Insight */}
         <div className="glass-panel p-10 rounded-[3rem] border border-[var(--glass-border)] bg-gradient-to-br from-[var(--bg-primary)]/60 to-transparent">
            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] font-black  tracking-[0.3em] text-[var(--text-secondary)]">Historical Availability (Last 90 Days)</h3>
-              <span className="text-[10px] font-black text-emerald-500 tracking-wide">99.98% Uptime</span>
+              <h3 className="text-[10px] font-bold  tracking-[0.3em] text-[var(--text-secondary)]">Historical Availability (Last 90 Days)</h3>
+              <span className="text-[10px] font-bold text-emerald-500 tracking-tight">99.98% Uptime</span>
            </div>
            <div className="flex gap-[2px] h-12 overflow-hidden items-end">
               {[...Array(90)].map((_, i) => (
@@ -131,14 +131,14 @@ export default function NetworkStatusPage() {
               ))}
            </div>
            <div className="flex justify-between items-center mt-4">
-              <p className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">90 Days Ago</p>
+              <p className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">90 Days Ago</p>
               <div className="flex-1 h-px bg-[var(--glass-border)] mx-10 opacity-30" />
-              <p className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">Today</p>
+              <p className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">Today</p>
            </div>
         </div>
 
         <div className="text-center pb-20">
-           <p className="text-[9px] font-black tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
+           <p className="text-[9px] font-bold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
               Aura Market Global Infrastructure Node Status Protocol v4.2.0
            </p>
         </div>

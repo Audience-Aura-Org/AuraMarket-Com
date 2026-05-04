@@ -53,7 +53,7 @@ export default function HelpCenter() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--accent)]/10 blur-[100px] pointer-events-none rounded-full" />
         
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-[var(--text-primary)] mb-6 ">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter text-[var(--text-primary)] mb-6 ">
             How can we <span className="text-[var(--accent)]">help you?</span>
           </h1>
           <p className="text-[var(--text-secondary)] text-lg mb-10 max-w-2xl mx-auto">
@@ -89,7 +89,7 @@ export default function HelpCenter() {
                 <div className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] transition-all">
                   <category.icon className="size-6" />
                 </div>
-                <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">{category.category}</h2>
+                <h2 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{category.category}</h2>
               </div>
               
               <div className="space-y-4">
@@ -124,11 +124,11 @@ export default function HelpCenter() {
           <div className="size-16 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center mb-6">
             <Mail className="size-8" />
           </div>
-          <h3 className="text-3xl font-black text-[var(--text-primary)] mb-4">Still need help?</h3>
+          <h3 className="text-3xl font-bold text-[var(--text-primary)] mb-4">Still need help?</h3>
           <p className="text-[var(--text-secondary)] max-w-md mx-auto mb-8">
             Our support team is available 24/7 to assist you with any questions or concerns.
           </p>
-          <button className="px-8 py-4 bg-[var(--accent)] text-white rounded-xl font-black tracking-wide text-xs hover:shadow-lg shadow-[var(--accent)]/30 transition-all flex items-center gap-2">
+          <button className="px-8 py-4 bg-[var(--accent)] text-white rounded-xl font-bold tracking-tight text-xs hover:shadow-lg shadow-[var(--accent)]/30 transition-all flex items-center gap-2">
             Contact Support <Sparkles className="size-4" />
           </button>
         </div>

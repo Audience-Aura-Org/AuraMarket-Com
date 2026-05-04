@@ -106,19 +106,19 @@ export default function AdminDisputes() {
             <div className="flex items-center gap-4 mb-8">
                <div className="p-3 bg-[var(--accent)]/10 text-[var(--accent)] rounded-2xl"><Scale className="w-6 h-6" /></div>
                <div>
-                  <h2 className="text-xl lg:text-2xl font-black text-[var(--text-primary)] tracking-tight  leading-none">Inspect Case #{selectedCase._id.slice(-6).toUpperCase()}</h2>
-                  <p className="text-[10px] font-black text-[var(--text-secondary)] tracking-widest  mt-2 opacity-50">High-level arbitration in progress</p>
+                  <h2 className="text-xl lg:text-2xl font-bold text-[var(--text-primary)] tracking-tight  leading-none">Inspect Case #{selectedCase._id.slice(-6).toUpperCase()}</h2>
+                  <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight  mt-2 opacity-50">High-level arbitration in progress</p>
                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                {/* Left: Client Evidence */}
                <div className="space-y-6">
-                  <h3 className="text-xs font-black text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
                      <AlertCircle className="w-3.5 h-3.5" /> Customer Argument
                   </h3>
                   <div className="bg-[var(--bg-secondary)]/50 p-6 rounded-3xl border border-[var(--glass-border)]">
-                     <p className="text-sm font-bold text-[var(--text-primary)] mb-2  tracking-wide">{selectedCase.reason}</p>
+                     <p className="text-sm font-bold text-[var(--text-primary)] mb-2  tracking-tight">{selectedCase.reason}</p>
                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed opacity-80">{selectedCase.description}</p>
                   </div>
                   
@@ -132,14 +132,14 @@ export default function AdminDisputes() {
                      </div>
                   ) : (
                     <div className="p-10 border-2 border-dashed border-[var(--glass-border)] rounded-3xl text-center opacity-30">
-                       <p className="text-[10px] font-bold tracking-wide text-[var(--text-secondary)]">No visual evidence provided by customer</p>
+                       <p className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">No visual evidence provided by customer</p>
                     </div>
                   )}
                </div>
 
                {/* Right: Logistics Node Check */}
                <div className="space-y-6">
-                  <h3 className="text-xs font-black text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
                      <ShieldCheck className="w-3.5 h-3.5" /> Proof of Delivery
                   </h3>
                   
@@ -153,7 +153,7 @@ export default function AdminDisputes() {
                        <div className="bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/10">
                           <div className="flex items-center gap-2 mb-2">
                              <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                             <p className="text-[10px] font-black tracking-wide text-emerald-600">Shipment Operational Log</p>
+                             <p className="text-[10px] font-bold tracking-tight text-emerald-600">Shipment Operational Log</p>
                           </div>
                           <p className="text-xs font-bold text-[var(--text-primary)]">Recipient: <span className="text-[var(--accent)]">{caseShipment.proof_of_delivery.receiver_name || 'Verified Signatory'}</span></p>
                           <p className="text-[10px] text-[var(--text-secondary)] mt-1.5 opacity-70 leading-normal">{caseShipment.proof_of_delivery.note || 'No additional courier notes recorded.'}</p>
@@ -176,15 +176,15 @@ export default function AdminDisputes() {
                      {selectedCase.initiator_id?.avatar ? <img src={selectedCase.initiator_id?.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-40" />}
                   </div>
                   <div>
-                    <p className="text-[11px] font-black tracking-tight text-[var(--text-primary)]  leading-none mb-1">{selectedCase.initiator_id?.name}</p>
+                    <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]  leading-none mb-1">{selectedCase.initiator_id?.name}</p>
                     <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-50">{selectedCase.initiator_id?.email}</p>
                   </div>
                </div>
 
                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black  text-[var(--text-secondary)] opacity-40 mr-4 tracking-widest">Final Resolution:</span>
+                  <span className="text-[10px] font-bold  text-[var(--text-secondary)] opacity-40 mr-4 tracking-tight">Final Resolution:</span>
                   {selectedCase.status === 'resolved' ? (
-                    <div className="px-8 py-3 rounded-2xl bg-emerald-500 text-white font-black text-xs tracking-wide shadow-xl">
+                    <div className="px-8 py-3 rounded-2xl bg-emerald-500 text-white font-bold text-xs tracking-tight shadow-xl">
                        {selectedCase.resolution_type?.replace('_', ' ')} Applied
                     </div>
                   ) : (
@@ -192,14 +192,14 @@ export default function AdminDisputes() {
                       <button 
                         onClick={() => handleResolve(selectedCase._id, 'full_refund')} 
                         disabled={actioning === selectedCase._id}
-                        className="px-8 py-4 rounded-2xl bg-rose-500 text-white font-black text-xs tracking-wide shadow-lg shadow-rose-500/20 hover:shadow-rose-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
+                        className="px-8 py-4 rounded-2xl bg-rose-500 text-white font-bold text-xs tracking-tight shadow-lg shadow-rose-500/20 hover:shadow-rose-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
                       >
                          {actioning === selectedCase._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Refund
                       </button>
                       <button 
                          onClick={() => handleResolve(selectedCase._id, 'release_payment')} 
                          disabled={actioning === selectedCase._id}
-                         className="px-8 py-4 rounded-2xl bg-emerald-500 text-white font-black text-xs tracking-wide shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
+                         className="px-8 py-4 rounded-2xl bg-emerald-500 text-white font-bold text-xs tracking-tight shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
                       >
                          {actioning === selectedCase._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Release
                       </button>
@@ -213,14 +213,14 @@ export default function AdminDisputes() {
 
       <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
         <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-lg lg:text-xl font-black text-[var(--text-primary)] tracking-tight ">Dispute <span className="text-[var(--accent)]">Tribunal</span></h2>
+          <h2 className="text-lg lg:text-xl font-bold text-[var(--text-primary)] tracking-tight ">Dispute <span className="text-[var(--accent)]">Tribunal</span></h2>
           <div className="hidden sm:block h-4 lg:h-5 w-px bg-[var(--glass-border)] opacity-30" />
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
              {['All', 'Investigating', 'Resolved'].map(tab => (
                <button 
                  key={tab}
                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[9px] font-black tracking-wide transition-all whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
+                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[9px] font-bold tracking-tight transition-all whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
                >
                  {tab}
                </button>
@@ -231,7 +231,7 @@ export default function AdminDisputes() {
            <button onClick={fetchDisputes} className="p-2 lg:p-2.5 rounded-lg border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-secondary)]">
               <RefreshCw className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
-           <div className="px-3 lg:px-4 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-[8px] lg:text-[9px] font-black tracking-widest  shadow-sm">
+           <div className="px-3 lg:px-4 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight  shadow-sm">
               Protocol Active
            </div>
         </div>
@@ -247,8 +247,8 @@ export default function AdminDisputes() {
               { label: 'Equity Balance', value: 'High', icon: ShieldCheck, color: 'text-amber-500' }
             ].map(s => (
               <div key={s.label} className="glass-panel p-4 lg:p-5 rounded-2xl lg:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-sm hover:translate-y-[-2px] transition-all">
-                 <p className="text-[7px] lg:text-[9px] font-black text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
-                 <h3 className={`text-base lg:text-xl font-black ${s.color} tracking-tight`}>{s.value}</h3>
+                 <p className="text-[7px] lg:text-[9px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-50">{s.label}</p>
+                 <h3 className={`text-base lg:text-xl font-bold ${s.color} tracking-tight`}>{s.value}</h3>
               </div>
             ))}
          </div>
@@ -258,7 +258,7 @@ export default function AdminDisputes() {
             <div className="overflow-x-auto scroll-smooth">
                <table className="w-full text-left min-w-[800px] lg:min-w-0">
                   <thead>
-                     <tr className="text-[8px] lg:text-[10px] font-black tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                     <tr className="text-[8px] lg:text-[10px] font-bold tracking-[0.3em]  text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
                         <th className="px-6 lg:px-8 py-4 lg:py-5">Case Identifier</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Initiator / Parties</th>
                         <th className="px-4 lg:px-6 py-4 lg:py-5">Reasoning</th>
@@ -277,7 +277,7 @@ export default function AdminDisputes() {
                              <div className="flex items-center gap-3">
                                 <div className={`size-2 rounded-full flex-shrink-0 ${d.status === 'resolved' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.4)]'}`} />
                                 <div>
-                                   <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] tracking-tight font-mono">#{d._id?.slice(-6).toUpperCase()}</p>
+                                   <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight font-mono">#{d._id?.slice(-6).toUpperCase()}</p>
                                    <p className="text-[8px] lg:text-[9px] font-bold text-[var(--text-secondary)] opacity-50">ORDER: #{d.order_id?._id?.slice(-6) || '—'}</p>
                                 </div>
                              </div>
@@ -287,7 +287,7 @@ export default function AdminDisputes() {
                                 <p className="text-[10px] lg:text-xs font-bold text-[var(--text-primary)] flex items-center gap-2 ">
                                    <User className="size-3 lg:size-3.5 text-[var(--accent)]" /> {d.initiator_id?.name || 'Party'}
                                 </p>
-                                <p className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-black tracking-wide opacity-40">
+                                <p className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-bold tracking-tight opacity-40">
                                    VS. VENDOR NODE
                                 </p>
                              </div>
@@ -297,13 +297,13 @@ export default function AdminDisputes() {
                              <p className="text-[9px] lg:text-[10px] text-[var(--text-secondary)] font-medium mt-1 line-clamp-1 opacity-60">{d.description}</p>
                           </td>
                           <td className="px-4 lg:px-6 py-4 lg:py-5">
-                             <p className="text-xs lg:text-sm font-black text-[var(--text-primary)] font-mono whitespace-nowrap">
+                             <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] font-mono whitespace-nowrap">
                                 {(d.order_id?.total_amount || 0).toLocaleString()} <span className="text-[8px] opacity-40">XAF</span>
                              </p>
                           </td>
                           <td className="px-6 lg:px-8 py-4 lg:py-5 text-right">
                              {d.status === 'resolved' ? (
-                               <span className="px-3 lg:px-4 py-1 lg:py-1.5 rounded flex-shrink-0 border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[8px] lg:text-[9px] font-black tracking-wide">
+                               <span className="px-3 lg:px-4 py-1 lg:py-1.5 rounded flex-shrink-0 border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[8px] lg:text-[9px] font-bold tracking-tight">
                                   {d.resolution_type?.replace('_', ' ')}
                                </span>
                              ) : (
@@ -311,14 +311,14 @@ export default function AdminDisputes() {
                                   <button 
                                      onClick={(e) => { e.stopPropagation(); handleResolve(d._id, 'full_refund'); }}
                                      disabled={actioning === d._id}
-                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[8px] lg:text-[9px] font-black tracking-wide hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
                                   >
                                      Refund
                                   </button>
                                   <button 
                                      onClick={(e) => { e.stopPropagation(); handleResolve(d._id, 'release_payment'); }}
                                      disabled={actioning === d._id}
-                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-wide hover:bg-emerald-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                                     className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[8px] lg:text-[9px] font-bold tracking-tight hover:bg-emerald-500 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-30"
                                   >
                                      Release
                                   </button>
@@ -333,7 +333,7 @@ export default function AdminDisputes() {
                    <div className="px-8 py-20 lg:py-32 text-center border-t border-[var(--glass-border)]/50">
                       <div className="flex flex-col items-center gap-4 lg:gap-6 opacity-20">
                          <Scale className="size-10 lg:size-16" />
-                         <p className="text-[9px] lg:text-[11px] font-black tracking-wide leading-relaxed">System scan complete.<br/>No active disputes detected.</p>
+                         <p className="text-[9px] lg:text-[11px] font-bold tracking-tight leading-relaxed">System scan complete.<br/>No active disputes detected.</p>
                       </div>
                    </div>
                 )}

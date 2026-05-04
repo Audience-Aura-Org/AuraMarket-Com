@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
 
           <div className="relative z-10 space-y-12">
             <header className="border-b border-[var(--glass-border)] pb-8">
-              <h1 className="text-4xl md:text-5xl font-black text-[var(--accent)]  tracking-tighter mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold text-[var(--accent)]  tracking-tighter mb-4">
                 Privacy Policy
               </h1>
               <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base">
@@ -60,7 +60,7 @@ export default function PrivacyPolicy() {
               </p>
             </section>
             
-            <div className="pt-10 mt-10 border-t border-[var(--glass-border)] text-sm text-[var(--text-secondary)]/50 font-black tracking-wide text-center">
+            <div className="pt-10 mt-10 border-t border-[var(--glass-border)] text-sm text-[var(--text-secondary)]/50 font-bold tracking-tight text-center">
               Aura Market Corporate Network ©
             </div>
           </div>

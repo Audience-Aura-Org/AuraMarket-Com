@@ -54,9 +54,9 @@ export default function EmailLogsPage() {
           <div>
             <div className="flex items-center gap-3 mb-4 opacity-50">
               <Mail className="size-4" />
-              <span className="text-[10px] font-black tracking-widest ">Platform Intelligence</span>
+              <span className="text-[10px] font-bold tracking-tight ">Platform Intelligence</span>
             </div>
-            <h1 className="text-6xl font-black tracking-tighter  leading-none">Signal <span className="text-[var(--accent)]">Audit</span></h1>
+            <h1 className="text-6xl font-bold tracking-tighter  leading-none">Signal <span className="text-[var(--accent)]">Audit</span></h1>
             <p className="text-sm font-medium text-[var(--text-secondary)] mt-4">Monitoring SMTP transmissions and delivery coordinates across the notification grid.</p>
           </div>
 
@@ -86,7 +86,7 @@ export default function EmailLogsPage() {
                 <button
                   key={s}
                   onClick={() => { setStatus(s); setPage(1); }}
-                  className={`px-6 py-3 rounded-xl text-[10px] font-black tracking-wide transition-all ${status === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
+                  className={`px-6 py-3 rounded-xl text-[10px] font-bold tracking-tight transition-all ${status === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
                 >
                   {s}
                 </button>
@@ -100,11 +100,11 @@ export default function EmailLogsPage() {
               <table className="w-full text-left border-collapse">
                  <thead>
                     <tr className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-                       <th className="p-8 text-[10px] font-black  tracking-[0.2em] opacity-40">Timestamp</th>
-                       <th className="p-8 text-[10px] font-black  tracking-[0.2em] opacity-40">Recipient Node</th>
-                       <th className="p-8 text-[10px] font-black  tracking-[0.2em] opacity-40">Subject / Role</th>
-                       <th className="p-8 text-[10px] font-black  tracking-[0.2em] opacity-40">Status</th>
-                       <th className="p-8 text-[10px] font-black  tracking-[0.2em] opacity-40 text-right">Action</th>
+                       <th className="p-8 text-[10px] font-bold  tracking-[0.2em] opacity-40">Timestamp</th>
+                       <th className="p-8 text-[10px] font-bold  tracking-[0.2em] opacity-40">Recipient Node</th>
+                       <th className="p-8 text-[10px] font-bold  tracking-[0.2em] opacity-40">Subject / Role</th>
+                       <th className="p-8 text-[10px] font-bold  tracking-[0.2em] opacity-40">Status</th>
+                       <th className="p-8 text-[10px] font-bold  tracking-[0.2em] opacity-40 text-right">Action</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-[var(--glass-border)]/50">
@@ -119,7 +119,7 @@ export default function EmailLogsPage() {
                         <td colSpan={5} className="p-20 text-center">
                            <div className="flex flex-col items-center gap-4 opacity-20">
                               <ShieldAlert className="size-12" />
-                              <p className="text-sm font-black tracking-wide">No signals detected in the audit log.</p>
+                              <p className="text-sm font-bold tracking-tight">No signals detected in the audit log.</p>
                            </div>
                         </td>
                       </tr>
@@ -140,15 +140,15 @@ export default function EmailLogsPage() {
                                   <User className="size-5 opacity-40" />
                                </div>
                                <div>
-                                  <p className="text-sm font-black truncate max-w-[200px]">{log.recipient_user_id?.name || 'External Consignee'}</p>
+                                  <p className="text-sm font-bold truncate max-w-[200px]">{log.recipient_user_id?.name || 'External Consignee'}</p>
                                   <p className="text-[11px] font-medium opacity-60">{log.recipient_email}</p>
                                 </div>
                             </div>
                          </td>
                          <td className="p-8">
                             <div>
-                               <p className="text-[11px] font-black tracking-tight mb-1">{log.subject}</p>
-                               <span className={`px-2 py-0.5 rounded-md text-[8px] font-black tracking-wide border ${
+                               <p className="text-[11px] font-bold tracking-tight mb-1">{log.subject}</p>
+                               <span className={`px-2 py-0.5 rounded-md text-[8px] font-bold tracking-tight border ${
                                  log.role === 'logistics' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
                                  log.role === 'vendor' ? 'bg-blue-500/10 border-blue-500/20 text-blue-500' :
                                  'bg-white/5 border-white/10 opacity-60'
@@ -162,19 +162,19 @@ export default function EmailLogsPage() {
                                {log.status === 'sent' ? (
                                   <>
                                     <CheckCircle className="size-4 text-emerald-500" />
-                                    <span className="text-[10px] font-black tracking-wide text-emerald-500">Delivered</span>
+                                    <span className="text-[10px] font-bold tracking-tight text-emerald-500">Delivered</span>
                                   </>
                                ) : (
                                   <>
                                     <XCircle className="size-4 text-red-500" />
-                                    <span className="text-[10px] font-black tracking-wide text-red-500">Failed</span>
+                                    <span className="text-[10px] font-bold tracking-tight text-red-500">Failed</span>
                                   </>
                                )}
                             </div>
                             {log.error && <p className="text-[9px] text-red-500/60 font-medium mt-1 max-w-[150px] truncate">{log.error}</p>}
                          </td>
                          <td className="p-8 text-right">
-                            <button className="px-6 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[9px] font-black tracking-wide hover:bg-[var(--accent)] hover:text-white hover:border-transparent transition-all">
+                            <button className="px-6 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[9px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-transparent transition-all">
                                View Trace
                             </button>
                          </td>
@@ -186,7 +186,7 @@ export default function EmailLogsPage() {
 
            {/* Pagination */}
            <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 flex items-center justify-between">
-              <p className="text-[10px] font-black opacity-40 tracking-wide">
+              <p className="text-[10px] font-bold opacity-40 tracking-tight">
                  Showing {logs.length} of {total} Signals
               </p>
               <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function EmailLogsPage() {
                  >
                    <ChevronLeft className="size-4" />
                  </button>
-                 <div className="h-10 px-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-xs font-black">
+                 <div className="h-10 px-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-xs font-bold">
                    {page}
                  </div>
                  <button 

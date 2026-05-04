@@ -21,7 +21,7 @@ export default function LoginPage() {
             alt="Aura Market"
             className="h-10 w-auto object-contain group-hover:scale-110 transition-transform"
           />
-          <h1 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">
+          <h1 className="text-xl font-bold tracking-tighter text-[var(--text-primary)]">
             Aura<span className="text-[var(--accent)]">Market</span>
           </h1>
         </Link>
@@ -35,10 +35,10 @@ export default function LoginPage() {
       {/* Simplified Footer */}
       <footer className="px-6 py-8 border-t border-[var(--glass-border)]/10 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-6">
-          <Link href="/terms" className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">Terms</Link>
-          <Link href="/privacy" className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">Privacy</Link>
+          <Link href="/terms" className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">Terms</Link>
+          <Link href="/privacy" className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">Privacy</Link>
         </div>
-        <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">
+        <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
           {/* Identity Metadata Removed */}
         </p>
       </footer>

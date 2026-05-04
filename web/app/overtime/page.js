@@ -74,7 +74,7 @@ export default function LandingPage() {
               <div className="flex flex-col gap-8">
                 <div className="inline-flex items-center gap-2 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-4 py-2 rounded-full w-fit">
                   <span className="material-symbols-outlined text-[var(--accent)] text-sm">auto_awesome</span>
-                  <span className="text-[var(--accent)] text-xs font-bold tracking-widest">The Future of Commerce</span>
+                  <span className="text-[var(--accent)] text-xs font-bold tracking-tight">The Future of Commerce</span>
                 </div>
                 <h1 className="text-6xl md:text-7xl font-extrabold leading-[1.1] tracking-tight text-[var(--text-primary)]">
                   Experience <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)]">Liquid</span> Shopping.

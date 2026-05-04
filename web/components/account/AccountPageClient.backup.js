@@ -341,14 +341,14 @@ export default function AccountPageClient() {
                 <ArrowLeft className="size-5" />
               </button>
               <div className="flex flex-col">
-                <h1 className="text-xl md:text-2xl font-black tracking-tight  leading-none">Account</h1>
-                <span className="text-[9px] font-black tracking-[0.2em] text-[var(--accent)]  mt-1 opacity-60">Control Panel</span>
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight  leading-none">Account</h1>
+                <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--accent)]  mt-1 opacity-60">Control Panel</span>
               </div>
             </div>
 
             <Link 
               href={`/${user?.role}/dashboard`}
-              className="hidden lg:flex items-center gap-3 px-6 py-4 mb-6 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.2em]  shadow-lg shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all"
+              className="hidden lg:flex items-center gap-3 px-6 py-4 mb-6 rounded-2xl bg-[var(--accent)] text-white font-bold text-[10px] tracking-[0.2em]  shadow-lg shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all"
             >
               <LayoutGrid className="size-4" />
               Return to Dashboard
@@ -363,8 +363,8 @@ export default function AccountPageClient() {
                   )}
                </div>
                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black tracking-widest  truncate">{user?.name}</p>
-                  <p className="text-[8px] font-black tracking-widest  text-[var(--text-secondary)] opacity-50 truncate">{user?.role}</p>
+                  <p className="text-[10px] font-bold tracking-tight  truncate">{user?.name}</p>
+                  <p className="text-[8px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 truncate">{user?.role}</p>
                </div>
             </div>
 
@@ -393,7 +393,7 @@ export default function AccountPageClient() {
                   >
                     <div className="flex items-center gap-4">
                       <Icon className={`size-5 transition-transform group-hover:scale-110 ${activeTab === tab.id ? 'text-white' : 'text-[var(--accent)]'}`} />
-                      <span className="text-[11px] font-black tracking-[0.2em] ">{tab.label}</span>
+                      <span className="text-[11px] font-bold tracking-[0.2em] ">{tab.label}</span>
                     </div>
                     {activeTab === tab.id && (
                       <motion.div layoutId="activeInd" className="size-1.5 rounded-full bg-white" />
@@ -409,7 +409,7 @@ export default function AccountPageClient() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-6 py-3 md:py-3.5 rounded-full text-[10px] md:text-[11px] font-black tracking-widest  transition-all ${
+                className={`whitespace-nowrap px-6 py-3 md:py-3.5 rounded-full text-[10px] md:text-[11px] font-bold tracking-tight  transition-all ${
                   activeTab === tab.id
                     ? 'bg-[var(--accent)] text-white shadow-md'
                     : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]'
@@ -427,7 +427,7 @@ export default function AccountPageClient() {
             >
               <div className="flex items-center gap-4">
                 <Power className="size-5" />
-                <span className="text-[10px] font-black tracking-widest ">Terminate Session</span>
+                <span className="text-[10px] font-bold tracking-tight ">Terminate Session</span>
               </div>
               <ChevronRight className="size-4 opacity-40 group-hover:translate-x-1 transition-all" />
             </button>
@@ -447,7 +447,7 @@ export default function AccountPageClient() {
               {activeTab === 'general' && (
                 <div className="space-y-12">
                   <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">General Matrix</h2>
+                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">General Matrix</h2>
                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Universal identity and interface parameters for your Aura profile.</p>
                   </header>
 
@@ -457,7 +457,7 @@ export default function AccountPageClient() {
                     {/* Header: Identity & Roles */}
                     <div className="relative group shrink-0 mb-6">
                        <div className="absolute inset-0 bg-[var(--accent)]/40 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                       <div className="size-32 md:size-40 rounded-[2rem] border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-2xl relative z-10 transition-transform duration-500 group-hover:scale-105 flex items-center justify-center text-5xl font-black text-[var(--accent)]">
+                       <div className="size-32 md:size-40 rounded-[2rem] border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-2xl relative z-10 transition-transform duration-500 group-hover:scale-105 flex items-center justify-center text-5xl font-bold text-[var(--accent)]">
                          {profileBranding.logo ? (
                             <img src={profileBranding.logo} className="size-full object-cover group-hover:scale-110 transition-transform duration-1000" alt="" />
                          ) : (
@@ -471,17 +471,17 @@ export default function AccountPageClient() {
                     </div>
 
                     <div className="space-y-4 relative z-10 w-full">
-                       <h3 className="text-3xl md:text-5xl font-black tracking-tighter  shadow-sm">
+                       <h3 className="text-3xl md:text-5xl font-bold tracking-tighter  shadow-sm">
                          {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Authorized User'}
                        </h3>
                        <p className="text-[var(--text-secondary)] font-medium flex items-center justify-center gap-2">
                          <Mail className="size-4 opacity-40" /> {user?.email}
                        </p>
                        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                         <span className="px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-black tracking-widest  border border-[var(--accent)]/20 shadow-sm">
+                         <span className="px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-bold tracking-tight  border border-[var(--accent)]/20 shadow-sm">
                            {user?.role === 'vendor' ? 'Nexus Vendor' : user?.role === 'admin' ? 'Root Administrator' : user?.role === 'logistics' ? 'Logistics Node' : 'Node User'}
                          </span>
-                         <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black tracking-widest  border border-emerald-500/20 shadow-sm">
+                         <span className="px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-bold tracking-tight  border border-emerald-500/20 shadow-sm">
                            Active Session
                          </span>
                        </div>
@@ -490,14 +490,14 @@ export default function AccountPageClient() {
                     {/* Branding Suite Integrated */}
                     <div className="border-t border-[var(--glass-border)]/50 pt-10 space-y-8 relative z-10">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-[10px] font-black tracking-[0.3em]  text-[var(--text-secondary)]">Platform Branding</h4>
-                        {brandingStatus && <span className="text-[9px] font-black text-[var(--accent)]  animate-pulse">{brandingStatus}</span>}
+                        <h4 className="text-[10px] font-bold tracking-[0.3em]  text-[var(--text-secondary)]">Platform Branding</h4>
+                        {brandingStatus && <span className="text-[9px] font-bold text-[var(--accent)]  animate-pulse">{brandingStatus}</span>}
                       </div>
 
                       <div className={`grid grid-cols-1 ${canUseBanner ? 'md:grid-cols-2' : ''} gap-8`}>
                          <div className="space-y-4">
                             <div className="flex items-center justify-between px-2">
-                               <span className="text-[8px] font-black tracking-widest  opacity-40">Identity Logo</span>
+                               <span className="text-[8px] font-bold tracking-tight  opacity-40">Identity Logo</span>
                                {brandingUploading === 'logo' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
                             </div>
                             <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
@@ -516,7 +516,7 @@ export default function AccountPageClient() {
                          {canUseBanner && (
                          <div className="space-y-4">
                             <div className="flex items-center justify-between px-2">
-                               <span className="text-[8px] font-black tracking-widest  opacity-40">Immersion Banner</span>
+                               <span className="text-[8px] font-bold tracking-tight  opacity-40">Immersion Banner</span>
                                {brandingUploading === 'banner' && <RefreshCw className="size-3 animate-spin text-[var(--accent)]" />}
                             </div>
                             <div className="h-32 rounded-[32px] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex items-center justify-center overflow-hidden hover:border-[var(--accent)]/30 transition-all group/b relative">
@@ -558,12 +558,12 @@ export default function AccountPageClient() {
                       </div>
 
                       <div className="pt-4 flex items-center justify-between">
-                         <p className="text-[9px] font-black tracking-widest  text-[var(--text-secondary)] opacity-50 max-w-xs">
+                         <p className="text-[9px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 max-w-xs">
                             {user?.role === 'vendor' ? 'Changes synchronize with your digital storefront node.' : 'Branding reflects across all platform interaction vectors.'}
                          </p>
                          <button
                             onClick={handleUpdateBranding}
-                            className="bg-[var(--accent)] text-white px-10 py-4 rounded-2xl font-black text-[10px] tracking-widest  shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all"
+                            className="bg-[var(--accent)] text-white px-10 py-4 rounded-2xl font-bold text-[10px] tracking-tight  shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all"
                          >
                             Deploy Branding Update
                          </button>
@@ -622,7 +622,7 @@ export default function AccountPageClient() {
                         <button
                           onClick={handleUpdateProfile}
                           disabled={profileSaving}
-                          className="px-8 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-widest  hover:bg-[var(--accent)] hover:text-white transition-all"
+                          className="px-8 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight  hover:bg-[var(--accent)] hover:text-white transition-all"
                         >
                           {profileSaving ? 'Saving...' : 'Synchronize Records'}
                         </button>
@@ -637,7 +637,7 @@ export default function AccountPageClient() {
                            {theme === 'dark' ? <Moon className="size-5" /> : <Sun className="size-5" />}
                          </div>
                          <div>
-                           <p className="text-[11px] font-black tracking-tight">System Appearance</p>
+                           <p className="text-[11px] font-bold tracking-tight">System Appearance</p>
                            <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">Toggle between Dark and Light protocol modes.</p>
                          </div>
                        </div>
@@ -657,7 +657,7 @@ export default function AccountPageClient() {
                 <div className="space-y-12">
                    <header className="space-y-4 flex flex-col md:flex-row md:items-end justify-between">
                      <div>
-                       <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)] ">Order <span className="text-[var(--accent)]">Matrix</span></h2>
+                       <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] ">Order <span className="text-[var(--accent)]">Matrix</span></h2>
                        <p className="text-[var(--text-secondary)] font-medium max-w-lg mt-2">Historical and active transaction records synchronized with the platform.</p>
                      </div>
                      <button onClick={fetchOrders} className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:text-[var(--accent)] transition-all">
@@ -669,7 +669,7 @@ export default function AccountPageClient() {
                       {orders.length === 0 ? (
                         <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-xl text-center space-y-6">
                             <ShoppingBag className="size-16 opacity-10" />
-                            <p className="text-sm font-black tracking-wide opacity-40">No Order Records Synchronized</p>
+                            <p className="text-sm font-bold tracking-tight opacity-40">No Order Records Synchronized</p>
                         </div>
                       ) : (
                         <>
@@ -682,18 +682,18 @@ export default function AccountPageClient() {
                                        <img src={o.products?.[0]?.image || '/placeholder.png'} className="size-full object-cover" alt="" />
                                     </div>
                                     <div>
-                                       <h4 className="text-lg font-black tracking-tight group-hover:text-[var(--accent)] transition-colors line-clamp-1">{o.products?.[0]?.name || 'Encrypted Order'}</h4>
+                                       <h4 className="text-lg font-bold tracking-tight group-hover:text-[var(--accent)] transition-colors line-clamp-1">{o.products?.[0]?.name || 'Encrypted Order'}</h4>
                                        <div className="flex items-center gap-3 mt-1.5 grayscale group-hover:grayscale-0 transition-all opacity-40 group-hover:opacity-100">
-                                          <span className="text-[10px] font-black tracking-wide">{new Date(o.createdAt).toLocaleDateString()}</span>
+                                          <span className="text-[10px] font-bold tracking-tight">{new Date(o.createdAt).toLocaleDateString()}</span>
                                           <div className="size-1 rounded-full bg-[var(--accent)]" />
-                                          <span className="text-[10px] font-black tracking-wide text-[var(--accent)]">{o.order_status}</span>
+                                          <span className="text-[10px] font-bold tracking-tight text-[var(--accent)]">{o.order_status}</span>
                                        </div>
                                     </div>
                                  </div>
                                  <div className="flex items-center justify-between md:justify-end gap-10 border-t md:border-t-0 border-[var(--glass-border)] pt-6 md:pt-0">
                                     <div className="text-right">
-                                       <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40 mb-1">Vault Value</p>
-                                       <p className="text-2xl font-black font-mono text-[var(--text-primary)]">{(o.total_amount).toLocaleString()} <span className="text-xs">XAF</span></p>
+                                       <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mb-1">Vault Value</p>
+                                       <p className="text-2xl font-bold font-mono text-[var(--text-primary)]">{(o.total_amount).toLocaleString()} <span className="text-xs">XAF</span></p>
                                     </div>
                                     <div className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white group-hover:translate-x-1 transition-all">
                                        <ChevronRight className="size-5" />
@@ -721,7 +721,7 @@ export default function AccountPageClient() {
 
                 <div className="space-y-12">
                   <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Security Citadel</h2>
+                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Security Citadel</h2>
                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Manage encrypted access, key pairing, and biometric links.</p>
                   </header>
 
@@ -736,11 +736,11 @@ export default function AccountPageClient() {
                 <div className="space-y-12">
                   <header className="space-y-4 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-4">
-                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)] ">Command <span className="text-[var(--accent)]">Center</span></h2>
+                      <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] ">Command <span className="text-[var(--accent)]">Center</span></h2>
                       <p className="text-[var(--text-secondary)] font-medium max-w-lg">Customize your organization&apos;s digital storefront presence.</p>
                     </div>
                     {saveStatus && (
-                      <span className="px-6 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest  border border-[var(--accent)] animate-pulse">
+                      <span className="px-6 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold tracking-tight  border border-[var(--accent)] animate-pulse">
                         {saveStatus}
                       </span>
                     )}
@@ -755,14 +755,14 @@ export default function AccountPageClient() {
                           <Palette className="size-8" />
                         </div>
                         <div className="flex-1 relative z-10">
-                          <p className="text-sm font-black tracking-tight">Unified Platform Branding</p>
+                          <p className="text-sm font-bold tracking-tight">Unified Platform Branding</p>
                           <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 leading-relaxed mt-1 max-w-md">
                             Your storefront visuals (Logo & Banner) are synchronized with your <span className="text-[var(--accent)]">General Profile</span> settings to maintain cross-platform brand integrity.
                           </p>
                         </div>
                         <button 
                           onClick={() => setActiveTab('general')}
-                          className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-black tracking-wide hover:border-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all relative z-10"
+                          className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-bold tracking-tight hover:border-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all relative z-10"
                         >
                           Modify Assets
                         </button>
@@ -823,7 +823,7 @@ export default function AccountPageClient() {
                   <button
                     onClick={handleUpdateStore}
                     disabled={loading}
-                    className="w-full py-10 bg-[var(--accent)] text-white font-black text-[11px] tracking-[0.5em] rounded-[40px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[var(--accent)]/40  flex items-center justify-center gap-4 disabled:opacity-50"
+                    className="w-full py-10 bg-[var(--accent)] text-white font-bold text-[11px] tracking-[0.5em] rounded-[40px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[var(--accent)]/40  flex items-center justify-center gap-4 disabled:opacity-50"
                   >
                     {loading ? <RefreshCw className="size-5 animate-spin" /> : <RefreshCw className="size-5" />}
                     {loading ? 'Committing Hub Sync...' : 'Finalize Store Profile'}
@@ -834,7 +834,7 @@ export default function AccountPageClient() {
               {activeTab === 'fleet' && user?.role === 'logistics' && (
                 <div className="space-y-12">
                   <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Fleet Management</h2>
+                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Fleet Management</h2>
                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Configure your operational capacity and dispatch parameters.</p>
                   </header>
                   <SectionBox title="Operational Reach">
@@ -847,7 +847,7 @@ export default function AccountPageClient() {
                {activeTab === 'kyc' && (
                  <div className="space-y-12">
                    <header className="space-y-4">
-                     <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Identity Node</h2>
+                     <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Identity Node</h2>
                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Verify your identity to unlock advanced vendor features and higher transaction limits.</p>
                    </header>
   
@@ -865,8 +865,8 @@ export default function AccountPageClient() {
                            <Shield className="size-8" />
                          </div>
                          <div>
-                           <h3 className="text-xl font-black tracking-tight ">Verification Status</h3>
-                           <p className={`text-[10px] font-black tracking-wide mt-1 ${
+                           <h3 className="text-xl font-bold tracking-tight ">Verification Status</h3>
+                           <p className={`text-[10px] font-bold tracking-tight mt-1 ${
                              kycStatus === 'approved' ? 'text-emerald-500' :
                              kycStatus === 'pending' ? 'text-amber-500' :
                              kycStatus === 'rejected' ? 'text-rose-500' : 'text-[var(--text-secondary)]'
@@ -877,7 +877,7 @@ export default function AccountPageClient() {
                        </div>
                        
                        {kycStatus === 'approved' && (
-                         <div className="px-6 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[10px] font-black tracking-widest ">
+                         <div className="px-6 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[10px] font-bold tracking-tight ">
                            Global Node Verified
                          </div>
                        )}
@@ -886,7 +886,7 @@ export default function AccountPageClient() {
                      {kycStatus === 'approved' ? (
                        <div className="py-10 text-center space-y-4">
                          <p className="text-sm font-bold text-[var(--text-secondary)]">Your identity has been fully verified by the Aura Protocol.</p>
-                         <p className="text-[10px] font-black text-[var(--accent)] tracking-wide">Enhanced node privileges activated</p>
+                         <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight">Enhanced node privileges activated</p>
                        </div>
                      ) : (
                        <div className="space-y-8">
@@ -901,7 +901,7 @@ export default function AccountPageClient() {
                            <div className="space-y-4">
                              <div className="flex items-center gap-3 ml-4">
                                <Shield className="size-4 text-[var(--accent)] opacity-40" />
-                               <span className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] ">ID Document Type</span>
+                               <span className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] ">ID Document Type</span>
                              </div>
                              <select 
                                value={kycData.id_type}
@@ -926,7 +926,7 @@ export default function AccountPageClient() {
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                              <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
-                                   <span className="text-[10px] font-black tracking-widest  text-[var(--text-secondary)]">ID Front Scan</span>
+                                   <span className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">ID Front Scan</span>
                                    {brandingUploading === 'kyc_front' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
                                 </div>
                                 <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
@@ -934,13 +934,13 @@ export default function AccountPageClient() {
                                      <>
                                        <img src={kycData.file_url_front} className="absolute inset-0 size-full object-contain p-4" alt="ID front" />
                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <p className="text-white text-[10px] font-black tracking-wide">Replace Front</p>
+                                          <p className="text-white text-[10px] font-bold tracking-tight">Replace Front</p>
                                        </div>
                                      </>
                                    ) : (
                                      <>
                                        <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
-                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 tracking-wide">Front Page</p>
+                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 tracking-tight">Front Page</p>
                                      </>
                                    )}
                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleBrandingFileUpload('kyc_front', e.target.files?.[0])} />
@@ -949,7 +949,7 @@ export default function AccountPageClient() {
 
                              <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
-                                   <span className="text-[10px] font-black tracking-widest  text-[var(--text-secondary)]">ID Back Scan</span>
+                                   <span className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">ID Back Scan</span>
                                    {brandingUploading === 'kyc_back' && <RefreshCw className="size-4 animate-spin text-[var(--accent)]" />}
                                 </div>
                                 <div className="h-48 rounded-[32px] bg-[var(--bg-primary)]/30 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center p-8 text-center hover:border-[var(--accent)]/50 transition-all group relative overflow-hidden">
@@ -957,13 +957,13 @@ export default function AccountPageClient() {
                                      <>
                                        <img src={kycData.file_url_back} className="absolute inset-0 size-full object-contain p-4" alt="ID back" />
                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <p className="text-white text-[10px] font-black tracking-wide">Replace Back</p>
+                                          <p className="text-white text-[10px] font-bold tracking-tight">Replace Back</p>
                                        </div>
                                      </>
                                    ) : (
                                      <>
                                        <Camera className="size-10 text-[var(--text-secondary)] opacity-20 mb-4" />
-                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 tracking-wide">Back Page</p>
+                                       <p className="text-xs font-bold text-[var(--text-secondary)] opacity-60 tracking-tight">Back Page</p>
                                      </>
                                    )}
                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleBrandingFileUpload('kyc_back', e.target.files?.[0])} />
@@ -975,7 +975,7 @@ export default function AccountPageClient() {
                              <button
                                onClick={handleKYCSubmit}
                                disabled={kycLoading || kycStatus === 'pending'}
-                               className={`min-w-[320px] px-10 py-5 rounded-full font-black text-[10px] tracking-[0.2em]  transition-all shadow-xl ${
+                               className={`min-w-[320px] px-10 py-5 rounded-full font-bold text-[10px] tracking-[0.2em]  transition-all shadow-xl ${
                                  kycStatus === 'pending' ? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' :
                                  'bg-[var(--accent)] text-white shadow-[var(--accent)]/30 hover:scale-105 active:scale-95'
                                }`}
@@ -992,26 +992,26 @@ export default function AccountPageClient() {
                {activeTab === 'notifications' && (
                 <div className="space-y-12">
                   <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Signals & Intel</h2>
+                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Signals & Intel</h2>
                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Configure how the platform communicates critical updates to your node.</p>
                   </header>
                   <SectionBox title="Notification Channels">
                     <div className="flex items-center justify-between py-2">
                       <div className="flex items-center gap-4">
                         <Mail className="size-5 text-[var(--accent)]" />
-                        <span className="text-[11px] font-black tracking-wide">Email Protocols</span>
+                        <span className="text-[11px] font-bold tracking-tight">Email Protocols</span>
                       </div>
                       <Toggle active />
                     </div>
                     <div className="flex items-center justify-between py-2">
                       <div className="flex items-center gap-4">
                         <Bell className="size-5 text-[var(--accent)]" />
-                        <span className="text-[11px] font-black tracking-wide">Push Signals</span>
+                        <span className="text-[11px] font-bold tracking-tight">Push Signals</span>
                       </div>
                       <Toggle active />
                     </div>
                     <Link href="/notifications" className="block p-8 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-center group transition-all hover:bg-[var(--accent)] hover:text-white mt-10 shadow-xl">
-                       <p className="text-[10px] font-black  tracking-[0.4em]">Initialize Full Frequency Scan</p>
+                       <p className="text-[10px] font-bold  tracking-[0.4em]">Initialize Full Frequency Scan</p>
                     </Link>
                   </SectionBox>
                 </div>
@@ -1020,19 +1020,19 @@ export default function AccountPageClient() {
               {activeTab === 'network' && (
                  <div className="space-y-12">
                     <header className="space-y-4">
-                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Network</span></h2>
+                      <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Network</span></h2>
                       <p className="text-[var(--text-secondary)] font-medium max-w-lg">Active connections to marketplaces and independent vendor nodes.</p>
                     </header>
 
                     {networkLoading ? (
                       <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
                          <RefreshCw className="size-16 animate-spin mb-4" />
-                         <p className="text-[10px] font-black tracking-wide">Resolving Followed Nodes...</p>
+                         <p className="text-[10px] font-bold tracking-tight">Resolving Followed Nodes...</p>
                       </div>
                     ) : followedVendors.length === 0 ? (
                        <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
                            <Users className="size-16 opacity-10" />
-                           <p className="text-sm font-black tracking-wide opacity-40">No connected vendor nodes detected</p>
+                           <p className="text-sm font-bold tracking-tight opacity-40">No connected vendor nodes detected</p>
                        </div>
                     ) : (
                        <div className="space-y-6">
@@ -1044,10 +1044,10 @@ export default function AccountPageClient() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                    <div className="flex items-center gap-3">
-                                      <h4 className="text-lg font-black tracking-tight truncate group-hover:text-[var(--accent)] transition-colors">{f.vendor_id?.store_name}</h4>
+                                      <h4 className="text-lg font-bold tracking-tight truncate group-hover:text-[var(--accent)] transition-colors">{f.vendor_id?.store_name}</h4>
                                       {f.vendor_id?.verified && <ShieldCheck className="size-4 text-emerald-500 shrink-0" />}
                                    </div>
-                                   <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40 mt-1">{(f.vendor_id?.follower_count || 0).toLocaleString()} Subscribers</p>
+                                   <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-1">{(f.vendor_id?.follower_count || 0).toLocaleString()} Subscribers</p>
                                 </div>
                              </Link>
                           ))}
@@ -1067,19 +1067,19 @@ export default function AccountPageClient() {
               {activeTab === 'audience' && (
                  <div className="space-y-12">
                     <header className="space-y-4">
-                      <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Audience</span></h2>
+                      <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Node <span className="text-[var(--accent)]">Audience</span></h2>
                       <p className="text-[var(--text-secondary)] font-medium max-w-lg">Independent user nodes synchronized with your marketplace frequency.</p>
                     </header>
 
                     {audienceLoading ? (
                       <div className="flex flex-col items-center py-24 opacity-30 animate-pulse">
                          <RefreshCw className="size-16 animate-spin mb-4" />
-                         <p className="text-[10px] font-black tracking-wide">Scanning Audience Signal...</p>
+                         <p className="text-[10px] font-bold tracking-tight">Scanning Audience Signal...</p>
                       </div>
                     ) : audience.length === 0 ? (
                        <div className="py-24 flex flex-col items-center justify-center glass-panel rounded-[40px] border border-[var(--glass-border)] text-center space-y-6">
                            <Heart className="size-16 opacity-10" />
-                           <p className="text-sm font-black tracking-wide opacity-40">No active subscribers in this frequency</p>
+                           <p className="text-sm font-bold tracking-tight opacity-40">No active subscribers in this frequency</p>
                        </div>
                     ) : (
                        <div className="space-y-6 pb-32">
@@ -1090,10 +1090,10 @@ export default function AccountPageClient() {
                                    <img src={a.user_id?.branding?.logo || a.user_id?.avatar} className="size-full object-cover" alt="" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                   <h4 className="text-base font-black tracking-tight truncate">{a.user_id?.name}</h4>
-                                   <p className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40 mt-1">Status: Active Monitor</p>
+                                   <h4 className="text-base font-bold tracking-tight truncate">{a.user_id?.name}</h4>
+                                   <p className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-1">Status: Active Monitor</p>
                                 </div>
-                                <span className="text-[8px] font-black tracking-wide opacity-20">{new Date(a.createdAt).toLocaleDateString()}</span>
+                                <span className="text-[8px] font-bold tracking-tight opacity-20">{new Date(a.createdAt).toLocaleDateString()}</span>
                              </div>
                           ))}
                        </div>
@@ -1112,7 +1112,7 @@ export default function AccountPageClient() {
               {activeTab === 'governance' && user?.role === 'admin' && (
                  <div className="space-y-12 pb-32">
                    <header className="space-y-4">
-                     <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Protocol Governance</h2>
+                     <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Protocol Governance</h2>
                      <p className="text-[var(--text-secondary)] font-medium max-w-lg">Advanced administrative controls for platform stability and regulation.</p>
                    </header>
  
@@ -1143,7 +1143,7 @@ export default function AccountPageClient() {
                                          <img src={u.branding?.logo || u.avatar} alt="" className="size-full object-cover" />
                                       </div>
                                       <div>
-                                         <p className="text-[11px] font-black tracking-tight">{u.name}</p>
+                                         <p className="text-[11px] font-bold tracking-tight">{u.name}</p>
                                          <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60">{u.email} • {u.role}</p>
                                       </div>
                                    </div>
@@ -1153,7 +1153,7 @@ export default function AccountPageClient() {
                                             const nextStatus = u.verification_status === 'held' ? 'unverified' : 'held';
                                             try { await api.patch(`/admin/users/${u._id}/status`, { status: nextStatus }); setBrandingStatus(`User ${u.name} ${nextStatus}.`); } catch (_) {}
                                          }}
-                                         className={`px-4 py-2 rounded-xl text-[8px] font-black tracking-wide border transition-all ${u.verification_status === 'held' ? 'bg-amber-500 text-white' : 'bg-transparent border-[var(--glass-border)] hover:bg-amber-500/10 text-amber-500'}`}
+                                         className={`px-4 py-2 rounded-xl text-[8px] font-bold tracking-tight border transition-all ${u.verification_status === 'held' ? 'bg-amber-500 text-white' : 'bg-transparent border-[var(--glass-border)] hover:bg-amber-500/10 text-amber-500'}`}
                                       >
                                          {u.verification_status === 'held' ? 'Release Node' : 'Hold Node'}
                                       </button>
@@ -1161,7 +1161,7 @@ export default function AccountPageClient() {
                                          onClick={async () => {
                                             try { await api.patch(`/admin/users/${u._id}/status`, { status: 'unverified' }); setBrandingStatus(`Verification requested for ${u.name}`); } catch (_) {}
                                          }}
-                                         className="px-4 py-2 rounded-xl text-[8px] font-black tracking-wide bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all"
+                                         className="px-4 py-2 rounded-xl text-[8px] font-bold tracking-tight bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all"
                                       >
                                          Request Verify
                                       </button>
@@ -1189,7 +1189,7 @@ export default function AccountPageClient() {
               {activeTab === 'advanced' && user?.role === 'admin' && (
                 <div className="space-y-12">
                   <header className="space-y-4">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text-primary)]">Root Systems</h2>
+                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">Root Systems</h2>
                     <p className="text-[var(--text-secondary)] font-medium max-w-lg">Low-level data manipulation and infrastructure parameters.</p>
                   </header>
                   <SectionBox title="Database Sync">
@@ -1210,7 +1210,7 @@ function SectionBox({ title, children }) {
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="flex items-center gap-6 px-4 md:px-6">
-        <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">{title}</h3>
+        <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">{title}</h3>
         <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
       </div>
       <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
@@ -1228,7 +1228,7 @@ function InputModule({ label, value, onChange, icon: Icon, placeholder, area = f
     <div className="space-y-3 px-1 md:px-2">
       <div className="flex items-center gap-3 ml-2 md:ml-4">
         {Icon && <Icon className="size-4 text-[var(--accent)] opacity-60" />}
-        <label className="text-[9px] md:text-[10px] font-black tracking-[0.2em] text-[var(--text-secondary)] ">{label}</label>
+        <label className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] text-[var(--text-secondary)] ">{label}</label>
       </div>
       {area ? (
         <textarea
@@ -1255,8 +1255,8 @@ function InputModule({ label, value, onChange, icon: Icon, placeholder, area = f
 function InputRow({ label, value, disable }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] gap-2 md:gap-0">
-      <span className="text-[10px] font-black tracking-[0.2em]  text-[var(--text-secondary)]">{label}</span>
-      <span className={`text-[11px] md:text-xs font-black tracking-normal ${disable ? 'opacity-60 text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{value}</span>
+      <span className="text-[10px] font-bold tracking-[0.2em]  text-[var(--text-secondary)]">{label}</span>
+      <span className={`text-[11px] md:text-xs font-bold tracking-normal ${disable ? 'opacity-60 text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{value}</span>
     </div>
   );
 }
@@ -1278,7 +1278,7 @@ function ActionButton({ icon: Icon, label, desc }) {
           <Icon className="size-5 md:size-6 text-[var(--accent)] group-hover:text-white transition-all" />
         </div>
         <div>
-          <p className="text-[11px] md:text-xs font-black tracking-[0.2em]  transition-colors">{label}</p>
+          <p className="text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">{label}</p>
           <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60 group-hover:text-white group-hover:opacity-80 transition-colors mt-0.5">{desc}</p>
         </div>
       </div>
@@ -1292,7 +1292,7 @@ function SelectModule({ label, value, onChange, options, icon: Icon, placeholder
     <div className="space-y-3 px-2">
       <div className="flex items-center gap-3">
         {Icon && <Icon className="size-4 text-[var(--accent)] opacity-40" />}
-        <label className="text-[10px] font-black tracking-widest text-[var(--text-secondary)] ">{label}</label>
+        <label className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] ">{label}</label>
       </div>
       <select
         value={value}

@@ -121,14 +121,14 @@ export default function AdminCategories() {
               <input 
                 value={editing.name}
                 onChange={e => setEditing({...editing, name: e.target.value})}
-                className="bg-[var(--bg-primary)] border border-[var(--accent)]/30 rounded-xl px-4 py-1.5 text-sm font-black text-[var(--accent)] outline-none ring-4 ring-[var(--accent)]/5 shadow-inner"
+                className="bg-[var(--bg-primary)] border border-[var(--accent)]/30 rounded-xl px-4 py-1.5 text-sm font-bold text-[var(--accent)] outline-none ring-4 ring-[var(--accent)]/5 shadow-inner"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
               />
             ) : (
               <div className="flex flex-col">
-                <span className="text-sm font-black tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">{cat.name}</span>
-                <span className="text-[9px] font-black tracking-wide text-[var(--text-secondary)] opacity-40">Node ID: {cat._id?.slice(-8)}</span>
+                <span className="text-sm font-bold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">{cat.name}</span>
+                <span className="text-[9px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">Node ID: {cat._id?.slice(-8)}</span>
               </div>
             )}
           </div>
@@ -184,15 +184,15 @@ export default function AdminCategories() {
     <>
       <header className="h-20 lg:h-24 flex items-center justify-between px-6 lg:px-12 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-2xl shrink-0 z-10 text-[var(--text-primary)]">
         <div className="flex flex-col">
-          <h2 className="text-lg lg:text-2xl font-black  tracking-tighter leading-none">Category <span className="text-[var(--accent)]">Matrix</span></h2>
-          <p className="hidden sm:block text-[8px] lg:text-[10px] font-black  tracking-[0.3em] text-[var(--text-secondary)] mt-1.5 lg:mt-2 opacity-50">Authorized Taxonomy Management</p>
+          <h2 className="text-lg lg:text-2xl font-bold  tracking-tighter leading-none">Category <span className="text-[var(--accent)]">Matrix</span></h2>
+          <p className="hidden sm:block text-[8px] lg:text-[10px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] mt-1.5 lg:mt-2 opacity-50">Authorized Taxonomy Management</p>
         </div>
         <button 
           onClick={() => {
             setIsAdding(true);
             setFormData({ name: '', parent_id: null });
           }}
-          className="flex items-center gap-2 lg:gap-3 bg-[var(--accent)] text-white px-4 lg:px-8 py-2.5 lg:py-4 rounded-xl lg:rounded-[1.25rem] text-[8px] lg:text-[10px] font-black tracking-wide hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[var(--accent)]/20"
+          className="flex items-center gap-2 lg:gap-3 bg-[var(--accent)] text-white px-4 lg:px-8 py-2.5 lg:py-4 rounded-xl lg:rounded-[1.25rem] text-[8px] lg:text-[10px] font-bold tracking-tight hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[var(--accent)]/20"
         >
           <Plus className="size-3.5 lg:size-4" /> New Origin Node
         </button>
@@ -203,20 +203,20 @@ export default function AdminCategories() {
           <div className="glass-panel p-6 lg:p-8 rounded-[24px] lg:rounded-[2.5rem] border border-[var(--accent)]/30 bg-[var(--bg-primary)]/60 animate-in fade-in slide-in-from-top-6 duration-500 shadow-2xl">
             <div className="flex items-center gap-3 mb-4 lg:mb-6">
                <div className="size-1 w-6 lg:w-8 bg-[var(--accent)] rounded-full" />
-               <h3 className="text-[8px] lg:text-[10px] font-black tracking-wide text-[var(--accent)]">Protocol: Add {formData.parent_id ? 'Subscriber Node' : 'Origin Node'}</h3>
+               <h3 className="text-[8px] lg:text-[10px] font-bold tracking-tight text-[var(--accent)]">Protocol: Add {formData.parent_id ? 'Subscriber Node' : 'Origin Node'}</h3>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
               <input 
                 placeholder="Designate Label..."
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
-                className="flex-1 bg-[var(--bg-primary)]/80 border border-[var(--glass-border)] rounded-xl lg:rounded-2xl px-5 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm font-black text-[var(--text-primary)] focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)]/30 outline-none transition-all shadow-inner tracking-normal"
+                className="flex-1 bg-[var(--bg-primary)]/80 border border-[var(--glass-border)] rounded-xl lg:rounded-2xl px-5 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm font-bold text-[var(--text-primary)] focus:ring-4 focus:ring-[var(--accent)]/10 focus:border-[var(--accent)]/30 outline-none transition-all shadow-inner tracking-normal"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
               />
               <div className="flex gap-2">
-                <button onClick={handleAdd} className="flex-1 sm:flex-none bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 lg:px-10 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-[8px] lg:text-[10px] font-black tracking-wide hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95">Commit</button>
-                <button onClick={() => setIsAdding(false)} className="flex-1 sm:flex-none glass-panel px-6 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-[8px] lg:text-[10px] font-black tracking-wide hover:bg-rose-500/10 hover:text-rose-500 transition-all border border-[var(--glass-border)]">Abort</button>
+                <button onClick={handleAdd} className="flex-1 sm:flex-none bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 lg:px-10 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-[8px] lg:text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95">Commit</button>
+                <button onClick={() => setIsAdding(false)} className="flex-1 sm:flex-none glass-panel px-6 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-[8px] lg:text-[10px] font-bold tracking-tight hover:bg-rose-500/10 hover:text-rose-500 transition-all border border-[var(--glass-border)]">Abort</button>
               </div>
             </div>
           </div>
@@ -227,12 +227,12 @@ export default function AdminCategories() {
           {loading ? (
             <div className="py-20 lg:py-32 flex flex-col items-center justify-center gap-6 opacity-40">
               <div className="size-10 lg:size-12 rounded-full border-4 border-[var(--accent)] border-t-transparent animate-spin" />
-              <p className="text-[9px] lg:text-[10px] font-black  tracking-[0.4em]">Synchronizing Matrix Nodes...</p>
+              <p className="text-[9px] lg:text-[10px] font-bold  tracking-[0.4em]">Synchronizing Matrix Nodes...</p>
             </div>
           ) : categories.length === 0 ? (
             <div className="py-20 lg:py-40 text-center space-y-6 opacity-30">
               <Folder className="size-16 lg:size-20 mx-auto mb-4" />
-              <p className="text-xs lg:text-sm font-black  tracking-[0.3em]">Matrix Voids Detected. Initiate nodes to begin.</p>
+              <p className="text-xs lg:text-sm font-bold  tracking-[0.3em]">Matrix Voids Detected. Initiate nodes to begin.</p>
             </div>
           ) : (
             <div className="divide-y divide-[var(--glass-border)] relative z-10 overflow-x-auto">

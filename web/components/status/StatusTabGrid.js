@@ -72,7 +72,7 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
               {logo ? (
                 <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
               ) : (
-                <div className="size-full flex items-center justify-center text-[7px] font-black text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
+                <div className="size-full flex items-center justify-center text-[7px] font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
                   {name[0]}
                 </div>
               )}
@@ -113,13 +113,13 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
         <div className="absolute top-2.5 left-2.5 z-30">
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
             <Flame className={`size-2.5 ${rank === 1 ? 'text-orange-400' : 'text-white/50'}`} />
-            <span className="text-[8px] font-black text-white">#{rank}</span>
+            <span className="text-[8px] font-bold text-white">#{rank}</span>
           </div>
         </div>
       )}
       {urgent && (
         <div className="absolute top-2.5 right-2.5 z-30">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[8px] font-black text-white animate-pulse">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[8px] font-bold text-white animate-pulse">
             <Clock className="size-2.5" /> {Math.floor(expH)}h
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
           {/* Row 1: Title + Active Now + Search toggle */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl font-black tracking-tighter text-[var(--text-primary)] leading-none">
+              <h2 className="text-2xl font-bold tracking-tighter text-[var(--text-primary)] leading-none">
                 Aura Story
               </h2>
               {/* Active Now badge */}
@@ -209,7 +209,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
                 </span>
-                <span className="text-[9px] font-black text-emerald-400 tracking-normal">Active Now</span>
+                <span className="text-[9px] font-bold text-emerald-400 tracking-normal">Active Now</span>
               </div>
             </div>
 
@@ -361,7 +361,7 @@ function Empty({ icon, title, desc, action, onAction }) {
         {icon}
       </div>
       <div className="space-y-1.5 max-w-xs">
-        <h4 className="text-base font-black tracking-tight text-[var(--text-primary)]">{title}</h4>
+        <h4 className="text-base font-bold tracking-tight text-[var(--text-primary)]">{title}</h4>
         <p className="text-[11px] font-medium text-[var(--text-secondary)] leading-relaxed opacity-60">{desc}</p>
       </div>
       {action && (

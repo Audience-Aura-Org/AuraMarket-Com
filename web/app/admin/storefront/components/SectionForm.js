@@ -236,7 +236,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
             </button>
             <div className="w-full max-w-2xl space-y-6 mt-10">
               <div className="text-center space-y-2">
-                <h3 className="text-3xl font-black text-[var(--text-primary)]">Product Lookup</h3>
+                <h3 className="text-3xl font-bold text-[var(--text-primary)]">Product Lookup</h3>
                 <p className="text-[var(--text-secondary)] font-medium">Search for products to copy their unique IDs.</p>
               </div>
               <div className="flex gap-4">
@@ -266,7 +266,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                       <div>
                         <h4 className="font-bold text-[var(--text-primary)]">{product.name}</h4>
                         <div className="flex items-center gap-3 mt-0.5">
-                           <span className="text-[9px] font-black tracking-wide bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-0.5 rounded border border-[var(--accent)]/20">{product.brand}</span>
+                           <span className="text-[9px] font-bold tracking-tight bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-0.5 rounded border border-[var(--accent)]/20">{product.brand}</span>
                            <span className="text-[10px] opacity-40 font-mono">{product._id}</span>
                         </div>
                       </div>
@@ -277,7 +277,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                         alert('Product ID Copied!');
                         setShowProductLookup(false);
                       }}
-                      className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-black tracking-wide hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-2"
+                      className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-2"
                     >
                       <Package className="w-3.5 h-3.5" /> Select ID
                     </button>
@@ -299,10 +299,10 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         {/* Header */}
         <div className="p-8 border-b border-[var(--glass-border)] flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-3xl font-black text-[var(--text-primary)]">
+            <h2 className="text-3xl font-bold text-[var(--text-primary)]">
               {isEdit ? 'Edit Section' : 'Create Section'}
             </h2>
-            <p className="text-sm text-[var(--text-secondary)] font-medium tracking-wide">
+            <p className="text-sm text-[var(--text-secondary)] font-medium tracking-tight">
               Configuring storefront layout block
             </p>
           </div>
@@ -310,7 +310,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
             <button 
               type="button"
               onClick={() => setShowProductLookup(true)}
-              className="bg-[var(--accent)]/10 text-[var(--accent)] px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 text-[10px] tracking-wide border border-[var(--accent)]/30 hover:bg-[var(--accent)]/20 transition-all"
+              className="bg-[var(--accent)]/10 text-[var(--accent)] px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 text-[10px] tracking-tight border border-[var(--accent)]/30 hover:bg-[var(--accent)]/20 transition-all"
             >
               <Package className="w-4 h-4" /> Product ID Lookup
             </button>
@@ -325,7 +325,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
           {/* Basic Config */}
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-2">
-              <label className="text-xs font-black tracking-wide opacity-40 ml-1">Section Type</label>
+              <label className="text-xs font-bold tracking-tight opacity-40 ml-1">Section Type</label>
               <div className="relative">
                 <select 
                   value={formData.type}
@@ -346,7 +346,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-black tracking-wide opacity-40 ml-1">Display Title</label>
+              <label className="text-xs font-bold tracking-tight opacity-40 ml-1">Display Title</label>
               <input 
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
@@ -359,14 +359,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
           {/* Section Specific Data Items */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-[var(--text-primary)] flex items-center gap-3">
+              <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-3">
                 <List className="w-6 h-6 text-[var(--accent)]" /> 
                 Section Content Items
               </h3>
               <button 
                 type="button"
                 onClick={addDataItem}
-                className="text-xs font-black tracking-wide text-[var(--accent)] flex items-center gap-2 hover:opacity-80"
+                className="text-xs font-bold tracking-tight text-[var(--accent)] flex items-center gap-2 hover:opacity-80"
               >
                 <Plus className="w-4 h-4" /> Add Item
               </button>
@@ -386,7 +386,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                   <div className="grid md:grid-cols-2 gap-6">
                     {(['hero', 'promo_banner', 'categories'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[10px] font-black tracking-wide opacity-40">Image URL / Upload</label>
+                         <label className="text-[10px] font-bold tracking-tight opacity-40">Image URL / Upload</label>
                          <div className="flex gap-2">
                            <input 
                              value={item.image_url}
@@ -414,7 +414,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     {(['hero', 'promo_banner'].includes(formData.type)) && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black tracking-wide opacity-40">Headline</label>
+                          <label className="text-[10px] font-bold tracking-tight opacity-40">Headline</label>
                           <input 
                             value={item.headline}
                             onChange={(e) => updateDataItem(i, 'headline', e.target.value)}
@@ -422,7 +422,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black tracking-wide opacity-40">Subtext</label>
+                          <label className="text-[10px] font-bold tracking-tight opacity-40">Subtext</label>
                           <input 
                             value={item.subtext}
                             onChange={(e) => updateDataItem(i, 'subtext', e.target.value)}
@@ -430,7 +430,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <label className="text-[10px] font-black tracking-wide opacity-40">CTA Button Text (Optional)</label>
+                          <label className="text-[10px] font-bold tracking-tight opacity-40">CTA Button Text (Optional)</label>
                           <input 
                             value={item.cta_text}
                             onChange={(e) => updateDataItem(i, 'cta_text', e.target.value)}
@@ -443,7 +443,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['featured_products', 'collection', 'trending'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[10px] font-black tracking-wide opacity-40">Search & Select Product</label>
+                         <label className="text-[10px] font-bold tracking-tight opacity-40">Search & Select Product</label>
                          <div className="relative" ref={activeProductDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
@@ -495,7 +495,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                          {item.product_id && typeof item.product_id !== 'object' && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Package className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[9px] font-black  text-[var(--accent)]">ID: {item.product_id}</span>
+                             <span className="text-[9px] font-bold  text-[var(--accent)]">ID: {item.product_id}</span>
                            </div>
                          )}
                       </div>
@@ -503,7 +503,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['categories'].includes(formData.type)) && (
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black tracking-wide opacity-40">Category Selection</label>
+                         <label className="text-[10px] font-bold tracking-tight opacity-40">Category Selection</label>
                          <div className="relative" ref={activeCategoryDropdown === i ? dropdownRef : null}>
                             <div 
                               onClick={() => {
@@ -545,7 +545,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                        </div>
                                      ))}
                                      {filteredCategories.length === 0 && (
-                                       <div className="text-[10px] text-center py-4 opacity-40 tracking-wide">No matches</div>
+                                       <div className="text-[10px] text-center py-4 opacity-40 tracking-tight">No matches</div>
                                      )}
                                   </div>
                                </div>
@@ -555,7 +555,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     )}
 
                      <div className="space-y-2">
-                        <label className="text-[10px] font-black tracking-wide opacity-40">Link Destination</label>
+                        <label className="text-[10px] font-bold tracking-tight opacity-40">Link Destination</label>
                         <div className="relative" ref={activeLinkDropdown === i ? dropdownRef : null}>
                            <div className="flex gap-2">
                               <input 
@@ -595,7 +595,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                          updateDataItem(i, 'link_to', '/shop');
                                          setActiveLinkDropdown(null);
                                        }}
-                                       className="flex items-center px-4 py-3 rounded-xl cursor-pointer hover:bg-white/10 text-xs text-[var(--accent)] font-black tracking-wide transition-all"
+                                       className="flex items-center px-4 py-3 rounded-xl cursor-pointer hover:bg-white/10 text-xs text-[var(--accent)] font-bold tracking-tight transition-all"
                                      >
                                         [ Generic Shop Page ]
                                      </div>
@@ -620,7 +620,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(formData.type === 'stores') && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[10px] font-black tracking-wide opacity-40">Search & Select Vendor</label>
+                         <label className="text-[10px] font-bold tracking-tight opacity-40">Search & Select Vendor</label>
                          <div className="relative" ref={activeVendorDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
@@ -671,7 +671,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                          {item.vendor_id && typeof item.vendor_id !== 'object' && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Store className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[9px] font-black  text-[var(--accent)]">ID: {item.vendor_id}</span>
+                             <span className="text-[9px] font-bold  text-[var(--accent)]">ID: {item.vendor_id}</span>
                            </div>
                          )}
                       </div>
@@ -692,15 +692,15 @@ export default function SectionForm({ section, onClose, onSuccess }) {
           {/* Configuration & Scheduling */}
           <div className="grid md:grid-cols-2 gap-12 pt-8 border-t border-[var(--glass-border)] pb-10">
              <div className="space-y-6">
-                <h4 className="font-black flex items-center gap-2 tracking-widest  text-[10px] text-[var(--accent)]">
+                <h4 className="font-bold flex items-center gap-2 tracking-tight  text-[10px] text-[var(--accent)]">
                    <Settings className="w-4 h-4" /> Layout Config
                 </h4>
                 <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
-                   <span className="text-sm font-bold opacity-60 tracking-wide text-[10px]">Layout Mode</span>
+                   <span className="text-sm font-bold opacity-60 tracking-tight text-[10px]">Layout Mode</span>
                    <select 
                      value={formData.config?.layout || 'grid'}
                      onChange={(e) => setFormData(prev => ({ ...prev, config: { ...prev.config, layout: e.target.value } }))}
-                     className="bg-transparent font-black text-sm outline-none cursor-pointer"
+                     className="bg-transparent font-bold text-sm outline-none cursor-pointer"
                    >
                      <option value="grid">Grid Layout</option>
                      <option value="carousel">Horizontal Carousel</option>
@@ -709,7 +709,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 
                 <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
                    <div className="space-y-0.5">
-                      <span className="text-sm font-bold opacity-60 tracking-wide text-[10px]">Status</span>
+                      <span className="text-sm font-bold opacity-60 tracking-tight text-[10px]">Status</span>
                       <p className="text-[10px] opacity-40 font-medium">Visible on Storefront</p>
                    </div>
                    <label className="relative inline-flex items-center cursor-pointer">
@@ -726,7 +726,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 {formData.type === 'hero' && (
                   <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
                     <div className="space-y-0.5">
-                       <span className="text-sm font-bold opacity-60 tracking-wide text-[10px]">Autoplay</span>
+                       <span className="text-sm font-bold opacity-60 tracking-tight text-[10px]">Autoplay</span>
                        <p className="text-[10px] opacity-40 font-medium">Slide through banners</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -743,12 +743,12 @@ export default function SectionForm({ section, onClose, onSuccess }) {
              </div>
 
              <div className="space-y-6">
-                <h4 className="font-black flex items-center gap-2 tracking-widest  text-[10px] text-blue-400">
+                <h4 className="font-bold flex items-center gap-2 tracking-tight  text-[10px] text-blue-400">
                    <Clock className="w-4 h-4" /> Scheduling
                 </h4>
                 <div className="grid gap-4">
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black  opacity-40 ml-1">Starts (Optional)</label>
+                      <label className="text-[10px] font-bold  opacity-40 ml-1">Starts (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_start}
@@ -757,7 +757,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                       />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black  opacity-40 ml-1">Ends (Optional)</label>
+                      <label className="text-[10px] font-bold  opacity-40 ml-1">Ends (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_end}
@@ -772,13 +772,13 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
         {/* Footer */}
         <div className="p-8 border-t border-[var(--glass-border)] flex items-center justify-end gap-4 bg-[var(--bg-secondary)] relative z-30">
-          <button onClick={onClose} className="px-8 py-4 rounded-2xl font-bold opacity-60 hover:opacity-100 transition-all text-xs tracking-wide">
+          <button onClick={onClose} className="px-8 py-4 rounded-2xl font-bold opacity-60 hover:opacity-100 transition-all text-xs tracking-tight">
             Cancel
           </button>
           <button 
             disabled={loading}
             onClick={handleSubmit} 
-            className="bg-[var(--accent)] text-white px-12 py-4 rounded-2xl font-black shadow-2xl shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-xs  tracking-[0.2em]"
+            className="bg-[var(--accent)] text-white px-12 py-4 rounded-2xl font-bold shadow-2xl shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-xs  tracking-[0.2em]"
           >
             {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
             {isEdit ? 'Update Section' : 'Publish Section'}

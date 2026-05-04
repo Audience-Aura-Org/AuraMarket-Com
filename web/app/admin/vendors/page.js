@@ -69,8 +69,8 @@ export default function AdminVendorsPage() {
               <Store className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg font-black tracking-tight">Merchant Registry</h1>
-              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-wide">Global Vendor Oversight</p>
+              <h1 className="text-lg font-bold tracking-tight">Merchant Registry</h1>
+              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Vendor Oversight</p>
             </div>
           </div>
 
@@ -80,7 +80,7 @@ export default function AdminVendorsPage() {
               <input
                 type="text"
                 placeholder="FIND STORE..."
-                className="bg-transparent border-none outline-none text-[9px] font-black tracking-wide w-48 text-[var(--text-primary)]"
+                className="bg-transparent border-none outline-none text-[9px] font-bold tracking-tight w-48 text-[var(--text-primary)]"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               />
@@ -89,7 +89,7 @@ export default function AdminVendorsPage() {
               {['all', 'verified', 'unverified'].map(s => (
                 <button
                   key={s} onClick={() => setStatusFilter(s)}
-                  className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all ${statusFilter === s ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}
+                  className={`px-4 py-1.5 rounded-lg text-[9px] font-bold tracking-tight transition-all ${statusFilter === s ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}
                 >
                   {s}
                 </button>
@@ -112,7 +112,7 @@ export default function AdminVendorsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <p className="text-[11px] font-black  truncate">{v.store_name}</p>
+                      <p className="text-[11px] font-bold  truncate">{v.store_name}</p>
                       {v.verified && <ShieldCheck className="size-3 text-emerald-500" />}
                     </div>
                     <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 truncate  mt-0.5">Owner: {v.user_id?.name}</p>
@@ -121,19 +121,19 @@ export default function AdminVendorsPage() {
                   {/* Business Metrics */}
                   <div className="hidden lg:grid grid-cols-3 gap-8 px-8 border-x border-[var(--glass-border)]">
                      <div className="text-center">
-                        <p className="text-xs font-black">{v.total_sales || 0}</p>
-                        <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 tracking-wide">Volume</p>
+                        <p className="text-xs font-bold">{v.total_sales || 0}</p>
+                        <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-20 tracking-tight">Volume</p>
                      </div>
                      <div className="text-center">
-                        <p className="text-xs font-black">{fmt(v.total_revenue)}</p>
-                        <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 tracking-wide">Revenue</p>
+                        <p className="text-xs font-bold">{fmt(v.total_revenue)}</p>
+                        <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-20 tracking-tight">Revenue</p>
                      </div>
                      <div className="text-center">
                         <div className="flex items-center gap-1 justify-center">
                            <Star className="size-2 text-amber-500 fill-amber-500" />
-                           <p className="text-xs font-black">{v.rating?.toFixed(1) || '0.0'}</p>
+                           <p className="text-xs font-bold">{v.rating?.toFixed(1) || '0.0'}</p>
                         </div>
-                        <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20 tracking-wide">Rating</p>
+                        <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-20 tracking-tight">Rating</p>
                      </div>
                   </div>
 
@@ -141,9 +141,9 @@ export default function AdminVendorsPage() {
                      <div className="text-right">
                         <div className="flex items-center gap-2 justify-end">
                            <div className={`size-1.5 rounded-full ${v.verified ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'}`} />
-                           <span className="text-[9px] font-black tracking-wide opacity-60">{v.verified ? 'Verified' : 'Pending'}</span>
+                           <span className="text-[9px] font-bold tracking-tight opacity-60">{v.verified ? 'Verified' : 'Pending'}</span>
                         </div>
-                        <p className="text-[8px] font-black text-[var(--text-secondary)] opacity-20  mt-0.5 tracking-widest">Merchant State</p>
+                        <p className="text-[8px] font-bold text-[var(--text-secondary)] opacity-20  mt-0.5 tracking-tight">Merchant State</p>
                      </div>
                      <div className="flex items-center gap-2">
                         <button onClick={() => handleToggleVerify(v._id, v.verified)} className={`size-9 rounded-xl flex items-center justify-center border transition-all ${v.verified ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500 hover:text-white' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'}`}>
@@ -166,7 +166,7 @@ export default function AdminVendorsPage() {
 
               {filteredVendors.length === 0 && (
                  <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20">
-                    <p className="text-xs font-black tracking-wide">No merchant nodes synchronized</p>
+                    <p className="text-xs font-bold tracking-tight">No merchant nodes synchronized</p>
                  </div>
               )}
            </div>

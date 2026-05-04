@@ -120,7 +120,7 @@ export default function NotificationsPage() {
         <div className="flex items-center justify-between mb-8 px-1">
           <p className="text-[9px] font-bold text-[var(--text-secondary)] tracking-[0.3em]  opacity-40">Frequency Feed</p>
           {unreadCount > 0 && (
-            <button onClick={markAllRead} className="flex items-center gap-2 text-[9px] font-bold text-[var(--accent)] tracking-widest  hover:underline group">
+            <button onClick={markAllRead} className="flex items-center gap-2 text-[9px] font-bold text-[var(--accent)] tracking-tight  hover:underline group">
               <CheckCheck className="size-3 group-hover:scale-110 transition-transform" /> Sync All
             </button>
           )}

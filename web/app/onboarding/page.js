@@ -299,12 +299,12 @@ export default function OnboardingFlow() {
             {!isLastStep && step < 3 && (
               <button 
                 onClick={skip} 
-                className="px-3 py-1.5 rounded-lg text-[10px] font-black  tracking-[0.2em] text-[var(--accent)] hover:opacity-70 transition-all flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg text-[10px] font-bold  tracking-[0.2em] text-[var(--accent)] hover:opacity-70 transition-all flex items-center gap-1.5"
               >
                 Skip <SkipForward className="size-3 opacity-60" />
               </button>
             )}
-            <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-400 tracking-wide">
+            <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-bold text-emerald-400 tracking-tight">
               Verified
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function OnboardingFlow() {
               {currentStepMeta && <currentStepMeta.icon className={`size-6 ${colors.text}`} />}
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black tracking-tight">{currentStepMeta?.title}</h1>
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight">{currentStepMeta?.title}</h1>
               <p className={`text-[10px] md:text-xs font-bold ${colors.text} opacity-80`}>{currentStepMeta?.subtitle}</p>
             </div>
           </div>
@@ -383,7 +383,7 @@ export default function OnboardingFlow() {
                 <div className="pt-4 flex justify-center">
                   <button
                     onClick={() => setVisibleCategoriesCount(p => p + 20)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-black tracking-wide text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition-all shadow-sm"
                   >
                     See more <ChevronRight className="size-3 text-[var(--accent)]" />
                   </button>
@@ -399,7 +399,7 @@ export default function OnboardingFlow() {
             <div className="space-y-4 max-w-md mx-auto w-full">
               {!isVendor && (
                 <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all group focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-black text-[var(--accent)] tracking-wide mb-1 block opacity-60">Primary Contact</label>
+                  <label className="text-[10px] font-bold text-[var(--accent)] tracking-tight mb-1 block opacity-60">Primary Contact</label>
                   <div className="relative">
                     <Phone className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
                     <input
@@ -414,7 +414,7 @@ export default function OnboardingFlow() {
               )}
 
               <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                <label className="text-[10px] font-black text-[var(--text-secondary)] tracking-wide mb-1 block opacity-60">Base City</label>
+                <label className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Base City</label>
                 {zonesLoading ? (
                   <div className="flex items-center gap-3 py-1">
                     <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
@@ -443,7 +443,7 @@ export default function OnboardingFlow() {
                   className="space-y-4"
                 >
                   <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-black text-[var(--text-secondary)] tracking-wide mb-1 block opacity-60">Neighbourhood / Zone</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Neighbourhood / Zone</label>
                     <div className="relative">
                       <Globe className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
                       <select
@@ -460,7 +460,7 @@ export default function OnboardingFlow() {
                   </div>
 
                   <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-black text-[var(--text-secondary)] tracking-wide mb-1 block opacity-60">Address Details / Notes</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Address Details / Notes</label>
                     <textarea
                       placeholder={isVendor ? "e.g. Opposite Total Station, gate #4..." : "e.g. Door #5, blue building..."}
                       value={location.address_description}
@@ -599,7 +599,7 @@ export default function OnboardingFlow() {
                  </div>
                  <div className="space-y-1">
                     <h1 className="text-3xl font-light text-[var(--text-primary)] tracking-tight">Your Profile is Ready</h1>
-                    <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-50 tracking-widest ">Everything syncronized perfectly</p>
+                    <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-50 tracking-tight ">Everything syncronized perfectly</p>
                  </div>
               </div>
 
@@ -650,7 +650,7 @@ export default function OnboardingFlow() {
                 <button
                   onClick={finish}
                   disabled={loading}
-                  className="w-full py-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-sm tracking-wide shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full py-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-sm tracking-tight shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="size-4 animate-spin" /> : 'Enter the Marketplace'}
                 </button>
@@ -666,7 +666,7 @@ export default function OnboardingFlow() {
             {/* Primary Action Button */}
             <button
               onClick={goNext}
-              className="w-full py-4 rounded-2xl font-black text-[11px] tracking-wide flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
+              className="w-full py-4 rounded-2xl font-bold text-[11px] tracking-tight flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
               style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
             >
               {step === 2 ? 'Final Review' : 'Continue'}

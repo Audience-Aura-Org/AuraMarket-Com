@@ -480,7 +480,7 @@ export default function AccountPageClient() {
                   <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-8 shadow-xl w-full">
                     <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8">
                       <div className="relative group shrink-0">
-                        <div className="size-28 md:size-32 rounded-full border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-4xl font-black text-[var(--accent)]">
+                        <div className="size-28 md:size-32 rounded-full border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-4xl font-bold text-[var(--accent)]">
                           {profileBranding.logo ? (
                             <img src={profileBranding.logo} className="size-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
                           ) : (
@@ -494,14 +494,14 @@ export default function AccountPageClient() {
                       </div>
 
                       <div className="flex-1 text-center md:text-left space-y-1">
-                        <h3 className="text-2xl md:text-3xl font-black  text-[var(--text-primary)] tracking-tight">
+                        <h3 className="text-2xl md:text-3xl font-bold  text-[var(--text-primary)] tracking-tight">
                           {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
                         </h3>
                         <p className="text-[var(--text-secondary)] font-medium flex items-center justify-center md:justify-start gap-2 text-sm">
                           <Mail className="size-4 opacity-40 shrink-0" /> {user?.email}
                         </p>
                         <div className="pt-2">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-black tracking-widest  border border-[var(--accent)]/20 shadow-sm">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold tracking-tight  border border-[var(--accent)]/20 shadow-sm">
                             {user?.role || 'User'} Profile
                           </span>
                         </div>
@@ -513,7 +513,7 @@ export default function AccountPageClient() {
 
                   <div className="space-y-6 md:space-y-8">
                     <div className="flex items-center gap-6 px-4 md:px-6">
-                      <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Identity Parameters</h3>
+                      <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Identity Parameters</h3>
                       <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                     </div>
 
@@ -580,7 +580,7 @@ export default function AccountPageClient() {
                           className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
                         >
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
-                          <span className="relative z-10 text-[11px] md:text-xs font-black tracking-[0.2em]  transition-colors">
+                          <span className="relative z-10 text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">
                             {profileSaving ? 'Synchronizing State...' : 'Save Identity Configuration'}
                           </span>
                         </button>
@@ -593,7 +593,7 @@ export default function AccountPageClient() {
               {activeTab === 'orders' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Transaction Logs</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Transaction Logs</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -605,13 +605,13 @@ export default function AccountPageClient() {
                         <div className="flex p-1.5 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] w-fit mb-8">
                           <button
                             onClick={() => setOrderView('purchases')}
-                            className={`px-6 py-2 rounded-xl text-[9px] font-black tracking-wide transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-bold tracking-tight transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
                           >
                             My Purchases
                           </button>
                           <button
                             onClick={() => setOrderView('sales')}
-                            className={`px-6 py-2 rounded-xl text-[9px] font-black tracking-wide transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-bold tracking-tight transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
                           >
                             Store Sales
                           </button>
@@ -625,7 +625,7 @@ export default function AccountPageClient() {
                       ) : orders.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-black tracking-widest  text-[var(--text-secondary)]">No {orderView === 'sales' ? 'Sales' : 'Purchase'} Manifest Found</p>
+                          <p className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">No {orderView === 'sales' ? 'Sales' : 'Purchase'} Manifest Found</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -642,7 +642,7 @@ export default function AccountPageClient() {
                                       <img src={imageUrl} alt="Product Thumbnail" className="size-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-[11px] md:text-xs font-black tracking-widest  truncate text-[var(--text-primary)] mb-1">{title}</p>
+                                      <p className="text-[11px] md:text-xs font-bold tracking-tight  truncate text-[var(--text-primary)] mb-1">{title}</p>
                                       {firstItem?.variant && (
                                         <div className="flex flex-wrap gap-1 mb-1">
                                           {Object.entries(firstItem.variant).map(([k, v]) => (
@@ -655,9 +655,9 @@ export default function AccountPageClient() {
                                       <p className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     <div className="text-right shrink-0">
-                                      <p className="text-xs md:text-sm font-black tracking-wider text-[var(--text-primary)]">{(order.total_amount).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
+                                      <p className="text-xs md:text-sm font-bold tracking-tight text-[var(--text-primary)]">{(order.total_amount).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
                                       <div className="mt-1 flex justify-end">
-                                        <span className={`px-3 py-1 rounded-full text-[8px] font-black tracking-widest  border ${order.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : order.order_status === 'shipped' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                                        <span className={`px-3 py-1 rounded-full text-[8px] font-bold tracking-tight  border ${order.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : order.order_status === 'shipped' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                                           {order.order_status || 'Pending'}
                                         </span>
                                       </div>
@@ -685,7 +685,7 @@ export default function AccountPageClient() {
               {activeTab === 'security' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Security Matrix</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Security Matrix</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -699,7 +699,7 @@ export default function AccountPageClient() {
                             <Lock className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
-                            <p className="text-sm font-black tracking-wide text-[var(--text-primary)]">Change Passphrase</p>
+                            <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Change Passphrase</p>
                             <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
                           </div>
                         </div>
@@ -740,7 +740,7 @@ export default function AccountPageClient() {
                         <button 
                           onClick={handleChangePassphrase}
                           disabled={passphraseLoading || !passphraseData.currentPassword || !passphraseData.newPassword}
-                          className="w-full py-3 md:py-4 rounded-full font-black text-xs tracking-widest bg-[var(--accent)] text-white hover:bg-opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20"
+                          className="w-full py-3 md:py-4 rounded-full font-bold text-xs tracking-tight bg-[var(--accent)] text-white hover:bg-opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20"
                         >
                           {passphraseLoading ? (
                             <><div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin"/> SECURING...</>
@@ -754,7 +754,7 @@ export default function AccountPageClient() {
                             <RefreshCw className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
-                            <p className="text-sm font-black tracking-wide text-[var(--text-primary)]">Active Device Sessions</p>
+                            <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Active Device Sessions</p>
                             <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
                           </div>
                         </div>
@@ -768,7 +768,7 @@ export default function AccountPageClient() {
               {activeTab === 'store' && user?.role === 'vendor' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -796,7 +796,7 @@ export default function AccountPageClient() {
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
-                          <h4 className="text-[10px] font-black tracking-widest  text-[var(--text-secondary)]">Pickup Address Configuration</h4>
+                          <h4 className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">Pickup Address Configuration</h4>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -837,7 +837,7 @@ export default function AccountPageClient() {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                         <div className="relative z-10 flex items-center gap-3">
                           {loading && <RefreshCw className="size-4 animate-spin" />}
-                          <span className="text-[11px] md:text-xs font-black tracking-[0.2em]  transition-colors">
+                          <span className="text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">
                             {loading ? 'Updating Storefront...' : 'Commit Store Configuration'}
                           </span>
                         </div>
@@ -850,7 +850,7 @@ export default function AccountPageClient() {
               {activeTab === 'kyc' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Identity Validation</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Identity Validation</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -863,7 +863,7 @@ export default function AccountPageClient() {
                           <div className="size-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
                             <ShieldCheck className="size-10 text-emerald-500" />
                           </div>
-                          <h4 className="text-xl font-black tracking-tight text-emerald-500 mb-2">Verified Identity</h4>
+                          <h4 className="text-xl font-bold tracking-tight text-emerald-500 mb-2">Verified Identity</h4>
                           <p className="text-sm text-emerald-500/60 font-medium max-w-xs">Your identity matrix has been fully synchronized and validated.</p>
                         </div>
                       ) : (
@@ -874,7 +874,7 @@ export default function AccountPageClient() {
                                 <Clock className="size-6 text-amber-500 animate-pulse" />
                               </div>
                               <div>
-                                <p className="text-[10px] font-black tracking-widest  text-amber-500">Validation in Progress</p>
+                                <p className="text-[10px] font-bold tracking-tight  text-amber-500">Validation in Progress</p>
                                 <p className="text-sm text-amber-500/60 font-medium">Our node controllers are reviewing your credentials.</p>
                               </div>
                             </div>
@@ -890,7 +890,7 @@ export default function AccountPageClient() {
                             />
 
                             <div>
-                              <label className="block text-[10px] font-black tracking-widest  text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
+                              <label className="block text-[10px] font-bold tracking-tight  text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
                               <select
                                 value={kycData.id_type}
                                 onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
@@ -914,12 +914,12 @@ export default function AccountPageClient() {
                           <div className="space-y-6">
                             <div className="flex items-center gap-4">
                               <Camera className="size-4 text-[var(--accent)]" />
-                              <h4 className="text-[10px] font-black tracking-widest  text-[var(--text-secondary)]">Biometric Scans</h4>
+                              <h4 className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">Biometric Scans</h4>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               <div className="space-y-3">
-                                <p className="text-[9px] font-black tracking-widest  text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
+                                <p className="text-[9px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
                                 <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
                                   {kycData.file_url_front ? (
                                     <img src={kycData.file_url_front} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
@@ -934,7 +934,7 @@ export default function AccountPageClient() {
                               </div>
                               
                               <div className="space-y-3">
-                                <p className="text-[9px] font-black tracking-widest  text-[var(--text-secondary)] opacity-50 px-1">Secondary Face (Back)</p>
+                                <p className="text-[9px] font-bold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Secondary Face (Back)</p>
                                 <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
                                   {kycData.file_url_back ? (
                                     <img src={kycData.file_url_back} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
@@ -958,7 +958,7 @@ export default function AccountPageClient() {
                             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                             <div className="relative z-10 flex items-center gap-3">
                               {kycLoading && <RefreshCw className="size-4 animate-spin" />}
-                              <span className="text-[11px] md:text-xs font-black tracking-[0.2em]  transition-colors">
+                              <span className="text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">
                                 {kycLoading ? 'Encrypting Credentials...' : 'Submit for Validation'}
                               </span>
                             </div>
@@ -973,7 +973,7 @@ export default function AccountPageClient() {
               {activeTab === 'network' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Followed Vendors</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Followed Vendors</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -988,7 +988,7 @@ export default function AccountPageClient() {
                       ) : followedVendors.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-black tracking-widest  text-[var(--text-secondary)]">No Followed Vendors</p>
+                          <p className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">No Followed Vendors</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
@@ -1020,13 +1020,13 @@ export default function AccountPageClient() {
 
                                 <div className="mt-4 space-y-2 relative z-10 w-full">
                                   <div className="flex items-center justify-center gap-2">
-                                    <h3 className="text-sm font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight line-clamp-1 ">
+                                    <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight line-clamp-1 ">
                                       {vendor.vendor_id?.store_name}
                                     </h3>
                                     <ShieldCheck className="size-3.5 text-blue-500" />
                                   </div>
                                   
-                                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[8px] font-black tracking-widest w-fit mx-auto ">
+                                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[8px] font-bold tracking-tight w-fit mx-auto ">
                                     <Star className="size-2.5 fill-current" /> {vendor.vendor_id?.rating || '4.9'}
                                   </div>
 
@@ -1037,7 +1037,7 @@ export default function AccountPageClient() {
 
                                 <div className="mt-6 pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                                   <div className="flex flex-col items-start gap-1">
-                                    <span className="text-[7px] font-black text-[var(--text-secondary)]/40 tracking-[0.3em] ">Status</span>
+                                    <span className="text-[7px] font-bold text-[var(--text-secondary)]/40 tracking-[0.3em] ">Status</span>
                                     <span className="text-[9px] font-bold text-emerald-500 flex items-center gap-1 ">
                                       <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Active
                                     </span>
@@ -1060,7 +1060,7 @@ export default function AccountPageClient() {
               {activeTab === 'audience' && user?.role === 'vendor' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Store Audience</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Store Audience</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -1075,7 +1075,7 @@ export default function AccountPageClient() {
                       ) : audience.length === 0 ? (
                         <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
                           <Users className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[10px] font-black tracking-widest  text-[var(--text-secondary)]">No Followers Yet</p>
+                          <p className="text-[10px] font-bold tracking-tight  text-[var(--text-secondary)]">No Followers Yet</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1086,7 +1086,7 @@ export default function AccountPageClient() {
                                   <img src={follower.user_id?.branding?.logo || follower.user_id?.avatar || '/logo-white-main.png'} className="size-full object-cover" alt="" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-black tracking-wide truncate text-[var(--text-primary)]">{follower.user_id?.name}</p>
+                                  <p className="text-xs font-bold tracking-tight truncate text-[var(--text-primary)]">{follower.user_id?.name}</p>
                                   <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60  tracking-tighter">Synchronized {new Date(follower.createdAt).toLocaleDateString()}</p>
                                 </div>
                               </div>
@@ -1102,7 +1102,7 @@ export default function AccountPageClient() {
               {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Story Management</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Story Management</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
                   <StatusManager />
@@ -1112,7 +1112,7 @@ export default function AccountPageClient() {
               {activeTab === 'notifications' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-black tracking-[0.4em]  text-[var(--accent)] shadow-sm">Signal Parameters</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Signal Parameters</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 

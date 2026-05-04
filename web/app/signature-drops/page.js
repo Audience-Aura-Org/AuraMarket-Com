@@ -53,9 +53,9 @@ export default function SignatureDropsPage() {
            <div className="flex items-center gap-3 text-[var(--accent)] bg-white/5 w-fit px-8 py-3 rounded-full border border-white/10 shadow-2xl backdrop-blur-3xl overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               <Flame className="size-5 fill-[var(--accent)]" />
-              <span className="text-[10px] font-black  tracking-[0.6em]">High Velocity Drops</span>
+              <span className="text-[10px] font-bold  tracking-[0.6em]">High Velocity Drops</span>
            </div>
-           <h1 className="text-7xl lg:text-9xl font-black text-white tracking-widest  leading-[0.8] mb-4">
+           <h1 className="text-7xl lg:text-9xl font-bold text-white tracking-tight  leading-[0.8] mb-4">
               Signature <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] via-white/80 to-indigo-600">Drops</span>
            </h1>
            <p className="text-white font-medium text-lg lg:text-3xl opacity-40 max-w-4xl tracking-tighter leading-snug">
@@ -74,16 +74,16 @@ export default function SignatureDropsPage() {
            >
               <div className="flex-1 space-y-10">
                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 bg-white/10 text-white px-5 py-2 rounded-xl border border-white/20 text-[10px] font-black tracking-wide backdrop-blur-xl">
+                    <div className="flex items-center gap-2 bg-white/10 text-white px-5 py-2 rounded-xl border border-white/20 text-[10px] font-bold tracking-tight backdrop-blur-xl">
                        <Timer className="size-4 text-[var(--accent)]" /> {drop.status}
                     </div>
-                    <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-5 py-2 rounded-xl border border-emerald-500/20 text-[10px] font-black tracking-wide backdrop-blur-xl">
+                    <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-5 py-2 rounded-xl border border-emerald-500/20 text-[10px] font-bold tracking-tight backdrop-blur-xl">
                        <CheckCircle className="size-4" /> SECURE ALLOCATION
                     </div>
                  </div>
 
                  <div className="space-y-4">
-                    <h2 className="text-5xl lg:text-7xl font-black text-white  tracking-tighter leading-none group cursor-pointer">
+                    <h2 className="text-5xl lg:text-7xl font-bold text-white  tracking-tighter leading-none group cursor-pointer">
                        {drop.title.split('-')[0]} <span className="text-[var(--accent)] block lg:inline">{drop.title.split('-')[1]}</span>
                     </h2>
                     <p className="text-white/40 text-lg lg:text-xl font-medium max-w-xl leading-relaxed">
@@ -94,20 +94,20 @@ export default function SignatureDropsPage() {
                  <div className="space-y-10">
                     <div className="flex items-center gap-10">
                        <div className="space-y-1">
-                          <p className="text-[9px] font-black text-white/30 tracking-wide">Entry Price</p>
-                          <p className="text-2xl font-black text-white">{drop.price}</p>
+                          <p className="text-[9px] font-bold text-white/30 tracking-tight">Entry Price</p>
+                          <p className="text-2xl font-bold text-white">{drop.price}</p>
                        </div>
                        <div className="h-10 w-px bg-white/10" />
                        <div className="space-y-1">
-                          <p className="text-[9px] font-black text-white/30 tracking-wide">Time Remaining</p>
-                          <p className="text-2xl font-black text-[var(--accent)] font-mono">{drop.timer}</p>
+                          <p className="text-[9px] font-bold text-white/30 tracking-tight">Time Remaining</p>
+                          <p className="text-2xl font-bold text-[var(--accent)] font-mono">{drop.timer}</p>
                        </div>
                     </div>
 
                     <div className="flex items-center gap-6">
                        <Link 
                          href="/shop" 
-                         className="h-20 lg:h-24 px-12 lg:px-16 rounded-[2.5rem] bg-white text-black font-black text-xs lg:text-sm  tracking-[0.4em] flex items-center gap-4 transition-all hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] shadow-2xl"
+                         className="h-20 lg:h-24 px-12 lg:px-16 rounded-[2.5rem] bg-white text-black font-bold text-xs lg:text-sm  tracking-[0.4em] flex items-center gap-4 transition-all hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] shadow-2xl"
                        >
                           Secure Slot <ArrowUpRight className="size-5" />
                        </Link>
@@ -126,10 +126,10 @@ export default function SignatureDropsPage() {
                     
                     {/* Visual Interface Overlay */}
                     <div className="absolute top-10 right-10 flex flex-col items-end gap-3 text-white/40">
-                       <div className="flex items-center gap-2 text-[8px] font-black  tracking-[0.4em] px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-2xl border border-white/10">
+                       <div className="flex items-center gap-2 text-[8px] font-bold  tracking-[0.4em] px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-2xl border border-white/10">
                           Live Feed <Globe className="size-3 animate-spin-slow text-[var(--accent)]" />
                        </div>
-                       <div className="flex items-center gap-2 text-[8px] font-black  tracking-[0.4em] px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-2xl border border-white/10">
+                       <div className="flex items-center gap-2 text-[8px] font-bold  tracking-[0.4em] px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-2xl border border-white/10">
                           Lat. 4.05°N | Lon. 9.7°E
                        </div>
                     </div>
@@ -137,7 +137,7 @@ export default function SignatureDropsPage() {
                     <div className="absolute bottom-10 left-10 p-8 glass-panel border border-white/20 rounded-[3rem] bg-black/40 backdrop-blur-3xl space-y-2 max-w-[280px]">
                        <div className="flex items-center gap-2 text-[var(--accent)]">
                           <Star className="size-4 fill-[var(--accent)]" />
-                          <span className="text-[10px] font-black  tracking-[0.2em]">{drop.tag} Node</span>
+                          <span className="text-[10px] font-bold  tracking-[0.2em]">{drop.tag} Node</span>
                        </div>
                        <p className="text-white/60 font-medium text-xs leading-relaxed">
                           Synchronizing with global logistics centers for immediate fulfillment at launch.
@@ -152,12 +152,12 @@ export default function SignatureDropsPage() {
         <div className="text-center space-y-16 pb-40 relative group">
            <div className="absolute inset-0 bg-[var(--accent)]/[0.03] blur-[150px] rounded-full -top-40" />
            <div className="space-y-6">
-              <h2 className="text-4xl lg:text-7xl font-black text-white/20 tracking-wide leading-none group-hover:text-white transition-colors duration-1000">Never <span className="text-white">Relay</span> Behind</h2>
-              <p className="text-[10px] font-black tracking-[0.8em] text-[var(--accent)]  opacity-60">Join the Elite Distribution Network</p>
+              <h2 className="text-4xl lg:text-7xl font-bold text-white/20 tracking-tight leading-none group-hover:text-white transition-colors duration-1000">Never <span className="text-white">Relay</span> Behind</h2>
+              <p className="text-[10px] font-bold tracking-[0.8em] text-[var(--accent)]  opacity-60">Join the Elite Distribution Network</p>
            </div>
            
            <Link href="/register" className="h-24 lg:h-32 px-16 lg:px-24 rounded-full border border-white/10 bg-white/5 hover:bg-[var(--accent)] text-white hover:text-black transition-all duration-700 flex items-center justify-center gap-10 hover:scale-110 active:scale-95 group/main">
-              <span className="text-lg lg:text-2xl font-black  tracking-[0.5em]">Join the Core</span>
+              <span className="text-lg lg:text-2xl font-bold  tracking-[0.5em]">Join the Core</span>
               <ArrowUpRight className="size-8 group-hover/main:translate-x-2 group-hover/main:-translate-y-2 transition-transform" />
            </Link>
         </div>

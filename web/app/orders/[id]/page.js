@@ -160,9 +160,9 @@ export default function OrderDetailPage() {
   if (!order) return (
     <div className="min-h-screen bg-[var(--bg-secondary)] flex flex-col items-center justify-center p-6 text-center">
        <AlertTriangle className="size-16 text-red-500 mb-6 opacity-20" />
-       <h1 className="text-3xl font-black  tracking-tighter">Manifest Lost</h1>
-       <p className="text-[10px] font-black text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 mt-4 font-mono">Order ID: {id}</p>
-       <Link href="/discovery" className="mt-8 px-10 py-4 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black tracking-wide shadow-xl shadow-[var(--accent)]/30 transition-all hover:scale-105 active:scale-95">Return to Network</Link>
+       <h1 className="text-3xl font-bold  tracking-tighter">Manifest Lost</h1>
+       <p className="text-[10px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 mt-4 font-mono">Order ID: {id}</p>
+       <Link href="/discovery" className="mt-8 px-10 py-4 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-bold tracking-tight shadow-xl shadow-[var(--accent)]/30 transition-all hover:scale-105 active:scale-95">Return to Network</Link>
     </div>
   );
 
@@ -191,8 +191,8 @@ export default function OrderDetailPage() {
                <ChevronLeft className="size-6" />
              </div>
              <div>
-               <p className="text-[9px] font-black tracking-widest  opacity-40">Back to Sequence</p>
-               <h4 className="text-xs font-black tracking-tight">Identity Profile</h4>
+               <p className="text-[9px] font-bold tracking-tight  opacity-40">Back to Sequence</p>
+               <h4 className="text-xs font-bold tracking-tight">Identity Profile</h4>
              </div>
            </Link>
 
@@ -201,13 +201,13 @@ export default function OrderDetailPage() {
                 <Box className="size-5 text-[var(--accent)]" />
               </div>
               <div className="space-y-0.5">
-                <p className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] opacity-50">Secure Manifest ID</p>
-                <h3 className="text-[11px] font-black tracking-wide font-mono">#{order._id.toUpperCase()}</h3>
+                <p className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Secure Manifest ID</p>
+                <h3 className="text-[11px] font-bold tracking-tight font-mono">#{order._id.toUpperCase()}</h3>
               </div>
               <div className="h-8 w-px bg-[var(--glass-border)]" />
               <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                <span className="text-[9px] font-black tracking-widest  text-emerald-500">Live Sync</span>
+                <span className="text-[9px] font-bold tracking-tight  text-emerald-500">Live Sync</span>
               </div>
            </div>
         </div>
@@ -229,22 +229,22 @@ export default function OrderDetailPage() {
 
                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
                     <div className="space-y-6">
-                       <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em]  border shadow-sm ${getStatusColor(order.order_status)}`}>
+                       <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em]  border shadow-sm ${getStatusColor(order.order_status)}`}>
                          Protocol: {order.order_status}
                        </span>
                        <div className="space-y-2">
-                          <h1 className="text-5xl md:text-8xl font-black tracking-tighter  leading-none text-transparent bg-clip-text bg-gradient-to-br from-[var(--text-primary)] to-[var(--text-primary)]/40">
+                          <h1 className="text-5xl md:text-8xl font-bold tracking-tighter  leading-none text-transparent bg-clip-text bg-gradient-to-br from-[var(--text-primary)] to-[var(--text-primary)]/40">
                              {order.order_status}
                           </h1>
                           <div className="flex flex-wrap items-center gap-4 text-[var(--text-secondary)]">
                              <div className="flex items-center gap-2">
                                 <Clock className="size-4 opacity-40" />
-                                <span className="text-[10px] md:text-xs font-bold tracking-wide">{new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
+                                <span className="text-[10px] md:text-xs font-bold tracking-tight">{new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
                              </div>
                              <div className="size-1 rounded-full bg-[var(--glass-border)]" />
                              <div className="flex items-center gap-2">
                                 <Receipt className="size-4 opacity-40" />
-                                <span className="text-[10px] md:text-xs font-bold tracking-wide">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-[10px] md:text-xs font-bold tracking-tight">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                              </div>
                           </div>
                        </div>
@@ -254,7 +254,7 @@ export default function OrderDetailPage() {
                        {order.order_status === 'shipped' && (
                          <button 
                            onClick={handleConfirmDelivery}
-                           className="px-10 py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-[11px] tracking-wide shadow-2xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
+                           className="px-10 py-5 bg-emerald-500 text-white rounded-[2rem] font-bold text-[11px] tracking-tight shadow-2xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
                          >
                            <CheckCircle2 className="size-4" />
                            Confirm Arrival
@@ -263,7 +263,7 @@ export default function OrderDetailPage() {
                        {['pending', 'processing', 'shipped'].includes(order.order_status) && (
                          <button 
                            onClick={() => setDisputeModal(true)}
-                           className="px-10 py-5 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-[2rem] font-black text-[11px] tracking-wide hover:bg-rose-500 hover:text-white transition-all shadow-xl flex items-center justify-center gap-3"
+                           className="px-10 py-5 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-[2rem] font-bold text-[11px] tracking-tight hover:bg-rose-500 hover:text-white transition-all shadow-xl flex items-center justify-center gap-3"
                          >
                            <Scale className="size-4" />
                            Raise Intervention
@@ -278,9 +278,9 @@ export default function OrderDetailPage() {
                  <div className="flex items-center justify-between px-4">
                     <div className="flex items-center gap-4">
                        <ShoppingBag className="size-5 text-[var(--accent)]" />
-                       <h3 className="text-xs font-black  tracking-[0.3em]">Asset Manifest</h3>
+                       <h3 className="text-xs font-bold  tracking-[0.3em]">Asset Manifest</h3>
                     </div>
-                    <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 tracking-wide font-mono">LTS-SYNC v4.2</span>
+                    <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight font-mono">LTS-SYNC v4.2</span>
                  </div>
 
                  <div className="grid grid-cols-1 gap-4 md:gap-6">
@@ -304,13 +304,13 @@ export default function OrderDetailPage() {
                          <div className="flex-1 text-center md:text-left min-w-0 space-y-2">
                             <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-2 md:gap-4 mb-2">
                                <Link href={`/products/${item.product_id?._id || '#'}`} className="inline-block group/link">
-                                  <p className="text-[10px] font-black text-[var(--accent)] tracking-wide opacity-60 flex items-center justify-center md:justify-start gap-2">
+                                  <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight opacity-60 flex items-center justify-center md:justify-start gap-2">
                                      <CornerDownRight className="size-3" />
                                      Item Registry
                                   </p>
                                </Link>
                                {(item.product_id?.vendor_id || order.vendor_id) && (
-                                 <Link href={`/stores/${item.product_id?.vendor_id?._id || item.product_id?.vendor_id || order.vendor_id?._id || ''}`} className="text-[10px] font-black tracking-wide text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] w-fit mx-auto md:mx-0">
+                                 <Link href={`/stores/${item.product_id?.vendor_id?._id || item.product_id?.vendor_id || order.vendor_id?._id || ''}`} className="text-[10px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] w-fit mx-auto md:mx-0">
                                    <Store className="size-3" />
                                    {item.product_id?.vendor_id?.branding?.store_name || item.product_id?.vendor_id?.name || order.vendor_id?.store_name || order.vendor_id?.user_id?.name || 'Authorized Merchant'}
                                  </Link>
@@ -318,14 +318,14 @@ export default function OrderDetailPage() {
                             </div>
                             
                             <Link href={`/products/${item.product_id?._id || '#'}`} className="group/link">
-                               <h3 className="text-xl md:text-2xl font-black  tracking-tighter group-hover/link:text-[var(--accent)] transition-colors truncate">
+                               <h3 className="text-xl md:text-2xl font-bold  tracking-tighter group-hover/link:text-[var(--accent)] transition-colors truncate">
                                   {item.name || item.product_id?.name || 'Archived Item'}
                                </h3>
                             </Link>
                             {item.variant && (
                               <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-2">
                                 {Object.entries(item.variant).map(([k, v]) => (
-                                  <span key={k} className="text-[9px] font-black bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg  border border-[var(--accent)]/10">
+                                  <span key={k} className="text-[9px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg  border border-[var(--accent)]/10">
                                     {k}: {v}
                                   </span>
                                 ))}
@@ -333,13 +333,13 @@ export default function OrderDetailPage() {
                             )}
                             <div className="flex items-center justify-center md:justify-start gap-4">
                                <div className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                                  <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wide">
-                                     Qty: <span className="text-[var(--text-primary)] font-black">{item.quantity}</span>
+                                  <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight">
+                                     Qty: <span className="text-[var(--text-primary)] font-bold">{item.quantity}</span>
                                   </p>
                                </div>
                                <div className="px-3 py-1 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/10">
-                                  <p className="text-[10px] font-bold text-[var(--accent)] tracking-wide">
-                                     Price: <span className="font-black">{(item.price || 0).toLocaleString()} ₳</span>
+                                  <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight">
+                                     Price: <span className="font-bold">{(item.price || 0).toLocaleString()} ₳</span>
                                   </p>
                                </div>
                             </div>
@@ -349,13 +349,13 @@ export default function OrderDetailPage() {
                             {order.order_status === 'completed' && (
                                <button 
                                  onClick={() => { setReviewData({ ...reviewData, product_id: item.product_id?._id }); setReviewModal(true); }}
-                                 className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-black tracking-wide hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2"
+                                 className="px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[9px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2"
                                >
                                   <Star className="size-3" />
                                   Broadcast Feedback
                                </button>
                             )}
-                            <button className="px-6 py-3 rounded-2xl bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] text-[9px] font-black tracking-wide hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2">
+                            <button className="px-6 py-3 rounded-2xl bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] text-[9px] font-bold tracking-tight hover:text-[var(--text-primary)] transition-all flex items-center justify-center gap-2">
                                <ShieldCheck className="size-3 opacity-40" />
                                Verify Quality
                             </button>
@@ -369,7 +369,7 @@ export default function OrderDetailPage() {
               <div className="space-y-8">
                  <div className="flex items-center gap-4 px-4">
                     <Truck className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-xs font-black  tracking-[0.3em]">Logistics Progression</h3>
+                    <h3 className="text-xs font-bold  tracking-[0.3em]">Logistics Progression</h3>
                  </div>
 
                  <div className="glass-panel p-8 md:p-12 rounded-[3.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-3xl shadow-xl space-y-10">
@@ -381,25 +381,25 @@ export default function OrderDetailPage() {
                               <div className="space-y-4">
                                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
-                                       <h4 className="text-sm font-black tracking-wide text-[var(--text-primary)]">
+                                       <h4 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
                                           {ship.shipping_carrier || 'Independent Courier'}
                                        </h4>
                                        <p className="text-[10px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 mt-1">Carrier Identification</p>
                                     </div>
                                     <div className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center gap-3">
                                        <Info className="size-3.5 text-[var(--accent)]" />
-                                       <code className="text-[10px] font-black tracking-wide">{ship.tracking_number}</code>
+                                       <code className="text-[10px] font-bold tracking-tight">{ship.tracking_number}</code>
                                     </div>
                                  </div>
 
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                       <p className="text-[8px] font-black tracking-wide text-[var(--text-secondary)] opacity-50 mb-2">Transit Method</p>
-                                       <p className="text-[10px] font-black tracking-wide">{ship.shipping_method || 'Ground Standard'}</p>
+                                       <p className="text-[8px] font-bold tracking-tight text-[var(--text-secondary)] opacity-50 mb-2">Transit Method</p>
+                                       <p className="text-[10px] font-bold tracking-tight">{ship.shipping_method || 'Ground Standard'}</p>
                                     </div>
                                     <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                                       <p className="text-[8px] font-black tracking-wide text-emerald-500 opacity-50 mb-2">Node Dispatch</p>
-                                       <p className="text-[10px] font-black tracking-wide font-mono">{ship.shipped_at ? new Date(ship.shipped_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Awaiting Sync'}</p>
+                                       <p className="text-[8px] font-bold tracking-tight text-emerald-500 opacity-50 mb-2">Node Dispatch</p>
+                                       <p className="text-[10px] font-bold tracking-tight font-mono">{ship.shipped_at ? new Date(ship.shipped_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Awaiting Sync'}</p>
                                     </div>
                                  </div>
                               </div>
@@ -411,7 +411,7 @@ export default function OrderDetailPage() {
                          <div className="size-16 rounded-3xl bg-[var(--accent)]/5 flex items-center justify-center mx-auto mb-4 border border-[var(--glass-border)]">
                             <Clock className="size-8" />
                          </div>
-                         <h4 className="text-xs font-black  tracking-[0.2em]">Synchronization Pending</h4>
+                         <h4 className="text-xs font-bold  tracking-[0.2em]">Synchronization Pending</h4>
                          <p className="text-[10px] font-medium max-w-[240px] mx-auto">Waiting for vendor node to manifest tracking identification.</p>
                       </div>
                     )}
@@ -426,16 +426,16 @@ export default function OrderDetailPage() {
               <div className="sticky top-12 space-y-8">
                  <div className="glass-panel p-8 md:p-10 rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl shadow-2xl space-y-8">
                     <div className="pb-6 border-b border-[var(--glass-border)]">
-                       <h3 className="text-xs font-black  tracking-[0.3em] mb-6 flex items-center gap-3">
+                       <h3 className="text-xs font-bold  tracking-[0.3em] mb-6 flex items-center gap-3">
                           <CreditCard className="size-4 text-[var(--accent)]" />
                           Ledger Summary
                        </h3>
                        <div className="space-y-4">
-                          <div className="flex justify-between text-[10px] font-bold tracking-wide text-[var(--text-secondary)]">
+                          <div className="flex justify-between text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">
                              <span>Asset Subtotal</span>
                              <span className="text-[var(--text-primary)]">{(order.total_amount - (order.shipping_fee || 0)).toLocaleString()} ₳</span>
                           </div>
-                          <div className="flex justify-between text-[10px] font-bold tracking-wide text-[var(--text-secondary)]">
+                          <div className="flex justify-between text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">
                              <span>Logistics Protocol</span>
                              <span className="text-[var(--text-primary)]">{(order.shipping_fee || 0).toLocaleString()} ₳</span>
                           </div>
@@ -444,15 +444,15 @@ export default function OrderDetailPage() {
 
                     <div className="space-y-4">
                        <div className="flex justify-between items-end">
-                          <p className="text-[10px] font-black tracking-wide text-[var(--accent)]">Final Settlement</p>
-                          <h2 className="text-3xl font-black tracking-tighter ">{order.total_amount.toLocaleString()} ₳</h2>
+                          <p className="text-[10px] font-bold tracking-tight text-[var(--accent)]">Final Settlement</p>
+                          <h2 className="text-3xl font-bold tracking-tighter ">{order.total_amount.toLocaleString()} ₳</h2>
                        </div>
                        <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] space-y-3">
                           <div className="flex items-center gap-3">
                              <div className="size-6 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
                                 <Wallet className="size-3 text-[var(--accent)]" />
                              </div>
-                             <p className="text-[9px] font-black tracking-wide">Escrow Protection Active</p>
+                             <p className="text-[9px] font-bold tracking-tight">Escrow Protection Active</p>
                           </div>
                           <div className="h-1.5 w-full bg-[var(--bg-primary)] rounded-full overflow-hidden">
                              <div className="h-full bg-[var(--accent)] rounded-full w-[100%] animate-pulse shadow-[0_0_10px_var(--accent)]" />
@@ -463,19 +463,19 @@ export default function OrderDetailPage() {
 
                  {/* DESTINATION DATA */}
                  <div className="glass-panel p-8 md:p-10 rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl shadow-xl space-y-6">
-                    <h3 className="text-xs font-black  tracking-[0.3em] flex items-center gap-3">
+                    <h3 className="text-xs font-bold  tracking-[0.3em] flex items-center gap-3">
                        <MapPin className="size-4 text-[var(--accent)]" />
                        Delivery Node
                     </h3>
                     <div className="space-y-6">
                        <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                          <h4 className="text-[11px] font-black tracking-wide mb-1">{order.shipping_address?.full_name || user?.name}</h4>
+                          <h4 className="text-[11px] font-bold tracking-tight mb-1">{order.shipping_address?.full_name || user?.name}</h4>
                           <p className="text-[10px] font-bold text-[var(--text-secondary)] leading-relaxed">{order.shipping_address?.address || 'Quartier specified during onboarding'}</p>
-                          <p className="text-[10px] font-black text-[var(--accent)] tracking-wide mt-2">{order.shipping_address?.city}, {order.shipping_address?.quartier}</p>
+                          <p className="text-[10px] font-bold text-[var(--accent)] tracking-tight mt-2">{order.shipping_address?.city}, {order.shipping_address?.quartier}</p>
                        </div>
                        <div className="flex items-center gap-3 px-2">
                           <Phone className="size-3.5 text-[var(--text-secondary)] opacity-40" />
-                          <span className="text-[10px] font-bold font-mono tracking-widest">{order.shipping_address?.phone || user?.phone || 'No contact provided'}</span>
+                          <span className="text-[10px] font-bold font-mono tracking-tight">{order.shipping_address?.phone || user?.phone || 'No contact provided'}</span>
                        </div>
                     </div>
                  </div>
@@ -487,7 +487,7 @@ export default function OrderDetailPage() {
                        className="p-5 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 hover:bg-[var(--accent)] hover:text-white transition-all group"
                      >
                         <Receipt className="size-5 opacity-40 group-hover:opacity-100" />
-                        <span className="text-[8px] font-black tracking-wide">Invoice PDF</span>
+                        <span className="text-[8px] font-bold tracking-tight">Invoice PDF</span>
                      </button>
                     <button 
                       onClick={() => {
@@ -505,7 +505,7 @@ export default function OrderDetailPage() {
                       className="p-5 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 hover:bg-[var(--accent)] hover:text-white transition-all group"
                     >
                        <Share2 className="size-5 opacity-40 group-hover:opacity-100" />
-                       <span className="text-[8px] font-black tracking-wide">Transmit</span>
+                       <span className="text-[8px] font-bold tracking-tight">Transmit</span>
                     </button>
                  </div>
               </div>
@@ -534,17 +534,17 @@ export default function OrderDetailPage() {
 
                <div className="relative space-y-8">
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-black  tracking-tighter">Initiate Intervention</h2>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wide opacity-60">Escrow funds will be frozen during adjudication.</p>
+                    <h2 className="text-3xl font-bold  tracking-tighter">Initiate Intervention</h2>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Escrow funds will be frozen during adjudication.</p>
                   </div>
 
                   <form onSubmit={handleRaiseDispute} className="space-y-6">
                     <div className="space-y-3">
-                       <label className="text-[10px] font-black tracking-widest  opacity-40 ml-4">Intervention Reason</label>
+                       <label className="text-[10px] font-bold tracking-tight  opacity-40 ml-4">Intervention Reason</label>
                        <select 
                          value={disputeData.reason}
                          onChange={e => setDisputeData({ ...disputeData, reason: e.target.value })}
-                         className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all appearance-none tracking-wide"
+                         className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all appearance-none tracking-tight"
                        >
                          <option value="item_not_received">Item not manifested</option>
                          <option value="different_from_description">Registry mismatch</option>
@@ -554,7 +554,7 @@ export default function OrderDetailPage() {
                     </div>
 
                     <div className="space-y-3">
-                       <label className="text-[10px] font-black tracking-widest  opacity-40 ml-4">Detailed Manifest</label>
+                       <label className="text-[10px] font-bold tracking-tight  opacity-40 ml-4">Detailed Manifest</label>
                        <textarea 
                          required
                          rows={4}
@@ -568,13 +568,13 @@ export default function OrderDetailPage() {
                     <div className="flex gap-4">
                        <button 
                         type="button" onClick={() => setDisputeModal(false)}
-                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-black tracking-wide hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                        >
                          Cancel
                        </button>
                        <button 
                         disabled={disputeLoading}
-                        className="flex-[2] py-4 rounded-2xl bg-rose-500 text-white font-black text-[10px] tracking-wide shadow-xl shadow-rose-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        className="flex-[2] py-4 rounded-2xl bg-rose-500 text-white font-bold text-[10px] tracking-tight shadow-xl shadow-rose-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                        >
                          {disputeLoading ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
                          Execute Protocol
@@ -608,13 +608,13 @@ export default function OrderDetailPage() {
 
                <div className="relative space-y-8">
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-black  tracking-tighter">Broadcast Feedback</h2>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wide opacity-60">Help calibrate the Aura marketplace node registry.</p>
+                    <h2 className="text-3xl font-bold  tracking-tighter">Broadcast Feedback</h2>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Help calibrate the Aura marketplace node registry.</p>
                   </div>
 
                   <form onSubmit={handleSubmitReview} className="space-y-8">
                     <div className="flex flex-col items-center gap-6 p-8 rounded-[2.5rem] bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-inner">
-                       <span className="text-[9px] font-black tracking-[0.4em]  text-[var(--accent)]">Protocol Rating</span>
+                       <span className="text-[9px] font-bold tracking-[0.4em]  text-[var(--accent)]">Protocol Rating</span>
                        <div className="flex gap-4">
                           {[1,2,3,4,5].map((num) => (
                             <button 
@@ -629,7 +629,7 @@ export default function OrderDetailPage() {
                     </div>
 
                     <div className="space-y-4">
-                       <label className="text-[10px] font-black tracking-widest  opacity-40 ml-4">Registry Comment</label>
+                       <label className="text-[10px] font-bold tracking-tight  opacity-40 ml-4">Registry Comment</label>
                        <textarea 
                          required
                          rows={4}
@@ -643,13 +643,13 @@ export default function OrderDetailPage() {
                     <div className="flex gap-4">
                        <button 
                         type="button" onClick={() => setReviewModal(false)}
-                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-black tracking-wide hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                        >
                          Discard
                        </button>
                         <button 
                          disabled={reviewLoading}
-                         className="flex-[2] py-4 rounded-2xl bg-[var(--accent)] text-white font-black text-[10px] tracking-wide shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                         className="flex-[2] py-4 rounded-2xl bg-[var(--accent)] text-white font-bold text-[10px] tracking-tight shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
                           {reviewLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                           Submit Broadcast

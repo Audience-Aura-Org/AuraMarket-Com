@@ -9,7 +9,7 @@ export default function CategoryCarousel({ title, data }) {
     <section className="py-4 px-6 max-w-7xl mx-auto">
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h2 className="text-xl md:text-3xl font-black text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-xl md:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
             {title || "Shop by Category"}
           </h2>
           <div className="h-1 w-12 md:w-20 bg-[var(--accent)] mt-1 md:mt-2 rounded-full" />

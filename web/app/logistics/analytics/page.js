@@ -94,8 +94,8 @@ export default function LogisticsAnalyticsPage() {
               <BarChart3 className="w-6 h-6 text-[var(--accent)]" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight">Logistics Intelligence</h1>
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wide opacity-40">Operational Analytics</p>
+              <h1 className="text-2xl font-bold tracking-tight">Logistics Intelligence</h1>
+              <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight opacity-40">Operational Analytics</p>
             </div>
           </div>
           
@@ -104,7 +104,7 @@ export default function LogisticsAnalyticsPage() {
               <button
                 key={t}
                 onClick={() => setRange(t)}
-                className={`px-5 py-2 rounded-full text-[10px] font-black  transition-all tracking-widest ${
+                className={`px-5 py-2 rounded-full text-[10px] font-bold  transition-all tracking-tight ${
                   range === t ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-white/5 border border-transparent hover:border-[var(--glass-border)]'
                 }`}
               >
@@ -121,13 +121,13 @@ export default function LogisticsAnalyticsPage() {
         <section className="relative p-8 rounded-[2rem] bg-[var(--bg-secondary)]/10 border border-[var(--glass-border)]">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h3 className="text-xl font-black">Shipment Flux</h3>
-              <p className="text-xs text-[var(--text-secondary)] opacity-60 font-bold tracking-wide mt-1">Daily Volume Trends</p>
+              <h3 className="text-xl font-bold">Shipment Flux</h3>
+              <p className="text-xs text-[var(--text-secondary)] opacity-60 font-bold tracking-tight mt-1">Daily Volume Trends</p>
             </div>
             <div className="flex gap-4">
                <div className="flex flex-col items-end">
-                  <span className="text-[10px] font-black opacity-30 ">Peak Pulse</span>
-                  <span className="text-sm font-black text-emerald-500">Normal Range</span>
+                  <span className="text-[10px] font-bold opacity-30 ">Peak Pulse</span>
+                  <span className="text-sm font-bold text-emerald-500">Normal Range</span>
                </div>
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function LogisticsAnalyticsPage() {
                       initial={{ opacity: 0, scale: 0.9, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 px-4 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black whitespace-nowrap z-50 shadow-2xl border border-[var(--glass-border)]"
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 px-4 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-bold whitespace-nowrap z-50 shadow-2xl border border-[var(--glass-border)]"
                     >
                       {d.count} SHIPMENTS
                       <span className="block text-[8px] font-bold opacity-60 ">{d.label}</span>
@@ -169,8 +169,8 @@ export default function LogisticsAnalyticsPage() {
           </div>
 
           <div className="flex justify-between mt-6 px-2">
-            <span className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 tracking-wide">{histogramData[0]?.label}</span>
-            <span className="text-[9px] font-black text-[var(--text-secondary)] opacity-30 tracking-wide">{histogramData[29]?.label}</span>
+            <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight">{histogramData[0]?.label}</span>
+            <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight">{histogramData[29]?.label}</span>
           </div>
         </section>
 
@@ -190,8 +190,8 @@ export default function LogisticsAnalyticsPage() {
               <div className={`p-3 rounded-2xl ${stat.bg} w-fit mb-4 group-hover:scale-110 transition-transform shadow-inner`}>
                 <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wide mb-1">{stat.label}</p>
-              <h4 className="text-3xl font-black tracking-tight mb-1">{stat.value}</h4>
+              <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
+              <h4 className="text-3xl font-bold tracking-tight mb-1">{stat.value}</h4>
               <p className="text-[9px] font-bold opacity-40 ">{stat.sub}</p>
             </motion.div>
           ))}
@@ -202,7 +202,7 @@ export default function LogisticsAnalyticsPage() {
           <section className="p-8 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-lg font-black">Regional Efficiency</h3>
+                <h3 className="text-lg font-bold">Regional Efficiency</h3>
                 <p className="text-xs text-[var(--text-secondary)] opacity-60">Transit Time Accuracy</p>
               </div>
               <MapPin className="w-5 h-5 text-[var(--accent)] opacity-20" />
@@ -216,7 +216,7 @@ export default function LogisticsAnalyticsPage() {
                 { label: 'South West', perf: 72, color: 'bg-rose-500' }
               ].map((reg, i) => (
                 <div key={i} className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black tracking-wide">
+                  <div className="flex justify-between text-[10px] font-bold tracking-tight">
                     <span>{reg.label}</span>
                     <span>{reg.perf}%</span>
                   </div>
@@ -236,11 +236,11 @@ export default function LogisticsAnalyticsPage() {
             <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-6">
               <Zap className="w-8 h-8 text-[var(--accent)]" />
             </div>
-            <h3 className="text-2xl font-black tracking-tight mb-2">Automated Insights</h3>
+            <h3 className="text-2xl font-bold tracking-tight mb-2">Automated Insights</h3>
             <p className="text-sm text-[var(--text-secondary)] opacity-60 mb-8 max-w-[280px]">
               Regional load in <span className="text-[var(--text-primary)] font-bold">Douala</span> is peaking. Reallocate assets to Node 04.
             </p>
-            <button className="px-8 py-3 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-black  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 active:scale-95">
+            <button className="px-8 py-3 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] font-bold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 active:scale-95">
               Execute Rebalance
             </button>
           </section>

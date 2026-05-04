@@ -77,7 +77,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                 <Sparkles className="w-4 h-4" />
               </div>
               <div className="flex-1">
-                <p className="text-xs font-black tracking-wide">Aura Assistant</p>
+                <p className="text-xs font-bold tracking-tight">Aura Assistant</p>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
                   <p className="text-[9px] opacity-80">Online</p>
@@ -106,7 +106,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                 </div>
                 <div className="bg-[var(--bg-secondary)] rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[220px]">
                   <p className="text-xs font-semibold text-[var(--text-primary)] leading-relaxed">
-                    👋 Welcome to <span className="text-[var(--accent)] font-black">AuraMarket</span>
+                    👋 Welcome to <span className="text-[var(--accent)] font-bold">AuraMarket</span>
                   </p>
                 </div>
               </motion.div>
@@ -139,7 +139,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                     >
                       <button
                         onClick={handleSkip}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-black text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all tracking-wide"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all tracking-tight"
                       >
                         Dismiss
                       </button>
@@ -150,7 +150,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                           setVisible(false);
                           router.push('/discovery');
                         }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[10px] font-black tracking-wide hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/30"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[10px] font-bold tracking-tight hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/30"
                       >
                         Explore Hub
                         <ArrowRight className="w-3 h-3" />

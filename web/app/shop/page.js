@@ -330,7 +330,7 @@ function ShopContent() {
 
                   <div className="flex-1 min-w-0 w-full space-y-3">
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                      <h1 className="text-xl md:text-3xl font-black tracking-tighter text-[var(--text-primary)] ">
+                      <h1 className="text-xl md:text-3xl font-bold tracking-tighter text-[var(--text-primary)] ">
                         {activeVendor.vendor_id?.store_name}
                       </h1>
                       {activeVendor.vendor_id?.verified && (
@@ -343,7 +343,7 @@ function ShopContent() {
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
                         <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-black text-[var(--text-primary)]">
+                        <span className="text-[11px] font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.rating ? activeVendor.vendor_id.rating.toFixed(1) : '5.0'}
                         </span>
                         <span className="text-[8px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
@@ -351,7 +351,7 @@ function ShopContent() {
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
                         <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-black text-[var(--text-primary)]">
+                        <span className="text-[11px] font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
                         </span>
                         <span className="text-[8px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
@@ -359,7 +359,7 @@ function ShopContent() {
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                         <ShieldCheck className="size-3.5 text-emerald-600" />
-                        <span className="text-[9px] font-black text-emerald-600 tracking-tight">Verified Vendor</span>
+                        <span className="text-[9px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
                       </div>
                     </div>
                   </div>
@@ -371,7 +371,7 @@ function ShopContent() {
                         store_name: activeVendor.vendor_id?.store_name,
                         branding: { logo: activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo }
                       })}
-                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-black text-[9px] tracking-widest  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                     >
                       Contact
                     </button>
@@ -412,11 +412,11 @@ function ShopContent() {
                 
                 {isPriceOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black tracking-wide transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                        Any Price {!activePrice && <Check className="size-3.5" />}
                      </button>
                      {PRICE_RANGES.map(range => (
-                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black tracking-wide transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {range.name} {activePrice === range.id && <Check className="size-3.5" />}
                        </button>
                      ))}
@@ -437,7 +437,7 @@ function ShopContent() {
                 {isSortOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                      {SORT_OPTIONS.map(opt => (
-                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-black tracking-wide transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {opt.label}
                          {sortBy === opt.value && <Check className="size-3.5" />}
                        </button>
@@ -472,7 +472,7 @@ function ShopContent() {
                 <div className="size-20 md:size-24 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-8 text-[var(--text-secondary)]/50">
                   <Search className="size-8 md:size-10" />
                 </div>
-                <h2 className="text-2xl md:text-3xl font-black text-[var(--text-primary)] mb-2">No Products Found</h2>
+                <h2 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] mb-2">No Products Found</h2>
                 <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base px-6">No matches found for your current search or filters.</p>
                 <button
                   onClick={() => {
@@ -482,7 +482,7 @@ function ShopContent() {
                     setActivePrice(null);
                     setSearch('');
                   }}
-                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white font-black text-[10px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
+                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white font-bold text-[10px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
                 >
                   Reset Filters
                 </button>
