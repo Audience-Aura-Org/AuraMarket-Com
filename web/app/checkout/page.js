@@ -8,8 +8,9 @@ import {
   ShieldCheck, MapPin, CreditCard, ArrowRight, 
   Lock, CheckCircle2, Plus, Loader2, ChevronDown,
   Smartphone, Wallet, ArrowLeft, Gem, AlertCircle,
-  Truck, Package, Info, ShieldAlert, Search, X
+  Truck, Package, Info, ShieldAlert, Search, X, RotateCcw
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -39,7 +40,7 @@ function CheckoutContent() {
     escrowEnabled: true,
     logistics_company_id: null,
     quartier: '',
-    eversend: { phone: '', country: 'CM', currency: 'XAF', pinId: '', pin: '' }
+    eversend: { phone: '', country: 'CM', currency: 'XAF' }
   });
     
   // Eversend Country/Currency Mapping
@@ -54,6 +55,7 @@ function CheckoutContent() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [blockReason, setBlockReason] = useState(null); // null | 'insufficient_wallet' | 'collection_failed'
   const [order, setOrder] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -258,10 +260,13 @@ function CheckoutContent() {
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
     const isEversend = formData.paymentMethod === 'eversend';
 
+    // Pre-check wallet balance before attempting wallet payment
     if (!isPayOnDelivery && !isEversend && walletBalance < totalAmount) {
-        toast.error("Insufficient wallet liquidity. Please deposit funds.");
-        return;
+      setBlockReason('insufficient_wallet');
+      setError(`Your wallet balance (${walletBalance.toLocaleString()} XAF) is insufficient for this order (${totalAmount.toLocaleString()} XAF).`);
+      return;
     }
+    setBlockReason(null);
 
     setLoading(true);
     setError(null);
@@ -327,14 +332,17 @@ function CheckoutContent() {
         const evRes = await api.post('/payments/eversend/initialize', {
            amount: totalAmount,
            currency: formData.eversend.currency,
-           phone: formData.eversend.phone || formData.phone, // Use collection number
+           phone: formData.eversend.phone || formData.phone,
            country: formData.eversend.country,
            order_ids: finalOrderIds,
            redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`,
         });
 
         if (!evRes.data.success) {
-          throw new Error(evRes.data.message || 'Eversend initialization failed.');
+          setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
+          setError(evRes.data.message || 'Payment collection failed. Please try a different payment method.');
+          setLoading(false);
+          return;
         }
 
         const { checkout_url, reference, transaction_id } = evRes.data.data;
@@ -347,43 +355,41 @@ function CheckoutContent() {
         }
 
         if (ref) {
-          // If in sandbox mode, skip the verify page and go straight to Step 3 for instant feedback
           if (ref.startsWith('SBX-')) {
-             toast.success('Sandbox order processed successfully!');
-             cartStore.clearCart();
-             setStep(3);
-             return;
+            toast.success('Sandbox order processed successfully!');
+            cartStore.clearCart();
+            setStep(3);
+            return;
           }
-          
           toast.success('Payment request sent to your phone. Please approve to complete.');
           router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${ref}`);
           return;
         }
 
-        throw new Error('No transaction reference returned from payment gateway.');
+        setBlockReason('collection_failed');
+        setError('No transaction reference returned from the payment gateway. Please try again.');
+        setLoading(false);
+        return;
+      }
 
       if (isPayOnDelivery) {
-        toast.success("Order placed. Payment will be settled on delivery.");
+        toast.success('Order placed. Payment will be settled on delivery.');
       } else {
-        toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? "Funds secured in Escrow Protocol." : "Direct payments completed successfully.");
-      }
+        toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'Funds secured in Escrow Protocol.' : 'Direct payment completed successfully.');
       }
 
-      // Clear cart immediately across all components
       cartStore.clearCart();
-      
-      // Show Success State instead of immediate redirect
       toast.success('Order successfully executed!');
       setStep(3);
     } catch (err) {
       console.log('[Checkout Error Interceptor]', err.response?.status, err.response?.data);
-      
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       toast.error(msg);
     } finally {
       setLoading(false);
     }
+
   };
 
   const matrixItems = order?.products || cartItems;
@@ -435,6 +441,73 @@ function CheckoutContent() {
       </nav>
 
       <main className="max-w-[1600px] mx-auto px-6 lg:px-20 py-12 relative z-10">
+
+        {/* ── Payment Blocking Screen ─────────────────────────────────────── */}
+        <AnimatePresence>
+          {blockReason && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-md"
+            >
+              <div className="w-full max-w-md bg-[var(--bg-primary)] border border-red-500/20 rounded-[2.5rem] p-10 shadow-2xl space-y-6">
+                <div className="flex justify-center">
+                  <div className="size-16 rounded-[1.5rem] bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                    {blockReason === 'insufficient_wallet'
+                      ? <Wallet className="size-8 text-red-500" />
+                      : <AlertCircle className="size-8 text-red-500" />}
+                  </div>
+                </div>
+                <div className="text-center space-y-2">
+                  <h2 className="text-xl font-bold tracking-tighter text-[var(--text-primary)]">
+                    {blockReason === 'insufficient_wallet'
+                      ? 'Insufficient Wallet Balance'
+                      : blockReason === 'collection_failed_no_wallet'
+                      ? 'Purchase Could Not Be Completed'
+                      : 'Payment Collection Failed'}
+                  </h2>
+                  <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-70 tracking-tight leading-relaxed">
+                    {blockReason === 'collection_failed_no_wallet'
+                      ? 'Your wallet has insufficient funds and the payment collection failed. Please top up your wallet or use a different payment method.'
+                      : error}
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {blockReason !== 'insufficient_wallet' && (
+                    <button
+                      onClick={() => { setBlockReason(null); setError(null); }}
+                      className="w-full h-12 rounded-2xl bg-[var(--accent)] text-white font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
+                    >
+                      <RotateCcw className="size-4" />
+                      Retry Payment
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push('/wallet')}
+                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all"
+                  >
+                    <Wallet className="size-4" />
+                    Top Up Wallet
+                  </button>
+                  <button
+                    onClick={() => { setBlockReason(null); setError(null); setFormData(f => ({ ...f, paymentMethod: 'pay_on_delivery' })); }}
+                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all"
+                  >
+                    Use Different Method
+                  </button>
+                  <button
+                    onClick={() => router.push('/cart')}
+                    className="w-full h-12 rounded-2xl border border-red-500/20 text-red-400 font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all"
+                  >
+                    Cancel Order
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           <div className="lg:col-span-8 space-y-12">
             <div className="flex items-center gap-4 mb-4">

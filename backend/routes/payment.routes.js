@@ -7,9 +7,10 @@ const {
   verifyPayment,
   handleWebhook,
   // Eversend
-  eversendRequestOTP,
+  eversendGetWallets,
   eversendInitialize,
   eversendVerify,
+  eversendRecheck,
   eversendWebhook,
 } = require('../controllers/payment.controller');
 
@@ -25,9 +26,10 @@ router.use(protect);
 router.post('/initialize', initializePayment);
 router.get('/verify/:reference', verifyPayment);
 
-// Eversend
-router.post('/eversend/otp', eversendRequestOTP);
+// Eversend — OTP route REMOVED (OTP is disabled)
+router.get('/eversend/wallets', eversendGetWallets);
 router.post('/eversend/initialize', eversendInitialize);
 router.get('/eversend/verify/:reference', eversendVerify);
+router.get('/eversend/recheck/:reference', eversendRecheck);
 
 module.exports = router;

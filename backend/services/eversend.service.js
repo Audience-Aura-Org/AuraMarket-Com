@@ -1,6 +1,7 @@
 /**
  * services/eversend.service.js
- * Eversend payment gateway — auth, collections, and webhooks.
+ * Eversend payment gateway — auth, collections, wallet linking, and webhooks.
+ * OTP is DISABLED — no OTP calls are made anywhere in this service.
  * Docs: https://eversend.readme.io/reference
  */
 
@@ -14,12 +15,16 @@ let _tokenCache = { token: null, expiresAt: 0 };
 /**
  * Fetch (or return cached) Eversend access token.
  * Token is valid for 24 h; we refresh 5 min early.
+ * @param {boolean} force  - If true, bypass cache and force a fresh token.
  */
-const getAccessToken = async () => {
+const getAccessToken = async (force = false) => {
   const now = Date.now();
-  if (_tokenCache.token && now < _tokenCache.expiresAt) {
+  if (!force && _tokenCache.token && now < _tokenCache.expiresAt) {
     return _tokenCache.token;
   }
+
+  // Invalidate cache before requesting new token
+  _tokenCache = { token: null, expiresAt: 0 };
 
   try {
     const res = await axios.get(`${EVERSEND_BASE_URL}/auth/token`, {
@@ -29,10 +34,14 @@ const getAccessToken = async () => {
       },
     });
 
-    const { token, expiresIn } = res.data;
+    const token = res.data?.token || res.data?.data?.token;
+    const expiresIn = res.data?.expiresIn || res.data?.data?.expiresIn || 86400;
+
+    if (!token) throw new Error('Eversend auth: no token in response');
+
     _tokenCache = {
-      token: token || res.data.data?.token,
-      expiresAt: now + ((expiresIn || res.data.data?.expiresIn || 86400) - 300) * 1000, 
+      token,
+      expiresAt: now + (expiresIn - 300) * 1000,
     };
 
     return _tokenCache.token;
@@ -44,95 +53,162 @@ const getAccessToken = async () => {
 
 /**
  * Build an authenticated Axios instance.
+ * @param {boolean} force - Force fresh token fetch.
  */
-const eversendClient = async () => {
-  const token = await getAccessToken();
+const eversendClient = async (force = false) => {
+  const token = await getAccessToken(force);
   return axios.create({
     baseURL: EVERSEND_BASE_URL,
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Origin': 'https://aura-market-com.vercel.app',
-      'Referer': 'https://aura-market-com.vercel.app/'
+      'Referer': 'https://aura-market-com.vercel.app/',
     },
   });
 };
 
-// ── Collections (receive money) ──────────────────────────────────────────────
-
 /**
- * Initiate a payment collection (mobile money / card).
- * @param {Object} opts
- * @param {string} opts.amount        - Amount in the given currency (e.g. "10000")
- * @param {string} opts.currency      - ISO currency code (e.g. "XAF", "NGN", "UGX")
- * @param {string} opts.phone         - Customer phone number (E.164 format)
- * @param {string} opts.country       - ISO 2-letter country code (e.g. "CM", "NG")
- * @param {string} opts.firstName     - Customer first name
- * @param {string} opts.lastName      - Customer last name
- * @param {string} opts.email         - Customer email
- * @param {string} opts.redirectUrl   - URL to redirect after payment
- * @param {string} opts.transactionRef- Your unique reference
+ * Wraps an Eversend API call with automatic token refresh on 401.
+ * Retries the request once after refreshing the token.
+ * @param {Function} fn - Async function that receives an authenticated client.
  */
-const requestOTP = async (phone) => {
-  const client = await eversendClient();
-  console.log('[Eversend OTP] POST /collections/otp payload:', { phone });
+const withAutoRefresh = async (fn) => {
   try {
-    const res = await client.post('/collections/otp', { phone });
-    console.log('[Eversend OTP] Response:', JSON.stringify(res.data));
-    return res.data; // { success, data: { pinId, message, ... } }
+    const client = await eversendClient();
+    return await fn(client);
   } catch (err) {
-    console.error('[Eversend OTP] FAILED — status:', err.response?.status, 'body:', JSON.stringify(err.response?.data));
+    if (err.response?.status === 401) {
+      console.warn('[Eversend] 401 received — refreshing token and retrying...');
+      const client = await eversendClient(true); // force fresh token
+      return await fn(client);
+    }
     throw err;
   }
 };
 
-const initiateCollection = async (opts) => {
-  const client = await eversendClient();
+// ── Wallet Operations ─────────────────────────────────────────────────────────
 
-  const payload = {
-    amount: Number(opts.amount),
-    currency: opts.currency,
-    phone: opts.phone,
-    country: opts.country,
-    transactionRef: opts.transactionRef,
-  };
-
-  // Eversend requires redirect_url specifically for GH (Ghana) collections
-  if (opts.redirectUrl) {
-    payload.redirect_url = opts.redirectUrl;
-  }
-
-  // Handle customer object as a JSON string as per documentation
-  if (opts.email || opts.firstName || opts.lastName) {
-     payload.customer = JSON.stringify({
-        email: opts.email || "",
-        firstName: opts.firstName || "",
-        lastName: opts.lastName || ""
-     });
-  }
-
-  // Inject OTP credentials if provided (for accounts not yet whitelisted)
-  if (opts.otp && opts.otp.pinId && opts.otp.pin) {
-     payload.otp = {
-        pinId: opts.otp.pinId,
-        pin: opts.otp.pin
-     };
-  }
-
-  console.log('[Eversend] initiateCollection payload:', JSON.stringify(payload, null, 2));
-  const res = await client.post('/collections/momo', payload);
-  return res.data;
+/**
+ * Get all Eversend wallets for the account.
+ * Used to resolve which wallet to use for a given currency.
+ */
+const getWallets = async () => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.get('/wallets');
+    return res.data;
+  });
 };
 
 /**
- * Get status of a specific collection transaction.
+ * Get a specific Eversend wallet balance by wallet ID.
+ * @param {string} walletId
+ */
+const getWalletById = async (walletId) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.get(`/wallets/${walletId}`);
+    return res.data;
+  });
+};
+
+// ── Collections (receive money) ───────────────────────────────────────────────
+
+/**
+ * Initiate a Mobile Money payment collection.
+ * NOTE: OTP is DISABLED — do not add OTP fields.
+ *
+ * @param {Object} opts
+ * @param {number} opts.amount         - Amount in the given currency
+ * @param {string} opts.currency       - ISO currency code (e.g. "XAF", "UGX", "KES", "GHS", "RWF")
+ * @param {string} opts.phone          - Customer phone number (E.164 format)
+ * @param {string} opts.country        - ISO 2-letter country code (e.g. "CM", "UG")
+ * @param {string} opts.firstName      - Customer first name
+ * @param {string} opts.lastName       - Customer last name
+ * @param {string} opts.email          - Customer email
+ * @param {string} opts.redirectUrl    - URL to redirect after payment (required for GH)
+ * @param {string} opts.transactionRef - Your unique reference
+ */
+const initiateCollection = async (opts) => {
+  return withAutoRefresh(async (client) => {
+    const payload = {
+      amount: Number(opts.amount),
+      currency: opts.currency,
+      phone: opts.phone,
+      country: opts.country,
+      transactionRef: opts.transactionRef,
+    };
+
+    // redirect_url required for Ghana collections
+    if (opts.redirectUrl) {
+      payload.redirect_url = opts.redirectUrl;
+    }
+
+    // Customer object as JSON string per Eversend docs
+    if (opts.email || opts.firstName || opts.lastName) {
+      payload.customer = JSON.stringify({
+        email: opts.email || '',
+        firstName: opts.firstName || '',
+        lastName: opts.lastName || '',
+      });
+    }
+
+    console.log('[Eversend] initiateCollection (momo) payload:', JSON.stringify(payload, null, 2));
+    const res = await client.post('/collections/momo', payload);
+    return res.data;
+  });
+};
+
+/**
+ * Initiate a Nigerian NGN collection.
+ * Uses a separate endpoint per Eversend docs.
+ *
+ * @param {Object} opts - Same shape as initiateCollection
+ */
+const initiateNGNCollection = async (opts) => {
+  return withAutoRefresh(async (client) => {
+    const payload = {
+      amount: Number(opts.amount),
+      currency: 'NGN',
+      phone: opts.phone,
+      country: 'NG',
+      transactionRef: opts.transactionRef,
+    };
+
+    if (opts.redirectUrl) payload.redirect_url = opts.redirectUrl;
+
+    if (opts.email || opts.firstName || opts.lastName) {
+      payload.customer = JSON.stringify({
+        email: opts.email || '',
+        firstName: opts.firstName || '',
+        lastName: opts.lastName || '',
+      });
+    }
+
+    console.log('[Eversend] initiateNGNCollection payload:', JSON.stringify(payload, null, 2));
+    const res = await client.post('/collections/ngn', payload);
+    return res.data;
+  });
+};
+
+/**
+ * Get transaction status by transaction ID.
+ * Uses GET /transactions/:transactionId per Eversend API docs.
+ * Returns statuses: PENDING | SUCCESSFUL | FAILED
  * @param {string} transactionId - Eversend transaction ID
  */
-const getCollectionStatus = async (transactionId) => {
-  const client = await eversendClient();
-  const res = await client.get(`/collections/${transactionId}`);
-  return res.data;
+const getTransactionStatus = async (transactionId) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.get(`/transactions/${transactionId}`);
+    return res.data;
+  });
 };
+
+/**
+ * Legacy alias — kept for any code that still calls getCollectionStatus.
+ * Internally uses getTransactionStatus.
+ * @deprecated Use getTransactionStatus instead.
+ */
+const getCollectionStatus = getTransactionStatus;
 
 // ── Webhook signature verification ──────────────────────────────────────────
 
@@ -152,8 +228,16 @@ const verifyWebhookSignature = (rawBody, signature) => {
 
 module.exports = {
   getAccessToken,
-  requestOTP,
+  withAutoRefresh,
+  // Wallet
+  getWallets,
+  getWalletById,
+  // Collections
   initiateCollection,
-  getCollectionStatus,
+  initiateNGNCollection,
+  // Status
+  getTransactionStatus,
+  getCollectionStatus, // legacy alias
+  // Webhook
   verifyWebhookSignature,
 };

@@ -1,226 +1,310 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, CheckCircle2, AlertCircle, Wallet, Smartphone, RefreshCw } from 'lucide-react';
+export const dynamic = 'force-dynamic';
+
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CheckCircle2, XCircle, Clock, RefreshCw, Loader2,
+  AlertTriangle, ArrowLeft, Wallet, RotateCcw, X,
+  Smartphone, ChevronRight
+} from 'lucide-react';
+import { pollTransactionStatus, recheckTransaction } from '@/services/eversendPayment';
 import api from '@/services/api';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuthStore } from '@/hooks/useAuth';
+import Link from 'next/link';
 import cartStore from '@/services/cartStore';
 
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLLS = 45; // 4s × 45 = 3 minutes
+// ── Payment State Machine ─────────────────────────────────────────────────────
+// States: 'loading' | 'pending' | 'successful' | 'failed' | 'timeout' | 'recheck'
 
 function VerifyContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuthStore();
+  const router = useRouter();
 
-  const [status, setStatus] = useState('verifying'); // 'verifying' | 'success' | 'error'
-  const [message, setMessage] = useState('');
-  const [pollCount, setPollCount] = useState(0);
-  const pollCountRef = useRef(0);
-  const timerRef = useRef(null);
-
+  const ref = searchParams.get('ref');
   const gateway = searchParams.get('gateway');
-  const reference = searchParams.get('ref');
   const type = searchParams.get('type'); // 'checkout' | 'deposit'
 
-  const handleSuccess = () => {
-    setStatus('success');
-    if (type === 'checkout') {
-      setMessage('Your order has been paid and confirmed!');
-      cartStore.clearCart();
-      setTimeout(() => router.push('/orders'), 3500);
-    } else {
-      setMessage('Your wallet has been credited successfully!');
-      setTimeout(() => router.push('/wallet'), 3000);
-    }
-  };
-
-  const verify = async () => {
-    try {
-      const ref = reference || searchParams.get('reference') || searchParams.get('trxref');
-      if (!ref) {
-        setStatus('error');
-        setMessage('No transaction reference found. Please contact support.');
-        return;
-      }
-
-      let endpoint = `/payments/verify/${ref}`;
-      if (gateway === 'eversend') endpoint = `/payments/eversend/verify/${ref}`;
-
-      const res = await api.get(endpoint);
-
-      if (res.data.success) {
-        const txStatus = res.data.status;
-
-        if (txStatus === 'PENDING' || txStatus === 'pending') {
-          // Still waiting — schedule next poll if under limit
-          pollCountRef.current += 1;
-          setPollCount(pollCountRef.current);
-
-          if (pollCountRef.current >= MAX_POLLS) {
-            setStatus('error');
-            setMessage('Payment is taking longer than expected. If you approved the request on your phone, please tap "Check Again" below.');
-            return;
-          }
-          timerRef.current = setTimeout(verify, POLL_INTERVAL_MS);
-          return;
-        }
-
-        // Successful
-        handleSuccess();
-      } else {
-        setStatus('error');
-        setMessage(res.data.message || 'Payment verification failed. Please try again.');
-      }
-    } catch (err) {
-      console.error('Verification error:', err);
-      setStatus('error');
-      setMessage(err?.response?.data?.message || 'Could not reach the verification server. Please try again.');
-    }
-  };
+  const [state, setState] = useState('loading');
+  const [message, setMessage] = useState('Initiating payment verification...');
+  const [reason, setReason] = useState('');
+  const [balanceAdded, setBalanceAdded] = useState(0);
+  const [recheckLoading, setRecheckLoading] = useState(false);
+  const stopPollingRef = useRef(null);
 
   useEffect(() => {
-    if (!reference && gateway !== 'eversend') {
-      const paystackRef = searchParams.get('reference') || searchParams.get('trxref');
-      if (!paystackRef) {
-        setStatus('error');
-        setMessage('No transaction reference found.');
-        return;
-      }
+    if (!ref) {
+      setState('failed');
+      setMessage('No transaction reference found.');
+      setReason('Please go back and try again.');
+      return;
     }
-    verify();
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  const handleRetry = () => {
-    pollCountRef.current = 0;
-    setPollCount(0);
-    setStatus('verifying');
-    setMessage('');
-    verify();
+    if (gateway === 'eversend') {
+      setState('pending');
+      setMessage('Payment request sent to your phone. Please approve the prompt to continue.');
+
+      // Start polling
+      const stopFn = pollTransactionStatus(
+        ref,
+        {
+          onPending: ({ message: msg }) => {
+            setState('pending');
+            setMessage(msg || 'Payment is being processed. Please approve on your phone...');
+          },
+          onSuccess: ({ data, message: msg }) => {
+            setState('successful');
+            setMessage(msg || 'Payment confirmed! Your transaction is complete.');
+            setBalanceAdded(data?.balance_added || 0);
+            if (type === 'checkout') cartStore.clearCart();
+          },
+          onFailed: ({ reason: r }) => {
+            setState('failed');
+            setReason(r || 'Payment was declined. Please try again.');
+            setMessage('Your payment could not be processed.');
+          },
+          onTimeout: () => {
+            setState('timeout');
+            setMessage('Payment verification timed out. The request may still be processing on the gateway.');
+          },
+        },
+        5000,  // poll every 5s
+        65000  // 65s max before timeout
+      );
+
+      stopPollingRef.current = stopFn;
+    } else {
+      // Paystack or other — legacy redirect verify
+      setState('successful');
+    }
+
+    return () => {
+      if (stopPollingRef.current) stopPollingRef.current();
+    };
+  }, [ref, gateway, type]);
+
+  const handleRecheck = async () => {
+    if (!ref) return;
+    setRecheckLoading(true);
+    setState('recheck');
+    setMessage('Re-checking payment status from Eversend...');
+
+    const result = await recheckTransaction(ref);
+
+    setRecheckLoading(false);
+    if (result.status === 'SUCCESSFUL') {
+      setState('successful');
+      setMessage(result.message || 'Payment confirmed!');
+      setBalanceAdded(result.data?.balance_added || 0);
+      if (type === 'checkout') cartStore.clearCart();
+    } else if (result.status === 'FAILED') {
+      setState('failed');
+      setReason(result.reason || result.message || 'Payment failed.');
+      setMessage('Your payment could not be confirmed.');
+    } else {
+      setState('timeout');
+      setMessage(result.message || 'Still processing. Check back shortly.');
+    }
   };
 
-  const isEversendPending = gateway === 'eversend' && status === 'verifying';
+  const stateConfig = {
+    loading: {
+      icon: <Loader2 className="size-10 animate-spin text-[var(--accent)]" />,
+      bg: 'bg-[var(--accent)]/5',
+      border: 'border-[var(--accent)]/20',
+      title: 'Connecting...',
+      color: 'text-[var(--accent)]',
+    },
+    pending: {
+      icon: <div className="relative"><Smartphone className="size-10 text-[var(--accent)]" /><span className="absolute -top-1 -right-1 size-3 bg-[var(--accent)] rounded-full animate-pulse" /></div>,
+      bg: 'bg-[var(--accent)]/5',
+      border: 'border-[var(--accent)]/20',
+      title: 'Awaiting Approval',
+      color: 'text-[var(--accent)]',
+    },
+    recheck: {
+      icon: <RotateCcw className="size-10 text-blue-500 animate-spin" />,
+      bg: 'bg-blue-500/5',
+      border: 'border-blue-500/20',
+      title: 'Rechecking...',
+      color: 'text-blue-500',
+    },
+    successful: {
+      icon: <CheckCircle2 className="size-10 text-emerald-500" />,
+      bg: 'bg-emerald-500/5',
+      border: 'border-emerald-500/20',
+      title: 'Payment Confirmed',
+      color: 'text-emerald-500',
+    },
+    failed: {
+      icon: <XCircle className="size-10 text-red-500" />,
+      bg: 'bg-red-500/5',
+      border: 'border-red-500/20',
+      title: 'Payment Failed',
+      color: 'text-red-500',
+    },
+    timeout: {
+      icon: <AlertTriangle className="size-10 text-amber-500" />,
+      bg: 'bg-amber-500/5',
+      border: 'border-amber-500/20',
+      title: 'Verification Timed Out',
+      color: 'text-amber-500',
+    },
+  };
+
+  const cfg = stateConfig[state] || stateConfig.loading;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-8 space-y-8">
-      {/* Icon */}
-      <div className={`w-24 h-24 rounded-[32px] flex items-center justify-center shadow-2xl transition-all duration-700 ${
-        status === 'verifying' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' :
-        status === 'success'   ? 'bg-emerald-500 text-white scale-110' :
-                                 'bg-red-500/10 text-red-500'
-      }`}>
-        {status === 'verifying' && (isEversendPending
-          ? <Smartphone className="w-12 h-12 animate-pulse" />
-          : <Loader2 className="w-12 h-12 animate-spin" />
-        )}
-        {status === 'success' && <CheckCircle2 className="w-12 h-12" />}
-        {status === 'error'   && <AlertCircle  className="w-12 h-12" />}
+    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center px-4 py-12 text-[var(--text-primary)]">
+      
+      {/* Back nav */}
+      <div className="absolute top-6 left-6">
+        <Link href={type === 'checkout' ? '/orders' : '/wallet'} className="flex items-center gap-2 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+          <ArrowLeft className="size-4" />
+          {type === 'checkout' ? 'View Orders' : 'Back to Wallet'}
+        </Link>
       </div>
 
-      {/* Heading */}
-      <div className="space-y-3">
-        <h1 className="text-4xl font-bold tracking-tighter text-[var(--text-primary)]">
-          {status === 'verifying' && (isEversendPending ? 'Awaiting Approval' : 'Verifying Payment')}
-          {status === 'success'   && 'Payment Confirmed!'}
-          {status === 'error'     && 'Verification Issue'}
-        </h1>
+      <div className="w-full max-w-md">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={state}
+            initial={{ opacity: 0, y: 20, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.97 }}
+            transition={{ duration: 0.4 }}
+            className={`rounded-[2.5rem] border ${cfg.bg} ${cfg.border} p-10 shadow-2xl backdrop-blur-xl`}
+          >
+            {/* Icon */}
+            <div className="flex justify-center mb-8">
+              <div className={`size-20 rounded-[2rem] ${cfg.bg} border ${cfg.border} flex items-center justify-center`}>
+                {cfg.icon}
+              </div>
+            </div>
 
-        {/* Dynamic message */}
-        {isEversendPending && (
-          <div className="space-y-2">
-            <p className="text-[var(--text-secondary)] font-semibold max-w-sm mx-auto">
-              A payment request has been sent to your mobile phone.
-            </p>
-            <p className="text-[var(--accent)] font-bold text-sm tracking-tight">
-              Please check your phone and approve the request.
-            </p>
-            <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 mt-4">
-              Checking status… {pollCount > 0 && `(${pollCount}/${MAX_POLLS})`}
-            </p>
-          </div>
-        )}
+            {/* Title & message */}
+            <div className="text-center space-y-3 mb-8">
+              <h1 className={`text-2xl font-bold tracking-tighter ${cfg.color}`}>{cfg.title}</h1>
+              <p className="text-[12px] font-bold text-[var(--text-secondary)] tracking-tight leading-relaxed opacity-70">
+                {message}
+              </p>
+              {reason && (
+                <div className="mt-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
+                  <p className="text-[11px] font-bold text-red-400 tracking-tight">{reason}</p>
+                </div>
+              )}
+            </div>
 
-        {status === 'verifying' && !isEversendPending && (
-          <p className="text-[var(--text-secondary)] font-semibold max-w-sm mx-auto">
-            Hang tight, we are confirming your payment…
-          </p>
-        )}
+            {/* Success — balance info */}
+            {state === 'successful' && balanceAdded > 0 && (
+              <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+                <Wallet className="size-5 text-emerald-500 shrink-0" />
+                <p className="text-[12px] font-bold text-emerald-500 tracking-tight">
+                  +{balanceAdded.toLocaleString()} XAF added to your wallet
+                </p>
+              </div>
+            )}
 
-        {(status === 'success' || status === 'error') && message && (
-          <p className="text-[var(--text-secondary)] font-semibold max-w-sm mx-auto">
-            {message}
-          </p>
-        )}
+            {/* Pending — pulsing progress bar */}
+            {(state === 'pending' || state === 'loading') && (
+              <div className="w-full h-1.5 bg-[var(--glass-border)] rounded-full overflow-hidden mb-6">
+                <div className="h-full bg-[var(--accent)] rounded-full animate-[pulse_1.5s_ease-in-out_infinite] w-2/3" />
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {state === 'successful' && (
+                <>
+                  <button
+                    onClick={() => router.push(type === 'checkout' ? '/orders' : '/wallet')}
+                    className="w-full h-12 rounded-2xl bg-emerald-500 text-white font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    {type === 'checkout' ? 'View My Orders' : 'Back to Wallet'}
+                    <ChevronRight className="size-4" />
+                  </button>
+                  <button
+                    onClick={() => router.push('/discovery')}
+                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] tracking-tight hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] transition-all"
+                  >
+                    Continue Shopping
+                  </button>
+                </>
+              )}
+
+              {state === 'timeout' && (
+                <>
+                  <button
+                    onClick={handleRecheck}
+                    disabled={recheckLoading}
+                    className="w-full h-12 rounded-2xl bg-amber-500 text-white font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                  >
+                    {recheckLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                    Recheck Payment Status
+                  </button>
+                  <Link href="/wallet/transactions" className="block w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all">
+                    View Transaction History
+                  </Link>
+                </>
+              )}
+
+              {state === 'failed' && (
+                <>
+                  <button
+                    onClick={() => router.back()}
+                    className="w-full h-12 rounded-2xl bg-[var(--accent)] text-white font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
+                  >
+                    <RotateCcw className="size-4" />
+                    Retry Payment
+                  </button>
+                  <button
+                    onClick={handleRecheck}
+                    disabled={recheckLoading}
+                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all disabled:opacity-50"
+                  >
+                    {recheckLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                    Recheck Payment
+                  </button>
+                  <button
+                    onClick={() => router.push(type === 'checkout' ? '/cart' : '/wallet')}
+                    className="w-full h-12 rounded-2xl border border-red-500/20 text-red-400 font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all"
+                  >
+                    <X className="size-4" />
+                    Cancel
+                  </button>
+                </>
+              )}
+
+              {state === 'recheck' && (
+                <div className="flex items-center justify-center gap-2 text-[11px] font-bold text-[var(--text-secondary)] opacity-60">
+                  <Loader2 className="size-4 animate-spin" />
+                  Fetching latest status...
+                </div>
+              )}
+            </div>
+
+            {/* Reference display */}
+            {ref && state !== 'loading' && (
+              <p className="text-center text-[9px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-6">
+                Ref: {ref}
+              </p>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      {/* Progress bar for polling */}
-      {isEversendPending && (
-        <div className="w-64 h-1 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[var(--accent)] rounded-full transition-all duration-[4000ms] ease-linear"
-            style={{ width: `${Math.min((pollCount / MAX_POLLS) * 100, 100)}%` }}
-          />
-        </div>
-      )}
-
-      {/* Actions */}
-      {status === 'error' && (
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            onClick={handleRetry}
-            className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--accent)] text-white font-bold text-xs tracking-tight hover:opacity-90 transition-all shadow-xl"
-          >
-            <RefreshCw className="w-4 h-4" /> Check Again
-          </button>
-          <button
-            onClick={() => router.push('/wallet')}
-            className="px-8 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-xs tracking-tight hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
-          >
-            Return to Wallet
-          </button>
-        </div>
-      )}
-
-      {status === 'success' && type === 'checkout' && (
-        <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40 animate-pulse">
-          Redirecting to your orders…
-        </p>
-      )}
-
-      <p className="text-[11px] font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-20">
-        Secured by Eversend · Aura Market
-      </p>
     </div>
   );
 }
 
-export default function WalletVerifyPage() {
-  const { user } = useAuthStore();
-
+export default function VerifyPage() {
   return (
-    <DashboardLayout role={user?.role || 'customer'} hideSidebar={true}>
-      <header className="h-20 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--nav-border)] relative z-10 bg-[var(--nav-bg)] text-[var(--nav-text)]">
-        <div className="flex items-center gap-3">
-          <Wallet className="w-6 h-6 text-[var(--accent)]" />
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Payment Verification</h1>
-            <p className="text-xs text-[var(--text-secondary)] font-bold mt-0.5">Secure Gateway</p>
-          </div>
-        </div>
-      </header>
-
-      <Suspense fallback={
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-10 h-10 animate-spin text-[var(--accent)] opacity-20" />
-        </div>
-      }>
-        <VerifyContent />
-      </Suspense>
-    </DashboardLayout>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+        <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
+      </div>
+    }>
+      <VerifyContent />
+    </Suspense>
   );
 }
