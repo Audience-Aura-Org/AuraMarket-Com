@@ -93,7 +93,7 @@ export default function BottomNav() {
                   )}
                 </div>
                 
-                <span className={`text-[9px] font-bold uppercase tracking-[0.12em] mt-1.5 transition-all ${
+                <span className={`text-[8.5px] font-semibold tracking-[0.05em] mt-1.5 transition-all ${
                   isActive ? 'text-[var(--accent)] opacity-100' : 'text-[var(--text-secondary)] opacity-60'
                 }`}>
                   {item.label}
@@ -132,7 +132,7 @@ export default function BottomNav() {
             const itemContent = (
               <>
                   <Icon className={`size-5 ${isActive ? 'stroke-[2.5px] text-[var(--accent)]' : 'stroke-2 text-white/50'}`} />
-                  <span className={`text-[9px] font-bold uppercase tracking-[0.12em] mt-2 ${isActive ? 'text-[var(--accent)]' : 'text-white/50'}`}>{item.label}</span>
+                  <span className={`text-[8.5px] font-semibold tracking-[0.05em] mt-2 ${isActive ? 'text-[var(--accent)]' : 'text-white/50'}`}>{item.label}</span>
               </>
             );
 

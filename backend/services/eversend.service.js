@@ -307,7 +307,15 @@ const verifyWebhookSignature = (payload, signature) => {
   if (!signature || !EVERSEND_WEBHOOK_SECRET) return false;
   try {
     const hmac = crypto.createHmac('sha512', EVERSEND_WEBHOOK_SECRET);
-    const data = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    
+    // Convert Buffer to string if necessary (Express raw body parser returns Buffer)
+    let data = payload;
+    if (Buffer.isBuffer(payload)) {
+      data = payload.toString('utf8');
+    } else if (typeof payload !== 'string') {
+      data = JSON.stringify(payload);
+    }
+    
     const digest = hmac.update(data).digest('hex');
     return digest === signature;
   } catch (err) {
