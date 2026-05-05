@@ -315,11 +315,20 @@ const executeBeneficiaryPayout = async (token, beneficiaryId, transactionRef) =>
   });
 };
 
-/**
- * Verify the Eversend webhook signature.
- * @param {string|Buffer} payload - Raw request body
- * @param {string} signature      - x-eversend-signature header
- */
+const verifyWebhookSignature = (payload, signature) => {
+  if (!signature || !EVERSEND_WEBHOOK_SECRET) return false;
+  try {
+    const hmac = crypto.createHmac('sha512', EVERSEND_WEBHOOK_SECRET);
+    
+    // Convert Buffer to string if necessary (Express raw body parser returns Buffer)
+    let data = payload;
+    if (Buffer.isBuffer(payload)) {
+      data = payload.toString('utf8');
+    } else if (typeof payload !== 'string') {
+      data = JSON.stringify(payload);
+    }
+    
+    const digest = hmac.update(data).digest('hex');
     return digest === signature;
   } catch (err) {
     console.error('Webhook signature verification error:', err.message);
