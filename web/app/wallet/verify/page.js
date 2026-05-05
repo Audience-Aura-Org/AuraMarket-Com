@@ -10,7 +10,7 @@ import {
   AlertTriangle, ArrowLeft, Wallet, RotateCcw, X,
   Smartphone, ChevronRight
 } from 'lucide-react';
-import { pollTransactionStatus, recheckTransaction } from '@/services/eversendPayment';
+import { pollTransactionStatus, recheckTransaction } from '@/services/paymentProvider';
 import api from '@/services/api';
 import Link from 'next/link';
 import cartStore from '@/services/cartStore';
@@ -47,6 +47,7 @@ function VerifyContent() {
 
       // Start polling
       const stopFn = pollTransactionStatus(
+        gateway,
         ref,
         {
           onPending: ({ message: msg }) => {
@@ -88,9 +89,9 @@ function VerifyContent() {
     if (!ref) return;
     setRecheckLoading(true);
     setState('recheck');
-    setMessage('Re-checking payment status from Eversend...');
+    setMessage(`Re-checking payment status from ${gateway}...`);
 
-    const result = await recheckTransaction(ref);
+    const result = await recheckTransaction(gateway, ref);
 
     setRecheckLoading(false);
     if (result.status === 'SUCCESSFUL') {

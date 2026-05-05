@@ -38,9 +38,26 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [done, setDone]       = useState(false);
+  const [beneficiaries, setBeneficiaries] = useState([]);
+  const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
+  const [fetchingBeneficiaries, setFetchingBeneficiaries] = useState(false);
 
   const amtNum = Number(amount) || 0;
   const MIN = 1000;
+
+  const fetchBeneficiaries = async () => {
+    setFetchingBeneficiaries(true);
+    try {
+      const res = await api.get('/payments/eversend/beneficiaries');
+      if (res.data.success) {
+        setBeneficiaries(res.data.data || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch beneficiaries:', e);
+    } finally {
+      setFetchingBeneficiaries(false);
+    }
+  };
 
   const field = (key, label, placeholder, type = 'text') => (
     <div className="space-y-1.5">
@@ -66,6 +83,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           bankCode:      method.id === 'bank'     ? form.bankCode      : null,
           accountNumber: method.id === 'bank'     ? form.accountNumber : null,
           eversendTag:   method.id === 'eversend' ? form.eversendTag   : null,
+          beneficiaryId: selectedBeneficiary?.id || null,
         },
         note: form.note || null,
       });
@@ -198,6 +216,45 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         {step === 3 && method && (
           <div className="space-y-4">
             <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">RECIPIENT DETAILS</p>
+            
+            {method.id === 'eversend' && (
+              <div className="space-y-3 mb-6">
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">CHOOSE SAVED RECIPIENT (OPTIONAL)</p>
+                {fetchingBeneficiaries ? (
+                  <div className="flex items-center gap-2 text-xs opacity-50"><Loader2 className="size-3 animate-spin" /> Loading beneficiaries...</div>
+                ) : beneficiaries.length > 0 ? (
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {beneficiaries.map(b => (
+                      <button key={b.id} onClick={() => {
+                        setSelectedBeneficiary(b);
+                        setForm({
+                          ...form,
+                          firstName: b.firstName,
+                          lastName: b.lastName,
+                          country: b.country,
+                          eversendTag: b.type === 'eversend' ? b.accountNumber : '',
+                          phoneNumber: b.type === 'momo' ? b.accountNumber : '',
+                          bankCode: b.type === 'bank' ? b.bankCode : '',
+                          accountNumber: b.type === 'bank' ? b.accountNumber : '',
+                        });
+                      }}
+                      className={`shrink-0 px-4 py-3 rounded-xl border text-[10px] font-bold transition-all ${selectedBeneficiary?.id === b.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] opacity-60'}`}>
+                        {b.firstName} {b.lastName}
+                        <p className="text-[8px] opacity-50 uppercase mt-0.5">{b.type}</p>
+                      </button>
+                    ))}
+                    <button onClick={() => setSelectedBeneficiary(null)} className="shrink-0 px-4 py-3 rounded-xl border border-dashed border-[var(--glass-border)] text-[10px] font-bold opacity-40">
+                      + New
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={fetchBeneficiaries} className="text-[10px] font-bold text-[var(--accent)] hover:underline">
+                    Load saved recipients
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               {field('firstName', 'FIRST NAME', 'John')}
               {field('lastName',  'LAST NAME',  'Doe')}
@@ -212,7 +269,16 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             {method.id === 'momo'     && field('phoneNumber',   'PHONE NUMBER',    '+237...',    'tel')}
             {method.id === 'bank'     && field('bankCode',      'BANK CODE',       'e.g. GTB')}
             {method.id === 'bank'     && field('accountNumber', 'ACCOUNT NUMBER',  '0123456789')}
-            {method.id === 'eversend' && field('eversendTag',   'EVERSEND TAG',    '@username')}
+            {method.id === 'eversend' && !selectedBeneficiary && field('eversendTag',   'EVERSEND TAG',    '@username')}
+            {selectedBeneficiary && (
+              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
+                <div>
+                  <p className="text-[8px] font-bold text-emerald-500 opacity-50 uppercase">SAVED RECIPIENT</p>
+                  <p className="text-xs font-bold">{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</p>
+                </div>
+                <button onClick={() => setSelectedBeneficiary(null)} className="text-[10px] font-bold text-red-500">Change</button>
+              </div>
+            )}
             {field('note', 'NOTE (OPTIONAL)', 'Reason for withdrawal...')}
             <button onClick={() => {
               const missing =

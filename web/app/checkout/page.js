@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
+import { initiateCollection } from '@/services/paymentProvider';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -334,7 +335,7 @@ function CheckoutContent() {
           }
         }
       } else {
-        const evRes = await api.post('/payments/eversend/initialize', {
+        const evRes = await initiateCollection('eversend', {
            amount: totalAmount,
            currency: formData.eversend.currency,
            phone: formData.eversend.phone || formData.phone,

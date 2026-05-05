@@ -51,8 +51,8 @@ const submitWithdrawal = async (req, res) => {
     if (withdrawalMethod === 'bank' && (!recipientDetails?.bankCode || !recipientDetails?.accountNumber)) {
       return res.status(400).json({ success: false, message: 'Bank code and account number are required for bank withdrawal.' });
     }
-    if (withdrawalMethod === 'eversend' && !recipientDetails?.eversendTag) {
-      return res.status(400).json({ success: false, message: 'Eversend tag is required for wallet-to-wallet transfer.' });
+    if (withdrawalMethod === 'eversend' && !recipientDetails?.eversendTag && !recipientDetails?.beneficiaryId) {
+      return res.status(400).json({ success: false, message: 'Eversend tag or Beneficiary ID is required.' });
     }
 
     // ── Account status check
@@ -113,6 +113,7 @@ const submitWithdrawal = async (req, res) => {
         bankCode:      recipientDetails.bankCode      || null,
         accountNumber: recipientDetails.accountNumber || null,
         eversendTag:   recipientDetails.eversendTag   || null,
+        beneficiaryId: recipientDetails.beneficiaryId || null,
         firstName,
         lastName,
         country,
@@ -301,11 +302,19 @@ const adminApproveWithdrawal = async (req, res) => {
           txRef
         );
       } else if (wr.withdrawalMethod === 'eversend') {
-        payoutResult = await eversend.executeEversendPayout(
-          quotationToken,
-          recipientDetails.eversendTag,
-          txRef
-        );
+        if (recipientDetails.beneficiaryId) {
+          payoutResult = await eversend.executeBeneficiaryPayout(
+            quotationToken,
+            recipientDetails.beneficiaryId,
+            txRef
+          );
+        } else {
+          payoutResult = await eversend.executeEversendPayout(
+            quotationToken,
+            recipientDetails.eversendTag,
+            txRef
+          );
+        }
       }
     } catch (payoutErr) {
       // Payout failed — mark as failed, do NOT deduct
@@ -369,7 +378,7 @@ const adminApproveWithdrawal = async (req, res) => {
       amount: wr.amount,
       reference: generateTxRef(),
       status: 'completed',
-      description: `Withdrawal via ${wr.withdrawalMethod.toUpperCase()} to ${recipientDetails.phoneNumber || recipientDetails.accountNumber || recipientDetails.eversendTag}`,
+      description: `Withdrawal via ${wr.withdrawalMethod.toUpperCase()} to ${recipientDetails.phoneNumber || recipientDetails.accountNumber || recipientDetails.eversendTag || recipientDetails.beneficiaryId}`,
       gateway: 'eversend',
       currency: wr.currency,
       gateway_transaction_id: eversendTxId,

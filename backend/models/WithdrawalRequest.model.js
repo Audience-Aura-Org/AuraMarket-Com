@@ -19,6 +19,8 @@ const recipientDetailsSchema = new mongoose.Schema({
   accountNumber: { type: String, default: null },
   // Eversend wallet-to-wallet
   eversendTag:   { type: String, default: null },
+  // Saved Beneficiary
+  beneficiaryId: { type: String, default: null },
   // Common
   firstName:  { type: String, required: true },
   lastName:   { type: String, required: true },
