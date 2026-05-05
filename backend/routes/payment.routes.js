@@ -16,6 +16,7 @@ const {
   eversendCreateBeneficiary,
   eversendDeleteBeneficiary,
   eversendGetTransactions,
+  eversendPayoutBeneficiary,
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC, must come before protect middleware ───────────────────
@@ -43,5 +44,8 @@ router.delete('/eversend/beneficiaries/:id', eversendDeleteBeneficiary);
 
 // History
 router.get('/eversend/transactions', eversendGetTransactions);
+
+// Payouts
+router.post('/eversend/payout/beneficiary', eversendPayoutBeneficiary);
 
 module.exports = router;

@@ -646,6 +646,26 @@ const eversendGetTransactions = async (req, res) => {
   }
 };
 
+/**
+ * @route   POST /api/payments/eversend/payout/beneficiary
+ * @desc    Execute a payout to a saved beneficiary
+ */
+const eversendPayoutBeneficiary = async (req, res) => {
+  try {
+    const { token, beneficiaryId, transactionRef } = req.body;
+    if (!token || !beneficiaryId) {
+      return res.status(400).json({ success: false, message: 'Token and Beneficiary ID are required.' });
+    }
+    const result = await eversend.executeBeneficiaryPayout(token, beneficiaryId, transactionRef);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({ 
+      success: false, 
+      message: error.response?.data?.message || 'Failed to execute beneficiary payout.' 
+    });
+  }
+};
+
 module.exports = {
   // Paystack
   initializePayment,
@@ -661,5 +681,6 @@ module.exports = {
   eversendCreateBeneficiary,
   eversendDeleteBeneficiary,
   eversendGetTransactions,
+  eversendPayoutBeneficiary,
   settleOrdersInSession,
 };

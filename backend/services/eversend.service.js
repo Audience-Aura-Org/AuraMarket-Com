@@ -299,6 +299,23 @@ const executeEversendPayout = async (token, eversendTag, transactionRef) => {
 };
 
 /**
+ * Execute a payout to a saved beneficiary.
+ * @param {string} token          - Quotation token
+ * @param {string} beneficiaryId  - Saved beneficiary ID
+ * @param {string} transactionRef - Your internal reference
+ */
+const executeBeneficiaryPayout = async (token, beneficiaryId, transactionRef) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.post('/payouts/beneficiary', {
+      token,
+      beneficiaryId,
+      transactionRef,
+    });
+    return res.data;
+  });
+};
+
+/**
  * Verify the Eversend webhook signature.
  * @param {string|Buffer} payload - Raw request body
  * @param {string} signature      - x-eversend-signature header
