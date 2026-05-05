@@ -429,24 +429,24 @@ function CheckoutContent() {
           <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
             <ArrowLeft className="size-5" />
           </div>
-          <span className="text-[11px] font-bold tracking-tight ">Terminate Checkout</span>
+          <span className="text-[11px] font-bold tracking-tight ">Terminate checkout</span>
         </Link>
         <div className="flex items-center gap-8">
            <div className="hidden md:flex items-center gap-3">
               <ShieldCheck className="size-4 text-emerald-500" />
-              <p className="text-[11px] font-bold tracking-tight  opacity-40">Encryption Protocol V3.1 Active</p>
+              <p className="text-[11px] font-bold tracking-tight opacity-40">Encryption protocol v3.1 active</p>
            </div>
            <div className="h-8 w-px bg-[var(--glass-border)] md:block hidden" />
            <div className="flex items-center gap-4">
               <div className="text-right">
-                 <p className="text-[11px] font-bold tracking-[0.2em]  text-[var(--text-secondary)]">Your Balance</p>
+                 <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">Your balance</p>
                  <p className="text-sm font-bold font-mono">{walletBalance.toLocaleString()} XAF</p>
               </div>
            </div>
         </div>
       </nav>
 
-      <main className="max-w-[1600px] mx-auto px-6 lg:px-20 py-12 relative z-10">
+      <main className="max-w-[1600px] mx-auto px-6 lg:px-20 py-12 relative z-10 font-poppins">
 
         {/* ââ Payment Blocking Screen âââââââââââââââââââââââââââââââââââââââ */}
         <AnimatePresence>

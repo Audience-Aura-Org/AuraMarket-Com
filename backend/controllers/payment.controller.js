@@ -14,6 +14,7 @@ const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
 const Vendor = require('../models/Vendor.model');
 const Shipment = require('../models/Shipment.model');
+const PlatformSettings = require('../models/PlatformSettings.model');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAYSTACK — kept intact for existing wallet flows
@@ -144,7 +145,7 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
         description: `Automatic settlement for Order #${order._id.toString().slice(-6).toUpperCase()}`,
         order_id: order._id,
         gateway: 'wallet'
-      }], { session });
+      }], { session, ordered: true });
 
       if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
         const quartier = order.shipping_address?.quartier;
@@ -155,6 +156,77 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
           }
         }
       }
+      // ── VENDOR PAYOUT LOGIC ────────────────────────────────────────────────
+      // We replicate the logic from wallet.controller.js:payOrderWithWallet
+      const settings = await PlatformSettings.getSettings();
+
+      const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id) 
+        ? order.subtotal 
+        : order.total_amount;
+
+      const platformFee = (vendorBaseAmount * settings.commission_rate) / 100;
+      const vendorPayout = vendorBaseAmount - platformFee;
+
+      if (order.escrow_enabled) {
+        // Create Escrow Record (Held)
+        await Escrow.create([{
+          order_id: order._id,
+          vendor_id: order.vendor_id,
+          buyer_id: order.customer_id,
+          amount: vendorBaseAmount,
+          status: 'held'
+        }], { session, ordered: true });
+
+        // Log pending payout for Vendor
+        const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+        await Transaction.create([{
+          user_id: vendorRecord.user_id,
+          type: 'payout',
+          amount: vendorPayout,
+          reference: `PAYOUT-PEND-${order._id.toString().slice(-6).toUpperCase()}`,
+          status: 'pending',
+          description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow)`,
+          order_id: order._id,
+          gateway: 'escrow'
+        }], { session, ordered: true });
+      } else {
+        // Direct Payout (No Escrow)
+        const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+        const vendorUser = await User.findById(vendorRecord.user_id).session(session);
+        
+        // Transfer to Vendor
+        vendorUser.wallet_balance += vendorPayout;
+        await vendorUser.save({ session });
+
+        // Transfer Fee to Platform
+        settings.platform_wallet_balance += platformFee;
+        await settings.save({ session });
+
+        // Log completed payout for Vendor
+        await Transaction.create([{
+          user_id: vendorUser._id,
+          type: 'payout',
+          amount: vendorPayout,
+          reference: `PAYOUT-DIRECT-${order._id.toString().slice(-6).toUpperCase()}`,
+          status: 'completed',
+          description: `Direct payout for Order #${order._id.toString().slice(-6).toUpperCase()} (No Escrow)`,
+          order_id: order._id,
+          gateway: 'wallet'
+        }], { session, ordered: true });
+
+        // Log Platform Revenue
+        await Transaction.create([{
+          user_id: vendorUser._id, // Linked to vendor for trace
+          type: 'payment',
+          amount: platformFee,
+          reference: `REV-DIR-${Date.now()}`,
+          status: 'completed',
+          description: `Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
+          order_id: order._id,
+          gateway: 'platform'
+        }], { session, ordered: true });
+      }
+      // ───────────────────────────────────────────────────────────────────────
 
       const vendor = await Vendor.findById(order.vendor_id).session(session);
       const orderForNotify = order.toObject();
@@ -272,29 +344,31 @@ const eversendInitialize = async (req, res) => {
     // ── SANDBOX SIMULATION MODE ───────────────────────────────────────────────
     const isSandbox = process.env.EVERSEND_SANDBOX_MODE === 'true';
     if (isSandbox) {
-      console.log('[Eversend] SANDBOX MODE — simulating successful collection');
+      console.log('[Eversend] SANDBOX MODE — initializing pending collection');
       const sandboxTxId = `SBX-${Date.now()}`;
-      const session = await mongoose.startSession();
-      session.startTransaction();
-      try {
-        await Transaction.create([{
-          user_id: user._id, type: 'deposit', amount: Number(amount), currency, reference: transactionRef,
-          gateway_transaction_id: sandboxTxId, status: 'completed', gateway: 'eversend',
-          order_ids: order_ids || [],
-          description: `[SANDBOX] Checkout simulation for ${order_ids?.length || 0} order(s)`,
-        }], { session });
-        await User.findByIdAndUpdate(user._id, { $inc: { wallet_balance: Number(amount) } }, { session });
-        if (order_ids && order_ids.length > 0) {
-          await settleOrdersInSession(user._id, order_ids, req.app, session, true, getWebUrl(req));
-        }
-        await session.commitTransaction();
-        session.endSession();
-        return res.status(200).json({ success: true, data: { checkout_url: null, transaction_id: sandboxTxId, reference: transactionRef } });
-      } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(500).json({ success: false, message: `Sandbox simulation failed: ${err.message}` });
-      }
+      
+      await Transaction.create({
+        user_id: user._id, 
+        type: 'deposit', 
+        amount: Number(amount), 
+        currency, 
+        reference: transactionRef,
+        gateway_transaction_id: sandboxTxId, 
+        status: 'pending', 
+        gateway: 'eversend',
+        order_ids: order_ids || [],
+        description: `[SANDBOX] Checkout initiation for ${order_ids?.length || 0} order(s)`,
+        metadata: { is_sandbox: true }
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        data: { 
+          checkout_url: `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=eversend&ref=${transactionRef}&sandbox=true`, 
+          transaction_id: sandboxTxId, 
+          reference: transactionRef 
+        } 
+      });
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -386,20 +460,36 @@ const eversendVerify = async (req, res) => {
     if (!transaction.gateway_transaction_id) {
       const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
       if (ageSeconds > 60) {
-        return res.status(200).json({ success: false, status: 'TIMEOUT', message: 'Payment verification timed out. Please check your transaction history or recheck payment status.', reference });
+        transaction.status = 'failed';
+        transaction.gateway_response = { message: 'Verification timed out — no gateway transaction ID received.' };
+        await transaction.save();
+        return res.status(200).json({ success: false, status: 'FAILED', message: 'Payment verification timed out. Please check your transaction history or recheck payment status.', reference });
       }
       return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting mobile money confirmation from gateway.' });
     }
 
     // Poll Eversend using /transactions/:id
-    const result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
-    console.log(`[Eversend Verify] ref=${reference} txId=${transaction.gateway_transaction_id} status=`, result?.data?.status || result?.status);
-    const txStatus = result?.data?.status || result?.status;
+    let txStatus;
+    let result;
+
+    const isSandbox = transaction.metadata?.is_sandbox || (transaction.gateway_transaction_id && transaction.gateway_transaction_id.startsWith('SBX-'));
+    if (isSandbox) {
+      console.log('[Eversend Verify] Sandbox bypass — forcing SUCCESSFUL');
+      txStatus = 'SUCCESSFUL';
+      result = { data: { status: 'SUCCESSFUL', message: 'Sandbox Success' } };
+    } else {
+      result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
+      console.log(`[Eversend Verify] ref=${reference} txId=${transaction.gateway_transaction_id} status=`, result?.data?.status || result?.status);
+      txStatus = result?.data?.status || result?.status;
+    }
 
     // Check timeout — if API still returns pending after 60 seconds
     const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
     if (txStatus === 'PENDING' && ageSeconds > 60) {
-      return res.status(200).json({ success: false, status: 'TIMEOUT', message: 'Payment verification timed out. Please check your transaction history or recheck payment status.', reference });
+      transaction.status = 'failed';
+      transaction.gateway_response = result.data || result;
+      await transaction.save();
+      return res.status(200).json({ success: false, status: 'FAILED', message: 'Payment verification timed out. Please check your transaction history or recheck payment status.', reference });
     }
 
     if (txStatus === 'SUCCESSFUL') {
@@ -471,9 +561,19 @@ const eversendRecheck = async (req, res) => {
       return res.status(200).json({ success: false, status: 'PENDING', message: 'Still processing — no confirmation from gateway yet. Check back shortly.' });
     }
 
-    const result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
-    const txStatus = result?.data?.status || result?.status;
-    console.log(`[Eversend Recheck] ref=${reference} status=${txStatus}`);
+    let txStatus;
+    let result;
+
+    const isSandbox = transaction.metadata?.is_sandbox || (transaction.gateway_transaction_id && transaction.gateway_transaction_id.startsWith('SBX-'));
+    if (isSandbox) {
+      console.log('[Eversend Recheck] Sandbox bypass — forcing SUCCESSFUL');
+      txStatus = 'SUCCESSFUL';
+      result = { data: { status: 'SUCCESSFUL' } };
+    } else {
+      result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
+      txStatus = result?.data?.status || result?.status;
+      console.log(`[Eversend Recheck] ref=${reference} status=${txStatus}`);
+    }
 
     if (txStatus === 'SUCCESSFUL') {
       if (transaction.status !== 'completed') {
@@ -534,7 +634,8 @@ const eversendWebhook = async (req, res) => {
         $or: [{ reference: data?.transactionRef }, { gateway_transaction_id: data?.transactionId }],
         gateway: 'eversend',
       });
-      if (transaction && transaction.status === 'pending') {
+      // Allow recovery from both 'pending' and 'failed' (lapsed) states
+      if (transaction && (transaction.status === 'pending' || transaction.status === 'failed')) {
         transaction.status = 'completed';
         transaction.gateway_response = data;
         await transaction.save();
@@ -575,11 +676,12 @@ const eversendWebhook = async (req, res) => {
       if (transaction) {
         console.log(`✅ Eversend Payout Success: ${data?.transactionRef} to user ${transaction.user_id}`);
         // TODO: Notify vendor via in-app notification
-        await sendNotification({
-          userId: transaction.user_id,
+        await sendNotification(req.app, transaction.user_id, {
           title: 'Payout Successful',
           message: `Your withdrawal of ${transaction.amount} ${transaction.currency} has been processed successfully.`,
-          type: 'payment'
+          type: 'wallet_update',
+          metadata: { link: '/wallet' },
+          sendEmail: true
         });
       }
     }

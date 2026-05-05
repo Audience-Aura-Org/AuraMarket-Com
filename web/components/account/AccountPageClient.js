@@ -18,21 +18,11 @@ import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
 import StatusManager from '@/components/status/StatusManager';
+import SingleOrderView from '@/components/account/SingleOrderView';
 
-const TABS = [
-  { id: 'general', label: 'Profile', icon: User, roles: ['customer', 'vendor', 'admin', 'logistics'] },
-  { id: 'orders', label: 'Orders', icon: ShoppingBag, roles: ['customer', 'vendor'] },
-  { id: 'security', label: 'Security', icon: Shield, roles: ['customer', 'vendor', 'admin', 'logistics'] },
-  { id: 'network', label: 'Network', icon: Users, roles: ['customer', 'vendor'] },
-  { id: 'audience', label: 'Audience', icon: Heart, roles: ['vendor'] },
-   { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },
-   { id: 'statuses', label: 'Stories', icon: Activity, roles: ['vendor', 'admin'] },
-   { id: 'fleet', label: 'Fleet', icon: Truck, roles: ['logistics'] },
-  { id: 'governance', label: 'Governance', icon: ShieldAlert, roles: ['admin'] },
-  { id: 'kyc', label: 'Verification', icon: Shield, roles: ['customer', 'vendor'] },
-  { id: 'notifications', label: 'Alerts', icon: Bell, roles: ['customer', 'vendor', 'admin', 'logistics'] },
-  { id: 'advanced', label: 'Advanced', icon: Database, roles: ['admin'] },
-];
+import { TABS } from './constants';
+import AccountHeader from './AccountHeader';
+import AccountSidebar from './AccountSidebar';
 
 export default function AccountPageClient() {
   const router = useRouter();
@@ -40,13 +30,32 @@ export default function AccountPageClient() {
   const { user, logout, updateUser } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('general');
+  const [viewingOrderId, setViewingOrderId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const canUseBanner = ['vendor', 'logistics'].includes(user?.role);
 
   useEffect(() => {
     const tabUrl = searchParams.get('tab');
+    const orderId = searchParams.get('orderId');
     if (tabUrl && TABS.some((t) => t.id === tabUrl)) setActiveTab(tabUrl);
+    if (orderId) setViewingOrderId(orderId);
   }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setViewingOrderId(null);
+    router.push(`/profile?tab=${tab}`, { scroll: false });
+  };
+
+  const handleViewOrder = (id) => {
+    setViewingOrderId(id);
+    router.push(`/profile?tab=orders&orderId=${id}`, { scroll: false });
+  };
+
+  const handleBackToLedger = () => {
+    setViewingOrderId(null);
+    router.push(`/profile?tab=orders`, { scroll: false });
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -105,7 +114,6 @@ export default function AccountPageClient() {
 
   const [audience, setAudience] = useState([]);
   const [audienceLoading, setAudienceLoading] = useState(false);
-  const [govUsers, setGovUsers] = useState([]);
 
   const fetchOrders = useCallback(async () => {
      if (!user) return;
@@ -152,27 +160,12 @@ export default function AccountPageClient() {
   };
 
   useEffect(() => {
-    const handleGlobalUpdate = () => {
-      fetchNetwork();
-    };
-    window.addEventListener('aura_follow_update', handleGlobalUpdate);
-    return () => window.removeEventListener('aura_follow_update', handleGlobalUpdate);
-  }, []);
-
-  useEffect(() => {
     if (!user) return;
     const existing = user.branding || {};
     setProfileBranding({
       logo: existing.logo || user.avatar || '',
       banner: existing.banner || ''
     });
-    if (user.role === 'vendor') {
-      setStoreData(prev => ({
-        ...prev,
-        logo: existing.logo || user.avatar || '',
-        banner: existing.banner || ''
-      }));
-    }
     setUserData({
       name: user.name || '',
       phone: user.phone || '',
@@ -234,49 +227,8 @@ export default function AccountPageClient() {
     }
   };
 
-  const fetchVendorProfile = useCallback(async () => {
-    try {
-      const res = await api.get('/vendors/me');
-      if (res.data.success) {
-        const v = res.data.data.vendor;
-        setStoreData({
-          store_name: v.store_name || '',
-          description: v.description || '',
-          logo: v.store?.logo || '',
-          banner: v.store?.banner || '',
-          pickup_address: {
-             city: v.pickup_address?.city || '',
-             quartier: v.pickup_address?.quartier || '',
-             address_description: v.pickup_address?.address_description || ''
-          }
-        });
-      }
-    } catch (err) {
-      console.error("Failed to fetch vendor profile", err);
-    }
-  }, []);
-
-  const fetchLogisticsProfile = useCallback(async () => {
-    try {
-      const res = await api.get('/logistics/profile');
-      if (res.data.success) {
-        const firm = res.data.data.firm;
-        // The identity header uses user.branding which we update anyway,
-        // but we fetch to ensure we have the latest corporate data if needed.
-      }
-    } catch (err) {
-      console.error("Failed to fetch logistics profile", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user?.role === 'vendor') fetchVendorProfile();
-    if (user?.role === 'logistics') fetchLogisticsProfile();
-  }, [user, fetchVendorProfile, fetchLogisticsProfile]);
-
   const handleUpdateStore = async () => {
     setLoading(true);
-    setSaveStatus('Saving store...');
     try {
       await api.patch('/vendors/profile', {
         store_name: storeData.store_name,
@@ -299,33 +251,21 @@ export default function AccountPageClient() {
       const logo = overrides.logo || profileBranding.logo;
       const banner = overrides.banner || profileBranding.banner;
 
-      const brandingPayload = canUseBanner
-        ? { logo, banner }
-        : { logo };
+      const brandingPayload = canUseBanner ? { logo, banner } : { logo };
       
-      const res = await api.patch('/users/me', {
-        branding: brandingPayload
-      });
+      const res = await api.patch('/users/me', { branding: brandingPayload });
 
       if (user?.role === 'vendor') {
-        await api.patch('/vendors/store', { 
-          logo, 
-          banner 
-        });
+        await api.patch('/vendors/store', { logo, banner });
       }
-
       if (user?.role === 'logistics') {
-        await api.patch('/logistics/profile', { 
-          logo, 
-          banner 
-        });
+        await api.patch('/logistics/profile', { logo, banner });
       }
 
       if (res.data?.success && res.data?.data?.user) updateUser(res.data.data.user);
       setBrandingStatus('Branding updated successfully.');
       setTimeout(() => setBrandingStatus(''), 2500);
     } catch (err) {
-      console.error('Branding update failed', err);
       setBrandingStatus('Update failed.');
       setTimeout(() => setBrandingStatus(''), 2500);
     }
@@ -344,16 +284,11 @@ export default function AccountPageClient() {
       const res = await uploadService.uploadSingle(file, uploadType);
       if (res?.success && res?.data?.url) {
         const url = res.data.url;
-        if (field === 'kyc_front') {
-          setKycData((p) => ({ ...p, file_url_front: url }));
-          setBrandingStatus(`ID front uploaded.`);
-        } else if (field === 'kyc_back') {
-          setKycData((p) => ({ ...p, file_url_back: url }));
-          setBrandingStatus(`ID back uploaded.`);
+        if (field.startsWith('kyc')) {
+          setKycData((p) => ({ ...p, [field === 'kyc_front' ? 'file_url_front' : 'file_url_back']: url }));
+          setBrandingStatus(`${field.replace('_', ' ')} uploaded.`);
         } else {
           setProfileBranding((p) => ({ ...p, [field]: url }));
-          setBrandingStatus(`${field} uploaded. Syncing profile...`);
-          // Immediately sync to prevent race conditions with state updates
           await handleUpdateBranding({ [field]: url });
         }
       } else {
@@ -361,7 +296,6 @@ export default function AccountPageClient() {
       }
       setTimeout(() => setBrandingStatus(''), 2500);
     } catch (err) {
-      console.error('Upload failed', err);
       setBrandingStatus('Upload failed.');
       setTimeout(() => setBrandingStatus(''), 2500);
     } finally {
@@ -382,7 +316,6 @@ export default function AccountPageClient() {
         setBrandingStatus('Submission failed.');
       }
     } catch (err) {
-      console.error('KYC submission failed', err);
       setBrandingStatus('Submission failed.');
     } finally {
       setKycLoading(false);
@@ -390,80 +323,13 @@ export default function AccountPageClient() {
     }
   };
 
-  const filteredTabs = TABS.filter((t) => t.roles.includes(user?.role || 'customer'));
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)]">
-      {/* Header */}
-      <div className="sticky top-0 lg:top-0 max-lg:top-14 z-50 border-b border-[var(--glass-border)] backdrop-blur-2xl bg-[var(--bg-primary)]/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 hover:bg-[var(--bg-secondary)]/50 rounded-[1.5rem] transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg font-bold tracking-tight">Account Settings</h1>
-          </div>
-          <button onClick={() => { logout(); router.push('/login'); }} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-[1.5rem] transition-colors">
-            <Power className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+      <AccountHeader title="Account Settings" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 space-y-6">
-            {/* Profile Card */}
-            <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[3rem] p-6 backdrop-blur-3xl shadow-xl transition-all duration-500 hover:shadow-2xl space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center">
-                  {profileBranding.logo ? (
-                    <img src={profileBranding.logo} className="w-full h-full object-cover" alt="" />
-                  ) : (
-                    <User className="w-6 h-6 text-[var(--accent)]" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{user?.name}</p>
-                  <p className="text-xs text-[var(--text-secondary)] capitalize truncate">{user?.role}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={toggleTheme} className="flex-1 p-2 rounded-[1.5rem] bg-[var(--bg-secondary)]/50 hover:bg-[var(--glass-border)] transition-colors flex items-center justify-center gap-2">
-                  {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
+      <div className="max-w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <AccountSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
-            {/* Navigation */}
-            <nav className="space-y-2">
-              {filteredTabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-[1.5rem] transition-all text-left ${
-                      isActive
-                        ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                        : 'hover:bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="text-sm font-medium">{tab.label}</span>
-                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
-
-        {/* Main Content */}
         <div className="lg:col-span-3">
           <AnimatePresence mode="wait">
             <motion.div
@@ -476,7 +342,6 @@ export default function AccountPageClient() {
             >
               {activeTab === 'general' && (
                 <div className="space-y-6">
-                  {/* Identity Header Card */}
                   <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-8 shadow-xl w-full">
                     <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8">
                       <div className="relative group shrink-0">
@@ -506,14 +371,12 @@ export default function AccountPageClient() {
                           </span>
                         </div>
                       </div>
-
-
                     </div>
                   </div>
 
                   <div className="space-y-6 md:space-y-8">
                     <div className="flex items-center gap-6 px-4 md:px-6">
-                      <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Identity Parameters</h3>
+                      <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Identity Parameters</h3>
                       <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                     </div>
 
@@ -580,8 +443,8 @@ export default function AccountPageClient() {
                           className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
                         >
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
-                          <span className="relative z-10 text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">
-                            {profileSaving ? 'Synchronizing State...' : 'Save Identity Configuration'}
+                          <span className="relative z-10 text-[11px] md:text-xs font-bold tracking-tight transition-colors">
+                            {profileSaving ? 'Synchronizing state...' : 'Save identity configuration'}
                           </span>
                         </button>
                       </div>
@@ -593,91 +456,117 @@ export default function AccountPageClient() {
               {activeTab === 'orders' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Transaction Logs</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Order Manifest</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
-                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                  <div className="relative z-10">
+                    {viewingOrderId ? (
+                      <div className="animate-in fade-in duration-700">
+                        <SingleOrderView orderId={viewingOrderId} onBack={handleBackToLedger} />
+                      </div>
+                    ) : (
+                      <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                        <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+                        
+                        <div className="flex flex-wrap items-center gap-2 mb-8 overflow-x-auto no-scrollbar pb-2">
+                          {user?.role === 'vendor' && (
+                            <div className="flex p-1 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] mr-4">
+                              <button
+                                onClick={() => setOrderView('purchases')}
+                                className={`px-4 py-1.5 rounded-xl text-[11px] font-bold tracking-tight transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                              >
+                                Purchases
+                              </button>
+                              <button
+                                onClick={() => setOrderView('sales')}
+                                className={`px-4 py-1.5 rounded-xl text-[11px] font-bold tracking-tight transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                              >
+                                Sales
+                              </button>
+                            </div>
+                          )}
+                          
+                          {['all', 'placed', 'processing', 'shipped', 'completed', 'cancelled'].map(f => (
+                            <button 
+                              key={f}
+                              onClick={() => {}}
+                              className="px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[10px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all capitalize"
+                            >
+                              {f === 'all' ? 'Universal' : f}
+                            </button>
+                          ))}
+                        </div>
 
-                    <div className="relative z-10">
-                      {user?.role === 'vendor' && (
-                        <div className="flex p-1.5 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] w-fit mb-8">
-                          <button
-                            onClick={() => setOrderView('purchases')}
-                            className={`px-6 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
-                          >
-                            My Purchases
-                          </button>
-                          <button
-                            onClick={() => setOrderView('sales')}
-                            className={`px-6 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
-                          >
-                            Store Sales
-                          </button>
-                        </div>
-                      )}
+                        {ordersLoading ? (
+                          <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <div className="size-10 border-2 border-[var(--accent)]/10 border-t-[var(--accent)] rounded-full animate-spin" />
+                            <p className="text-[11px] font-bold tracking-tight text-[var(--accent)] animate-pulse">Syncing ledger</p>
+                          </div>
+                        ) : orders.length === 0 ? (
+                          <div className="py-20 flex flex-col items-center justify-center text-center glass-panel rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+                            <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
+                            <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">No manifest records found</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
+                              const firstItem = order.products?.[0] || order.items?.[0];
+                              const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white-main.png';
+                              const title = firstItem?.name || firstItem?.product?.name || `Order #${order._id.substring(0, 8)}`;
+                              
+                              const getStatusColor = (s) => {
+                                switch(s) {
+                                  case 'completed': return 'emerald';
+                                  case 'shipped': return 'blue';
+                                  case 'cancelled': return 'rose';
+                                  default: return 'amber';
+                                }
+                              };
+                              const sColor = getStatusColor(order.order_status);
 
-                      {ordersLoading ? (
-                        <div className="flex items-center justify-center py-16">
-                          <RefreshCw className="w-8 h-8 text-[var(--accent)] animate-spin" />
-                        </div>
-                      ) : orders.length === 0 ? (
-                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
-                          <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[11px] font-bold tracking-tight  text-[var(--text-secondary)]">No {orderView === 'sales' ? 'Sales' : 'Purchase'} Manifest Found</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
-                            const firstItem = order.products?.[0] || order.items?.[0];
-                            const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white-main.png';
-                            const title = firstItem?.name || firstItem?.product?.name || `Order #${order._id.substring(0, 8)}`;
-                            
-                            return (
-                              <Link key={order._id} href={`/orders/${order._id}`} className="block group">
-                                <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] p-5 md:p-6 hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--accent)]/30 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5">
-                                  <div className="flex items-center gap-5">
-                                    <div className="size-16 rounded-[1.25rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 group-hover:border-[var(--accent)]/30 transition-colors shadow-sm">
-                                      <img src={imageUrl} alt="Product Thumbnail" className="size-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-[11px] md:text-xs font-bold tracking-tight  truncate text-[var(--text-primary)] mb-1">{title}</p>
-                                      {firstItem?.variant && (
-                                        <div className="flex flex-wrap gap-1 mb-1">
-                                          {Object.entries(firstItem.variant).map(([k, v]) => (
-                                            <span key={k} className="text-[11px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded-md ">
-                                              {k}: {v}
-                                            </span>
-                                          ))}
+                              return (
+                                <button 
+                                  key={order._id} 
+                                  onClick={() => handleViewOrder(order._id)}
+                                  className="block w-full text-left group"
+                                >
+                                  <div className="relative overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-2xl p-5 hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--accent)]/30 transition-all duration-300">
+                                    <div className={`absolute left-0 top-0 w-1 h-full bg-${sColor}-500 opacity-20 group-hover:opacity-100 transition-opacity`} />
+                                    
+                                    <div className="flex items-center gap-5">
+                                      <div className="size-14 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 shadow-sm">
+                                        <img src={imageUrl} alt="" className="size-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-tight bg-${sColor}-500/10 text-${sColor}-500 border border-${sColor}-500/20 capitalize`}>
+                                            {order.order_status || 'pending'}
+                                          </span>
+                                          <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">#{order._id.slice(-8).toUpperCase()}</span>
                                         </div>
-                                      )}
-                                      <p className="text-[9px] md:text-[11px] font-bold text-[var(--text-secondary)] opacity-60">ID: {order._id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}</p>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                      <p className="text-xs md:text-sm font-bold tracking-tight text-[var(--text-primary)]">{(order.total_amount).toLocaleString()} <span className="text-[9px] text-[var(--accent)]">XAF</span></p>
-                                      <div className="mt-1 flex justify-end">
-                                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-tight  border ${order.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : order.order_status === 'shipped' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
-                                          {order.order_status || 'Pending'}
-                                        </span>
+                                        <h4 className="text-[11px] font-bold truncate group-hover:text-[var(--accent)] transition-colors">{title}</h4>
+                                      </div>
+                                      <div className="text-right shrink-0">
+                                        <div className="text-[11px] font-bold text-[var(--text-primary)]">{(order.total_amount || 0).toLocaleString()} <span className="text-[9px] opacity-40">XAF</span></div>
+                                        <div className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                                       </div>
                                     </div>
-                                    <ChevronRight className="size-5 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-[var(--accent)] ml-2 hidden md:block" />
                                   </div>
-                                </div>
-                              </Link>
-                            );
-                          })}
-                          {orders.length > itemsPerPage && (
-                            <Pagination
-                              currentPage={currentPage}
-                              totalPages={Math.ceil(orders.length / itemsPerPage)}
-                              onPageChange={setCurrentPage}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
+                                </button>
+                              );
+                            })}
+                            <div className="pt-4">
+                              <Pagination
+                                currentPage={currentPage}
+                                totalPages={Math.ceil(orders.length / itemsPerPage)}
+                                onPageChange={setCurrentPage}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -685,7 +574,7 @@ export default function AccountPageClient() {
               {activeTab === 'security' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Security Matrix</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Security Matrix</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -743,8 +632,8 @@ export default function AccountPageClient() {
                           className="w-full py-3 md:py-4 rounded-full font-bold text-xs tracking-tight bg-[var(--accent)] text-white hover:bg-opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20"
                         >
                           {passphraseLoading ? (
-                            <><div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin"/> SECURING...</>
-                          ) : 'UPDATE PASSPHRASE'}
+                            <><div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin"/> Securing...</>
+                          ) : 'Update passphrase'}
                         </button>
                       </div>
 
@@ -768,7 +657,7 @@ export default function AccountPageClient() {
               {activeTab === 'store' && user?.role === 'vendor' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -804,7 +693,7 @@ export default function AccountPageClient() {
                             label="City"
                             value={storeData.pickup_address.city}
                             onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})}
-                            options={zones.filter(z => z.type === 'city').map(z => ({ label: z.name, value: z.name }))}
+                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
                             icon={MapPin}
                             placeholder="Select city"
                           />
@@ -837,8 +726,8 @@ export default function AccountPageClient() {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                         <div className="relative z-10 flex items-center gap-3">
                           {loading && <RefreshCw className="size-4 animate-spin" />}
-                          <span className="text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">
-                            {loading ? 'Updating Storefront...' : 'Commit Store Configuration'}
+                          <span className="text-[11px] md:text-xs font-bold tracking-tight transition-colors">
+                            {loading ? 'Updating storefront...' : 'Commit store configuration'}
                           </span>
                         </div>
                       </button>
@@ -850,7 +739,7 @@ export default function AccountPageClient() {
               {activeTab === 'kyc' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Identity Validation</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Identity Validation</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -958,8 +847,8 @@ export default function AccountPageClient() {
                             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                             <div className="relative z-10 flex items-center gap-3">
                               {kycLoading && <RefreshCw className="size-4 animate-spin" />}
-                              <span className="text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">
-                                {kycLoading ? 'Encrypting Credentials...' : 'Submit for Validation'}
+                              <span className="text-[11px] md:text-xs font-bold tracking-tight transition-colors">
+                                {kycLoading ? 'Encrypting credentials...' : 'Submit for validation'}
                               </span>
                             </div>
                           </button>
@@ -973,7 +862,7 @@ export default function AccountPageClient() {
               {activeTab === 'network' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Followed Vendors</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Followed Vendors</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -998,7 +887,6 @@ export default function AccountPageClient() {
                               href={`/stores/${vendor.vendor_id?._id || ''}`} 
                               className="group relative rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[var(--accent)]/10 hover:-translate-y-2 glass-panel"
                             >
-                              {/* Banner Background */}
                               <div className="absolute top-0 left-0 w-full h-24 overflow-hidden">
                                 <img 
                                   src={vendor.vendor_id?.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000'} 
@@ -1009,7 +897,6 @@ export default function AccountPageClient() {
                               </div>
 
                               <div className="relative pt-12 px-6 pb-6 flex flex-col items-center text-center">
-                                {/* Profile Avatar */}
                                 <div className="size-20 rounded-2xl overflow-hidden border-4 border-[var(--bg-primary)] shadow-xl relative z-10 bg-[var(--bg-secondary)] group-hover:scale-105 transition-transform">
                                   <img 
                                     src={vendor.vendor_id?.user_id?.branding?.logo || vendor.vendor_id?.user_id?.avatar || '/logo-white-main.png'} 
@@ -1037,7 +924,7 @@ export default function AccountPageClient() {
 
                                 <div className="mt-6 pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                                   <div className="flex flex-col items-start gap-1">
-                                    <span className="text-[7px] font-bold text-[var(--text-secondary)]/40 tracking-[0.3em] ">Status</span>
+                                    <span className="text-[8px] font-bold text-[var(--text-secondary)]/40 tracking-tight">Status</span>
                                     <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1 ">
                                       <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Active
                                     </span>
@@ -1060,7 +947,7 @@ export default function AccountPageClient() {
               {activeTab === 'audience' && user?.role === 'vendor' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Store Audience</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Store Audience</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -1102,7 +989,7 @@ export default function AccountPageClient() {
               {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Story Management</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Story Management</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
                   <StatusManager />
@@ -1112,7 +999,7 @@ export default function AccountPageClient() {
               {activeTab === 'notifications' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-[0.4em]  text-[var(--accent)] shadow-sm">Signal Parameters</h3>
+                    <h3 className="text-[10px] md:text-[11px] font-bold tracking-tighter text-[var(--accent)] shadow-sm">Signal Parameters</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
@@ -1126,8 +1013,6 @@ export default function AccountPageClient() {
                   </div>
                 </div>
               )}
-
-              {/* Add other tabs as needed - they can follow the same pattern */}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1136,7 +1021,7 @@ export default function AccountPageClient() {
   );
 }
 
-function FormField({ label, value, onChange, icon: Icon, placeholder, disabled = false, textarea = false }) {
+function FormField({ label, value, onChange, icon: Icon, placeholder, disabled = false, textarea = false, type = "text" }) {
   return (
     <div>
       <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</label>
@@ -1151,7 +1036,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
         />
       ) : (
         <input
-          type="text"
+          type={type}
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}

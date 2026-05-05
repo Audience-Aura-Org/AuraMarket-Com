@@ -2,26 +2,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Wallet, CheckCircle2, XCircle, Clock, AlertCircle, Loader2,
-  RefreshCw, Search, User, Users, ChevronRight, ShieldCheck, Lock,
-  Zap, RotateCcw, Copy, Phone, Building2, Tag, Globe
+  Wallet, XCircle, Loader2,
+  RefreshCw, Search, User, Users, ChevronRight, ShieldCheck,
+  Zap, RotateCcw, Copy, Globe, Clock, AlertCircle, CheckCircle2
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import { fmt, STATUS_CONFIG, getStatusConfig, getMethodIcon } from '@/utils/adminFinance';
 
-const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
-
-const STATUS = {
-  pending:          { cls: 'bg-amber-500/10 text-amber-500 border-amber-500/20',   icon: Clock },
-  approved:         { cls: 'bg-blue-500/10 text-blue-500 border-blue-500/20',      icon: Zap },
-  completed:        { cls: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CheckCircle2 },
-  rejected:         { cls: 'bg-red-500/10 text-red-500 border-red-500/20',         icon: XCircle },
-  failed:           { cls: 'bg-red-500/10 text-red-500 border-red-500/20',         icon: XCircle },
-  processing_error: { cls: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: AlertCircle },
-};
-
-const METHOD_ICON = { momo: Phone, bank: Building2, eversend: Tag };
+// Map STATUS_CONFIG shape to the local `cls` string format used in this page
+const STATUS = Object.fromEntries(
+  Object.entries(STATUS_CONFIG).map(([k, v]) => [
+    k, { cls: `${v.bg} ${v.color} ${v.border}`, icon: v.icon }
+  ])
+);
 
 function KPI({ title, value, icon: Icon, color, sub }) {
   const c = { fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)]', blue: 'bg-indigo-500/10 text-indigo-500', emerald: 'bg-emerald-500/10 text-emerald-500', amber: 'bg-amber-500/10 text-amber-500' };
@@ -43,7 +39,7 @@ function DetailDrawer({ wr, onClose, onApprove, onReject, onRecheck, processing 
 
   const S = STATUS[wr.status] || STATUS.pending;
   const SIcon = S.icon;
-  const MIcon = METHOD_ICON[wr.withdrawalMethod] || Wallet;
+  const MIcon = getMethodIcon(wr.withdrawalMethod) || Wallet;
   const rd = wr.recipientDetails || {};
 
   const copy = (text) => { navigator.clipboard.writeText(text); };
@@ -204,7 +200,6 @@ export default function AdminWithdrawalsPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [search, setSearch]     = useState('');
   const [processing, setProc]   = useState(null);
-  const [toast, setToast]       = useState(null);
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
@@ -214,10 +209,6 @@ export default function AdminWithdrawalsPage() {
 
   if (!user || user.role !== 'admin') return null;
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 4500);
-  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -230,9 +221,9 @@ export default function AdminWithdrawalsPage() {
         setWithdrawals(res.data.data.withdrawals || []);
         setPendingCount(res.data.data.pendingCount || 0);
       }
-    } catch { showToast('Failed to load withdrawals', 'error'); }
+    } catch { toast.error('Failed to load withdrawals'); }
     finally { setLoading(false); }
-  }, [filter]);
+  }, [filter, roleFilter]);
 
   useEffect(() => { load(); }, [load, filter, roleFilter]);
 
@@ -240,24 +231,24 @@ export default function AdminWithdrawalsPage() {
     setProc('approve');
     try {
       const res = await api.post(`/withdrawals/admin/${id}/approve`);
-      showToast(res.data.message || 'Approved. Payout sent to Eversend.');
+      toast.success(res.data.message || 'Approved. Payout sent to Eversend.');
       setSelected(null);
       load();
     } catch (e) {
-      showToast(e?.response?.data?.message || 'Approval failed.', 'error');
+      toast.error(e?.response?.data?.message || 'Approval failed.');
     } finally { setProc(null); }
   };
 
   const handleReject = async (id, reason) => {
-    if (!reason || reason.trim().length < 5) { showToast('Rejection reason too short.', 'error'); return; }
+    if (!reason || reason.trim().length < 5) { toast.error('Rejection reason too short.'); return; }
     setProc('reject');
     try {
       await api.post(`/withdrawals/admin/${id}/reject`, { rejectionReason: reason });
-      showToast('Request rejected. User notified.');
+      toast.success('Request rejected. User notified.');
       setSelected(null);
       load();
     } catch (e) {
-      showToast(e?.response?.data?.message || 'Rejection failed.', 'error');
+      toast.error(e?.response?.data?.message || 'Rejection failed.');
     } finally { setProc(null); }
   };
 
@@ -265,12 +256,12 @@ export default function AdminWithdrawalsPage() {
     setProc('recheck');
     try {
       const res = await api.post(`/withdrawals/admin/${id}/recheck`);
-      showToast(res.data.message || 'Status synced from Eversend.');
+      toast.success(res.data.message || 'Status synced from Eversend.');
       load();
       // Refresh selected drawer
       setSelected(prev => prev ? { ...prev, ...res.data.data?.withdrawal } : null);
     } catch (e) {
-      showToast(e?.response?.data?.message || 'Recheck failed.', 'error');
+      toast.error(e?.response?.data?.message || 'Recheck failed.');
     } finally { setProc(null); }
   };
 
@@ -284,17 +275,6 @@ export default function AdminWithdrawalsPage() {
 
   return (
     <>
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ y: -20, opacity: 0, x: '-50%' }} animate={{ y: 0, opacity: 1, x: '-50%' }} exit={{ y: -20, opacity: 0, x: '-50%' }}
-            className={`fixed top-20 left-1/2 z-[500] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-sm font-bold ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
-            {toast.type === 'error' ? <AlertCircle className="size-4" /> : <CheckCircle2 className="size-4" />}
-            {toast.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Detail Drawer */}
       <AnimatePresence>
         {selected && (
@@ -382,7 +362,7 @@ export default function AdminWithdrawalsPage() {
             ) : displayed.map(w => {
               const S = STATUS[w.status] || STATUS.pending;
               const SIcon = S.icon;
-              const MIcon = METHOD_ICON[w.withdrawalMethod] || Wallet;
+              const MIcon = getMethodIcon(w.withdrawalMethod) || Wallet;
               return (
                 <div key={w._id} onClick={() => setSelected(w)}
                   className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">

@@ -303,18 +303,22 @@ export default function VendorDashboard() {
               </div>
               <div className="space-y-5 flex-1">
                 {orders.slice(0, 4).map((order, i) => (
-                   <div key={order._id || i} className="flex items-center gap-4 group cursor-pointer">
+                   <Link 
+                      key={order._id || i} 
+                      href={`/vendor/orders?orderId=${order._id}`}
+                      className="flex items-center gap-4 group cursor-pointer hover:bg-[var(--accent)]/5 p-2 rounded-xl transition-all"
+                   >
                     <div className="size-10 rounded-full glass-panel overflow-hidden border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] font-bold text-sm bg-[var(--bg-secondary)]">
-                      {order.user_id?.name?.[0] || order.customer?.[0] || 'C'}
+                      {order.customer_id?.name?.[0] || 'C'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-[var(--text-primary)] truncate tracking-tighter">{order.items?.[0]?.product_id?.name || 'Order Item'}</p>
+                      <p className="text-sm font-bold text-[var(--text-primary)] truncate tracking-tighter">{order.products?.[0]?.name || 'Order Item'}</p>
                       <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
                         #{order._id?.slice(-5) || i} • {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : '—'}
                       </p>
                     </div>
-                    <p className="text-sm font-bold text-[var(--text-primary)]">{order.total_price ? `${Number(order.total_price).toLocaleString()} XAF` : '—'}</p>
-                  </div>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</p>
+                  </Link>
                 ))}
                 {orders.length === 0 && (
                   <div className="flex-1 flex items-center justify-center text-[var(--text-secondary)] text-sm">No orders yet</div>
@@ -347,29 +351,33 @@ export default function VendorDashboard() {
                 </thead>
                 <tbody className="divide-y divide-[var(--glass-border)]">
                   {orders.slice(0, 5).map((order, i) => {
-                    const status = order.status || 'processing';
+                    const status = order.order_status || 'processing';
                     const statusStyles = {
                       processing: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',
                       shipped: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
                       delivered: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
                     };
                     return (
-                      <tr key={order._id || i} className="hover:bg-[var(--accent)]/5 transition-colors">
+                      <tr 
+                        key={order._id || i} 
+                        className="hover:bg-[var(--accent)]/5 transition-colors cursor-pointer"
+                        onClick={() => window.location.href = `/vendor/orders?orderId=${order._id}`}
+                      >
                         <td className="px-6 py-4 flex items-center gap-3">
                           <div className="size-8 rounded bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] font-bold text-xs">
-                            {order.items?.[0]?.product_id?.name?.[0] || 'P'}
+                            {order.products?.[0]?.name?.[0] || 'P'}
                           </div>
-                          <span className="text-sm text-[var(--text-primary)] font-medium">{order.items?.[0]?.product_id?.name || 'Product'}</span>
+                          <span className="text-sm text-[var(--text-primary)] font-medium">{order.products?.[0]?.name || 'Product'}</span>
                         </td>
                         <td className="px-6 py-4 text-xs text-[var(--text-secondary)]">#{order._id?.slice(-6) || i}</td>
-                        <td className="px-6 py-4 text-sm text-[var(--text-primary)]">{order.user_id?.name || '—'}</td>
+                        <td className="px-6 py-4 text-sm text-[var(--text-primary)]">{order.customer_id?.name || '—'}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[11px] font-bold tracking-tight ${statusStyles[status] || statusStyles.processing}`}>
                             <span className="size-1.5 rounded-full bg-current animate-pulse" />
                             {status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm font-bold text-[var(--text-primary)]">{order.total_price ? `${Number(order.total_price).toLocaleString()} XAF` : '—'}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-[var(--text-primary)]">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</td>
                         <td className="px-6 py-4 text-right">
                           <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                             <span className="material-symbols-outlined">more_horiz</span>

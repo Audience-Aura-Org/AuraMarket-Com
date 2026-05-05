@@ -76,6 +76,8 @@ const getSearchCompatibleFirms = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getFirmShipments = async (req, res, next) => {
   try {
+    const { status, search, page = 1, limit = 50 } = req.query;
+    
     let firm = await LogisticsCompany.findOne({ user_id: req.user._id });
     
     // Auto-provision stub if missing for a logistics user
@@ -92,12 +94,33 @@ const getFirmShipments = async (req, res, next) => {
       console.log(`📡 Auto-provisioned missing profile for user ${req.user._id} during fetch.`);
     }
 
-    const shipments = await Shipment.find({ logistics_id: firm._id })
-      .populate('order_id', 'total_amount products tracking_number createdAt')
-      .populate('vendor_id', 'store_name phone')
-      .sort('-createdAt');
+    const query = { logistics_id: firm._id };
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    if (search) {
+      query.tracking_code = { $regex: search, $options: 'i' };
+    }
 
-    res.status(200).json({ success: true, count: shipments.length, data: { shipments } });
+    const total = await Shipment.countDocuments(query);
+
+    const shipments = await Shipment.find(query)
+      .populate('order_id', 'total_amount products tracking_number createdAt')
+      .populate('vendor_id', 'store_name phone branding.logo')
+      .sort('-createdAt')
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    res.status(200).json({ 
+      success: true, 
+      count: shipments.length,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+      data: { shipments } 
+    });
   } catch (error) {
     next(error);
   }
@@ -165,65 +188,60 @@ const modifyShipmentStatus = async (req, res, next) => {
         order.order_status = 'delivered';
 
         // Pay vendor on delivery (COD)
+        // Pay vendor on delivery (COD)
         if (order.payment_method === 'pay_on_delivery' && order.payment_status === 'pending') {
           const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
           if (vendorAccount) {
             const vendorUser = await User.findById(vendorAccount.user_id).session(session);
             if (vendorUser) {
-              vendorUser.wallet_balance += order.total_amount;
+              const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
+                ? order.subtotal
+                : order.total_amount;
+
+              vendorUser.wallet_balance += vendorBaseAmount;
               await vendorUser.save({ session });
 
               await Transaction.create([{
                 user_id:     vendorUser._id,
                 type:        'payout',
-                amount:      order.total_amount,
+                amount:      vendorBaseAmount,
                 reference:   generateTxRef(),
                 status:      'completed',
                 description: `Payment on delivery settled (Order #${order._id.toString().slice(-6).toUpperCase()})`,
                 order_id:    order._id,
-              }], { session });
+              }], { session, ordered: true });
 
               order.payment_status = 'paid';
             }
           }
         }
 
-        // Auto-release escrow
-        if (order.payment_method === 'escrow' && order.payment_status === 'paid') {
-          const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
-          if (escrow && escrow.status === 'held') {
-            const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
-            if (!vendorAccount) throw new Error('Vendor account not found for escrow release.');
+        // ── Pay Logistics Firm (for digitally paid orders) ────────────────
+        if (order.payment_method !== 'pay_on_delivery' && order.payment_status === 'paid' && order.shipping_fee > 0) {
+          const logisticsUser = await User.findById(firm.user_id).session(session);
+          if (logisticsUser) {
+            logisticsUser.wallet_balance += order.shipping_fee;
+            await logisticsUser.save({ session });
 
-            const vendorUser = await User.findById(vendorAccount.user_id).session(session);
-            if (!vendorUser) throw new Error('Vendor wallet owner not found.');
-
-            const settings    = await PlatformSettings.getSettings();
-            const platformFee = (escrow.amount * settings.commission_rate) / 100;
-            const vendorPayout = escrow.amount - platformFee;
-
-            vendorUser.wallet_balance += vendorPayout;
-            await vendorUser.save({ session });
-
-            settings.platform_wallet_balance += platformFee;
-            await settings.save({ session });
-
-            await Transaction.findOneAndUpdate(
-              { order_id: order._id, user_id: vendorUser._id, type: 'payout', status: 'pending' },
-              {
-                status:      'completed',
-                description: `Escrow auto-released after delivery (Order #${order._id.toString().slice(-6).toUpperCase()})`,
-              },
-              { session }
-            );
-
-            escrow.status       = 'released';
-            escrow.release_date = new Date();
-            await escrow.save({ session });
-
-            order.order_status = 'completed';
-            orderCompleted = true;
+            await Transaction.create([{
+              user_id:     logisticsUser._id,
+              type:        'payout',
+              amount:      order.shipping_fee,
+              reference:   `LOG-${generateTxRef()}`,
+              status:      'completed',
+              description: `Delivery payout for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+              order_id:    order._id,
+              gateway:     'platform'
+            }], { session, ordered: true });
+            
+            console.log(`📦 Logistics user ${logisticsUser._id} credited ${order.shipping_fee} for delivery.`);
           }
+        }
+
+        // REQUIRE MUTUAL AGREEMENT: Notify both to confirm release
+        if (order.escrow_enabled && order.payment_status === 'paid') {
+          // Status stays 'delivered' until both parties confirm in Escrow Controller
+          console.log(`📦 Order #${order._id} delivered. Awaiting mutual escrow confirmation for Vendor payload.`);
         }
 
         await order.save({ session });

@@ -283,9 +283,11 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             <button onClick={() => {
               const missing =
                 !form.firstName || !form.lastName ||
-                (method.id === 'momo' && !form.phoneNumber) ||
-                (method.id === 'bank' && (!form.bankCode || !form.accountNumber)) ||
-                (method.id === 'eversend' && !form.eversendTag);
+                (!selectedBeneficiary && (
+                  (method.id === 'momo' && !form.phoneNumber) ||
+                  (method.id === 'bank' && (!form.bankCode || !form.accountNumber)) ||
+                  (method.id === 'eversend' && !form.eversendTag)
+                ));
               if (missing) { setError('Please fill all required fields.'); return; }
               setError(''); setStep(4);
             }}

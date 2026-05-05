@@ -59,7 +59,7 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
     status: 'completed',
     description: `Platform Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
     order_id: order._id,
-  }], { session });
+  }], { session, ordered: true });
 
   // 6. Update Escrow status
   escrow.status = 'released';

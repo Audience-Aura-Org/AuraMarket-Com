@@ -60,6 +60,31 @@ const getWalletBalance = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getTransactionHistory = async (req, res, next) => {
   try {
+    // ── AUTO-FAIL OLD PENDING EVERSEND DEPOSITS ───────────────────────────────
+    try {
+      // If a deposit is stuck in 'pending' for > 1 hour, it's likely expired or 
+      // failed at the gateway without a webhook/callback. Mark as failed.
+      const ONE_HOUR = 60 * 60 * 1000;
+      const cutoff = new Date(Date.now() - ONE_HOUR);
+
+      await Transaction.updateMany(
+        {
+          user_id: req.user._id,
+          gateway: 'eversend',
+          type: 'deposit',
+          status: 'pending',
+          createdAt: { $lt: cutoff }
+        },
+        {
+          $set: { status: 'failed' }
+        }
+      );
+    } catch (autoFailErr) {
+      console.error('[Auto-Fail] Error updating stale transactions:', autoFailErr.message);
+      // We continue to fetch the history even if auto-fail fails
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const transactions = await Transaction.find({ user_id: req.user._id })
       .sort('-createdAt');
 
@@ -82,26 +107,24 @@ const initiateDeposit = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid deposit amount.' });
     }
 
-    // In a real flow, this initiates a Paystack/Flutterwave session
-    // For now, we simulate a direct success:
+    // Create a pending transaction
     const transaction = await Transaction.create({
       user_id: req.user._id,
       type: 'deposit',
       amount,
       reference: generateTxRef(),
-      status: 'completed', // Simulated auto-completion
-      description: 'Wallet deposit via Card/Mobile Money',
+      status: 'pending', // No longer auto-completing
+      description: 'Wallet deposit (Initialized)',
+      gateway: 'manual_simulation'
     });
-
-    // Update User Wallet
-    const user = await User.findById(req.user._id);
-    user.wallet_balance += amount;
-    await user.save();
 
     res.status(200).json({
       success: true,
-      message: 'Deposit successful (Simulated)',
-      data: { transaction, new_balance: user.wallet_balance },
+      message: 'Deposit initialized. Balance will be updated once collection is confirmed.',
+      data: { 
+        transaction, 
+        instruction: 'Use the verify endpoint or wait for webhook to complete this transaction.' 
+      },
     });
   } catch (error) {
     next(error);
@@ -156,7 +179,7 @@ const requestWithdrawal = async (req, res, next) => {
       status: 'pending', // Requires admin approval
       description: `Withdrawal to ${methodLabel}${accountRef}`,
       gateway_response: { method, details, requested_at: new Date() } // Store structured data
-    }], { session });
+    }], { session, ordered: true });
 
     await session.commitTransaction();
     session.endSession();
@@ -339,25 +362,31 @@ const payOrderWithWallet = async (req, res, next) => {
       status: 'completed',
       description: `Payment for Order #${order._id.toString().slice(-6).toUpperCase()}`,
       order_id: order._id,
-    }], { session });
+    }], { session, ordered: true });
 
     // 3. Mark order as Paid
     order.payment_status = 'paid';
     
     // 4. Handle Funds (Escrow vs Direct)
     const settings = await PlatformSettings.getSettings();
-    const platformFee = (order.total_amount * settings.commission_rate) / 100;
-    const vendorPayout = order.total_amount - platformFee;
+    
+    // Split payment: Logistics fee is removed from the vendor's payout base amount
+    const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id) 
+      ? order.subtotal 
+      : order.total_amount;
+
+    const platformFee = (vendorBaseAmount * settings.commission_rate) / 100;
+    const vendorPayout = vendorBaseAmount - platformFee;
 
     if (order.escrow_enabled) {
       // Create Escrow Record (Held)
       await Escrow.create([{
         order_id: order._id,
         vendor_id: order.vendor_id,
-        customer_id: order.customer_id,
-        amount: order.total_amount,
+        buyer_id: order.customer_id,
+        amount: vendorBaseAmount,
         status: 'held'
-      }], { session });
+      }], { session, ordered: true });
 
       // Log pending payout for Vendor
       const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
@@ -369,10 +398,9 @@ const payOrderWithWallet = async (req, res, next) => {
         status: 'pending',
         description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow)`,
         order_id: order._id,
-      }], { session });
+        gateway: 'escrow'
+      }], { session, ordered: true });
 
-      order.order_status = 'placed'; // Reset to placed while in escrow? 
-      // Actually, if paid, it should be processing.
       order.order_status = 'processing';
     } else {
       // Direct Payout (No Escrow)
@@ -396,7 +424,7 @@ const payOrderWithWallet = async (req, res, next) => {
         status: 'completed',
         description: `Direct payout for Order #${order._id.toString().slice(-6).toUpperCase()} (No Escrow)`,
         order_id: order._id,
-      }], { session });
+      }], { session, ordered: true });
 
       // Log Platform Revenue
       await Transaction.create([{
@@ -407,7 +435,7 @@ const payOrderWithWallet = async (req, res, next) => {
         status: 'completed',
         description: `Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
         order_id: order._id,
-      }], { session });
+      }], { session, ordered: true });
 
       order.order_status = 'processing';
     }

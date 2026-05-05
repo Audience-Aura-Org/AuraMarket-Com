@@ -1,13 +1,15 @@
 "use client";
 
-import { Suspense } from 'react';
-import AccountPageClient from '@/components/account/AccountPageClient';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
-export default function SettingsPage() {
-  return (
-    <Suspense fallback={<LoadingSpinner fullScreen />}>
-      <AccountPageClient />
-    </Suspense>
-   );
+export default function SettingsRedirect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/profile?tab=general');
+  }, [router]);
+
+  return <LoadingSpinner fullScreen />;
 }

@@ -33,8 +33,16 @@ const EscrowSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['held', 'released', 'refunded'],
+      enum: ['held', 'pending_release', 'released', 'refunded', 'disputed'],
       default: 'held',
+    },
+    customer_confirmed: {
+      type: Boolean,
+      default: false,
+    },
+    vendor_confirmed: {
+      type: Boolean,
+      default: false,
     },
     release_date: {
       type: Date,

@@ -3,36 +3,16 @@
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { 
-  CreditCard, Clock, User, Filter, 
-  Search, RefreshCw, ChevronDown, ChevronUp,
-  AlertCircle, CheckCircle2, XCircle, 
-  ArrowUpRight, ShoppingBag, Globe, 
+  CreditCard, Clock, User,
+  Search, RefreshCw,
+  XCircle, Globe, 
   Database, Loader2, Zap
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-
-function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
-
-const STATUS_CONFIG = {
-  completed: { label: 'Completed', color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: CheckCircle2 },
-  success:   { label: 'Success',   color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: CheckCircle2 },
-  pending:   { label: 'Pending',   color: 'text-amber-500',   bg: 'bg-amber-500/10',   icon: Clock },
-  failed:    { label: 'Failed',    color: 'text-rose-500',    bg: 'bg-rose-500/10',    icon: XCircle },
-  rejected:  { label: 'Rejected',  color: 'text-rose-600',    bg: 'bg-rose-600/10',    icon: XCircle },
-  cancelled: { label: 'Cancelled', color: 'text-gray-500',    bg: 'bg-gray-500/10',    icon: XCircle },
-};
-
-const TYPE_CONFIG = {
-  deposit:        { label: 'Deposit',      icon: Zap,            color: 'text-blue-500' },
-  payment:        { label: 'Order Pay',    icon: ShoppingBag,    color: 'text-purple-500' },
-  withdrawal:     { label: 'Withdrawal',   icon: ArrowUpRight,   color: 'text-orange-500' },
-  refund:         { label: 'Refund',       icon: RefreshCw,      color: 'text-rose-500' },
-  escrow_release: { label: 'Escrow Rel',   icon: Globe,          color: 'text-emerald-500' },
-  payout:         { label: 'Vendor Payout',icon: CreditCard,     color: 'text-indigo-500' },
-};
+import { fmt, STATUS_CONFIG, TYPE_CONFIG } from '@/utils/adminFinance';
 
 export default function AdminTransactionsPage() {
   const [transactions, setTransactions] = useState([]);

@@ -326,7 +326,7 @@ export default function VendorWalletPage() {
            </div>
 
            <div className="min-h-[400px]">
-              {tab === 'history' ? (
+              {tab === 'history' && (
                 <div className="space-y-2">
                    {loading ? <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div> : transactions.length === 0 ? (
                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No transaction data available</div>
@@ -346,7 +346,9 @@ export default function VendorWalletPage() {
                      </div>
                    ))}
                 </div>
-              ) : tab === 'escrow' ? (
+              )}
+
+              {tab === 'escrow' && (
                  <div className="space-y-4">
                     <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
                        <Shield className="size-5 text-amber-500" />
@@ -368,20 +370,9 @@ export default function VendorWalletPage() {
                       </div>
                     ))}
                  </div>
-                 </div>
-               ) : tab === 'ledger' ? (
-                 <div className="space-y-4">
-                    <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-4">
-                       <History className="size-5 text-indigo-500" />
-                       <p className="text-[11px] font-bold text-indigo-600/70  leading-relaxed tracking-tight">External settlement ledger from Eversend. Shows all inbound collections and outbound payouts.</p>
-                    </div>
-                    {/* Data will be fetched from /api/payments/eversend/transactions */}
-                    <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">
-                       <p className="text-sm font-bold mb-2">Detailed Settlement History</p>
-                       <p className="text-[10px] opacity-60">This view integrates directly with your Eversend treasury.</p>
-                    </div>
-                 </div>
-               ) : (
+              )}
+
+              {tab === 'withdrawals' && (
                  <div className="space-y-2">
                     {withdrawalRequests.length === 0 ? (
                       <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No withdrawal requests found</div>
@@ -407,7 +398,7 @@ export default function VendorWalletPage() {
                       </div>
                     ))}
                  </div>
-               )}
+              )}
            </div>
         </div>
       </div>

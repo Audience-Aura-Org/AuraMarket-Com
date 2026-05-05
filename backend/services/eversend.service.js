@@ -62,7 +62,6 @@ const eversendClient = async (force = false) => {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'AuraMarket/1.0.0',
     },
   });
 };
@@ -382,6 +381,20 @@ const getTransactions = async (filters = {}) => {
 module.exports = {
   getAccessToken,
   withAutoRefresh,
+  // Wallets
+  getWallets,
+  getWalletById,
+  // Collections
+  initiateCollection,
+  initiateNGNCollection,
+  getTransactionStatus,
+  getCollectionStatus, // Legacy alias
+  // Payouts
+  getPayoutQuotation,
+  executeMomoPayout,
+  executeBankPayout,
+  executeEversendPayout,
+  executeBeneficiaryPayout,
   // Webhook
   verifyWebhookSignature,
   // Beneficiaries

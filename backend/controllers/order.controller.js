@@ -176,7 +176,7 @@ const createOrder = async (req, res, next) => {
       escrow_enabled:  escrow_enabled !== undefined ? escrow_enabled : true,
     };
 
-    const [createdOrder] = await Order.create([orderData], { session });
+    const [createdOrder] = await Order.create([orderData], { session, ordered: true });
 
     // 5. Create shipment for logistics_partner orders (POD or wallet)
     let logisticsCompForNotify = null;
@@ -293,10 +293,14 @@ const payDirectly = async (req, res, next) => {
     const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
     const vendorUser    = await User.findById(vendorAccount.user_id).session(session);
 
+    const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
+      ? order.subtotal
+      : order.total_amount;
+
     // Transfer Funds directly to Vendor (No Escrow)
     user.wallet_balance -= order.total_amount;
     await user.save({ session });
-    vendorUser.wallet_balance += order.total_amount; 
+    vendorUser.wallet_balance += vendorBaseAmount; 
     await vendorUser.save({ session });
 
     // Log Transactions
@@ -311,12 +315,12 @@ const payDirectly = async (req, res, next) => {
     }, {
       user_id:     vendorUser._id,
       type:        'payout',
-      amount:      order.total_amount,
+      amount:      vendorBaseAmount,
       reference:   `EP-${Date.now()}`,
       status:      'completed',
       description: `Incoming Direct Payment (Order #${order._id.toString().slice(-6).toUpperCase()})`,
       order_id:    order._id
-    }], { session });
+    }], { session, ordered: true });
 
     order.payment_status = 'paid';
     order.order_status   = 'processing';
@@ -701,7 +705,7 @@ const createOrdersFromCart = async (req, res, next) => {
         delivery_description,
         payment_status: 'pending',
         order_status: 'placed'
-      }], { session });
+      }], { session, ordered: true });
 
       createdOrderIds.push(newOrder._id);
 

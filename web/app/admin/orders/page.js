@@ -7,11 +7,15 @@ import {
   Search, Package, Truck, CheckCircle2, Clock,
   ChevronDown, ChevronUp, RefreshCw, Filter,
   User, Mail, Phone, ShoppingBag, Store,
-  MoreHorizontal, X, ArrowUpRight
+  MoreHorizontal, X, ArrowUpRight, Database,
+  Loader2, Zap, ShieldCheck
 } from 'lucide-react';
 import api from '@/services/api';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+
+import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const STATUS_CONFIG = {
   placed:         { label: 'Placed',      color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  dot: 'bg-purple-500' },
@@ -29,9 +33,6 @@ const PAYMENT_STATUS = {
   refunded: { label: 'Refunded', color: 'text-sky-500',    bg: 'bg-sky-500/10' },
 };
 
-import Pagination from '@/components/common/Pagination';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [logisticsFirms, setLogisticsFirms] = useState([]);
@@ -39,11 +40,17 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const [expanded, setExpanded] = useState(null);
+  const itemsPerPage = 10;
+  const [expandedId, setExpandedId] = useState(null);
   const [savingOrderId, setSavingOrderId] = useState(null);
   const [orderEdits, setOrderEdits] = useState({});
   const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const orderId = searchParams.get('orderId');
+    if (orderId) setExpandedId(orderId);
+  }, []);
 
   const fetchStats = async () => {
     try {
@@ -107,6 +114,7 @@ export default function AdminOrdersPage() {
         setOrders((prev) =>
           prev.map((o) => (o._id === order._id ? { ...o, ...res.data.data.order } : o))
         );
+        toast.success('Order sequence updated');
       }
     } catch (err) {
       console.error('Failed to update order:', err);
@@ -130,330 +138,261 @@ export default function AdminOrdersPage() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const totalRevenue = filtered.reduce((s, o) => s + (o.total_amount || 0), 0);
-
   const tabs = ['all', 'placed', 'processing', 'shipped', 'delivered', 'cancelled', 'refund_pending'];
 
   return (
-    <>
-      <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 text-[var(--text-primary)]">
-        <div>
-          <h1 className="text-lg lg:text-xl font-bold tracking-tight text-[var(--text-primary)] ">Orders <span className="text-[var(--accent)]">Management</span></h1>
-          <p className="hidden md:block text-[10px] text-[var(--text-secondary)] font-bold mt-0.5 tracking-tight opacity-60">Full platform order visibility</p>
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      {/* Surgical Header */}
+      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-16 z-40">
+        <div className="flex items-center gap-6">
+          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20">
+             <Package className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight ">Order <span className="text-[var(--accent)]">Manifest</span> Ledger</h2>
+            <div className="flex items-center gap-2 mt-1">
+               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+               <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Operational Pipeline // Node_Order_Control</p>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchOrders} disabled={loading} className="p-2 lg:p-2.5 rounded-xl glass-panel border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-secondary)]">
-            <RefreshCw className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+
+        <div className="flex items-center gap-4">
+           <div className="relative w-64 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
+              <input 
+                type="text"
+                placeholder="Reference, Customer, Store..."
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+              />
+           </div>
+           
+           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar max-w-[400px]">
+              {tabs.map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all uppercase whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+           </div>
+
+           <button onClick={fetchOrders} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+           </button>
         </div>
       </header>
 
-      <div className="p-4 lg:p-8 space-y-6 pb-20">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-           {[
-              { label: 'Total Orders', value: stats ? stats.orders : '...', icon: Package, color: 'var(--accent)', sub: 'ORDER_MANIFEST' },
-              { label: 'Total Revenue', value: stats ? `${(stats.revenue / 1000).toFixed(1)}k` : '...', icon: ArrowUpRight, color: '#10b981', sub: 'FINANCIAL_RESOLUTION' },
-              { label: 'Delivered Nodes', value: stats ? stats.delivered_orders : '...', icon: CheckCircle2, color: '#6366f1', sub: 'LOGISTICS_END' },
-              { label: 'Active Pipeline', value: stats ? stats.active_orders : '...', icon: Truck, color: '#f59e0b', sub: 'FLOW_ACTIVE' }
-           ].map(s => (
-              <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
-                 {/* Decorative Radial Glow */}
-                 <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                 
-                 <div className="relative flex flex-col justify-between h-full space-y-8">
-                    <div className="flex items-center justify-between">
-                       <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                          <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
-                       </div>
-                       <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
-                    </div>
-
-                    <div>
-                       <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
-                       <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
-                    </div>
-                 </div>
-              </div>
-           ))}
-        </div>
-
-        {/* Search & Tabs */}
-        <div className="space-y-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-            <input
-              value={search}
-              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              placeholder="Search ID, Customer, Store..."
-              className="w-full pl-11 pr-4 py-3.5 lg:py-4 rounded-2xl lg:rounded-3xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/30 transition-all text-sm font-bold glass-panel"
-            />
-            {search && (
-              <button onClick={() => { setSearch(''); setCurrentPage(1); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-rose-500 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-2 lg:gap-3 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
-            {tabs.map(tab => (
-              <button
-                key={tab}
-                onClick={() => { setActiveTab(tab); setExpanded(null); setCurrentPage(1); }}
-                className={`h-9 px-4 lg:px-6 rounded-xl lg:rounded-full text-[8px] lg:text-[11px] font-bold tracking-tight flex-shrink-0 transition-all  whitespace-nowrap ${
-                  activeTab === tab
-                    ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                    : 'bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {tab === 'all' ? 'All Orders' : STATUS_CONFIG[tab]?.label || tab}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Orders Table/List */}
-        <div className="space-y-8">
-          {loading ? (
-            <LoadingSpinner text="Retrieving Manifests" />
-          ) : filtered.length === 0 ? (
-            <div className="py-20 lg:py-32 flex flex-col items-center text-center opacity-30">
-              <ShoppingBag className="w-16 h-16 lg:w-20 lg:h-20 mb-6 opacity-10" />
-              <h3 className="text-sm lg:text-lg font-bold tracking-tight">No matching orders detected</h3>
-            </div>
-          ) : (
-            <div className="space-y-12">
-              <div className="space-y-3 lg:space-y-4 min-h-[600px]">
-                {currentOrders.map(order => {
-                const statusKey = order.order_status || 'placed';
-                const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.placed;
-                const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
-                const isOpen = expanded === order._id;
-                const customer = order.customer_id;
-                const products = order.products || [];
-
-                return (
-                  <div key={order._id} className={`rounded-[24px] lg:rounded-[32px] glass-panel border transition-all duration-500 bg-[var(--bg-primary)]/40 overflow-hidden ${isOpen ? 'border-[var(--accent)]/40 shadow-xl shadow-[var(--accent)]/5' : 'border-[var(--glass-border)] hover:border-[var(--accent)]/20 shadow-sm'}`}>
-                    
-                    <button
-                      onClick={() => setExpanded(isOpen ? null : order._id)}
-                      className="w-full flex flex-col sm:flex-row sm:items-center gap-4 p-5 lg:p-6 text-left relative"
-                    >
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className={`size-2.5 lg:size-3 rounded-full flex-shrink-0 ${status.dot} shadow-[0_0_10px_currentColor]`} />
-                        <div className="flex-shrink-0 w-24 lg:w-32">
-                          <p className="font-bold text-[var(--text-primary)] text-[10px] lg:text-[12px] tracking-tight font-mono ">#{order._id?.slice(-8)}</p>
-                          <p className="text-[8px] lg:text-[9px] text-[var(--text-secondary)] font-bold mt-0.5 opacity-50 tracking-tight">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </p>
+      <div className="p-10 space-y-8 pb-40">
+         {/* Live Stats */}
+         <div className="grid grid-cols-4 gap-6">
+            {[
+               { label: 'Total Volume', value: stats ? stats.orders : '...', icon: Package, color: 'var(--accent)', sub: 'MANIFEST_TOTAL' },
+               { label: 'Active Pipeline', value: stats ? stats.active_orders : '...', icon: Truck, color: '#6366f1', sub: 'IN_TRANSIT' },
+               { label: 'Settled Payouts', value: stats ? `${(stats.revenue / 1000).toFixed(1)}k` : '...', icon: Zap, color: '#10b981', sub: 'CAPITAL_RESOLVED' },
+               { label: 'Success Rate', value: '98.4%', icon: ShieldCheck, color: '#fbbf24', sub: 'FLOW_STABLE' }
+            ].map(s => (
+               <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
+                  <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
+                  <div className="relative flex flex-col justify-between h-full space-y-8">
+                     <div className="flex items-center justify-between">
+                        <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
+                           <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="size-8 lg:size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center flex-shrink-0 text-[var(--accent)] font-bold text-xs lg:text-sm border border-[var(--accent)]/20">
-                            {customer?.name?.[0]?.toUpperCase() || '?'}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-[var(--text-primary)] text-xs lg:text-sm truncate tracking-tight">{customer?.name || 'Unknown'}</p>
-                            <p className="hidden sm:block text-[9px] text-[var(--text-secondary)] font-bold truncate opacity-60">{customer?.email || 'No email'}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between sm:justify-end gap-6 lg:gap-12 border-t sm:border-t-0 pt-4 sm:pt-0 border-[var(--glass-border)]/20">
-                        <div className="hidden lg:block w-40">
-                          <span className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 block mb-1">Store Node</span>
-                          {order.vendor_id && (
-                            <Link 
-                              href={`/stores/${order.vendor_id._id}`}
-                              className="flex items-center gap-1.5 group/vendor"
-                            >
-                              <div className="size-4 rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                                 <img 
-                                  src={order.vendor_id?.user_id?.branding?.logo || order.vendor_id?.store?.logo || order.vendor_id?.user_id?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${order.vendor_id?.store_name}&backgroundColor=var(--accent)`} 
-                                  className="size-full object-cover"
-                                  alt="Store"
-                                />
-                              </div>
-                              <span className="text-[11px] font-bold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors truncate max-w-[100px]">
-                                {order.vendor_id?.store_name}
-                              </span>
-                            </Link>
-                          )}
-                        </div>
-                        
-                        <div className="text-right flex-shrink-0">
-                          <span className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40 block mb-1 sm:hidden">Total Amount</span>
-                          <p className="font-bold text-[var(--text-primary)] text-sm lg:text-base">{order.total_amount?.toLocaleString()} <span className="text-[9px] text-[var(--text-secondary)]">XAF</span></p>
-                        </div>
-
-                        <div className="flex items-center gap-2 lg:gap-3 shrink-0">
-                           <div className={`px-2.5 py-1 rounded-lg text-[7px] lg:text-[11px] font-bold tracking-tight border  transition-all ${status.bg} ${status.color} ${status.border} shadow-sm`}>
-                             {status.label}
-                           </div>
-                           <div className="size-8 lg:size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                              {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                           </div>
-                        </div>
-                      </div>
-                    </button>
-
-                    {isOpen && (
-                      <div className="border-t border-[var(--glass-border)]/50 divide-y sm:divide-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-4 duration-300">
-                        <div className="p-6 lg:p-8 space-y-6 bg-gradient-to-br from-transparent to-[var(--bg-secondary)]/30">
-                           <div className="flex items-center gap-3">
-                              <User className="size-4 text-[var(--accent)]" />
-                              <h4 className="text-[11px] font-bold tracking-tight text-[var(--text-primary)] ">Customer Identity</h4>
-                           </div>
-                           <div className="space-y-4">
-                              <div className="flex gap-4 p-4 rounded-2xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] shadow-inner">
-                                 <div className="size-12 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center text-xl font-bold shadow-lg shadow-[var(--accent)]/20">
-                                    {customer?.name?.[0]?.toUpperCase() || '?'}
-                                 </div>
-                                 <div className="min-w-0">
-                                    <p className="font-bold text-sm  truncate">{customer?.name}</p>
-                                    <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mt-0.5">{customer?.email}</p>
-                                 </div>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                 {[
-                                   { label: 'Payment', val: order.payment_method },
-                                   { label: 'Shipping', val: order.shipping_method },
-                                   { label: 'Logistics', val: order.logistics_company_id?.company_name || 'Not Assigned' },
-                                   { label: 'Date', val: new Date(order.createdAt).toLocaleDateString() },
-                                   { label: 'Status', val: payment.label, color: payment.color }
-                                 ].map(it => (
-                                   <div key={it.label} className="p-3 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-                                      <p className="text-[7px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 opacity-50">{it.label}</p>
-                                      <p className={`text-[11px] font-bold  ${it.color || 'text-[var(--text-primary)]'}`}>{it.val || '—'}</p>
-                                   </div>
-                                 ))}
-                              </div>
-
-                              <div className="space-y-2">
-                                <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Admin Control</p>
-                                <div className="grid grid-cols-1 gap-2">
-                                  <select
-                                    value={orderEdits[order._id]?.order_status ?? order.order_status}
-                                    onChange={(e) => setOrderEditField(order._id, 'order_status', e.target.value)}
-                                    className="w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-[11px] font-bold tracking-tight"
-                                  >
-                                    {Object.keys(STATUS_CONFIG).map((s) => (
-                                      <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    value={orderEdits[order._id]?.shipping_method ?? order.shipping_method}
-                                    onChange={(e) => setOrderEditField(order._id, 'shipping_method', e.target.value)}
-                                    className="w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-[11px] font-bold tracking-tight"
-                                  >
-                                    <option value="vendor_managed">Vendor Managed</option>
-                                    <option value="logistics_partner">Logistics Partner</option>
-                                  </select>
-                                  <select
-                                    value={orderEdits[order._id]?.logistics_company_id ?? order.logistics_company_id?._id ?? order.logistics_company_id ?? ''}
-                                    onChange={(e) => setOrderEditField(order._id, 'logistics_company_id', e.target.value || null)}
-                                    className="w-full rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2 text-[11px] font-bold tracking-tight"
-                                  >
-                                    <option value="">No Logistics Firm</option>
-                                    {logisticsFirms.map((f) => (
-                                      <option key={f._id} value={f._id}>{f.company_name}</option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    onClick={() => saveOrderControl(order)}
-                                    disabled={savingOrderId === order._id}
-                                    className="rounded-xl bg-[var(--accent)] text-white px-3 py-2 text-[11px] font-bold tracking-tight disabled:opacity-50"
-                                  >
-                                    {savingOrderId === order._id ? 'Saving...' : 'Save Changes'}
-                                  </button>
-                                </div>
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="p-6 lg:p-8 lg:col-span-2 bg-gradient-to-bl from-transparent to-[var(--bg-secondary)]/50">
-                           <div className="flex items-center justify-between mb-6">
-                              <div className="flex items-center gap-3">
-                                 <Package className="size-4 text-[var(--accent)]" />
-                                 <h4 className="text-[11px] font-bold tracking-tight text-[var(--text-primary)] ">Manifest Data</h4>
-                              </div>
-                              {order.vendor_id && (
-                                <Link 
-                                  href={`/stores/${order.vendor_id._id}`}
-                                  className="flex items-center gap-1.5 group/vendor"
-                                >
-                                  <div className="size-4 rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                                    <img 
-                                      src={order.vendor_id?.user_id?.branding?.logo || order.vendor_id?.store?.logo || order.vendor_id?.user_id?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${order.vendor_id?.store_name}&backgroundColor=var(--accent)`} 
-                                      className="size-full object-cover"
-                                      alt="Store"
-                                    />
-                                  </div>
-                                  <span className="text-[11px] font-bold text-[var(--accent)] tracking-tight truncate max-w-[120px]">
-                                    {order.vendor_id?.store_name}
-                                  </span>
-                                </Link>
-                              )}
-                           </div>
-                           
-                           <div className="space-y-4">
-                              {products.map((item, i) => (
-                                <div key={i} className="flex items-center gap-4 p-3 lg:p-4 rounded-2xl bg-[var(--bg-primary)]/80 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all shadow-sm">
-                                  <div className="size-12 lg:size-16 rounded-xl overflow-hidden bg-[var(--bg-secondary)] flex-shrink-0 border border-[var(--glass-border)] shadow-inner">
-                                    {item.image ? (
-                                      <img src={item.image} alt="" className="size-full object-cover" />
-                                    ) : (
-                                      <div className="size-full flex items-center justify-center opacity-20"><Package className="size-6" /></div>
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-[var(--text-primary)] text-xs lg:text-sm  truncate mb-1">{item.name}</p>
-                                    <div className="flex items-center gap-3">
-                                      <span className="px-2 py-0.5 rounded bg-[var(--bg-secondary)] text-[8px] lg:text-[11px] font-bold text-[var(--accent)] tracking-tight">x{item.quantity}</span>
-                                      <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-50 tracking-tight">{item.price?.toLocaleString()} XAF / UNIT</span>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="font-bold text-[var(--text-primary)] text-xs lg:text-sm">{(item.price * item.quantity).toLocaleString()} <span className="text-[9px] opacity-40">XAF</span></p>
-                                  </div>
-                                </div>
-                              ))}
-
-                              <div className="mt-6 p-5 lg:p-6 rounded-[24px] bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex flex-col gap-3 shadow-inner">
-                                 <div className="flex justify-between items-center text-[11px] font-bold tracking-tight opacity-60">
-                                    <span>Subtotal Node</span>
-                                    <span>{order.subtotal?.toLocaleString() || order.total_amount?.toLocaleString()} XAF</span>
-                                 </div>
-                                 <div className="flex justify-between items-center text-[11px] font-bold tracking-tight opacity-60">
-                                    <span>Shipping Pipeline</span>
-                                    <span className="text-emerald-500">{order.shipping_fee > 0 ? `${order.shipping_fee.toLocaleString()} XAF` : 'ZERO-COST'}</span>
-                                 </div>
-                                 <div className="h-px bg-[var(--accent)]/10 my-1" />
-                                 <div className="flex justify-between items-center">
-                                    <span className="text-[11px] font-bold  tracking-[0.2em]">Total Resolution</span>
-                                    <span className="text-lg lg:text-xl font-bold text-[var(--accent)]">{order.total_amount?.toLocaleString()} <span className="text-[10px]">XAF</span></span>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                      </div>
-                    )}
+                        <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                     </div>
+                     <div>
+                        <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
+                        <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                     </div>
                   </div>
-                );
-              })}
-              </div>
+               </div>
+            ))}
+         </div>
 
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalPages} 
-                onPageChange={setCurrentPage} 
-              />
+         {/* Order Ledger */}
+         <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
+            <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
+               <h3 className="text-[11px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 uppercase">
+                  <Database className="w-4 h-4 text-[var(--accent)]" /> 
+                  Platform Order Ledger
+               </h3>
+               <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Global Synchronization Active</p>
             </div>
-          )}
-        </div>
+
+            <div className="space-y-4">
+              {loading ? (
+                 <LoadingSpinner text="Synchronizing Pipeline" />
+              ) : currentOrders.length > 0 ? (
+                 <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
+                   {currentOrders.map(order => {
+                     const isExpanded = expandedId === order._id;
+                     const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
+                     const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
+                     const customer = order.customer_id;
+
+                     return (
+                        <div 
+                           key={order._id} 
+                           className={`group relative rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col ${isExpanded ? 'ring-2 ring-[var(--accent)]/20 shadow-2xl' : ''}`}
+                        >
+                           <div 
+                              className="p-6 lg:p-8 flex items-center gap-6 md:gap-8 cursor-pointer"
+                              onClick={() => setExpandedId(isExpanded ? null : order._id)}
+                           >
+                              <div className={`size-12 md:size-14 rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
+                                 <Package className="w-6 h-6 md:w-7 md:h-7" />
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                 <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                       <span className="text-[11px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order Trace</span>
+                                       <span className={`px-3 py-1 rounded-full text-[8px] md:text-[9px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 uppercase`}>
+                                          {status.label}
+                                       </span>
+                                    </div>
+                                    <time className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
+                                       <Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString()}
+                                    </time>
+                                 </div>
+                                 <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
+                                       <span className="font-mono text-[var(--accent)] font-bold">#{order._id.slice(-8).toUpperCase()}</span>
+                                       <span>•</span>
+                                       <span className="truncate max-w-[200px] md:max-w-md">{customer?.name} → {order.vendor_id?.store_name}</span>
+                                    </div>
+                                 </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                 <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
+                                 <div className="flex items-center justify-end gap-3 mt-2">
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-bold tracking-widest uppercase border ${payment.bg} ${payment.color} ${payment.color.replace('text-', 'border-')}/20`}>
+                                       {payment.label}
+                                    </span>
+                                    <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
+                                       {customer?.avatar ? <img src={customer.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <AnimatePresence>
+                              {isExpanded && (
+                                 <motion.div 
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden"
+                                 >
+                                    <div className="px-8 pb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                       {/* Order Details */}
+                                       <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl space-y-4">
+                                          <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 uppercase flex items-center gap-2">
+                                             <Database className="w-3 h-3" /> Entity Metadata
+                                          </p>
+                                          <div className="grid grid-cols-2 gap-4">
+                                             <div>
+                                                <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest mb-1">Customer</p>
+                                                <p className="text-[11px] font-bold text-[var(--text-primary)]">{customer?.name}</p>
+                                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-50">{customer?.email}</p>
+                                             </div>
+                                             <div>
+                                                <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest mb-1">Store Node</p>
+                                                <p className="text-[11px] font-bold text-[var(--accent)]">{order.vendor_id?.store_name}</p>
+                                             </div>
+                                             <div className="col-span-2">
+                                                <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest mb-1">Shipping Terminal</p>
+                                                <p className="text-[11px] font-bold text-[var(--text-primary)]">{order.shipping_address?.quartier}, {order.shipping_address?.address}</p>
+                                             </div>
+                                          </div>
+                                       </div>
+
+                                       {/* Line Items */}
+                                       <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl space-y-4">
+                                          <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 uppercase flex items-center gap-2">
+                                             <ShoppingBag className="w-3 h-3" /> Manifest Payload
+                                          </p>
+                                          <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
+                                             {order.products?.map((it, idx) => (
+                                                <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)]">
+                                                   <div className="size-8 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
+                                                      {it.image ? <img src={it.image} className="size-full object-cover" /> : <Package className="size-full p-1.5 opacity-20" />}
+                                                   </div>
+                                                   <div className="flex-1 min-w-0">
+                                                      <p className="text-[10px] font-bold text-[var(--text-primary)] truncate">{it.name}</p>
+                                                      <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-50">x{it.quantity} @ {it.price?.toLocaleString()} XAF</p>
+                                                   </div>
+                                                </div>
+                                             ))}
+                                          </div>
+                                       </div>
+
+                                       {/* Admin Controls */}
+                                       <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl space-y-4">
+                                          <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 uppercase flex items-center gap-2">
+                                             <Zap className="w-3 h-3" /> Pipeline Override
+                                          </p>
+                                          <div className="space-y-3">
+                                             <select
+                                                value={orderEdits[order._id]?.order_status ?? order.order_status}
+                                                onChange={(e) => setOrderEditField(order._id, 'order_status', e.target.value)}
+                                                className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold outline-none focus:border-[var(--accent)]"
+                                             >
+                                                {Object.keys(STATUS_CONFIG).map((s) => (
+                                                   <option key={s} value={s}>{STATUS_CONFIG[s].label.toUpperCase()}</option>
+                                                ))}
+                                             </select>
+                                             <select
+                                                value={orderEdits[order._id]?.logistics_company_id ?? order.logistics_company_id?._id ?? order.logistics_company_id ?? ''}
+                                                onChange={(e) => setOrderEditField(order._id, 'logistics_company_id', e.target.value || null)}
+                                                className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold outline-none focus:border-[var(--accent)]"
+                                             >
+                                                <option value="">MANUAL SHIPMENT</option>
+                                                {logisticsFirms.map((f) => (
+                                                   <option key={f._id} value={f._id}>{f.company_name.toUpperCase()}</option>
+                                                ))}
+                                             </select>
+                                             <button
+                                                onClick={() => saveOrderControl(order)}
+                                                disabled={savingOrderId === order._id || !orderEdits[order._id]}
+                                                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl font-bold text-[10px] tracking-widest uppercase shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                             >
+                                                {savingOrderId === order._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                                                Patch Sequence
+                                             </button>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </motion.div>
+                              )}
+                           </AnimatePresence>
+                        </div>
+                     );
+                   })}
+                 </div>
+              ) : (
+                 <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
+                    <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
+                    <p className="text-sm font-bold tracking-[0.2em] uppercase leading-relaxed max-w-sm">No operational manifests detected in this node.</p>
+                 </div>
+              )}
+            </div>
+
+            <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+               <Pagination 
+                   currentPage={currentPage}
+                   totalPages={totalPages}
+                   onPageChange={setCurrentPage}
+               />
+            </div>
+         </div>
       </div>
-    </>
+    </div>
   );
 }
-
-

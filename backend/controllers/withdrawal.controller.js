@@ -3,10 +3,10 @@
  * Aura Market — Withdrawal Request System (Eversend Payout)
  *
  * Flow:
- *   1. User/Vendor submits → status: "pending" (NO balance deduction yet)
- *   2. Admin approves → Eversend 2-step payout → balance deducted on success
- *   3. Admin rejects → status: "rejected" (no deduction ever)
- *   4. Admin rechecks → sync Eversend status, deduct if now confirmed
+ *   1. User/Vendor submits → status: "pending" (Immediate balance deduction & Pending Transaction)
+ *   2. Admin approves → Eversend 2-step payout → Status completed
+ *   3. Admin rejects → status: "rejected" (Refund balance, Status failed)
+ *   4. Admin rechecks → sync Eversend status, refund if failed.
  */
 
 const mongoose = require('mongoose');
@@ -24,45 +24,59 @@ const generateTxRef = () => `AURA-WD-${crypto.randomBytes(6).toString('hex').toU
 // @route  POST /api/withdrawals
 // @access Private (user/vendor)
 const submitWithdrawal = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { amount, currency = 'XAF', withdrawalMethod, recipientDetails, note } = req.body;
     const userId = req.user._id;
-    const userRole = req.user.role; // 'customer' | 'vendor' | 'admin'
+    const userRole = req.user.role;
 
-    // ── Validate method
     if (!['momo', 'bank', 'eversend'].includes(withdrawalMethod)) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Choose momo, bank, or eversend.' });
     }
 
-    // ── Validate minimum amount
     if (!amount || amount < 1000) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'Minimum withdrawal amount is 1,000 XAF.' });
     }
 
-    // ── Validate recipient details
     const { firstName, lastName, country } = recipientDetails || {};
     if (!firstName || !lastName || !country) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'Recipient first name, last name, and country are required.' });
     }
 
     if (withdrawalMethod === 'momo' && !recipientDetails?.phoneNumber) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'Phone number is required for Mobile Money withdrawal.' });
     }
     if (withdrawalMethod === 'bank' && (!recipientDetails?.bankCode || !recipientDetails?.accountNumber)) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'Bank code and account number are required for bank withdrawal.' });
     }
     if (withdrawalMethod === 'eversend' && !recipientDetails?.eversendTag && !recipientDetails?.beneficiaryId) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'Eversend tag or Beneficiary ID is required.' });
     }
 
-    // ── Account status check
-    const user = await User.findById(userId).select('wallet_balance is_active role');
+    const user = await User.findById(userId).session(session);
     if (!user.is_active) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(403).json({ success: false, message: 'Your account is suspended. Withdrawals are disabled.' });
     }
 
-    // ── Balance check
     if (user.wallet_balance < amount) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: `Insufficient wallet balance. You have ${user.wallet_balance.toLocaleString()} ${currency} available.`,
@@ -70,12 +84,14 @@ const submitWithdrawal = async (req, res) => {
       });
     }
 
-    // ── Duplicate pending check (24h rule for all users)
     const existingPending = await WithdrawalRequest.findOne({
       requestedBy: userId,
       status: 'pending',
-    });
+    }).session(session);
+    
     if (existingPending) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'You already have a pending withdrawal request. Please wait for it to be processed.',
@@ -83,14 +99,16 @@ const submitWithdrawal = async (req, res) => {
       });
     }
 
-    // ── 24-hour frequency limit
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentRequest = await WithdrawalRequest.findOne({
       requestedBy: userId,
       createdAt: { $gte: oneDayAgo },
       status: { $in: ['approved', 'completed', 'failed', 'processing_error'] },
-    });
+    }).session(session);
+    
     if (recentRequest) {
+      await session.abortTransaction();
+      session.endSession();
       const nextAllowed = new Date(recentRequest.createdAt.getTime() + 24 * 60 * 60 * 1000);
       return res.status(429).json({
         success: false,
@@ -98,11 +116,14 @@ const submitWithdrawal = async (req, res) => {
       });
     }
 
-    // ── Determine role label
     const role = ['vendor', 'logistics'].includes(userRole) ? userRole : 'user';
 
-    // ── Create request (NO balance deduction)
-    const withdrawalRequest = await WithdrawalRequest.create({
+    // ── Immediate Balance Deduction
+    user.wallet_balance -= amount;
+    await user.save({ session });
+
+    // ── Create request
+    const [withdrawalRequest] = await WithdrawalRequest.create([{
       requestedBy: userId,
       role,
       amount,
@@ -120,9 +141,26 @@ const submitWithdrawal = async (req, res) => {
       },
       note: note || null,
       status: 'pending',
-    });
+      balanceDeducted: true,
+    }], { session, ordered: true });
 
-    // ── Notify admins (fire-and-forget)
+    // ── Create Pending Transaction Immediately
+    await Transaction.create([{
+      user_id: userId,
+      type: 'withdrawal',
+      amount: amount,
+      reference: generateTxRef(),
+      status: 'pending',
+      description: `Withdrawal via ${withdrawalMethod.toUpperCase()} to ${recipientDetails.phoneNumber || recipientDetails.accountNumber || recipientDetails.eversendTag || recipientDetails.beneficiaryId}`,
+      gateway: 'eversend',
+      currency: currency,
+      metadata: { withdrawal_request_id: withdrawalRequest._id },
+    }], { session, ordered: true });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // ── Notify admins
     setImmediate(async () => {
       try {
         const admins = await User.find({ role: 'admin', is_active: true }).select('_id');
@@ -136,7 +174,6 @@ const submitWithdrawal = async (req, res) => {
           })
         ));
 
-        // Notify requester
         await sendNotification(req.app, userId, {
           title: 'Withdrawal Request Submitted',
           message: `Your withdrawal request of ${amount.toLocaleString()} ${currency} has been submitted and is pending admin approval.`,
@@ -155,14 +192,14 @@ const submitWithdrawal = async (req, res) => {
       data: { withdrawal: withdrawalRequest },
     });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error('[submitWithdrawal]', err);
     return res.status(500).json({ success: false, message: 'Server error. Please try again.' });
   }
 };
 
 // ── 2. GET MY WITHDRAWALS ─────────────────────────────────────────────────────
-// @route  GET /api/withdrawals/mine
-// @access Private
 const getMyWithdrawals = async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
@@ -186,8 +223,6 @@ const getMyWithdrawals = async (req, res) => {
 };
 
 // ── 3. ADMIN: GET ALL WITHDRAWALS ─────────────────────────────────────────────
-// @route  GET /api/admin/withdrawals
-// @access Admin
 const adminGetAllWithdrawals = async (req, res) => {
   try {
     const { status, role, currency, from, to, page = 1, limit = 30 } = req.query;
@@ -222,8 +257,6 @@ const adminGetAllWithdrawals = async (req, res) => {
 };
 
 // ── 4. ADMIN: APPROVE WITHDRAWAL ──────────────────────────────────────────────
-// @route  POST /api/admin/withdrawals/:id/approve
-// @access Admin
 const adminApproveWithdrawal = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -244,26 +277,21 @@ const adminApproveWithdrawal = async (req, res) => {
 
     const user = await User.findById(wr.requestedBy).session(session);
 
-    // Final balance check at time of approval
-    if (user.wallet_balance < wr.amount) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        success: false,
-        message: `User's wallet balance (${user.wallet_balance.toLocaleString()} ${wr.currency}) is now insufficient for this withdrawal.`,
-      });
-    }
-
-    // ── STEP 1: Get Eversend Quotation ───────────────────────────────────────
     let quotationToken;
     try {
       const quotation = await eversend.getPayoutQuotation(
         wr.amount,
         wr.currency,
-        wr.currency, // Same currency payout
+        wr.currency,
         wr.recipientDetails.country,
         wr.withdrawalMethod
       );
+      
+      const balanceAfter = quotation?.data?.quotation?.sourceCurrencyBalanceAfter;
+      if (balanceAfter !== undefined && balanceAfter < 0) {
+        throw new Error(`Insufficient funds in Eversend ${wr.currency} wallet.`);
+      }
+      
       quotationToken = quotation?.data?.token || quotation?.token;
       if (!quotationToken) throw new Error('No quotation token returned from Eversend.');
     } catch (quotErr) {
@@ -276,85 +304,61 @@ const adminApproveWithdrawal = async (req, res) => {
       });
     }
 
-    // ── STEP 2: Execute Payout ───────────────────────────────────────────────
     let payoutResult;
     const { recipientDetails } = wr;
     const txRef = wr._id.toString();
 
     try {
       if (wr.withdrawalMethod === 'momo') {
-        payoutResult = await eversend.executeMomoPayout(
-          quotationToken,
-          recipientDetails.phoneNumber,
-          recipientDetails.firstName,
-          recipientDetails.lastName,
-          recipientDetails.country,
-          txRef
-        );
+        payoutResult = await eversend.executeMomoPayout(quotationToken, recipientDetails.phoneNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
       } else if (wr.withdrawalMethod === 'bank') {
-        payoutResult = await eversend.executeBankPayout(
-          quotationToken,
-          recipientDetails.bankCode,
-          recipientDetails.accountNumber,
-          recipientDetails.firstName,
-          recipientDetails.lastName,
-          recipientDetails.country,
-          txRef
-        );
+        payoutResult = await eversend.executeBankPayout(quotationToken, recipientDetails.bankCode, recipientDetails.accountNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
       } else if (wr.withdrawalMethod === 'eversend') {
         if (recipientDetails.beneficiaryId) {
-          payoutResult = await eversend.executeBeneficiaryPayout(
-            quotationToken,
-            recipientDetails.beneficiaryId,
-            txRef
-          );
+          payoutResult = await eversend.executeBeneficiaryPayout(quotationToken, recipientDetails.beneficiaryId, txRef);
         } else {
-          payoutResult = await eversend.executeEversendPayout(
-            quotationToken,
-            recipientDetails.eversendTag,
-            txRef
-          );
+          payoutResult = await eversend.executeEversendPayout(quotationToken, recipientDetails.eversendTag, txRef);
         }
       }
     } catch (payoutErr) {
-      // Payout failed — mark as failed, do NOT deduct
+      // Payout failed — refund user
       wr.status = 'failed';
       wr.failureReason = payoutErr.response?.data?.message || payoutErr.message;
       wr.reviewedBy = req.user._id;
       wr.reviewedAt = new Date();
+      wr.balanceDeducted = false;
       await wr.save({ session });
+      
+      user.wallet_balance += wr.amount;
+      await user.save({ session });
+      
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        { status: 'failed' },
+        { session }
+      );
+
       await session.commitTransaction();
       session.endSession();
 
-      // Notify both admin and user
       setImmediate(async () => {
         try {
           await sendNotification(req.app, wr.requestedBy, {
             title: 'Payout Failed',
-            message: `Your withdrawal was approved but the payout failed. Reason: ${wr.failureReason}. Please contact support with reference: ${wr._id}.`,
+            message: `Your withdrawal was approved but the payout failed. Reason: ${wr.failureReason}. Your balance has been restored.`,
             type: 'wallet_update',
             metadata: { withdrawal_id: wr._id, link: '/wallet' },
             sendEmail: true,
           });
-          const admins = await User.find({ role: 'admin', is_active: true }).select('_id');
-          await Promise.allSettled(admins.map(admin =>
-            sendNotification(req.app, admin._id, {
-              title: '⚠️ Payout Failed',
-              message: `Payout failed for withdrawal ${wr._id}. Reason: ${wr.failureReason}. Manual action may be needed.`,
-              type: 'admin_alert',
-              metadata: { withdrawal_id: wr._id, link: '/admin/withdrawals' },
-            })
-          ));
-        } catch (e) { console.error('[Withdrawal] Failure notification error:', e.message); }
+        } catch (e) { console.error(e.message); }
       });
 
       return res.status(502).json({
         success: false,
-        message: `Eversend payout failed: ${wr.failureReason}. Withdrawal marked as failed. User has been notified.`,
+        message: `Eversend payout failed: ${wr.failureReason}. Withdrawal marked as failed. User balance restored.`,
       });
     }
 
-    // ── SUCCESS: Deduct balance and update record ─────────────────────────────
     const eversendTxId = payoutResult?.data?.transactionId || payoutResult?.transactionId;
     const eversendStatus = payoutResult?.data?.status || payoutResult?.status || 'pending';
 
@@ -364,31 +368,18 @@ const adminApproveWithdrawal = async (req, res) => {
     wr.eversendStatus = eversendStatus;
     wr.reviewedBy = req.user._id;
     wr.reviewedAt = new Date();
-    wr.balanceDeducted = true;
     await wr.save({ session });
 
-    // Deduct balance
-    user.wallet_balance -= wr.amount;
-    await user.save({ session });
-
-    // Log the transaction
-    await Transaction.create([{
-      user_id: wr.requestedBy,
-      type: 'withdrawal',
-      amount: wr.amount,
-      reference: generateTxRef(),
-      status: 'completed',
-      description: `Withdrawal via ${wr.withdrawalMethod.toUpperCase()} to ${recipientDetails.phoneNumber || recipientDetails.accountNumber || recipientDetails.eversendTag || recipientDetails.beneficiaryId}`,
-      gateway: 'eversend',
-      currency: wr.currency,
-      gateway_transaction_id: eversendTxId,
-      metadata: { withdrawal_request_id: wr._id },
-    }], { session });
+    // Update Transaction status
+    await Transaction.updateOne(
+      { "metadata.withdrawal_request_id": wr._id },
+      { status: 'completed', gateway_transaction_id: eversendTxId },
+      { session }
+    );
 
     await session.commitTransaction();
     session.endSession();
 
-    // Notify user
     setImmediate(async () => {
       try {
         await sendNotification(req.app, wr.requestedBy, {
@@ -398,7 +389,7 @@ const adminApproveWithdrawal = async (req, res) => {
           metadata: { withdrawal_id: wr._id, link: '/wallet' },
           sendEmail: true,
         });
-      } catch (e) { console.error('[Withdrawal] Approval notification error:', e.message); }
+      } catch (e) { console.error(e.message); }
     });
 
     return res.status(200).json({
@@ -415,19 +406,29 @@ const adminApproveWithdrawal = async (req, res) => {
 };
 
 // ── 5. ADMIN: REJECT WITHDRAWAL ───────────────────────────────────────────────
-// @route  POST /api/admin/withdrawals/:id/reject
-// @access Admin
 const adminRejectWithdrawal = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { rejectionReason } = req.body;
 
     if (!rejectionReason || rejectionReason.trim().length < 5) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'A rejection reason (min 5 characters) is required.' });
     }
 
-    const wr = await WithdrawalRequest.findById(req.params.id);
-    if (!wr) return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
+    const wr = await WithdrawalRequest.findById(req.params.id).session(session);
+    if (!wr) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
+    }
+    
     if (wr.status !== 'pending') {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: `Cannot reject a request with status: ${wr.status}.` });
     }
 
@@ -435,35 +436,51 @@ const adminRejectWithdrawal = async (req, res) => {
     wr.rejectionReason = rejectionReason.trim();
     wr.reviewedBy = req.user._id;
     wr.reviewedAt = new Date();
-    await wr.save();
+    
+    // Refund balance
+    const user = await User.findById(wr.requestedBy).session(session);
+    if (user && wr.balanceDeducted) {
+        user.wallet_balance += wr.amount;
+        await user.save({ session });
+        wr.balanceDeducted = false;
+    }
+    await wr.save({ session });
+    
+    await Transaction.updateOne(
+      { "metadata.withdrawal_request_id": wr._id },
+      { status: 'failed' },
+      { session }
+    );
 
-    // Notify user — NO balance deduction
+    await session.commitTransaction();
+    session.endSession();
+
     setImmediate(async () => {
       try {
         await sendNotification(req.app, wr.requestedBy, {
           title: 'Withdrawal Request Rejected',
-          message: `Your withdrawal request of ${wr.amount.toLocaleString()} ${wr.currency} has been rejected. Reason: ${rejectionReason}.`,
+          message: `Your withdrawal request of ${wr.amount.toLocaleString()} ${wr.currency} has been rejected. Reason: ${rejectionReason}. Funds restored.`,
           type: 'wallet_update',
           metadata: { withdrawal_id: wr._id, link: '/wallet' },
           sendEmail: true,
         });
-      } catch (e) { console.error('[Withdrawal] Rejection notification error:', e.message); }
+      } catch (e) { console.error(e.message); }
     });
 
     return res.status(200).json({
       success: true,
-      message: 'Withdrawal request rejected. User has been notified.',
+      message: 'Withdrawal request rejected. Balance restored and User notified.',
       data: { withdrawal: wr },
     });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error('[adminRejectWithdrawal]', err);
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
 // ── 6. ADMIN: RECHECK WITHDRAWAL ──────────────────────────────────────────────
-// @route  POST /api/admin/withdrawals/:id/recheck
-// @access Admin
 const adminRecheckWithdrawal = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -482,7 +499,6 @@ const adminRecheckWithdrawal = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No Eversend transaction ID on this record. Cannot recheck.' });
     }
 
-    // Poll Eversend for latest status
     let txData;
     try {
       const result = await eversend.getTransactionStatus(wr.eversendTransactionId);
@@ -497,17 +513,15 @@ const adminRecheckWithdrawal = async (req, res) => {
     wr.eversendStatus = eversendStatus;
 
     if (eversendStatus === 'SUCCESSFUL') {
-      // If balance wasn't deducted yet (edge case), deduct now
-      if (!wr.balanceDeducted) {
-        const user = await User.findById(wr.requestedBy).session(session);
-        if (user.wallet_balance >= wr.amount) {
-          user.wallet_balance -= wr.amount;
-          await user.save({ session });
-          wr.balanceDeducted = true;
-        }
-      }
       wr.status = 'completed';
       await wr.save({ session });
+      
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        { status: 'completed' },
+        { session }
+      );
+      
       await session.commitTransaction();
       session.endSession();
 
@@ -515,12 +529,12 @@ const adminRecheckWithdrawal = async (req, res) => {
         try {
           await sendNotification(req.app, wr.requestedBy, {
             title: '✅ Withdrawal Successful',
-            message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been confirmed successful. Sent to ${wr.recipientDetails.phoneNumber || wr.recipientDetails.accountNumber || wr.recipientDetails.eversendTag}.`,
+            message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been confirmed successful.`,
             type: 'wallet_update',
             metadata: { withdrawal_id: wr._id, link: '/wallet' },
             sendEmail: true,
           });
-        } catch (e) { console.error('[Withdrawal] Recheck success notification error:', e.message); }
+        } catch (e) { console.error(e.message); }
       });
 
       return res.status(200).json({
@@ -530,7 +544,6 @@ const adminRecheckWithdrawal = async (req, res) => {
       });
 
     } else if (eversendStatus === 'FAILED') {
-      // Restore balance if it was deducted
       if (wr.balanceDeducted) {
         const user = await User.findById(wr.requestedBy).session(session);
         user.wallet_balance += wr.amount;
@@ -540,6 +553,13 @@ const adminRecheckWithdrawal = async (req, res) => {
       wr.status = 'failed';
       wr.failureReason = txData?.reason || 'Eversend reported this payout as failed.';
       await wr.save({ session });
+      
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        { status: 'failed' },
+        { session }
+      );
+      
       await session.commitTransaction();
       session.endSession();
 
@@ -552,7 +572,7 @@ const adminRecheckWithdrawal = async (req, res) => {
             metadata: { withdrawal_id: wr._id, link: '/wallet' },
             sendEmail: true,
           });
-        } catch (e) { console.error('[Withdrawal] Recheck fail notification error:', e.message); }
+        } catch (e) { console.error(e.message); }
       });
 
       return res.status(200).json({
@@ -562,7 +582,6 @@ const adminRecheckWithdrawal = async (req, res) => {
       });
 
     } else {
-      // Still pending
       await wr.save({ session });
       await session.commitTransaction();
       session.endSession();

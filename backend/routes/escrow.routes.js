@@ -12,6 +12,8 @@ const router = express.Router();
 const {
   holdFunds,
   releaseFunds,
+  vendorConfirmRelease,
+  denyEscrow,
   refundFunds,
   getEscrowLogs,
 } = require('../controllers/escrow.controller');
@@ -32,6 +34,12 @@ router.post('/hold', restrictTo('customer'), holdFunds);
 router.post('/release/:orderId', restrictTo('customer', 'admin'), releaseFunds);
 
 // ── Vendor / Admin Initiations ───────────────
+// Vendor confirms they have delivered
+router.post('/confirm-delivery/:orderId', restrictTo('vendor'), vendorConfirmRelease);
+
+// Customer or Vendor denies release → Dispute
+router.post('/deny/:orderId', denyEscrow);
+
 // Occurs when Vendor cancels the Order / Admins settle a dispute
 router.post('/refund/:orderId', restrictTo('vendor', 'admin'), refundFunds);
 

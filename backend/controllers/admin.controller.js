@@ -881,16 +881,10 @@ const fulfillOrderFromTransaction = async (req, res, next) => {
 const syncWithEversend = async (req, res, next) => {
   try {
     const eversend = require('../services/eversend.service');
-    const authRes = await eversend.getAccessToken(); // Ensure we can connect
     
-    // Fetch latest 20 transactions from Eversend
-    const eversendClient = require('axios').create({
-      baseURL: process.env.EVERSEND_BASE_URL,
-      headers: { Authorization: `Bearer ${authRes}` }
-    });
-    
-    const txRes = await eversendClient.get('/transactions', { params: { limit: 20 } });
-    const remoteTxs = txRes.data?.data?.transactions || [];
+    // Fetch latest 20 transactions from Eversend using the service (handles auth & refresh)
+    const result = await eversend.getTransactions({ limit: 20 });
+    const remoteTxs = result?.data?.transactions || [];
     
     let importedCount = 0;
     for (const rt of remoteTxs) {
@@ -908,7 +902,7 @@ const syncWithEversend = async (req, res, next) => {
       if (!exists && rt.transactionId) {
         // Create an "Imported" transaction record
         await Transaction.create({
-          user_id: req.user._id, // Assign to current admin as importer? Or system user if we had one.
+          user_id: req.user?._id, // Assign to current admin as importer
           type: rt.type === 'collection' ? 'deposit' : 'withdrawal',
           amount: parseFloat(rt.amount),
           currency: rt.currency,
@@ -929,6 +923,29 @@ const syncWithEversend = async (req, res, next) => {
       importedCount
     });
   } catch (error) {
+    const errData = error.response?.data;
+    const errStatus = error.response?.status;
+    const errMessage = errData?.message || error.message;
+    
+    console.error('Sync With Eversend Error:', errStatus, errData || error.message);
+
+    // Distinguish IP whitelist rejection from credential errors
+    if (errStatus === 401 && errMessage?.toLowerCase().includes('invalid request origin')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Eversend API access denied: this server\'s IP address is not whitelisted in your Eversend developer settings. Please log into the Eversend dashboard, go to Settings → API Keys, and add this server\'s public IP to the allowed origins.',
+        code: 'EVERSEND_IP_NOT_WHITELISTED',
+      });
+    }
+
+    if (errStatus === 401) {
+      return res.status(503).json({
+        success: false,
+        message: 'Eversend authentication failed. Please verify your EVERSEND_CLIENT_ID and EVERSEND_CLIENT_SECRET environment variables.',
+        code: 'EVERSEND_AUTH_FAILED',
+      });
+    }
+
     next(error);
   }
 };

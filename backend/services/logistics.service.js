@@ -83,14 +83,14 @@ const calculateShipmentFees = async (vendors, quartier, logisticsId) => {
   const firm = await LogisticsCompany.findById(logisticsId);
   if (!firm) throw new Error('Logistics firm not found');
 
-  let quartierPrice = firm.quartier_prices.find(p => p.quartier === quartier);
+  let quartierPrice = firm.quartier_prices.find(p => p.quartier.toLowerCase() === quartier.toLowerCase());
   
   if (!quartierPrice) {
     const LogisticZone = require('../models/LogisticZone.model');
-    const targetZone = await LogisticZone.findOne({ name: quartier }).populate('parent_id');
+    const targetZone = await LogisticZone.findOne({ name: new RegExp(`^${quartier}$`, 'i') }).populate('parent_id');
     const districtName = targetZone?.parent_id?.name;
     if (districtName) {
-      quartierPrice = firm.quartier_prices.find(p => p.quartier === districtName);
+      quartierPrice = firm.quartier_prices.find(p => p.quartier.toLowerCase() === districtName.toLowerCase());
     }
   }
 
@@ -149,7 +149,7 @@ const createShipmentsForOrder = async (order, quartier, logisticsId, session = n
       }]
     };
 
-    const [shipment] = await Shipment.create([shipmentData], { session });
+    const [shipment] = await Shipment.create([shipmentData], { session, ordered: true });
     shipments.push(shipment);
   }
 

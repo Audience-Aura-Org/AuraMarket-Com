@@ -6,21 +6,29 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Package, Truck, CheckCircle2, 
   Clock, ChevronRight, MoreHorizontal, ArrowLeft,
-  Plus, RefreshCw, ChevronDown
+  Plus, RefreshCw, ChevronDown, Database,
+  Zap, ShieldCheck, User, ShoppingBag, Loader2,
+  XCircle, Filter
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/services/api';
-import RoleSidebar from '@/components/layout/RoleSidebar';
 import { useAuthStore } from '@/hooks/useAuth';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
+
+import Pagination from '@/components/common/Pagination';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import SingleOrderView from '@/components/account/SingleOrderView';
 
 const STATUS_CONFIG = {
-  placed:         { label: 'Placed',     color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  Icon: Clock },
-  processing:     { label: 'Processing', color: 'text-blue-500',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    Icon: Package },
-  shipped:        { label: 'Shipped',    color: 'text-indigo-600',  bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20',  Icon: Truck },
-  delivered:      { label: 'Delivered',  color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', Icon: CheckCircle2 },
-  cancelled:      { label: 'Cancelled',  color: 'text-red-600',    bg: 'bg-red-500/10',    border: 'border-red-500/20',    Icon: MoreHorizontal },
-  refund_pending: { label: 'Refund',     color: 'text-amber-600',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   Icon: Clock },
+  placed:         { label: 'Placed',      color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  dot: 'bg-purple-500' },
+  processing:     { label: 'Processing',  color: 'text-blue-500',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    dot: 'bg-blue-500' },
+  shipped:        { label: 'Shipped',     color: 'text-indigo-600',  bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20',  dot: 'bg-indigo-500' },
+  delivered:      { label: 'Delivered',   color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', dot: 'bg-emerald-500' },
+  cancelled:      { label: 'Cancelled',   color: 'text-red-600',     bg: 'bg-red-500/10',     border: 'border-red-500/20',     dot: 'bg-red-500' },
+  refund_pending: { label: 'Refund',      color: 'text-amber-600',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   dot: 'bg-amber-500' },
+  refunded:       { label: 'Refunded',    color: 'text-sky-600',     bg: 'bg-sky-500/10',     border: 'border-sky-500/20',     dot: 'bg-sky-500' },
 };
 
 const NEXT_STATUSES = {
@@ -28,10 +36,6 @@ const NEXT_STATUSES = {
   processing: ['shipped', 'cancelled'],
   shipped:    ['delivered'],
 };
-
-import Pagination from '@/components/common/Pagination';
-import { motion, AnimatePresence } from 'framer-motion';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function VendorOrdersPage() {
   const router = useRouter();
@@ -42,8 +46,30 @@ export default function VendorOrdersPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const [openDetails, setOpenDetails] = useState(null);
+  const itemsPerPage = 10;
+  const [expandedId, setExpandedId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [viewingOrderId, setViewingOrderId] = useState(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const orderId = searchParams.get('orderId');
+    if (orderId) setViewingOrderId(orderId);
+  }, []);
+
+  const handleViewOrder = (id) => {
+    setViewingOrderId(id);
+    const url = new URL(window.location);
+    url.searchParams.set('orderId', id);
+    window.history.pushState({}, '', url);
+  };
+
+  const handleBack = () => {
+    setViewingOrderId(null);
+    const url = new URL(window.location);
+    url.searchParams.delete('orderId');
+    window.history.pushState({}, '', url);
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -60,12 +86,27 @@ export default function VendorOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router, updateUser]);
 
   useEffect(() => { 
     if (!user || user.role !== 'vendor' || !user.onboarded) return;
     fetchOrders(); 
   }, [fetchOrders, user]);
+
+  const handleUpdateStatus = async (orderId, newStatus) => {
+     setUpdatingId(orderId);
+     try {
+        const res = await api.patch(`/vendors/orders/${orderId}/status`, { status: newStatus });
+        if (res.data.success) {
+           setOrders(prev => prev.map(o => o._id === orderId ? { ...o, order_status: newStatus } : o));
+           toast.success(`Pipeline updated: ${newStatus.toUpperCase()}`);
+        }
+     } catch (err) {
+        toast.error(err.response?.data?.message || 'Sequence update failed');
+     } finally {
+        setUpdatingId(null);
+     }
+  };
 
   const filtered = orders.filter(o => {
     const status = o.order_status || 'placed';
@@ -83,171 +124,173 @@ export default function VendorOrdersPage() {
 
   if (user?.role !== 'vendor' || !user.onboarded) return null;
 
-  if (loading) return <LoadingSpinner fullScreen />;
-
   return (
-    <>
-      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
-        <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-fluid-lg lg:text-fluid-xl font-bold text-[var(--text-primary)] tracking-tight ">Sales <span className="text-[var(--accent)]">History</span></h2>
-          <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <p className="text-[var(--text-secondary)] text-[8px] lg:text-[11px] font-bold  tracking-[0.3em] opacity-40"><span>{orders.length}</span> Orders</p>
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      {/* Surgical Header */}
+      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-16 z-40">
+        <div className="flex items-center gap-6">
+          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20">
+             <ShoppingBag className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight ">Sales <span className="text-[var(--accent)]">Manifest</span> Ledger</h2>
+            <div className="flex items-center gap-2 mt-1">
+               <div className="size-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_rgba(var(--accent-rgb),0.5)] animate-pulse" />
+               <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Merchant Pipeline // Node_{user.store_name?.replace(/\s/g, '_')}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 lg:gap-4 self-end lg:self-auto">
-          <div className="flex items-center bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)] p-1">
-             {['all', 'placed', 'processing'].map(tab => (
-               <button 
-                 key={tab}
-                 onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                 className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[11px] font-bold tracking-tight transition-all ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'hover:bg-[var(--accent)]/10 text-[var(--text-secondary)]'}`}
-               >
-                 {tab}
-               </button>
-             ))}
-          </div>
-          <button onClick={fetchOrders} className="p-2 lg:p-2.5 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-secondary)]">
-            <RefreshCw className={`w-3.5 h-3.5 lg:w-4 lg:h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+        <div className="flex items-center gap-4">
+           <div className="relative w-64 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
+              <input 
+                type="text"
+                placeholder="Reference, Customer..."
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+              />
+           </div>
+           
+           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar max-w-[300px]">
+              {['all', 'placed', 'processing', 'shipped'].map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all uppercase whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+           </div>
+
+           <button onClick={fetchOrders} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+           </button>
         </div>
       </header>
 
-      <div className="p-4 lg:p-10 space-y-6 lg:space-y-10 pb-32">
-           {/* Summary Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6 mt-2">
-                {[
-                  { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, color: 'emerald' },
-                  { label: 'Current Orders', value: pendingCount, color: 'accent' },
-                  { label: 'All Orders', value: orders.length, color: 'blue' }
-                ].map(s => (
-                  <div key={s.label} className="glass-panel p-4 lg:p-6 rounded-[24px] lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:-translate-y-1 transition-all shadow-sm group">
-                     <p className="text-[7px] lg:text-[11px] font-bold  tracking-[0.25em] text-[var(--text-secondary)] opacity-50 mb-1 lg:mb-2 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden text-ellipsis">{s.label}</p>
-                     <p className="text-fluid-base lg:text-fluid-2xl font-bold text-[var(--text-primary)] tracking-tight font-mono whitespace-nowrap">{s.value}</p>
-                  </div>
-                ))}
+      <div className={viewingOrderId ? "w-full" : "p-10 space-y-8 pb-40"}>
+         {viewingOrderId ? (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 p-0 pb-40">
+               <SingleOrderView 
+                  orderId={viewingOrderId} 
+                  onBack={handleBack} 
+                  isAdmin={user?.role === 'admin'}
+               />
             </div>
-
-           {/* Orders Table */}
-           <div className="glass-panel rounded-[28px] lg:rounded-[48px] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 shadow-2xl relative">
-               <div className="p-6 lg:p-10 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="size-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] animate-pulse" />
-                  <h3 className="text-sm lg:text-lg font-bold text-[var(--text-primary)] tracking-tight">Order Tracking</h3>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto scroll-smooth no-scrollbar">
-                <table className="w-full text-left font-sm min-w-[900px]">
-                  <thead>
-                    <tr className="text-[8px] lg:text-[10px] tracking-[0.3em] text-[var(--text-secondary)] bg-[var(--bg-secondary)]/30 border-b border-[var(--glass-border)]  shadow-sm">
-                      <th className="px-8 py-5 font-bold">Order ID</th>
-                      <th className="px-6 py-5 font-bold">Customer</th>
-                      <th className="px-6 py-5 font-bold">Amount</th>
-                      <th className="px-6 py-5 font-bold">Status</th>
-                      <th className="px-8 py-5 text-right font-bold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--glass-border)]/50">
-                    {currentOrders.map(order => {
-                      const status = STATUS_CONFIG[order.order_status || 'placed'] || STATUS_CONFIG.placed;
-                      const isOpen = openDetails === order._id;
-                      return (
-                        <React.Fragment key={order._id}>
-                        <tr className="hover:bg-[var(--accent)]/5 transition-all group/row border-transparent hover:border-[var(--glass-border)]">
-                           <td className="px-8 py-5">
-                              <div className="flex items-center gap-3">
-                                 <div className={`size-3 rounded-full ${status.bg} border-2 ${status.border} shadow-lg relative flex items-center justify-center`}>
-                                   <div className={`size-1 rounded-full ${status.color.replace('text', 'bg')}`} />
-                                 </div>
-                                 <div className="min-w-0">
-                                   <h3 className="font-bold text-[var(--text-primary)] text-xs lg:text-sm font-mono tracking-tighter  group-hover/row:text-[var(--accent)] transition-colors">#{order._id?.slice(-8).toUpperCase()}</h3>
-                                   <p className="text-[7px] lg:text-[11px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-0.5">Verified Transaction</p>
-                                 </div>
+         ) : (
+            <>
+               {/* Live Stats */}
+               <div className="grid grid-cols-3 gap-6">
+                  {[
+                     { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: Database, color: 'var(--accent)', sub: 'ACCUMULATED_XAF' },
+                     { label: 'Pending Payouts', value: pendingCount, icon: Zap, color: '#6366f1', sub: 'LOCKED_NODES' },
+                     { label: 'Success Nodes', value: orders.length, icon: ShieldCheck, color: '#10b981', sub: 'MANIFEST_COMPLETE' }
+                  ].map(s => (
+                     <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
+                        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
+                        <div className="relative flex flex-col justify-between h-full space-y-8">
+                           <div className="flex items-center justify-between">
+                              <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
+                                 <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                               </div>
-                           </td>
-                           <td className="px-6 py-5">
-                              <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight">{order.customer_id?.name || 'GUEST CUSTOMER'}</p>
-                              <div className="flex items-center gap-2 mt-1 lg:mt-1.5">
-                                <span className="text-[7px] lg:text-[8px] text-[var(--text-secondary)] font-bold opacity-30  tracking-[0.2em]">{new Date(order.createdAt).toLocaleDateString([], {month: 'short', day: '2-digit'})}</span>
-                                <span className="size-1 rounded-full bg-[var(--glass-border)]" />
-                                <span className="text-[7px] lg:text-[8px] text-[var(--accent)] font-bold tracking-tight">{order.products?.length || 1} Item(s)</span>
-                              </div>
-                           </td>
-                           <td className="px-6 py-5">
-                              <div className="flex flex-col">
-                                 <span className="text-xs lg:text-sm font-bold text-[var(--text-primary)] font-mono">{(order.total_amount || 0).toLocaleString()}</span>
-                                 <span className="text-[7px] lg:text-[11px] font-bold text-[var(--accent)]  tracking-tighter opacity-40">XAF Total</span>
-                              </div>
-                           </td>
-                           <td className="px-6 py-5">
-                              <span className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-[7px] lg:text-[11px] font-bold  tracking-[0.2em] border shadow-sm inline-block transition-all ${status.bg} ${status.color} ${status.border}`}>
-                                {status.label}
-                              </span>
-                           </td>
-                           <td className="px-8 py-5 text-right whitespace-nowrap">
-                               <button onClick={() => setOpenDetails(isOpen ? null : order._id)} className={`px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[8px] lg:text-[11px] font-bold tracking-tight transition-all shadow-lg active:scale-95 ${isOpen ? 'bg-[var(--accent)] text-white shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 shadow-sm'}`}>
-                                 View Details
-                               </button>
-                           </td>
-                        </tr>
-                        {isOpen && (
-                          <tr className="bg-[var(--bg-primary)]/40">
-                            <td colSpan={5} className="px-6 py-5 border-t border-[var(--glass-border)]">
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                <div className="rounded-2xl border border-[var(--glass-border)] p-4">
-                                  <p className="text-[8px] tracking-tight text-[var(--text-secondary)] opacity-60 mb-2">Customer</p>
-                                  <p className="text-sm font-bold text-[var(--text-primary)]">{order.customer_id?.name || 'Customer'}</p>
-                                  <p className="text-[10px] text-[var(--text-secondary)]">{order.customer_id?.email || 'No email'}</p>
-                                  <p className="text-[10px] text-[var(--text-secondary)]">{order.customer_id?.phone || 'No phone'}</p>
-                                  <p className="text-[10px] mt-2 text-[var(--text-secondary)] tracking-tight">Address</p>
-                                  <p className="text-[10px] text-[var(--text-primary)]">
-                                    {[order.shipping_address?.street, order.shipping_address?.quartier, order.shipping_address?.city].filter(Boolean).join(', ') || 'No address'}
-                                  </p>
-                                </div>
-                                <div className="rounded-2xl border border-[var(--glass-border)] p-4 lg:col-span-2">
-                                  <p className="text-[8px] tracking-tight text-[var(--text-secondary)] opacity-60 mb-2">Items</p>
-                                  <div className="space-y-2">
-                                    {(order.products || []).map((item, idx) => (
-                                      <div key={idx} className="flex items-center justify-between rounded-xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] px-3 py-2">
-                                        <div className="min-w-0">
-                                          <p className="text-xs font-bold text-[var(--text-primary)] truncate ">{item.name}</p>
-                                          <p className="text-[9px] text-[var(--text-secondary)] tracking-tight">qty {item.quantity}</p>
-                                        </div>
-                                        <p className="text-xs font-bold text-[var(--text-primary)]">{(item.price * item.quantity).toLocaleString()} XAF</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                        </React.Fragment>
-                      )
-                    })}
-                    {filtered.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-8 py-24 text-center">
-                           <div className="flex flex-col items-center gap-6 opacity-10">
-                              <Package className="size-12 lg:size-16" />
-                               <p className="text-[10px] lg:text-[12px] font-bold  tracking-[0.4em] leading-relaxed">
-                                  No orders found. Your history is empty.
-                                </p>
+                              <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                            </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-           </div>
+                           <div>
+                              <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
+                              <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                           </div>
+                        </div>
+                     </div>
+                  ))}
+               </div>
 
-           <Pagination 
-             currentPage={currentPage} 
-             totalPages={totalPages} 
-             onPageChange={setCurrentPage} 
-           />
+               {/* Sales Ledger */}
+               <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
+                  <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
+                     <h3 className="text-[11px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 uppercase">
+                        <Database className="w-4 h-4 text-[var(--accent)]" /> 
+                        Store Sales Ledger
+                     </h3>
+                     <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Real-time Order Resolution</p>
+                  </div>
+
+                  <div className="space-y-4">
+                  {loading ? (
+                     <LoadingSpinner text="Synchronizing Sales Pipeline" />
+                  ) : currentOrders.length > 0 ? (
+                     <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
+                        {currentOrders.map(order => {
+                        const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
+                        const customer = order.customer_id;
+
+                        return (
+                              <button 
+                                 key={order._id} 
+                                 className={`group relative w-full text-left rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col`}
+                                 onClick={() => handleViewOrder(order._id)}
+                              >
+                                 <div className="p-6 lg:p-8 flex items-center gap-6 md:gap-8">
+                                    <div className={`size-12 md:size-14 rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
+                                       <Package className="w-6 h-6 md:w-7 md:h-7" />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                       <div className="flex items-center justify-between mb-2">
+                                          <div className="flex items-center gap-3">
+                                             <span className="text-[11px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order Trace</span>
+                                             <span className={`px-3 py-1 rounded-full text-[8px] md:text-[9px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 uppercase`}>
+                                                {status.label}
+                                             </span>
+                                          </div>
+                                          <time className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
+                                             <Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString()}
+                                          </time>
+                                       </div>
+                                       <div className="flex items-center gap-4">
+                                          <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
+                                             <span className="font-mono text-[var(--accent)] font-bold">#{order._id.slice(-8).toUpperCase()}</span>
+                                             <span>•</span>
+                                             <span className="truncate max-w-[200px] md:max-w-md">{customer?.name || 'GUEST'} → Delivery Node: {order.shipping_address?.quartier}</span>
+                                          </div>
+                                       </div>
+                                    </div>
+
+                                    <div className="text-right shrink-0">
+                                       <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
+                                       <div className="flex items-center justify-end gap-3 mt-2">
+                                          <span className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{order.products?.length || 1} Payload Node(s)</span>
+                                          <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
+                                             {customer?.avatar ? <img src={customer.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </button>
+                        );
+                        })}
+                     </div>
+                  ) : (
+                     <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
+                        <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
+                        <p className="text-sm font-bold tracking-[0.2em] uppercase leading-relaxed max-w-sm">No sales manifests detected in this vector.</p>
+                     </div>
+                  )}
+                  </div>
+
+                  <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+                     <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                     />
+                  </div>
+               </div>
+            </>
+         )}
       </div>
-    </>
+    </div>
   );
 }

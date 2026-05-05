@@ -133,7 +133,7 @@ const resolveDispute = async (req, res, next) => {
           status: 'completed',
           description: `Dispute Resolution: Full Refund for Order #${order._id.toString().slice(-6).toUpperCase()}`,
           order_id: order._id,
-        }], { session });
+        }], { session, ordered: true });
 
         escrow.status = 'refunded';
         escrow.refund_reason = admin_notes || 'Dispute resolution: Full Refund';

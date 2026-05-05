@@ -21,31 +21,22 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
 
-  // Subscribe to cartStore changes for real-time updates
   useEffect(() => {
     setLoading(true);
-    
-    // subscribe to cart changes
     const unsubscribe = cartStore.subscribe((snapshot) => {
       setCartItems(snapshot.items);
       setLoading(false);
-      
-      // Auto-redirect if cart becomes empty while on this page
       if (snapshot.items.length === 0 && !loading) {
         router.push('/overtime');
       }
     });
-
-    // Initial fetch
     cartStore.refresh();
-
     return unsubscribe;
   }, [loading, router]);
 
   const updateCartQty = async (id, delta) => {
     cartStore.startMutation();
     cartStore.optimisticUpdateQty(id, delta);
-    
     try {
       const res = await api.patch('/cart/item', { item_id: id, quantity_delta: delta });
       if (res.data?.success) {
@@ -53,7 +44,7 @@ export default function CartPage() {
       }
     } catch (err) {
       console.error('Failed updating cart item', err);
-      cartStore.refresh(); // Rollback by refreshing from server
+      cartStore.refresh();
     } finally {
       cartStore.endMutation();
     }
@@ -62,7 +53,6 @@ export default function CartPage() {
   const removeCartItem = async (id) => {
     cartStore.startMutation();
     const prev = cartStore.optimisticRemove(id);
-    
     try {
       const res = await api.delete('/cart/item', { data: { item_id: id } });
       if (res.data?.success) {
@@ -72,7 +62,7 @@ export default function CartPage() {
       }
     } catch (err) {
       console.error('Failed removing cart item', err);
-      cartStore.rollback(prev); // Rollback on error
+      cartStore.rollback(prev);
     } finally {
       cartStore.endMutation();
     }
@@ -106,13 +96,13 @@ export default function CartPage() {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--bg-secondary)] text-[var(--text-primary)]">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--bg-secondary)] text-[var(--text-primary)] font-poppins">
         <div className="size-24 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center mb-6 shadow-lg">
           <ShoppingBag className="w-10 h-10 text-[var(--text-secondary)]/30" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">Your cart is empty</h1>
         <p className="text-[var(--text-secondary)] mb-8 max-w-xs text-center text-sm">Add products to continue to checkout.</p>
-            <Link href="/overtime" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-[10px] tracking-tight rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 ">
+            <Link href="/overtime" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-[11px] tracking-tight rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 ">
                Browse products
             </Link>
       </div>
@@ -120,16 +110,15 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500">
-      {/* Background Liquid Effects */}
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 font-poppins">
       <div className="fixed top-[-10%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-[var(--accent-light)]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <main className="w-full px-4 sm:px-6 lg:px-20 py-6 sm:py-8 relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 sm:mb-8">
           <div>
-            <Link href="/overtime" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[10px] md:text-xs font-bold tracking-tight mb-3 md:mb-4 ">
-              <ChevronLeft className="w-3.5 h-3.5" /> Continue Exploring
+            <Link href="/overtime" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[11px] md:text-xs font-bold tracking-tight mb-3 md:mb-4 ">
+              <ChevronLeft className="w-3.5 h-3.5" /> Continue exploring
             </Link>
             <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight leading-none text-balance">
               Your <span className="text-[var(--accent)]">Cart</span>
@@ -137,7 +126,7 @@ export default function CartPage() {
           </div>
           <div className="px-3 md:px-4 py-1.5 glass-panel rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 flex items-center gap-2 shadow-sm self-start md:self-auto">
              <span className="size-1.5 md:size-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <span className="text-[9px] md:text-[11px] font-bold tracking-tight text-[var(--text-primary)] ">{cartItems.length} Items</span>
+             <span className="text-[11px] font-bold tracking-tight text-[var(--text-primary)] ">{cartItems.length} Items</span>
           </div>
         </div>
 
@@ -163,7 +152,7 @@ export default function CartPage() {
                          <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
                        </div>
                     </div>
-                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-tight mb-3">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                    <p className="text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight mb-3">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
                   </div>
                   
                   <div className="flex items-center justify-between mt-2">
@@ -200,7 +189,7 @@ export default function CartPage() {
                   <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl animate-in zoom-in-95 duration-300 shadow-sm">
                     <div className="flex items-center gap-2">
                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                       <span className="font-bold text-emerald-700 text-[10px] tracking-tight ">Code {coupon.code} Active</span>
+                       <span className="font-bold text-emerald-700 text-[11px] tracking-tight ">Code {coupon.code} active</span>
                     </div>
                     <button onClick={removeCoupon} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
                   </div>
@@ -208,19 +197,19 @@ export default function CartPage() {
                   <div className="space-y-3">
                     <div className="flex gap-2">
                        <div className="relative flex-1">
-                         <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
-                         <input
-                           value={couponCode}
-                           onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
-                           onKeyDown={e => e.key === 'Enter' && applyCoupon()}
-                           placeholder="Promo code"
-                           className="w-full pl-11 pr-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold tracking-tight text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all  shadow-inner"
-                         />
+                          <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
+                          <input
+                            value={couponCode}
+                            onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                            onKeyDown={e => e.key === 'Enter' && applyCoupon()}
+                            placeholder="Promo code"
+                            className="w-full pl-11 pr-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold tracking-tight text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all  shadow-inner"
+                          />
                        </div>
                        <button
                          onClick={applyCoupon}
                          disabled={couponLoading || !couponCode.trim()}
-                         className="px-5 py-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-bold rounded-xl text-[10px] tracking-tight disabled:opacity-50 transition-all  shadow-sm"
+                         className="px-5 py-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-bold rounded-xl text-[11px] tracking-tight disabled:opacity-50 transition-all  shadow-sm"
                        >
                          {couponLoading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" /> : 'Apply'}
                        </button>
@@ -231,26 +220,26 @@ export default function CartPage() {
               </div>
 
               <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-[var(--text-secondary)] text-[10px] font-semibold tracking-tight ">
+                <div className="flex justify-between text-[var(--text-secondary)] text-[11px] font-semibold tracking-tight ">
                   <span>Subtotal</span>
                   <span className="text-[var(--text-primary)] font-mono font-bold">{subtotal.toLocaleString()} XAF</span>
                 </div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-emerald-600 text-[10px] font-semibold tracking-tight ">
-                    <span>Aura Discount</span>
+                  <div className="flex justify-between text-emerald-600 text-[11px] font-semibold tracking-tight ">
+                    <span>Aura discount</span>
                     <span className="font-mono font-bold">- {discount.toLocaleString()} XAF</span>
                   </div>
                 )}
                 <div className="h-px bg-[var(--glass-border)] my-6" />
                 <div className="flex justify-between items-baseline">
-                   <span className="text-xs font-bold text-[var(--text-secondary)] tracking-[0.2em] ">Total</span>
+                   <span className="text-xs font-bold text-[var(--text-secondary)] tracking-tight ">Total</span>
                    <span className="text-3xl font-bold text-[var(--text-primary)] font-mono tracking-tight">{total.toLocaleString()} XAF</span>
                 </div>
               </div>
 
               <Link 
                 href="/checkout" 
-                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-[10px] tracking-[0.2em]  flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
+                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
               >
                 Go to checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
