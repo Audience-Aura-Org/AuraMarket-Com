@@ -554,17 +554,95 @@ const eversendWebhook = async (req, res) => {
       }
     }
 
-    if (type === 'transaction.failed' || type === 'collection.failed') {
+    if (type === 'transaction.failed' || type === 'collection.failed' || type === 'payout.failed') {
       await Transaction.findOneAndUpdate(
         { reference: data?.transactionRef, gateway: 'eversend' },
         { status: 'failed', gateway_response: data }
       );
+      // If it was a payout, we might want to alert the admin or notify the vendor
+      if (type === 'payout.failed') {
+        console.error(`❌ Eversend Payout Failed: ${data?.transactionRef}`, data?.message);
+        // TODO: Trigger admin alert/email
+      }
+    }
+
+    if (type === 'payout.success') {
+      const transaction = await Transaction.findOneAndUpdate(
+        { reference: data?.transactionRef, gateway: 'eversend' },
+        { status: 'completed', gateway_response: data },
+        { new: true }
+      );
+      if (transaction) {
+        console.log(`✅ Eversend Payout Success: ${data?.transactionRef} to user ${transaction.user_id}`);
+        // TODO: Notify vendor via in-app notification
+        await sendNotification({
+          userId: transaction.user_id,
+          title: 'Payout Successful',
+          message: `Your withdrawal of ${transaction.amount} ${transaction.currency} has been processed successfully.`,
+          type: 'payment'
+        });
+      }
     }
 
     res.status(200).send('OK');
   } catch (error) {
     console.error('Eversend Webhook Error:', error);
     res.status(500).send('Internal Server Error');
+  }
+};
+
+/**
+ * @route   GET /api/payments/eversend/beneficiaries
+ * @desc    List all saved Eversend beneficiaries
+ */
+const eversendGetBeneficiaries = async (req, res) => {
+  try {
+    const beneficiaries = await eversend.getBeneficiaries();
+    res.status(200).json({ success: true, data: beneficiaries });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch beneficiaries.' });
+  }
+};
+
+/**
+ * @route   POST /api/payments/eversend/beneficiaries
+ * @desc    Create a new Eversend beneficiary
+ */
+const eversendCreateBeneficiary = async (req, res) => {
+  try {
+    const beneficiary = await eversend.createBeneficiary(req.body);
+    res.status(201).json({ success: true, data: beneficiary });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({ 
+      success: false, 
+      message: error.response?.data?.message || 'Failed to create beneficiary.' 
+    });
+  }
+};
+
+/**
+ * @route   DELETE /api/payments/eversend/beneficiaries/:id
+ * @desc    Delete an Eversend beneficiary
+ */
+const eversendDeleteBeneficiary = async (req, res) => {
+  try {
+    await eversend.deleteBeneficiary(req.params.id);
+    res.status(200).json({ success: true, message: 'Beneficiary deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to delete beneficiary.' });
+  }
+};
+
+/**
+ * @route   GET /api/payments/eversend/transactions
+ * @desc    Fetch platform transaction history
+ */
+const eversendGetTransactions = async (req, res) => {
+  try {
+    const transactions = await eversend.getTransactions(req.query);
+    res.status(200).json({ success: true, data: transactions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch transactions.' });
   }
 };
 
@@ -579,5 +657,9 @@ module.exports = {
   eversendVerify,
   eversendRecheck,
   eversendWebhook,
+  eversendGetBeneficiaries,
+  eversendCreateBeneficiary,
+  eversendDeleteBeneficiary,
+  eversendGetTransactions,
   settleOrdersInSession,
 };

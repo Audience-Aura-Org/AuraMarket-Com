@@ -303,20 +303,6 @@ const executeEversendPayout = async (token, eversendTag, transactionRef) => {
  * @param {string|Buffer} payload - Raw request body
  * @param {string} signature      - x-eversend-signature header
  */
-const verifyWebhookSignature = (payload, signature) => {
-  if (!signature || !EVERSEND_WEBHOOK_SECRET) return false;
-  try {
-    const hmac = crypto.createHmac('sha512', EVERSEND_WEBHOOK_SECRET);
-    
-    // Convert Buffer to string if necessary (Express raw body parser returns Buffer)
-    let data = payload;
-    if (Buffer.isBuffer(payload)) {
-      data = payload.toString('utf8');
-    } else if (typeof payload !== 'string') {
-      data = JSON.stringify(payload);
-    }
-    
-    const digest = hmac.update(data).digest('hex');
     return digest === signature;
   } catch (err) {
     console.error('Webhook signature verification error:', err.message);
@@ -324,24 +310,59 @@ const verifyWebhookSignature = (payload, signature) => {
   }
 };
 
+/**
+ * Get all saved beneficiaries.
+ */
+const getBeneficiaries = async () => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.get('/beneficiaries');
+    return res.data;
+  });
+};
+
+/**
+ * Create a new beneficiary.
+ * @param {Object} data - { firstName, lastName, country, phoneNumber, bankCode, accountNumber, type }
+ */
+const createBeneficiary = async (data) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.post('/beneficiaries', data);
+    return res.data;
+  });
+};
+
+/**
+ * Delete a beneficiary.
+ * @param {string} beneficiaryId
+ */
+const deleteBeneficiary = async (beneficiaryId) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.delete(`/beneficiaries/${beneficiaryId}`);
+    return res.data;
+  });
+};
+
+/**
+ * Fetch transaction history.
+ * @param {Object} filters - { type, status, currency, page, limit, from, to }
+ */
+const getTransactions = async (filters = {}) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.get('/transactions', { params: filters });
+    return res.data;
+  });
+};
+
 module.exports = {
   getAccessToken,
   withAutoRefresh,
-  // Wallet
-  getWallets,
-  getWalletById,
-  // Collections
-  initiateCollection,
-  initiateNGNCollection,
-  // Status
-  getTransactionStatus,
-  getCollectionStatus, // legacy alias
-  // Payouts
-  getPayoutQuotation,
-  executeMomoPayout,
-  executeBankPayout,
-  executeEversendPayout,
   // Webhook
   verifyWebhookSignature,
+  // Beneficiaries
+  getBeneficiaries,
+  createBeneficiary,
+  deleteBeneficiary,
+  // History
+  getTransactions,
 };
 

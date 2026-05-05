@@ -12,6 +12,10 @@ const {
   eversendVerify,
   eversendRecheck,
   eversendWebhook,
+  eversendGetBeneficiaries,
+  eversendCreateBeneficiary,
+  eversendDeleteBeneficiary,
+  eversendGetTransactions,
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC, must come before protect middleware ───────────────────
@@ -26,10 +30,18 @@ router.use(protect);
 router.post('/initialize', initializePayment);
 router.get('/verify/:reference', verifyPayment);
 
-// Eversend — OTP route REMOVED (OTP is disabled)
+// Eversend — Advanced Features
 router.get('/eversend/wallets', eversendGetWallets);
 router.post('/eversend/initialize', eversendInitialize);
 router.get('/eversend/verify/:reference', eversendVerify);
 router.get('/eversend/recheck/:reference', eversendRecheck);
+
+// Beneficiaries
+router.get('/eversend/beneficiaries', eversendGetBeneficiaries);
+router.post('/eversend/beneficiaries', eversendCreateBeneficiary);
+router.delete('/eversend/beneficiaries/:id', eversendDeleteBeneficiary);
+
+// History
+router.get('/eversend/transactions', eversendGetTransactions);
 
 module.exports = router;
