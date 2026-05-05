@@ -258,7 +258,7 @@ class SocketService {
           };
           this.socket.on(event, safeCb);
           eventMap.set(callbackId, { callback, attached: true, wrapper: safeCb });
-          console.log(`✅ Listener attached for event: "${event}"`);
+          // console.log(`✅ Listener attached for event: "${event}"`);
         } catch (attachErr) {
           console.error(`[SocketService] Failed to attach listener for event "${event}":`, attachErr);
           eventMap.set(callbackId, { callback, attached: false });
@@ -310,7 +310,7 @@ class SocketService {
                 }
               }
               eventMap.delete(id);
-              console.log(`✅ Listener removed for event: "${event}"`);
+              // console.log(`✅ Listener removed for event: "${event}"`);
               break;
             }
           } catch (e) {
@@ -337,7 +337,7 @@ class SocketService {
           }
         }
         this.listeners.delete(event);
-        console.log(`✅ All listeners removed for event: "${event}"`);
+        // console.log(`✅ All listeners removed for event: "${event}"`);
       }
     } catch (e) {
       console.error('[SocketService] Error in off() method:', e);

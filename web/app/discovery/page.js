@@ -18,7 +18,7 @@ export default function DiscoveryPage() {
 
   // Show loading state while checking authentication
   if (isLoading) {
-    return <LoadingSpinner fullScreen />;
+    return <LoadingSpinner />;
   }
 
   // Only render if authenticated

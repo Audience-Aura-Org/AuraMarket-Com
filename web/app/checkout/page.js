@@ -1085,7 +1085,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<LoadingSpinner fullScreen />}>
+    <Suspense fallback={<LoadingSpinner />}>
       <CheckoutContent />
     </Suspense>
   );

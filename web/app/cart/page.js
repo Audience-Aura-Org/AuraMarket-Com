@@ -102,7 +102,7 @@ export default function CartPage() {
   const discount = coupon ? (coupon.type === 'percent' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount) : 0;
   const total = subtotal - discount;
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <LoadingSpinner />;
 
   if (cartItems.length === 0) {
     return (

@@ -161,7 +161,7 @@ export default function ProductDetailsPage() {
     imgRef.current.style.transformOrigin = `${((e.clientX - left) / width) * 100}% ${((e.clientY - top) / height) * 100}%`;
   };
 
-  if (loading) return <LoadingSpinner fullScreen />;
+  if (loading) return <LoadingSpinner />;
 
   if (!product) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg-secondary)] gap-4">

@@ -43,6 +43,7 @@ export default function SocketProvider({ children }) {
 
     // ── Handler: new chat message ──────────────────────────────────────────
     const handleNewMessage = (msg) => {
+      console.log('💬 New chat message received from:', msg.sender_id?.name || 'Aura User');
       // FOCUS GUARD: Only show toast if window is focused or tab is active
       if (!document.hasFocus()) return;
       if (window.location.pathname.startsWith('/chat')) return;
@@ -61,6 +62,7 @@ export default function SocketProvider({ children }) {
 
     // ── Handler: in-app notification (order/logistics/payment/system) ──────
     const handleNotification = (notif) => {
+      console.log('🔔 Real-time notification received:', notif.title || notif.type);
       if (!document.hasFocus()) return;
 
       const type = notif?.type || 'default';

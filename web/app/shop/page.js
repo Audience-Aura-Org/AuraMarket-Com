@@ -512,7 +512,7 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<LoadingSpinner fullScreen />}>
+    <Suspense fallback={<LoadingSpinner />}>
       <ShopContent />
     </Suspense>
   );
