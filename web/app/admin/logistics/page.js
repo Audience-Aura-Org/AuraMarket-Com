@@ -157,7 +157,7 @@ export default function AdminLogistics() {
 
             <div className="min-h-[400px]">
               {loading ? (
-                 <LoadingSpinner text="Synchronizing Transit Matrix" />
+                 <LoadingSpinner />
               ) : (
                  <div className="overflow-x-auto">
                     <table className="w-full text-left font-sm">

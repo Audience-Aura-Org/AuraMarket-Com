@@ -70,27 +70,29 @@ export default function VendorProductsPage() {
 
   return (
     <>
-      <header className="h-20 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-6 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 py-4 lg:py-0 gap-4 lg:gap-0 text-[var(--text-primary)]">
-        <div className="flex items-center gap-4 lg:gap-6">
-          <h2 className="text-fluid-lg lg:text-fluid-xl  font-bold text-[var(--text-primary)] tracking-tight ">Product <span className="text-[var(--accent)]">Hub</span></h2>
-          <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <p className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40"><span>{products.length}</span> Active Listings</p>
+      <header className="min-h-20 py-4 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-4 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 gap-4 lg:gap-0 text-[var(--text-primary)] sticky top-0 md:top-16 backdrop-blur-xl">
+        <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-6 w-full lg:w-auto">
+          <h2 className="text-xl lg:text-2xl font-bold text-[var(--text-primary)] tracking-tight">Product <span className="text-[var(--accent)]">Hub</span></h2>
+          <div className="flex items-center gap-3">
+             <div className="h-6 w-px bg-[var(--glass-border)] opacity-30" />
+             <p className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] font-semibold tracking-tight opacity-40 truncate"><span>{products.length}</span> Active Listings</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 lg:gap-5 self-end lg:self-auto w-full lg:w-auto">
-          <div className="relative flex-1 lg:flex-none">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full lg:w-80 group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all">
               <Search className="size-4" />
             </div>
             <input 
               type="text"
               value={searchTerm}
               onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full lg:w-80 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-11 pr-4 text-[11px] lg:text-[12px]  font-semibold tracking-tight outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-30 text-[var(--text-primary)] shadow-sm" 
-              placeholder="Filter by name or category..." 
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight outline-none focus:border-[var(--accent)]/50 transition-all placeholder:opacity-30 text-[var(--text-primary)] shadow-sm" 
+              placeholder="Search inventory..." 
             />
           </div>
-          <Link href="/vendor/products/add" className="flex items-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white  font-semibold px-5 lg:px-8 py-3 lg:py-3.5 rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:-translate-y-0.5 transition-all text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px] tracking-tight  shrink-0">
+          <Link href="/vendor/products/add" className="flex items-center justify-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white font-semibold w-full sm:w-auto px-6 py-3 rounded-2xl shadow-xl shadow-[var(--accent)]/20 active:scale-95 transition-all text-[11px] lg:text-[12px] tracking-tight shrink-0">
             <Zap className="size-4" />
             New Listing
           </Link>
@@ -127,10 +129,10 @@ export default function VendorProductsPage() {
             <>
               {/* Product KPIs Container */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                <KPICard title="Total Items" value={products.length} icon={Package} color="fuchsia" sub={`${products.filter(p => p.stock > 0).length} in stock`} />
+                <KPICard title="Total" value={products.length} icon={Package} color="fuchsia" sub={`${products.filter(p => p.stock > 0).length} in stock`} />
                 <KPICard title="Low Stock" value={products.filter(p => p.stock <= 5 && p.stock > 0).length} icon={AlertCircle} color={products.filter(p => p.stock <= 5 && p.stock > 0).length > 0 ? 'red' : 'emerald'} sub="Restock alerts" />
-                <KPICard title="Market Orders" value={products.reduce((acc, p) => acc + (p.purchase_count || 0), 0)} icon={ShoppingCart} color="emerald" sub="Sales volume" />
-                <KPICard title="Discovery Hits" value={products.reduce((acc, p) => acc + (p.view_count || 0), 0)} icon={Eye} color="blue" sub="Traffic exposure" />
+                <KPICard title="Sales" value={products.reduce((acc, p) => acc + (p.purchase_count || 0), 0)} icon={ShoppingCart} color="emerald" sub="Order volume" />
+                <KPICard title="Hits" value={products.reduce((acc, p) => acc + (p.view_count || 0), 0)} icon={Eye} color="blue" sub="Market exposure" />
               </div>
 
                 <div className="space-y-10">

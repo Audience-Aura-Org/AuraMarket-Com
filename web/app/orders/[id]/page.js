@@ -23,5 +23,5 @@ export default function OrderDetailPage() {
     }
   }, [id, user, router]);
 
-  return <LoadingSpinner fullScreen text="Redirecting to manifest node..." />;
+  return <LoadingSpinner fullScreen />;
 }

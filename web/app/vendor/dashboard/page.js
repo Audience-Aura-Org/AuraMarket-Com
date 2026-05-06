@@ -145,36 +145,35 @@ export default function VendorDashboard() {
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
-        <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 lg:px-8 glass-panel border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-2 min-w-0 text-[var(--text-primary)]">
-          <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
-            <h2 className="text-base sm:text-xl  font-bold text-[var(--text-primary)] tracking-tighter  truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
-            <div className="hidden md:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-            <p className="hidden md:block text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight  opacity-60">Status: <span className="text-[var(--text-primary)]">Online</span></p>
+        <header className="min-h-16 py-3 sm:h-16 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-3 sm:gap-2 min-w-0 text-[var(--text-primary)] sticky top-0 md:top-16">
+          <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+            <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tighter truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
+            <div className="flex sm:hidden items-center gap-3">
+               <button className="size-9 rounded-full glass-panel flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)]">
+                 <span className="material-symbols-outlined text-xl">notifications</span>
+               </button>
+               <div className="size-9 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden">
+                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
+               </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="relative hidden lg:flex items-center group">
-              <span className="material-symbols-outlined absolute left-4 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
+
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="relative flex-1 group sm:w-72">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
               <input 
-                className="glass-panel border border-[var(--glass-border)] rounded-full py-3 pl-12 pr-6 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 w-72 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40  font-bold tracking-tight " 
-                placeholder="Search..." 
+                className="w-full glass-panel border border-[var(--glass-border)] rounded-full py-2.5 pl-11 pr-6 text-[11px] lg:text-[12px] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-tight" 
+                placeholder="Find anything..." 
                 type="text" 
               />
             </div>
-            <div className="flex items-center gap-2">
-              <button className="size-9 sm:size-10 rounded-full glass-panel flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all relative border border-[var(--glass-border)] group">
-                <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">notifications</span>
-                <span className="absolute top-3.5 right-3.5 size-2.5 bg-[var(--accent)] rounded-full border-2 border-[var(--bg-primary)] shadow-[0_0_8px_var(--accent)]" />
-              </button>
-              <button className="hidden sm:flex size-10 rounded-full glass-panel items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all border border-[var(--glass-border)] group">
-                <span className="material-symbols-outlined text-2xl group-hover:rotate-12 transition-transform">mail</span>
-              </button>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-4 pl-3 sm:pl-4 border-l border-[var(--glass-border)]/30">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm  font-bold text-[var(--text-primary)] tracking-tighter">{user?.name || 'Vendor'}</p>
-                <p className="text-[10px] lg:text-[12px] text-[var(--accent)]  font-semibold tracking-tight  opacity-80">Store Owner</p>
+            
+            <div className="hidden sm:flex items-center gap-3 pl-4 border-l border-[var(--glass-border)]/30">
+              <div className="text-right">
+                <p className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{user?.name || 'Vendor'}</p>
+                <p className="text-[10px] lg:text-[12px] text-[var(--accent)] font-semibold tracking-tight opacity-80 uppercase">Store Owner</p>
               </div>
-              <div className="size-9 sm:size-10 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center  font-bold text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
+              <div className="size-10 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
               </div>
             </div>
@@ -190,40 +189,63 @@ export default function VendorDashboard() {
                   <p className="text-sm mt-1">{error}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Link href="/login" className="text-sm  font-bold bg-red-600 text-white px-3 py-1 rounded">Sign In</Link>
-                  <button onClick={() => logout()} className="text-sm  font-bold border border-red-600 text-red-600 px-3 py-1 rounded">Clear Session</button>
+      {/* Surgical Header */}
+      <div className="px-4 md:px-6 py-4 md:py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
+              <span className="material-symbols-outlined">dashboard</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">Platform Command</h1>
+              <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Administrative Hub</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 md:gap-4">
+             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
+                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-emerald-500 uppercase">Systems Nominal</span>
+             </div>
+             <button className="p-2 md:p-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90">
+                <span className="material-symbols-outlined">refresh</span>
+             </button>
+          </div>
+        </div>
+      </div>
+                <Link href="/login" className="text-sm  font-bold bg-red-600 text-white px-3 py-1 rounded">Sign In</Link>
+                <button onClick={() => logout()} className="text-sm  font-bold border border-red-600 text-red-600 px-3 py-1 rounded">Clear Session</button>
                 </div>
               </div>
             </div>
           )}
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, idx) => {
               const c = colorMap[stat.color];
               return (
-                <div key={stat.label} className="glass-panel p-5 rounded-[2rem] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-sm hover:shadow-xl group">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className={`size-10 rounded-2xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner`}>
-                      <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">{stat.icon}</span>
+                <div key={stat.label} className="glass-panel p-4 md:p-5 rounded-2xl md:rounded-[2rem] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-sm hover:shadow-xl group">
+                  <div className="flex justify-between items-start mb-3 md:mb-4">
+                    <div className={`size-8 md:size-10 rounded-xl md:rounded-2xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner`}>
+                      <span className="material-symbols-outlined text-lg md:text-xl group-hover:scale-110 transition-transform">{stat.icon}</span>
                     </div>
                     {stat.pct ? (
-                      <span className={`text-[11px] lg:text-[12px]  font-semibold px-3 py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-tight `}>{stat.pct}</span>
+                      <span className={`text-[9px] md:text-[11px] lg:text-[12px] font-semibold px-2 md:px-3 py-0.5 md:py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-tight`}>{stat.pct}</span>
                     ) : (
                       <Link href="/wallet" className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                         <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
                       </Link>
                     )}
                   </div>
-                  <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight  opacity-40 mb-1">{stat.label}</p>
-                  <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter font-mono">{stat.value}</h3>
+                  <p className="text-[var(--text-secondary)] text-[9px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight opacity-40 mb-1 capitalize">{stat.label}</p>
+                  <h3 className="text-lg md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter font-mono">{stat.value}</h3>
                   {stat.color !== 'purple' ? (
-                    <div className="mt-4 h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden shadow-inner">
+                    <div className="mt-3 md:mt-4 h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden shadow-inner">
                       <div className={`${c.bar} h-full transition-all duration-1000`} style={{ width: c.w, boxShadow: `0 0 10px ${c.glow}` }} />
                     </div>
                   ) : (
-                    <div className="mt-4 flex gap-2">
-                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[11px] lg:text-[12px]  font-semibold py-2 rounded-full shadow-lg shadow-[var(--accent)]/20 transition-all tracking-tight active:scale-95 text-center">Withdraw</Link>
-                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[11px] lg:text-[12px]  font-semibold py-2 rounded-full transition-all text-center border border-[var(--glass-border)] tracking-tight active:scale-95 flex items-center justify-center">Wallet</Link>
+                    <div className="mt-3 md:mt-4 flex gap-2">
+                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[9px] md:text-[11px] lg:text-[12px] font-semibold py-2 rounded-xl shadow-lg shadow-[var(--accent)]/20 transition-all tracking-tight active:scale-95 text-center flex items-center justify-center">Withdraw</Link>
+                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[9px] md:text-[11px] lg:text-[12px] font-semibold py-2 rounded-xl transition-all text-center border border-[var(--glass-border)] tracking-tight active:scale-95 flex items-center justify-center">Wallet</Link>
                     </div>
                   )}
                 </div>
@@ -329,18 +351,20 @@ export default function VendorDashboard() {
 
           {/* Live Order Tracking Table */}
           <div className="glass-panel rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
-            <div className="p-6 border-b border-[var(--glass-border)] flex justify-between items-center">
-              <h3 className="text-sm  font-bold text-[var(--text-primary)] tracking-tighter ">Active Transmissions</h3>
-              <div className="flex gap-2">
-                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] lg:text-[12px] px-3 py-1 rounded-full  font-semibold tracking-tight ">ALL</button>
-                <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-3 py-1 rounded-full  font-semibold tracking-tight  hover:bg-[var(--accent)]/5">PROCESSING</button>
-                <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-3 py-1 rounded-full  font-semibold tracking-tight  hover:bg-[var(--accent)]/5">SHIPPED</button>
+            <div className="p-5 md:p-6 border-b border-[var(--glass-border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Active Transmissions</h3>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
+                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight whitespace-nowrap">ALL</button>
+                <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight hover:bg-[var(--accent)]/5 whitespace-nowrap uppercase">Processing</button>
+                <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight hover:bg-[var(--accent)]/5 whitespace-nowrap uppercase">Shipped</button>
               </div>
             </div>
-            <div className="overflow-x-auto">
+
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50">
+                  <tr className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50 uppercase">
                     <th className="px-6 py-4">Product</th>
                     <th className="px-6 py-4">Order ID</th>
                     <th className="px-6 py-4">Customer</th>
@@ -364,20 +388,20 @@ export default function VendorDashboard() {
                         onClick={() => window.location.href = `/vendor/orders?orderId=${order._id}`}
                       >
                         <td className="px-6 py-4 flex items-center gap-3">
-                          <div className="size-8 rounded bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)]  font-bold text-xs">
+                          <div className="size-8 rounded bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] font-bold text-xs uppercase">
                             {order.products?.[0]?.name?.[0] || 'P'}
                           </div>
-                          <span className="text-sm text-[var(--text-primary)] font-medium">{order.products?.[0]?.name || 'Product'}</span>
+                          <span className="text-sm text-[var(--text-primary)] font-medium truncate max-w-[200px]">{order.products?.[0]?.name || 'Product'}</span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-[var(--text-secondary)]">#{order._id?.slice(-6) || i}</td>
+                        <td className="px-6 py-4 text-xs text-[var(--text-secondary)] font-mono">#{order._id?.slice(-6) || i}</td>
                         <td className="px-6 py-4 text-sm text-[var(--text-primary)]">{order.customer_id?.name || '—'}</td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[11px] lg:text-[12px]  font-semibold tracking-tight ${statusStyles[status] || statusStyles.processing}`}>
+                          <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-tight capitalize border ${statusStyles[status] || statusStyles.processing}`}>
                             <span className="size-1.5 rounded-full bg-current animate-pulse" />
                             {status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm  font-bold text-[var(--text-primary)]">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-[var(--text-primary)] tabular-nums">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</td>
                         <td className="px-6 py-4 text-right">
                           <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                             <span className="material-symbols-outlined">more_horiz</span>
@@ -388,11 +412,53 @@ export default function VendorDashboard() {
                   })}
                   {orders.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)]">No orders to display.</td>
+                      <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)] text-xs font-bold opacity-30">NO_ACTIVE_TRANSMISSIONS</td>
                     </tr>
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden divide-y divide-[var(--glass-border)]">
+              {orders.slice(0, 5).map((order, i) => {
+                const status = order.order_status || 'processing';
+                const statusStyles = {
+                  processing: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',
+                  shipped: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+                  delivered: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+                };
+                return (
+                  <div 
+                    key={order._id || i} 
+                    className="p-5 flex flex-col gap-4 active:bg-[var(--accent)]/5 transition-colors"
+                    onClick={() => window.location.href = `/vendor/orders?orderId=${order._id}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] font-bold text-sm uppercase">
+                          {order.products?.[0]?.name?.[0] || 'P'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[var(--text-primary)] truncate max-w-[180px]">{order.products?.[0]?.name || 'Product'}</p>
+                          <p className="text-[10px] font-mono text-[var(--text-secondary)] opacity-40">#{order._id?.slice(-6) || i}</p>
+                        </div>
+                      </div>
+                      <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[9px] font-semibold tracking-tight capitalize border ${statusStyles[status] || statusStyles.processing}`}>
+                        <span className="size-1 rounded-full bg-current animate-pulse" />
+                        {status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-[var(--glass-border)]/30">
+                       <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">{order.customer_id?.name || 'Unknown Customer'}</p>
+                       <p className="text-sm font-bold text-[var(--text-primary)] tabular-nums">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</p>
+                    </div>
+                  </div>
+                );
+              })}
+              {orders.length === 0 && (
+                <div className="p-10 text-center text-[var(--text-secondary)] text-[10px] font-bold opacity-30">NO_ACTIVE_TRANSMISSIONS</div>
+              )}
             </div>
           </div>
         </div>

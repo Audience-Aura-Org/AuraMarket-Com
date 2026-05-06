@@ -141,7 +141,7 @@ export default function AdminVendorsPage() {
 
             <div className="min-h-[400px]">
               {loading ? (
-                 <LoadingSpinner text="Synchronizing Merchant Nodes" />
+                 <LoadingSpinner />
               ) : currentVendors.length === 0 ? (
                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                     <Store className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />

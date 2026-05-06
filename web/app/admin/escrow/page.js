@@ -183,7 +183,7 @@ export default function AdminEscrow() {
 
             <div className="space-y-4">
               {loading ? (
-                 <LoadingSpinner text="Decrypting Vault Logs" />
+                 <LoadingSpinner />
               ) : currentLogs.length > 0 ? (
                  <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
                    {currentLogs.map(l => {

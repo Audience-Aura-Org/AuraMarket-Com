@@ -110,34 +110,34 @@ export default function AdminUsersPage() {
     <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
       
       {/* Surgical Header */}
-      <div className="px-6 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+      <div className="px-4 md:px-6 py-4 md:py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+            <div className="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shrink-0">
               <Users className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg  font-bold  tracking-tighter">Identity Matrix</h1>
-              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Personnel Directory</p>
+              <h1 className="text-lg font-bold tracking-tighter">Identity Matrix</h1>
+              <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Personnel Directory</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
-              <Search className="size-3.5 text-[var(--text-secondary)] opacity-40" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <div className="relative w-full sm:w-64 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
               <input
                 type="text"
-                placeholder="FIND NODE..."
-                className="bg-transparent border-none outline-none text-[11px] lg:text-[12px]  font-semibold tracking-tight w-48 text-[var(--text-primary)]"
+                placeholder="Find node..."
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               />
             </div>
-            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5">
+            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-0.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
               {['all', 'customer', 'vendor', 'admin'].map(r => (
                 <button
                   key={r} onClick={() => setRoleFilter(r)}
-                  className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ${roleFilter === r ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all capitalize whitespace-nowrap ${roleFilter === r ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
                 >
                   {r}
                 </button>
@@ -154,32 +154,35 @@ export default function AdminUsersPage() {
         ) : (
            <div className="space-y-2 min-h-[600px]">
               {currentUsers.map(u => (
-                <div key={u._id} className="flex items-center gap-4 p-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
-                  <div className="size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                    {u.avatar ? <img src={u.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate">{u.name}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px]  font-semibold tracking-tight border ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
-                        {u.role}
-                      </span>
+                <div key={u._id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="size-11 md:size-12 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                      {u.avatar ? <img src={u.avatar} className="size-full object-cover" /> : <User className="size-5 md:size-6 opacity-20" />}
                     </div>
-                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 truncate  mt-0.5 tracking-tight">{u.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight truncate">{u.name}</p>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] lg:text-[12px] font-semibold tracking-tight border capitalize ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                          {u.role}
+                        </span>
+                      </div>
+                      <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 truncate mt-0.5 tracking-tight">{u.email}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-8">
-                     <div className="text-right">
-                        <div className="flex items-center gap-2 justify-end">
+                  
+                  <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-8 border-t sm:border-t-0 border-[var(--glass-border)] pt-3 sm:pt-0">
+                     <div className="text-left sm:text-right">
+                        <div className="flex items-center gap-2 sm:justify-end">
                            <div className={`size-1.5 rounded-full ${u.verification_status === 'verified' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'}`} />
-                           <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-60">{u.verification_status || 'Pending'}</span>
+                           <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight opacity-60 capitalize">{u.verification_status || 'Pending'}</span>
                         </div>
-                        <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-20  mt-0.5 tracking-tight">Node Status</p>
+                        <p className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-20 mt-0.5 tracking-tight uppercase">Node Status</p>
                      </div>
                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleEditClick(u)} className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+                        <button onClick={() => handleEditClick(u)} className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90">
                            <MoreVertical className="size-4" />
                         </button>
-                        <button onClick={() => handleDeleteUser(u._id, u.name)} className="size-9 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                        <button onClick={() => handleDeleteUser(u._id, u.name)} className="size-9 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90">
                            <Trash2 className="size-4" />
                         </button>
                      </div>

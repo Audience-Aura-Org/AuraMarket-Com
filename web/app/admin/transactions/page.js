@@ -216,7 +216,7 @@ export default function AdminTransactionsPage() {
 
              <div className="space-y-4">
                {loading ? (
-                  <LoadingSpinner text="Synchronizing Ledger" />
+                  <LoadingSpinner />
                ) : transactions.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
                     {transactions.map(tx => {

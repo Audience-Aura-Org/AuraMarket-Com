@@ -139,53 +139,58 @@ export default function VendorOrdersPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Surgical Header */}
-      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-16 z-40">
-        <div className="flex items-center gap-6">
-          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20">
-             <ShoppingBag className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Sales <span className="text-[var(--accent)]">Manifest</span> Ledger</h2>
-            <div className="flex items-center gap-2 mt-1">
-               <div className="size-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_rgba(var(--accent-rgb),0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Merchant Pipeline // Node_{user.store_name?.replace(/\s/g, '_')}</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+               <ShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Sales <span className="text-[var(--accent)]">Manifest</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight truncate max-w-[150px] uppercase">{user.store_name || 'STORE_ID'}</p>
+              </div>
             </div>
           </div>
+          <button onClick={fetchOrders} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-4">
-           <div className="relative w-64 group">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="relative flex-1 md:w-64 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
               <input 
                 type="text"
-                placeholder="Reference, Customer..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                placeholder="Find Reference..."
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
                 value={search}
                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               />
            </div>
            
-           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar max-w-[300px]">
+           <div className="hidden md:flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
               {['all', 'placed', 'processing', 'shipped'].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all capitalize ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
                 >
                   {tab}
                 </button>
               ))}
            </div>
 
-           <button onClick={fetchOrders} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
+           <button onClick={fetchOrders} className="hidden md:flex size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
         </div>
       </header>
 
-      <div className={viewingOrderId ? "w-full" : "p-10 space-y-8 pb-40"}>
+      <div className={viewingOrderId ? "w-full" : "p-4 md:p-10 space-y-8 pb-40"}>
          {viewingOrderId ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 p-10 pb-40">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 p-4 md:p-10 pb-40">
                <SingleOrderView 
                   orderId={viewingOrderId} 
                   onBack={handleBack} 
@@ -195,24 +200,24 @@ export default function VendorOrdersPage() {
          ) : (
             <>
                {/* Live Stats */}
-               <div className="grid grid-cols-3 gap-6">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {[
                      { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: Database, color: 'var(--accent)', sub: 'ACCUMULATED_XAF' },
                      { label: 'Pending Payouts', value: pendingCount, icon: Zap, color: '#6366f1', sub: 'LOCKED_NODES' },
                      { label: 'Success Nodes', value: orders.length, icon: ShieldCheck, color: '#10b981', sub: 'MANIFEST_COMPLETE' }
                   ].map(s => (
-                     <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
+                     <div key={s.label} className="group relative p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
                         <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                        <div className="relative flex flex-col justify-between h-full space-y-8">
+                        <div className="relative flex flex-col justify-between h-full space-y-6 md:space-y-8">
                            <div className="flex items-center justify-between">
-                              <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                                 <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
+                              <div className="size-10 md:size-12 rounded-[1rem] md:rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
+                                 <s.icon className="w-4 h-4 md:w-5 md:h-5 opacity-40 group-hover:opacity-100" />
                               </div>
-                              <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                              <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                            </div>
                            <div>
-                              <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                              <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                              <p className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-1 md:mb-2 capitalize opacity-40">{s.label}</p>
+                              <h3 className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                            </div>
                         </div>
                      </div>
@@ -231,7 +236,7 @@ export default function VendorOrdersPage() {
 
                   <div className="space-y-4">
                   {loading ? (
-                     <LoadingSpinner text="Synchronizing Sales Pipeline" />
+                     <LoadingSpinner />
                   ) : currentOrders.length > 0 ? (
                      <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
                         {currentOrders.map(order => {
@@ -241,39 +246,52 @@ export default function VendorOrdersPage() {
                         return (
                               <button 
                                  key={order._id} 
-                                 className={`group relative w-full text-left rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col`}
+                                 className={`group relative w-full text-left rounded-[2rem] md:rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col`}
                                  onClick={() => handleViewOrder(order._id)}
                               >
-                                 <div className="p-6 lg:p-8 flex items-center gap-6 md:gap-8">
-                                    <div className={`size-12 md:size-14 rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
-                                       <Package className="w-6 h-6 md:w-7 md:h-7" />
+                                 <div className="p-5 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-8">
+                                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                                       <div className={`size-12 md:size-14 rounded-[1.25rem] md:rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
+                                          <Package className="w-5 h-5 md:w-7 md:h-7" />
+                                       </div>
+                                       <div className="sm:hidden flex-1 min-w-0">
+                                          <div className="flex items-center justify-between">
+                                             <span className="text-[11px] font-semibold text-[var(--text-primary)] tracking-tight">Order Trace</span>
+                                             <time className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-1 capitalize">
+                                                <Clock className="w-2.5 h-2.5" /> {new Date(order.createdAt).toLocaleDateString()}
+                                             </time>
+                                          </div>
+                                          <div className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-widest border inline-block ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
+                                             {status.label}
+                                          </div>
+                                       </div>
                                     </div>
 
-                                    <div className="flex-1 min-w-0">
-                                       <div className="flex items-center justify-between mb-2">
+                                    <div className="flex-1 min-w-0 w-full sm:w-auto">
+                                       <div className="hidden sm:flex items-center justify-between mb-2">
                                           <div className="flex items-center gap-3">
-                                             <span className="text-[11px] lg:text-[12px] md:text-[13px]  font-semibold text-[var(--text-primary)] tracking-tight capitalize">Order Trace</span>
-                                             <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
+                                             <span className="text-[11px] lg:text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] tracking-tight capitalize">Order Trace</span>
+                                             <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
                                                 {status.label}
                                              </span>
                                           </div>
-                                          <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
+                                          <time className="text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
                                              <Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString()}
                                           </time>
                                        </div>
                                        <div className="flex items-center gap-4">
-                                          <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                             <span className="font-mono text-[var(--accent)]  font-bold">#{order._id.slice(-8).toUpperCase()}</span>
-                                             <span>•</span>
-                                             <span className="truncate max-w-[200px] md:max-w-md">{customer?.name || 'GUEST'} → Delivery Node: {order.shipping_address?.quartier}</span>
+                                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
+                                             <span className="font-mono text-[var(--accent)] font-bold">#{order._id.slice(-8).toUpperCase()}</span>
+                                             <span className="hidden sm:inline">•</span>
+                                             <span className="truncate max-w-full sm:max-w-md">{customer?.name || 'GUEST'} → Delivery Node: {order.shipping_address?.quartier}</span>
                                           </div>
                                        </div>
                                     </div>
 
-                                    <div className="text-right shrink-0">
-                                       <p className="text-xl md:text-2xl  font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
-                                       <div className="flex items-center justify-end gap-3 mt-2">
-                                          <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{order.products?.length || 1} Payload Node(s)</span>
+                                    <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-[var(--glass-border)] pt-4 sm:pt-0 shrink-0">
+                                       <p className="text-lg md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-30 ml-1">XAF</span></p>
+                                       <div className="flex items-center gap-3 sm:mt-2">
+                                          <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{order.products?.length || 1} Nodes</span>
                                           <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                              {customer?.avatar ? <img src={customer.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                           </div>

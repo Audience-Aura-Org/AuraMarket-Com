@@ -67,23 +67,23 @@ export default function AdminDashboard() {
   return (
     <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
       {/* Surgical Header */}
-      <div className="px-6 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
+      <div className="px-4 md:px-6 py-4 md:py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20">
-              <LayoutDashboard className="size-5" />
+            <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
+               <LayoutDashboard className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg  font-bold tracking-tight">Platform Command</h1>
-              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Administrative Hub</p>
+              <h1 className="text-lg font-bold tracking-tight">Platform Command</h1>
+              <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Administrative Hub</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
+          <div className="flex items-center gap-2 md:gap-4">
+             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-500 ">Systems Nominal</span>
+                <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-emerald-500 uppercase">Systems Nominal</span>
              </div>
-             <button onClick={fetchStats} className="p-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
+             <button onClick={fetchStats} className="p-2 md:p-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90">
                 <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
              </button>
           </div>
@@ -103,33 +103,32 @@ export default function AdminDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           
           {/* Entity Management List */}
-          <section className="lg:col-span-2 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
-             <div className="flex items-center justify-between mb-8">
+          <section className="lg:col-span-2 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-sm">
+             <div className="flex items-center justify-between mb-6 md:mb-8">
                 <div>
-                  <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40">Operational Entities</h3>
-                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 ">High-Density Management Matrix</p>
+                  <h3 className="text-[10px] md:text-[12px] font-semibold tracking-[0.2em] opacity-40 uppercase">Operational Entities</h3>
+                  <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 mt-1">High-Density Management Matrix</p>
                 </div>
-                <Zap className="size-4 opacity-20" />
+                <Zap className="size-4 opacity-20 hidden sm:block" />
              </div>
 
-             <div className="grid md:grid-cols-2 gap-3">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { title: 'User Directory', desc: 'Auth & Profile Control', count: stats?.users || 0, icon: Users, color: 'blue', href: '/admin/users' },
                   { title: 'Merchant Registry', desc: 'KYC & Store Oversight', count: stats?.vendors || 0, icon: Store, color: 'amber', href: '/admin/vendors' },
                   { title: 'Product Ledger', desc: 'Catalog Moderation', count: stats?.products || 0, icon: Package, color: 'accent', href: '/admin/products' },
                   { title: 'Escrow Vault', desc: 'Platform Liquidity', count: `${fmt(stats?.escrow_vault)}`, icon: ShieldCheck, color: 'emerald', href: '/admin/escrow' },
                 ].map((item, i) => (
-                  <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
-                    <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color === 'accent' ? '[var(--accent)]' : item.color + '-500'}`}>
+                  <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group active:scale-[0.98]">
+                    <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color === 'accent' ? '[var(--accent)]' : item.color + '-500'} bg-${item.color === 'accent' ? '[var(--accent)]' : item.color + '-500'}/5`}>
                       <item.icon className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] lg:text-[12px]  font-semibold  truncate">{item.title}</p>
-                      <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 ">{item.desc}</p>
+                      <p className="text-[11px] lg:text-[12px] font-semibold truncate uppercase tracking-tight">{item.title}</p>
+                      <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs  font-bold">{item.count}</p>
-                      <ChevronRight className="size-3 opacity-0 group-hover:opacity-20 transition-opacity ml-auto" />
+                      <p className="text-xs font-bold font-mono">{item.count}</p>
                     </div>
                   </Link>
                 ))}
@@ -137,17 +136,17 @@ export default function AdminDashboard() {
 
              {/* Telemetry Matrix */}
              <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                   {[
                     { label: 'Live Nodes', value: stats?.online_users || 0, icon: Activity },
                     { label: 'Active 24H', value: stats?.active_users_24h || 0, icon: Clock },
-                    { label: 'Market Depth', value: stats?.active_products || 0, icon: Hub },
+                    { label: 'Market Depth', value: stats?.active_products || 0, icon: Package },
                     { label: 'Order Velocity', value: stats?.orders || 0, icon: TrendingUp },
                   ].map((item, i) => (
                     <div key={i} className="p-4 rounded-xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] text-center group hover:bg-[var(--bg-primary)] transition-all">
                       <item.icon className="size-3 mx-auto mb-2 opacity-20 group-hover:opacity-100 transition-opacity" />
-                      <p className="text-lg  font-bold tracking-tighter leading-none mb-1">{item.value}</p>
-                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">{item.label}</p>
+                      <p className="text-lg font-bold tracking-tighter leading-none mb-1 font-mono">{item.value}</p>
+                      <p className="text-[9px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40 uppercase">{item.label}</p>
                     </div>
                   ))}
                 </div>

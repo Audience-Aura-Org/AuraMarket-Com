@@ -64,31 +64,31 @@ export default function LogisticsDashboard() {
   return (
     <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pb-20">
       {/* Premium Glass Header */}
-      <header className="px-4 md:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-50">
+      <header className="px-4 md:px-8 py-4 md:py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 md:top-16 z-50">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
-              <Truck className="w-6 h-6 text-[var(--accent)]" />
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="size-10 md:size-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20 shrink-0">
+               <Truck className="w-5 h-5 md:w-6 md:h-6 text-[var(--accent)]" />
             </div>
             <div>
-              <h1 className="text-2xl  font-bold tracking-tighter">Logistics Hub</h1>
+              <h1 className="text-lg md:text-2xl font-bold tracking-tighter">Logistics <span className="text-[var(--accent)]">Hub</span></h1>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-60">Network Operational</p>
+                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-40 uppercase">Network Nominal</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button 
               onClick={fetchStats}
-              className="p-2.5 rounded-xl border border-[var(--glass-border)] hover:bg-white/5 text-[var(--text-secondary)] transition-all"
+              className="size-10 rounded-xl border border-[var(--glass-border)] hover:bg-white/5 text-[var(--text-secondary)] transition-all flex items-center justify-center active:scale-90"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <div className="hidden md:flex flex-col items-end">
-              <p className="text-xs  font-bold">{new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</p>
-              <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40   font-semibold">GMT +1</p>
+            <div className="hidden sm:flex flex-col items-end opacity-40">
+              <p className="text-[10px] font-bold uppercase tracking-tight">{new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })}</p>
+              <p className="text-[9px] font-semibold uppercase">Logistics_{user.name?.replace(/\s/g, '_')}</p>
             </div>
           </div>
         </div>
@@ -97,12 +97,12 @@ export default function LogisticsDashboard() {
       <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-8">
         
         {/* Core Metrics Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[
             { label: 'Settlement', value: `${balance.toLocaleString()} XAF`, sub: 'Available Balance', icon: BarChart3, color: 'fuchsia', href: '/wallet' },
-            { label: 'Network Yield', value: `${networkYield}%`, sub: 'Success vs Failed', icon: Zap, color: 'amber' },
-            { label: 'Pending Load', value: pendingCount, sub: 'Awaiting dispatch', icon: Clock, color: 'indigo' },
-            { label: 'Total Delivered', value: totalDelivered, sub: 'Success finalization', icon: CheckCircle2, color: 'emerald' }
+            { label: 'Yield', value: `${networkYield}%`, sub: 'Success vs Failed', icon: Zap, color: 'amber' },
+            { label: 'Pending', value: pendingCount, sub: 'Awaiting dispatch', icon: Clock, color: 'indigo' },
+            { label: 'Delivered', value: totalDelivered, sub: 'Success finalization', icon: CheckCircle2, color: 'emerald' }
           ].map((stat, i) => (
             <motion.div
               key={i}
@@ -111,14 +111,14 @@ export default function LogisticsDashboard() {
               transition={{ delay: i * 0.1 }}
               whileHover={{ y: -5 }}
               onClick={() => stat.href && router.push(stat.href)}
-              className={`p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-[var(--accent)]/50 transition-all ${stat.href ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
+              className={`p-4 md:p-6 rounded-2xl md:rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-[var(--accent)]/50 transition-all ${stat.href ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
             >
-              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
-                <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
+              <div className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-${stat.color}-500/10 w-fit mb-3 md:mb-4 group-hover:rotate-12 transition-transform`}>
+                <stat.icon className={`w-4 h-4 md:w-5 md:h-5 text-${stat.color}-500`} />
               </div>
-              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-              <h4 className="text-3xl  font-bold tracking-tighter mb-1">{stat.value}</h4>
-              <p className="text-[11px] lg:text-[12px]  font-semibold opacity-40 tracking-tight">{stat.sub}</p>
+              <p className="text-[9px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
+              <h4 className="text-xl md:text-3xl font-bold tracking-tighter mb-0.5 md:mb-1">{stat.value}</h4>
+              <p className="text-[9px] md:text-[11px] lg:text-[12px] font-semibold opacity-30 tracking-tight">{stat.sub}</p>
             </motion.div>
           ))}
         </div>
@@ -203,26 +203,24 @@ export default function LogisticsDashboard() {
             </div>
           </div>
         </div>
-
         {/* Active Shipments Live Table */}
-        <section className="p-8 rounded-3xl bg-[var(--bg-secondary)]/10 border border-[var(--glass-border)]">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <Activity className="w-5 h-5 text-[var(--accent)]" />
-              <h3 className="text-xl  font-bold tracking-tighter ">Shipment Stream</h3>
+        <section className="p-5 md:p-8 rounded-[2rem] md:rounded-3xl bg-[var(--bg-secondary)]/10 border border-[var(--glass-border)]">
+          <div className="flex items-center justify-between mb-6 md:mb-8">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Activity className="w-4 h-4 md:w-5 md:h-5 text-[var(--accent)]" />
+              <h3 className="text-lg md:text-xl font-bold tracking-tighter">Shipment Stream</h3>
             </div>
             
-            <div className="flex gap-2">
-              <button className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight flex items-center gap-2 hover:bg-white/5 transition-all">
-                <Filter className="w-3 h-3" /> Filter
-              </button>
-            </div>
+            <button className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight flex items-center gap-2 hover:bg-white/5 transition-all">
+              <Filter className="w-3 h-3" /> <span className="hidden sm:inline">Filter</span>
+            </button>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">
+                <tr className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40 uppercase">
                   <th className="pb-4 pr-4">Shipment ID</th>
                   <th className="pb-4 pr-4">Destination</th>
                   <th className="pb-4 pr-4">Status</th>
@@ -234,15 +232,15 @@ export default function LogisticsDashboard() {
                 {shipments.slice(0, 8).map((s) => (
                   <tr key={s._id} className="group hover:bg-white/[0.02] transition-colors">
                     <td className="py-4 pr-4">
-                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tighter ">#{s._id?.slice(-8).toUpperCase()}</p>
-                      <p className="text-[10px] lg:text-[12px] opacity-40   font-semibold tracking-tight">{s.tracking_number || 'TRK-PENDING'}</p>
+                      <p className="text-[11px] lg:text-[12px] font-semibold tracking-tighter">#{s._id?.slice(-8).toUpperCase()}</p>
+                      <p className="text-[10px] lg:text-[12px] opacity-40 font-semibold tracking-tight">{s.tracking_number || 'TRK-PENDING'}</p>
                     </td>
                     <td className="py-4 pr-4">
-                      <p className="text-xs  font-bold truncate max-w-[150px]">{s.destination_address?.city || 'Unknown'}</p>
-                      <p className="text-[10px] lg:text-[12px] opacity-40   font-semibold">{s.destination_address?.region || 'N/A'}</p>
+                      <p className="text-xs font-bold truncate max-w-[150px]">{s.destination_address?.city || 'Unknown'}</p>
+                      <p className="text-[10px] lg:text-[12px] opacity-40 font-semibold">{s.destination_address?.region || 'N/A'}</p>
                     </td>
                     <td className="py-4 pr-4">
-                      <span className={`px-3 py-1 rounded-full text-[11px] lg:text-[12px]  font-semibold tracking-tight ${
+                      <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-tight ${
                         s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' : 
                         s.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
                         s.status === 'assigned' ? 'bg-purple-500/10 text-purple-500' :
@@ -255,7 +253,7 @@ export default function LogisticsDashboard() {
                         {s.status?.replace(/_/g, ' ').toUpperCase()}
                       </span>
                     </td>
-                    <td className="py-4 pr-4 text-xs  font-bold italic opacity-60">High</td>
+                    <td className="py-4 pr-4 text-[10px] md:text-xs font-bold italic opacity-60">High</td>
                     <td className="py-4 text-right">
                       <button className="p-2 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] opacity-0 group-hover:opacity-100 transition-opacity">
                         <ChevronRight className="w-4 h-4" />
@@ -266,7 +264,44 @@ export default function LogisticsDashboard() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {shipments.slice(0, 8).map((s) => (
+              <div key={s._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] space-y-3 active:scale-[0.98] transition-all">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold tracking-tighter">#{s._id?.slice(-8).toUpperCase()}</p>
+                    <p className="text-[9px] opacity-40 font-semibold uppercase">{s.tracking_number || 'TRK-PENDING'}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-tight ${
+                    s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' : 
+                    s.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
+                    s.status === 'assigned' ? 'bg-purple-500/10 text-purple-500' :
+                    s.status === 'picked_up' ? 'bg-blue-500/10 text-blue-500' :
+                    s.status === 'in_transit' ? 'bg-indigo-500/10 text-indigo-400' :
+                    s.status === 'out_for_delivery' ? 'bg-cyan-500/10 text-cyan-400' :
+                    s.status === 'failed' ? 'bg-red-500/10 text-red-500' :
+                    'bg-blue-500/10 text-blue-500'
+                  }`}>
+                    {s.status?.replace(/_/g, ' ').toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3 h-3 text-[var(--accent)]" />
+                    <div>
+                      <p className="text-[10px] font-bold">{s.destination_address?.city || 'Unknown'}</p>
+                      <p className="text-[9px] opacity-40 font-semibold">{s.destination_address?.region || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 opacity-20" />
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
+
 
       </div>
     </div>

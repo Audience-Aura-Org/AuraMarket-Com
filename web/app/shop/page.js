@@ -462,7 +462,7 @@ function ShopContent() {
           {/* Product Grid - Consistently tight layout - ZOOMED STYLE */}
           <div className="px-4 md:px-8 lg:px-12 py-6">
             {loading ? (
-              <LoadingSpinner text="Synchronizing Inventory" />
+              <LoadingSpinner />
             ) : products.length === 0 ? (
               <div className="py-20 md:py-40 text-center">
                 <div className="size-20 md:size-24 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-8 text-[var(--text-secondary)]/50">
