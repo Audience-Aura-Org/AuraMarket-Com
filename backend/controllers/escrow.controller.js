@@ -104,7 +104,6 @@ const holdFunds = async (req, res, next) => {
     session.endSession();
 
     // BACKGROUND DISPATCH (Post-Transaction)
-    const quartier = order.shipping_address?.quartier;
     if (order.shipping_method === 'logistics_partner' && order.logistics_company_id && quartier) {
       const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
       if (logisticsFirm) {
