@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
@@ -88,7 +88,7 @@ export default function AdminHomepagePage() {
                  <div className="flex items-center gap-2 md:gap-3">
                     <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] opacity-40 uppercase">Topology Control</p>
                     <div className="h-1 w-1 rounded-full bg-[var(--glass-border)] hidden md:block" />
-                    <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hidden md:block">{sections.length} Active Nodes</span>
+                    <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hidden md:block">{sections.length} Actives</span>
                  </div>
               </div>
            </div>

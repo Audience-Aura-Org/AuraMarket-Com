@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -225,7 +225,7 @@ export default function AdminCategories() {
          {/* Live Intelligence */}
          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-               { label: 'Total Nodes', value: categories.length, icon: Database, color: 'var(--accent)', sub: 'REGISTRY' },
+               { label: 'Total Items', value: categories.length, icon: Database, color: 'var(--accent)', sub: 'REGISTRY' },
                { label: 'Sectors', value: '18', icon: Zap, color: '#10b981', sub: 'ACTIVE' },
                { label: 'Growth', value: '+12%', icon: Activity, color: '#6366f1', sub: 'SCALE' },
                { label: 'Health', value: 'Stable', icon: ShieldCheck, color: '#fbbf24', sub: 'CORE' }
@@ -283,7 +283,7 @@ export default function AdminCategories() {
               ) : categories.length === 0 ? (
                  <div className="py-32 flex flex-col items-center justify-center opacity-10 gap-6">
                     <Folder className="size-20" />
-                    <p className="text-xs font-bold tracking-[0.5em] uppercase">No Synchronization Nodes Detected</p>
+                    <p className="text-xs font-bold tracking-[0.5em] uppercase">No Synchronization Items Detected</p>
                  </div>
               ) : (
                  <div className="divide-y divide-[var(--glass-border)]/50">

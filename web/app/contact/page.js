@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -57,7 +57,7 @@ export default function GeneralContactPage() {
             Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Aura</span>
           </h1>
           <p className="text-[var(--text-secondary)] max-w-2xl mx-auto font-medium text-lg lg:text-xl opacity-60 leading-relaxed">
-            Synchronize with our administrative nodes for definitive resolution of platform inquiries or support requests.
+            Synchronize with our support team for definitive resolution of platform inquiries or support requests.
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function GeneralContactPage() {
                  <div className="space-y-6">
                     <h2 className="text-4xl  font-bold text-[var(--text-primary)]  tracking-tighter leading-none">Platform <span className="text-[var(--accent)]">Admin</span></h2>
                     <p className="text-[var(--text-secondary)] text-base font-medium opacity-60 leading-relaxed">
-                       Engage directly with our governance nodes for surgical assistance regarding your account, vendor status, or fulfillment issues.
+                       Engage directly with our support team for surgical assistance regarding your account, vendor status, or fulfillment issues.
                     </p>
                  </div>
               </div>
@@ -131,7 +131,7 @@ export default function GeneralContactPage() {
               <ShieldCheck className="size-10 text-emerald-500" />
               <h3 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">Security Relay</h3>
               <p className="text-[var(--text-secondary)] text-sm font-medium opacity-60 leading-relaxed">
-                 Report security anomalies, identity vulnerabilities, or fraudulent merchant nodes to our core defense unit.
+                 Report security anomalies, identity vulnerabilities, or fraudulent merchant accounts to our core defense unit.
               </p>
               <a href="mailto:security@auramarket.global" className="block text-[11px] lg:text-[12px]  font-semibold tracking-tight text-emerald-500 hover:underline">security@auramarket.global</a>
            </div>

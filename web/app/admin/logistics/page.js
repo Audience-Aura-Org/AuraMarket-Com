@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -129,7 +129,7 @@ export default function AdminLogistics() {
                { label: 'Active Transit', value: shipments.filter(s => s.status !== 'delivered' && s.status !== 'failed').length, icon: Package, color: 'var(--accent)', sub: 'TRANSIT' },
                { label: 'Flow Success', value: '98.4%', icon: CheckCircle2, color: '#10b981', sub: 'FLOW' },
                { label: 'Node Count', value: firms.length, icon: Building2, color: '#6366f1', sub: 'NODES' },
-               { label: 'Alert Nodes', value: shipments.filter(s => s.status === 'failed').length, icon: AlertTriangle, color: '#f43f5e', sub: 'RISK' }
+               { label: 'Alert Items', value: shipments.filter(s => s.status === 'failed').length, icon: AlertTriangle, color: '#f43f5e', sub: 'RISK' }
             ].map(s => (
                <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl">
                   <div className="flex items-center justify-between mb-4">
@@ -276,7 +276,7 @@ export default function AdminLogistics() {
                                 <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">Topology State</p>
                                 <div className="flex items-center gap-2">
                                    <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                                   <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Active Node</span>
+                                   <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Active</span>
                                 </div>
                              </div>
                              <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em]">

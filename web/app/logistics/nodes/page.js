@@ -10,7 +10,7 @@ import Link from "next/link";
 
 import Pagination from '@/components/common/Pagination';
 
-export default function LogisticsNodesPage() {
+export default function LogisticsItemsPage() {
   const [loading, setLoading] = useState(true);
   const [firm, setFirm] = useState(null);
   const [zones, setZones] = useState([]);
@@ -28,7 +28,7 @@ export default function LogisticsNodesPage() {
         if (profileRes.data.success) setFirm(profileRes.data.data.firm);
         if (zonesRes.data.success) setZones(zonesRes.data.data.zones || []);
       } catch (err) {
-        toast.error("Failed to load relay nodes");
+        toast.error("Failed to load relay hubs");
       } finally {
         setLoading(false);
       }
@@ -50,7 +50,7 @@ export default function LogisticsNodesPage() {
   return (
     <div className="p-4 lg:p-10 space-y-6">
       <div>
-        <h1 className="text-lg lg:text-2xl  font-bold tracking-tight">Relay Nodes</h1>
+        <h1 className="text-lg lg:text-2xl  font-bold tracking-tight">Relay Hubs</h1>
         <p className="text-[10px] lg:text-[12px] lg:text-xs  font-semibold tracking-tight opacity-60">
           Company profile, zone coverage and pricing status
         </p>

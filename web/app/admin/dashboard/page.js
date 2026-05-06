@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
         
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <CompactStat title="Active Nodes" value={fmt(stats?.users)} sub="Registered Accounts" icon={Users} color="blue" href="/admin/users" />
+          <CompactStat title="Actives" value={fmt(stats?.users)} sub="Registered Accounts" icon={Users} color="blue" href="/admin/users" />
           <CompactStat title="Merchant Queue" value={fmt(stats?.pending_vendors)} sub="Awaiting KYC" icon={Store} color="amber" href="/admin/vendors" />
           <CompactStat title="Asset Pipeline" value={fmt(stats?.pending_products)} sub="Pending Approval" icon={Package} color="accent" href="/admin/products" />
           <CompactStat title="Global Volume" value={`${fmt(stats?.revenue)} XAF`} sub="Gross Platform Revenue" icon={TrendingUp} color="emerald" href="/admin/analytics" />
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
              <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                   {[
-                    { label: 'Live Nodes', value: stats?.online_users || 0, icon: Activity },
+                    { label: 'Live Items', value: stats?.online_users || 0, icon: Activity },
                     { label: 'Active 24H', value: stats?.active_users_24h || 0, icon: Clock },
                     { label: 'Market Depth', value: stats?.active_products || 0, icon: Package },
                     { label: 'Order Velocity', value: stats?.orders || 0, icon: TrendingUp },

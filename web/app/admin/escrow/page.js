@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -185,7 +185,7 @@ export default function AdminEscrow() {
               {loading ? (
                  <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-20">
                     <Loader2 className="animate-spin size-10" />
-                    <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Synchronizing Nodes...</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Synchronizing Items...</p>
                  </div>
               ) : currentLogs.length > 0 ? (
                  <div className="grid grid-cols-1 gap-4">

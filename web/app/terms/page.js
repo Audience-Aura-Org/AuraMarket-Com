@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FileText, ArrowLeft, CheckCircle, Scale, Globe, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -21,7 +21,7 @@ export default function TermsAndConditions() {
           <div className="flex flex-col gap-4">
              <div className="flex items-center gap-2 text-[var(--accent)]">
                 <Scale className="size-5" />
-                <span className="text-xs  font-bold  tracking-[0.4em]">System Node</span>
+                <span className="text-xs  font-bold  tracking-[0.4em]">System Status</span>
              </div>
              <h1 className="text-5xl  font-bold text-[var(--text-primary)] tracking-tighter  leading-tight">
                 Market <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Protocol</span>
@@ -63,7 +63,7 @@ export default function TermsAndConditions() {
                     <h3 className="text-lg  font-bold tracking-tight">Financial Protocol</h3>
                  </div>
                  <p className="opacity-70 leading-relaxed text-sm">
-                    All payment settlements are handled via our secure wallet nodes and escrow services. Attempting to bypass the Aura payment protocol results in immediate profile suspension.
+                    All payment settlements are handled via our secure wallet accounts and escrow services. Attempting to bypass the Aura payment protocol results in immediate profile suspension.
                  </p>
               </section>
 

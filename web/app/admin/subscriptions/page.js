@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
   CreditCard, TrendingUp, TrendingDown, Clock, Users,
-  MoreVertical, Plus, Filter, ChevronLeft, ChevronRight
+  MoreVertical, Plus, Filter, ChevronLeft, ChevronRight,
+  RefreshCw, Search
 } from 'lucide-react';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
@@ -145,7 +146,7 @@ export default function AdminSubscriptionsPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                        <div className="p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Plan Node</p>
+                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Plan Tier</p>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-tight border ${PLAN_BADGE[s.plan]}`}>
                              {s.plan}
                           </span>

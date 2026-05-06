@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -162,7 +162,7 @@ export default function AdminApprovals() {
 
             <div className="min-h-[400px]">
               {loading ? (
-                 <LoadingSpinner text="Synchronizing Governance Nodes" />
+                 <LoadingSpinner text="Synchronizing Governance Items" />
               ) : pagedData.length === 0 ? (
                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                     <ShieldCheck className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />

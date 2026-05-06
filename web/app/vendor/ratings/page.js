@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +72,7 @@ export default function VendorRatingsPage() {
               <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Public <span className="text-[var(--accent)]">Ratings</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Reputation Node</p>
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Reputation Hub</p>
               </div>
             </div>
           </div>

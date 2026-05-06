@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -121,7 +121,7 @@ export default function LogisticsManifestsPage() {
             <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">Active <span className="text-[var(--accent)]">Manifests</span></h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Routing Feed // Node_Logistics</p>
+               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Routing Feed</p>
             </div>
           </div>
         </div>

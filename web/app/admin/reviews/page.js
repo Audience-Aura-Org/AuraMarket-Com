@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -172,7 +172,7 @@ export default function AdminReviewsPage() {
 
                     <div className="pt-4 border-t border-[var(--glass-border)]/50 flex items-center justify-between">
                        <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em]">Rating {r.rating}.0</span>
-                       <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-tight">Active Node</span>
+                       <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-tight">Active</span>
                     </div>
                  </div>
                ))}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
@@ -88,7 +88,7 @@ export default function StorefrontBuilder() {
                  <div className="flex items-center gap-2 md:gap-3">
                     <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] opacity-40 uppercase">System Topology</p>
                     <div className="h-1 w-1 rounded-full bg-[var(--glass-border)] hidden md:block" />
-                    <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hidden md:block">{sections.length} Active Nodes</span>
+                    <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hidden md:block">{sections.length} Actives</span>
                  </div>
               </div>
            </div>
@@ -149,7 +149,7 @@ export default function StorefrontBuilder() {
                                </span>
                             </div>
                             <h3 className="text-lg md:text-xl font-bold text-[var(--text-primary)] leading-tight tracking-tight truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
-                            <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight uppercase">{section.data?.length || 0} Nodes Linked</p>
+                            <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight uppercase">{section.data?.length || 0} Items Linked</p>
                          </div>
                       </div>
 
@@ -261,7 +261,7 @@ export default function StorefrontBuilder() {
                 <div className="h-1 w-8 bg-emerald-500 rounded-full mt-2" />
              </div>
              <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-rose-500 opacity-40  tracking-[0.3em]">Inactive Nodes</span>
+                <span className="text-[11px] lg:text-[12px]  font-semibold text-rose-500 opacity-40  tracking-[0.3em]">Inactive Items</span>
                 <span className="text-4xl  font-bold text-rose-500 tracking-tighter">{sections.filter(s => !s.is_active).length}</span>
                 <div className="h-1 w-8 bg-rose-500 rounded-full mt-2" />
              </div>

@@ -109,7 +109,7 @@ export default function RewardsPage() {
             <div className="space-y-4">
               <ActivityRow 
                 icon={PlusCircle} title="Protocol Reward" 
-                subtitle="Oct 24, 2023 &bull; Node #8271" 
+                subtitle="Oct 24, 2023 &bull; Ref #8271" 
                 amount="+142 pts" type="positive" 
               />
               <ActivityRow 

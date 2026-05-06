@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -316,7 +316,7 @@ export default function AdminOrdersPage() {
                                                 <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50">{customer?.email}</p>
                                              </div>
                                              <div>
-                                                <p className="text-[10px] lg:text-[12px]  font-semibold opacity-30 capitalize tracking-widest mb-1">Store Node</p>
+                                                <p className="text-[10px] lg:text-[12px]  font-semibold opacity-30 capitalize tracking-widest mb-1">Store Info</p>
                                                 <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{order.vendor_id?.store_name}</p>
                                              </div>
                                              <div className="col-span-2">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +71,7 @@ export default function AdminVendorsPage() {
               <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Merchant <span className="text-[var(--accent)]">Registry</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Nodes Active // Matrix</p>
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Items Active // Matrix</p>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function AdminVendorsPage() {
          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
                { label: 'Total Merchants', value: vendors.length, icon: Store, color: 'var(--accent)', sub: 'REGISTRY' },
-               { label: 'Verified Nodes', value: vendors.filter(v => v.verified).length, icon: ShieldCheck, color: '#10b981', sub: 'TRUST' },
+               { label: 'Verified Items', value: vendors.filter(v => v.verified).length, icon: ShieldCheck, color: '#10b981', sub: 'TRUST' },
                { label: 'Avg Rating', value: '4.85', icon: Star, color: '#fbbf24', sub: 'SCORE' },
                { label: 'Network Yield', value: 'High', icon: TrendingUp, color: '#6366f1', sub: 'SCALE' }
             ].map(s => (
@@ -152,7 +152,7 @@ export default function AdminVendorsPage() {
               ) : currentVendors.length === 0 ? (
                  <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
                     <Store className="w-16 h-16 text-[var(--text-secondary)]" />
-                    <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Merchant Nodes Synchronized</p>
+                    <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Merchant Items Synchronized</p>
                  </div>
               ) : (
                  <div className="grid grid-cols-1 gap-4">

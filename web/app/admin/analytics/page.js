@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -124,9 +124,9 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <CompactStat title="Global Flow" value={`XAF ${fmt(payout_intel?.total_revenue)}`} sub="Total Processed" icon={Wallet} color="emerald" />
           <CompactStat title="Escrow Pool" value={`XAF ${fmt(payout_intel?.total_escrow)}`} sub="Held Liquidity" icon={Lock} color="amber" />
-          <CompactStat title="Entity count" value={fmt(platform_summary?.total_users)} sub="Registered Nodes" icon={Users} color="blue" />
+          <CompactStat title="Entity count" value={fmt(platform_summary?.total_users)} sub="Registered Items" icon={Users} color="blue" />
           <CompactStat title="Merchant Base" value={fmt(platform_summary?.total_vendors)} sub="Active Stores" icon={Store} color="purple" />
-          <CompactStat title="Shipment Flow" value={fmt(platform_summary?.live_shipments)} sub="In-Transit Nodes" icon={Package} color="red" />
+          <CompactStat title="Shipment Flow" value={fmt(platform_summary?.live_shipments)} sub="In-Transit Items" icon={Package} color="red" />
         </div>
 
         {/* Intelligence Matrix */}

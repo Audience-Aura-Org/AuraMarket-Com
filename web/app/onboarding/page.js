@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -365,7 +365,7 @@ export default function OnboardingFlow() {
                         <div className="flex flex-col text-left min-w-0">
                           <span className="text-sm  font-bold text-[var(--text-primary)] truncate">{cat.name}</span>
                           <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium opacity-50">
-                            {cat.product_count > 0 ? `${cat.product_count} products` : 'Explore node'}
+                            {cat.product_count > 0 ? `${cat.product_count} products` : 'Explore category'}
                           </span>
                         </div>
                       </div>
@@ -418,7 +418,7 @@ export default function OnboardingFlow() {
                 {zonesLoading ? (
                   <div className="flex items-center gap-3 py-1">
                     <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
-                    <span className="text-xs  font-bold opacity-40">Syncing nodes...</span>
+                    <span className="text-xs  font-bold opacity-40">Loading...</span>
                   </div>
                 ) : (
                   <div className="relative">

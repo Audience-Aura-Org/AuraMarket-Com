@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -289,7 +289,7 @@ export default function VendorWalletPage() {
               <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Vault</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Secured Node</p>
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Secured System</p>
               </div>
             </div>
           </div>

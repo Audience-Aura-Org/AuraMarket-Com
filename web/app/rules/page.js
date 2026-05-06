@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Scale, ShieldAlert, ArrowLeft, Gavel, UserCheck, AlertCircle, Trash2, ShieldCheck, Globe, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -22,13 +22,13 @@ export default function MarketRulesPage() {
           <div className="space-y-6">
              <div className="flex items-center gap-3 text-[var(--accent)] bg-[var(--accent)]/5 w-fit px-5 py-2 rounded-full border border-[var(--accent)]/10">
                 <Gavel className="size-5" />
-                <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.4em]">Administrative Node</span>
+                <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.4em]">Administrative Hub</span>
              </div>
              <h1 className="text-6xl  font-bold text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
                 Market <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Rules</span>
              </h1>
              <p className="text-[var(--text-secondary)] max-w-xl font-medium text-lg opacity-60 leading-relaxed">
-                The definitive framework for global commerce. Our rules ensure absolute parity, security, and professional conduct across every node.
+                The definitive framework for global commerce. Our rules ensure absolute parity, security, and professional conduct across every participant.
              </p>
           </div>
         </div>
@@ -46,19 +46,19 @@ export default function MarketRulesPage() {
               {
                 icon: Zap,
                 title: 'Transaction Protocol',
-                text: 'Bypassing the Aura settlement gateway is strictly prohibited. Direct messaging for external payments resulting in off-platform commerce resets the escrow protection for all involved nodes.',
+                text: 'Bypassing the Aura settlement gateway is strictly prohibited. Direct messaging for external payments resulting in off-platform commerce resets the escrow protection for all involved parties.',
                 severity: 'Critical'
               },
               {
                 icon: ShieldAlert,
                 title: 'Merchant Conduct',
-                text: 'Vendors must provide surgical precision in product manifests. Misleading descriptions, non-functional tracking nodes, or failure to fulfill verified orders impacts global reliability and results in profile suspension.',
+                text: 'Vendors must provide surgical precision in product manifests. Misleading descriptions, non-functional tracking links, or failure to fulfill verified orders impacts global reliability and results in profile suspension.',
                 severity: 'Critical'
               },
               {
                 icon: Trash2,
                 title: 'Banned Catalog',
-                text: 'Certain categories are restricted from the Aura global network. Review our legal node lists for prohibited inventory before establishing a storefront.',
+                text: 'Certain categories are restricted from the Aura global network. Review our restricted category lists for prohibited inventory before establishing a storefront.',
                 severity: 'High'
               }
            ].map((rule, i) => (

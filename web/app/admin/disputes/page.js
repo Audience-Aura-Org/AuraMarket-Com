@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
@@ -153,7 +153,7 @@ export default function AdminDisputes() {
                        {fetchingCase ? (
                           <div className="flex flex-col items-center justify-center py-20 gap-4">
                              <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
-                             <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">Synchronizing Nodes...</p>
+                             <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">Synchronizing Items...</p>
                           </div>
                        ) : caseShipment?.proof_of_delivery?.image_url ? (
                          <div className="space-y-4">
@@ -348,7 +348,7 @@ export default function AdminDisputes() {
               ) : (
                  <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
                     <Scale className="w-16 h-16 text-[var(--text-secondary)]" />
-                    <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Active Arbitration Nodes</p>
+                    <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Active Arbitration Items</p>
                  </div>
               )}
             </div>

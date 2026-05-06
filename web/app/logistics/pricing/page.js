@@ -183,7 +183,7 @@ export default function LogisticsPricingPage() {
                             <SearchIcon className="size-4 opacity-20" />
                             <input placeholder="Search zone network..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="bg-transparent border-none outline-none text-[10px] lg:text-[12px] lg:text-xs  font-semibold tracking-tight w-full" />
                          </div>
-                         <p className="text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold  opacity-40 tracking-[0.2em]">{profile.quartier_prices.length} Active Nodes</p>
+                         <p className="text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold  opacity-40 tracking-[0.2em]">{profile.quartier_prices.length} Actives</p>
                       </div>
                       {tableSelections.length > 0 && (
                          <div className="p-3 lg:p-5 bg-[var(--accent)]/10 border-b border-[var(--glass-border)] flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500">

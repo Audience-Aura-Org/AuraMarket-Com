@@ -156,7 +156,7 @@ export default function KYCPage() {
 
                         <div className="space-y-4">
                            <h2 className="text-4xl  font-bold tracking-tight ">Biometric Initiation</h2>
-                           <p className="text-sm font-medium text-[var(--text-secondary)] mx-auto max-w-sm">Look directly into your node camera for liveness verification protocol.</p>
+                           <p className="text-sm font-medium text-[var(--text-secondary)] mx-auto max-w-sm">Look directly into your device camera for liveness verification protocol.</p>
                         </div>
 
                         <button

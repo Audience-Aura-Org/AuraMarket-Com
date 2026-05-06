@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Shield, ArrowLeft, Lock, Eye, FileText, RefreshCw, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -21,7 +21,7 @@ export default function PrivacyPolicy() {
           <div className="flex flex-col gap-4">
              <div className="flex items-center gap-2 text-[var(--accent)]">
                 <Shield className="size-5" />
-                <span className="text-xs  font-bold  tracking-[0.4em]">Security Node</span>
+                <span className="text-xs  font-bold  tracking-[0.4em]">Security Center</span>
              </div>
              <h1 className="text-5xl  font-bold text-[var(--text-primary)] tracking-tighter  leading-tight">
                 Privacy <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Protocol</span>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
@@ -99,7 +99,7 @@ export default function AdminAuditLogs() {
             {[
                { label: 'Total Events', value: logs.length, icon: Database, color: 'text-[var(--accent)]', sub: 'REGISTRY' },
                { label: 'High Priority', value: logs.filter(l => l.action.includes('ban')).length, icon: AlertTriangle, color: 'text-rose-500', sub: 'CRITICAL' },
-               { label: 'Nodes Tracked', value: '7 Active', icon: Fingerprint, color: 'text-indigo-500', sub: 'IDENTITY' },
+               { label: 'Items Tracked', value: '7 Active', icon: Fingerprint, color: 'text-indigo-500', sub: 'IDENTITY' },
                { label: 'Feed Uptime', value: '99.99%', icon: Activity, color: 'text-emerald-500', sub: 'HEALTH' }
             ].map(s => (
                <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl overflow-hidden">

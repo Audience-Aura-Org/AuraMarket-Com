@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -238,7 +238,7 @@ export default function LogisticsAnalyticsPage() {
             </div>
             <h3 className="text-2xl  font-bold tracking-tight mb-2">Automated Insights</h3>
             <p className="text-sm text-[var(--text-secondary)] opacity-60 mb-8 max-w-[280px]">
-              Regional load in <span className="text-[var(--text-primary)]  font-bold">Douala</span> is peaking. Reallocate assets to Node 04.
+              Regional load in <span className="text-[var(--text-primary)]  font-bold">Douala</span> is peaking. Reallocate assets to Zone 04.
             </p>
             <button className="px-8 py-3 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 active:scale-95">
               Execute Rebalance

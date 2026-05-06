@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
 import { 
@@ -12,7 +12,7 @@ const DROPS = [
   {
     id: 'drop-1',
     title: 'Aura Genesis-X',
-    description: 'The definitive revision of high-velocity operational hardware. Limited node allocation.',
+    description: 'The definitive revision of high-velocity operational hardware. Limited availability.',
     image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=1200',
     price: '245,000 XAF',
     status: 'Live Now',
@@ -22,7 +22,7 @@ const DROPS = [
   {
     id: 'drop-2',
     title: 'Sector 7 Core',
-    description: 'Surgical design for regional logistics hubs. Premium fulfillment nodes included.',
+    description: 'Surgical design for regional logistics hubs. Premium fulfillment options included.',
     image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=1200',
     price: '1.2M XAF',
     status: 'Coming Soon',

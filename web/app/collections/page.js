@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from 'react';
 import { LayoutGrid, Sparkles, ArrowRight, Zap, Target, Box, Filter } from 'lucide-react';
@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 const COLLECTIONS = [
   { id: 'cyber-elite', title: 'Cyber Elite', count: 124, accent: '#06b6d4', image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400' },
-  { id: 'minimalist-nodes', title: 'Minimalist Nodes', count: 84, accent: '#6366f1', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=400' },
+  { id: 'minimalist-nodes', title: 'Minimalist Items', count: 84, accent: '#6366f1', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=400' },
   { id: 'liquid-luxury', title: 'Liquid Luxury', count: 56, accent: '#f43f5e', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=400' },
   { id: 'future-archive', title: 'Future Archive', count: 210, accent: '#a855f7', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=400' }
 ];

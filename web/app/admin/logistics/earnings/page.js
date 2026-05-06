@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -117,7 +117,7 @@ export default function AdminLogisticsEarningsPage() {
            {/* Vendor Matrix */}
            <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                 <h2 className="text-xs  font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Merchant Nodes</h2>
+                 <h2 className="text-xs  font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Merchant Items</h2>
                  <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] ">{vendors.length} Live</span>
               </div>
               <div className="space-y-2">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -177,7 +177,7 @@ export default function VendorDashboard() {
             <div className="hidden md:flex items-center gap-3 pl-6 border-l border-[var(--glass-border)]/30">
                <div className="text-right">
                  <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
-                 <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-tight opacity-50">Store Node</p>
+                 <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-tight opacity-50">Store Info</p>
                </div>
                <div className="size-10 rounded-xl border border-[var(--accent)]/20 bg-gradient-to-tr from-[var(--accent)]/10 to-indigo-600/5 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden">
                  {user?.avatar ? <img src={user.avatar} className="size-full object-cover" /> : <span>{user?.name?.[0]?.toUpperCase() || 'V'}</span>}
@@ -200,7 +200,7 @@ export default function VendorDashboard() {
               </div>
               <div className="flex items-center gap-3 w-full md:w-auto">
                  <Link href="/login" className="flex-1 md:flex-none px-6 py-2 bg-rose-500 text-white rounded-xl text-[11px] font-bold tracking-tight hover:opacity-90 transition-all text-center">Re-Authenticate</Link>
-                 <button onClick={() => logout()} className="flex-1 md:flex-none px-6 py-2 border border-rose-500/30 text-rose-500 rounded-xl text-[11px] font-bold tracking-tight hover:bg-rose-500/10 transition-all">Clear Node</button>
+                 <button onClick={() => logout()} className="flex-1 md:flex-none px-6 py-2 border border-rose-500/30 text-rose-500 rounded-xl text-[11px] font-bold tracking-tight hover:bg-rose-500/10 transition-all">Sign Out</button>
               </div>
             </div>
           )}

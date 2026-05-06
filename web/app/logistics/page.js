@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
 import { 
@@ -66,15 +66,15 @@ export default function GlobalLogisticsPage() {
            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/5 blur-2xl rounded-full translate-x-12 -translate-y-12" />
            <div className="space-y-8 relative z-10">
               <div className="space-y-2">
-                 <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">Active Transmit Nodes</h2>
+                 <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">Active Delivery Hubs</h2>
                  <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">Real-time settlement mapping</p>
               </div>
               
               <div className="space-y-2">
                  {[
-                    { node: 'Node_AF-7', status: 'In Transit', progress: 84 },
-                    { node: 'Node_EU-4', status: 'Processing', progress: 12 },
-                    { node: 'Node_US-9', status: 'Delivered', progress: 100 }
+                    { node: 'Route AF-7', status: 'In Transit', progress: 84 },
+                    { node: 'Route EU-4', status: 'Processing', progress: 12 },
+                    { node: 'Route US-9', status: 'Delivered', progress: 100 }
                  ].map(item => (
                     <div key={item.node} className="p-4 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-between gap-6 hover:bg-[var(--bg-secondary)] transition-all">
                        <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] opacity-60 ">{item.node}</p>

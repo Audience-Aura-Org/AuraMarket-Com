@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Cookie, ArrowLeft, Shield, Lock, Eye, FileText, Settings, Database, Server } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -40,7 +40,7 @@ export default function CookiePolicyPage() {
               <section className="flex flex-col gap-6">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Database className="size-6 text-[var(--accent)]" />
-                    <h3 className="text-xl  font-bold tracking-tight">Essential Nodes</h3>
+                    <h3 className="text-xl  font-bold tracking-tight">Essential Items</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     These cookies are strictly necessary for the core functionality of Aura Market. They handle session authentication, secure wallet encryption, and regional storefront calibration. Disabling these will result in system-level instability.

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -204,7 +204,7 @@ export default function VendorOrdersPage() {
                   {[
                      { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: Database, color: 'var(--accent)', sub: 'ACCUMULATED_XAF' },
                      { label: 'Pending Payouts', value: pendingCount, icon: Zap, color: '#6366f1', sub: 'LOCKED_NODES' },
-                     { label: 'Success Nodes', value: orders.length, icon: ShieldCheck, color: '#10b981', sub: 'MANIFEST_COMPLETE' }
+                     { label: 'Completed Orders', value: orders.length, icon: ShieldCheck, color: '#10b981', sub: 'MANIFEST_COMPLETE' }
                   ].map(s => (
                      <div key={s.label} className="group relative p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
                         <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
@@ -283,7 +283,7 @@ export default function VendorOrdersPage() {
                                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
                                              <span className="font-mono text-[var(--accent)] font-bold">#{order._id.slice(-8).toUpperCase()}</span>
                                              <span className="hidden sm:inline">•</span>
-                                             <span className="truncate max-w-full sm:max-w-md">{customer?.name || 'GUEST'} → Delivery Node: {order.shipping_address?.quartier}</span>
+                                             <span className="truncate max-w-full sm:max-w-md">{customer?.name || 'GUEST'} → Delivery Area: {order.shipping_address?.quartier}</span>
                                           </div>
                                        </div>
                                     </div>
@@ -291,7 +291,7 @@ export default function VendorOrdersPage() {
                                     <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-[var(--glass-border)] pt-4 sm:pt-0 shrink-0">
                                        <p className="text-lg md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-30 ml-1">XAF</span></p>
                                        <div className="flex items-center gap-3 sm:mt-2">
-                                          <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{order.products?.length || 1} Nodes</span>
+                                          <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{order.products?.length || 1} Items</span>
                                           <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                              {customer?.avatar ? <img src={customer.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                           </div>

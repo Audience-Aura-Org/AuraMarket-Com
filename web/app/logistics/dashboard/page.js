@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { 
@@ -179,7 +179,7 @@ export default function LogisticsDashboard() {
                 </button>
                 <button className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)] transition-all flex flex-col items-center gap-2 group">
                   <MapPin className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">Manage Nodes</span>
+                  <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">Manage Hubs</span>
                 </button>
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function LogisticsDashboard() {
               </div>
               <div className="space-y-4">
                 {[
-                  { msg: 'Weather delay at Node A', time: '2m ago' },
+                  { msg: 'Weather delay at Route A', time: '2m ago' },
                   { msg: 'System check complete', time: '1h ago' }
                 ].map((item, i) => (
                   <div key={i} className="flex items-center justify-between text-[10px] lg:text-[12px]">

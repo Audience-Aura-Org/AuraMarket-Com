@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -252,7 +252,7 @@ export default function AdminProductsPage() {
           >
             <div className="flex flex-col">
               <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)]">Batch Selection</span>
-              <span className="text-sm  font-bold">{selectedIds.length} Asset Nodes</span>
+              <span className="text-sm  font-bold">{selectedIds.length} Asset Items</span>
             </div>
 
             <div className="flex items-center gap-4">
