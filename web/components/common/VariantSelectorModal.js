@@ -130,10 +130,10 @@ export default function VariantSelectorModal({
                   <img src={mainImage} className="size-full object-cover" alt="" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] truncate leading-tight">{product.name}</p>
+                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] truncate leading-tight">{product.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-sm font-bold text-[var(--accent)]">{displayPrice?.toLocaleString()} XAF</span>
-                    <span className={`text-[11px] lg:text-[12px] font-bold tracking-tight px-1.5 py-0.5 rounded-full ${inStock ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                    <span className="text-sm font-quicksand font-bold text-[var(--accent)]">{displayPrice?.toLocaleString()} XAF</span>
+                    <span className={`text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight px-1.5 py-0.5 rounded-full ${inStock ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                       {inStock ? 'In stock' : 'Out of stock'}
                     </span>
                   </div>
@@ -153,11 +153,11 @@ export default function VariantSelectorModal({
               {product.has_variants && product.variant_types?.map((type) => (
                 <div key={type.name}>
                   <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-[11px] lg:text-[12px] font-bold  tracking-[0.15em] text-[var(--text-secondary)]">
+                    <span className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.15em] text-[var(--text-secondary)]">
                       {type.name}
                     </span>
                     {selectedOptions[type.name] && (
-                      <span className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full">
+                      <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full">
                         {selectedOptions[type.name]}
                       </span>
                     )}
@@ -193,7 +193,7 @@ export default function VariantSelectorModal({
                           key={option}
                           onClick={() => setSelectedOptions(p => ({ ...p, [type.name]: option }))}
                           aria-pressed={isActive}
-                          className={`px-4 py-2 rounded-xl text-[11px] lg:text-[12px] font-bold border transition-all ${
+                          className={`px-4 py-2 rounded-xl text-[11px] lg:text-[12px] font-quicksand font-bold border transition-all ${
                             isActive
                               ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]'
                               : 'border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50 hover:text-[var(--text-primary)]'
@@ -213,7 +213,7 @@ export default function VariantSelectorModal({
               <button
                 onClick={handleConfirm}
                 disabled={loading || !inStock}
-                className={`w-full h-12 rounded-2xl flex items-center justify-center gap-2.5 text-[11px] lg:text-[12px] font-bold tracking-tight transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`w-full h-12 rounded-2xl flex items-center justify-center gap-2.5 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
                   actionType === 'buy'
                     ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--accent)] hover:text-white'
                     : 'bg-[var(--accent)] text-white hover:brightness-110'

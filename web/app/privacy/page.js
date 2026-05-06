@@ -21,9 +21,9 @@ export default function PrivacyPolicy() {
           <div className="flex flex-col gap-4">
              <div className="flex items-center gap-2 text-[var(--accent)]">
                 <Shield className="size-5" />
-                <span className="text-xs font-bold  tracking-[0.4em]">Security Node</span>
+                <span className="text-xs font-quicksand font-bold  tracking-[0.4em]">Security Node</span>
              </div>
-             <h1 className="text-5xl font-bold text-[var(--text-primary)] tracking-tighter  leading-tight">
+             <h1 className="text-5xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter  leading-tight">
                 Privacy <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Protocol</span>
              </h1>
              <p className="text-[var(--text-secondary)] max-w-xl opacity-60">
@@ -40,7 +40,7 @@ export default function PrivacyPolicy() {
               <section className="flex flex-col gap-4">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Lock className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-bold tracking-tight">Data Encryption</h3>
+                    <h3 className="text-lg font-quicksand font-bold tracking-tight">Data Encryption</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     All transaction data and user communications are wrapped in end-to-end encryption. Your private keys and wallet balances are never stored in plain text.
@@ -50,7 +50,7 @@ export default function PrivacyPolicy() {
               <section className="flex flex-col gap-4">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Eye className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-bold tracking-tight">Information Usage</h3>
+                    <h3 className="text-lg font-quicksand font-bold tracking-tight">Information Usage</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     We collect minimal identity data—only what is strictly necessary for vendor verification and order logistics. We never sell your data to third-party brokers.
@@ -60,7 +60,7 @@ export default function PrivacyPolicy() {
               <section className="flex flex-col gap-4">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <FileText className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-bold tracking-tight">Your Autonomy</h3>
+                    <h3 className="text-lg font-quicksand font-bold tracking-tight">Your Autonomy</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     At any time, you may request the full extraction or permanent erasure of your Aura profile. Your digital sovereignty is our priority.
@@ -70,7 +70,7 @@ export default function PrivacyPolicy() {
               <section className="flex flex-col gap-4">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <RefreshCw className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-bold tracking-tight">Session Persistence</h3>
+                    <h3 className="text-lg font-quicksand font-bold tracking-tight">Session Persistence</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     We use definitive session tokens (cookies) to maintain your secure node connection. These are encrypted with your terminal signature to prevent unauthorized relay.
@@ -80,7 +80,7 @@ export default function PrivacyPolicy() {
               <section className="flex flex-col gap-4">
                  <div className="flex items-center gap-3 text-[var(--text-primary)]">
                     <Globe className="size-5 text-[var(--accent)]" />
-                    <h3 className="text-lg font-bold tracking-tight">Global Alignment</h3>
+                    <h3 className="text-lg font-quicksand font-bold tracking-tight">Global Alignment</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
                     Our protocol is designed to exceed the requirements of regional data protection acts (GDPR, CCPA). We operate as a decentralized data custodian.
@@ -95,7 +95,7 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="mt-16 text-center">
-           <p className="text-[11px] lg:text-[12px] font-bold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
+           <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
               Aura Market Global Privacy Standard v1.0
            </p>
         </div>

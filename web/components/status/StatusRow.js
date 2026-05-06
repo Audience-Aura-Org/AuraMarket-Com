@@ -65,7 +65,7 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
               <Sparkles className="size-3 text-white" />
             </div>
           </div>
-          <span className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)] tracking-tight">Add Story</span>
+          <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)] tracking-tight">Add Story</span>
         </button>
       )}
 
@@ -155,7 +155,7 @@ function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed,
                     objectFit="cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">
+                  <div className="w-full h-full flex items-center justify-center text-sm font-quicksand font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-700">
                     {storeName[0]?.toUpperCase()}
                   </div>
                 )}
@@ -170,7 +170,7 @@ function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed,
         )}
       </div>
 
-      <span className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] truncate w-[74px] md:w-[82px] text-center tracking-tight group-hover:text-[var(--accent)] transition-colors">
+      <span className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] truncate w-[74px] md:w-[82px] text-center tracking-tight group-hover:text-[var(--accent)] transition-colors">
         {displayName}
       </span>
     </button>

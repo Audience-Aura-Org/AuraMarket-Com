@@ -103,13 +103,13 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             <div className="size-16 rounded-full bg-[var(--accent)]/5 flex items-center justify-center mb-4">
                <MessageCircle className="w-8 h-8 text-[var(--accent)] opacity-20" />
             </div>
-            <p className="font-bold text-[var(--text-primary)]  tracking-tighter text-base">Your Circle is Empty</p>
+            <p className="font-quicksand font-bold text-[var(--text-primary)]  tracking-tighter text-base">Your Circle is Empty</p>
             <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mt-2 max-w-[220px] mx-auto font-medium">
               Only vendors you follow appear here for quick chat access. Explore the Global Market to find your vibe.
             </p>
             <button 
               onClick={() => router.push('/shop')}
-              className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold tracking-tight rounded-full shadow-lg"
+              className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight rounded-full shadow-lg"
             >
               Explore Shop
             </button>
@@ -163,7 +163,7 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
             {logoUrl ? (
               <img src={logoUrl} alt={vendor.store_name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-xl font-bold text-[var(--accent)]">
+              <div className="w-full h-full flex items-center justify-center text-xl font-quicksand font-bold text-[var(--accent)]">
                 {vendor.store_name?.[0]?.toUpperCase() || 'S'}
               </div>
             )}
@@ -177,10 +177,10 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
       {/* Contact Info (WhatsApp Style) */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-bold text-base text-[var(--text-primary)] truncate">
+          <h3 className="font-quicksand font-bold text-base text-[var(--text-primary)] truncate">
             {vendor.store_name || 'Store'}
           </h3>
-          <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
+          <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
             {isOnline ? 'Online' : lastSeen}
           </span>
         </div>
@@ -191,12 +191,12 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
         
         <div className="flex items-center gap-1.5 mt-1">
           {isOnline ? (
-            <span className="flex items-center gap-1 text-[11px] lg:text-[12px] font-bold text-emerald-500  tracking-tighter">
+            <span className="flex items-center gap-1 text-[11px] lg:text-[12px] font-quicksand font-bold text-emerald-500  tracking-tighter">
               <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
               Available
             </span>
           ) : (
-            <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40  tracking-tighter">
+            <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40  tracking-tighter">
               Replies fast
             </span>
           )}

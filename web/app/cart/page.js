@@ -100,9 +100,9 @@ export default function CartPage() {
         <div className="size-24 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center mb-6 shadow-lg">
           <ShoppingBag className="w-10 h-10 text-[var(--text-secondary)]/30" />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">Your cart is empty</h1>
+        <h1 className="text-2xl sm:text-3xl font-quicksand font-bold mb-2 tracking-tight">Your cart is empty</h1>
         <p className="text-[var(--text-secondary)] mb-8 max-w-xs text-center text-sm">Add products to continue to checkout.</p>
-            <Link href="/overtime" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-[11px] lg:text-[12px] tracking-tight rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 ">
+            <Link href="/overtime" className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] font-quicksand font-bold text-[11px] lg:text-[12px] tracking-tight rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all shadow-lg active:scale-95 ">
                Browse products
             </Link>
       </div>
@@ -117,16 +117,16 @@ export default function CartPage() {
       <main className="w-full px-4 sm:px-6 lg:px-20 py-6 sm:py-8 relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5 sm:mb-8">
           <div>
-            <Link href="/overtime" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[11px] lg:text-[12px] md:text-xs font-bold tracking-tight mb-3 md:mb-4 ">
+            <Link href="/overtime" className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors text-[11px] lg:text-[12px] md:text-xs font-quicksand font-bold tracking-tight mb-3 md:mb-4 ">
               <ChevronLeft className="w-3.5 h-3.5" /> Continue exploring
             </Link>
-            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight leading-none text-balance">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-quicksand font-bold tracking-tight leading-none text-balance">
               Your <span className="text-[var(--accent)]">Cart</span>
             </h1>
           </div>
           <div className="px-3 md:px-4 py-1.5 glass-panel rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 flex items-center gap-2 shadow-sm self-start md:self-auto">
              <span className="size-1.5 md:size-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <span className="text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-primary)] ">{cartItems.length} Items</span>
+             <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-primary)] ">{cartItems.length} Items</span>
           </div>
         </div>
 
@@ -142,7 +142,7 @@ export default function CartPage() {
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
                     <div className="flex justify-between items-start mb-1 gap-2">
-                       <h3 className="text-sm sm:text-lg font-bold text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
+                       <h3 className="text-sm sm:text-lg font-quicksand font-bold text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
                        <div className="flex gap-2">
                          <Link href={`/messages?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm" title="Message vendor">
                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
@@ -152,14 +152,14 @@ export default function CartPage() {
                          <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
                        </div>
                     </div>
-                    <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight mb-3">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                    <p className="text-[11px] lg:text-[12px] font-quicksand font-semibold text-[var(--text-secondary)] tracking-tight mb-3">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
                   </div>
                   
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
+                    <span className="text-xl sm:text-2xl font-quicksand font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
                     <div className="flex items-center gap-3 bg-[var(--bg-secondary)] p-1.5 px-3 rounded-xl border border-[var(--glass-border)] shadow-inner">
                       <button onClick={() => updateCartQty(item.id, -1)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4" /></button>
-                      <span className="font-bold text-base w-5 text-center">{item.quantity}</span>
+                      <span className="font-quicksand font-bold text-base w-5 text-center">{item.quantity}</span>
                       <button onClick={() => updateCartQty(item.id, 1)} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"><Plus className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -172,7 +172,7 @@ export default function CartPage() {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-[var(--text-primary)] text-sm tracking-tight">Escrow protection</h4>
+                <h4 className="font-quicksand font-bold text-[var(--text-primary)] text-sm tracking-tight">Escrow protection</h4>
                 <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">Payment is released only after delivery is confirmed.</p>
               </div>
             </div>
@@ -182,14 +182,14 @@ export default function CartPage() {
             <div className="glass-panel p-4 sm:p-6 lg:p-8 rounded-3xl border border-[var(--glass-border)] shadow-3xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[var(--accent)]/20 transition-all duration-700"></div>
               
-              <h2 className="text-xl font-bold mb-5 tracking-tight">Order summary</h2>
+              <h2 className="text-xl font-quicksand font-bold mb-5 tracking-tight">Order summary</h2>
               
               <div className="space-y-4 mb-6">
                 {coupon ? (
                   <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl animate-in zoom-in-95 duration-300 shadow-sm">
                     <div className="flex items-center gap-2">
                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                       <span className="font-bold text-emerald-700 text-[11px] lg:text-[12px] tracking-tight ">Code {coupon.code} active</span>
+                       <span className="font-quicksand font-bold text-emerald-700 text-[11px] lg:text-[12px] tracking-tight ">Code {coupon.code} active</span>
                     </div>
                     <button onClick={removeCoupon} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
                   </div>
@@ -203,53 +203,53 @@ export default function CartPage() {
                             onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
                             onKeyDown={e => e.key === 'Enter' && applyCoupon()}
                             placeholder="Promo code"
-                            className="w-full pl-11 pr-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all  shadow-inner"
+                            className="w-full pl-11 pr-4 py-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-quicksand font-semibold tracking-tight text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 transition-all  shadow-inner"
                           />
                        </div>
                        <button
                          onClick={applyCoupon}
                          disabled={couponLoading || !couponCode.trim()}
-                         className="px-5 py-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-bold rounded-xl text-[11px] lg:text-[12px] tracking-tight disabled:opacity-50 transition-all  shadow-sm"
+                         className="px-5 py-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] font-quicksand font-bold rounded-xl text-[11px] lg:text-[12px] tracking-tight disabled:opacity-50 transition-all  shadow-sm"
                        >
                          {couponLoading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" /> : 'Apply'}
                        </button>
                     </div>
-                    {couponError && <p className="text-[11px] lg:text-[12px] font-bold text-red-500 ml-1 tracking-tighter ">{couponError}</p>}
+                    {couponError && <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-red-500 ml-1 tracking-tighter ">{couponError}</p>}
                   </div>
                 )}
               </div>
 
               <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-semibold tracking-tight ">
+                <div className="flex justify-between text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-quicksand font-semibold tracking-tight ">
                   <span>Subtotal</span>
-                  <span className="text-[var(--text-primary)] font-mono font-bold">{subtotal.toLocaleString()} XAF</span>
+                  <span className="text-[var(--text-primary)] font-mono font-quicksand font-bold">{subtotal.toLocaleString()} XAF</span>
                 </div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-emerald-600 text-[11px] lg:text-[12px] font-semibold tracking-tight ">
+                  <div className="flex justify-between text-emerald-600 text-[11px] lg:text-[12px] font-quicksand font-semibold tracking-tight ">
                     <span>Aura discount</span>
-                    <span className="font-mono font-bold">- {discount.toLocaleString()} XAF</span>
+                    <span className="font-mono font-quicksand font-bold">- {discount.toLocaleString()} XAF</span>
                   </div>
                 )}
                 <div className="h-px bg-[var(--glass-border)] my-6" />
                 <div className="flex justify-between items-baseline">
-                   <span className="text-xs font-bold text-[var(--text-secondary)] tracking-tight ">Total</span>
-                   <span className="text-3xl font-bold text-[var(--text-primary)] font-mono tracking-tight">{total.toLocaleString()} XAF</span>
+                   <span className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight ">Total</span>
+                   <span className="text-3xl font-quicksand font-bold text-[var(--text-primary)] font-mono tracking-tight">{total.toLocaleString()} XAF</span>
                 </div>
               </div>
 
               <Link 
                 href="/checkout" 
-                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
+                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-quicksand font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
               >
                 Go to checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
 
               <div className="flex items-center justify-center gap-6 py-4 border-t border-[var(--glass-border)]">
-                <div className="flex items-center gap-2 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] ">
+                <div className="flex items-center gap-2 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] ">
                    <Truck className="w-3 h-3 text-[var(--accent)]" /> Aura Node
                 </div>
                 <div className="size-1 rounded-full bg-[var(--glass-border)]"></div>
-                <div className="flex items-center gap-2 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] ">
+                <div className="flex items-center gap-2 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] ">
                    <ShieldCheck className="w-3 h-3 text-emerald-500" /> Secure
                 </div>
               </div>

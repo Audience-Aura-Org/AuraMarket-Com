@@ -111,7 +111,7 @@ export default function PWAInstallBanner() {
 
         {/* Text */}
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-tight leading-none mb-0.5">
+          <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight leading-none mb-0.5">
             Install Aura Market
           </p>
           <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-50 leading-none">
@@ -123,7 +123,7 @@ export default function PWAInstallBanner() {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={handleInstall}
-            className="h-8 px-3 rounded-xl bg-[var(--accent)] text-white font-bold text-[10px] lg:text-[12px] tracking-tight shadow-lg shadow-[var(--accent)]/30 hover:opacity-90 flex items-center gap-1.5 transition-all active:scale-95"
+            className="h-8 px-3 rounded-xl bg-[var(--accent)] text-white font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight shadow-lg shadow-[var(--accent)]/30 hover:opacity-90 flex items-center gap-1.5 transition-all active:scale-95"
           >
             <Download className="size-3" />
             Install

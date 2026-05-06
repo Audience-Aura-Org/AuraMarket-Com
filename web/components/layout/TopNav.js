@@ -147,7 +147,7 @@ export default function TopNav() {
           >
             <MessageCircle className="size-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] lg:text-[12px] font-bold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none shadow-lg">
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] lg:text-[12px] font-quicksand font-bold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none shadow-lg">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -167,7 +167,7 @@ export default function TopNav() {
             <Link href="/cart" className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm">
               <ShoppingCart className="size-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[10px] lg:text-[12px] font-bold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none shadow-lg">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[10px] lg:text-[12px] font-quicksand font-bold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none shadow-lg">
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
@@ -188,13 +188,13 @@ export default function TopNav() {
                     {user.branding?.logo || user.avatar ? (
                       <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt={user.name} />
                     ) : (
-                      <span className="text-[var(--text-primary)] font-bold text-xs">{user.name?.[0]?.toUpperCase()}</span>
+                      <span className="text-[var(--text-primary)] font-quicksand font-bold text-xs">{user.name?.[0]?.toUpperCase()}</span>
                     )}
                  </div>
                </div>
             </Link>
           ) : (
-            <Link href="/login" className="flex items-center gap-2 bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-2.5 rounded-full font-bold text-[10px] lg:text-[12px] capitalize tracking-[0.12em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 whitespace-nowrap active:scale-95">
+            <Link href="/login" className="flex items-center gap-2 bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-2.5 rounded-full font-quicksand font-bold text-[10px] lg:text-[12px] capitalize tracking-[0.12em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 whitespace-nowrap active:scale-95">
               <UserIcon className="size-3.5" />
               <span>Login</span>
             </Link>
@@ -212,7 +212,7 @@ export default function TopNav() {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
               placeholder="Search products, vendors, and management..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-3.5 pl-6 pr-14 text-sm text-[var(--text-primary)] font-bold focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all shadow-inner placeholder:opacity-30"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-3.5 pl-6 pr-14 text-sm text-[var(--text-primary)] font-quicksand font-bold focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all shadow-inner placeholder:opacity-30"
             />
             <button 
               onClick={() => { trackSearch(search); router.push(`/shop?q=${search}`); setIsSearchOpen(false); }} 

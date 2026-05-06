@@ -114,10 +114,10 @@ export default function AdminTransactionsPage() {
              <CreditCard className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight ">Global <span className="text-[var(--accent)]">Transaction</span> Ledger</h2>
+            <h2 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight ">Global <span className="text-[var(--accent)]">Transaction</span> Ledger</h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Financial Feed // Node_Aura_Vault</p>
+               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Financial Feed // Node_Aura_Vault</p>
             </div>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function AdminTransactionsPage() {
               <input 
                 type="text"
                 placeholder="Reference, Gateway ID..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={handleSearch}
@@ -136,7 +136,7 @@ export default function AdminTransactionsPage() {
            </div>
            
            <select 
-             className="h-11 px-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] outline-none cursor-pointer"
+             className="h-11 px-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] outline-none cursor-pointer"
              value={typeFilter}
              onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
            >
@@ -149,7 +149,7 @@ export default function AdminTransactionsPage() {
                 <button 
                   key={s}
                   onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-tight transition-all capitalize ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-all capitalize ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
                   {s}
                 </button>
@@ -159,7 +159,7 @@ export default function AdminTransactionsPage() {
            <button 
              onClick={handleGatewaySync} 
              disabled={gatewaySyncing}
-             className="h-11 px-6 bg-[var(--accent)] text-white rounded-2xl text-[10px] lg:text-[12px] font-bold tracking-[0.1em] capitalize shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+             className="h-11 px-6 bg-[var(--accent)] text-white rounded-2xl text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.1em] capitalize shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
            >
               {gatewaySyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
               Sync Gateway
@@ -189,13 +189,13 @@ export default function AdminTransactionsPage() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
 
                      <div>
-                        <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
+                        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
                         <div className="flex items-end gap-2">
-                           <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                           <h3 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                            {s.label === 'System Uptime' && <div className="size-2 rounded-full bg-emerald-500 animate-pulse mb-1" />}
                         </div>
                      </div>
@@ -207,11 +207,11 @@ export default function AdminTransactionsPage() {
          {/* Transaction Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
+               <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <Database className="w-4 h-4 text-[var(--accent)]" /> 
                   Platform Transaction Ledger
                </h3>
-               <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Displaying latest 50 entries per page</p>
+               <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Displaying latest 50 entries per page</p>
             </div>
 
              <div className="space-y-4">
@@ -248,21 +248,21 @@ export default function AdminTransactionsPage() {
                               <div className="flex-1 min-w-0">
                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
-                                       <span className="text-[11px] lg:text-[12px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight capitalize">{tx.type.replace('_', ' ')}</span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
+                                       <span className="text-[11px] lg:text-[12px] md:text-[13px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight capitalize">{tx.type.replace('_', ' ')}</span>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
                                           {status.label}
                                        </span>
-                                       <span className="px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] capitalize">
+                                       <span className="px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest text-[var(--text-secondary)] capitalize">
                                           {tx.gateway || 'Internal'}
                                        </span>
                                     </div>
-                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
+                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
                                        <Clock className="w-3 h-3" /> {new Date(tx.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
                                  <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                       <span className="font-mono text-[var(--accent)] font-bold">#{tx.reference.slice(-8).toUpperCase()}</span>
+                                       <span className="font-mono text-[var(--accent)] font-quicksand font-bold">#{tx.reference.slice(-8).toUpperCase()}</span>
                                        <span>•</span>
                                        <span className="truncate max-w-[200px] md:max-w-md">{tx.description}</span>
                                     </div>
@@ -270,7 +270,7 @@ export default function AdminTransactionsPage() {
                               </div>
 
                               <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{fmt(tx.amount)} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">{tx.currency || 'XAF'}</span></p>
+                                 <p className="text-xl md:text-2xl font-quicksand font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{fmt(tx.amount)} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">{tx.currency || 'XAF'}</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
                                     {logos.length > 0 && (
                                        <div className="flex -space-x-2 mr-2">
@@ -281,7 +281,7 @@ export default function AdminTransactionsPage() {
                                           ))}
                                        </div>
                                     )}
-                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{tx.user_id?.name?.split(' ')[0] || 'Node'}</span>
+                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{tx.user_id?.name?.split(' ')[0] || 'Node'}</span>
                                     <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                        {tx.user_id?.avatar ? <img src={tx.user_id.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                     </div>
@@ -300,24 +300,24 @@ export default function AdminTransactionsPage() {
                                <div className="px-8 pb-8 flex flex-col lg:flex-row gap-6">
                                   <div className="flex-1 space-y-4">
                                      <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl">
-                                        <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize flex items-center gap-2">
+                                        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize flex items-center gap-2">
                                            <Database className="w-3 h-3" /> Internal Metadata
                                         </p>
                                         <div className="grid grid-cols-2 gap-4">
                                            <div>
-                                              <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Entity Reference</p>
-                                              <p className="text-[11px] lg:text-[12px] font-bold font-mono text-[var(--accent)]">{tx.reference}</p>
+                                              <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-30 capitalize tracking-widest mb-1">Entity Reference</p>
+                                              <p className="text-[11px] lg:text-[12px] font-quicksand font-bold font-mono text-[var(--accent)]">{tx.reference}</p>
                                            </div>
                                            <div>
-                                              <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Gateway ID</p>
-                                              <p className="text-[11px] lg:text-[12px] font-bold font-mono text-[var(--text-primary)]">{tx.gateway_transaction_id || '—'}</p>
+                                              <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-30 capitalize tracking-widest mb-1">Gateway ID</p>
+                                              <p className="text-[11px] lg:text-[12px] font-quicksand font-bold font-mono text-[var(--text-primary)]">{tx.gateway_transaction_id || '—'}</p>
                                            </div>
                                            {tx.order_ids?.length > 0 && (
                                               <div className="col-span-2">
-                                                 <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-2">Linked Orders</p>
+                                                 <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-30 capitalize tracking-widest mb-2">Linked Orders</p>
                                                  <div className="flex flex-wrap gap-2">
                                                     {tx.order_ids.map(oid => (
-                                                       <span key={oid} className="px-3 py-1 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px] font-bold font-mono text-[var(--accent)]">
+                                                       <span key={oid} className="px-3 py-1 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px] font-quicksand font-bold font-mono text-[var(--accent)]">
                                                           #{oid.slice(-8).toUpperCase()}
                                                        </span>
                                                     ))}
@@ -330,7 +330,7 @@ export default function AdminTransactionsPage() {
 
                                   <div className="flex-1 space-y-4">
                                      <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl relative overflow-hidden group/payload">
-                                        <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize">Gateway Payload</p>
+                                        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize">Gateway Payload</p>
                                         <div className="font-mono text-[10px] lg:text-[12px] text-[var(--text-primary)]/80 leading-relaxed max-h-32 overflow-y-auto no-scrollbar scroll-smooth">
                                            <pre>{JSON.stringify(tx.gateway_response || {}, null, 2)}</pre>
                                         </div>
@@ -341,7 +341,7 @@ export default function AdminTransactionsPage() {
                                         <button 
                                           onClick={() => handleFulfillOrders(tx._id)}
                                           disabled={syncing === tx._id}
-                                          className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-[10px] lg:text-[12px] tracking-[0.2em] capitalize shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                          className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-quicksand font-bold text-[10px] lg:text-[12px] tracking-[0.2em] capitalize shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                                         >
                                            {syncing === tx._id ? (
                                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -363,7 +363,7 @@ export default function AdminTransactionsPage() {
                ) : (
                   <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                      <CreditCard className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                     <p className="text-sm font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No financial nodes detected in this vector.</p>
+                     <p className="text-sm font-quicksand font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No financial nodes detected in this vector.</p>
                   </div>
                )}
             </div>

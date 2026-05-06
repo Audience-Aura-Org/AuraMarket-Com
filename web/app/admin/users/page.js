@@ -117,8 +117,8 @@ export default function AdminUsersPage() {
               <Users className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold  tracking-tighter">Identity Matrix</h1>
-              <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Personnel Directory</p>
+              <h1 className="text-lg font-quicksand font-bold  tracking-tighter">Identity Matrix</h1>
+              <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Personnel Directory</p>
             </div>
           </div>
 
@@ -128,7 +128,7 @@ export default function AdminUsersPage() {
               <input
                 type="text"
                 placeholder="FIND NODE..."
-                className="bg-transparent border-none outline-none text-[11px] lg:text-[12px] font-bold tracking-tight w-48 text-[var(--text-primary)]"
+                className="bg-transparent border-none outline-none text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight w-48 text-[var(--text-primary)]"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               />
@@ -137,7 +137,7 @@ export default function AdminUsersPage() {
               {['all', 'customer', 'vendor', 'admin'].map(r => (
                 <button
                   key={r} onClick={() => setRoleFilter(r)}
-                  className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px] font-bold tracking-tight transition-all ${roleFilter === r ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}
+                  className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-all ${roleFilter === r ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] opacity-40'}`}
                 >
                   {r}
                 </button>
@@ -160,20 +160,20 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <p className="text-[11px] lg:text-[12px] font-bold tracking-tight truncate">{u.name}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px] font-bold tracking-tight border ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                      <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight truncate">{u.name}</p>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight border ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
                         {u.role}
                       </span>
                     </div>
-                    <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 truncate  mt-0.5 tracking-tight">{u.email}</p>
+                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 truncate  mt-0.5 tracking-tight">{u.email}</p>
                   </div>
                   <div className="flex items-center gap-8">
                      <div className="text-right">
                         <div className="flex items-center gap-2 justify-end">
                            <div className={`size-1.5 rounded-full ${u.verification_status === 'verified' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'}`} />
-                           <span className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-60">{u.verification_status || 'Pending'}</span>
+                           <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-60">{u.verification_status || 'Pending'}</span>
                         </div>
-                        <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-20  mt-0.5 tracking-tight">Node Status</p>
+                        <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-20  mt-0.5 tracking-tight">Node Status</p>
                      </div>
                      <div className="flex items-center gap-2">
                         <button onClick={() => handleEditClick(u)} className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
@@ -193,7 +193,7 @@ export default function AdminUsersPage() {
 
               {filteredUsers.length === 0 && (
                  <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20">
-                    <p className="text-xs font-bold tracking-tight">No identity nodes synchronized</p>
+                    <p className="text-xs font-quicksand font-bold tracking-tight">No identity nodes synchronized</p>
                  </div>
               )}
            </div>
@@ -212,8 +212,8 @@ export default function AdminUsersPage() {
                     <Activity className="size-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold  tracking-tighter">Node Calibrator</h3>
-                    <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Surgical Identity Override</p>
+                    <h3 className="text-sm font-quicksand font-bold  tracking-tighter">Node Calibrator</h3>
+                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Surgical Identity Override</p>
                   </div>
                 </div>
                 <button onClick={() => setEditingUser(null)} className="p-2 rounded-full hover:bg-[var(--bg-secondary)] transition-all"><X className="size-4 opacity-40" /></button>
@@ -222,12 +222,12 @@ export default function AdminUsersPage() {
               <form onSubmit={handleEditSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">Alias</p>
-                    <input type="text" value={editForm.name} onChange={e=>setEditForm(f=>({...f,name:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="Name" />
+                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-40">Alias</p>
+                    <input type="text" value={editForm.name} onChange={e=>setEditForm(f=>({...f,name:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-quicksand font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="Name" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">Matrix Role</p>
-                    <select value={editForm.role} onChange={e=>setEditForm(f=>({...f,role:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold tracking-tight outline-none appearance-none cursor-pointer">
+                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-40">Matrix Role</p>
+                    <select value={editForm.role} onChange={e=>setEditForm(f=>({...f,role:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight outline-none appearance-none cursor-pointer">
                       <option value="customer">Customer</option>
                       <option value="vendor">Vendor</option>
                       <option value="admin">Admin</option>
@@ -236,32 +236,32 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">Identity Email</p>
-                  <input type="email" value={editForm.email} onChange={e=>setEditForm(f=>({...f,email:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="email@example.com" />
+                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-40">Identity Email</p>
+                  <input type="email" value={editForm.email} onChange={e=>setEditForm(f=>({...f,email:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-quicksand font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="email@example.com" />
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">Signal Phone</p>
-                  <input type="tel" value={editForm.phone} onChange={e=>setEditForm(f=>({...f,phone:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="+237..." />
+                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-40">Signal Phone</p>
+                  <input type="tel" value={editForm.phone} onChange={e=>setEditForm(f=>({...f,phone:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-quicksand font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="+237..." />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">Node Status</p>
-                    <select value={editForm.verification_status} onChange={e=>setEditForm(f=>({...f,verification_status:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold tracking-tight outline-none appearance-none cursor-pointer">
+                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-40">Node Status</p>
+                    <select value={editForm.verification_status} onChange={e=>setEditForm(f=>({...f,verification_status:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight outline-none appearance-none cursor-pointer">
                       <option value="unverified">Unverified</option>
                       <option value="verified">Verified</option>
                       <option value="rejected">Rejected</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">Cipher Override</p>
-                    <input type="password" value={editForm.password} onChange={e=>setEditForm(f=>({...f,password:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="••••••••" />
+                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-40">Cipher Override</p>
+                    <input type="password" value={editForm.password} onChange={e=>setEditForm(f=>({...f,password:e.target.value}))} className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-xs font-quicksand font-bold outline-none focus:border-[var(--accent)] transition-all" placeholder="••••••••" />
                   </div>
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[10px] lg:text-[12px] tracking-tight shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
+                  <button type="submit" disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
                     {submitting ? (
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="size-4 animate-spin" />

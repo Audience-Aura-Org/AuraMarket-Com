@@ -41,7 +41,7 @@ export default function SubscribePage() {
               <Gem className="size-8" />
            </div>
 
-           <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter  mb-4 leading-tight">
+           <h1 className="text-4xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter  mb-4 leading-tight">
               Aura <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Exclusive</span>
            </h1>
            <p className="text-[var(--text-secondary)] mb-12 opacity-80 font-medium">
@@ -55,7 +55,7 @@ export default function SubscribePage() {
                    type="email"
                    required
                    placeholder="secured-inbox-address@aura.io"
-                   className="w-full h-16 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] pl-14 pr-6 text-sm font-bold text-white focus:border-[var(--accent)] transition-all outline-none"
+                   className="w-full h-16 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] pl-14 pr-6 text-sm font-quicksand font-bold text-white focus:border-[var(--accent)] transition-all outline-none"
                    value={email}
                    onChange={(e) => setEmail(e.target.value)}
                  />
@@ -63,7 +63,7 @@ export default function SubscribePage() {
               <button 
                 type="submit"
                 disabled={isSubscribed}
-                className={`w-full h-16 rounded-2xl ${isSubscribed ? 'bg-emerald-500' : 'bg-[var(--accent)]'} text-white font-bold text-xs  tracking-[0.3em] shadow-2xl shadow-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3`}
+                className={`w-full h-16 rounded-2xl ${isSubscribed ? 'bg-emerald-500' : 'bg-[var(--accent)]'} text-white font-quicksand font-bold text-xs  tracking-[0.3em] shadow-2xl shadow-[var(--accent)]/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3`}
               >
                 {isSubscribed ? (
                   <> <Check className="size-4" /> Locked In! </>
@@ -73,7 +73,7 @@ export default function SubscribePage() {
               </button>
            </form>
 
-           <p className="mt-8 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
+           <p className="mt-8 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
               Zero Spam Policy. Definitive Signal Only.
            </p>
 

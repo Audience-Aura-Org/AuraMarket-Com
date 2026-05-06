@@ -70,8 +70,8 @@ export default function VendorRatingsPage() {
                 <Star className="w-6 h-6 text-amber-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Public Ratings</h1>
-                <p className="text-xs text-[var(--text-secondary)] font-bold tracking-tight opacity-40">Reputation Intelligence</p>
+                <h1 className="text-2xl font-quicksand font-bold tracking-tight text-[var(--text-primary)]">Public Ratings</h1>
+                <p className="text-xs text-[var(--text-secondary)] font-quicksand font-bold tracking-tight opacity-40">Reputation Intelligence</p>
               </div>
             </div>
             <button 
@@ -101,9 +101,9 @@ export default function VendorRatingsPage() {
                 <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:scale-110 transition-transform`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
                 </div>
-                <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-                <h4 className="text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[11px] lg:text-[12px] font-bold opacity-40 ">{stat.sub}</p>
+                <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
+                <h4 className="text-3xl font-quicksand font-bold tracking-tighter mb-1">{stat.value}</h4>
+                <p className="text-[11px] lg:text-[12px] font-quicksand font-bold opacity-40 ">{stat.sub}</p>
               </motion.div>
             ))}
           </div>
@@ -116,7 +116,7 @@ export default function VendorRatingsPage() {
               placeholder="Search reviews..." 
               value={search}
               onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 py-3 text-xs font-bold focus:outline-none focus:border-[var(--accent)] transition-all"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 py-3 text-xs font-quicksand font-bold focus:outline-none focus:border-[var(--accent)] transition-all"
             />
           </div>
 
@@ -130,7 +130,7 @@ export default function VendorRatingsPage() {
               <div className="size-20 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
                 <Star className="w-8 h-8 text-[var(--text-secondary)]/30" />
               </div>
-              <h3 className="text-xl font-bold text-[var(--text-primary)]">No Reviews</h3>
+              <h3 className="text-xl font-quicksand font-bold text-[var(--text-primary)]">No Reviews</h3>
               <p className="text-xs text-[var(--text-secondary)] opacity-60 mt-2">No reviews found.</p>
             </div>
           ) : (
@@ -148,7 +148,7 @@ export default function VendorRatingsPage() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="font-bold text-sm text-[var(--text-primary)]">
+                        <span className="font-quicksand font-bold text-sm text-[var(--text-primary)]">
                           {r.user_id?.name || 'Customer'}
                         </span>
                         <div className="flex items-center gap-1">
@@ -173,7 +173,7 @@ export default function VendorRatingsPage() {
                             <Package className="w-4 h-4 text-[var(--accent)] opacity-40" />
                           )}
                         </div>
-                        <span className="text-xs font-bold text-[var(--accent)] truncate">
+                        <span className="text-xs font-quicksand font-bold text-[var(--accent)] truncate">
                           {r.product_id?.name || 'Product'}
                         </span>
                       </div>

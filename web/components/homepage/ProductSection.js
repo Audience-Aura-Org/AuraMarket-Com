@@ -12,18 +12,18 @@ export default function ProductSection({ title, subtitle, data, config }) {
     <section className="py-8 w-full relative overflow-hidden">
       <div className="flex flex-col md:flex-row items-baseline justify-between mb-8 px-4 md:px-6 gap-3">
         <div className="space-y-1 text-left">
-          <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-xl md:text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">
+            <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-40">
               {subtitle}
             </p>
           )}
         </div>
         <Link href="/discovery" className="flex items-center gap-2 group cursor-pointer">
            <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[11px] lg:text-[12px] font-bold  tracking-[0.3em] text-[var(--accent)]">Explore</span>
+           <span className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.3em] text-[var(--accent)]">Explore</span>
         </Link>
       </div>
 

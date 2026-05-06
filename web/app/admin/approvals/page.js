@@ -96,10 +96,10 @@ export default function AdminApprovals() {
              <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight ">Queue <span className="text-[var(--accent)]">Control</span> Management</h2>
+            <h2 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight ">Queue <span className="text-[var(--accent)]">Control</span> Management</h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Auth Queue Active // Node_Governance_Master</p>
+               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Auth Queue Active // Node_Governance_Master</p>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function AdminApprovals() {
                 <button 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-tight transition-all capitalize ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-all capitalize ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
                   {tab}
                 </button>
@@ -139,11 +139,11 @@ export default function AdminApprovals() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
-                        <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
+                        <h3 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                      </div>
                   </div>
                </div>
@@ -153,11 +153,11 @@ export default function AdminApprovals() {
          {/* Approval Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
+               <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <Database className="w-4 h-4 text-[var(--accent)]" /> 
                   Platform Verification Ledger // {activeTab.toUpperCase()}
                </h3>
-               <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Global Governance Active</p>
+               <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Global Governance Active</p>
             </div>
 
             <div className="min-h-[400px]">
@@ -166,13 +166,13 @@ export default function AdminApprovals() {
               ) : pagedData.length === 0 ? (
                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                     <ShieldCheck className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                    <p className="text-sm font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No pending nodes in the synchronization queue.</p>
+                    <p className="text-sm font-quicksand font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No pending nodes in the synchronization queue.</p>
                  </div>
               ) : (
                  <div className="overflow-x-auto">
                     <table className="w-full text-left font-sm">
                        <thead>
-                          <tr className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 capitalize">
+                          <tr className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.3em] text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 capitalize">
                              <th className="px-10 py-5">Ident Node</th>
                              <th className="px-6 py-5">Descriptor</th>
                              <th className="px-6 py-5">Protocol State</th>
@@ -188,19 +188,19 @@ export default function AdminApprovals() {
                                          {v.user_id?.avatar ? <img src={v.user_id.avatar} className="size-full object-cover" /> : <User className="w-5 h-5" />}
                                       </div>
                                       <div className="min-w-0">
-                                         <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-tight capitalize truncate max-w-[200px]">{v.vendor_id?.store_name || v.user_id?.name}</p>
-                                         <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 font-mono capitalize">#{v._id.slice(-6).toUpperCase()}</p>
+                                         <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight capitalize truncate max-w-[200px]">{v.vendor_id?.store_name || v.user_id?.name}</p>
+                                         <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 mt-1 font-mono capitalize">#{v._id.slice(-6).toUpperCase()}</p>
                                       </div>
                                    </div>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] capitalize">{v.user_id?.email}</p>
-                                   <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 capitalize flex items-center gap-1.5">
+                                   <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] capitalize">{v.user_id?.email}</p>
+                                   <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-30 mt-1 capitalize flex items-center gap-1.5">
                                       <FileText className="w-3 h-3" /> {v.id_type?.replace(/_/g, ' ') || 'IDENTITY_VERIF'}
                                    </p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] lg:text-[12px] font-bold tracking-widest border border-amber-500/20 capitalize">
+                                   <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest border border-amber-500/20 capitalize">
                                       Pending Sync
                                    </span>
                                 </td>
@@ -234,17 +234,17 @@ export default function AdminApprovals() {
                                          <img src={p.images?.[0]?.url || '/placeholder.png'} className="size-full object-cover" alt="" />
                                       </div>
                                       <div className="min-w-0">
-                                         <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-tight capitalize truncate max-w-[200px]">{p.name}</p>
-                                         <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 font-mono capitalize">#{p._id.slice(-6).toUpperCase()}</p>
+                                         <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight capitalize truncate max-w-[200px]">{p.name}</p>
+                                         <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 mt-1 font-mono capitalize">#{p._id.slice(-6).toUpperCase()}</p>
                                       </div>
                                    </div>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] capitalize">{p.vendor_id?.store_name}</p>
-                                   <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 capitalize">Merchant Node</p>
+                                   <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] capitalize">{p.vendor_id?.store_name}</p>
+                                   <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-30 mt-1 capitalize">Merchant Node</p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[10px] lg:text-[12px] font-bold tracking-widest border border-indigo-500/20 capitalize">
+                                   <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest border border-indigo-500/20 capitalize">
                                       Inventory Lock
                                    </span>
                                 </td>

@@ -50,7 +50,7 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
           <div className="size-full flex items-center justify-center p-4 text-center overflow-hidden"
             style={{ background: 'linear-gradient(160deg, #090909 0%, #1a1a1a 100%)' }}>
             <div className="absolute -top-10 -left-10 size-24 bg-[var(--accent)] blur-[50px] opacity-20 rounded-full animate-pulse" />
-            <p className="relative z-10 text-[11px] lg:text-[12px] font-semibold text-white/90 leading-relaxed line-clamp-5">
+            <p className="relative z-10 text-[11px] lg:text-[12px] font-quicksand font-semibold text-white/90 leading-relaxed line-clamp-5">
               {status.text_content}
             </p>
           </div>
@@ -72,14 +72,14 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
               {logo ? (
                 <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
               ) : (
-                <div className="size-full flex items-center justify-center text-[10px] lg:text-[12px] font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
+                <div className="size-full flex items-center justify-center text-[10px] lg:text-[12px] font-quicksand font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
                   {name[0]}
                 </div>
               )}
             </div>
-            <p className="text-[11px] lg:text-[12px] font-bold text-white truncate flex-1">{name}</p>
+            <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-white truncate flex-1">{name}</p>
             {isNew && (
-              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] lg:text-[12px] font-bold shrink-0">
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] lg:text-[12px] font-quicksand font-bold shrink-0">
                 <Sparkles className="size-2" /> New
               </div>
             )}
@@ -87,20 +87,20 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[11px] lg:text-[12px] font-bold text-white/60">
+              <div className="flex items-center gap-1 text-[11px] lg:text-[12px] font-quicksand font-bold text-white/60">
                 <Heart className="size-2 text-red-400 fill-red-400/20" />
                 <span>{status.likes_count || 0}</span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] lg:text-[12px] font-bold text-white/60">
+              <div className="flex items-center gap-1 text-[11px] lg:text-[12px] font-quicksand font-bold text-white/60">
                 <Eye className="size-2 text-blue-400" />
                 <span>{status.views_count || 0}</span>
               </div>
             </div>
-            <span className="text-[10px] lg:text-[12px] font-bold text-white/30">{ago(status.createdAt)}</span>
+            <span className="text-[10px] lg:text-[12px] font-quicksand font-bold text-white/30">{ago(status.createdAt)}</span>
           </div>
 
           {status.linked_product && (
-            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/20 text-[10px] lg:text-[12px] font-bold text-[var(--accent)]">
+            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/20 text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)]">
               <ShoppingBag className="size-2.5 shrink-0" />
               <span className="truncate">{status.linked_product.name}</span>
             </div>
@@ -113,13 +113,13 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
         <div className="absolute top-2.5 left-2.5 z-30">
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
             <Flame className={`size-2.5 ${rank === 1 ? 'text-orange-400' : 'text-white/50'}`} />
-            <span className="text-[11px] lg:text-[12px] font-bold text-white">#{rank}</span>
+            <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-white">#{rank}</span>
           </div>
         </div>
       )}
       {urgent && (
         <div className="absolute top-2.5 right-2.5 z-30">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[11px] lg:text-[12px] font-bold text-white animate-pulse">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[11px] lg:text-[12px] font-quicksand font-bold text-white animate-pulse">
             <Clock className="size-2.5" /> {Math.floor(expH)}h
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
           {/* Row 1: Title + Active Now + Search toggle */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl font-bold tracking-tighter text-[var(--text-primary)] leading-none">
+              <h2 className="text-2xl font-quicksand font-bold tracking-tighter text-[var(--text-primary)] leading-none">
                 Aura Story
               </h2>
               {/* Active Now badge */}
@@ -209,7 +209,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
                 </span>
-                <span className="text-[11px] lg:text-[12px] font-bold text-emerald-400 tracking-normal">Active Now</span>
+                <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-emerald-400 tracking-normal">Active Now</span>
               </div>
             </div>
 
@@ -249,13 +249,13 @@ export default function StatusTabGrid({ onSelectStatus }) {
           <div className="flex p-1 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)]">
             <button
               onClick={() => setActiveTab('inner')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] lg:text-[12px] font-bold transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] lg:text-[12px] font-quicksand font-bold transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
             >
               <Users className="size-3" /> Inner Circle
             </button>
             <button
               onClick={() => setActiveTab('pulse')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] lg:text-[12px] font-bold transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] lg:text-[12px] font-quicksand font-bold transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
             >
               <Globe className="size-3" /> Global Pulse
             </button>
@@ -267,7 +267,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
               <button
                 key={c}
                 onClick={() => setSelectedCategory(c)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full border transition-all text-[11px] lg:text-[12px] font-bold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-md' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full border transition-all text-[11px] lg:text-[12px] font-quicksand font-bold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-md' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
               >
                 {c}
               </button>
@@ -361,13 +361,13 @@ function Empty({ icon, title, desc, action, onAction }) {
         {icon}
       </div>
       <div className="space-y-1.5 max-w-xs">
-        <h4 className="text-base font-bold tracking-tight text-[var(--text-primary)]">{title}</h4>
+        <h4 className="text-base font-quicksand font-bold tracking-tight text-[var(--text-primary)]">{title}</h4>
         <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] leading-relaxed opacity-60">{desc}</p>
       </div>
       {action && (
         <button
           onClick={onAction}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold shadow-lg hover:scale-105 transition-all active:scale-95"
+          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-quicksand font-bold shadow-lg hover:scale-105 transition-all active:scale-95"
         >
           {action}
         </button>

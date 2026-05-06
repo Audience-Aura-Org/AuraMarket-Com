@@ -118,10 +118,10 @@ export default function AdminEscrow() {
              <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight ">Escrow <span className="text-[var(--accent)]">Vault</span> Monitoring</h2>
+            <h2 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight ">Escrow <span className="text-[var(--accent)]">Vault</span> Monitoring</h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Protocol Active // Node_Escrow_Master</p>
+               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Protocol Active // Node_Escrow_Master</p>
             </div>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function AdminEscrow() {
               <input 
                 type="text"
                 placeholder="Order ID, Customer, Store..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               />
@@ -160,11 +160,11 @@ export default function AdminEscrow() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
-                        <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
+                        <h3 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                      </div>
                   </div>
                </div>
@@ -174,11 +174,11 @@ export default function AdminEscrow() {
          {/* Escrow Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
+               <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <Database className="w-4 h-4 text-[var(--accent)]" /> 
                   Global Escrow Trace Ledger
                </h3>
-               <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Displaying secure vault logs</p>
+               <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Displaying secure vault logs</p>
             </div>
 
             <div className="space-y-4">
@@ -211,18 +211,18 @@ export default function AdminEscrow() {
                               <div className="flex-1 min-w-0">
                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
-                                       <span className="text-[11px] lg:text-[12px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight capitalize">Order Trace</span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 capitalize`}>
+                                       <span className="text-[11px] lg:text-[12px] md:text-[13px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight capitalize">Order Trace</span>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 capitalize`}>
                                           {l.status.replace('_', ' ')}
                                        </span>
                                     </div>
-                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
+                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
                                        <Clock className="w-3 h-3" /> {new Date(l.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
                                  <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                       <span className="font-mono text-[var(--accent)] font-bold">#{l.order_id?._id?.slice(-8).toUpperCase() || 'LEGACY'}</span>
+                                       <span className="font-mono text-[var(--accent)] font-quicksand font-bold">#{l.order_id?._id?.slice(-8).toUpperCase() || 'LEGACY'}</span>
                                        <span>•</span>
                                        <span className="truncate max-w-[200px] md:max-w-md">From: {l.buyer_id?.name || 'Customer'} → To: {l.vendor_id?.store_name || 'Vendor'}</span>
                                     </div>
@@ -230,9 +230,9 @@ export default function AdminEscrow() {
                               </div>
 
                               <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{l.amount.toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
+                                 <p className="text-xl md:text-2xl font-quicksand font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{l.amount.toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Protocol Secured</span>
+                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Protocol Secured</span>
                                     <ShieldCheck className="w-4 h-4 text-emerald-500 opacity-40" />
                                  </div>
                               </div>
@@ -249,22 +249,22 @@ export default function AdminEscrow() {
                                     <div className="px-8 pb-8 flex flex-col lg:flex-row gap-6">
                                        <div className="flex-1 space-y-4">
                                           <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl">
-                                             <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize flex items-center gap-2">
+                                             <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize flex items-center gap-2">
                                                 <History className="w-3 h-3" /> Vault Trace History
                                              </p>
                                              <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                   <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Customer Confirmed</p>
-                                                   <p className={`text-[11px] lg:text-[12px] font-bold ${l.customer_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>{l.customer_confirmed ? 'YES' : 'NO'}</p>
+                                                   <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-30 capitalize tracking-widest mb-1">Customer Confirmed</p>
+                                                   <p className={`text-[11px] lg:text-[12px] font-quicksand font-bold ${l.customer_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>{l.customer_confirmed ? 'YES' : 'NO'}</p>
                                                 </div>
                                                 <div>
-                                                   <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Vendor Confirmed</p>
-                                                   <p className={`text-[11px] lg:text-[12px] font-bold ${l.vendor_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>{l.vendor_confirmed ? 'YES' : 'NO'}</p>
+                                                   <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-30 capitalize tracking-widest mb-1">Vendor Confirmed</p>
+                                                   <p className={`text-[11px] lg:text-[12px] font-quicksand font-bold ${l.vendor_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>{l.vendor_confirmed ? 'YES' : 'NO'}</p>
                                                 </div>
                                                 {l.release_date && (
                                                   <div className="col-span-2">
-                                                     <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Settlement Date</p>
-                                                     <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">{new Date(l.release_date).toLocaleString()}</p>
+                                                     <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-30 capitalize tracking-widest mb-1">Settlement Date</p>
+                                                     <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)]">{new Date(l.release_date).toLocaleString()}</p>
                                                   </div>
                                                 )}
                                              </div>
@@ -277,7 +277,7 @@ export default function AdminEscrow() {
                                                <button 
                                                  onClick={() => handleRelease(l.order_id?._id)}
                                                  disabled={loadingAction === l.order_id?._id}
-                                                 className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-[10px] lg:text-[12px] tracking-[0.2em] capitalize shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                                 className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-quicksand font-bold text-[10px] lg:text-[12px] tracking-[0.2em] capitalize shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                                                >
                                                   {loadingAction === l.order_id?._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
                                                   Force Release Funds
@@ -285,7 +285,7 @@ export default function AdminEscrow() {
                                                <button 
                                                  onClick={() => handleRefund(l.order_id?._id)}
                                                  disabled={loadingAction === l.order_id?._id}
-                                                 className="w-full h-14 bg-rose-500 text-white rounded-2xl font-bold text-[10px] lg:text-[12px] tracking-[0.2em] capitalize shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                                 className="w-full h-14 bg-rose-500 text-white rounded-2xl font-quicksand font-bold text-[10px] lg:text-[12px] tracking-[0.2em] capitalize shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                                                >
                                                   {loadingAction === l.order_id?._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                                                   Force Refund Customer
@@ -304,7 +304,7 @@ export default function AdminEscrow() {
               ) : (
                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                     <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                    <p className="text-sm font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No vault logs detected in this node.</p>
+                    <p className="text-sm font-quicksand font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No vault logs detected in this node.</p>
                  </div>
               )}
             </div>

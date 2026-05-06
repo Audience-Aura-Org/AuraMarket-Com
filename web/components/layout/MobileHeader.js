@@ -36,7 +36,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
                className="h-4.5 w-auto shrink-0"
              />
            )}
-           <h1 className="text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--nav-text)]  leading-none truncate">
+           <h1 className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--nav-text)]  leading-none truncate">
              Aura <span className="text-[var(--accent)]">Market</span>
            </h1>
         </Link>
@@ -71,7 +71,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           >
             <MessageCircle className="size-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-red-500 text-white text-[11px] lg:text-[12px] font-bold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-red-500 text-white text-[11px] lg:text-[12px] font-quicksand font-bold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}

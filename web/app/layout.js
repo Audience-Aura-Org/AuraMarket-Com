@@ -1,12 +1,19 @@
 import '../styles/globals.css';
-import { Poppins } from 'next/font/google';
+import { Poppins, Quicksand } from 'next/font/google';
 import Providers from '@/components/Providers';
 
 const poppins = Poppins({
-  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  weight: ['300', '400', '500'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-poppins',
+});
+
+const quicksand = Quicksand({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-quicksand',
 });
 
 export const metadata = {
@@ -33,7 +40,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={poppins.variable} data-scroll-behavior="smooth">
+    <html lang="en" className={`${poppins.variable} ${quicksand.variable}`} data-scroll-behavior="smooth">
       <head>
         {/* Viewport: Removed interactive-widget=resizes-visual to fix iOS PWA freeze bug */}
         <meta

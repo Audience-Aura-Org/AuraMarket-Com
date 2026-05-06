@@ -240,7 +240,7 @@ function ShopContent() {
               />
               <button 
                 onClick={() => { setPage(1); fetchProducts(1); }}
-                className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center font-bold"
+                className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center font-quicksand font-bold"
               >
                 <Search className="size-4" />
               </button>
@@ -330,7 +330,7 @@ function ShopContent() {
 
                   <div className="flex-1 min-w-0 w-full space-y-3">
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                      <h1 className="text-xl md:text-3xl font-bold tracking-tighter text-[var(--text-primary)] ">
+                      <h1 className="text-xl md:text-3xl font-quicksand font-bold tracking-tighter text-[var(--text-primary)] ">
                         {activeVendor.vendor_id?.store_name}
                       </h1>
                       {activeVendor.vendor_id?.verified && (
@@ -343,23 +343,23 @@ function ShopContent() {
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
                         <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">
+                        <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.rating ? activeVendor.vendor_id.rating.toFixed(1) : '5.0'}
                         </span>
-                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
+                        <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
                         <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">
+                        <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
                         </span>
-                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
+                        <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                         <ShieldCheck className="size-3.5 text-emerald-600" />
-                        <span className="text-[11px] lg:text-[12px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
+                        <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
                       </div>
                     </div>
                   </div>
@@ -371,7 +371,7 @@ function ShopContent() {
                         store_name: activeVendor.vendor_id?.store_name,
                         branding: { logo: activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo }
                       })}
-                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                     >
                       Contact
                     </button>
@@ -389,7 +389,7 @@ function ShopContent() {
           <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
             
             <div className="flex items-center gap-1.5 md:gap-3">
-              <h3 className="text-xs md:text-xl font-bold text-[var(--text-primary)] tracking-tight">
+              <h3 className="text-xs md:text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">
                 {activeCategoryName === 'All' ? 'Global Market' : activeCategoryName}
               </h3>
               <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
@@ -404,7 +404,7 @@ function ShopContent() {
               <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold tracking-tight shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight shadow-sm"
                 >
                   Price
                   <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
@@ -412,11 +412,11 @@ function ShopContent() {
                 
                 {isPriceOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                        Any Price {!activePrice && <Check className="size-3.5" />}
                      </button>
                      {PRICE_RANGES.map(range => (
-                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {range.name} {activePrice === range.id && <Check className="size-3.5" />}
                        </button>
                      ))}
@@ -428,7 +428,7 @@ function ShopContent() {
               <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold tracking-tight shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight shadow-sm"
                 >
                   Sort
                   <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
@@ -437,7 +437,7 @@ function ShopContent() {
                 {isSortOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                      {SORT_OPTIONS.map(opt => (
-                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {opt.label}
                          {sortBy === opt.value && <Check className="size-3.5" />}
                        </button>
@@ -468,7 +468,7 @@ function ShopContent() {
                 <div className="size-20 md:size-24 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-8 text-[var(--text-secondary)]/50">
                   <Search className="size-8 md:size-10" />
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] mb-2">No Products Found</h2>
+                <h2 className="text-2xl md:text-3xl font-quicksand font-bold text-[var(--text-primary)] mb-2">No Products Found</h2>
                 <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base px-6">No matches found for your current search or filters.</p>
                 <button
                   onClick={() => {
@@ -478,7 +478,7 @@ function ShopContent() {
                     setActivePrice(null);
                     setSearch('');
                   }}
-                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white font-bold text-[10px] lg:text-[12px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
+                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white font-quicksand font-bold text-[10px] lg:text-[12px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
                 >
                   Reset Filters
                 </button>

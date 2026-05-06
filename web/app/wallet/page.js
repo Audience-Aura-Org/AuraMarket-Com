@@ -43,10 +43,10 @@ function CompactStat({ title, value, sub, icon: Icon, color }) {
         <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
           <Icon className="size-4" />
         </div>
-        <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50">{title}</p>
+        <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-50">{title}</p>
       </div>
-      <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tighter">{value}</h3>
-      {sub && <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 tracking-tight">{sub}</p>}
+      <h3 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter">{value}</h3>
+      {sub && <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 mt-1 tracking-tight">{sub}</p>}
     </div>
   );
 }
@@ -223,14 +223,14 @@ export default function WalletPage() {
                 <Wallet className="size-5" />
               </div>
               <div>
-                <h1 className="text-lg font-bold tracking-tight">Wallet control</h1>
-                <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Active liquidity vault</p>
+                <h1 className="text-lg font-quicksand font-bold tracking-tight">Wallet control</h1>
+                <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Active liquidity vault</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                   <ShieldCheck className="size-3 text-emerald-500" />
-                  <span className="text-[10px] lg:text-[12px] font-bold text-emerald-500 tracking-tight">Verified Nexus</span>
+                  <span className="text-[10px] lg:text-[12px] font-quicksand font-bold text-emerald-500 tracking-tight">Verified Nexus</span>
                </div>
                <button onClick={fetchWallet} className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                   <RotateCcw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -251,10 +251,10 @@ export default function WalletPage() {
 
           {/* Action Hub */}
           <div className="grid grid-cols-2 gap-4">
-             <button onClick={() => handleAction('deposit')} className="h-14 rounded-2xl bg-emerald-500 text-white font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all">
+             <button onClick={() => handleAction('deposit')} className="h-14 rounded-2xl bg-emerald-500 text-white font-quicksand font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all">
                 <ArrowDownLeft className="size-5" /> Deposit funds
              </button>
-             <button onClick={() => setModal('withdraw')} className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all">
+             <button onClick={() => setModal('withdraw')} className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-quicksand font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all">
                 <ArrowUpRight className="size-5" /> Withdraw funds
              </button>
           </div>
@@ -263,12 +263,12 @@ export default function WalletPage() {
           <section className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                  <h3 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Transaction ledger</h3>
-                  <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">History synchronized with Aura network</p>
+                  <h3 className="text-sm font-quicksand font-bold tracking-tight text-[var(--text-primary)]">Transaction ledger</h3>
+                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">History synchronized with Aura network</p>
                 </div>
                  <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5 overflow-x-auto no-scrollbar">
                    {['all', 'in', 'out', 'withdrawals'].map(t => (
-                     <button key={t} onClick={() => { setActiveTab(t); setCurrentPage(1); }} className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px] font-bold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === t ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                     <button key={t} onClick={() => { setActiveTab(t); setCurrentPage(1); }} className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === t ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] opacity-40'}`}>
                        {t}
                      </button>
                    ))}
@@ -291,12 +291,12 @@ export default function WalletPage() {
                            <AlertCircle className="size-4" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] lg:text-[12px] font-bold tracking-tight truncate capitalize">{wr.withdrawalMethod} withdrawal</p>
-                          <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight capitalize">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
+                          <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight truncate capitalize">{wr.withdrawalMethod} withdrawal</p>
+                          <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight capitalize">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-base font-bold tracking-tight">{fmt(wr.amount)}</p>
-                          <p className="text-[10px] lg:text-[12px] font-bold opacity-20">{wr.currency}</p>
+                          <p className="text-base font-quicksand font-bold tracking-tight">{fmt(wr.amount)}</p>
+                          <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-20">{wr.currency}</p>
                         </div>
                       </div>
                     ))
@@ -310,11 +310,11 @@ export default function WalletPage() {
                             <config.Icon className="size-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] lg:text-[12px] font-bold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
-                            <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                            <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
+                            <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
                           </div>
                           <div className="text-right">
-                             <p className={`text-base font-bold tracking-tight ${
+                             <p className={`text-base font-quicksand font-bold tracking-tight ${
                                 tx.status === 'completed' 
                                   ? (isCredit ? 'text-emerald-500' : 'text-red-500')
                                   : tx.status === 'failed' 
@@ -325,7 +325,7 @@ export default function WalletPage() {
                              </p>
                              <div className="flex items-center justify-end gap-1 mt-0.5">
                                 {tx.status === 'pending' && <Clock className="size-2 text-amber-500 animate-pulse" />}
-                                <p className={`text-[10px] lg:text-[12px] font-bold tracking-tight ${
+                                <p className={`text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight ${
                                    tx.status === 'completed' ? 'text-emerald-500/50' : 
                                    tx.status === 'failed' ? 'text-red-500' : 'text-amber-500'
                                 }`}>
@@ -353,26 +353,26 @@ export default function WalletPage() {
                     <motion.div key="init" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                       <div className="flex items-center justify-between mb-8">
                         <div>
-                           <h3 className="text-xl font-bold tracking-tight">Add liquidity</h3>
-                           <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight mt-1">Mobile money deposit</p>
+                           <h3 className="text-xl font-quicksand font-bold tracking-tight">Add liquidity</h3>
+                           <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight mt-1">Mobile money deposit</p>
                         </div>
                         <button onClick={() => setModal(null)} className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"><X className="size-4" /></button>
                       </div>
                       
                       <div className="space-y-6">
                         <div className="space-y-2">
-                           <label className="text-[10px] lg:text-[12px] font-bold tracking-tight opacity-30 ml-1">Deposit amount (XAF)</label>
+                           <label className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-30 ml-1">Deposit amount (XAF)</label>
                            <input 
                               type="number" 
                               value={amount} 
                               onChange={e => setAmount(e.target.value)} 
                               placeholder="Min 500" 
-                              className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-2xl font-bold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
+                              className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-2xl font-quicksand font-bold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
                            />
                         </div>
 
                         <div className="space-y-2">
-                           <label className="text-[10px] lg:text-[12px] font-bold tracking-tight opacity-30 ml-1">Account phone</label>
+                           <label className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-30 ml-1">Account phone</label>
                            <div className="relative">
                               <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
                               <input 
@@ -380,13 +380,13 @@ export default function WalletPage() {
                                  value={depositPhone} 
                                  onChange={e => setDepositPhone(e.target.value)} 
                                  placeholder="6XX XXX XXX" 
-                                 className="w-full h-12 pl-12 pr-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-sm font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner" 
+                                 className="w-full h-12 pl-12 pr-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-sm font-quicksand font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner" 
                               />
                            </div>
                         </div>
 
                         <div className="space-y-2">
-                           <label className="text-[10px] lg:text-[12px] font-bold tracking-tight opacity-30 ml-1">Network region</label>
+                           <label className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-30 ml-1">Network region</label>
                            <div className="grid grid-cols-2 gap-2">
                               {[
                                  { id: 'CM', label: 'Cameroon' },
@@ -395,7 +395,7 @@ export default function WalletPage() {
                                 <button 
                                   key={node.id} 
                                   onClick={() => setDepositNetwork(node.id)}
-                                  className={`h-12 rounded-xl border font-bold text-[11px] lg:text-[12px] tracking-tight transition-all ${depositNetwork === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                                  className={`h-12 rounded-xl border font-quicksand font-bold text-[11px] lg:text-[12px] tracking-tight transition-all ${depositNetwork === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
                                 >
                                   {node.label}
                                 </button>
@@ -403,7 +403,7 @@ export default function WalletPage() {
                            </div>
                         </div>
 
-                        <button onClick={handleDepositInit} disabled={submitting} className="w-full h-16 bg-emerald-500 text-white rounded-2xl font-bold text-[11px] lg:text-[12px] tracking-tight shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-4">
+                        <button onClick={handleDepositInit} disabled={submitting} className="w-full h-16 bg-emerald-500 text-white rounded-2xl font-quicksand font-bold text-[11px] lg:text-[12px] tracking-tight shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-4">
                            {submitting ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
                            Deposit funds
                         </button>
@@ -421,17 +421,17 @@ export default function WalletPage() {
                              <Loader2 className="size-4 text-white animate-spin" />
                           </span>
                        </div>
-                       <h4 className="text-xl font-bold tracking-tight mb-2">Request sent</h4>
-                       <p className="text-[12px] font-bold text-[var(--text-secondary)] opacity-60 px-6 leading-relaxed mb-8">
+                       <h4 className="text-xl font-quicksand font-bold tracking-tight mb-2">Request sent</h4>
+                       <p className="text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-60 px-6 leading-relaxed mb-8">
                           Charge request initiated to <span className="text-[var(--text-primary)] font-mono">{depositPhone}</span>. Please confirm on your mobile device.
                        </p>
                        
                        <div className="w-full bg-[var(--bg-secondary)] rounded-2xl p-4 border border-[var(--glass-border)] mb-8 flex items-center gap-4">
                           <div className="size-2 rounded-full bg-emerald-500 animate-ping" />
-                          <p className="text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--accent)]">{depositMessage}</p>
+                          <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--accent)]">{depositMessage}</p>
                        </div>
 
-                       <p className="text-[10px] lg:text-[12px] font-bold tracking-tight opacity-20">Do not close this window</p>
+                       <p className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-20">Do not close this window</p>
                     </motion.div>
                   )}
 
@@ -446,21 +446,21 @@ export default function WalletPage() {
                            depositStatus === 'timeout' ? <AlertTriangle className="size-10" /> : 
                            <XCircle className="size-10" />}
                        </div>
-                       <h4 className={`text-xl font-bold tracking-tight mb-2 ${depositStatus === 'success' ? 'text-emerald-500' : depositStatus === 'timeout' ? 'text-amber-500' : 'text-rose-500'}`}>
+                       <h4 className={`text-xl font-quicksand font-bold tracking-tight mb-2 ${depositStatus === 'success' ? 'text-emerald-500' : depositStatus === 'timeout' ? 'text-amber-500' : 'text-rose-500'}`}>
                           {depositStatus === 'success' ? 'Confirmed' : 
                            depositStatus === 'timeout' ? 'Lapsed' : 'Failed'}
                        </h4>
                        <div className="bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-xl p-4 mb-8 w-full">
-                          <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-60 leading-relaxed tracking-tight">
+                          <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-60 leading-relaxed tracking-tight">
                              {depositStatus === 'success' ? depositMessage : depositReason || depositMessage}
                           </p>
                           {depositStatus === 'failed' && (
-                             <p className="text-[10px] lg:text-[12px] font-bold text-rose-500 mt-2 tracking-tight">Transaction ID: {depositRef || 'unknown'}</p>
+                             <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-rose-500 mt-2 tracking-tight">Transaction ID: {depositRef || 'unknown'}</p>
                           )}
                        </div>
                        <button 
                          onClick={() => { setModal(null); setDepositStep('amount'); setAmount(''); }} 
-                         className={`w-full h-14 rounded-2xl font-bold text-[11px] lg:text-[12px] tracking-tight transition-all shadow-lg ${
+                         className={`w-full h-14 rounded-2xl font-quicksand font-bold text-[11px] lg:text-[12px] tracking-tight transition-all shadow-lg ${
                             depositStatus === 'success' ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--glass-border)]'
                          }`}
                        >
