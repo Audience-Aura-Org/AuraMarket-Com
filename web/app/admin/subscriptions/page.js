@@ -58,7 +58,6 @@ export default function AdminSubscriptionsPage() {
       <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
         <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
             <div className="flex items-center gap-4">

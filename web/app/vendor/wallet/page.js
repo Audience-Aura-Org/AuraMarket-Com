@@ -308,6 +308,7 @@ export default function VendorWalletPage() {
         </div>
       </header>
 
+      <div className="p-4 md:p-10 space-y-8 pb-32">
         {/* KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
           <KPICard title="Available" value={`${fmt(balance)}`} icon={Wallet} color="emerald" sub="XAF Ready" />
