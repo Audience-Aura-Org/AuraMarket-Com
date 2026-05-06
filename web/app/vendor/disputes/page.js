@@ -66,8 +66,8 @@ export default function VendorDisputesPage() {
                 <AlertTriangle className="w-6 h-6 text-rose-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-quicksand font-bold tracking-tight text-[var(--text-primary)]">Resolution Center</h1>
-                <p className="text-xs text-[var(--text-secondary)] font-quicksand font-bold tracking-tight opacity-40">Conflict Management</p>
+                <h1 className="text-2xl  font-bold tracking-tight text-[var(--text-primary)]">Resolution Center</h1>
+                <p className="text-xs text-[var(--text-secondary)]  font-bold tracking-tight opacity-40">Conflict Management</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -97,9 +97,9 @@ export default function VendorDisputesPage() {
                 <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
                 </div>
-                <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-                <h4 className="text-3xl font-quicksand font-bold tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[11px] lg:text-[12px] font-quicksand font-bold opacity-40 ">{stat.sub}</p>
+                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
+                <h4 className="text-3xl  font-bold tracking-tighter mb-1">{stat.value}</h4>
+                <p className="text-[11px] lg:text-[12px]  font-semibold opacity-40 ">{stat.sub}</p>
               </div>
             ))}
           </div>
@@ -112,7 +112,7 @@ export default function VendorDisputesPage() {
               placeholder="Search disputes..." 
               value={search}
               onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 py-3 text-xs font-quicksand font-bold focus:outline-none focus:border-[var(--accent)] transition-all"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 py-3 text-xs  font-bold focus:outline-none focus:border-[var(--accent)] transition-all"
             />
           </div>
 
@@ -124,7 +124,7 @@ export default function VendorDisputesPage() {
               <div className="size-20 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4">
                 <Shield className="w-8 h-8 text-[var(--text-secondary)]/30" />
               </div>
-              <h3 className="text-xl font-quicksand font-bold text-[var(--text-primary)]">No Disputes</h3>
+              <h3 className="text-xl  font-bold text-[var(--text-primary)]">No Disputes</h3>
               <p className="text-xs text-[var(--text-secondary)] opacity-60 mt-2">No active disputes found.</p>
             </div>
           ) : (
@@ -144,7 +144,7 @@ export default function VendorDisputesPage() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-3 py-1 rounded-full text-[11px] lg:text-[12px] font-quicksand font-bold  ${
+                        <span className={`px-3 py-1 rounded-full text-[11px] lg:text-[12px]  font-semibold  ${
                           d.status === 'resolved' 
                             ? 'bg-emerald-500/10 text-emerald-500' 
                             : 'bg-amber-500/10 text-amber-500'
@@ -152,7 +152,7 @@ export default function VendorDisputesPage() {
                           {d.status === 'resolved' ? 'Resolved' : 'Pending'}
                         </span>
                       </div>
-                      <p className="font-quicksand font-bold text-sm text-[var(--text-primary)] mb-1">
+                      <p className=" font-bold text-sm text-[var(--text-primary)] mb-1">
                         {d.reason?.replace(/_/g, ' ') || 'Dispute'}
                       </p>
                       <p className="text-xs text-[var(--text-secondary)] opacity-60">
@@ -161,7 +161,7 @@ export default function VendorDisputesPage() {
                     </div>
                     
                     <div className="text-right">
-                      <p className="text-sm font-quicksand font-bold text-[var(--text-primary)]">
+                      <p className="text-sm  font-bold text-[var(--text-primary)]">
                         {(d.order_id?.total_amount || 0).toLocaleString()}
                       </p>
                       <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-60">XAF</p>
@@ -178,7 +178,7 @@ export default function VendorDisputesPage() {
                     <div className="size-8 h-8 rounded-lg bg-[var(--bg-secondary)] flex items-center justify-center">
                       <User className="w-4 h-4 text-[var(--accent)] opacity-60" />
                     </div>
-                    <span className="text-xs font-quicksand font-bold text-[var(--text-secondary)]">
+                    <span className="text-xs  font-bold text-[var(--text-secondary)]">
                       {d.initiator_id?.name || 'Customer'}
                     </span>
                   </div>

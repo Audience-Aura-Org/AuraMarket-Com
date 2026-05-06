@@ -35,32 +35,32 @@ export default function KYCPage() {
 
             {/* Left Side: Progress HUD */}
             <div className="w-full md:w-80 bg-[var(--bg-primary)]/40 border-r border-[var(--glass-border)] p-12 flex flex-col gap-12">
-               <button onClick={() => router.back()} className="flex items-center gap-2 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight  opacity-40 hover:opacity-100 transition-opacity">
+               <button onClick={() => router.back()} className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight  opacity-40 hover:opacity-100 transition-opacity">
                   <ArrowLeft className="size-4" /> Go Back
                </button>
 
                <div className="space-y-4">
                   <ShieldCheck className="size-10 text-[var(--accent)]" />
-                  <h1 className="text-3xl font-quicksand font-bold tracking-tighter  leading-tight">KYC Port Protocol</h1>
-                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-60 tracking-tight">Aura Market Partner Compliance v6.0</p>
+                  <h1 className="text-3xl  font-bold tracking-tighter  leading-tight">KYC Port Protocol</h1>
+                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60 tracking-tight">Aura Market Partner Compliance v6.0</p>
                </div>
 
                <nav className="space-y-8 mt-12">
                   {steps.map((s, i) => (
                      <div key={s.id} className={`flex items-start gap-4 transition-all ${step >= s.id ? 'opacity-100' : 'opacity-20'}`}>
-                        <div className={`size-8 rounded-xl flex items-center justify-center text-[11px] lg:text-[12px] font-quicksand font-bold border ${step === s.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}>
+                        <div className={`size-8 rounded-xl flex items-center justify-center text-[11px] lg:text-[12px]  font-semibold border ${step === s.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}>
                            {step > s.id ? <CheckCircle2 className="size-4" /> : s.id}
                         </div>
                         <div className="space-y-1">
-                           <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight block">{s.title}</span>
-                           <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] ">{s.desc}</p>
+                           <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight block">{s.title}</span>
+                           <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] ">{s.desc}</p>
                         </div>
                      </div>
                   ))}
                </nav>
 
                <div className="mt-auto space-y-4 border-t border-[var(--glass-border)] pt-8">
-                  <div className="flex items-center gap-3 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight  opacity-40">
+                  <div className="flex items-center gap-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight  opacity-40">
                      <Clock className="size-4" /> ETA: 4m Total
                   </div>
                </div>
@@ -78,14 +78,14 @@ export default function KYCPage() {
                         className="space-y-10"
                      >
                         <div className="space-y-2">
-                           <h2 className="text-4xl font-quicksand font-bold tracking-tight ">Identity Matrix</h2>
+                           <h2 className="text-4xl  font-bold tracking-tight ">Identity Matrix</h2>
                            <p className="text-sm font-medium text-[var(--text-secondary)]">Please provide official government registration for your entity infrastructure.</p>
                         </div>
 
                         <div className="space-y-6">
                            <div className="space-y-3">
-                              <label className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] ml-2">ID Protocol Type</label>
-                              <select className="w-full h-16 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl px-6 text-sm font-quicksand font-bold tracking-tight outline-none focus:ring-2 focus:ring-[var(--accent)]/30">
+                              <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] ml-2">ID Protocol Type</label>
+                              <select className="w-full h-16 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl px-6 text-sm  font-bold tracking-tight outline-none focus:ring-2 focus:ring-[var(--accent)]/30">
                                  <option>National Electronic ID</option>
                                  <option>Diplomatic Passport</option>
                                  <option>Corporate Tax License</option>
@@ -101,7 +101,7 @@ export default function KYCPage() {
 
                         <button
                            onClick={() => setStep(2)}
-                           className="w-full py-6 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-quicksand font-bold  tracking-[.3em] text-[10px] lg:text-[12px] flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+                           className="w-full py-6 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-semibold  tracking-[.3em] text-[10px] lg:text-[12px] flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
                         >
                            Engage Next Mode <ArrowRight className="size-4" />
                         </button>
@@ -117,7 +117,7 @@ export default function KYCPage() {
                         className="space-y-10"
                      >
                         <div className="space-y-2">
-                           <h2 className="text-4xl font-quicksand font-bold tracking-tight ">Base Verification</h2>
+                           <h2 className="text-4xl  font-bold tracking-tight ">Base Verification</h2>
                            <p className="text-sm font-medium text-[var(--text-secondary)]">Sync your physical location proof (Utility Bill/Bank Statement).</p>
                         </div>
 
@@ -126,14 +126,14 @@ export default function KYCPage() {
                               <Upload className="size-10" />
                            </div>
                            <div className="space-y-1">
-                              <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight block">Drop Proof Artifact Here</span>
-                              <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]  opacity-40">PDF / JPEG / PNG MAX 10MB</p>
+                              <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight block">Drop Proof Artifact Here</span>
+                              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">PDF / JPEG / PNG MAX 10MB</p>
                            </div>
                         </div>
 
                         <div className="flex gap-4">
-                           <button onClick={() => setStep(1)} className="flex-1 py-6 rounded-3xl border border-[var(--glass-border)] font-quicksand font-bold tracking-tight text-[10px] lg:text-[12px] hover:bg-[var(--bg-secondary)] transition-all">Previous</button>
-                           <button onClick={() => setStep(3)} className="flex-[2] py-6 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-quicksand font-bold  tracking-[.3em] text-[10px] lg:text-[12px] shadow-xl hover:scale-[1.02] transition-all">Continue Sync</button>
+                           <button onClick={() => setStep(1)} className="flex-1 py-6 rounded-3xl border border-[var(--glass-border)]  font-semibold tracking-tight text-[10px] lg:text-[12px] hover:bg-[var(--bg-secondary)] transition-all">Previous</button>
+                           <button onClick={() => setStep(3)} className="flex-[2] py-6 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-semibold  tracking-[.3em] text-[10px] lg:text-[12px] shadow-xl hover:scale-[1.02] transition-all">Continue Sync</button>
                         </div>
                      </motion.div>
                   )}
@@ -155,13 +155,13 @@ export default function KYCPage() {
                         </div>
 
                         <div className="space-y-4">
-                           <h2 className="text-4xl font-quicksand font-bold tracking-tight ">Biometric Initiation</h2>
+                           <h2 className="text-4xl  font-bold tracking-tight ">Biometric Initiation</h2>
                            <p className="text-sm font-medium text-[var(--text-secondary)] mx-auto max-w-sm">Look directly into your node camera for liveness verification protocol.</p>
                         </div>
 
                         <button
                            onClick={() => { setLoading(true); setTimeout(() => router.push('/profile'), 2000); }}
-                           className="w-full py-8 rounded-[32px] bg-[var(--accent)] text-white font-quicksand font-bold  tracking-[.4em] text-[11px] lg:text-[12px] flex items-center justify-center gap-4 hover:scale-[1.02] shadow-[0_20px_60px_rgba(242,13,242,0.3)] transition-all disabled:opacity-50"
+                           className="w-full py-8 rounded-[32px] bg-[var(--accent)] text-white  font-semibold  tracking-[.4em] text-[11px] lg:text-[12px] flex items-center justify-center gap-4 hover:scale-[1.02] shadow-[0_20px_60px_rgba(242,13,242,0.3)] transition-all disabled:opacity-50"
                         >
                            {loading ? <Clock className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
                            {loading ? 'Transmitting Matrix Data...' : 'Finalize Initiation'}
@@ -179,7 +179,7 @@ function UploadCard({ label, icon: Icon }) {
    return (
       <div className="flex flex-col items-center justify-center p-8 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] cursor-pointer hover:border-[var(--accent)]/30 group transition-all">
          <div className="size-10 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--accent)] mb-4"><Icon className="size-5" /></div>
-         <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-center">{label}</span>
+         <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-center">{label}</span>
       </div>
    );
 }

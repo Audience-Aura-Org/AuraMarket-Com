@@ -249,14 +249,14 @@ export default function HubContent() {
             <div className="flex bg-[var(--bg-secondary)] p-1 gap-1 rounded-full border border-[var(--glass-border)]/50">
             <button 
                onClick={() => setActiveTab('chats')}
-               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
             >
                <MessageCircle className="size-4" />
                Chats
             </button>
             <button 
                onClick={() => setActiveTab('feed')}
-               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
             >
                <LayoutGrid className="size-4" />
                Discover
@@ -283,11 +283,11 @@ export default function HubContent() {
                          placeholder="Search chats..."
                          className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-12 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
                        />
-                       <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center font-quicksand font-bold">
+                       <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center  font-bold">
                          <Search className="size-3" />
                        </button>
                      </div>
-                     <p className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
+                     <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
                      {loadingInbox ? (
                         <div className="flex flex-col items-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
                      ) : filteredInbox.length === 0 ? (
@@ -338,7 +338,7 @@ export default function HubContent() {
                         <div className="relative">
                           <button 
                             onClick={() => setIsSortOpen(!isSortOpen)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-primary)] shadow-sm"
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] shadow-sm"
                           >
                             <span className="text-[var(--text-secondary)] font-normal opacity-50 ">Sort:</span> 
                             {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
@@ -367,7 +367,7 @@ export default function HubContent() {
                         </div>
                       </div>
                       
-                      <p className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.3em] opacity-40 mb-1">
+                      <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40 mb-1">
                         {activeCategoryName === 'All' ? 'Calibrated Discovery' : activeCategoryName}
                       </p>
                       {loadingFeed ? (
@@ -390,7 +390,7 @@ export default function HubContent() {
                             <button
                               onClick={() => setPage(p => p + 1)}
                               disabled={loadingFeed}
-                              className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
+                              className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
                             >
                               Synchronize More
                             </button>
@@ -418,7 +418,7 @@ export default function HubContent() {
                 placeholder="Search hub..."
                 className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-14 text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
               />
-              <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center font-quicksand font-bold">
+              <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center  font-bold">
                 <Search className="size-4" />
               </button>
             </div>
@@ -431,14 +431,14 @@ export default function HubContent() {
                <div className="flex bg-[var(--bg-secondary)] p-1 rounded-full gap-1 shrink-0 border border-[var(--glass-border)] shadow-inner">
                   <button 
                     onClick={() => setActiveTab('chats')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   >
                     <MessageCircle className="size-3.5" />
                     Chats
                   </button>
                   <button 
                     onClick={() => setActiveTab('feed')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   >
                     <LayoutGrid className="size-3.5" />
                     Discover
@@ -512,7 +512,7 @@ export default function HubContent() {
                   {/* Messages Section */}
                   <div className="space-y-4">
                      <div className="flex items-center justify-between px-2">
-                        <p className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.3em] opacity-40">Operational Dialogues</p>
+                        <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40">Operational Dialogues</p>
                         <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                      </div>
                      <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-2 min-h-[400px] shadow-sm backdrop-blur-xl">
@@ -531,7 +531,7 @@ export default function HubContent() {
                   {/* Followed Section */}
                   <div className="space-y-4">
                      <div className="flex items-center justify-between px-2">
-                        <p className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.3em] opacity-40">Followed Vendors</p>
+                        <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40">Followed Vendors</p>
                         <Heart className="size-3.5 text-[var(--accent)] fill-[var(--accent)]" />
                      </div>
                      <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-3 min-h-[400px] shadow-sm backdrop-blur-xl">
@@ -556,11 +556,11 @@ export default function HubContent() {
               {/* Toolbar */}
               <div className="flex items-center justify-between mb-8 gap-4">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">
+                  <h3 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">
                     {activeCategoryName === 'All' ? 'Aura Discovery' : activeCategoryName}
                   </h3>
                   <div className="h-4 w-px bg-[var(--glass-border)]" />
-                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-60">
+                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-60">
                     {feed.length} Results
                   </p>
                 </div>
@@ -570,7 +570,7 @@ export default function HubContent() {
                   <div className="relative">
                     <button 
                       onClick={() => setIsSortOpen(!isSortOpen)}
-                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight shadow-sm"
+                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
                     >
                       <span className="text-[var(--text-secondary)] font-normal opacity-60">Sort:</span> 
                       {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
@@ -579,7 +579,7 @@ export default function HubContent() {
                     {isSortOpen && (
                       <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                          {SORT_OPTIONS.map(opt => (
-                           <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                           <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                              {opt.label}
                              {sortBy === opt.value && <Check className="size-3.5" />}
                            </button>
@@ -612,7 +612,7 @@ export default function HubContent() {
                   <div className="size-20 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                     <Search className="size-8 text-[var(--accent)] opacity-20" />
                   </div>
-                  <h3 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] mb-2  tracking-tighter">No Frequency Detected</h3>
+                  <h3 className="text-2xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">No Frequency Detected</h3>
                   <p className="text-sm font-medium text-[var(--text-secondary)] opacity-60">Adjust your category filters or try a different search signal.</p>
                 </div>
               ) : (
@@ -627,7 +627,7 @@ export default function HubContent() {
                   <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={loadingFeed}
-                    className="px-12 py-5 rounded-full bg-[var(--bg-primary)] border-2 border-[var(--glass-border)] text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-xl shadow-[var(--accent)]/5 disabled:opacity-50 active:scale-95"
+                    className="px-12 py-5 rounded-full bg-[var(--bg-primary)] border-2 border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-xl shadow-[var(--accent)]/5 disabled:opacity-50 active:scale-95"
                   >
                     {loadingFeed ? <Loader2 className="size-5 animate-spin" /> : 'Synchronize More Results'}
                   </button>
@@ -685,7 +685,7 @@ function ChatLink({ chat }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
-          <p className={`text-xs truncate ${!chat.read_status ? 'font-quicksand font-bold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
+          <p className={`text-xs truncate ${!chat.read_status ? ' font-bold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
             {partnerName}
           </p>
           <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]/60 shrink-0">

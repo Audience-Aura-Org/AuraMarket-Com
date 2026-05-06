@@ -24,7 +24,7 @@ export default function OrderTrackingPage() {
       {/* Mobile Header */}
       <div className="sticky top-0 z-50 bg-white/70 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-gray-100 transition-colors"><ArrowLeft className="w-6 h-6" /></button>
-        <h1 className="font-quicksand font-bold text-gray-900">Track Order #8812</h1>
+        <h1 className=" font-bold text-gray-900">Track Order #8812</h1>
         <div className="w-10" /> {/* Spacer */}
       </div>
 
@@ -37,8 +37,8 @@ export default function OrderTrackingPage() {
             <div className="w-20 h-20 rounded-3xl bg-indigo-600 flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-200 animate-pulse">
               <Truck className="w-10 h-10" />
             </div>
-            <h2 className="text-2xl font-quicksand font-bold text-gray-900">In Transit</h2>
-            <p className="text-gray-500 font-medium mt-1">Expected Delivery: <span className="text-gray-900 font-quicksand font-bold">Today, Oct 26</span></p>
+            <h2 className="text-2xl  font-bold text-gray-900">In Transit</h2>
+            <p className="text-gray-500 font-medium mt-1">Expected Delivery: <span className="text-gray-900  font-bold">Today, Oct 26</span></p>
           </div>
         </div>
 
@@ -57,8 +57,8 @@ export default function OrderTrackingPage() {
               
               <div className="flex-1">
                 <div className="flex justify-between items-baseline mb-1">
-                  <h4 className={`font-quicksand font-bold  tracking-tight ${i <= activeStep ? 'text-gray-900' : 'text-gray-300'}`}>{s.label}</h4>
-                  <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-gray-300  tracking-tight">{s.time}</span>
+                  <h4 className={` font-bold  tracking-tight ${i <= activeStep ? 'text-gray-900' : 'text-gray-300'}`}>{s.label}</h4>
+                  <span className="text-[11px] lg:text-[12px]  font-semibold text-gray-300  tracking-tight">{s.time}</span>
                 </div>
                 <p className={`text-sm font-medium leading-relaxed ${i <= activeStep ? 'text-gray-500' : 'text-gray-200'}`}>{s.desc}</p>
               </div>
@@ -72,21 +72,21 @@ export default function OrderTrackingPage() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400"><MapPin className="w-6 h-6" /></div>
                 <div>
-                   <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-gray-300 ">Live Location</p>
-                   <p className="font-quicksand font-bold text-gray-900">Bastos District, YDE</p>
+                   <p className="text-[11px] lg:text-[12px]  font-semibold text-gray-300 ">Live Location</p>
+                   <p className=" font-bold text-gray-900">Bastos District, YDE</p>
                 </div>
               </div>
-              <button className="px-5 py-2.5 bg-indigo-50 text-indigo-700 font-quicksand font-bold rounded-xl text-xs">View Map</button>
+              <button className="px-5 py-2.5 bg-indigo-50 text-indigo-700  font-bold rounded-xl text-xs">View Map</button>
            </div>
 
            <div className="grid grid-cols-2 gap-4">
               <button className="p-5 rounded-[32px] bg-white border border-gray-100 flex flex-col items-center justify-center gap-3 group hover:bg-indigo-50 transition-all">
                 <Phone className="w-6 h-6 text-gray-400 group-hover:text-indigo-600" />
-                <span className="text-xs font-quicksand font-bold text-gray-900 ">Call Driver</span>
+                <span className="text-xs  font-bold text-gray-900 ">Call Driver</span>
               </button>
               <button className="p-5 rounded-[32px] bg-white border border-gray-100 flex flex-col items-center justify-center gap-3 group hover:bg-purple-50 transition-all">
                 <MessageCircle className="w-6 h-6 text-gray-400 group-hover:text-purple-600" />
-                <span className="text-xs font-quicksand font-bold text-gray-900 ">Chat Dealer</span>
+                <span className="text-xs  font-bold text-gray-900 ">Chat Dealer</span>
               </button>
            </div>
         </div>
@@ -94,7 +94,7 @@ export default function OrderTrackingPage() {
         {/* Security / Escrow Info */}
         <div className="mt-10 p-6 rounded-[32px] bg-green-50/50 border border-green-100 flex items-center gap-4">
            <ShieldCheck className="w-10 h-10 text-green-600" />
-           <p className="text-xs font-quicksand font-bold text-green-800 leading-relaxed">
+           <p className="text-xs  font-bold text-green-800 leading-relaxed">
              Funds for this order are held in Aura Escrow. Please only click "Complete Delivery" once you have the item in hand and are satisfied.
            </p>
         </div>

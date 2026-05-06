@@ -41,19 +41,19 @@ export default function FloatingCart() {
             
             {/* Expanded Header */}
             <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-[288px] mb-2 whitespace-nowrap">
-               <h3 className="font-quicksand font-bold text-[var(--text-primary)] text-sm tracking-tight ">Your Stack</h3>
-               <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px] font-quicksand font-bold px-2 py-0.5 rounded-full">{totalItems} ITEMS</span>
+               <h3 className=" font-bold text-[var(--text-primary)] text-sm tracking-tight ">Your Stack</h3>
+               <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold px-2 py-0.5 rounded-full">{totalItems} ITEMS</span>
             </div>
             
             {/* Collapsed View */}
             <div className="flex flex-col items-center justify-center absolute top-5 left-1/2 -translate-x-1/2 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none h-full">
                <div className="relative bg-[var(--bg-secondary)] p-2.5 rounded-2xl border border-[var(--glass-border)] shadow-sm">
                  <ShoppingCart className="w-5 h-5 text-[var(--text-primary)]" />
-                 <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[10px] lg:text-[12px] w-4 h-4 rounded-full flex items-center justify-center font-quicksand font-bold border border-[var(--bg-primary)] shadow-md">
+                 <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[10px] lg:text-[12px] w-4 h-4 rounded-full flex items-center justify-center  font-semibold border border-[var(--bg-primary)] shadow-md">
                    {totalItems}
                  </span>
                </div>
-               <div className="text-[11px] lg:text-[12px] font-quicksand font-bold  text-[var(--text-secondary)] mt-6 -rotate-90 tracking-[0.3em] whitespace-nowrap overflow-visible">
+               <div className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] mt-6 -rotate-90 tracking-[0.3em] whitespace-nowrap overflow-visible">
                  CART
                </div>
             </div>
@@ -69,11 +69,11 @@ export default function FloatingCart() {
                       ) : <Package className="w-4 h-4 m-auto opacity-20" />}
                     </div>
                     <div className="min-w-0 flex-1 whitespace-nowrap overflow-hidden pr-2">
-                      <p className="font-quicksand font-bold text-xs text-[var(--text-primary)] truncate">{item.name}</p>
-                      <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-quicksand font-bold tracking-tight mt-0.5">QTY: {item.quantity}</p>
+                      <p className=" font-bold text-xs text-[var(--text-primary)] truncate">{item.name}</p>
+                      <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold tracking-tight mt-0.5">QTY: {item.quantity}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                       <p className="text-sm font-quicksand font-bold text-[var(--accent)]">{(item.price * item.quantity).toLocaleString()} XAF</p>
+                       <p className="text-sm  font-bold text-[var(--accent)]">{(item.price * item.quantity).toLocaleString()} XAF</p>
                     </div>
                  </div>
                ))}
@@ -83,11 +83,11 @@ export default function FloatingCart() {
             {/* Expanded Footer / Actions */}
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 pt-2 border-t border-[var(--glass-border)] w-[288px] shrink-0 bg-[var(--bg-primary)]/80 backdrop-blur-sm shadow-lg shadow-black/10 -mx-4 -mb-4 px-4 py-4">
                <div className="flex justify-between items-center mb-3 pr-2">
-                 <span className="text-[11px] lg:text-[12px] font-quicksand font-bold  text-[var(--text-secondary)] tracking-tight">Estimated Total</span>
-                 <span className="font-quicksand font-bold text-lg text-[var(--text-primary)]">{totalPrice.toLocaleString()} XAF</span>
+                 <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] tracking-tight">Estimated Total</span>
+                 <span className=" font-bold text-lg text-[var(--text-primary)]">{totalPrice.toLocaleString()} XAF</span>
                </div>
                <div className="pr-2">
-                 <Link href="/cart" className="w-full py-3 bg-[var(--accent)] text-white rounded-xl text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight  flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all shadow-lg shadow-[var(--accent)]/30 active:scale-95">
+                 <Link href="/cart" className="w-full py-3 bg-[var(--accent)] text-white rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight  flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all shadow-lg shadow-[var(--accent)]/30 active:scale-95">
                    Proceed to Checkout <ArrowRight className="w-3 h-3" />
                  </Link>
                </div>
@@ -101,17 +101,17 @@ export default function FloatingCart() {
            <div className="flex items-center gap-4">
              <div className="relative flex-shrink-0">
                <ShoppingCart className="w-6 h-6 text-[var(--text-primary)]" />
-               <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[10px] lg:text-[12px] w-4 h-4 rounded-full flex items-center justify-center font-quicksand font-bold shadow-md border-[1.5px] border-[var(--bg-primary)]">
+               <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[10px] lg:text-[12px] w-4 h-4 rounded-full flex items-center justify-center  font-semibold shadow-md border-[1.5px] border-[var(--bg-primary)]">
                  {totalItems}
                </span>
              </div>
              <div>
-               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] leading-none mb-1">Subtotal</p>
-               <p className="font-quicksand font-bold text-sm text-[var(--text-primary)] leading-none">{totalPrice.toLocaleString()} XAF</p>
+               <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] leading-none mb-1">Subtotal</p>
+               <p className=" font-bold text-sm text-[var(--text-primary)] leading-none">{totalPrice.toLocaleString()} XAF</p>
              </div>
            </div>
            
-           <Link href="/cart" className="px-6 py-2.5 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-[14px] text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight  active:scale-95 transition-all shadow-md">
+           <Link href="/cart" className="px-6 py-2.5 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-[14px] text-[11px] lg:text-[12px]  font-semibold tracking-tight  active:scale-95 transition-all shadow-md">
              View Cart
            </Link>
         </div>

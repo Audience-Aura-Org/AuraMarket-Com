@@ -190,10 +190,10 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
           {activePartnerId ? (
              <>
                 <div className="size-10 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] shrink-0">
-                   {partnerAvatar && typeof partnerAvatar === 'string' ? <img src={partnerAvatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center text-sm font-quicksand font-bold text-[var(--accent)]">{partnerName[0]}</div>}
+                   {partnerAvatar && typeof partnerAvatar === 'string' ? <img src={partnerAvatar} className="size-full object-cover" alt="" /> : <div className="size-full flex items-center justify-center text-sm  font-bold text-[var(--accent)]">{partnerName[0]}</div>}
                 </div>
                 <div className="min-w-0 flex-1">
-                   <h3 className="font-quicksand font-bold text-sm md:text-base text-[var(--text-primary)] truncate tracking-tighter leading-tight capitalize whitespace-nowrap">
+                   <h3 className=" font-bold text-sm md:text-base text-[var(--text-primary)] truncate tracking-tighter leading-tight capitalize whitespace-nowrap">
                      {isSystemWide && partnerBInfo ? (
                         <span className="flex items-center gap-1.5">
                           {partnerName} 
@@ -206,14 +206,14 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                    </h3>
                    <div className="flex items-center gap-1.5 ">
                       <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                      <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-emerald-500 tracking-tight leading-none">Active Now</p>
+                      <p className="text-[11px] lg:text-[12px]  font-semibold text-emerald-500 tracking-tight leading-none">Active Now</p>
                    </div>
                 </div>
              </>
           ) : (
             <div>
-               <h3 className="font-quicksand font-bold text-lg text-[var(--text-primary)] tracking-tight">Operational Channels</h3>
-               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 tracking-tight">Procurement Pipeline</p>
+               <h3 className=" font-bold text-lg text-[var(--text-primary)] tracking-tight">Operational Channels</h3>
+               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Procurement Pipeline</p>
             </div>
           )}
         </div>
@@ -246,12 +246,12 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                  <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
               </div>
               <div className="flex-1 min-w-0">
-                 <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)]  tracking-[0.2em] mb-1 leading-none">Subject Payload</p>
-                 <h4 className="text-[13px] font-quicksand font-bold text-[var(--text-primary)] truncate tracking-tight">{product.name}</h4>
+                 <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]  tracking-[0.2em] mb-1 leading-none">Subject Payload</p>
+                 <h4 className="text-[13px]  font-bold text-[var(--text-primary)] truncate tracking-tight">{product.name}</h4>
                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-80">{product.price?.toLocaleString()} XAF</p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-80">{product.price?.toLocaleString()} XAF</p>
                     <div className="size-1 rounded-full bg-[var(--accent)] opacity-20" />
-                    <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)]  opacity-40">Ready for Transfer</span>
+                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]  opacity-40">Ready for Transfer</span>
                  </div>
               </div>
               <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] opacity-40 hover:opacity-100 cursor-pointer">
@@ -296,10 +296,10 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                                 <div className="flex-1 min-w-0 text-left">
                                   <div className="flex items-center gap-1.5 mb-0.5">
                                     <div className="size-1 rounded-full bg-[var(--accent)] animate-pulse" />
-                                    <span className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)] tracking-tight leading-none">Subject Payload</span>
+                                    <span className="text-[10px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight leading-none">Subject Payload</span>
                                   </div>
-                                  <h5 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] truncate tracking-tight leading-tight">{msg.product_reference.name}</h5>
-                                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]/60 tabular-nums">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
+                                  <h5 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate tracking-tight leading-tight">{msg.product_reference.name}</h5>
+                                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]/60 tabular-nums">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
                                 </div>
                                 <ExternalLink className="size-3 text-[var(--text-secondary)] opacity-20 mr-1" />
                               </button>
@@ -317,7 +317,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                                   {msg.metadata.storyPreview?.startsWith('http') ? (
                                     <img src={msg.metadata.storyPreview} className="size-full object-cover opacity-80" alt="" />
                                   ) : (
-                                    <div className="size-full bg-gradient-to-br from-[#050505] to-[#1a0a2e] flex items-center justify-center p-1.5 text-[10px] lg:text-[12px] font-quicksand font-bold text-white/70 text-center leading-tight">
+                                    <div className="size-full bg-gradient-to-br from-[#050505] to-[#1a0a2e] flex items-center justify-center p-1.5 text-[10px] lg:text-[12px]  font-semibold text-white/70 text-center leading-tight">
                                       {msg.metadata.storyPreview}
                                     </div>
                                   )}
@@ -325,9 +325,9 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                                 <div className="flex-1 min-w-0 text-left">
                                   <div className="flex items-center gap-1.5 mb-0.5">
                                     <div className="size-1 rounded-full bg-purple-500 animate-pulse" />
-                                    <span className="text-[10px] lg:text-[12px] font-quicksand font-bold text-purple-400 tracking-tight leading-none">Status Interaction</span>
+                                    <span className="text-[10px] lg:text-[12px]  font-semibold text-purple-400 tracking-tight leading-none">Status Interaction</span>
                                   </div>
-                                  <h5 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] truncate tracking-tight leading-tight">Replied to Story</h5>
+                                  <h5 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate tracking-tight leading-tight">Replied to Story</h5>
                                   <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)]/40">via Aura Pulse</p>
                                 </div>
                                 <ExternalLink className="size-3 text-[var(--text-secondary)] opacity-20 mr-1" />
@@ -388,7 +388,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
              ) : inbox.length === 0 ? (
                 <div className="py-20 text-center opacity-30">
                    <MessageCircle className="size-12 mx-auto mb-4" />
-                   <p className="text-xs font-quicksand font-bold tracking-tight leading-loose">No active connections found</p>
+                   <p className="text-xs  font-bold tracking-tight leading-loose">No active connections found</p>
                 </div>
              ) : (
                 inbox.filter(c => !deletedConvos.includes((c.partner?._id || '').toString())).map((chat, i) => (
@@ -406,11 +406,11 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                     <div className="size-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] flex items-center justify-center shrink-0">
                        {chat.partner?.store?.logo || chat.partner?.branding?.logo || (typeof chat.partner?.avatar === 'string' ? chat.partner?.avatar : null)
                          ? <img src={chat.partner?.store?.logo || chat.partner?.branding?.logo || chat.partner?.avatar} className="size-full object-cover" alt="" />
-                         : <div className="text-xl font-quicksand font-bold text-[var(--accent)] ">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
+                         : <div className="text-xl  font-bold text-[var(--accent)] ">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
                     </div>
                     <div className="flex-1 min-w-0">
                        <div className="flex justify-between items-start mb-0.5">
-                          <h4 className="font-quicksand font-bold text-[11px] lg:text-[12px] md:text-xs text-[var(--text-primary)] truncate pr-2 capitalize">
+                          <h4 className=" font-semibold text-[11px] lg:text-[12px] md:text-xs text-[var(--text-primary)] truncate pr-2 capitalize">
                             {chat.isSystemWide ? (
                               <span className="flex items-center gap-1">
                                 {typeof chat.partner?.name === 'string' ? chat.partner.name : (chat.partner?.name || 'User')} 
@@ -421,11 +421,11 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                               typeof chat.partner?.store_name === 'string' ? chat.partner.store_name : (chat.partner?.store_name || chat.partner?.name || 'User')
                             )}
                           </h4>
-                          <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 whitespace-nowrap">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
+                          <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 whitespace-nowrap">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
                        </div>
                        <div className="flex items-center gap-2">
                           {chat.isSystemWide && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-500 text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight border border-purple-500/20 shrink-0">System</span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-500 text-[10px] lg:text-[12px]  font-semibold tracking-tight border border-purple-500/20 shrink-0">System</span>
                           )}
                           <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] truncate opacity-60 leading-relaxed font-medium">{chat.snippet}</p>
                        </div>

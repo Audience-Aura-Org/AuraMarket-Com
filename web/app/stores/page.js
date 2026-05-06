@@ -99,7 +99,7 @@ export default function StoresDirectoryPage() {
                <Store className="size-8 text-[var(--accent)]/60" />
              </div>
              <div>
-               <h2 className="text-2xl font-quicksand font-bold text-[var(--text-primary)]/70">No stores found</h2>
+               <h2 className="text-2xl  font-bold text-[var(--text-primary)]/70">No stores found</h2>
                <p className="text-[var(--text-secondary)] font-medium mt-2 text-sm">Try adjusting your search criteria.</p>
              </div>
           </motion.div>
@@ -148,13 +148,13 @@ export default function StoresDirectoryPage() {
 
                     <div className="mt-5 space-y-3 relative z-10 w-full flex-1 flex flex-col">
                       <div className="flex items-center justify-center gap-2 flex-wrap">
-                        <h3 className="text-base font-quicksand font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">{s.store_name}</h3>
+                        <h3 className="text-base  font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">{s.store_name}</h3>
                         {s.verified && (
                           <ShieldCheck className="size-3.5 text-blue-400" />
                         )}
                       </div>
                       
-                      <div className="flex items-center justify-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] text-xs font-quicksand font-bold w-fit mx-auto">
+                      <div className="flex items-center justify-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] text-xs  font-bold w-fit mx-auto">
                         <Star className="size-3 fill-current" /> <span>{s.rating || '4.9'}</span>
                       </div>
 
@@ -165,8 +165,8 @@ export default function StoresDirectoryPage() {
 
                     <div className="mt-auto pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                         <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]/50 tracking-tight">Status</span>
-                         <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-emerald-500 flex items-center gap-1.5">
+                         <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]/50 tracking-tight">Status</span>
+                         <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-500 flex items-center gap-1.5">
                             <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
                          </span>
                       </div>
@@ -194,21 +194,21 @@ export default function StoresDirectoryPage() {
                     onClick={() => handlePageChange(page - 1)}
                     whileHover={page > 1 ? { scale: 1.05 } : {}}
                     whileTap={page > 1 ? { scale: 0.95 } : {}}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-xs font-quicksand font-bold transition-all disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white shadow-sm"
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-xs  font-bold transition-all disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white shadow-sm"
                  >
                     Previous
                  </motion.button>
                  <div className="flex items-center gap-1.5">
                     {Array.from({ length: Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
                        const maxPages = Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0));
-                       if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30 text-xs font-quicksand font-bold">...</span> : null;
+                       if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30 text-xs  font-bold">...</span> : null;
                        return (
                           <motion.button 
                              key={p}
                              onClick={() => handlePageChange(p)}
                              whileHover={{ scale: 1.05 }}
                              whileTap={{ scale: 0.95 }}
-                             className={`size-10 rounded-lg flex items-center justify-center text-xs font-quicksand font-bold transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/50'}`}
+                             className={`size-10 rounded-lg flex items-center justify-center text-xs  font-bold transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/50'}`}
                           >
                              {p}
                           </motion.button>
@@ -220,7 +220,7 @@ export default function StoresDirectoryPage() {
                     onClick={() => handlePageChange(page + 1)}
                     whileHover={filteredStores.length >= 20 ? { scale: 1.05 } : {}}
                     whileTap={filteredStores.length >= 20 ? { scale: 0.95 } : {}}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-xs font-quicksand font-bold transition-all disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white shadow-sm"
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-xs  font-bold transition-all disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white shadow-sm"
                  >
                     Next
                  </motion.button>

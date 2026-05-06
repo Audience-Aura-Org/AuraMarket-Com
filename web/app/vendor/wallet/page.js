@@ -47,9 +47,9 @@ function KPICard({ title, value, icon: Icon, color, sub }) {
         </div>
       </div>
       <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-quicksand font-bold tracking-[0.2em]  opacity-50">{title}</p>
-        <h3 className="text-fluid-base lg:text-fluid-xl font-quicksand font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
-        {sub && <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-quicksand font-bold mt-1 opacity-50  tracking-tighter truncate">{sub}</p>}
+        <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-[0.2em]  opacity-50">{title}</p>
+        <h3 className="text-fluid-base lg:text-fluid-xl  font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
+        {sub && <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold mt-1 opacity-50  tracking-tighter truncate">{sub}</p>}
       </div>
     </div>
   );
@@ -76,27 +76,27 @@ function ReceiptModal({ tx, onClose }) {
           <div className="size-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
              <Wallet className="size-8" />
           </div>
-          <h3 className="text-xl font-quicksand font-bold tracking-tight">Aura Market</h3>
-          <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-slate-400 tracking-tight">Official Transaction Receipt</p>
+          <h3 className="text-xl  font-bold tracking-tight">Aura Market</h3>
+          <p className="text-[11px] lg:text-[12px]  font-semibold text-slate-400 tracking-tight">Official Transaction Receipt</p>
         </div>
 
         <div className="space-y-4 mb-8 text-sm">
           <div className="flex justify-between border-b border-slate-100 pb-2">
-            <span className="text-slate-400 font-quicksand font-bold  text-[10px] lg:text-[12px]">Reference</span>
-            <span className="font-quicksand font-bold text-slate-800">{tx.reference?.slice(0, 12)}</span>
+            <span className="text-slate-400  font-semibold  text-[10px] lg:text-[12px]">Reference</span>
+            <span className=" font-bold text-slate-800">{tx.reference?.slice(0, 12)}</span>
           </div>
           <div className="flex justify-between border-b border-slate-100 pb-2">
-            <span className="text-slate-400 font-quicksand font-bold  text-[10px] lg:text-[12px]">Date</span>
-            <span className="font-quicksand font-bold text-slate-800">{new Date(tx.createdAt).toLocaleString()}</span>
+            <span className="text-slate-400  font-semibold  text-[10px] lg:text-[12px]">Date</span>
+            <span className=" font-bold text-slate-800">{new Date(tx.createdAt).toLocaleString()}</span>
           </div>
           <div className="py-4 text-center">
-            <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-slate-400 tracking-tight mb-1">Amount</p>
-            <h4 className="text-3xl font-quicksand font-bold text-slate-900">{fmt(tx.amount)} XAF</h4>
+            <p className="text-[11px] lg:text-[12px]  font-semibold text-slate-400 tracking-tight mb-1">Amount</p>
+            <h4 className="text-3xl  font-bold text-slate-900">{fmt(tx.amount)} XAF</h4>
           </div>
         </div>
 
         <div className="flex gap-3">
-          <button onClick={() => window.print()} className="flex-1 h-12 bg-slate-900 text-white rounded-2xl font-quicksand font-bold text-[10px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2">
+          <button onClick={() => window.print()} className="flex-1 h-12 bg-slate-900 text-white rounded-2xl  font-semibold text-[10px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2">
             <Printer className="size-3.5" /> Print
           </button>
           <button onClick={onClose} className="size-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200">
@@ -141,7 +141,7 @@ function WithdrawPanel({ balance, onClose, onSuccess }) {
     <div className="flex items-center gap-2 mb-8">
       {[1, 2, 3].map(i => (
         <div key={i} className="flex items-center gap-2">
-          <div className={`size-6 rounded-full flex items-center justify-center text-[11px] lg:text-[12px] font-quicksand font-bold ${i <= step ? 'bg-[var(--accent)] text-white' : 'bg-white/10 text-white/30'}`}>
+          <div className={`size-6 rounded-full flex items-center justify-center text-[11px] lg:text-[12px]  font-semibold ${i <= step ? 'bg-[var(--accent)] text-white' : 'bg-white/10 text-white/30'}`}>
             {i < step ? <CheckCircle2 className="size-3.5" /> : i}
           </div>
           {i < 3 && <div className={`w-8 h-px ${i < step ? 'bg-[var(--accent)]' : 'bg-white/10'}`} />}
@@ -155,9 +155,9 @@ function WithdrawPanel({ balance, onClose, onSuccess }) {
       <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
         <div className="w-full max-w-sm bg-[#0f0f12] border border-white/10 rounded-[2.5rem] p-10 text-center">
           <CheckCircle2 className="size-16 text-emerald-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-quicksand font-bold text-white  mb-2">Success</h2>
+          <h2 className="text-2xl  font-bold text-white  mb-2">Success</h2>
           <p className="text-sm text-white/40 mb-8">Withdrawal request for {fmt(amtNum)} XAF submitted.</p>
-          <button onClick={onClose} className="w-full h-14 bg-white/5 border border-white/10 text-white rounded-2xl font-quicksand font-bold text-xs tracking-tight">Dismiss</button>
+          <button onClick={onClose} className="w-full h-14 bg-white/5 border border-white/10 text-white rounded-2xl  font-bold text-xs tracking-tight">Dismiss</button>
         </div>
       </div>
     );
@@ -168,15 +168,15 @@ function WithdrawPanel({ balance, onClose, onSuccess }) {
       <div className="absolute inset-0" onClick={onClose} />
       <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-md bg-[#0f0f12] border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-quicksand font-bold text-white">Withdraw Funds</h2>
+          <h2 className="text-xl  font-bold text-white">Withdraw Funds</h2>
           <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/40"><X className="size-5" /></button>
         </div>
         <StepIndicator />
         
         {step === 1 && (
           <div className="space-y-6">
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-4xl font-quicksand font-bold text-white text-center outline-none focus:border-[var(--accent)]" />
-            <button onClick={() => setStep(2)} disabled={amtNum < MIN_WITHDRAW || amtNum > balance} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-quicksand font-bold text-sm tracking-tight disabled:opacity-30">Next Step</button>
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-4xl  font-bold text-white text-center outline-none focus:border-[var(--accent)]" />
+            <button onClick={() => setStep(2)} disabled={amtNum < MIN_WITHDRAW || amtNum > balance} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl  font-bold text-sm tracking-tight disabled:opacity-30">Next Step</button>
           </div>
         )}
 
@@ -186,28 +186,28 @@ function WithdrawPanel({ balance, onClose, onSuccess }) {
               {METHODS.map(m => (
                 <button key={m.id} onClick={() => setMethod(m)} className={`p-4 rounded-2xl border transition-all ${method?.id === m.id ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-white/10 bg-white/5'}`}>
                   <div className="text-2xl mb-2">{m.icon}</div>
-                  <p className="text-xs font-quicksand font-bold text-white">{m.label}</p>
+                  <p className="text-xs  font-bold text-white">{m.label}</p>
                 </button>
               ))}
             </div>
             {method && (
               <div className="space-y-3">
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone Number" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm font-quicksand font-bold outline-none" />
-                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Account Name" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm font-quicksand font-bold outline-none" />
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone Number" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm  font-bold outline-none" />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Account Name" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm  font-bold outline-none" />
               </div>
             )}
-            <button onClick={() => setStep(3)} disabled={!method || !phone || !name} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-quicksand font-bold text-sm tracking-tight disabled:opacity-30">Review</button>
+            <button onClick={() => setStep(3)} disabled={!method || !phone || !name} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl  font-bold text-sm tracking-tight disabled:opacity-30">Review</button>
           </div>
         )}
 
         {step === 3 && (
           <div className="space-y-6">
             <div className="bg-white/5 rounded-2xl p-4 space-y-2">
-               <div className="flex justify-between text-xs"><span className="text-white/40  font-quicksand font-bold">Amount</span><span className="text-white font-quicksand font-bold">{fmt(amtNum)} XAF</span></div>
-               <div className="flex justify-between text-xs"><span className="text-white/40  font-quicksand font-bold">Method</span><span className="text-white font-quicksand font-bold">{method?.label}</span></div>
+               <div className="flex justify-between text-xs"><span className="text-white/40   font-bold">Amount</span><span className="text-white  font-bold">{fmt(amtNum)} XAF</span></div>
+               <div className="flex justify-between text-xs"><span className="text-white/40   font-bold">Method</span><span className="text-white  font-bold">{method?.label}</span></div>
             </div>
-            {error && <p className="text-red-400 text-xs font-quicksand font-bold text-center">{error}</p>}
-            <button onClick={submit} disabled={loading} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-quicksand font-bold text-sm tracking-tight disabled:opacity-30">
+            {error && <p className="text-red-400 text-xs  font-bold text-center">{error}</p>}
+            <button onClick={submit} disabled={loading} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl  font-bold text-sm tracking-tight disabled:opacity-30">
               {loading ? 'Processing...' : 'Confirm Withdrawal'}
             </button>
           </div>
@@ -284,8 +284,8 @@ export default function VendorWalletPage() {
            <div className="flex items-center gap-4">
               <div className="size-12 rounded-xl bg-emerald-500/10 flex items-center justify-center"><Wallet className="size-6 text-emerald-500" /></div>
               <div>
-                <h1 className="text-2xl font-quicksand font-bold text-[var(--text-primary)]">Vendor Wallet</h1>
-                <p className="text-xs text-[var(--text-secondary)] font-quicksand font-bold opacity-60 tracking-tight">Financial Nexus</p>
+                <h1 className="text-2xl  font-bold text-[var(--text-primary)]">Vendor Wallet</h1>
+                <p className="text-xs text-[var(--text-secondary)]  font-bold opacity-60 tracking-tight">Financial Nexus</p>
               </div>
            </div>
            <button onClick={load} className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
@@ -303,7 +303,7 @@ export default function VendorWalletPage() {
 
         {/* Actions */}
         <div className="flex gap-4">
-           <button onClick={() => setWithdraw(true)} disabled={balance < MIN_WITHDRAW} className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl font-quicksand font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30">
+           <button onClick={() => setWithdraw(true)} disabled={balance < MIN_WITHDRAW} className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl  font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30">
               <ArrowUpRight className="size-5" /> Initiate Withdrawal
            </button>
         </div>
@@ -311,15 +311,15 @@ export default function VendorWalletPage() {
         {/* Tabs */}
         <div className="space-y-6">
            <div className="flex items-center gap-6 border-b border-[var(--glass-border)]">
-              <button onClick={() => setTab('history')} className={`pb-4 text-xs font-quicksand font-bold tracking-tight relative ${tab === 'history' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+              <button onClick={() => setTab('history')} className={`pb-4 text-xs  font-bold tracking-tight relative ${tab === 'history' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
                  <div className="flex items-center gap-2"><History className="size-4" /> Settlement History</div>
                  {tab === 'history' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
               </button>
-              <button onClick={() => setTab('escrow')} className={`pb-4 text-xs font-quicksand font-bold tracking-tight relative ${tab === 'escrow' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+              <button onClick={() => setTab('escrow')} className={`pb-4 text-xs  font-bold tracking-tight relative ${tab === 'escrow' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
                  <div className="flex items-center gap-2"><Lock className="size-4" /> Escrow Pipeline {escrowTxs.length > 0 && <span className="size-2 rounded-full bg-amber-500 animate-pulse" />}</div>
                  {tab === 'escrow' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
               </button>
-              <button onClick={() => setTab('withdrawals')} className={`pb-4 text-xs font-quicksand font-bold tracking-tight relative ${tab === 'withdrawals' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+              <button onClick={() => setTab('withdrawals')} className={`pb-4 text-xs  font-bold tracking-tight relative ${tab === 'withdrawals' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
                  <div className="flex items-center gap-2"><ArrowUpRight className="size-4" /> Withdrawals</div>
                  {tab === 'withdrawals' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
               </button>
@@ -336,12 +336,12 @@ export default function VendorWalletPage() {
                            {['payout', 'deposit'].includes(tx.type) ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                           <p className="font-quicksand font-bold text-sm text-[var(--text-primary)] truncate ">{tx.description || tx.type}</p>
-                           <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                           <p className=" font-bold text-sm text-[var(--text-primary)] truncate ">{tx.description || tx.type}</p>
+                           <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
-                           <p className={`text-base font-quicksand font-bold ${['payout', 'deposit'].includes(tx.type) ? 'text-emerald-500' : 'text-red-500'}`}>{['payout', 'deposit'].includes(tx.type) ? '+' : '-'}{fmt(tx.amount)}</p>
-                           <p className="text-[11px] lg:text-[12px] font-quicksand font-bold  opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><Printer className="size-2" /> Receipt</p>
+                           <p className={`text-base  font-bold ${['payout', 'deposit'].includes(tx.type) ? 'text-emerald-500' : 'text-red-500'}`}>{['payout', 'deposit'].includes(tx.type) ? '+' : '-'}{fmt(tx.amount)}</p>
+                           <p className="text-[11px] lg:text-[12px]  font-semibold  opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1"><Printer className="size-2" /> Receipt</p>
                         </div>
                      </div>
                    ))}
@@ -352,7 +352,7 @@ export default function VendorWalletPage() {
                  <div className="space-y-4">
                     <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
                        <Shield className="size-5 text-amber-500" />
-                       <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-amber-600/70  leading-relaxed tracking-tight">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
+                       <p className="text-[11px] lg:text-[12px]  font-semibold text-amber-600/70  leading-relaxed tracking-tight">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
                     </div>
                     {escrowTxs.length === 0 ? (
                       <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently in pipeline</div>
@@ -360,12 +360,12 @@ export default function VendorWalletPage() {
                       <div key={tx._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
                          <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Clock className="size-5" /></div>
                          <div className="flex-1 min-w-0">
-                            <p className="font-quicksand font-bold text-sm text-[var(--text-primary)]">Order #{tx.order_id?._id?.slice(-6).toUpperCase()}</p>
-                            <p className="text-[11px] lg:text-[12px] font-quicksand font-bold  text-amber-500 tracking-tight">{tx.order_id?.order_status}</p>
+                            <p className=" font-bold text-sm text-[var(--text-primary)]">Order #{tx.order_id?._id?.slice(-6).toUpperCase()}</p>
+                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-amber-500 tracking-tight">{tx.order_id?.order_status}</p>
                          </div>
                          <div className="text-right">
-                            <p className="text-sm font-quicksand font-bold text-[var(--text-primary)]">{fmt(tx.amount)} XAF</p>
-                            <p className="text-[11px] lg:text-[12px] font-quicksand font-bold  opacity-30">Escrowed</p>
+                            <p className="text-sm  font-bold text-[var(--text-primary)]">{fmt(tx.amount)} XAF</p>
+                            <p className="text-[11px] lg:text-[12px]  font-semibold  opacity-30">Escrowed</p>
                          </div>
                       </div>
                     ))}
@@ -388,12 +388,12 @@ export default function VendorWalletPage() {
                              <AlertCircle className="size-5" />}
                          </div>
                          <div className="flex-1 min-w-0">
-                            <p className="font-quicksand font-bold text-sm text-[var(--text-primary)] capitalize">{wr.withdrawalMethod} Withdrawal</p>
-                            <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
+                            <p className=" font-bold text-sm text-[var(--text-primary)] capitalize">{wr.withdrawalMethod} Withdrawal</p>
+                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
                          </div>
                          <div className="text-right">
-                            <p className="text-base font-quicksand font-bold text-[var(--text-primary)]">{fmt(wr.amount)}</p>
-                            <p className="text-[10px] lg:text-[12px] font-quicksand font-bold opacity-30 capitalize">{wr.currency}</p>
+                            <p className="text-base  font-bold text-[var(--text-primary)]">{fmt(wr.amount)}</p>
+                            <p className="text-[10px] lg:text-[12px]  font-semibold opacity-30 capitalize">{wr.currency}</p>
                          </div>
                       </div>
                     ))}

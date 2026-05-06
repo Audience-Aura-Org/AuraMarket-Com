@@ -24,11 +24,11 @@ export default function PromoBanner({ data }) {
         
         <div className="relative z-20 px-12 py-12 max-w-xl ml-4 md:ml-12 transition-transform duration-700 group-hover:translate-x-2">
           <div className="liquid-glass p-10 md:p-14 rounded-[3rem] border border-white/10 space-y-6">
-            <span className="inline-block px-4 py-1 rounded-full bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight mb-2">
+            <span className="inline-block px-4 py-1 rounded-full bg-[var(--accent)] text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight mb-2">
               Limited Offer
             </span>
             {banner.headline && (
-              <h2 className="text-4xl md:text-6xl font-quicksand font-bold text-white leading-[1.1] tracking-tight">
+              <h2 className="text-4xl md:text-6xl  font-bold text-white leading-[1.1] tracking-tight">
                 {banner.headline}
               </h2>
             )}
@@ -38,7 +38,7 @@ export default function PromoBanner({ data }) {
               </p>
             )}
             {banner.cta_text && (
-              <button className="flex items-center gap-3 bg-white text-black px-10 py-4 rounded-2xl font-quicksand font-bold text-sm hover:bg-[var(--accent)] hover:text-white transition-all transform active:scale-95 shadow-xl">
+              <button className="flex items-center gap-3 bg-white text-black px-10 py-4 rounded-2xl  font-bold text-sm hover:bg-[var(--accent)] hover:text-white transition-all transform active:scale-95 shadow-xl">
                 {banner.cta_text} <ArrowRight className="w-5 h-5" />
               </button>
             )}

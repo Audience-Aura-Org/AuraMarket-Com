@@ -52,7 +52,7 @@ export default function HelpHubPage() {
         {/* Slim Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div className="space-y-2">
-              <h1 className="text-4xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">Help <span className="text-[var(--accent)]">Hub</span></h1>
+              <h1 className="text-4xl  font-bold text-[var(--text-primary)] tracking-tight">Help <span className="text-[var(--accent)]">Hub</span></h1>
               <p className="text-xs font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">Aura Support Matrix v2.0</p>
            </div>
            
@@ -74,7 +74,7 @@ export default function HelpHubPage() {
                     <cat.icon className="size-5" />
                  </div>
                  <div>
-                    <h3 className="text-xs font-quicksand font-bold text-[var(--text-primary)] tracking-tight">{cat.title}</h3>
+                    <h3 className="text-xs  font-bold text-[var(--text-primary)] tracking-tight">{cat.title}</h3>
                     <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{cat.count} articles</p>
                  </div>
               </button>
@@ -94,8 +94,8 @@ export default function HelpHubPage() {
                     )}
                  </div>
                  <div className="space-y-1">
-                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-[0.2em] text-[var(--accent)] ">Platform Core</p>
-                    <h2 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">Direct Support Node</h2>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.2em] text-[var(--accent)] ">Platform Core</p>
+                    <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">Direct Support Node</h2>
                     <p className="text-xs font-medium text-[var(--text-secondary)] opacity-40">Average latency: 4 Solar Cycles</p>
                  </div>
               </div>
@@ -104,7 +104,7 @@ export default function HelpHubPage() {
                  {!user ? (
                    <button 
                      onClick={() => router.push('/login?redirect=/help')}
-                     className="h-12 px-8 flex-1 md:flex-none border border-[var(--accent)]/40 text-[var(--accent)] rounded-xl text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--accent)]/5 transition-all"
+                     className="h-12 px-8 flex-1 md:flex-none border border-[var(--accent)]/40 text-[var(--accent)] rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--accent)]/5 transition-all"
                    >
                      Login to Sync <ArrowRight className="size-3" />
                    </button>
@@ -115,7 +115,7 @@ export default function HelpHubPage() {
                  ) : (
                    <button 
                      onClick={handleMessageAdmin}
-                     className="h-12 px-8 flex-1 md:flex-none bg-[var(--accent)] text-white rounded-xl text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[var(--accent)]/20"
+                     className="h-12 px-8 flex-1 md:flex-none bg-[var(--accent)] text-white rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[var(--accent)]/20"
                    >
                       Start Transmission <Zap className="size-3 fill-white" />
                    </button>
@@ -129,7 +129,7 @@ export default function HelpHubPage() {
 
         {/* Dynamic resource stream */}
         <div className="space-y-4">
-           <h4 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40  tracking-[0.4em] px-1">Definitive Guides</h4>
+           <h4 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  tracking-[0.4em] px-1">Definitive Guides</h4>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
                 { title: 'The Escrow Cycle Explained', tag: 'Protocol' },
@@ -139,8 +139,8 @@ export default function HelpHubPage() {
               ].map(guide => (
                  <button key={guide.title} className="p-4 rounded-xl bg-white/5 border border-[var(--glass-border)] flex items-center justify-between hover:bg-white/10 transition-all group">
                     <div className="flex flex-col text-left">
-                       <span className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)] tracking-tight mb-1">{guide.tag}</span>
-                       <span className="text-xs font-quicksand font-bold text-[var(--text-primary)]">{guide.title}</span>
+                       <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight mb-1">{guide.tag}</span>
+                       <span className="text-xs  font-bold text-[var(--text-primary)]">{guide.title}</span>
                     </div>
                     <ChevronRight className="size-4 text-[var(--text-secondary)] opacity-20 group-hover:translate-x-1 transition-all" />
                  </button>

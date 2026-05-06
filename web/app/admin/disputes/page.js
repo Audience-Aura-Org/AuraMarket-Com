@@ -109,19 +109,19 @@ export default function AdminDisputes() {
               <div className="flex items-center gap-4 mb-8">
                  <div className="p-3 bg-[var(--accent)]/10 text-[var(--accent)] rounded-2xl"><Scale className="w-6 h-6" /></div>
                  <div>
-                    <h2 className="text-xl lg:text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight  leading-none">Inspect Case #{selectedCase._id.slice(-6).toUpperCase()}</h2>
-                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight  mt-2 opacity-50">High-level arbitration in progress</p>
+                    <h2 className="text-xl lg:text-2xl  font-bold text-[var(--text-primary)] tracking-tight  leading-none">Inspect Case #{selectedCase._id.slice(-6).toUpperCase()}</h2>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  mt-2 opacity-50">High-level arbitration in progress</p>
                  </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                  {/* Left: Client Evidence */}
                  <div className="space-y-6">
-                    <h3 className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
+                    <h3 className="text-xs  font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
                        <AlertCircle className="w-3.5 h-3.5" /> Customer Argument
                     </h3>
                     <div className="bg-[var(--bg-secondary)]/50 p-6 rounded-3xl border border-[var(--glass-border)]">
-                       <p className="text-sm font-quicksand font-bold text-[var(--text-primary)] mb-2  tracking-tight">{selectedCase.reason}</p>
+                       <p className="text-sm  font-bold text-[var(--text-primary)] mb-2  tracking-tight">{selectedCase.reason}</p>
                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed opacity-80">{selectedCase.description}</p>
                     </div>
                     
@@ -135,21 +135,21 @@ export default function AdminDisputes() {
                        </div>
                     ) : (
                       <div className="p-10 border-2 border-dashed border-[var(--glass-border)] rounded-3xl text-center opacity-30">
-                         <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)]">No visual evidence provided by customer</p>
+                         <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)]">No visual evidence provided by customer</p>
                       </div>
                     )}
                  </div>
 
                  {/* Right: Logistics Node Check */}
                  <div className="space-y-6">
-                    <h3 className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
+                    <h3 className="text-xs  font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
                        <ShieldCheck className="w-3.5 h-3.5" /> Proof of Delivery
                     </h3>
                     
                     {fetchingCase ? (
                        <div className="flex flex-col items-center justify-center h-64 gap-4">
                           <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
-                          <p className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest text-[var(--text-secondary)]">FETCHING COURIER NODES...</p>
+                          <p className="text-[10px] lg:text-[12px]  font-semibold tracking-widest text-[var(--text-secondary)]">FETCHING COURIER NODES...</p>
                        </div>
                     ) : caseShipment?.proof_of_delivery?.image_url ? (
                       <div className="space-y-4">
@@ -159,16 +159,16 @@ export default function AdminDisputes() {
                          <div className="bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/10">
                             <div className="flex items-center gap-2 mb-2">
                                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-emerald-600">Shipment Operational Log</p>
+                               <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-emerald-600">Shipment Operational Log</p>
                             </div>
-                            <p className="text-xs font-quicksand font-bold text-[var(--text-primary)]">Recipient: <span className="text-[var(--accent)]">{caseShipment.proof_of_delivery.receiver_name || 'Verified Signatory'}</span></p>
+                            <p className="text-xs  font-bold text-[var(--text-primary)]">Recipient: <span className="text-[var(--accent)]">{caseShipment.proof_of_delivery.receiver_name || 'Verified Signatory'}</span></p>
                             <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] mt-1.5 opacity-70 leading-normal">{caseShipment.proof_of_delivery.note || 'No additional courier notes recorded.'}</p>
                          </div>
                       </div>
                     ) : (
                       <div className="h-64 border-2 border-dashed border-[var(--glass-border)] rounded-[2.5rem] flex flex-col items-center justify-center px-10 text-center bg-[var(--bg-secondary)]/30 group">
                          <Scale className="w-10 h-10 mb-4 opacity-10 group-hover:rotate-12 transition-transform duration-500" />
-                         <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-50  tracking-[0.1em] leading-relaxed">
+                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50  tracking-[0.1em] leading-relaxed">
                             {caseShipment ? 'Courier has not uploaded proof of delivery yet.' : 'No active shipment found matching this order node.'}
                          </p>
                       </div>
@@ -182,15 +182,15 @@ export default function AdminDisputes() {
                        {selectedCase.initiator_id?.avatar ? <img src={selectedCase.initiator_id?.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-40" />}
                     </div>
                     <div>
-                      <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-primary)]  leading-none mb-1">{selectedCase.initiator_id?.name}</p>
-                      <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-50">{selectedCase.initiator_id?.email}</p>
+                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)]  leading-none mb-1">{selectedCase.initiator_id?.name}</p>
+                      <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50">{selectedCase.initiator_id?.email}</p>
                     </div>
                  </div>
 
                  <div className="flex items-center gap-3">
-                    <span className="text-[11px] lg:text-[12px] font-quicksand font-bold  text-[var(--text-secondary)] opacity-40 mr-4 tracking-tight">Final Resolution:</span>
+                    <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-40 mr-4 tracking-tight">Final Resolution:</span>
                     {selectedCase.status === 'resolved' ? (
-                      <div className="px-8 py-3 rounded-2xl bg-emerald-500 text-white font-quicksand font-bold text-xs tracking-tight shadow-xl capitalize">
+                      <div className="px-8 py-3 rounded-2xl bg-emerald-500 text-white  font-bold text-xs tracking-tight shadow-xl capitalize">
                          {selectedCase.resolution_type?.replace('_', ' ')} Applied
                       </div>
                     ) : (
@@ -198,14 +198,14 @@ export default function AdminDisputes() {
                         <button 
                           onClick={() => handleResolve(selectedCase._id, 'full_refund')} 
                           disabled={actioning === selectedCase._id}
-                          className="px-8 py-4 rounded-2xl bg-rose-500 text-white font-quicksand font-bold text-xs tracking-tight shadow-lg shadow-rose-500/20 hover:shadow-rose-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
+                          className="px-8 py-4 rounded-2xl bg-rose-500 text-white  font-bold text-xs tracking-tight shadow-lg shadow-rose-500/20 hover:shadow-rose-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
                         >
                            {actioning === selectedCase._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Refund
                         </button>
                         <button 
                            onClick={() => handleResolve(selectedCase._id, 'release_payment')} 
                            disabled={actioning === selectedCase._id}
-                           className="px-8 py-4 rounded-2xl bg-emerald-500 text-white font-quicksand font-bold text-xs tracking-tight shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
+                           className="px-8 py-4 rounded-2xl bg-emerald-500 text-white  font-bold text-xs tracking-tight shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
                         >
                            {actioning === selectedCase._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Release
                         </button>
@@ -225,10 +225,10 @@ export default function AdminDisputes() {
              <Scale className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight ">Dispute <span className="text-[var(--accent)]">Tribunal</span> Matrix</h2>
+            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Dispute <span className="text-[var(--accent)]">Tribunal</span> Matrix</h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Equity Node Active // System_Arbitrator</p>
+               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Equity Node Active // System_Arbitrator</p>
             </div>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function AdminDisputes() {
                 <button 
                   key={tab}
                   onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-all capitalize ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
                   {tab}
                 </button>
@@ -267,11 +267,11 @@ export default function AdminDisputes() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
-                        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
+                        <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                      </div>
                   </div>
                </div>
@@ -281,11 +281,11 @@ export default function AdminDisputes() {
          {/* Dispute Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
+               <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <Database className="w-4 h-4 text-[var(--accent)]" /> 
                   Platform Dispute Ledger
                </h3>
-               <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Awaiting Arbitration</p>
+               <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Awaiting Arbitration</p>
             </div>
 
             <div className="space-y-4">
@@ -311,18 +311,18 @@ export default function AdminDisputes() {
                               <div className="flex-1 min-w-0">
                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
-                                       <span className="text-[11px] lg:text-[12px] md:text-[13px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight capitalize">Case Node</span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 capitalize`}>
+                                       <span className="text-[11px] lg:text-[12px] md:text-[13px]  font-semibold text-[var(--text-primary)] tracking-tight capitalize">Case Node</span>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 capitalize`}>
                                           {d.status}
                                        </span>
                                     </div>
-                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
+                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
                                        <Clock className="w-3 h-3" /> {new Date(d.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
                                  <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                       <span className="font-mono text-[var(--accent)] font-quicksand font-bold">#{d._id.slice(-6).toUpperCase()}</span>
+                                       <span className="font-mono text-[var(--accent)]  font-bold">#{d._id.slice(-6).toUpperCase()}</span>
                                        <span>•</span>
                                        <span className="truncate max-w-[200px] md:max-w-md">{d.reason}: {d.description}</span>
                                     </div>
@@ -330,9 +330,9 @@ export default function AdminDisputes() {
                               </div>
 
                               <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl font-quicksand font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(d.order_id?.total_amount || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
+                                 <p className="text-xl md:text-2xl  font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(d.order_id?.total_amount || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{d.initiator_id?.name || 'Party'}</span>
+                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{d.initiator_id?.name || 'Party'}</span>
                                     <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                        {d.initiator_id?.avatar ? <img src={d.initiator_id.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                     </div>
@@ -346,7 +346,7 @@ export default function AdminDisputes() {
               ) : (
                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                     <Scale className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                    <p className="text-sm font-quicksand font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No active disputes in the system matrix.</p>
+                    <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No active disputes in the system matrix.</p>
                  </div>
               )}
             </div>

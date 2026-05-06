@@ -25,14 +25,14 @@ export default function StoreHighlights({ title, data }) {
     <section className="py-6 w-full">
       <div className="flex flex-col md:flex-row items-baseline justify-between mb-8 px-4 md:px-6 gap-3">
         <div className="space-y-1 text-left">
-          <h2 className="text-xl md:text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-xl md:text-2xl  font-bold text-[var(--text-primary)] tracking-tight">
             {title || "Top Rated Vendors"}
           </h2>
           <div className="h-1 w-12 md:w-20 bg-[var(--accent)] rounded-full" />
         </div>
         <Link href="/discovery?tab=vendors" className="flex items-center gap-2 group cursor-pointer">
            <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
+           <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
         </Link>
       </div>
 
@@ -74,12 +74,12 @@ export default function StoreHighlights({ title, data }) {
                 <div className="mt-4 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0">
-                      <h3 className="font-quicksand font-bold text-lg text-[var(--text-primary)] leading-tight truncate">
+                      <h3 className=" font-bold text-lg text-[var(--text-primary)] leading-tight truncate">
                         {vendor.store_name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
                          <StarIcon />
-                         <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
+                         <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
                       </div>
                     </div>
                     <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shrink-0">
@@ -98,7 +98,7 @@ export default function StoreHighlights({ title, data }) {
                     />
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                       <Users className="w-3.5 h-3.5 opacity-40 text-[var(--accent)]" />
-                      <span className="text-[11px] lg:text-[12px] font-quicksand font-bold opacity-80">{formatCount(vendor.follower_count)}</span>
+                      <span className="text-[11px] lg:text-[12px]  font-semibold opacity-80">{formatCount(vendor.follower_count)}</span>
                     </div>
                   </div>
                 </div>

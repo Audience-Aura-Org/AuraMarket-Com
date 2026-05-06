@@ -177,18 +177,18 @@ export default function AddProductPage() {
             </button>
             <div className="h-4 w-px bg-[var(--glass-border)]" />
             <div>
-              <h1 className="text-xl font-quicksand font-bold tracking-tight text-[var(--text-primary)]">List a Product</h1>
+              <h1 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">List a Product</h1>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-xl glass-panel text-[var(--text-secondary)] font-quicksand font-bold hover:bg-[var(--accent)]/5 transition-all text-sm border border-[var(--glass-border)]">
+            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-xl glass-panel text-[var(--text-secondary)]  font-bold hover:bg-[var(--accent)]/5 transition-all text-sm border border-[var(--glass-border)]">
               Discard
             </button>
             <button 
               type="button"
               onClick={handleSubmit} 
               disabled={loading}
-              className="px-8 py-2 rounded-xl bg-[var(--accent)] text-white font-quicksand font-bold shadow-xl shadow-[var(--accent)]/25 hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 tracking-tight"
+              className="px-8 py-2 rounded-xl bg-[var(--accent)] text-white  font-bold shadow-xl shadow-[var(--accent)]/25 hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 tracking-tight"
             >
               {loading ? 'Publishing...' : 'Publish Product'}
             </button>
@@ -209,7 +209,7 @@ export default function AddProductPage() {
                       <Package className="w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-quicksand font-bold tracking-tight">Product Type</h2>
+                      <h2 className="text-lg  font-bold tracking-tight">Product Type</h2>
                       <p className="text-xs text-[var(--text-secondary)] font-medium">Select how you want to manage this product's inventory</p>
                     </div>
                   </div>
@@ -217,14 +217,14 @@ export default function AddProductPage() {
                     <button 
                       type="button"
                       onClick={() => setHasVariants(false)}
-                      className={`px-6 py-2 rounded-xl text-xs font-quicksand font-bold tracking-tight transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`px-6 py-2 rounded-xl text-xs  font-bold tracking-tight transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                       Simple
                     </button>
                     <button 
                       type="button"
                       onClick={() => setHasVariants(true)}
-                      className={`px-6 py-2 rounded-xl text-xs font-quicksand font-bold tracking-tight transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`px-6 py-2 rounded-xl text-xs  font-bold tracking-tight transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                       Variable
                     </button>
@@ -237,18 +237,18 @@ export default function AddProductPage() {
                 <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 animate-in fade-in slide-in-from-top-4 duration-500">
                   <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                     <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><Plus className="w-5 h-5" /></div>
-                    <h2 className="font-quicksand font-bold tracking-tight text-[var(--text-primary)] text-sm ">Configure Variations</h2>
+                    <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Configure Variations</h2>
                   </div>
 
                   <div className="space-y-8">
                     {/* Define Types */}
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
+                        <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
                         <button 
                           type="button"
                           onClick={addVariantType}
-                          className="flex items-center gap-2 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--accent)] hover:bg-[var(--accent)]/5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/20 transition-all"
+                          className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)] hover:bg-[var(--accent)]/5 px-3 py-1.5 rounded-lg border border-[var(--accent)]/20 transition-all"
                         >
                           <Plus className="w-3 h-3" /> Add Attribute
                         </button>
@@ -265,20 +265,20 @@ export default function AddProductPage() {
                               <X className="w-4 h-4" />
                             </button>
                             <div className="space-y-1">
-                              <label className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Attribute Name</label>
+                              <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-50">Attribute Name</label>
                               <input 
                                 placeholder="e.g. Color"
                                 value={type.name}
                                 onChange={e => updateVariantType(tIdx, e.target.value)}
-                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm font-quicksand font-bold focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm  font-bold focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                               />
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] opacity-50">Options</label>
+                              <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-50">Options</label>
                               <div className="flex flex-wrap gap-2">
                                 {type.options.map((opt, oIdx) => (
                                   <div key={oIdx} className="flex flex-col gap-2">
-                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px] font-quicksand font-bold  rounded-full border border-[var(--accent)]/20">
+                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold  rounded-full border border-[var(--accent)]/20">
                                       {type.name.toLowerCase() === 'color' && (
                                         <div 
                                           className="size-3 rounded-full border border-black/10" 
@@ -301,7 +301,7 @@ export default function AddProductPage() {
                                 <input 
                                   placeholder="Add option..."
                                   onKeyDown={e => { if(e.key === 'Enter') { addOption(tIdx, e.target.value); e.target.value = ''; } }}
-                                  className="bg-transparent border-none outline-none text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] w-24 placeholder:text-[var(--text-secondary)]/30"
+                                  className="bg-transparent border-none outline-none text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] w-24 placeholder:text-[var(--text-secondary)]/30"
                                 />
                               </div>
                             </div>
@@ -313,23 +313,23 @@ export default function AddProductPage() {
                     {/* Matrix */}
                     {skuVariants.length > 0 && (
                       <div className="space-y-6">
-                        <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
+                        <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
                         <div className="overflow-hidden border border-[var(--glass-border)] rounded-[2rem] bg-[var(--bg-primary)] shadow-xl shadow-black/5">
                           <table className="w-full text-left border-collapse">
-                            <thead className="bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
+                            <thead className="bg-[var(--bg-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
                               <tr>
                                 <th className="p-5">Combination</th>
                                 <th className="p-5 w-40">Price (XAF)</th>
                                 <th className="p-5 w-32">Stock</th>
                               </tr>
                             </thead>
-                            <tbody className="text-xs font-quicksand font-bold divide-y divide-[var(--glass-border)]">
+                            <tbody className="text-xs  font-bold divide-y divide-[var(--glass-border)]">
                               {skuVariants.map((sku, idx) => (
                                 <tr key={idx} className="hover:bg-[var(--accent)]/5 transition-colors group">
                                   <td className="p-5">
                                     <div className="flex flex-wrap gap-2">
                                       {Object.entries(sku.combination).map(([k, v]) => (
-                                        <span key={k} className="px-2 py-0.5 bg-[var(--bg-secondary)] rounded-md border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]">
+                                        <span key={k} className="px-2 py-0.5 bg-[var(--bg-secondary)] rounded-md border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]">
                                           {k}: <span className="text-[var(--text-primary)]">{v}</span>
                                         </span>
                                       ))}
@@ -369,21 +369,21 @@ export default function AddProductPage() {
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><Package className="w-5 h-5" /></div>
-                  <h2 className="font-quicksand font-bold tracking-tight text-[var(--text-primary)] text-sm ">Product Details</h2>
+                  <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Product Details</h2>
                 </div>
                 <div className="space-y-6">
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Product Name *</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Product Name *</label>
                     <input 
                       value={form.name}
                       onChange={e => setForm({...form, name: e.target.value})}
                       required
                       placeholder="e.g. Aura Pro Wireless Headphones"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-quicksand font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Description *</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Description *</label>
                     <textarea 
                       value={form.description}
                       onChange={e => setForm({...form, description: e.target.value})}
@@ -394,7 +394,7 @@ export default function AddProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Long Description</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Long Description</label>
                     <textarea 
                       value={form.long_description}
                       onChange={e => setForm({...form, long_description: e.target.value})}
@@ -404,7 +404,7 @@ export default function AddProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Specifications</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Specifications</label>
                     <textarea 
                       value={form.specifications}
                       onChange={e => setForm({...form, specifications: e.target.value})}
@@ -420,8 +420,8 @@ export default function AddProductPage() {
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><ImageIcon className="w-5 h-5" /></div>
-                  <h2 className="font-quicksand font-bold tracking-tight text-[var(--text-primary)] text-sm ">Media Assets</h2>
-                  <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] ml-auto font-quicksand font-bold tracking-tight">Max 5MB per image</span>
+                  <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Media Assets</h2>
+                  <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] ml-auto  font-semibold tracking-tight">Max 5MB per image</span>
                 </div>
                 
                 <div 
@@ -431,7 +431,7 @@ export default function AddProductPage() {
                   <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <Upload className="w-8 h-8 text-[var(--accent)]" />
                   </div>
-                  <p className="font-quicksand font-bold text-[var(--text-primary)]">Drop product images here</p>
+                  <p className=" font-bold text-[var(--text-primary)]">Drop product images here</p>
                   <p className="text-[var(--text-secondary)] text-sm mt-1">or click to browse from device</p>
                   <input ref={fileInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </div>
@@ -466,29 +466,29 @@ export default function AddProductPage() {
               {/* Pricing & Inventory */}
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
-                  <h2 className="font-quicksand font-bold tracking-tight text-[var(--text-primary)] text-sm ">Inventory</h2>
+                  <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Inventory</h2>
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Price (XAF) *</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Price (XAF) *</label>
                     <input 
                       type="number" min="0"
                       value={form.price}
                       onChange={e => setForm({...form, price: e.target.value})}
                       required
                       placeholder="0"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-quicksand font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Stock Quantity *</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Stock Quantity *</label>
                     <input 
                       type="number" min="0"
                       value={form.stock}
                       onChange={e => setForm({...form, stock: e.target.value})}
                       required
                       placeholder="0"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-quicksand font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
                     />
                   </div>
                 </div>
@@ -497,11 +497,11 @@ export default function AddProductPage() {
               {/* Category & Tags */}
               <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
-                  <h2 className="font-quicksand font-bold tracking-tight text-[var(--text-primary)] text-sm ">Organization</h2>
+                  <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Organization</h2>
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Category *</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Category *</label>
                     <CategoryPicker
                       value={form.category}
                       onChange={(name) => setForm({...form, category: name})}
@@ -509,10 +509,10 @@ export default function AddProductPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-quicksand font-bold text-[var(--text-secondary)] tracking-tight mb-2 block  font-quicksand font-bold">Tags</label>
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Tags</label>
                     <div className="flex flex-wrap gap-2 p-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl min-h-[60px]">
                       {tags.map((tag, i) => (
-                        <span key={i} className="flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/30 text-xs text-[var(--text-primary)] font-quicksand font-bold">
+                        <span key={i} className="flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/30 text-xs text-[var(--text-primary)]  font-bold">
                           {tag} <button type="button" onClick={() => setTags(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-[var(--accent)] transition-colors"><X className="w-3 h-3" /></button>
                         </span>
                       ))}
@@ -521,7 +521,7 @@ export default function AddProductPage() {
                         onChange={e => setTagInput(e.target.value)}
                         onKeyDown={addTag}
                         placeholder="Add tag..."
-                        className="bg-transparent border-none outline-none text-xs text-[var(--text-primary)] font-quicksand font-bold min-w-[80px] focus:ring-0 px-2 placeholder:text-[var(--text-secondary)]/30"
+                        className="bg-transparent border-none outline-none text-xs text-[var(--text-primary)]  font-bold min-w-[80px] focus:ring-0 px-2 placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
                   </div>
@@ -536,8 +536,8 @@ export default function AddProductPage() {
                       <Star className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-quicksand font-bold text-[var(--text-primary)]">Featured Item</h4>
-                      <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] tracking-tight font-quicksand font-bold ">Boost visibility</p>
+                      <h4 className=" font-bold text-[var(--text-primary)]">Featured Item</h4>
+                      <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] tracking-tight  font-semibold ">Boost visibility</p>
                     </div>
                   </div>
                   <button 
@@ -569,7 +569,7 @@ export default function AddProductPage() {
               <div className="size-20 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <ImageIcon className="size-10 text-[var(--accent)]" />
               </div>
-              <h3 className="text-2xl font-quicksand font-bold tracking-tight mb-2">Boost Visibility?</h3>
+              <h3 className="text-2xl  font-bold tracking-tight mb-2">Boost Visibility?</h3>
               <p className="text-sm text-[var(--text-secondary)] mb-8">
                 Your product is live! Vendors who share new products as **Stories** see up to 3x more engagement in the first hour.
               </p>
@@ -590,13 +590,13 @@ export default function AddProductPage() {
                       toast.error('Failed to post story');
                     }
                   }}
-                  className="w-full py-4 bg-[var(--accent)] text-white font-quicksand font-bold tracking-tight rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all"
+                  className="w-full py-4 bg-[var(--accent)] text-white  font-bold tracking-tight rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all"
                 >
                   Post as Story Now
                 </button>
                 <button 
                   onClick={() => router.push('/vendor/products')}
-                  className="w-full py-4 text-[var(--text-secondary)] font-quicksand font-bold tracking-tight hover:text-[var(--text-primary)] transition-colors"
+                  className="w-full py-4 text-[var(--text-secondary)]  font-bold tracking-tight hover:text-[var(--text-primary)] transition-colors"
                 >
                   Maybe Later
                 </button>

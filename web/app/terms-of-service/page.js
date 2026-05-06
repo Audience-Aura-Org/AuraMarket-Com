@@ -5,10 +5,10 @@ export default function TermsOfService() {
         
         {/* Header */}
         <section className="text-center">
-          <h1 className="text-4xl md:text-6xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter  mb-6 drop-shadow-sm">
+          <h1 className="text-4xl md:text-6xl  font-bold text-[var(--text-primary)] tracking-tighter  mb-6 drop-shadow-sm">
             Terms of <span className="text-[var(--accent)]">Service</span>
           </h1>
-          <p className="text-[var(--text-secondary)] tracking-tight text-xs font-quicksand font-bold  inline-block border border-[var(--glass-border)] bg-[var(--bg-primary)] rounded-full px-6 py-2 shadow-lg">
+          <p className="text-[var(--text-secondary)] tracking-tight text-xs  font-bold  inline-block border border-[var(--glass-border)] bg-[var(--bg-primary)] rounded-full px-6 py-2 shadow-lg">
             Effective Date: March 2026
           </p>
         </section>
@@ -17,7 +17,7 @@ export default function TermsOfService() {
         <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-8 md:p-12 space-y-12">
           
           <div className="space-y-4">
-            <h2 className="text-xl md:text-2xl font-quicksand font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl  font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
               <span className="flex items-center justify-center size-8 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] text-sm">01</span>
               Agreement to Terms
             </h2>
@@ -27,7 +27,7 @@ export default function TermsOfService() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-xl md:text-2xl font-quicksand font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl  font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
               <span className="flex items-center justify-center size-8 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] text-sm">02</span>
               User Accounts
             </h2>
@@ -37,7 +37,7 @@ export default function TermsOfService() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-xl md:text-2xl font-quicksand font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl  font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
               <span className="flex items-center justify-center size-8 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] text-sm">03</span>
               Marketplace Operations & Vendor Obligations
             </h2>
@@ -47,7 +47,7 @@ export default function TermsOfService() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-xl md:text-2xl font-quicksand font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl  font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
               <span className="flex items-center justify-center size-8 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] text-sm">04</span>
               Prohibited Activities
             </h2>
@@ -67,12 +67,12 @@ export default function TermsOfService() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-xl md:text-2xl font-quicksand font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl  font-bold text-[var(--accent)] tracking-tight flex items-center gap-3">
               <span className="flex items-center justify-center size-8 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] text-sm">05</span>
               Limitation of Liability
             </h2>
             <div className="pl-11 border-l-2 border-[var(--glass-border)] py-2 ml-4">
-              <p className="text-[var(--text-secondary)] leading-relaxed bg-[var(--bg-secondary)]/50 p-4 rounded-xl border border-[var(--glass-border)]  text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight">
+              <p className="text-[var(--text-secondary)] leading-relaxed bg-[var(--bg-secondary)]/50 p-4 rounded-xl border border-[var(--glass-border)]  text-[11px] lg:text-[12px]  font-semibold tracking-tight">
                 In no event shall Aura Market, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
               </p>
             </div>

@@ -143,7 +143,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                />
             </div>
             <div className="flex flex-col min-w-0">
-               <h1 className="text-[12px] font-quicksand font-bold tracking-tighter text-[var(--text-primary)] leading-none">Aura <span className="text-[var(--accent)]">Market</span></h1>
+               <h1 className="text-[12px]  font-semibold tracking-tighter text-[var(--text-primary)] leading-none">Aura <span className="text-[var(--accent)]">Market</span></h1>
                <p className="text-[10px] lg:text-[12px] font-medium tracking-tight opacity-80 mt-1" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>
@@ -160,10 +160,10 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             className="flex-1 flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent)]/5 transition-all group"
           >
             <span className="material-symbols-outlined text-xl text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors">notifications</span>
-            <span className="text-[11px] lg:text-[12px] font-quicksand font-semibold tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Signals</span>
+            <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Signals</span>
             {unreadCount > 0 && (
               <span
-                className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[11px] lg:text-[12px] font-quicksand font-bold rounded-full flex items-center justify-center animate-pulse"
+                className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[11px] lg:text-[12px]  font-semibold rounded-full flex items-center justify-center animate-pulse"
                 style={{ background: config.accent }}
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
@@ -193,7 +193,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
               <div key={item.href + item.label}>
                 {item.label === 'Security' && (
                   <div className="pt-6 pb-2 px-4">
-                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-secondary)] opacity-40">Account Configuration</p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">Account Configuration</p>
                   </div>
                 )}
                 <Comp
@@ -226,12 +226,12 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                   >
                     {item.icon}
                   </span>
-                  <span className={`text-[11px] lg:text-[12px] font-quicksand font-semibold tracking-tight transition-colors truncate flex-1 ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                  <span className={`text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors truncate flex-1 ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                     {item.label}
                   </span>
                   {badge > 0 && (
                     <span
-                      className="min-w-[20px] h-5 px-1.5 text-white text-[11px] lg:text-[12px] font-quicksand font-bold rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
+                      className="min-w-[20px] h-5 px-1.5 text-white text-[11px] lg:text-[12px]  font-semibold rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
                       style={{ background: item.badge === 'messages' ? '#ef4444' : config.accent }}
                     >
                       {badge > 99 ? '99+' : badge}
@@ -249,7 +249,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 transition-all group w-full border-l-[3px] border-transparent text-left"
           >
             <span className="material-symbols-outlined text-[var(--text-secondary)] group-hover:text-red-500">logout</span>
-            <span className="text-[11px] lg:text-[12px] font-quicksand font-semibold tracking-tight text-[var(--text-secondary)] group-hover:text-red-500">Sign Out</span>
+            <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] group-hover:text-red-500">Sign Out</span>
           </button>
         </nav>
 
@@ -258,7 +258,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             className="glass-panel p-4 rounded-xl border border-[var(--glass-border)]"
             style={{ background: `${config.accent}08` }}
           >
-            <p className="text-sm font-quicksand font-bold text-[var(--text-primary)] flex items-center justify-between">
+            <p className="text-sm  font-bold text-[var(--text-primary)] flex items-center justify-between">
               {config.plan}
               <span
                 className="text-[10px] lg:text-[12px] text-white px-2 py-0.5 rounded-full"

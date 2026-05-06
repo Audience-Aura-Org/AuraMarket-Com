@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
 
           <div className="relative z-10 space-y-12">
             <header className="border-b border-[var(--glass-border)] pb-8">
-              <h1 className="text-4xl md:text-5xl font-quicksand font-bold text-[var(--accent)]  tracking-tighter mb-4">
+              <h1 className="text-4xl md:text-5xl  font-bold text-[var(--accent)]  tracking-tighter mb-4">
                 Privacy Policy
               </h1>
               <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base">
@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
             </header>
 
             <section className="space-y-6">
-              <h2 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">1. Information We Collect</h2>
+              <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">1. Information We Collect</h2>
               <p className="text-[var(--text-secondary)] leading-relaxed">
                 When you register, interact with our site, or make purchases, we collect necessary personal information to provide our services. This includes:
               </p>
@@ -31,7 +31,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section className="space-y-6">
-              <h2 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">2. How We Use Your Data</h2>
+              <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">2. How We Use Your Data</h2>
               <div className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-6">
                 <p className="text-[var(--text-secondary)] leading-relaxed">
                   We leverage your data to ensure a smooth, secure, and highly personalized marketplace experience. Your data acts as the underlying connective tissue routing your purchases from Verified Artisans directly to you.
@@ -40,27 +40,27 @@ export default function PrivacyPolicy() {
             </section>
 
             <section className="space-y-6">
-              <h2 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">3. Data Security Exellence</h2>
+              <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">3. Data Security Exellence</h2>
               <p className="text-[var(--text-secondary)] leading-relaxed">
                 Aura Market implements state-of-the-art cryptographic standards, including TLS 1.3 encryption across all network transfers, role-based access control, and stringent vendor KYC (Know Your Customer) processes.
               </p>
             </section>
 
             <section className="space-y-6">
-              <h2 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">4. Third-Party Disclosures</h2>
+              <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">4. Third-Party Disclosures</h2>
               <p className="text-[var(--text-secondary)] leading-relaxed">
                 We do not sell, trade, or maliciously distribute your personally identifiable information. We may securely relay necessary data to logistics and payment processing architecture partners to fulfill the core functions of the marketplace.
               </p>
             </section>
 
             <section className="space-y-6">
-              <h2 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">5. User Rights & Data Deletion</h2>
+              <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">5. User Rights & Data Deletion</h2>
               <p className="text-[var(--text-secondary)] leading-relaxed">
-                As a user, you possess full sovereignty over your profile footprint. You may request an immutable snapshot of your data or trigger an account wipe protocol by contacting our data protection officer at <span className="text-[var(--accent)] font-quicksand font-bold">privacy@aura.market</span>.
+                As a user, you possess full sovereignty over your profile footprint. You may request an immutable snapshot of your data or trigger an account wipe protocol by contacting our data protection officer at <span className="text-[var(--accent)]  font-bold">privacy@aura.market</span>.
               </p>
             </section>
             
-            <div className="pt-10 mt-10 border-t border-[var(--glass-border)] text-sm text-[var(--text-secondary)]/50 font-quicksand font-bold tracking-tight text-center">
+            <div className="pt-10 mt-10 border-t border-[var(--glass-border)] text-sm text-[var(--text-secondary)]/50  font-bold tracking-tight text-center">
               Aura Market Corporate Network ©
             </div>
           </div>

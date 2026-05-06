@@ -72,14 +72,14 @@ export default function StatusManager() {
       {/* ── Header Section ────────────────────────────────────────────────── */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-[0.3em] text-[var(--accent)]  opacity-80">Operational Management</p>
-          <h2 className="text-5xl font-quicksand font-bold tracking-tighter text-[var(--text-primary)] leading-none">
+          <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.3em] text-[var(--accent)]  opacity-80">Operational Management</p>
+          <h2 className="text-5xl  font-bold tracking-tighter text-[var(--text-primary)] leading-none">
             Active <span className="opacity-40">Statuses</span>
           </h2>
         </div>
         <button 
           onClick={() => { setReshareTarget(null); setShowCreator(true); }}
-          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-10 py-4 rounded-2xl font-quicksand font-bold text-xs tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
+          className="bg-[var(--text-primary)] text-[var(--bg-primary)] px-10 py-4 rounded-2xl  font-bold text-xs tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
         >
           <Plus className="size-4" />
           Post New Story
@@ -96,7 +96,7 @@ export default function StatusManager() {
           <div className="size-16 rounded-full border border-[var(--glass-border)] flex items-center justify-center group-hover:scale-110 group-hover:border-[var(--accent)] transition-all duration-500 bg-[var(--bg-primary)]/50">
             <Plus className="size-8 text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" />
           </div>
-          <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-[0.25em] text-[var(--text-primary)]  opacity-60 group-hover:opacity-100 transition-opacity">New Story</span>
+          <span className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.25em] text-[var(--text-primary)]  opacity-60 group-hover:opacity-100 transition-opacity">New Story</span>
         </div>
 
         {/* Active Status Cards */}
@@ -123,25 +123,25 @@ export default function StatusManager() {
               {/* Status Info */}
               <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end text-white z-10">
                 <div className="space-y-1.5">
-                  <p className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight opacity-60">Engagement</p>
+                  <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-60">Engagement</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <Eye className="size-4 text-[var(--accent)]" />
-                      <span className="text-2xl font-quicksand font-bold tabular-nums tracking-tight">{status.views_count || 0}</span>
+                      <span className="text-2xl  font-bold tabular-nums tracking-tight">{status.views_count || 0}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Heart className="size-4 text-red-500 fill-red-500" />
-                      <span className="text-2xl font-quicksand font-bold tabular-nums tracking-tight">{status.likes_count || 0}</span>
+                      <span className="text-2xl  font-bold tabular-nums tracking-tight">{status.likes_count || 0}</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex flex-col items-end gap-2">
-                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-1.5 rounded-full text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight  flex items-center gap-2 shadow-xl">
+                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-1.5 rounded-full text-[11px] lg:text-[12px]  font-semibold tracking-tight  flex items-center gap-2 shadow-xl">
                       <Clock className={`size-3 ${timeLeft < 5 ? 'text-red-400 animate-pulse' : 'text-[var(--accent)]'}`} />
                       {timeLeft < 24 ? `${timeLeft}h left` : `${Math.ceil(timeLeft / 24)}d left`}
                    </div>
-                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight  flex items-center gap-1.5">
+                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[11px] lg:text-[12px]  font-semibold tracking-tight  flex items-center gap-1.5">
                       {status.expiry_days === 1 ? <Zap className="size-2.5 text-amber-400" /> : status.expiry_days === 7 ? <Shield className="size-2.5 text-emerald-400" /> : <Flame className="size-2.5 text-[var(--accent)]" />}
                       {status.expiry_days || 1}d story
                    </div>
@@ -162,14 +162,14 @@ export default function StatusManager() {
       {/* ── Status History Section ────────────────────────────────────────── */}
       <section className="space-y-10 pt-16">
         <div className="flex items-center gap-6">
-          <h3 className="text-2xl font-quicksand font-bold tracking-tighter text-[var(--text-primary)]">Archive <span className="opacity-30">History</span></h3>
+          <h3 className="text-2xl  font-bold tracking-tighter text-[var(--text-primary)]">Archive <span className="opacity-30">History</span></h3>
           <div className="h-px flex-grow bg-[var(--glass-border)] opacity-30" />
         </div>
 
         <div className="space-y-5">
           {statuses.filter(s => new Date(s.expires_at) <= new Date()).length === 0 ? (
             <div className="py-12 text-center bg-[var(--bg-secondary)]/30 rounded-[2rem] border border-dashed border-[var(--glass-border)]">
-              <p className="text-xs font-quicksand font-bold text-[var(--text-secondary)] opacity-50 tracking-tight">No archival data available</p>
+              <p className="text-xs  font-bold text-[var(--text-secondary)] opacity-50 tracking-tight">No archival data available</p>
             </div>
           ) : (
             statuses.filter(s => new Date(s.expires_at) <= new Date()).map(status => (
@@ -183,10 +183,10 @@ export default function StatusManager() {
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    <p className="font-quicksand font-bold text-base text-[var(--text-primary)] tracking-tight  leading-tight">
+                    <p className=" font-bold text-base text-[var(--text-primary)] tracking-tight  leading-tight">
                       {status.text_content ? (status.text_content.slice(0, 30) + '...') : `Story ${status._id.slice(-6)}`}
                     </p>
-                    <div className="flex items-center gap-2 text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-60">
+                    <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">
                       <Calendar className="size-3" />
                       <span>Expired {new Date(status.expires_at).toLocaleDateString()}</span>
                     </div>
@@ -195,16 +195,16 @@ export default function StatusManager() {
 
                 <div className="flex gap-12 items-center pr-4">
                   <div className="text-right">
-                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Views</p>
-                    <p className="text-lg font-quicksand font-bold tabular-nums tracking-tighter">{status.views_count || 0}</p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Views</p>
+                    <p className="text-lg  font-bold tabular-nums tracking-tighter">{status.views_count || 0}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Likes</p>
-                    <p className="text-lg font-quicksand font-bold tabular-nums tracking-tighter text-red-500">{status.likes_count || 0}</p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Likes</p>
+                    <p className="text-lg  font-bold tabular-nums tracking-tighter text-red-500">{status.likes_count || 0}</p>
                   </div>
                   <div className="text-right hidden sm:block">
-                    <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
-                    <p className="text-lg font-quicksand font-bold tabular-nums tracking-tighter">{status.expiry_days || 1}d</p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
+                    <p className="text-lg  font-bold tabular-nums tracking-tighter">{status.expiry_days || 1}d</p>
                   </div>
                   <button
                     onClick={() => { setReshareTarget(status); setShowCreator(true); }}

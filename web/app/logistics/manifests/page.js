@@ -118,10 +118,10 @@ export default function LogisticsManifestsPage() {
              <Truck className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">Active <span className="text-[var(--accent)]">Manifests</span></h2>
+            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">Active <span className="text-[var(--accent)]">Manifests</span></h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Routing Feed // Node_Logistics</p>
+               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Routing Feed // Node_Logistics</p>
             </div>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function LogisticsManifestsPage() {
               <input 
                 type="text"
                 placeholder="Search tracking code..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={handleSearch}
@@ -144,7 +144,7 @@ export default function LogisticsManifestsPage() {
                 <button 
                   key={s}
                   onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-quicksand font-bold tracking-tight transition-all capitalize ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
                   {s.replace('_', ' ')}
                 </button>
@@ -161,11 +161,11 @@ export default function LogisticsManifestsPage() {
          {/* Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
+               <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <MapPin className="w-4 h-4 text-[var(--accent)]" /> 
                   Global Route Assignments
                </h3>
-               <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{total} Total Tickets</p>
+               <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{total} Total Tickets</p>
             </div>
 
             <div className="space-y-4">
@@ -193,22 +193,22 @@ export default function LogisticsManifestsPage() {
                               <div className="flex-1 min-w-0">
                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
-                                       <span className="text-[11px] lg:text-[12px] md:text-[13px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight capitalize">
+                                       <span className="text-[11px] lg:text-[12px] md:text-[13px]  font-semibold text-[var(--text-primary)] tracking-tight capitalize">
                                           {(shipment.pickup_address?.quartier || shipment.pickup_address?.city || "Pickup")} 
                                           <span className="mx-2 text-[var(--accent)] opacity-50">→</span> 
                                           {(shipment.delivery_address?.quartier || shipment.delivery_address?.city || "Delivery")}
                                        </span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
                                           {status.label}
                                        </span>
                                     </div>
-                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize hidden md:flex">
+                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize hidden md:flex">
                                        <Clock className="w-3 h-3" /> {new Date(shipment.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
                                  <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                       <span className="font-mono text-[var(--accent)] font-quicksand font-bold">#{shipment.tracking_code}</span>
+                                       <span className="font-mono text-[var(--accent)]  font-bold">#{shipment.tracking_code}</span>
                                        <span>•</span>
                                        <span className="truncate max-w-[200px] md:max-w-md hidden md:block">{shipment.delivery_address?.street || shipment.delivery_address?.description}</span>
                                     </div>
@@ -216,9 +216,9 @@ export default function LogisticsManifestsPage() {
                               </div>
 
                               <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl font-quicksand font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(shipment.price || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
+                                 <p className="text-xl md:text-2xl  font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(shipment.price || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{shipment.vendor_id?.store_name || 'Vendor'}</span>
+                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{shipment.vendor_id?.store_name || 'Vendor'}</span>
                                     <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                        {shipment.vendor_id?.branding?.logo ? <img src={shipment.vendor_id.branding.logo} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                     </div>
@@ -232,7 +232,7 @@ export default function LogisticsManifestsPage() {
                ) : (
                   <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                      <Truck className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                     <p className="text-sm font-quicksand font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No logistics manifests matching criteria.</p>
+                     <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No logistics manifests matching criteria.</p>
                   </div>
                )}
             </div>

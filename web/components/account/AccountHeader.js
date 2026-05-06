@@ -15,7 +15,7 @@ export default function AccountHeader({ title = "Account Settings" }) {
           <button onClick={() => router.back()} className="p-2 hover:bg-[var(--bg-secondary)]/50 rounded-[1.5rem] transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-quicksand font-bold tracking-tight">{title}</h1>
+          <h1 className="text-lg  font-bold tracking-tight">{title}</h1>
         </div>
         <button onClick={() => { logout(); router.push('/login'); }} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-[1.5rem] transition-colors">
           <Power className="w-5 h-5" />

@@ -53,7 +53,7 @@ export default function HelpCenter() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--accent)]/10 blur-[100px] pointer-events-none rounded-full" />
         
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-quicksand font-bold tracking-tighter text-[var(--text-primary)] mb-6 ">
+          <h1 className="text-4xl md:text-6xl  font-bold tracking-tighter text-[var(--text-primary)] mb-6 ">
             How can we <span className="text-[var(--accent)]">help you?</span>
           </h1>
           <p className="text-[var(--text-secondary)] text-lg mb-10 max-w-2xl mx-auto">
@@ -72,7 +72,7 @@ export default function HelpCenter() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-[var(--text-primary)] font-medium"
               />
-              <button className="bg-[var(--accent)] text-white px-6 py-3 rounded-xl font-quicksand font-bold hover:shadow-lg shadow-[var(--accent)]/20 transition-all tracking-normal text-xs">
+              <button className="bg-[var(--accent)] text-white px-6 py-3 rounded-xl  font-bold hover:shadow-lg shadow-[var(--accent)]/20 transition-all tracking-normal text-xs">
                 Search
               </button>
             </div>
@@ -89,7 +89,7 @@ export default function HelpCenter() {
                 <div className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] transition-all">
                   <category.icon className="size-6" />
                 </div>
-                <h2 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">{category.category}</h2>
+                <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">{category.category}</h2>
               </div>
               
               <div className="space-y-4">
@@ -102,7 +102,7 @@ export default function HelpCenter() {
                         onClick={() => toggleQ(id)}
                         className="w-full flex items-center justify-between p-5 text-left focus:outline-none"
                       >
-                        <span className="font-quicksand font-bold text-[var(--text-primary)]">{q.q}</span>
+                        <span className=" font-bold text-[var(--text-primary)]">{q.q}</span>
                         <ChevronDown className={`size-5 text-[var(--text-secondary)] transition-transform duration-300 ${isOpen ? "rotate-180 text-[var(--accent)]" : ""}`} />
                       </button>
                       <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? "max-h-40 border-t border-[var(--glass-border)] opacity-100" : "max-h-0 opacity-0"}`}>
@@ -124,11 +124,11 @@ export default function HelpCenter() {
           <div className="size-16 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center mb-6">
             <Mail className="size-8" />
           </div>
-          <h3 className="text-3xl font-quicksand font-bold text-[var(--text-primary)] mb-4">Still need help?</h3>
+          <h3 className="text-3xl  font-bold text-[var(--text-primary)] mb-4">Still need help?</h3>
           <p className="text-[var(--text-secondary)] max-w-md mx-auto mb-8">
             Our support team is available 24/7 to assist you with any questions or concerns.
           </p>
-          <button className="px-8 py-4 bg-[var(--accent)] text-white rounded-xl font-quicksand font-bold tracking-tight text-xs hover:shadow-lg shadow-[var(--accent)]/30 transition-all flex items-center gap-2">
+          <button className="px-8 py-4 bg-[var(--accent)] text-white rounded-xl  font-bold tracking-tight text-xs hover:shadow-lg shadow-[var(--accent)]/30 transition-all flex items-center gap-2">
             Contact Support <Sparkles className="size-4" />
           </button>
         </div>

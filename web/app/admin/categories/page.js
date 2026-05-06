@@ -122,14 +122,14 @@ export default function AdminCategories() {
               <input 
                 value={editing.name}
                 onChange={e => setEditing({...editing, name: e.target.value})}
-                className="bg-[var(--bg-primary)] border border-[var(--accent)] rounded-xl px-4 py-2 text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)] outline-none ring-4 ring-[var(--accent)]/5 shadow-inner capitalize tracking-tight"
+                className="bg-[var(--bg-primary)] border border-[var(--accent)] rounded-xl px-4 py-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] outline-none ring-4 ring-[var(--accent)]/5 shadow-inner capitalize tracking-tight"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
               />
             ) : (
               <div className="flex flex-col">
-                <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors capitalize">{cat.name}</span>
-                <span className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest text-[var(--text-secondary)] opacity-30 capitalize">Node_ID: #{cat._id?.slice(-8).toUpperCase()}</span>
+                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors capitalize">{cat.name}</span>
+                <span className="text-[10px] lg:text-[12px]  font-semibold tracking-widest text-[var(--text-secondary)] opacity-30 capitalize">Node_ID: #{cat._id?.slice(-8).toUpperCase()}</span>
               </div>
             )}
           </div>
@@ -190,10 +190,10 @@ export default function AdminCategories() {
              <Database className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight ">Category <span className="text-[var(--accent)]">Taxonomy</span> Matrix</h2>
+            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Category <span className="text-[var(--accent)]">Taxonomy</span> Matrix</h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Operational Hierarchy // Node_Taxonomy_Root</p>
+               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Operational Hierarchy // Node_Taxonomy_Root</p>
             </div>
           </div>
         </div>
@@ -204,7 +204,7 @@ export default function AdminCategories() {
                setIsAdding(true);
                setFormData({ name: '', parent_id: null });
              }}
-             className="h-11 px-8 bg-[var(--accent)] text-white rounded-2xl text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.2em] capitalize shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center gap-2"
+             className="h-11 px-8 bg-[var(--accent)] text-white rounded-2xl text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] capitalize shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center gap-2"
            >
              <Plus className="w-4 h-4" /> New Origin Node
            </button>
@@ -230,11 +230,11 @@ export default function AdminCategories() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
-                        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-2xl font-quicksand font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
+                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
+                        <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                      </div>
                   </div>
                </div>
@@ -255,24 +255,24 @@ export default function AdminCategories() {
                         <Plus className="size-48" />
                      </div>
                      <div className="relative z-10">
-                        <h3 className="text-xs font-quicksand font-bold text-[var(--accent)] tracking-[0.3em] capitalize mb-8 flex items-center gap-3">
+                        <h3 className="text-xs  font-bold text-[var(--accent)] tracking-[0.3em] capitalize mb-8 flex items-center gap-3">
                            <div className="h-5 w-1 bg-[var(--accent)] rounded-full" />
                            Provision {formData.parent_id ? 'Subscriber' : 'Origin'} Node
                         </h3>
                         <div className="flex flex-col md:flex-row gap-6">
                            <div className="flex-1 space-y-2">
-                              <label className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Node Descriptor</label>
+                              <label className="text-[10px] lg:text-[12px]  font-semibold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Node Descriptor</label>
                               <input 
                                  placeholder="DESIGNATE LABEL..."
                                  value={formData.name}
                                  onChange={e => setFormData({...formData, name: e.target.value})}
-                                 className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-[11px] lg:text-[12px] font-quicksand font-bold capitalize outline-none focus:border-[var(--accent)] transition-all shadow-inner tracking-widest"
+                                 className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-[11px] lg:text-[12px]  font-semibold capitalize outline-none focus:border-[var(--accent)] transition-all shadow-inner tracking-widest"
                                  autoFocus
                               />
                            </div>
                            <div className="flex items-end gap-3">
-                              <button onClick={handleAdd} className="h-14 px-10 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl font-quicksand font-bold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95">Commit</button>
-                              <button onClick={() => setIsAdding(false)} className="h-14 px-10 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl font-quicksand font-bold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95">Abort</button>
+                              <button onClick={handleAdd} className="h-14 px-10 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95">Commit</button>
+                              <button onClick={() => setIsAdding(false)} className="h-14 px-10 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95">Abort</button>
                            </div>
                         </div>
                      </div>
@@ -284,11 +284,11 @@ export default function AdminCategories() {
          {/* Taxonomy Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
+               <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <Database className="w-4 h-4 text-[var(--accent)]" /> 
                   Platform Taxonomy Ledger
                </h3>
-               <p className="text-[10px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Global Hierarchy Tree</p>
+               <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Global Hierarchy Tree</p>
             </div>
 
             <div className="min-h-[400px]">
@@ -297,7 +297,7 @@ export default function AdminCategories() {
               ) : categories.length === 0 ? (
                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                     <Folder className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                    <p className="text-sm font-quicksand font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No taxonomy nodes detected in the matrix.</p>
+                    <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No taxonomy nodes detected in the matrix.</p>
                  </div>
               ) : (
                  <div className="divide-y divide-[var(--glass-border)]/50">

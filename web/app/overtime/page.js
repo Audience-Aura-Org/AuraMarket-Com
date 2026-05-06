@@ -74,9 +74,9 @@ export default function LandingPage() {
               <div className="flex flex-col gap-8">
                 <div className="inline-flex items-center gap-2 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-4 py-2 rounded-full w-fit">
                   <span className="material-symbols-outlined text-[var(--accent)] text-sm">auto_awesome</span>
-                  <span className="text-[var(--accent)] text-xs font-quicksand font-bold tracking-tight">The Future of Commerce</span>
+                  <span className="text-[var(--accent)] text-xs  font-bold tracking-tight">The Future of Commerce</span>
                 </div>
-                <h1 className="text-6xl md:text-7xl font-quicksand font-extrabold leading-[1.1] tracking-tight text-[var(--text-primary)]">
+                <h1 className="text-6xl md:text-7xl  font-extrabold leading-[1.1] tracking-tight text-[var(--text-primary)]">
                   Experience <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)]">Liquid</span> Shopping.
                 </h1>
                 <p className="text-lg text-[var(--text-secondary)] max-w-lg leading-relaxed">
@@ -85,21 +85,21 @@ export default function LandingPage() {
                 <div className="flex flex-wrap gap-4 pt-4">
                   <button
                     onClick={() => router.push('/discovery')}
-                    className="bg-[var(--accent)] text-white px-10 py-4 rounded-full font-quicksand font-bold text-lg shadow-2xl shadow-[var(--accent)]/40 flex items-center gap-3 hover:scale-105 transition-transform"
+                    className="bg-[var(--accent)] text-white px-10 py-4 rounded-full  font-bold text-lg shadow-2xl shadow-[var(--accent)]/40 flex items-center gap-3 hover:scale-105 transition-transform"
                   >
                     Discovery Shop <span className="material-symbols-outlined">explore</span>
                   </button>
                   {user ? (
                     <button
                       onClick={() => router.push(user.role === 'admin' ? '/admin/dashboard' : user.role === 'vendor' ? '/vendor/dashboard' : '/logistics/dashboard')}
-                      className="glass-panel px-10 py-4 rounded-full font-quicksand font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
+                      className="glass-panel px-10 py-4 rounded-full  font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
                     >
                       Dashboard <span className="material-symbols-outlined">dashboard</span>
                     </button>
                   ) : (
                     <button
                       onClick={() => router.push('/register?vendor=true')}
-                      className="glass-panel px-10 py-4 rounded-full font-quicksand font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
+                      className="glass-panel px-10 py-4 rounded-full  font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
                     >
                       Be a Vendor <span className="material-symbols-outlined">storefront</span>
                     </button>

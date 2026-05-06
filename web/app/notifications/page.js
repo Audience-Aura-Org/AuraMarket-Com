@@ -104,9 +104,9 @@ export default function NotificationsPage() {
           <ArrowLeft className="size-5" />
         </button>
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-quicksand font-bold text-[var(--text-primary)] tracking-tight ">Signals</h1>
+          <h1 className="text-lg  font-bold text-[var(--text-primary)] tracking-tight ">Signals</h1>
           {unreadCount > 0 && (
-            <span className="h-5 px-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-quicksand font-bold rounded-full flex items-center justify-center animate-pulse">
+            <span className="h-5 px-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px]  font-semibold rounded-full flex items-center justify-center animate-pulse">
               {unreadCount}
             </span>
           )}
@@ -118,9 +118,9 @@ export default function NotificationsPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-8 px-1">
-          <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)] tracking-[0.3em]  opacity-40">Frequency Feed</p>
+          <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.3em]  opacity-40">Frequency Feed</p>
           {unreadCount > 0 && (
-            <button onClick={markAllRead} className="flex items-center gap-2 text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)] tracking-tight  hover:underline group">
+            <button onClick={markAllRead} className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight  hover:underline group">
               <CheckCheck className="size-3 group-hover:scale-110 transition-transform" /> Sync All
             </button>
           )}
@@ -156,7 +156,7 @@ export default function NotificationsPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center gap-2">
-                      <h3 className={`text-xs font-quicksand font-bold truncate ${!n.is_read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
+                      <h3 className={`text-xs  font-bold truncate ${!n.is_read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
                         {n.title}
                       </h3>
                       <span className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 shrink-0">
@@ -202,7 +202,7 @@ export default function NotificationsPage() {
               <Bell className="size-8 text-[var(--text-secondary)] opacity-20 group-hover:rotate-12 transition-transform" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight ">Silence</h3>
+              <h3 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Silence</h3>
               <p className="text-[var(--text-secondary)] font-medium text-xs max-w-[240px] mx-auto opacity-40">Your signal frequency is currently undisturbed.</p>
             </div>
           </div>

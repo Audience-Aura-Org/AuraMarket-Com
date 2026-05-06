@@ -155,7 +155,7 @@ export default function UnifiedAuth() {
               className="space-y-5"
             >
               <div className="text-center space-y-1">
-                <h1 className="text-[15px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight">Welcome to Aura</h1>
+                <h1 className="text-[15px]  font-bold text-[var(--text-primary)] tracking-tight">Welcome to Aura</h1>
                 <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-60">
                   Enter your email to continue
                 </p>
@@ -178,7 +178,7 @@ export default function UnifiedAuth() {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-quicksand font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white  font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
                 >
                   Continue
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -192,7 +192,7 @@ export default function UnifiedAuth() {
                     setIsNewUser(true);
                     setStep('CHALLENGE');
                   }}
-                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)] font-quicksand font-semibold text-[11px] lg:text-[12px] hover:bg-[var(--accent)]/5 transition-all"
+                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)]  font-semibold text-[11px] lg:text-[12px] hover:bg-[var(--accent)]/5 transition-all"
                 >
                   Create an account
                 </button>
@@ -216,16 +216,16 @@ export default function UnifiedAuth() {
               </button>
 
               <div className="space-y-0.5">
-                <h2 className="text-[14px] font-quicksand font-bold text-[var(--text-primary)] tracking-tight">
+                <h2 className="text-[14px]  font-bold text-[var(--text-primary)] tracking-tight">
                   {isNewUser ? 'Create your account' : 'Enter your password'}
                 </h2>
-                <p className="text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--accent)] truncate max-w-full opacity-80">
+                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] truncate max-w-full opacity-80">
                   {formData.email}
                 </p>
               </div>
 
               {error && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] lg:text-[12px] font-quicksand font-bold text-center">
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] lg:text-[12px]  font-semibold text-center">
                   {error}
                 </div>
               )}
@@ -290,7 +290,7 @@ export default function UnifiedAuth() {
                            {r === 'customer' && <ShoppingBag className="w-4 h-4" />}
                            {r === 'vendor' && <Store className="w-4 h-4" />}
                            {r === 'logistics' && <Truck className="w-4 h-4" />}
-                           <span className="text-[11px] lg:text-[12px] font-quicksand font-bold  tracking-tighter">{r}</span>
+                           <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">{r}</span>
                          </button>
                        ))}
                     </div>
@@ -322,7 +322,7 @@ export default function UnifiedAuth() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-quicksand font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white  font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -336,7 +336,7 @@ export default function UnifiedAuth() {
         </AnimatePresence>
       </div>
 
-      <p className="mt-8 text-center text-[11px] lg:text-[12px] font-quicksand font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
+      <p className="mt-8 text-center text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
       </p>
     </div>
   );

@@ -40,19 +40,7 @@ export default function LoadingSpinner({ fullScreen = false, text = '' }) {
         />
       </div>
 
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-[10px] lg:text-[12px] font-quicksand font-bold tracking-[0.4em] capitalize text-[var(--text-primary)] opacity-60">
-          {text || 'Calibrating'}
-        </p>
-        <div className="w-20 h-[1px] bg-[var(--glass-border)] relative overflow-hidden">
-           <motion.div 
-             animate={{ x: ['-100%', '100%'] }}
-             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-             className="absolute inset-0 bg-[var(--accent)] w-1/2"
-           />
-        </div>
       </div>
-    </div>
   );
 
   if (fullScreen) {

@@ -72,7 +72,7 @@ export default function BottomNav() {
                     <div className="absolute -top-1 -right-1 size-1.5 bg-[var(--accent)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent)]"></div>
                   )}
                 </div>
-                <span className={`mt-0.5 text-[10px] lg:text-[12px] font-quicksand font-semibold tracking-tight leading-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                <span className={`mt-0.5 text-[10px] lg:text-[12px]  font-semibold tracking-tight leading-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                   {item.label}
                 </span>
               </Link>

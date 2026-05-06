@@ -35,7 +35,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-quicksand font-semibold truncate">{user?.name}</p>
+              <p className="text-sm  font-semibold truncate">{user?.name}</p>
               <p className="text-xs text-[var(--text-secondary)] capitalize truncate">{user?.role}</p>
             </div>
           </div>
@@ -62,7 +62,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
-                <span className="text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight">{tab.label}</span>
+                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{tab.label}</span>
               </button>
             );
           })}

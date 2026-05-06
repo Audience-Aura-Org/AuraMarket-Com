@@ -170,13 +170,13 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] lg:text-[12px] md:text-sm outline-none transition-all font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
-              <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 flex items-center justify-center font-quicksand font-bold">
+              <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 flex items-center justify-center  font-bold">
                 <Search className="size-4" />
               </button>
             </div>
             <Link 
               href="/stores"
-              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-all font-quicksand font-bold text-[11px] lg:text-[12px] shadow-sm active:scale-95"
+              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-all  font-semibold text-[11px] lg:text-[12px] shadow-sm active:scale-95"
             >
               <Store className="size-4" /> Explore Stores
             </Link>
@@ -237,7 +237,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
       {/* ── ACTION BAR ── */}
       <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-1.5 md:gap-3">
-          <h3 className="text-xs md:text-xl font-quicksand font-bold text-[var(--text-primary)] tracking-tight">
+          <h3 className="text-xs md:text-xl  font-bold text-[var(--text-primary)] tracking-tight">
             {activeCategoryName === 'All' ? 'Global Discovery' : activeCategoryName}
           </h3>
           <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
@@ -250,18 +250,18 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
           <div className="relative dropdown-container">
             <button 
               onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight shadow-sm"
+              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
             >
               Price
               <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
             </button>
             {isPriceOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                 <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-quicksand font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                 <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                    Any Price {!activePrice && <Check className="size-3.5" />}
                  </button>
                  {PRICE_RANGES.map(range => (
-                   <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-quicksand font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                   <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                      {range.name} {activePrice === range.id && <Check className="size-3.5" />}
                    </button>
                  ))}
@@ -272,7 +272,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
           <div className="relative dropdown-container">
             <button 
               onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-quicksand font-bold tracking-tight shadow-sm"
+              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
             >
               Sort
               <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
@@ -280,7 +280,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             {isSortOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                  {SORT_OPTIONS.map(opt => (
-                   <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-quicksand font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                   <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                      {opt.label}
                      {sortBy === opt.value && <Check className="size-3.5" />}
                    </button>
@@ -316,13 +316,13 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
               <ShoppingBag className="size-10 text-[var(--accent)] opacity-20" />
             </div>
             <div>
-              <h2 className="text-xl font-quicksand font-bold tracking-tight">No Market Items</h2>
+              <h2 className="text-xl  font-bold tracking-tight">No Market Items</h2>
               <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 max-w-[280px] mx-auto mt-2">
                 Try adjusting your filters or search to explore the global collection.<br/>
                 All products from the general market are indexed here.
               </p>
             </div>
-            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-quicksand font-bold rounded-full shadow-lg">Reset Feed</button>
+            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px]  font-semibold rounded-full shadow-lg">Reset Feed</button>
           </div>
         )}
 
