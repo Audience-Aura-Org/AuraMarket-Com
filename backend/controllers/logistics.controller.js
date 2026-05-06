@@ -216,25 +216,35 @@ const modifyShipmentStatus = async (req, res, next) => {
           }
         }
 
-        // ── Pay Logistics Firm (for digitally paid orders) ────────────────
-        if (order.payment_method !== 'pay_on_delivery' && order.payment_status === 'paid' && order.shipping_fee > 0) {
+        // ── Pay Logistics Firm on delivery (all digitally paid orders) ────
+        if (order.shipping_fee > 0 && order.logistics_company_id) {
           const logisticsUser = await User.findById(firm.user_id).session(session);
           if (logisticsUser) {
-            logisticsUser.wallet_balance += order.shipping_fee;
-            await logisticsUser.save({ session });
+            // Only credit if this delivery fee hasn't already been settled
+            const alreadySettled = await Transaction.findOne({
+              user_id: logisticsUser._id,
+              order_id: order._id,
+              type: 'payout',
+              description: { $regex: 'Delivery payout' }
+            }).session(session);
 
-            await Transaction.create([{
-              user_id:     logisticsUser._id,
-              type:        'payout',
-              amount:      order.shipping_fee,
-              reference:   `LOG-${generateTxRef()}`,
-              status:      'completed',
-              description: `Delivery payout for Order #${order._id.toString().slice(-6).toUpperCase()}`,
-              order_id:    order._id,
-              gateway:     'platform'
-            }], { session, ordered: true });
-            
-            console.log(`📦 Logistics user ${logisticsUser._id} credited ${order.shipping_fee} for delivery.`);
+            if (!alreadySettled) {
+              logisticsUser.wallet_balance += order.shipping_fee;
+              await logisticsUser.save({ session });
+
+              await Transaction.create([{
+                user_id:     logisticsUser._id,
+                type:        'payout',
+                amount:      order.shipping_fee,
+                reference:   `LOG-${generateTxRef()}`,
+                status:      'completed',
+                description: `Delivery payout for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+                order_id:    order._id,
+                gateway:     'wallet'
+              }], { session, ordered: true });
+
+              console.log(`📦 Logistics firm credited ${order.shipping_fee} XAF for Order #${order._id.toString().slice(-6).toUpperCase()}.`);
+            }
           }
         }
 
@@ -246,7 +256,7 @@ const modifyShipmentStatus = async (req, res, next) => {
 
         await order.save({ session });
       }
-    } else if (status === 'picked_up' || status === 'in_transit' || status === 'out_for_delivery') {
+    } else if (status === 'picked_up') {
       order.order_status = 'shipped';
       await order.save({ session });
     }
