@@ -80,7 +80,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                 <p className="text-xs font-bold tracking-tight">Aura Assistant</p>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                  <p className="text-[10px] opacity-80">Online</p>
+                  <p className="text-[10px] lg:text-[12px] opacity-80">Online</p>
                 </div>
               </div>
               <button
@@ -139,7 +139,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                     >
                       <button
                         onClick={handleSkip}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all tracking-tight"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all tracking-tight"
                       >
                         Dismiss
                       </button>
@@ -150,7 +150,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                           setVisible(false);
                           router.push('/discovery');
                         }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/30"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold tracking-tight hover:opacity-90 transition-all shadow-lg shadow-[var(--accent)]/30"
                       >
                         Explore Hub
                         <ArrowRight className="w-3 h-3" />

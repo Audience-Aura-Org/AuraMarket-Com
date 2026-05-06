@@ -74,7 +74,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search vendors..."
-            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-10 pr-10 text-[11px] font-medium focus:ring-1 focus:ring-[var(--accent)] outline-none placeholder:text-[var(--text-secondary)]/50 transition-all"
+            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-10 pr-10 text-[11px] lg:text-[12px] font-medium focus:ring-1 focus:ring-[var(--accent)] outline-none placeholder:text-[var(--text-secondary)]/50 transition-all"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -104,12 +104,12 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
                <MessageCircle className="w-8 h-8 text-[var(--accent)] opacity-20" />
             </div>
             <p className="font-bold text-[var(--text-primary)]  tracking-tighter text-base">Your Circle is Empty</p>
-            <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-2 max-w-[220px] mx-auto font-medium">
+            <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mt-2 max-w-[220px] mx-auto font-medium">
               Only vendors you follow appear here for quick chat access. Explore the Global Market to find your vibe.
             </p>
             <button 
               onClick={() => router.push('/shop')}
-              className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight rounded-full shadow-lg"
+              className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold tracking-tight rounded-full shadow-lg"
             >
               Explore Shop
             </button>
@@ -180,7 +180,7 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
           <h3 className="font-bold text-base text-[var(--text-primary)] truncate">
             {vendor.store_name || 'Store'}
           </h3>
-          <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
+          <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
             {isOnline ? 'Online' : lastSeen}
           </span>
         </div>
@@ -191,12 +191,12 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
         
         <div className="flex items-center gap-1.5 mt-1">
           {isOnline ? (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-500  tracking-tighter">
+            <span className="flex items-center gap-1 text-[11px] lg:text-[12px] font-bold text-emerald-500  tracking-tighter">
               <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
               Available
             </span>
           ) : (
-            <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40  tracking-tighter">
+            <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40  tracking-tighter">
               Replies fast
             </span>
           )}

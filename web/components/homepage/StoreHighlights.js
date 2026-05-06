@@ -32,7 +32,7 @@ export default function StoreHighlights({ title, data }) {
         </div>
         <Link href="/discovery?tab=vendors" className="flex items-center gap-2 group cursor-pointer">
            <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[11px] font-bold  tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
+           <span className="text-[11px] lg:text-[12px] font-bold  tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
         </Link>
       </div>
 
@@ -79,7 +79,7 @@ export default function StoreHighlights({ title, data }) {
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
                          <StarIcon />
-                         <span className="text-[11px] font-bold tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
+                         <span className="text-[11px] lg:text-[12px] font-bold tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
                       </div>
                     </div>
                     <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shrink-0">
@@ -94,11 +94,11 @@ export default function StoreHighlights({ title, data }) {
                   <div className="pt-2 flex items-center gap-3">
                     <VendorFollowButton 
                       vendorId={vendor._id} 
-                      className="!h-10 !text-[10px] flex-1"
+                      className="!h-10 !text-[10px] lg:text-[12px] flex-1"
                     />
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                       <Users className="w-3.5 h-3.5 opacity-40 text-[var(--accent)]" />
-                      <span className="text-[11px] font-bold opacity-80">{formatCount(vendor.follower_count)}</span>
+                      <span className="text-[11px] lg:text-[12px] font-bold opacity-80">{formatCount(vendor.follower_count)}</span>
                     </div>
                   </div>
                 </div>

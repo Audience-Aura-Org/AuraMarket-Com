@@ -74,7 +74,7 @@ export default function LogisticsDashboard() {
               <h1 className="text-2xl font-bold tracking-tighter">Logistics Hub</h1>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Network Operational</p>
+                <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">Network Operational</p>
               </div>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function LogisticsDashboard() {
             </button>
             <div className="hidden md:flex flex-col items-end">
               <p className="text-xs font-bold">{new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</p>
-              <p className="text-[10px] text-[var(--text-secondary)] opacity-40  font-bold">GMT +1</p>
+              <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40  font-bold">GMT +1</p>
             </div>
           </div>
         </div>
@@ -116,9 +116,9 @@ export default function LogisticsDashboard() {
               <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
                 <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
               </div>
-              <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
+              <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
               <h4 className="text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
-              <p className="text-[11px] font-bold opacity-40 tracking-tight">{stat.sub}</p>
+              <p className="text-[11px] lg:text-[12px] font-bold opacity-40 tracking-tight">{stat.sub}</p>
             </motion.div>
           ))}
         </div>
@@ -135,9 +135,9 @@ export default function LogisticsDashboard() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-xl font-bold tracking-tighter">Node Saturation</h3>
-                <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60">Regional manifest distribution</p>
+                <p className="text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60">Regional manifest distribution</p>
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.4)] transition-all">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold tracking-tight hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.4)] transition-all">
                 Full Map <ArrowUpRight className="w-3 h-3" />
               </button>
             </div>
@@ -151,7 +151,7 @@ export default function LogisticsDashboard() {
                 { location: 'Garoua - Hub', load: 15, color: 'bg-blue-500' }
               ].map((node, i) => (
                 <div key={i} className="space-y-2">
-                  <div className="flex justify-between text-[11px] font-bold tracking-tight">
+                  <div className="flex justify-between text-[11px] lg:text-[12px] font-bold tracking-tight">
                     <span className="text-[var(--text-secondary)]">{node.location}</span>
                     <span className="text-[var(--text-primary)]">{node.load}%</span>
                   </div>
@@ -171,22 +171,22 @@ export default function LogisticsDashboard() {
           {/* Quick Actions & Recent Updates */}
           <div className="space-y-4">
             <div className="p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)]">
-              <h3 className="text-[11px] font-bold tracking-tight mb-4">Quick Command</h3>
+              <h3 className="text-[11px] lg:text-[12px] font-bold tracking-tight mb-4">Quick Command</h3>
               <div className="grid grid-cols-2 gap-3">
                 <button className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)] transition-all flex flex-col items-center gap-2 group">
                   <Package className="w-5 h-5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
-                  <span className="text-[11px] font-bold tracking-tight">New Manifest</span>
+                  <span className="text-[11px] lg:text-[12px] font-bold tracking-tight">New Manifest</span>
                 </button>
                 <button className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)] transition-all flex flex-col items-center gap-2 group">
                   <MapPin className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-[11px] font-bold tracking-tight">Manage Nodes</span>
+                  <span className="text-[11px] lg:text-[12px] font-bold tracking-tight">Manage Nodes</span>
                 </button>
               </div>
             </div>
 
             <div className="p-6 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)]">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[11px] font-bold tracking-tight">Recent Alarms</h3>
+                <h3 className="text-[11px] lg:text-[12px] font-bold tracking-tight">Recent Alarms</h3>
                 <AlertCircle className="w-4 h-4 text-rose-500 animate-pulse" />
               </div>
               <div className="space-y-4">
@@ -194,7 +194,7 @@ export default function LogisticsDashboard() {
                   { msg: 'Weather delay at Node A', time: '2m ago' },
                   { msg: 'System check complete', time: '1h ago' }
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between text-[10px]">
+                  <div key={i} className="flex items-center justify-between text-[10px] lg:text-[12px]">
                     <span className="font-bold tracking-tight opacity-60">{item.msg}</span>
                     <span className="opacity-30 whitespace-nowrap font-bold tracking-tight">{item.time}</span>
                   </div>
@@ -213,7 +213,7 @@ export default function LogisticsDashboard() {
             </div>
             
             <div className="flex gap-2">
-              <button className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight flex items-center gap-2 hover:bg-white/5 transition-all">
+              <button className="px-4 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold tracking-tight flex items-center gap-2 hover:bg-white/5 transition-all">
                 <Filter className="w-3 h-3" /> Filter
               </button>
             </div>
@@ -222,7 +222,7 @@ export default function LogisticsDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
+                <tr className="text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
                   <th className="pb-4 pr-4">Shipment ID</th>
                   <th className="pb-4 pr-4">Destination</th>
                   <th className="pb-4 pr-4">Status</th>
@@ -234,15 +234,15 @@ export default function LogisticsDashboard() {
                 {shipments.slice(0, 8).map((s) => (
                   <tr key={s._id} className="group hover:bg-white/[0.02] transition-colors">
                     <td className="py-4 pr-4">
-                      <p className="text-[11px] font-bold tracking-tighter ">#{s._id?.slice(-8).toUpperCase()}</p>
-                      <p className="text-[10px] opacity-40  font-bold tracking-tight">{s.tracking_number || 'TRK-PENDING'}</p>
+                      <p className="text-[11px] lg:text-[12px] font-bold tracking-tighter ">#{s._id?.slice(-8).toUpperCase()}</p>
+                      <p className="text-[10px] lg:text-[12px] opacity-40  font-bold tracking-tight">{s.tracking_number || 'TRK-PENDING'}</p>
                     </td>
                     <td className="py-4 pr-4">
                       <p className="text-xs font-bold truncate max-w-[150px]">{s.destination_address?.city || 'Unknown'}</p>
-                      <p className="text-[10px] opacity-40  font-bold">{s.destination_address?.region || 'N/A'}</p>
+                      <p className="text-[10px] lg:text-[12px] opacity-40  font-bold">{s.destination_address?.region || 'N/A'}</p>
                     </td>
                     <td className="py-4 pr-4">
-                      <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-tight ${
+                      <span className={`px-3 py-1 rounded-full text-[11px] lg:text-[12px] font-bold tracking-tight ${
                         s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' : 
                         s.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
                         s.status === 'assigned' ? 'bg-purple-500/10 text-purple-500' :

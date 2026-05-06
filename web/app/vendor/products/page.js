@@ -74,7 +74,7 @@ export default function VendorProductsPage() {
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-fluid-lg lg:text-fluid-xl font-bold text-[var(--text-primary)] tracking-tight ">Product <span className="text-[var(--accent)]">Hub</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <p className="text-[var(--text-secondary)] text-[10px] lg:text-[11px] font-bold  tracking-[0.3em] opacity-40"><span>{products.length}</span> Active Listings</p>
+          <p className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px] font-bold  tracking-[0.3em] opacity-40"><span>{products.length}</span> Active Listings</p>
         </div>
 
         <div className="flex items-center gap-3 lg:gap-5 self-end lg:self-auto w-full lg:w-auto">
@@ -86,11 +86,11 @@ export default function VendorProductsPage() {
               type="text"
               value={searchTerm}
               onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full lg:w-80 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-11 pr-4 text-[11px] font-bold tracking-tight outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-30 text-[var(--text-primary)] shadow-sm" 
+              className="w-full lg:w-80 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-11 pr-4 text-[11px] lg:text-[12px] font-bold tracking-tight outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-30 text-[var(--text-primary)] shadow-sm" 
               placeholder="Filter by name or category..." 
             />
           </div>
-          <Link href="/vendor/products/add" className="flex items-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white font-bold px-5 lg:px-8 py-3 lg:py-3.5 rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:-translate-y-0.5 transition-all text-[10px] lg:text-[11px] tracking-tight  shrink-0">
+          <Link href="/vendor/products/add" className="flex items-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white font-bold px-5 lg:px-8 py-3 lg:py-3.5 rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:-translate-y-0.5 transition-all text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px] tracking-tight  shrink-0">
             <Zap className="size-4" />
             New Listing
           </Link>
@@ -118,7 +118,7 @@ export default function VendorProductsPage() {
               </div>
               <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-3  tracking-tighter">Your Store is Empty</h3>
               <p className="text-[var(--text-secondary)] mb-10 font-medium text-sm tracking-tight opacity-60">Ready to start selling on Aura? Deploy your first product listing and reach thousands of buyers instantly.</p>
-              <Link href="/vendor/products/add" className="flex items-center gap-3 bg-[var(--accent)] text-white font-bold px-10 py-4.5 rounded-2xl shadow-2xl shadow-[var(--accent)]/30 hover:scale-[1.02] transition-all text-[11px] tracking-[0.2em] ">
+              <Link href="/vendor/products/add" className="flex items-center gap-3 bg-[var(--accent)] text-white font-bold px-10 py-4.5 rounded-2xl shadow-2xl shadow-[var(--accent)]/30 hover:scale-[1.02] transition-all text-[11px] lg:text-[12px] tracking-[0.2em] ">
                 <Zap className="size-4" />
                 List Your First Item
               </Link>
@@ -139,18 +139,18 @@ export default function VendorProductsPage() {
                       <h3 className="text-2xl font-bold text-[var(--text-primary)]  tracking-tighter">
                         Inventory <span className="text-[var(--accent)]">{viewMode === 'grid' ? 'Grid' : 'Table'}</span>
                       </h3>
-                      <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40">Managing {filteredProducts.length} filtered items</p>
+                      <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] opacity-40">Managing {filteredProducts.length} filtered items</p>
                     </div>
                     <div className="flex items-center gap-3 p-1.5 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl shadow-inner">
                       <button 
                         onClick={() => setViewMode('grid')}
-                        className={`px-5 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}
+                        className={`px-5 py-2 rounded-xl text-[11px] lg:text-[12px] font-bold tracking-tight transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}
                       >
                         Grid
                       </button>
                       <button 
                         onClick={() => setViewMode('table')}
-                        className={`px-5 py-2 rounded-xl text-[11px] font-bold tracking-tight transition-all ${viewMode === 'table' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}
+                        className={`px-5 py-2 rounded-xl text-[11px] lg:text-[12px] font-bold tracking-tight transition-all ${viewMode === 'table' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}
                       >
                         Table
                       </button>
@@ -159,7 +159,7 @@ export default function VendorProductsPage() {
 
                   {filteredProducts.length === 0 ? (
                     <div className="py-20 text-center glass-panel rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-                      <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-30">No matches found for "{searchTerm}"</p>
+                      <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-30">No matches found for "{searchTerm}"</p>
                     </div>
                   ) : viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -176,7 +176,7 @@ export default function VendorProductsPage() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="text-[11px] font-bold tracking-[0.3em] text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50 border-b border-[var(--glass-border)] ">
+                            <tr className="text-[11px] lg:text-[12px] font-bold tracking-[0.3em] text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50 border-b border-[var(--glass-border)] ">
                               <th className="pl-10 pr-6 py-6">Product Item</th>
                               <th className="px-6 py-6">Category</th>
                               <th className="px-6 py-6 text-right">Price</th>
@@ -206,17 +206,17 @@ export default function VendorProductsPage() {
                                       </div>
                                       <div className="min-w-0">
                                         <p className="text-sm font-bold text-[var(--text-primary)] truncate tracking-tight">{product.name}</p>
-                                        <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight mt-0.5">ID: {product._id?.slice(-6)}</p>
+                                        <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-tight mt-0.5">ID: {product._id?.slice(-6)}</p>
                                       </div>
                                     </div>
                                   </td>
                                   <td className="px-6 py-5">
-                                    <span className="inline-flex px-3 py-1.5 rounded-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.1em]">
+                                    <span className="inline-flex px-3 py-1.5 rounded-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  tracking-[0.1em]">
                                       {product.category || 'General'}
                                     </span>
                                   </td>
                                   <td className="px-6 py-5 text-right text-sm font-bold text-[var(--text-primary)] font-mono">
-                                    {product.price?.toLocaleString()} <span className="text-[10px] opacity-40">XAF</span>
+                                    {product.price?.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-40">XAF</span>
                                   </td>
                                   <td className="px-6 py-5 text-center">
                                     <span className={`text-sm font-bold ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-[var(--text-primary)]'}`}>
@@ -227,16 +227,16 @@ export default function VendorProductsPage() {
                                     <div className="flex flex-col items-center gap-1">
                                       <div className="flex items-center gap-1.5 text-[var(--text-secondary)] opacity-40">
                                         <Eye className="size-3" />
-                                        <span className="text-[11px] font-bold">{product.view_count || 0}</span>
+                                        <span className="text-[11px] lg:text-[12px] font-bold">{product.view_count || 0}</span>
                                       </div>
                                       <div className="flex items-center gap-1.5 text-emerald-500">
                                         <ShoppingCart className="size-3" />
-                                        <span className="text-[11px] font-bold">{product.purchase_count || 0}</span>
+                                        <span className="text-[11px] lg:text-[12px] font-bold">{product.purchase_count || 0}</span>
                                       </div>
                                     </div>
                                   </td>
                                   <td className="px-6 py-5">
-                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-tight border ${
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] lg:text-[12px] font-bold tracking-tight border ${
                                       isOutOfStock ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
                                       isLowStock ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
                                       'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
@@ -315,7 +315,7 @@ function ManagementCard({ product, onDelete }) {
         
         {/* Status Badge */}
         <div className="absolute top-4 left-4 z-10">
-          <div className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-tight backdrop-blur-md border shadow-lg flex items-center gap-1.5 ${
+          <div className={`px-3 py-1.5 rounded-full text-[11px] lg:text-[12px] font-bold tracking-tight backdrop-blur-md border shadow-lg flex items-center gap-1.5 ${
             isOutOfStock 
               ? 'bg-red-500/20 text-red-500 border-red-500/30' 
               : isLowStock 
@@ -341,17 +341,17 @@ function ManagementCard({ product, onDelete }) {
       {/* Content */}
       <div className="p-6 flex flex-col flex-1 gap-4">
         <div className="space-y-1">
-          <p className="text-[11px] font-bold text-[var(--accent)] tracking-tight opacity-60 leading-none">{product.category || 'General'}</p>
+          <p className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)] tracking-tight opacity-60 leading-none">{product.category || 'General'}</p>
           <h3 className="text-[16px] font-bold text-[var(--text-primary)] truncate tracking-tight leading-tight">{product.name}</h3>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-30">Unit Price</p>
+            <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-30">Unit Price</p>
             <p className="text-sm font-bold text-[var(--text-primary)] font-mono">{product.price?.toLocaleString()} XAF</p>
           </div>
           <div className="text-right space-y-0.5">
-            <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-30">Stock Level</p>
+            <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-30">Stock Level</p>
             <p className={`text-sm font-bold ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-[var(--text-primary)]'}`}>{product.stock}</p>
           </div>
         </div>
@@ -364,7 +364,7 @@ function ManagementCard({ product, onDelete }) {
             </div>
             <div>
               <p className="text-[14px] font-bold text-[var(--text-primary)] leading-none">{product.purchase_count || 0}</p>
-              <p className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40 mt-1">Sales</p>
+              <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40 mt-1">Sales</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
@@ -373,14 +373,14 @@ function ManagementCard({ product, onDelete }) {
             </div>
             <div>
               <p className="text-[14px] font-bold text-[var(--text-primary)] leading-none">{product.view_count || 0}</p>
-              <p className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40 mt-1">Hits</p>
+              <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40 mt-1">Hits</p>
             </div>
           </div>
         </div>
 
         {/* Actions */}
         <div className="mt-2 flex items-center gap-2">
-          <Link href={`/vendor/products/edit/${product._id}`} className="flex-1 h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-xl flex items-center justify-center gap-2 text-[11px] font-bold tracking-tight hover:border-[var(--accent)]/40 transition-all">
+          <Link href={`/vendor/products/edit/${product._id}`} className="flex-1 h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-xl flex items-center justify-center gap-2 text-[11px] lg:text-[12px] font-bold tracking-tight hover:border-[var(--accent)]/40 transition-all">
             Manage
           </Link>
           <button 
@@ -422,9 +422,9 @@ function KPICard({ title, value, icon: Icon, color, sub }) {
         </div>
       </div>
       <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[11px] font-bold tracking-[0.2em]  opacity-50">{title}</p>
+        <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-bold tracking-[0.2em]  opacity-50">{title}</p>
         <h3 className="text-2xl lg:text-3xl font-bold text-[var(--text-primary)] mt-1.5 truncate tracking-tighter">{value}</h3>
-        {sub && <p className="text-[11px] text-[var(--text-secondary)] font-bold mt-1 opacity-50 tracking-tight truncate">{sub}</p>}
+        {sub && <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-bold mt-1 opacity-50 tracking-tight truncate">{sub}</p>}
       </div>
     </div>
   );

@@ -62,7 +62,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
-                <span className="text-[11px] font-bold tracking-tight">{tab.label}</span>
+                <span className="text-[11px] lg:text-[12px] font-bold tracking-tight">{tab.label}</span>
               </button>
             );
           })}

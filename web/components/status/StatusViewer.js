@@ -617,10 +617,10 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             <div>
               <div className="flex items-center gap-1.5">
                 <p className="text-[14px] font-bold text-white tracking-tight drop-shadow">{storeName}</p>
-                <span className="text-[10px] text-white/50 font-semibold">{ago(story.createdAt)}</span>
+                <span className="text-[10px] lg:text-[12px] text-white/50 font-semibold">{ago(story.createdAt)}</span>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[11px] font-bold text-[var(--accent)]">{story.category || 'General'}</span>
+                <span className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)]">{story.category || 'General'}</span>
               </div>
             </div>
           </div>
@@ -683,7 +683,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                         {story.linked_product.name || 'View Product'}
                       </p>
                       {story.linked_product.price && (
-                        <p className="text-[11px] font-bold text-[var(--accent)] mt-0.5">
+                        <p className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)] mt-0.5">
                           {story.linked_product.price?.toLocaleString()} XAF
                         </p>
                       )}
@@ -746,9 +746,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             <div className="flex items-center justify-between px-1 opacity-40 pt-2">
               <div className="flex items-center gap-1.5 text-white">
                 <Eye className="size-3" />
-                <span className="text-[11px] font-bold  tracking-tighter">{story.views_count || 0}</span>
+                <span className="text-[11px] lg:text-[12px] font-bold  tracking-tighter">{story.views_count || 0}</span>
               </div>
-              <span className="text-[11px] font-bold text-white  tracking-tighter">
+              <span className="text-[11px] lg:text-[12px] font-bold text-white  tracking-tighter">
                 {storyIdx + 1} / {totalInGroup}
                 {totalVendors > 1 && <span className="opacity-50"> · V {vendorIdx + 1}/{totalVendors}</span>}
               </span>

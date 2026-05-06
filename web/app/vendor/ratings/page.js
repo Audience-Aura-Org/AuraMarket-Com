@@ -101,9 +101,9 @@ export default function VendorRatingsPage() {
                 <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:scale-110 transition-transform`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
                 </div>
-                <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
+                <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
                 <h4 className="text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[11px] font-bold opacity-40 ">{stat.sub}</p>
+                <p className="text-[11px] lg:text-[12px] font-bold opacity-40 ">{stat.sub}</p>
               </motion.div>
             ))}
           </div>
@@ -179,7 +179,7 @@ export default function VendorRatingsPage() {
                       </div>
                     </div>
                     
-                    <span className="text-[10px] text-[var(--text-secondary)] opacity-60">
+                    <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-60">
                       {new Date(r.createdAt).toLocaleDateString([], {month: 'short', day: 'numeric'})}
                     </span>
                   </div>

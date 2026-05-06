@@ -46,14 +46,14 @@ export default function OrderConfirmationPage() {
               <div className="p-10 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex flex-col items-center gap-4 group/stat hover:bg-[var(--bg-primary)] hover:border-[var(--accent)]/20 transition-all shadow-inner">
                  <Package className="size-8 text-[var(--text-secondary)] group-hover/stat:text-[var(--accent)] transition-colors opacity-40 group-hover/stat:opacity-100" />
                  <div>
-                    <span className="text-[11px] font-bold tracking-[0.4em] text-[var(--text-secondary)]  opacity-30">Sanctuary Stash</span>
+                    <span className="text-[11px] lg:text-[12px] font-bold tracking-[0.4em] text-[var(--text-secondary)]  opacity-30">Sanctuary Stash</span>
                     <p className="text-sm font-bold text-[var(--text-primary)] mt-1 ">2 Assets Verified</p>
                  </div>
               </div>
               <div className="p-10 rounded-[40px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex flex-col items-center gap-4 group/stat hover:bg-[var(--bg-primary)] hover:border-indigo-500/20 transition-all shadow-inner">
                  <Truck className="size-8 text-[var(--text-secondary)] group-hover/stat:text-indigo-500 transition-colors opacity-40 group-hover/stat:opacity-100" />
                  <div>
-                    <span className="text-[11px] font-bold tracking-[0.4em] text-[var(--text-secondary)]  opacity-30">Arrival Horizon</span>
+                    <span className="text-[11px] lg:text-[12px] font-bold tracking-[0.4em] text-[var(--text-secondary)]  opacity-30">Arrival Horizon</span>
                     <p className="text-sm font-bold text-[var(--text-primary)] mt-1 ">Oct 26-28 Cycle</p>
                  </div>
               </div>
@@ -69,14 +69,14 @@ export default function OrderConfirmationPage() {
            </div>
 
            <div className="mt-20 flex items-center justify-center gap-12 opacity-30">
-             <div className="flex items-center gap-3 text-[11px] font-bold tracking-[0.3em] text-[var(--text-secondary)] "><ShieldCheck className="size-4 text-emerald-500" /> Vault Active</div>
+             <div className="flex items-center gap-3 text-[11px] lg:text-[12px] font-bold tracking-[0.3em] text-[var(--text-secondary)] "><ShieldCheck className="size-4 text-emerald-500" /> Vault Active</div>
              <div className="size-1.5 rounded-full bg-[var(--glass-border)]"></div>
-             <div className="flex items-center gap-3 text-[11px] font-bold tracking-[0.3em] text-[var(--text-secondary)] "><Sparkles className="size-4 text-indigo-500" /> Fully Encrypted</div>
+             <div className="flex items-center gap-3 text-[11px] lg:text-[12px] font-bold tracking-[0.3em] text-[var(--text-secondary)] "><Sparkles className="size-4 text-indigo-500" /> Fully Encrypted</div>
            </div>
         </div>
 
         <div className="mt-16 flex flex-col items-center gap-8">
-           <p className="text-[var(--text-secondary)] font-bold text-[10px] tracking-[0.5em]  opacity-40">Broadcast Transmission</p>
+           <p className="text-[var(--text-secondary)] font-bold text-[10px] lg:text-[12px] tracking-[0.5em]  opacity-40">Broadcast Transmission</p>
            <div className="flex gap-6">
               <button className="size-16 rounded-[24px] bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/50 transition-all flex items-center justify-center shadow-sm group">
                 <Share2 className="size-6 group-hover:scale-110 transition-transform" />

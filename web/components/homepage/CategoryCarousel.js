@@ -33,12 +33,12 @@ export default function CategoryCarousel({ title, data }) {
                 alt={cat.category_name}
               />
               <div className="absolute inset-x-0 bottom-0 p-3 md:p-4 bg-gradient-to-t from-black/60 to-transparent">
-                <span className="text-white font-bold text-center block text-[10px] md:text-sm truncate whitespace-nowrap px-1 md:px-2 tracking-tight">
+                <span className="text-white font-bold text-center block text-[10px] lg:text-[12px] md:text-sm truncate whitespace-nowrap px-1 md:px-2 tracking-tight">
                   {cat.category_name}
                 </span>
               </div>
             </div>
-            <p className="mt-3 text-center font-bold text-[var(--text-primary)] opacity-80 group-hover:opacity-100 transition-opacity truncate whitespace-nowrap px-1 md:px-2 text-[11px] md:text-base">
+            <p className="mt-3 text-center font-bold text-[var(--text-primary)] opacity-80 group-hover:opacity-100 transition-opacity truncate whitespace-nowrap px-1 md:px-2 text-[11px] lg:text-[12px] md:text-base">
               {cat.category_name}
             </p>
           </Link>

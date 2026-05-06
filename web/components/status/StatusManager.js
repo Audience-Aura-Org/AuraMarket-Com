@@ -72,7 +72,7 @@ export default function StatusManager() {
       {/* ── Header Section ────────────────────────────────────────────────── */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <p className="text-[11px] font-bold tracking-[0.3em] text-[var(--accent)]  opacity-80">Operational Management</p>
+          <p className="text-[11px] lg:text-[12px] font-bold tracking-[0.3em] text-[var(--accent)]  opacity-80">Operational Management</p>
           <h2 className="text-5xl font-bold tracking-tighter text-[var(--text-primary)] leading-none">
             Active <span className="opacity-40">Statuses</span>
           </h2>
@@ -96,7 +96,7 @@ export default function StatusManager() {
           <div className="size-16 rounded-full border border-[var(--glass-border)] flex items-center justify-center group-hover:scale-110 group-hover:border-[var(--accent)] transition-all duration-500 bg-[var(--bg-primary)]/50">
             <Plus className="size-8 text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" />
           </div>
-          <span className="text-[11px] font-bold tracking-[0.25em] text-[var(--text-primary)]  opacity-60 group-hover:opacity-100 transition-opacity">New Story</span>
+          <span className="text-[11px] lg:text-[12px] font-bold tracking-[0.25em] text-[var(--text-primary)]  opacity-60 group-hover:opacity-100 transition-opacity">New Story</span>
         </div>
 
         {/* Active Status Cards */}
@@ -123,7 +123,7 @@ export default function StatusManager() {
               {/* Status Info */}
               <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end text-white z-10">
                 <div className="space-y-1.5">
-                  <p className="text-[11px] font-bold tracking-tight opacity-60">Engagement</p>
+                  <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-60">Engagement</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <Eye className="size-4 text-[var(--accent)]" />
@@ -137,11 +137,11 @@ export default function StatusManager() {
                 </div>
                 
                 <div className="flex flex-col items-end gap-2">
-                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-tight  flex items-center gap-2 shadow-xl">
+                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-1.5 rounded-full text-[11px] lg:text-[12px] font-bold tracking-tight  flex items-center gap-2 shadow-xl">
                       <Clock className={`size-3 ${timeLeft < 5 ? 'text-red-400 animate-pulse' : 'text-[var(--accent)]'}`} />
                       {timeLeft < 24 ? `${timeLeft}h left` : `${Math.ceil(timeLeft / 24)}d left`}
                    </div>
-                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[11px] font-bold tracking-tight  flex items-center gap-1.5">
+                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[11px] lg:text-[12px] font-bold tracking-tight  flex items-center gap-1.5">
                       {status.expiry_days === 1 ? <Zap className="size-2.5 text-amber-400" /> : status.expiry_days === 7 ? <Shield className="size-2.5 text-emerald-400" /> : <Flame className="size-2.5 text-[var(--accent)]" />}
                       {status.expiry_days || 1}d story
                    </div>
@@ -186,7 +186,7 @@ export default function StatusManager() {
                     <p className="font-bold text-base text-[var(--text-primary)] tracking-tight  leading-tight">
                       {status.text_content ? (status.text_content.slice(0, 30) + '...') : `Story ${status._id.slice(-6)}`}
                     </p>
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-secondary)] opacity-60">
+                    <div className="flex items-center gap-2 text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-60">
                       <Calendar className="size-3" />
                       <span>Expired {new Date(status.expires_at).toLocaleDateString()}</span>
                     </div>
@@ -195,15 +195,15 @@ export default function StatusManager() {
 
                 <div className="flex gap-12 items-center pr-4">
                   <div className="text-right">
-                    <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Views</p>
+                    <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Views</p>
                     <p className="text-lg font-bold tabular-nums tracking-tighter">{status.views_count || 0}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Likes</p>
+                    <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Likes</p>
                     <p className="text-lg font-bold tabular-nums tracking-tighter text-red-500">{status.likes_count || 0}</p>
                   </div>
                   <div className="text-right hidden sm:block">
-                    <p className="text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
+                    <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  tracking-[0.2em] mb-1 opacity-40">Lifespan</p>
                     <p className="text-lg font-bold tabular-nums tracking-tighter">{status.expiry_days || 1}d</p>
                   </div>
                   <button

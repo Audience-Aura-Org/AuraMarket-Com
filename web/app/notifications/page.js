@@ -106,7 +106,7 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold text-[var(--text-primary)] tracking-tight ">Signals</h1>
           {unreadCount > 0 && (
-            <span className="h-5 px-2 bg-[var(--accent)] text-white text-[11px] font-bold rounded-full flex items-center justify-center animate-pulse">
+            <span className="h-5 px-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold rounded-full flex items-center justify-center animate-pulse">
               {unreadCount}
             </span>
           )}
@@ -118,9 +118,9 @@ export default function NotificationsPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-8 px-1">
-          <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-[0.3em]  opacity-40">Frequency Feed</p>
+          <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.3em]  opacity-40">Frequency Feed</p>
           {unreadCount > 0 && (
-            <button onClick={markAllRead} className="flex items-center gap-2 text-[11px] font-bold text-[var(--accent)] tracking-tight  hover:underline group">
+            <button onClick={markAllRead} className="flex items-center gap-2 text-[11px] lg:text-[12px] font-bold text-[var(--accent)] tracking-tight  hover:underline group">
               <CheckCheck className="size-3 group-hover:scale-110 transition-transform" /> Sync All
             </button>
           )}
@@ -159,11 +159,11 @@ export default function NotificationsPage() {
                       <h3 className={`text-xs font-bold truncate ${!n.is_read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
                         {n.title}
                       </h3>
-                      <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 shrink-0">
+                      <span className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 shrink-0">
                         {timeAgo(n.createdAt)}
                       </span>
                     </div>
-                    <p className={`text-[11px] leading-snug truncate ${!n.is_read ? 'text-[var(--text-secondary)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                    <p className={`text-[11px] lg:text-[12px] leading-snug truncate ${!n.is_read ? 'text-[var(--text-secondary)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
                       {n.message}
                     </p>
                   </div>

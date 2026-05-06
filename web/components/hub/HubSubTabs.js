@@ -63,7 +63,7 @@ export const ProfileContent = memo(({ user, onSelectTab }) => {
               
               <div className="flex-1 text-left z-10 min-w-0">
                 <h3 className="text-[13px] md:text-[15px] font-bold text-[var(--text-primary)]  tracking-tighter truncate">{item.label}</h3>
-                <p className="text-[10px] md:text-[11px] text-[var(--text-secondary)] opacity-60 tracking-tight mt-0.5 truncate">{item.desc}</p>
+                <p className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] text-[var(--text-secondary)] opacity-60 tracking-tight mt-0.5 truncate">{item.desc}</p>
               </div>
               
               <div className="size-8 rounded-full bg-[var(--text-primary)]/5 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 z-10 shrink-0">
@@ -108,15 +108,15 @@ export const OrdersContent = memo(({ user }) => {
                    <Package className="size-5 text-[var(--accent)] opacity-40 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold  text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
-                  <p className="text-[10px] text-[var(--text-secondary)] opacity-50 tracking-tight">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  <p className="text-[11px] lg:text-[12px] font-bold  text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
+                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 tracking-tight">{new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-right">
                   <p className="text-xs font-bold text-[var(--text-primary)]">{order.total_amount?.toLocaleString() || order.total?.toLocaleString()} XAF</p>
                   <div className="flex items-center gap-1.5 justify-end mt-1">
-                    <span className="text-[11px] font-bold tracking-tight text-emerald-400">{order.order_status || order.status}</span>
+                    <span className="text-[11px] lg:text-[12px] font-bold tracking-tight text-emerald-400">{order.order_status || order.status}</span>
                     <CheckCircle2 className="size-3 text-emerald-400" />
                   </div>
                 </div>
@@ -127,7 +127,7 @@ export const OrdersContent = memo(({ user }) => {
         ) : (
           <div className="flex flex-col items-center justify-center p-12 text-[var(--text-secondary)]">
             <ShoppingBag className="size-10 mb-4 opacity-10" />
-            <p className="text-[11px] font-bold tracking-tight opacity-40">No Order Records</p>
+            <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40">No Order Records</p>
           </div>
         )}
       </div>
@@ -162,7 +162,7 @@ export const WishlistContent = memo(({ user }) => {
           ) : (
              <div className="flex flex-col items-center justify-center p-12">
                 <Heart className="size-10 text-[var(--accent)] opacity-10 mb-4" />
-                <p className="text-[11px] font-bold tracking-tight opacity-40 text-[var(--text-secondary)]">Zero Savings Found</p>
+                <p className="text-[11px] lg:text-[12px] font-bold tracking-tight opacity-40 text-[var(--text-secondary)]">Zero Savings Found</p>
              </div>
           )}
        </div>

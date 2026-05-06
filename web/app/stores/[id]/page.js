@@ -162,23 +162,23 @@ export default function StorePage() {
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
                     <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
-                    <span className="text-[11px] font-bold text-[var(--text-primary)]">
+                    <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">
                       {vendor?.rating ? vendor.rating.toFixed(1) : '5.0'}
                     </span>
-                    <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
+                    <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
                   </div>
 
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
                     <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
-                    <span className="text-[11px] font-bold text-[var(--text-primary)]">
+                    <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">
                       {vendor?.follower_count ? (vendor.follower_count >= 1000 ? (vendor.follower_count / 1000).toFixed(1) + 'k' : vendor.follower_count) : '0'}
                     </span>
-                    <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
+                    <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
                   </div>
 
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                     <ShieldCheck className="size-3.5 text-emerald-600" />
-                    <span className="text-[11px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
+                    <span className="text-[11px] lg:text-[12px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
                   </div>
                 </div>
               </div>
@@ -187,12 +187,12 @@ export default function StorePage() {
               <div className="flex flex-row md:flex-col items-center gap-2 w-full md:w-auto shrink-0">
                 <VendorFollowButton 
                   vendorId={vendor?._id?.toString() || id} 
-                  className="!h-10 md:!h-11 !text-[10px] flex-1 md:flex-none"
+                  className="!h-10 md:!h-11 !text-[10px] lg:text-[12px] flex-1 md:flex-none"
                 />
                 {user?._id === store.vendor_id?.user_id?._id && (
                    <button 
                     onClick={() => setShowStatusCreator(true)}
-                    className="h-10 md:h-11 px-6 rounded-xl bg-[var(--accent)] text-white font-bold text-[10px] tracking-tight  hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20 flex-1 md:flex-none flex items-center justify-center gap-2"
+                    className="h-10 md:h-11 px-6 rounded-xl bg-[var(--accent)] text-white font-bold text-[10px] lg:text-[12px] tracking-tight  hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20 flex-1 md:flex-none flex items-center justify-center gap-2"
                    >
                      <Activity className="size-3.5" /> Add Story
                    </button>
@@ -202,7 +202,7 @@ export default function StorePage() {
                     store_name: store.vendor_id?.store_name,
                     branding: { logo: store.logo || store.vendor_id?.user_id?.branding?.logo }
                   })}
-                  className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                  className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                 >
                   Contact
                 </button>
@@ -236,7 +236,7 @@ export default function StorePage() {
                   onClick={() => { setActiveTab(tab.id); setPage(1); }}
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`h-11 md:h-12 px-6 md:px-8 rounded-2xl flex items-center gap-3 text-[10px] md:text-[11px] font-bold tracking-tight  transition-all shrink-0 border-2 ${
+                  className={`h-11 md:h-12 px-6 md:px-8 rounded-2xl flex items-center gap-3 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold tracking-tight  transition-all shrink-0 border-2 ${
                     tab.id === activeTab
                     ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-primary)] shadow-2xl' 
                     : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]'
@@ -267,7 +267,7 @@ export default function StorePage() {
                    <button 
                     disabled={page === 1}
                     onClick={() => handlePageChange(page - 1)}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                    >
                      Previous
                    </button>
@@ -279,7 +279,7 @@ export default function StorePage() {
                             <button 
                                key={p}
                                onClick={() => handlePageChange(p)}
-                               className={`size-10 rounded-xl flex items-center justify-center text-[11px] font-bold transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
+                               className={`size-10 rounded-xl flex items-center justify-center text-[11px] lg:text-[12px] font-bold transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]'}`}
                             >
                                {p}
                             </button>
@@ -289,7 +289,7 @@ export default function StorePage() {
                    <button 
                     disabled={products.length < 20}
                     onClick={() => handlePageChange(page + 1)}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
+                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                    >
                      Next
                    </button>

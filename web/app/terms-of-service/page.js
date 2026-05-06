@@ -72,7 +72,7 @@ export default function TermsOfService() {
               Limitation of Liability
             </h2>
             <div className="pl-11 border-l-2 border-[var(--glass-border)] py-2 ml-4">
-              <p className="text-[var(--text-secondary)] leading-relaxed bg-[var(--bg-secondary)]/50 p-4 rounded-xl border border-[var(--glass-border)]  text-[11px] font-bold tracking-tight">
+              <p className="text-[var(--text-secondary)] leading-relaxed bg-[var(--bg-secondary)]/50 p-4 rounded-xl border border-[var(--glass-border)]  text-[11px] lg:text-[12px] font-bold tracking-tight">
                 In no event shall Aura Market, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
               </p>
             </div>

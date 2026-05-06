@@ -25,9 +25,9 @@ function KPI({ title, value, icon: Icon, color, sub }) {
     <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 relative overflow-hidden glass-panel">
       <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl opacity-20 ${c[color]?.split(' ')[0]}`} />
       <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-4 ${c[color]}`}><Icon className="w-5 h-5" /></div>
-      <p className="text-[11px] font-bold tracking-[0.15em] text-[var(--text-secondary)] opacity-50">{title}</p>
+      <p className="text-[11px] lg:text-[12px] font-bold tracking-[0.15em] text-[var(--text-secondary)] opacity-50">{title}</p>
       <h3 className="text-2xl font-bold text-[var(--text-primary)] mt-1 tabular-nums">{value}</h3>
-      {sub && <p className="text-[10px] text-[var(--text-secondary)] opacity-40 mt-1">{sub}</p>}
+      {sub && <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -56,7 +56,7 @@ function DetailDrawer({ wr, onClose, onApprove, onReject, onRecheck, processing 
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-bold tracking-tight">Withdrawal Review</h2>
-            <p className="text-[10px] text-[var(--text-secondary)] opacity-40 font-mono">{wr._id}</p>
+            <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40 font-mono">{wr._id}</p>
           </div>
           <button onClick={onClose} className="size-9 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
             <XCircle className="size-5" />
@@ -72,43 +72,43 @@ function DetailDrawer({ wr, onClose, onApprove, onReject, onRecheck, processing 
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-[var(--text-primary)] truncate">{wr.requestedBy?.name || '—'}</p>
-            <p className="text-[10px] text-[var(--text-secondary)] opacity-50 truncate">{wr.requestedBy?.email}</p>
-            <span className="text-[10px] font-bold tracking-widest px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">{wr.role?.toUpperCase()}</span>
+            <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 truncate">{wr.requestedBy?.email}</p>
+            <span className="text-[10px] lg:text-[12px] font-bold tracking-widest px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">{wr.role?.toUpperCase()}</span>
           </div>
           <div className="text-right shrink-0">
             <p className="text-xl font-bold tabular-nums">{fmt(wr.amount)}</p>
-            <p className="text-[10px] font-bold opacity-30">{wr.currency}</p>
+            <p className="text-[10px] lg:text-[12px] font-bold opacity-30">{wr.currency}</p>
           </div>
         </div>
 
         {/* Details Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-            <p className="text-[10px] font-bold opacity-40 mb-1">Method</p>
+            <p className="text-[10px] lg:text-[12px] font-bold opacity-40 mb-1">Method</p>
             <div className="flex items-center gap-2">
               <MIcon className="size-4 text-[var(--accent)]" />
               <p className="text-sm font-bold capitalize">{wr.withdrawalMethod}</p>
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-            <p className="text-[10px] font-bold opacity-40 mb-1">Status</p>
+            <p className="text-[10px] lg:text-[12px] font-bold opacity-40 mb-1">Status</p>
             <div className={`flex items-center gap-1 text-xs font-bold ${S.cls.split(' ').slice(1).join(' ')}`}>
               <SIcon className="size-3" />
               <span className="capitalize">{wr.status}</span>
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-            <p className="text-[10px] font-bold opacity-40 mb-1">Recipient</p>
+            <p className="text-[10px] lg:text-[12px] font-bold opacity-40 mb-1">Recipient</p>
             <p className="text-xs font-bold">{rd.firstName} {rd.lastName}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <Globe className="size-3 opacity-30" />
-              <p className="text-[10px] opacity-50">{rd.country}</p>
+              <p className="text-[10px] lg:text-[12px] opacity-50">{rd.country}</p>
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-            <p className="text-[10px] font-bold opacity-40 mb-1">Destination</p>
+            <p className="text-[10px] lg:text-[12px] font-bold opacity-40 mb-1">Destination</p>
             <p className="text-xs font-bold font-mono truncate">{rd.phoneNumber || rd.accountNumber || rd.eversendTag || '—'}</p>
-            {rd.bankCode && <p className="text-[10px] opacity-50 mt-0.5">{rd.bankCode}</p>}
+            {rd.bankCode && <p className="text-[10px] lg:text-[12px] opacity-50 mt-0.5">{rd.bankCode}</p>}
           </div>
         </div>
 
@@ -117,7 +117,7 @@ function DetailDrawer({ wr, onClose, onApprove, onReject, onRecheck, processing 
           <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/20 mb-6 flex items-center gap-3">
             <Zap className="size-4 text-[var(--accent)] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold opacity-50">Eversend Transaction ID</p>
+              <p className="text-[10px] lg:text-[12px] font-bold opacity-50">Eversend Transaction ID</p>
               <p className="text-xs font-mono font-bold truncate">{wr.eversendTransactionId}</p>
             </div>
             <button onClick={() => copy(wr.eversendTransactionId)} className="size-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center hover:bg-[var(--accent)]/20 transition-all">
@@ -129,14 +129,14 @@ function DetailDrawer({ wr, onClose, onApprove, onReject, onRecheck, processing 
         {/* Rejection/Failure reason */}
         {(wr.rejectionReason || wr.failureReason) && (
           <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 mb-6">
-            <p className="text-[10px] font-bold text-red-500 mb-1">{wr.rejectionReason ? 'Rejection Reason' : 'Failure Reason'}</p>
+            <p className="text-[10px] lg:text-[12px] font-bold text-red-500 mb-1">{wr.rejectionReason ? 'Rejection Reason' : 'Failure Reason'}</p>
             <p className="text-xs text-[var(--text-secondary)]">{wr.rejectionReason || wr.failureReason}</p>
           </div>
         )}
 
         {wr.note && (
           <div className="p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] mb-6">
-            <p className="text-[10px] font-bold opacity-40 mb-1">Requester Note</p>
+            <p className="text-[10px] lg:text-[12px] font-bold opacity-40 mb-1">Requester Note</p>
             <p className="text-xs">{wr.note}</p>
           </div>
         )}
@@ -300,7 +300,7 @@ export default function AdminWithdrawalsPage() {
               <h1 className="text-2xl font-bold tracking-tight">Payout Queue</h1>
               <p className="text-xs text-[var(--text-secondary)] opacity-60 font-bold tracking-tight">
                 Eversend Withdrawal Approvals
-                {pendingCount > 0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px]">{pendingCount} PENDING</span>}
+                {pendingCount > 0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] lg:text-[12px]">{pendingCount} PENDING</span>}
               </p>
             </div>
           </div>
@@ -323,7 +323,7 @@ export default function AdminWithdrawalsPage() {
             <div className="flex flex-wrap gap-1 p-1 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl">
               {TABS.map(f => (
                 <button key={f} onClick={() => setFilter(f)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-tight transition-all capitalize ${filter === f ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}>
+                  className={`px-4 py-2 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-tight transition-all capitalize ${filter === f ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] opacity-50 hover:opacity-100'}`}>
                   {f}
                 </button>
               ))}
@@ -334,7 +334,7 @@ export default function AdminWithdrawalsPage() {
                <select 
                  value={roleFilter} 
                  onChange={e => setRoleFilter(e.target.value)}
-                 className="bg-transparent text-[10px] font-bold tracking-tight text-[var(--text-secondary)] outline-none"
+                 className="bg-transparent text-[10px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] outline-none"
                >
                   <option value="all">All Roles</option>
                   <option value="vendor">Vendors</option>
@@ -372,22 +372,22 @@ export default function AdminWithdrawalsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-bold text-sm text-[var(--text-primary)] truncate">{w.requestedBy?.name || '—'}</p>
-                      <span className="text-[10px] font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60 shrink-0">
+                      <span className="text-[10px] lg:text-[12px] font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60 shrink-0">
                         {w.role?.toUpperCase()}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <div className="flex items-center gap-1 text-[10px] text-[var(--text-secondary)] opacity-50">
+                      <div className="flex items-center gap-1 text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50">
                         <MIcon className="size-3" />
                         <span className="capitalize">{w.withdrawalMethod}</span>
                       </div>
-                      <span className="text-[10px] opacity-30">•</span>
-                      <p className="text-[10px] text-[var(--text-secondary)] opacity-40">{new Date(w.createdAt).toLocaleDateString()}</p>
+                      <span className="text-[10px] lg:text-[12px] opacity-30">•</span>
+                      <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40">{new Date(w.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-base font-bold tabular-nums">{fmt(w.amount)}</p>
-                    <p className="text-[10px] font-bold opacity-30">{w.currency}</p>
+                    <p className="text-[10px] lg:text-[12px] font-bold opacity-30">{w.currency}</p>
                   </div>
                   <ChevronRight className="size-4 opacity-20 group-hover:opacity-60 group-hover:translate-x-1 transition-all" />
                 </div>

@@ -75,7 +75,7 @@ export default function TermsAndConditions() {
         </div>
 
         <div className="mt-16 text-center">
-           <p className="text-[11px] font-bold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
+           <p className="text-[11px] lg:text-[12px] font-bold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
               Aura Market Global Terms of Service v1.0
            </p>
         </div>

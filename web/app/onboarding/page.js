@@ -299,12 +299,12 @@ export default function OnboardingFlow() {
             {!isLastStep && step < 3 && (
               <button 
                 onClick={skip} 
-                className="px-3 py-1.5 rounded-lg text-[11px] font-bold  tracking-[0.2em] text-[var(--accent)] hover:opacity-70 transition-all flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg text-[11px] lg:text-[12px] font-bold  tracking-[0.2em] text-[var(--accent)] hover:opacity-70 transition-all flex items-center gap-1.5"
               >
                 Skip <SkipForward className="size-3 opacity-60" />
               </button>
             )}
-            <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-bold text-emerald-400 tracking-tight">
+            <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] lg:text-[12px] font-bold text-emerald-400 tracking-tight">
               Verified
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function OnboardingFlow() {
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-bold tracking-tight">{currentStepMeta?.title}</h1>
-              <p className={`text-[10px] md:text-xs font-bold ${colors.text} opacity-80`}>{currentStepMeta?.subtitle}</p>
+              <p className={`text-[10px] lg:text-[12px] md:text-xs font-bold ${colors.text} opacity-80`}>{currentStepMeta?.subtitle}</p>
             </div>
           </div>
         </div>
@@ -345,7 +345,7 @@ export default function OnboardingFlow() {
                 <div className="flex-1 h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden">
                   <div className="h-full bg-rose-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (selectedCategories.length / 2) * 100)}%` }} />
                 </div>
-                <span className="text-[11px] font-bold text-rose-400 shrink-0">{selectedCategories.length}/2 min</span>
+                <span className="text-[11px] lg:text-[12px] font-bold text-rose-400 shrink-0">{selectedCategories.length}/2 min</span>
               </div>
 
               {/* High-Density Rectangular Category Blocks */}
@@ -364,7 +364,7 @@ export default function OnboardingFlow() {
                         </div>
                         <div className="flex flex-col text-left min-w-0">
                           <span className="text-sm font-bold text-[var(--text-primary)] truncate">{cat.name}</span>
-                          <span className="text-[10px] text-[var(--text-secondary)] font-medium opacity-50">
+                          <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium opacity-50">
                             {cat.product_count > 0 ? `${cat.product_count} products` : 'Explore node'}
                           </span>
                         </div>
@@ -383,7 +383,7 @@ export default function OnboardingFlow() {
                 <div className="pt-4 flex justify-center">
                   <button
                     onClick={() => setVisibleCategoriesCount(p => p + 20)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition-all shadow-sm"
                   >
                     See more <ChevronRight className="size-3 text-[var(--accent)]" />
                   </button>
@@ -399,7 +399,7 @@ export default function OnboardingFlow() {
             <div className="space-y-4 max-w-md mx-auto w-full">
               {!isVendor && (
                 <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all group focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] font-bold text-[var(--accent)] tracking-tight mb-1 block opacity-60">Primary Contact</label>
+                  <label className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)] tracking-tight mb-1 block opacity-60">Primary Contact</label>
                   <div className="relative">
                     <Phone className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
                     <input
@@ -414,7 +414,7 @@ export default function OnboardingFlow() {
               )}
 
               <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Base City</label>
+                <label className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Base City</label>
                 {zonesLoading ? (
                   <div className="flex items-center gap-3 py-1">
                     <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
@@ -443,7 +443,7 @@ export default function OnboardingFlow() {
                   className="space-y-4"
                 >
                   <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                    <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Neighbourhood / Zone</label>
+                    <label className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Neighbourhood / Zone</label>
                     <div className="relative">
                       <Globe className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
                       <select
@@ -460,7 +460,7 @@ export default function OnboardingFlow() {
                   </div>
 
                   <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                    <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Address Details / Notes</label>
+                    <label className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Address Details / Notes</label>
                     <textarea
                       placeholder={isVendor ? "e.g. Opposite Total Station, gate #4..." : "e.g. Door #5, blue building..."}
                       value={location.address_description}
@@ -497,7 +497,7 @@ export default function OnboardingFlow() {
                      style={{ width: `${Math.min(100, (followedVendors.length / 2) * 100)}%` }}
                    />
                  </div>
-                 <span className="text-[11px] font-bold text-blue-400 shrink-0">
+                 <span className="text-[11px] lg:text-[12px] font-bold text-blue-400 shrink-0">
                    {followedVendors.length}/2 Selected
                  </span>
                </div>
@@ -522,13 +522,13 @@ export default function OnboardingFlow() {
                          </div>
                          <div className="flex flex-col min-w-0">
                             <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">{v.store_name || 'Verified Vendor'}</h3>
-                            <p className="text-[10px] text-[var(--text-secondary)] font-medium opacity-50">Verified Merchant</p>
+                            <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium opacity-50">Verified Merchant</p>
                          </div>
                        </div>
                        
                        <button 
                          onClick={(e) => { e.stopPropagation(); !isSyncing && handleToggleFollow(v._id); }}
-                         className={`px-4 py-2 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
+                         className={`px-4 py-2 rounded-xl text-[11px] lg:text-[12px] font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
                        >
                          {isSyncing ? <Loader2 className="size-3.5 animate-spin" /> : isFollowing ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
                          {isFollowing ? 'Followed' : 'Follow'}
@@ -546,7 +546,7 @@ export default function OnboardingFlow() {
             <div className="space-y-4">
               <div className="space-y-4 max-w-md">
                 <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-2 block opacity-50">Store Name</label>
+                  <label className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] mb-2 block opacity-50">Store Name</label>
                   <div className="relative">
                     <Store className="absolute left-0 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)]" />
                     <input
@@ -560,7 +560,7 @@ export default function OnboardingFlow() {
                 </div>
 
                 <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-2 block opacity-50">Phone Number</label>
+                  <label className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] mb-2 block opacity-50">Phone Number</label>
                   <div className="relative">
                     <Phone className="absolute left-0 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)]" />
                     <input
@@ -574,7 +574,7 @@ export default function OnboardingFlow() {
                 </div>
 
                 <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] font-bold text-[var(--text-secondary)] mb-2 block opacity-50">Brand Description</label>
+                  <label className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] mb-2 block opacity-50">Brand Description</label>
                   <textarea
                     placeholder="Tell buyers what makes your store unique..."
                     value={vendorProfile.description}
@@ -599,7 +599,7 @@ export default function OnboardingFlow() {
                  </div>
                  <div className="space-y-1">
                     <h1 className="text-3xl font-light text-[var(--text-primary)] tracking-tight">Your Profile is Ready</h1>
-                    <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-50 tracking-tight ">Everything syncronized perfectly</p>
+                    <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-50 tracking-tight ">Everything syncronized perfectly</p>
                  </div>
               </div>
 
@@ -611,7 +611,7 @@ export default function OnboardingFlow() {
                          {isVendor ? <Store className="size-5" /> : <Users className="size-5" />}
                       </div>
                       <div className="text-left">
-                         <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-normal opacity-40">Primary Identity</p>
+                         <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-normal opacity-40">Primary Identity</p>
                          <p className="text-sm font-medium">{isVendor ? vendorProfile.store_name : `${followedVendors.length} vendors followed`}</p>
                       </div>
                    </div>
@@ -624,7 +624,7 @@ export default function OnboardingFlow() {
                          <Heart className="size-5" />
                       </div>
                       <div className="text-left">
-                         <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-normal opacity-40">Discovery Filters</p>
+                         <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-normal opacity-40">Discovery Filters</p>
                          <p className="text-sm font-medium">{selectedCategories.length} categories selected</p>
                       </div>
                    </div>
@@ -637,7 +637,7 @@ export default function OnboardingFlow() {
                          <MapPin className="size-5" />
                       </div>
                       <div className="text-left">
-                         <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-normal opacity-40">Service Zone</p>
+                         <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-normal opacity-40">Service Zone</p>
                          <p className="text-sm font-medium">{location.city || 'Global'}{location.quartier ? `, ${location.quartier}` : ''}</p>
                       </div>
                    </div>
@@ -666,7 +666,7 @@ export default function OnboardingFlow() {
             {/* Primary Action Button */}
             <button
               onClick={goNext}
-              className="w-full py-4 rounded-2xl font-bold text-[11px] tracking-tight flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
+              className="w-full py-4 rounded-2xl font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
               style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
             >
               {step === 2 ? 'Final Review' : 'Continue'}

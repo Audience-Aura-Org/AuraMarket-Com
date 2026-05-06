@@ -156,7 +156,7 @@ export default function UnifiedAuth() {
             >
               <div className="text-center space-y-1">
                 <h1 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight">Welcome to Aura</h1>
-                <p className="text-[10px] text-[var(--text-secondary)] opacity-60">
+                <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-60">
                   Enter your email to continue
                 </p>
               </div>
@@ -172,7 +172,7 @@ export default function UnifiedAuth() {
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     placeholder="name@example.com"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] lg:text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                   />
                 </div>
 
@@ -186,13 +186,13 @@ export default function UnifiedAuth() {
               </form>
 
               <div className="pt-4 border-t border-[var(--glass-border)] text-center">
-                <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mb-3">New to Aura Market?</p>
+                <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mb-3">New to Aura Market?</p>
                 <button
                   onClick={() => {
                     setIsNewUser(true);
                     setStep('CHALLENGE');
                   }}
-                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)] font-semibold text-[11px] hover:bg-[var(--accent)]/5 transition-all"
+                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)] font-semibold text-[11px] lg:text-[12px] hover:bg-[var(--accent)]/5 transition-all"
                 >
                   Create an account
                 </button>
@@ -209,7 +209,7 @@ export default function UnifiedAuth() {
             >
               <button
                 onClick={prevStep}
-                className="inline-flex items-center gap-2 text-[10px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all mb-2"
+                className="inline-flex items-center gap-2 text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all mb-2"
               >
                 <ArrowLeft className="w-3 h-3" />
                 Change email
@@ -219,13 +219,13 @@ export default function UnifiedAuth() {
                 <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">
                   {isNewUser ? 'Create your account' : 'Enter your password'}
                 </h2>
-                <p className="text-[11px] font-bold text-[var(--accent)] truncate max-w-full opacity-80">
+                <p className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)] truncate max-w-full opacity-80">
                   {formData.email}
                 </p>
               </div>
 
               {error && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-bold text-center">
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] lg:text-[12px] font-bold text-center">
                   {error}
                 </div>
               )}
@@ -246,7 +246,7 @@ export default function UnifiedAuth() {
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
                         placeholder="Full Name"
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] lg:text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
                     
@@ -258,7 +258,7 @@ export default function UnifiedAuth() {
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         placeholder="Email Address"
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] lg:text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
 
@@ -270,7 +270,7 @@ export default function UnifiedAuth() {
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
                         placeholder="Phone Number"
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] lg:text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
 
@@ -290,7 +290,7 @@ export default function UnifiedAuth() {
                            {r === 'customer' && <ShoppingBag className="w-4 h-4" />}
                            {r === 'vendor' && <Store className="w-4 h-4" />}
                            {r === 'logistics' && <Truck className="w-4 h-4" />}
-                           <span className="text-[11px] font-bold  tracking-tighter">{r}</span>
+                           <span className="text-[11px] lg:text-[12px] font-bold  tracking-tighter">{r}</span>
                          </button>
                        ))}
                     </div>
@@ -313,7 +313,7 @@ export default function UnifiedAuth() {
                   <button
                     type="button"
                     onClick={() => setIsNewUser(!isNewUser)}
-                    className="text-[11px] font-medium text-[var(--accent)] hover:opacity-70 transition-all"
+                    className="text-[11px] lg:text-[12px] font-medium text-[var(--accent)] hover:opacity-70 transition-all"
                   >
                     {isNewUser ? 'I already have an account' : 'I\'m new to Aura Market'}
                   </button>
@@ -336,7 +336,7 @@ export default function UnifiedAuth() {
         </AnimatePresence>
       </div>
 
-      <p className="mt-8 text-center text-[11px] font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
+      <p className="mt-8 text-center text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
       </p>
     </div>
   );

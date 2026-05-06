@@ -168,7 +168,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                 placeholder="Search the global market..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] md:text-sm outline-none transition-all font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] lg:text-[12px] md:text-sm outline-none transition-all font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
               <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 flex items-center justify-center font-bold">
                 <Search className="size-4" />
@@ -176,7 +176,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             </div>
             <Link 
               href="/stores"
-              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-all font-bold text-[11px] shadow-sm active:scale-95"
+              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-all font-bold text-[11px] lg:text-[12px] shadow-sm active:scale-95"
             >
               <Store className="size-4" /> Explore Stores
             </Link>
@@ -190,13 +190,13 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
              ) : (
                <>
                  {breadcrumb.length > 0 ? (
-                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
                      <Home className="size-3.5" /> Market
                    </button>
                  ) : (
                     <button 
                       onClick={() => handleBreadcrumbClick(-1)}
-                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
                       All
                     </button>
@@ -207,7 +207,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {crumb.name}
                       </button>
@@ -223,7 +223,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                          if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); setPage(1); }
                        }}
-                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {cat.name}
                     </button>
@@ -241,7 +241,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             {activeCategoryName === 'All' ? 'Global Discovery' : activeCategoryName}
           </h3>
           <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
-          <p className="text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
+          <p className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
             {products.length} Results
           </p>
         </div>
@@ -250,18 +250,18 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
           <div className="relative dropdown-container">
             <button 
               onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
+              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold tracking-tight shadow-sm"
             >
               Price
               <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
             </button>
             {isPriceOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                 <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                 <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                    Any Price {!activePrice && <Check className="size-3.5" />}
                  </button>
                  {PRICE_RANGES.map(range => (
-                   <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                   <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                      {range.name} {activePrice === range.id && <Check className="size-3.5" />}
                    </button>
                  ))}
@@ -272,7 +272,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
           <div className="relative dropdown-container">
             <button 
               onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
+              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold tracking-tight shadow-sm"
             >
               Sort
               <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
@@ -280,7 +280,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             {isSortOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                  {SORT_OPTIONS.map(opt => (
-                   <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                   <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                      {opt.label}
                      {sortBy === opt.value && <Check className="size-3.5" />}
                    </button>
@@ -317,12 +317,12 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight">No Market Items</h2>
-              <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-40 max-w-[280px] mx-auto mt-2">
+              <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 max-w-[280px] mx-auto mt-2">
                 Try adjusting your filters or search to explore the global collection.<br/>
                 All products from the general market are indexed here.
               </p>
             </div>
-            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[11px] font-bold rounded-full shadow-lg">Reset Feed</button>
+            <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold rounded-full shadow-lg">Reset Feed</button>
           </div>
         )}
 
@@ -572,7 +572,7 @@ export default function DiscoveryHub() {
                   )}
                 </div>
                 
-                <span className={`text-[10px] font-medium tracking-[0.02em] mt-1.5 transition-all ${
+                <span className={`text-[10px] lg:text-[12px] font-medium tracking-[0.02em] mt-1.5 transition-all ${
                   isActive ? 'text-[var(--accent)] opacity-100' : 'text-[var(--text-secondary)] opacity-60'
                 }`}>
                   {tab.label}
@@ -606,7 +606,7 @@ export default function DiscoveryHub() {
                   }`}
                 >
                    <Icon className={`size-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                   <span className="text-[10px] font-medium tracking-[0.02em] mt-1.5">{tab.label}</span>
+                   <span className="text-[10px] lg:text-[12px] font-medium tracking-[0.02em] mt-1.5">{tab.label}</span>
                 </button>
               </div>
             );

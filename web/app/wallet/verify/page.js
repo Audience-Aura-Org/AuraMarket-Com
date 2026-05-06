@@ -161,7 +161,7 @@ function VerifyContent() {
       
       {/* Back nav */}
       <div className="absolute top-6 left-6">
-        <Link href={type === 'checkout' ? '/orders' : '/wallet'} className="flex items-center gap-2 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+        <Link href={type === 'checkout' ? '/orders' : '/wallet'} className="flex items-center gap-2 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
           <ArrowLeft className="size-4" />
           {type === 'checkout' ? 'View Orders' : 'Back to Wallet'}
         </Link>
@@ -192,7 +192,7 @@ function VerifyContent() {
               </p>
               {reason && (
                 <div className="mt-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
-                  <p className="text-[11px] font-bold text-red-400 tracking-tight">{reason}</p>
+                  <p className="text-[11px] lg:text-[12px] font-bold text-red-400 tracking-tight">{reason}</p>
                 </div>
               )}
             </div>
@@ -220,14 +220,14 @@ function VerifyContent() {
                 <>
                   <button
                     onClick={() => router.push(type === 'checkout' ? '/orders' : '/wallet')}
-                    className="w-full h-12 rounded-2xl bg-emerald-500 text-white font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
+                    className="w-full h-12 rounded-2xl bg-emerald-500 text-white font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
                   >
                     {type === 'checkout' ? 'View My Orders' : 'Back to Wallet'}
                     <ChevronRight className="size-4" />
                   </button>
                   <button
                     onClick={() => router.push('/discovery')}
-                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] tracking-tight hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] transition-all"
+                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] lg:text-[12px] tracking-tight hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] transition-all"
                   >
                     Continue Shopping
                   </button>
@@ -239,12 +239,12 @@ function VerifyContent() {
                   <button
                     onClick={handleRecheck}
                     disabled={recheckLoading}
-                    className="w-full h-12 rounded-2xl bg-amber-500 text-white font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                    className="w-full h-12 rounded-2xl bg-amber-500 text-white font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
                   >
                     {recheckLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                     Recheck Payment Status
                   </button>
-                  <Link href="/wallet/transactions" className="block w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all">
+                  <Link href="/wallet/transactions" className="block w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all">
                     View Transaction History
                   </Link>
                 </>
@@ -254,7 +254,7 @@ function VerifyContent() {
                 <>
                   <button
                     onClick={() => router.back()}
-                    className="w-full h-12 rounded-2xl bg-[var(--accent)] text-white font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
+                    className="w-full h-12 rounded-2xl bg-[var(--accent)] text-white font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
                   >
                     <RotateCcw className="size-4" />
                     Retry Payment
@@ -262,14 +262,14 @@ function VerifyContent() {
                   <button
                     onClick={handleRecheck}
                     disabled={recheckLoading}
-                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all disabled:opacity-50"
+                    className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all disabled:opacity-50"
                   >
                     {recheckLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                     Recheck Payment
                   </button>
                   <button
                     onClick={() => router.push(type === 'checkout' ? '/cart' : '/wallet')}
-                    className="w-full h-12 rounded-2xl border border-red-500/20 text-red-400 font-bold text-[11px] tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all"
+                    className="w-full h-12 rounded-2xl border border-red-500/20 text-red-400 font-bold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all"
                   >
                     <X className="size-4" />
                     Cancel
@@ -278,7 +278,7 @@ function VerifyContent() {
               )}
 
               {state === 'recheck' && (
-                <div className="flex items-center justify-center gap-2 text-[11px] font-bold text-[var(--text-secondary)] opacity-60">
+                <div className="flex items-center justify-center gap-2 text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-60">
                   <Loader2 className="size-4 animate-spin" />
                   Fetching latest status...
                 </div>
@@ -287,7 +287,7 @@ function VerifyContent() {
 
             {/* Reference display */}
             {ref && state !== 'loading' && (
-              <p className="text-center text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-6">
+              <p className="text-center text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-6">
                 Ref: {ref}
               </p>
             )}

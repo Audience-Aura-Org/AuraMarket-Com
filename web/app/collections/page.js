@@ -24,7 +24,7 @@ export default function CollectionsPage() {
               </div>
               <div className="space-y-0.5">
                  <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Curated Sectors</h1>
-                 <p className="text-[11px] font-bold  tracking-[0.2em] text-[var(--text-secondary)] opacity-40">Definitive Inventory Calibration</p>
+                 <p className="text-[11px] lg:text-[12px] font-bold  tracking-[0.2em] text-[var(--text-secondary)] opacity-40">Definitive Inventory Calibration</p>
               </div>
            </div>
 
@@ -60,7 +60,7 @@ export default function CollectionsPage() {
                        <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">{col.title}</h3>
                     </div>
                     <div className="flex items-center gap-10">
-                       <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-30  tracking-[0.2em] whitespace-nowrap">{col.count} nodes</span>
+                       <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30  tracking-[0.2em] whitespace-nowrap">{col.count} nodes</span>
                     </div>
                  </div>
 
@@ -73,7 +73,7 @@ export default function CollectionsPage() {
 
         {/* Global Registry Footer */}
         <div className="pt-12 text-center opacity-30">
-           <p className="text-[11px] font-bold tracking-[0.5em] text-[var(--text-secondary)] ">
+           <p className="text-[11px] lg:text-[12px] font-bold tracking-[0.5em] text-[var(--text-secondary)] ">
               Aura Market Operational Sectors // Unified Hub v4.2
            </p>
         </div>

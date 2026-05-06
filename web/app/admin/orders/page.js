@@ -152,7 +152,7 @@ export default function AdminOrdersPage() {
             <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight ">Order <span className="text-[var(--accent)]">Manifest</span> Ledger</h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Operational Pipeline // Node_Order_Control</p>
+               <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Operational Pipeline // Node_Order_Control</p>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function AdminOrdersPage() {
               <input 
                 type="text"
                 placeholder="Reference, Customer, Store..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
                 value={search}
                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               />
@@ -174,7 +174,7 @@ export default function AdminOrdersPage() {
                 <button 
                   key={tab}
                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all uppercase whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
                   {tab}
                 </button>
@@ -203,10 +203,10 @@ export default function AdminOrdersPage() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
-                        <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
+                        <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
                         <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                      </div>
                   </div>
@@ -217,11 +217,11 @@ export default function AdminOrdersPage() {
          {/* Order Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 uppercase">
+               <h3 className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <Database className="w-4 h-4 text-[var(--accent)]" /> 
                   Platform Order Ledger
                </h3>
-               <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Global Synchronization Active</p>
+               <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Global Synchronization Active</p>
             </div>
 
             <div className="space-y-4">
@@ -251,17 +251,17 @@ export default function AdminOrdersPage() {
                               <div className="flex-1 min-w-0">
                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
-                                       <span className="text-[11px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order Trace</span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] md:text-[10px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 uppercase`}>
+                                       <span className="text-[11px] lg:text-[12px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight capitalize">Order Trace</span>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
                                           {status.label}
                                        </span>
                                     </div>
-                                    <time className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
+                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
                                        <Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
                                  <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
+                                    <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
                                        <span className="font-mono text-[var(--accent)] font-bold">#{order._id.slice(-8).toUpperCase()}</span>
                                        <span>•</span>
                                        <span className="truncate max-w-[200px] md:max-w-md">{customer?.name} → {order.vendor_id?.store_name}</span>
@@ -270,9 +270,9 @@ export default function AdminOrdersPage() {
                               </div>
 
                               <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
+                                 <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase border ${payment.bg} ${payment.color} ${payment.color.replace('text-', 'border-')}/20`}>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] lg:text-[12px] font-bold tracking-widest capitalize border ${payment.bg} ${payment.color} ${payment.color.replace('text-', 'border-')}/20`}>
                                        {payment.label}
                                     </span>
                                     <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
@@ -293,29 +293,29 @@ export default function AdminOrdersPage() {
                                     <div className="px-8 pb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
                                        {/* Order Details */}
                                        <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl space-y-4">
-                                          <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 uppercase flex items-center gap-2">
+                                          <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 capitalize flex items-center gap-2">
                                              <Database className="w-3 h-3" /> Entity Metadata
                                           </p>
                                           <div className="grid grid-cols-2 gap-4">
                                              <div>
-                                                <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-1">Customer</p>
-                                                <p className="text-[11px] font-bold text-[var(--text-primary)]">{customer?.name}</p>
-                                                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50">{customer?.email}</p>
+                                                <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Customer</p>
+                                                <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">{customer?.name}</p>
+                                                <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-50">{customer?.email}</p>
                                              </div>
                                              <div>
-                                                <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-1">Store Node</p>
-                                                <p className="text-[11px] font-bold text-[var(--accent)]">{order.vendor_id?.store_name}</p>
+                                                <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Store Node</p>
+                                                <p className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)]">{order.vendor_id?.store_name}</p>
                                              </div>
                                              <div className="col-span-2">
-                                                <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-1">Shipping Terminal</p>
-                                                <p className="text-[11px] font-bold text-[var(--text-primary)]">{order.shipping_address?.quartier}, {order.shipping_address?.address}</p>
+                                                <p className="text-[10px] lg:text-[12px] font-bold opacity-30 capitalize tracking-widest mb-1">Shipping Terminal</p>
+                                                <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">{order.shipping_address?.quartier}, {order.shipping_address?.address}</p>
                                              </div>
                                           </div>
                                        </div>
 
                                        {/* Line Items */}
                                        <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl space-y-4">
-                                          <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 uppercase flex items-center gap-2">
+                                          <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 capitalize flex items-center gap-2">
                                              <ShoppingBag className="w-3 h-3" /> Manifest Payload
                                           </p>
                                           <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
@@ -325,8 +325,8 @@ export default function AdminOrdersPage() {
                                                       {it.image ? <img src={it.image} className="size-full object-cover" /> : <Package className="size-full p-1.5 opacity-20" />}
                                                    </div>
                                                    <div className="flex-1 min-w-0">
-                                                      <p className="text-[10px] font-bold text-[var(--text-primary)] truncate">{it.name}</p>
-                                                      <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50">x{it.quantity} @ {it.price?.toLocaleString()} XAF</p>
+                                                      <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-primary)] truncate">{it.name}</p>
+                                                      <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-50">x{it.quantity} @ {it.price?.toLocaleString()} XAF</p>
                                                    </div>
                                                 </div>
                                              ))}
@@ -335,14 +335,14 @@ export default function AdminOrdersPage() {
 
                                        {/* Admin Controls */}
                                        <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl space-y-4">
-                                          <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 uppercase flex items-center gap-2">
+                                          <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 opacity-50 capitalize flex items-center gap-2">
                                              <Zap className="w-3 h-3" /> Pipeline Override
                                           </p>
                                           <div className="space-y-3">
                                              <select
                                                 value={orderEdits[order._id]?.order_status ?? order.order_status}
                                                 onChange={(e) => setOrderEditField(order._id, 'order_status', e.target.value)}
-                                                className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold outline-none focus:border-[var(--accent)]"
+                                                className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold outline-none focus:border-[var(--accent)]"
                                              >
                                                 {Object.keys(STATUS_CONFIG).map((s) => (
                                                    <option key={s} value={s}>{STATUS_CONFIG[s].label.toUpperCase()}</option>
@@ -351,7 +351,7 @@ export default function AdminOrdersPage() {
                                              <select
                                                 value={orderEdits[order._id]?.logistics_company_id ?? order.logistics_company_id?._id ?? order.logistics_company_id ?? ''}
                                                 onChange={(e) => setOrderEditField(order._id, 'logistics_company_id', e.target.value || null)}
-                                                className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold outline-none focus:border-[var(--accent)]"
+                                                className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold outline-none focus:border-[var(--accent)]"
                                              >
                                                 <option value="">MANUAL SHIPMENT</option>
                                                 {logisticsFirms.map((f) => (
@@ -361,7 +361,7 @@ export default function AdminOrdersPage() {
                                              <button
                                                 onClick={() => saveOrderControl(order)}
                                                 disabled={savingOrderId === order._id || !orderEdits[order._id]}
-                                                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl font-bold text-[10px] tracking-widest uppercase shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl font-bold text-[10px] lg:text-[12px] tracking-widest capitalize shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                              >
                                                 {savingOrderId === order._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                                                 Patch Sequence
@@ -379,7 +379,7 @@ export default function AdminOrdersPage() {
               ) : (
                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                     <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                    <p className="text-sm font-bold tracking-[0.2em] uppercase leading-relaxed max-w-sm">No operational manifests detected in this node.</p>
+                    <p className="text-sm font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No operational manifests detected in this node.</p>
                  </div>
               )}
             </div>

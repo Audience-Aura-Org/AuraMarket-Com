@@ -61,7 +61,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
 
   const field = (key, label, placeholder, type = 'text') => (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">{label}</label>
+      <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">{label}</label>
       <input type={type} placeholder={placeholder} value={form[key]}
         onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
         className="w-full h-12 px-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-sm font-bold outline-none focus:border-[var(--accent)] transition-all" />
@@ -98,7 +98,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
     <div className="flex items-center gap-2 mb-8">
       {[1, 2, 3, 4].map(i => (
         <div key={i} className="flex items-center gap-2">
-          <div className={`size-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${i < step ? 'bg-emerald-500 text-white' : i === step ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-30'}`}>
+          <div className={`size-6 rounded-full flex items-center justify-center text-[10px] lg:text-[12px] font-bold transition-all ${i < step ? 'bg-emerald-500 text-white' : i === step ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-30'}`}>
             {i < step ? <CheckCircle2 className="size-3" /> : i}
           </div>
           {i < 4 && <div className={`flex-1 h-px transition-all ${i < step ? 'bg-emerald-500' : 'bg-[var(--glass-border)]'}`} style={{ width: 24 }} />}
@@ -145,7 +145,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             )}
             <div>
               <h2 className="text-lg font-bold tracking-tight">Withdraw Funds</h2>
-              <p className="text-[10px] text-[var(--text-secondary)] opacity-40">Available: {fmt(balance)} XAF</p>
+              <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40">Available: {fmt(balance)} XAF</p>
             </div>
           </div>
           <button onClick={onClose} className="size-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">
@@ -159,7 +159,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         {step === 1 && (
           <div className="space-y-6">
             <div>
-              <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50 block mb-3">AMOUNT (XAF)</label>
+              <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50 block mb-3">AMOUNT (XAF)</label>
               <input type="number" min={MIN} max={balance}
                 value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="0"
@@ -193,7 +193,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         {/* STEP 2: Method */}
         {step === 2 && (
           <div className="space-y-4">
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">SELECT METHOD</p>
+            <p className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">SELECT METHOD</p>
             {METHODS.map(m => {
               const MIcon = m.icon;
               return (
@@ -204,7 +204,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                   </div>
                   <div>
                     <p className="font-bold text-sm">{m.label}</p>
-                    <p className="text-[10px] text-[var(--text-secondary)] opacity-50">{m.sub}</p>
+                    <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50">{m.sub}</p>
                   </div>
                 </button>
               );
@@ -215,11 +215,11 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         {/* STEP 3: Recipient Details */}
         {step === 3 && method && (
           <div className="space-y-4">
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">RECIPIENT DETAILS</p>
+            <p className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">RECIPIENT DETAILS</p>
             
             {method.id === 'eversend' && (
               <div className="space-y-3 mb-6">
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">CHOOSE SAVED RECIPIENT (OPTIONAL)</p>
+                <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40">CHOOSE SAVED RECIPIENT (OPTIONAL)</p>
                 {fetchingBeneficiaries ? (
                   <div className="flex items-center gap-2 text-xs opacity-50"><Loader2 className="size-3 animate-spin" /> Loading beneficiaries...</div>
                 ) : beneficiaries.length > 0 ? (
@@ -238,17 +238,17 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                           accountNumber: b.type === 'bank' ? b.accountNumber : '',
                         });
                       }}
-                      className={`shrink-0 px-4 py-3 rounded-xl border text-[10px] font-bold transition-all ${selectedBeneficiary?.id === b.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] opacity-60'}`}>
+                      className={`shrink-0 px-4 py-3 rounded-xl border text-[10px] lg:text-[12px] font-bold transition-all ${selectedBeneficiary?.id === b.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] opacity-60'}`}>
                         {b.firstName} {b.lastName}
-                        <p className="text-[10px] opacity-50 uppercase mt-0.5">{b.type}</p>
+                        <p className="text-[10px] lg:text-[12px] opacity-50 capitalize mt-0.5">{b.type}</p>
                       </button>
                     ))}
-                    <button onClick={() => setSelectedBeneficiary(null)} className="shrink-0 px-4 py-3 rounded-xl border border-dashed border-[var(--glass-border)] text-[10px] font-bold opacity-40">
+                    <button onClick={() => setSelectedBeneficiary(null)} className="shrink-0 px-4 py-3 rounded-xl border border-dashed border-[var(--glass-border)] text-[10px] lg:text-[12px] font-bold opacity-40">
                       + New
                     </button>
                   </div>
                 ) : (
-                  <button onClick={fetchBeneficiaries} className="text-[10px] font-bold text-[var(--accent)] hover:underline">
+                  <button onClick={fetchBeneficiaries} className="text-[10px] lg:text-[12px] font-bold text-[var(--accent)] hover:underline">
                     Load saved recipients
                   </button>
                 )}
@@ -260,7 +260,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
               {field('lastName',  'LAST NAME',  'Doe')}
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">COUNTRY</label>
+              <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">COUNTRY</label>
               <select value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
                 className="w-full h-12 px-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-sm font-bold outline-none focus:border-[var(--accent)] transition-all">
                 {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
@@ -273,10 +273,10 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             {selectedBeneficiary && (
               <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold text-emerald-500 opacity-50 uppercase">SAVED RECIPIENT</p>
+                  <p className="text-[10px] lg:text-[12px] font-bold text-emerald-500 opacity-50 capitalize">SAVED RECIPIENT</p>
                   <p className="text-xs font-bold">{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</p>
                 </div>
-                <button onClick={() => setSelectedBeneficiary(null)} className="text-[10px] font-bold text-red-500">Change</button>
+                <button onClick={() => setSelectedBeneficiary(null)} className="text-[10px] lg:text-[12px] font-bold text-red-500">Change</button>
               </div>
             )}
             {field('note', 'NOTE (OPTIONAL)', 'Reason for withdrawal...')}
@@ -301,7 +301,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         {/* STEP 4: Review & Submit */}
         {step === 4 && method && (
           <div className="space-y-5">
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">REVIEW & CONFIRM</p>
+            <p className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-50">REVIEW & CONFIRM</p>
             <div className="bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-5 space-y-3">
               {[
                 ['Amount',     `${fmt(amtNum)} XAF`],

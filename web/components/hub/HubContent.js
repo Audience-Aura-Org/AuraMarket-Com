@@ -249,14 +249,14 @@ export default function HubContent() {
             <div className="flex bg-[var(--bg-secondary)] p-1 gap-1 rounded-full border border-[var(--glass-border)]/50">
             <button 
                onClick={() => setActiveTab('chats')}
-               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-bold text-[10px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
             >
                <MessageCircle className="size-4" />
                Chats
             </button>
             <button 
                onClick={() => setActiveTab('feed')}
-               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-bold text-[10px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
             >
                <LayoutGrid className="size-4" />
                Discover
@@ -287,7 +287,7 @@ export default function HubContent() {
                          <Search className="size-3" />
                        </button>
                      </div>
-                     <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
+                     <p className="text-[11px] lg:text-[12px] font-bold  tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
                      {loadingInbox ? (
                         <div className="flex flex-col items-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
                      ) : filteredInbox.length === 0 ? (
@@ -311,13 +311,13 @@ export default function HubContent() {
                             <Home className="size-3" />
                           </button>
                         ) : (
-                          <button onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }} className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] font-medium ${activeCategoryName === 'All' ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
+                          <button onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }} className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] lg:text-[12px] font-medium ${activeCategoryName === 'All' ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
                             All
                           </button>
                         )}
                         
                         {breadcrumb.map((crumb, idx) => (
-                           <button key={crumb._id} onClick={() => handleBreadcrumbClick(idx)} className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] font-medium ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
+                           <button key={crumb._id} onClick={() => handleBreadcrumbClick(idx)} className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] lg:text-[12px] font-medium ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
                              {crumb.name}
                            </button>
                         ))}
@@ -326,7 +326,7 @@ export default function HubContent() {
                           <button
                             key={cat._id}
                             onClick={() => handleCategoryClick(cat)}
-                            className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] font-medium border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]`}
+                            className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] lg:text-[12px] font-medium border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]`}
                           >
                             {cat.name}
                           </button>
@@ -338,7 +338,7 @@ export default function HubContent() {
                         <div className="relative">
                           <button 
                             onClick={() => setIsSortOpen(!isSortOpen)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-bold tracking-tight text-[var(--text-primary)] shadow-sm"
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-primary)] shadow-sm"
                           >
                             <span className="text-[var(--text-secondary)] font-normal opacity-50 ">Sort:</span> 
                             {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
@@ -348,7 +348,7 @@ export default function HubContent() {
                           {isSortOpen && (
                             <div className="absolute left-0 top-full mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[1.5rem] shadow-2xl overflow-hidden py-2 z-50">
                                {SORT_OPTIONS.map(opt => (
-                                 <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-4 py-2.5 text-[11px] font-medium transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--text-primary)] bg-[var(--bg-secondary)]/50' : 'text-[var(--text-secondary)]'}`}>
+                                 <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-4 py-2.5 text-[11px] lg:text-[12px] font-medium transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--text-primary)] bg-[var(--bg-secondary)]/50' : 'text-[var(--text-secondary)]'}`}>
                                    {opt.label}
                                    {sortBy === opt.value && <Check className="size-3" />}
                                  </button>
@@ -367,7 +367,7 @@ export default function HubContent() {
                         </div>
                       </div>
                       
-                      <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40 mb-1">
+                      <p className="text-[11px] lg:text-[12px] font-bold  tracking-[0.3em] opacity-40 mb-1">
                         {activeCategoryName === 'All' ? 'Calibrated Discovery' : activeCategoryName}
                       </p>
                       {loadingFeed ? (
@@ -390,7 +390,7 @@ export default function HubContent() {
                             <button
                               onClick={() => setPage(p => p + 1)}
                               disabled={loadingFeed}
-                              className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
+                              className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
                             >
                               Synchronize More
                             </button>
@@ -431,14 +431,14 @@ export default function HubContent() {
                <div className="flex bg-[var(--bg-secondary)] p-1 rounded-full gap-1 shrink-0 border border-[var(--glass-border)] shadow-inner">
                   <button 
                     onClick={() => setActiveTab('chats')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-bold text-[10px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   >
                     <MessageCircle className="size-3.5" />
                     Chats
                   </button>
                   <button 
                     onClick={() => setActiveTab('feed')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-bold text-[10px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-bold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   >
                     <LayoutGrid className="size-3.5" />
                     Discover
@@ -457,13 +457,13 @@ export default function HubContent() {
                  ) : (
                   <>
                    {breadcrumb.length > 0 ? (
-                     <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                     <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
                        <Home className="size-3.5" /> Hub
                      </button>
                    ) : (
                       <button 
                         onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                        className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                        className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] lg:text-[12px] font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                       >
                         All Signals
                       </button>
@@ -474,7 +474,7 @@ export default function HubContent() {
                         <ChevronRight className="size-3 text-[var(--glass-border)]" />
                         <button 
                           onClick={() => handleBreadcrumbClick(idx)} 
-                          className={`px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                          className={`px-5 py-2 rounded-full border transition-all text-[11px] lg:text-[12px] font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                         >
                           {crumb.name}
                         </button>
@@ -490,7 +490,7 @@ export default function HubContent() {
                           if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                           else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                         }}
-                        className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                        className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] lg:text-[12px] font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                      >
                        {cat.name}
                      </button>
@@ -512,7 +512,7 @@ export default function HubContent() {
                   {/* Messages Section */}
                   <div className="space-y-4">
                      <div className="flex items-center justify-between px-2">
-                        <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40">Operational Dialogues</p>
+                        <p className="text-[11px] lg:text-[12px] font-bold  tracking-[0.3em] opacity-40">Operational Dialogues</p>
                         <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                      </div>
                      <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-2 min-h-[400px] shadow-sm backdrop-blur-xl">
@@ -531,7 +531,7 @@ export default function HubContent() {
                   {/* Followed Section */}
                   <div className="space-y-4">
                      <div className="flex items-center justify-between px-2">
-                        <p className="text-[11px] font-bold  tracking-[0.3em] opacity-40">Followed Vendors</p>
+                        <p className="text-[11px] lg:text-[12px] font-bold  tracking-[0.3em] opacity-40">Followed Vendors</p>
                         <Heart className="size-3.5 text-[var(--accent)] fill-[var(--accent)]" />
                      </div>
                      <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-3 min-h-[400px] shadow-sm backdrop-blur-xl">
@@ -560,7 +560,7 @@ export default function HubContent() {
                     {activeCategoryName === 'All' ? 'Aura Discovery' : activeCategoryName}
                   </h3>
                   <div className="h-4 w-px bg-[var(--glass-border)]" />
-                  <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">
+                  <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-60">
                     {feed.length} Results
                   </p>
                 </div>
@@ -570,7 +570,7 @@ export default function HubContent() {
                   <div className="relative">
                     <button 
                       onClick={() => setIsSortOpen(!isSortOpen)}
-                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] font-bold tracking-tight shadow-sm"
+                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px] font-bold tracking-tight shadow-sm"
                     >
                       <span className="text-[var(--text-secondary)] font-normal opacity-60">Sort:</span> 
                       {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
@@ -579,7 +579,7 @@ export default function HubContent() {
                     {isSortOpen && (
                       <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                          {SORT_OPTIONS.map(opt => (
-                           <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                           <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                              {opt.label}
                              {sortBy === opt.value && <Check className="size-3.5" />}
                            </button>
@@ -627,7 +627,7 @@ export default function HubContent() {
                   <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={loadingFeed}
-                    className="px-12 py-5 rounded-full bg-[var(--bg-primary)] border-2 border-[var(--glass-border)] text-[11px] font-bold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-xl shadow-[var(--accent)]/5 disabled:opacity-50 active:scale-95"
+                    className="px-12 py-5 rounded-full bg-[var(--bg-primary)] border-2 border-[var(--glass-border)] text-[11px] lg:text-[12px] font-bold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-xl shadow-[var(--accent)]/5 disabled:opacity-50 active:scale-95"
                   >
                     {loadingFeed ? <Loader2 className="size-5 animate-spin" /> : 'Synchronize More Results'}
                   </button>
@@ -688,11 +688,11 @@ function ChatLink({ chat }) {
           <p className={`text-xs truncate ${!chat.read_status ? 'font-bold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
             {partnerName}
           </p>
-          <span className="text-[10px] text-[var(--text-secondary)]/60 shrink-0">
+          <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]/60 shrink-0">
             {chat.isFollowed ? 'Followed' : formatTime(chat.date)}
           </span>
         </div>
-        <p className={`text-[11px] truncate ${chat.isFollowed ? 'text-[var(--accent)] font-medium' : (!chat.read_status ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]')}`}>
+        <p className={`text-[11px] lg:text-[12px] truncate ${chat.isFollowed ? 'text-[var(--accent)] font-medium' : (!chat.read_status ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]')}`}>
           {chat.snippet}
         </p>
       </div>

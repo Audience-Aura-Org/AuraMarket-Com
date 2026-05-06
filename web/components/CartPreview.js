@@ -103,7 +103,7 @@ export default function CartPreview() {
 
   return (
     <div className="absolute right-0 top-full mt-4 w-80 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] shadow-2xl p-4 transition-all duration-300 transform-gpu translate-y-2 z-50 md:opacity-0 md:pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-hover:translate-y-0 backdrop-blur-xl">
-      <h4 className="text-[11px] font-bold  tracking-[0.2em] mb-4 text-[var(--text-secondary)]">Cart Preview</h4>
+      <h4 className="text-[11px] lg:text-[12px] font-bold  tracking-[0.2em] mb-4 text-[var(--text-secondary)]">Cart Preview</h4>
       {loading ? (
         <div className="py-8 text-center text-[var(--text-secondary)] font-bold text-xs">Syncing nodes…</div>
       ) : items.length === 0 ? (
@@ -119,7 +119,7 @@ export default function CartPreview() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold truncate text-[var(--text-primary)] tracking-tight">{it.name}</div>
-                <div className="text-[10px] text-[var(--text-secondary)] font-bold mt-0.5 opacity-60 ">{it.quantity} × {it.price.toLocaleString()} XAF</div>
+                <div className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-bold mt-0.5 opacity-60 ">{it.quantity} × {it.price.toLocaleString()} XAF</div>
               </div>
               <div className="flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                 <button onClick={() => removeItem(it.id)} className="p-1.5 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-3 h-3" /></button>
@@ -127,12 +127,12 @@ export default function CartPreview() {
             </div>
           ))}
           <div className="pt-4 border-t border-[var(--glass-border)] mt-4 flex items-center justify-between">
-            <div className="text-[10px] text-[var(--text-secondary)] font-bold tracking-tight">Subtotal</div>
+            <div className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-bold tracking-tight">Subtotal</div>
             <div className="font-bold text-sm tracking-tighter">{subtotal.toLocaleString()} XAF</div>
           </div>
           <div className="mt-4 flex gap-2">
-            <Link href="/cart" className="flex-1 px-4 py-3 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] text-center tracking-tight hover:border-[var(--text-primary)] transition-all">View Cart</Link>
-            <Link href="/checkout" className="px-5 py-3 bg-[var(--accent)] text-white rounded-full font-bold text-[10px] flex items-center gap-2 tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all"><ArrowRight className="w-3.5 h-3.5" />Checkout</Link>
+            <Link href="/cart" className="flex-1 px-4 py-3 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] lg:text-[12px] text-center tracking-tight hover:border-[var(--text-primary)] transition-all">View Cart</Link>
+            <Link href="/checkout" className="px-5 py-3 bg-[var(--accent)] text-white rounded-full font-bold text-[10px] lg:text-[12px] flex items-center gap-2 tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all"><ArrowRight className="w-3.5 h-3.5" />Checkout</Link>
           </div>
         </div>
       )}

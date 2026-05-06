@@ -62,7 +62,7 @@ export default function AdminLogsPage() {
               </div>
               <div className="space-y-0.5">
                  <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Audit Trail</h1>
-                 <p className="text-[11px] font-bold  tracking-[0.2em] text-[var(--text-secondary)] opacity-40">System-wide Event Log</p>
+                 <p className="text-[11px] lg:text-[12px] font-bold  tracking-[0.2em] text-[var(--text-secondary)] opacity-40">System-wide Event Log</p>
               </div>
            </div>
 
@@ -98,15 +98,15 @@ export default function AdminLogsPage() {
                    
                    <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                         <h3 className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight">{log.action}</h3>
-                         <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-30 tracking-tight">{log.time}</span>
+                         <h3 className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-tight">{log.action}</h3>
+                         <span className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-30 tracking-tight">{log.time}</span>
                       </div>
                       <p className="text-xs text-[var(--text-secondary)] opacity-60 truncate font-mono">{log.details}</p>
                    </div>
 
                    <div className="hidden md:flex flex-col items-end shrink-0">
-                      <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-30 ">Operator</span>
-                      <span className="text-[11px] font-bold text-[var(--text-primary)]">{log.user}</span>
+                      <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 ">Operator</span>
+                      <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">{log.user}</span>
                    </div>
                  </div>
                );
@@ -121,7 +121,7 @@ export default function AdminLogsPage() {
         />
 
         <div className="text-center pb-20 opacity-20">
-           <p className="text-[11px] font-bold tracking-[0.4em] text-[var(--text-secondary)] ">
+           <p className="text-[11px] lg:text-[12px] font-bold tracking-[0.4em] text-[var(--text-secondary)] ">
               Authenticated Governance Logs // Node Aura_Audit_Master
            </p>
         </div>

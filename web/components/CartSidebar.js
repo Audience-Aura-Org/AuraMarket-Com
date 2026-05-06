@@ -115,9 +115,9 @@ export default function CartSidebar() {
         {/* ── HEADER ─────────────────────────── */}
         <div className="px-4 py-3 border-b border-[var(--glass-border)] shrink-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-bold  tracking-[0.2em] text-[var(--accent)]">Stash</h3>
+            <h3 className="text-[11px] lg:text-[12px] font-bold  tracking-[0.2em] text-[var(--accent)]">Stash</h3>
             <div className="flex items-center gap-1 bg-[var(--accent)]/10 px-2 py-0.5 rounded-full border border-[var(--accent)]/20">
-              <span className="text-[11px] font-bold text-[var(--accent)]">{totalQty}</span>
+              <span className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)]">{totalQty}</span>
             </div>
           </div>
         </div>
@@ -139,8 +139,8 @@ export default function CartSidebar() {
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-[11px] font-bold text-[var(--text-primary)] truncate leading-tight ">{it.name}</h4>
-                    <span className="text-[11px] font-bold text-[var(--accent)]">{(it.price * it.quantity).toLocaleString()} XAF</span>
+                    <h4 className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] truncate leading-tight ">{it.name}</h4>
+                    <span className="text-[11px] lg:text-[12px] font-bold text-[var(--accent)]">{(it.price * it.quantity).toLocaleString()} XAF</span>
                   </div>
                   {/* Remove */}
                   <button
@@ -164,7 +164,7 @@ export default function CartSidebar() {
                     >
                       <Minus className="size-2.5" />
                     </button>
-                    <span className="text-[11px] font-bold px-2 text-[var(--text-primary)] min-w-[20px] text-center">{it.quantity}</span>
+                    <span className="text-[11px] lg:text-[12px] font-bold px-2 text-[var(--text-primary)] min-w-[20px] text-center">{it.quantity}</span>
                     <button
                       onClick={() => updateQty(itemId, 1)}
                       className="size-5 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
@@ -181,25 +181,25 @@ export default function CartSidebar() {
         {/* ── FOOTER: ALWAYS AT BOTTOM ─────── */}
         <div className="shrink-0 px-4 py-4 border-t border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[0_-8px_32px_rgba(0,0,0,0.2)]">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60">Subtotal</span>
+            <span className="text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60">Subtotal</span>
             <span className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{subtotal.toLocaleString()} XAF</span>
           </div>
           <div className="flex flex-col gap-2">
             <Link
               href="/checkout"
-              className="w-full py-3 bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-lg shadow-[var(--accent)]/20 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-bold tracking-tight rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-lg shadow-[var(--accent)]/20 flex items-center justify-center gap-2"
             >
               Checkout <ArrowRight className="size-3" />
             </Link>
             <Link
               href="/cart"
-              className="w-full py-2.5 bg-white/5 border border-[var(--glass-border)] text-[var(--text-primary)] text-[11px] font-bold tracking-tight rounded-xl hover:bg-white/10 transition-all flex items-center justify-center"
+              className="w-full py-2.5 bg-white/5 border border-[var(--glass-border)] text-[var(--text-primary)] text-[11px] lg:text-[12px] font-bold tracking-tight rounded-xl hover:bg-white/10 transition-all flex items-center justify-center"
             >
               Full Cart View
             </Link>
             <Link
               href="/overtime"
-              className="w-full py-2 bg-transparent text-[var(--text-secondary)] text-[11px] font-bold tracking-tight hover:text-[var(--accent)] transition-all flex items-center justify-center gap-1.5 opacity-60 hover:opacity-100"
+              className="w-full py-2 bg-transparent text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-bold tracking-tight hover:text-[var(--accent)] transition-all flex items-center justify-center gap-1.5 opacity-60 hover:opacity-100"
             >
               <ArrowRight className="size-2.5 rotate-180" /> Continue Shopping
             </Link>

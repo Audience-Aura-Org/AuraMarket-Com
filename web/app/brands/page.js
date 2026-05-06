@@ -35,7 +35,7 @@ export default function VerifiedBrandsPage() {
            <div className="space-y-4">
               <div className="flex items-center gap-2 text-[var(--accent)] bg-white/5 w-fit px-3 py-1 rounded-full border border-white/10">
                  <ShieldCheck className="size-3" />
-                 <span className="text-[11px] font-bold  tracking-[0.4em]">Governance Protocol</span>
+                 <span className="text-[11px] lg:text-[12px] font-bold  tracking-[0.4em]">Governance Protocol</span>
               </div>
               <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tight ">Elite <span className="text-[var(--accent)]">Entities</span></h1>
               <p className="text-xs font-medium text-[var(--text-secondary)] opacity-40 max-w-sm tracking-tight leading-relaxed">
@@ -44,7 +44,7 @@ export default function VerifiedBrandsPage() {
            </div>
            
            <div className="flex gap-3">
-              <div className="h-10 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">
+              <div className="h-10 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)]">
                  124 Verified
               </div>
            </div>
@@ -82,15 +82,15 @@ export default function VerifiedBrandsPage() {
                           <div className="flex items-center gap-3">
                              <div className="flex items-center gap-1 text-[var(--accent)]">
                                 <Star className="size-3 fill-[var(--accent)]" />
-                                <span className="text-[11px] font-bold">{vendor.rating || '5.0'}</span>
+                                <span className="text-[11px] lg:text-[12px] font-bold">{vendor.rating || '5.0'}</span>
                              </div>
-                             <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight whitespace-nowrap">Node 0x_{vendor._id.slice(-4).toUpperCase()}</span>
+                             <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight whitespace-nowrap">Node 0x_{vendor._id.slice(-4).toUpperCase()}</span>
                           </div>
                        </div>
                     </div>
 
                     <div className="flex items-center justify-between mt-6 pt-4 border-t border-[var(--glass-border)] relative z-10">
-                       <p className="text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-30 ">Fulfillment Rate: 99%</p>
+                       <p className="text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] opacity-30 ">Fulfillment Rate: 99%</p>
                        <ChevronRight className="size-4 text-[var(--text-secondary)] opacity-20 group-hover:translate-x-1 group-hover:text-[var(--accent)] transition-all" />
                     </div>
                  </Link>
@@ -100,7 +100,7 @@ export default function VerifiedBrandsPage() {
 
         {/* Global Footer Hub Information */}
         <div className="text-center pt-12 pb-20 opacity-20 hover:opacity-100 transition-opacity">
-           <p className="text-[11px] font-bold tracking-[0.6em] text-[var(--text-secondary)] ">
+           <p className="text-[11px] lg:text-[12px] font-bold tracking-[0.6em] text-[var(--text-secondary)] ">
               Authenticated via Aura Security Protocol | Version 1.2
            </p>
         </div>

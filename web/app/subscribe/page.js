@@ -73,7 +73,7 @@ export default function SubscribePage() {
               </button>
            </form>
 
-           <p className="mt-8 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
+           <p className="mt-8 text-[11px] lg:text-[12px] font-bold tracking-tight text-[var(--text-secondary)] opacity-40">
               Zero Spam Policy. Definitive Signal Only.
            </p>
 

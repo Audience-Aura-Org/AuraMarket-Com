@@ -94,7 +94,7 @@ export default function AdminLogistics() {
             <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight ">Transit <span className="text-[var(--accent)]">Protocol</span> Monitoring</h2>
             <div className="flex items-center gap-2 mt-1">
                <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Operational Pipeline // Node_Transit_Master</p>
+               <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Operational Pipeline // Node_Transit_Master</p>
             </div>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function AdminLogistics() {
                 <button 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all uppercase whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
                   {tab}
                 </button>
@@ -134,10 +134,10 @@ export default function AdminLogistics() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
-                        <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
+                        <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
                         <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
                      </div>
                   </div>
@@ -148,11 +148,11 @@ export default function AdminLogistics() {
          {/* Logistics Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 uppercase">
+               <h3 className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                   <Database className="w-4 h-4 text-[var(--accent)]" /> 
                   Platform Transit Ledger // {activeTab.toUpperCase()}
                </h3>
-               <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Global Fulfillment Synchronized</p>
+               <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Global Fulfillment Synchronized</p>
             </div>
 
             <div className="min-h-[400px]">
@@ -162,7 +162,7 @@ export default function AdminLogistics() {
                  <div className="overflow-x-auto">
                     <table className="w-full text-left font-sm">
                        <thead>
-                          <tr className="text-[10px] font-bold tracking-[0.3em] text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 uppercase">
+                          <tr className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] text-[var(--text-secondary)] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 capitalize">
                              {activeTab === 'Shipments' ? (
                                <>
                                  <th className="px-10 py-5">Transit Node</th>
@@ -199,22 +199,22 @@ export default function AdminLogistics() {
                                          <Truck className="w-5 h-5" />
                                       </div>
                                       <div className="min-w-0">
-                                         <p className="text-[11px] font-bold text-[var(--text-primary)] font-mono tracking-tight uppercase">#{s.tracking_code || s._id.slice(-8).toUpperCase()}</p>
-                                         <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 flex items-center gap-1.5 uppercase">
+                                         <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] font-mono tracking-tight capitalize">#{s.tracking_code || s._id.slice(-8).toUpperCase()}</p>
+                                         <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 mt-1 flex items-center gap-1.5 capitalize">
                                             <MapPin className="w-3 h-3 text-[var(--accent)]" /> {s.delivery_address?.quartier || 'UNMAPPED'}
                                          </p>
                                       </div>
                                    </div>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <p className="text-[11px] font-bold text-[var(--text-primary)] uppercase">{s.logistics_id?.company_name || 'PENDING_CARRIER'}</p>
-                                   <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 uppercase">From: {s.vendor_id?.store_name || 'MERCHANT'}</p>
+                                   <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] capitalize">{s.logistics_id?.company_name || 'PENDING_CARRIER'}</p>
+                                   <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 capitalize">From: {s.vendor_id?.store_name || 'MERCHANT'}</p>
                                 </td>
-                                <td className="px-6 py-6 font-mono text-[11px] font-bold text-[var(--text-primary)]">
+                                <td className="px-6 py-6 font-mono text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">
                                    {(s.price || 0).toLocaleString()} <span className="opacity-30">XAF</span>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest border uppercase ${
+                                   <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-bold tracking-widest border capitalize ${
                                       s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
                                       s.status === 'failed' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
                                       'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
@@ -236,25 +236,25 @@ export default function AdminLogistics() {
                                          {f.user_id?.branding?.logo ? <img src={f.user_id.branding.logo} className="size-full object-cover" /> : f.company_name[0].toUpperCase()}
                                       </div>
                                       <div className="min-w-0">
-                                         <p className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-tight">{f.company_name}</p>
-                                         <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 uppercase truncate max-w-[200px]">{f.user_id?.email}</p>
+                                         <p className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] capitalize tracking-tight">{f.company_name}</p>
+                                         <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 capitalize truncate max-w-[200px]">{f.user_id?.email}</p>
                                       </div>
                                    </div>
                                 </td>
                                 <td className="px-6 py-6">
                                    <div className="flex flex-wrap gap-1.5 max-w-[200px]">
                                       {f.service_regions?.map(r => (
-                                         <span key={r} className="px-2 py-0.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-tighter">{r}</span>
+                                         <span key={r} className="px-2 py-0.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] capitalize tracking-tighter">{r}</span>
                                       ))}
                                    </div>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
+                                   <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">
                                       {f.vehicle_types?.join(' // ')}
                                    </p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest border uppercase ${f.is_verified ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                                   <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-bold tracking-widest border capitalize ${f.is_verified ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                                       {f.is_verified ? 'Verified' : 'Pending'}
                                    </span>
                                 </td>
@@ -273,7 +273,7 @@ export default function AdminLogistics() {
                                                }
                                             } catch { toast.error("Handshake failed."); }
                                          }}
-                                         className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all shadow-sm ${f.is_verified ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'}`}
+                                         className={`px-4 py-2 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-widest capitalize transition-all shadow-sm ${f.is_verified ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'}`}
                                       >
                                          {f.is_verified ? 'REVOKE' : 'VERIFY'}
                                       </button>
@@ -282,19 +282,19 @@ export default function AdminLogistics() {
                              </tr>
                           )) : zones.map(z => (
                              <tr key={z._id} className="group hover:bg-[var(--accent)]/5 transition-all">
-                                <td className="px-10 py-6 text-[11px] font-bold text-[var(--text-primary)] font-mono uppercase tracking-tight">{z.name}</td>
+                                <td className="px-10 py-6 text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)] font-mono capitalize tracking-tight">{z.name}</td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{z.type}</span>
+                                   <span className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] capitalize tracking-widest">{z.type}</span>
                                 </td>
-                                <td className="px-6 py-6 text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">{z.parent_id?.name || 'ROOT_CLUSTER'}</td>
+                                <td className="px-6 py-6 text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-30 capitalize tracking-widest">{z.parent_id?.name || 'ROOT_CLUSTER'}</td>
                                 <td className="px-6 py-6">
                                    <div className="flex items-center gap-2">
                                       <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Active Node</span>
+                                      <span className="text-[10px] lg:text-[12px] font-bold text-emerald-500 capitalize tracking-widest">Active Node</span>
                                    </div>
                                 </td>
                                 <td className="px-10 py-6 text-right">
-                                   <button className="px-4 py-2 rounded-xl border border-rose-500/20 text-rose-500 text-[10px] font-bold tracking-widest uppercase hover:bg-rose-500 hover:text-white transition-all">Purge</button>
+                                   <button className="px-4 py-2 rounded-xl border border-rose-500/20 text-rose-500 text-[10px] lg:text-[12px] font-bold tracking-widest capitalize hover:bg-rose-500 hover:text-white transition-all">Purge</button>
                                 </td>
                              </tr>
                           ))}
@@ -312,7 +312,7 @@ export default function AdminLogistics() {
                   <MapPin className="size-48" />
                </div>
                <div className="relative z-10">
-                  <h3 className="text-xs font-bold text-[var(--accent)] tracking-[0.3em] uppercase mb-8 flex items-center gap-3">
+                  <h3 className="text-xs font-bold text-[var(--accent)] tracking-[0.3em] capitalize mb-8 flex items-center gap-3">
                      <div className="h-5 w-1 bg-[var(--accent)] rounded-full" />
                      Deploy New Geographic Node
                   </h3>
@@ -333,21 +333,21 @@ export default function AdminLogistics() {
                      } catch { toast.error("Deployment failed."); }
                   }}>
                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 uppercase ml-1">Zone Identifier</label>
+                        <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Zone Identifier</label>
                         <input 
                            placeholder="NODE_NAME (E.G. AKWA)"
                            value={newZone.name}
                            onChange={e => setNewZone({...newZone, name: e.target.value})}
-                           className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] font-bold uppercase outline-none focus:border-[var(--accent)] transition-all shadow-inner"
+                           className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] lg:text-[12px] font-bold capitalize outline-none focus:border-[var(--accent)] transition-all shadow-inner"
                         />
                      </div>
                      <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
-                           <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 uppercase ml-1">Topology Type</label>
+                           <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Topology Type</label>
                            <select 
                               value={newZone.type}
                               onChange={e => setNewZone({...newZone, type: e.target.value, parent_id: ''})}
-                              className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] font-bold uppercase outline-none cursor-pointer focus:border-[var(--accent)]"
+                              className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] lg:text-[12px] font-bold capitalize outline-none cursor-pointer focus:border-[var(--accent)]"
                            >
                               <option value="region">Region / City</option>
                               <option value="quartier">Quartier (Sub)</option>
@@ -355,11 +355,11 @@ export default function AdminLogistics() {
                         </div>
                         {newZone.type === 'quartier' && (
                            <div className="space-y-2">
-                              <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 uppercase ml-1">Parent Cluster</label>
+                              <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Parent Cluster</label>
                               <select 
                                  value={newZone.parent_id}
                                  onChange={e => setNewZone({...newZone, parent_id: e.target.value})}
-                                 className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] font-bold uppercase outline-none cursor-pointer focus:border-[var(--accent)]"
+                                 className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] lg:text-[12px] font-bold capitalize outline-none cursor-pointer focus:border-[var(--accent)]"
                               >
                                  <option value="">SELECT ROOT</option>
                                  {zones.filter(z => z.type === 'region').map(z => (
@@ -369,7 +369,7 @@ export default function AdminLogistics() {
                            </div>
                         )}
                      </div>
-                     <button className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[10px] tracking-[0.3em] uppercase shadow-lg shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all">
+                     <button className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize shadow-lg shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all">
                         Sync Node to Matrix
                      </button>
                   </form>
@@ -390,10 +390,10 @@ export default function AdminLogistics() {
                    </div>
                    <div>
                       <h3 className="text-3xl font-bold tracking-tighter">{selectedFirm.company_name}</h3>
-                      <p className="text-[10px] font-bold text-[var(--accent)] tracking-[0.4em] uppercase opacity-60">Tariff Calibration Matrix</p>
+                      <p className="text-[10px] lg:text-[12px] font-bold text-[var(--accent)] tracking-[0.4em] capitalize opacity-60">Tariff Calibration Matrix</p>
                    </div>
                 </div>
-                <button onClick={() => setSelectedFirm(null)} className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all text-[11px] font-bold tracking-widest shadow-sm">
+                <button onClick={() => setSelectedFirm(null)} className="size-12 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all text-[11px] lg:text-[12px] font-bold tracking-widest shadow-sm">
                    ESC
                 </button>
              </div>
@@ -401,14 +401,14 @@ export default function AdminLogistics() {
              <div className="flex-1 overflow-y-auto no-scrollbar pr-4">
                 <div className="grid lg:grid-cols-2 gap-12">
                    <div className="space-y-8">
-                      <h4 className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 border-l-2 border-[var(--accent)] pl-4">Inject Price Node</h4>
+                      <h4 className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] capitalize opacity-40 border-l-2 border-[var(--accent)] pl-4">Inject Price Node</h4>
                       <div className="space-y-5">
                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 uppercase ml-1">Topology Node</label>
+                            <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Topology Node</label>
                             <select 
                                value={priceEditor.quartier}
                                onChange={e => setPriceEditor({...priceEditor, quartier: e.target.value})}
-                               className="w-full h-14 bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] font-bold uppercase outline-none focus:border-[var(--accent)]"
+                               className="w-full h-14 bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-2xl px-5 text-[11px] lg:text-[12px] font-bold capitalize outline-none focus:border-[var(--accent)]"
                             >
                                <option value="">SELECT QUARTIER</option>
                                {zones.filter(z => z.type === 'quartier').map(z => (
@@ -417,14 +417,14 @@ export default function AdminLogistics() {
                             </select>
                          </div>
                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 uppercase ml-1">Operational Tariff (XAF)</label>
+                            <label className="text-[10px] lg:text-[12px] font-bold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Operational Tariff (XAF)</label>
                             <div className="relative">
                                <input 
                                   type="number"
                                   placeholder="0.00"
                                   value={priceEditor.price}
                                   onChange={e => setPriceEditor({...priceEditor, price: e.target.value})}
-                                  className="w-full h-14 bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-2xl px-14 text-[11px] font-bold font-mono outline-none focus:border-[var(--accent)]"
+                                  className="w-full h-14 bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-2xl px-14 text-[11px] lg:text-[12px] font-bold font-mono outline-none focus:border-[var(--accent)]"
                                />
                                <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 size-4 text-[var(--accent)] opacity-40" />
                             </div>
@@ -447,7 +447,7 @@ export default function AdminLogistics() {
                                   }
                                } catch { toast.error("Sync protocol failure."); }
                             }}
-                            className="w-full h-14 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl font-bold text-[10px] tracking-[0.3em] uppercase shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30"
+                            className="w-full h-14 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl font-bold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30"
                          >
                             Commit Tariff Node
                          </button>
@@ -455,18 +455,18 @@ export default function AdminLogistics() {
                    </div>
 
                    <div className="space-y-8">
-                      <h4 className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 border-l-2 border-emerald-500 pl-4">Active Tariff Grid</h4>
+                      <h4 className="text-[10px] lg:text-[12px] font-bold tracking-[0.3em] capitalize opacity-40 border-l-2 border-emerald-500 pl-4">Active Tariff Grid</h4>
                       <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto no-scrollbar pb-10">
                          {(selectedFirm.quartier_prices || []).map(p => (
                             <div key={p.quartier} className="flex justify-between items-center p-5 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)]/50 hover:border-[var(--accent)]/40 transition-all group/item shadow-sm">
-                               <span className="text-[11px] font-bold uppercase tracking-tight text-[var(--text-primary)]">{p.quartier}</span>
-                               <span className="text-sm font-mono font-bold text-[var(--accent)] group-hover/item:scale-110 transition-transform">{p.price.toLocaleString()} <span className="text-[10px] opacity-30 ml-1">XAF</span></span>
+                               <span className="text-[11px] lg:text-[12px] font-bold capitalize tracking-tight text-[var(--text-primary)]">{p.quartier}</span>
+                               <span className="text-sm font-mono font-bold text-[var(--accent)] group-hover/item:scale-110 transition-transform">{p.price.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-30 ml-1">XAF</span></span>
                             </div>
                          ))}
                          {(!selectedFirm.quartier_prices || selectedFirm.quartier_prices.length === 0) && (
                             <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-10 border-2 border-dashed border-[var(--glass-border)] rounded-[3rem]">
                                <Scale className="size-12" />
-                               <p className="text-[11px] font-bold uppercase tracking-[0.3em]">Grid Void</p>
+                               <p className="text-[11px] lg:text-[12px] font-bold capitalize tracking-[0.3em]">Grid Void</p>
                             </div>
                          )}
                       </div>
@@ -485,23 +485,23 @@ export default function AdminLogistics() {
             <div className="mb-8 flex items-center justify-between">
                <div>
                   <h3 className="text-xl font-bold tracking-tighter">Fulfillment Override</h3>
-                  <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest mt-1">Manual Package Calibration</p>
+                  <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest mt-1">Manual Package Calibration</p>
                </div>
-               <button onClick={() => setSelectedShipment(null)} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all text-[11px] font-bold tracking-tight">ESC</button>
+               <button onClick={() => setSelectedShipment(null)} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all text-[11px] lg:text-[12px] font-bold tracking-tight">ESC</button>
             </div>
             
             <div className="grid grid-cols-2 gap-6">
                <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest opacity-30 uppercase ml-1">Transit ID</label>
-                  <input value={shipmentEdit.tracking_code} onChange={(e) => setShipmentEdit((s) => ({ ...s, tracking_code: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold uppercase outline-none focus:border-[var(--accent)]" />
+                  <label className="text-[10px] lg:text-[12px] font-bold tracking-widest opacity-30 capitalize ml-1">Transit ID</label>
+                  <input value={shipmentEdit.tracking_code} onChange={(e) => setShipmentEdit((s) => ({ ...s, tracking_code: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold capitalize outline-none focus:border-[var(--accent)]" />
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest opacity-30 uppercase ml-1">Manifest Tariff</label>
-                  <input type="number" value={shipmentEdit.price} onChange={(e) => setShipmentEdit((s) => ({ ...s, price: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold font-mono outline-none focus:border-[var(--accent)]" />
+                  <label className="text-[10px] lg:text-[12px] font-bold tracking-widest opacity-30 capitalize ml-1">Manifest Tariff</label>
+                  <input type="number" value={shipmentEdit.price} onChange={(e) => setShipmentEdit((s) => ({ ...s, price: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold font-mono outline-none focus:border-[var(--accent)]" />
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest opacity-30 uppercase ml-1">Network State</label>
-                  <select value={shipmentEdit.status} onChange={(e) => setShipmentEdit((s) => ({ ...s, status: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold uppercase outline-none cursor-pointer">
+                  <label className="text-[10px] lg:text-[12px] font-bold tracking-widest opacity-30 capitalize ml-1">Network State</label>
+                  <select value={shipmentEdit.status} onChange={(e) => setShipmentEdit((s) => ({ ...s, status: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold capitalize outline-none cursor-pointer">
                     <option value="pending">PENDING</option>
                     <option value="assigned">ASSIGNED</option>
                     <option value="picked_up">PICKED_UP</option>
@@ -512,8 +512,8 @@ export default function AdminLogistics() {
                   </select>
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest opacity-30 uppercase ml-1">Assigned Carrier</label>
-                  <select value={shipmentEdit.logistics_id} onChange={(e) => setShipmentEdit((s) => ({ ...s, logistics_id: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] font-bold uppercase outline-none cursor-pointer">
+                  <label className="text-[10px] lg:text-[12px] font-bold tracking-widest opacity-30 capitalize ml-1">Assigned Carrier</label>
+                  <select value={shipmentEdit.logistics_id} onChange={(e) => setShipmentEdit((s) => ({ ...s, logistics_id: e.target.value }))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 text-[11px] lg:text-[12px] font-bold capitalize outline-none cursor-pointer">
                     <option value="">MANUAL_FULFILLMENT</option>
                     {firms.map((f) => (
                       <option key={f._id} value={f._id}>{f.company_name.toUpperCase()}</option>
@@ -523,11 +523,11 @@ export default function AdminLogistics() {
             </div>
             
             <div className="mt-6 space-y-2">
-               <label className="text-[10px] font-bold tracking-widest opacity-30 uppercase ml-1">Internal Log</label>
-               <textarea rows={3} value={shipmentEdit.note} onChange={(e) => setShipmentEdit((s) => ({ ...s, note: e.target.value }))} className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 py-3 text-[11px] font-bold outline-none focus:border-[var(--accent)]" />
+               <label className="text-[10px] lg:text-[12px] font-bold tracking-widest opacity-30 capitalize ml-1">Internal Log</label>
+               <textarea rows={3} value={shipmentEdit.note} onChange={(e) => setShipmentEdit((s) => ({ ...s, note: e.target.value }))} className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 py-3 text-[11px] lg:text-[12px] font-bold outline-none focus:border-[var(--accent)]" />
             </div>
 
-            <button onClick={saveShipmentEdit} className="mt-8 w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[10px] tracking-[0.3em] uppercase shadow-lg shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all">
+            <button onClick={saveShipmentEdit} className="mt-8 w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize shadow-lg shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 transition-all">
                Patch Transit Sequence
             </button>
           </motion.div>

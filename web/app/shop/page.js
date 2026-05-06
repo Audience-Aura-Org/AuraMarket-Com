@@ -236,7 +236,7 @@ function ShopContent() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] md:text-sm outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] lg:text-[12px] md:text-sm outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
               <button 
                 onClick={() => { setPage(1); fetchProducts(1); }}
@@ -256,13 +256,13 @@ function ShopContent() {
                ) : (
                 <>
                  {breadcrumb.length > 0 ? (
-                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
                      <Home className="size-3.5" /> Market
                    </button>
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
                       All
                     </button>
@@ -273,7 +273,7 @@ function ShopContent() {
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {crumb.name}
                       </button>
@@ -289,7 +289,7 @@ function ShopContent() {
                          if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                        }}
-                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {cat.name}
                     </button>
@@ -343,23 +343,23 @@ function ShopContent() {
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
                         <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-bold text-[var(--text-primary)]">
+                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.rating ? activeVendor.vendor_id.rating.toFixed(1) : '5.0'}
                         </span>
-                        <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
+                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40">Rating</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
                         <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-bold text-[var(--text-primary)]">
+                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
                         </span>
-                        <span className="text-[11px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
+                        <span className="text-[11px] lg:text-[12px] font-bold text-[var(--text-secondary)]  opacity-40">Network</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                         <ShieldCheck className="size-3.5 text-emerald-600" />
-                        <span className="text-[11px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
+                        <span className="text-[11px] lg:text-[12px] font-bold text-emerald-600 tracking-tight">Verified Vendor</span>
                       </div>
                     </div>
                   </div>
@@ -371,7 +371,7 @@ function ShopContent() {
                         store_name: activeVendor.vendor_id?.store_name,
                         branding: { logo: activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo }
                       })}
-                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                     >
                       Contact
                     </button>
@@ -393,7 +393,7 @@ function ShopContent() {
                 {activeCategoryName === 'All' ? 'Global Market' : activeCategoryName}
               </h3>
               <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
-              <p className="text-[10px] md:text-[11px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
+              <p className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
                 {products.length} Results
               </p>
             </div>
@@ -404,7 +404,7 @@ function ShopContent() {
               <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold tracking-tight shadow-sm"
                 >
                   Price
                   <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
@@ -412,11 +412,11 @@ function ShopContent() {
                 
                 {isPriceOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                        Any Price {!activePrice && <Check className="size-3.5" />}
                      </button>
                      {PRICE_RANGES.map(range => (
-                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {range.name} {activePrice === range.id && <Check className="size-3.5" />}
                        </button>
                      ))}
@@ -428,7 +428,7 @@ function ShopContent() {
               <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] md:text-[11px] font-bold tracking-tight shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-bold tracking-tight shadow-sm"
                 >
                   Sort
                   <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
@@ -437,7 +437,7 @@ function ShopContent() {
                 {isSortOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                      {SORT_OPTIONS.map(opt => (
-                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px] font-bold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {opt.label}
                          {sortBy === opt.value && <Check className="size-3.5" />}
                        </button>
@@ -478,7 +478,7 @@ function ShopContent() {
                     setActivePrice(null);
                     setSearch('');
                   }}
-                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white font-bold text-[10px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
+                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white font-bold text-[10px] lg:text-[12px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
                 >
                   Reset Filters
                 </button>
