@@ -114,7 +114,7 @@ export default function AdminProductsPage() {
         <div className="flex items-center gap-3 lg:gap-4">
           <div className="flex bg-[var(--bg-secondary)] p-1 rounded-xl border border-[var(--glass-border)]">
             {['all', 'active', 'pending', 'archived'].map((s) => {
-              const baseBtn = 'px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[8px] lg:text-[11px] font-bold tracking-tight transition-all ';
+              const baseBtn = 'px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[10px] lg:text-[11px] font-bold tracking-tight transition-all ';
               const stateClass = statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/5';
               return (
                 <button
@@ -147,7 +147,7 @@ export default function AdminProductsPage() {
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center opacity-40">
               <Loader2 className="size-12 lg:size-16 animate-spin text-[var(--accent)] mb-6 shadow-xl" />
-              <p className="text-[9px] lg:text-[11px] font-bold  tracking-[0.5em]">Extracting asset data...</p>
+              <p className="text-[10px] lg:text-[11px] font-bold  tracking-[0.5em]">Extracting asset data...</p>
             </div>
           ) : (
             <div className="space-y-12">
@@ -168,7 +168,7 @@ export default function AdminProductsPage() {
                       <div className="aspect-[1.5] lg:aspect-[1.6] rounded-[24px] lg:rounded-[32px] overflow-hidden border border-[var(--glass-border)] mb-6 lg:mb-8 bg-[var(--bg-secondary)]/50 relative shadow-inner shrink-0 text-white">
                         <img src={p.images?.[0]?.url || '/placeholder.png'} className="size-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
                         <div className="absolute top-3 right-3 lg:top-4 lg:right-4 flex gap-2">
-                          <span className={'px-3 lg:px-4 py-1 lg:py-1.5 rounded-full text-[7px] lg:text-[11px] font-bold tracking-tight border backdrop-blur-md shadow-2xl ' + statusClass}>
+                          <span className={'px-3 lg:px-4 py-1 lg:py-1.5 rounded-full text-[10px] lg:text-[11px] font-bold tracking-tight border backdrop-blur-md shadow-2xl ' + statusClass}>
                             {p.status}
                           </span>
                         </div>
@@ -182,20 +182,20 @@ export default function AdminProductsPage() {
                           </Link>
                         </div>
 
-                        <p className="text-[9px] lg:text-[11px] font-bold tracking-tight text-[var(--accent)] mb-4 lg:mb-6 flex items-center gap-2 opacity-70">
+                        <p className="text-[10px] lg:text-[11px] font-bold tracking-tight text-[var(--accent)] mb-4 lg:mb-6 flex items-center gap-2 opacity-70">
                           <Building2 className="size-3 lg:size-3.5" /> {p.vendor_id?.store_name}
                         </p>
 
                         <div className="grid grid-cols-2 gap-3 lg:gap-4 mb-6 lg:mb-8">
                           <div className="p-3 lg:p-4 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-center shadow-inner">
-                            <p className="text-[7px] lg:text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 opacity-40 ">Price Node</p>
-                            <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)]">{p.price?.toLocaleString()} <span className="text-[8px] opacity-40">XAF</span></p>
+                            <p className="text-[10px] lg:text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 opacity-40 ">Price Node</p>
+                            <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)]">{p.price?.toLocaleString()} <span className="text-[10px] opacity-40">XAF</span></p>
                           </div>
                           <div className="p-3 lg:p-4 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-center shadow-inner">
-                            <p className="text-[7px] lg:text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 opacity-40 ">Rating Node</p>
+                            <p className="text-[10px] lg:text-[11px] font-bold text-[var(--text-secondary)] tracking-tight mb-1 opacity-40 ">Rating Node</p>
                             <div className="flex items-center justify-center gap-1">
                               <Star className="size-2.5 lg:size-3 text-amber-500 fill-amber-500" />
-                              <span className="text-[9px] lg:text-[11px] font-bold">{p.rating || '0.0'}</span>
+                              <span className="text-[10px] lg:text-[11px] font-bold">{p.rating || '0.0'}</span>
                             </div>
                           </div>
                         </div>
@@ -205,7 +205,7 @@ export default function AdminProductsPage() {
                         {p.status !== 'active' ? (
                           <button
                             onClick={() => handleStatusUpdate(p._id, 'active')}
-                            className="flex-1 h-12 lg:h-14 rounded-xl lg:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-bold text-[8px] lg:text-[9px] tracking-tight  hover:bg-emerald-500 hover:text-white transition-all shadow-xl shadow-emerald-500/5 flex items-center justify-center gap-2"
+                            className="flex-1 h-12 lg:h-14 rounded-xl lg:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-bold text-[10px] lg:text-[10px] tracking-tight  hover:bg-emerald-500 hover:text-white transition-all shadow-xl shadow-emerald-500/5 flex items-center justify-center gap-2"
                           >
                             <CheckCircle className="size-4" />
                             Authorize Asset
@@ -213,7 +213,7 @@ export default function AdminProductsPage() {
                         ) : (
                           <button
                             onClick={() => handleStatusUpdate(p._id, 'rejected')}
-                            className="flex-1 h-12 lg:h-14 rounded-xl lg:rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 font-bold text-[8px] lg:text-[9px] tracking-tight  hover:bg-rose-500 hover:text-white transition-all shadow-xl shadow-rose-500/5 flex items-center justify-center gap-2"
+                            className="flex-1 h-12 lg:h-14 rounded-xl lg:rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 font-bold text-[10px] lg:text-[10px] tracking-tight  hover:bg-rose-500 hover:text-white transition-all shadow-xl shadow-rose-500/5 flex items-center justify-center gap-2"
                           >
                             <Ban className="size-4" />
                             Suspend Asset

@@ -44,7 +44,7 @@ export default function QuickActionsFAB({ role }) {
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3"
                 >
-                  <span className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-xl border border-[var(--glass-border)] text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-primary)] shadow-xl">
+                  <span className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-xl border border-[var(--glass-border)] text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-primary)] shadow-xl">
                     {action.label}
                   </span>
                   <div className={`size-12 rounded-2xl ${action.color} text-white flex items-center justify-center shadow-lg shadow-${action.color.split('-')[1]}-500/20`}>

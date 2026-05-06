@@ -224,7 +224,7 @@ export default function StorefrontBuilder() {
                                           <h4 className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight truncate max-w-[140px]">{item.headline || item.category_name || item.product_name || vendorName || 'Unnamed Element'}</h4>
                                           {item.tag && <span className="text-[11px] font-bold text-[var(--accent)]">{item.tag}</span>}
                                        </div>
-                                       {(item.subtext || isVendor) && <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 truncate leading-none">{item.subtext || 'Vendor Profile Active'}</p>}
+                                       {(item.subtext || isVendor) && <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 truncate leading-none">{item.subtext || 'Vendor Profile Active'}</p>}
                                     </div>
                                  </div>
                                );

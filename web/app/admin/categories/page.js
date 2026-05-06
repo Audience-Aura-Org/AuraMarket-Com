@@ -129,7 +129,7 @@ export default function AdminCategories() {
             ) : (
               <div className="flex flex-col">
                 <span className="text-[11px] font-bold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors uppercase">{cat.name}</span>
-                <span className="text-[9px] font-bold tracking-widest text-[var(--text-secondary)] opacity-30 uppercase">Node_ID: #{cat._id?.slice(-8).toUpperCase()}</span>
+                <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-30 uppercase">Node_ID: #{cat._id?.slice(-8).toUpperCase()}</span>
               </div>
             )}
           </div>
@@ -230,7 +230,7 @@ export default function AdminCategories() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
                         <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>

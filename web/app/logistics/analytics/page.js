@@ -67,7 +67,7 @@ export default function LogisticsAnalyticsPage() {
   }, [shipments]);
 
   // Stats
-  const activeShipments = shipments.filter(s => ['at_source', 'in_transit', 'arrived_at_destination'].includes(s.status)).length;
+  const activeShipments = shipments.filter(s => ['assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'at_source', 'arrived_at_destination'].includes(s.status)).length;
   const totalDelivered = shipments.filter(s => s.status === 'delivered').length;
   const deliverySuccess = shipments.length > 0 
     ? Math.round((totalDelivered / shipments.length) * 100) 

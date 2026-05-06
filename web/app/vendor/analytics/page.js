@@ -87,7 +87,7 @@ export default function VendorAnalyticsPage() {
                 <s.icon className="size-4" />
               </div>
               <p className="text-[11px] font-bold mb-0.5">{s.value}</p>
-              <p className="text-[7px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight">{s.label}</p>
+              <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight">{s.label}</p>
             </div>
           ))}
         </div>
@@ -189,7 +189,7 @@ export default function VendorAnalyticsPage() {
                     <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-30  mt-0.5">{new Date(o.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div className="hidden md:flex flex-col items-end px-8 border-r border-[var(--glass-border)]">
-                    <span className={`px-2 py-0.5 rounded-full text-[7px] font-bold tracking-tight border ${
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight border ${
                       o.order_status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
                       o.order_status === 'cancelled' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
                       'bg-amber-500/10 text-amber-500 border-amber-500/20'
@@ -199,7 +199,7 @@ export default function VendorAnalyticsPage() {
                   </div>
                   <div className="text-right min-w-[100px]">
                     <p className="text-[11px] font-bold">FCFA {fmt(o.total_amount)}</p>
-                    <p className="text-[7px] font-bold text-[var(--text-secondary)] opacity-20 tracking-tight mt-0.5">Total Settlement</p>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-20 tracking-tight mt-0.5">Total Settlement</p>
                   </div>
                 </div>
               ))}

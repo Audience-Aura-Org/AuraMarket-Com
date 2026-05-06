@@ -161,7 +161,7 @@ export default function AdminUsersPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                       <p className="text-[11px] font-bold tracking-tight truncate">{u.name}</p>
-                      <span className={`px-2 py-0.5 rounded-full text-[7px] font-bold tracking-tight border ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight border ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
                         {u.role}
                       </span>
                     </div>
@@ -261,7 +261,7 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[9px] tracking-tight shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
+                  <button type="submit" disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-[10px] tracking-tight shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
                     {submitting ? (
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="size-4 animate-spin" />

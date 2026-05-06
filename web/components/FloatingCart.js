@@ -49,7 +49,7 @@ export default function FloatingCart() {
             <div className="flex flex-col items-center justify-center absolute top-5 left-1/2 -translate-x-1/2 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none h-full">
                <div className="relative bg-[var(--bg-secondary)] p-2.5 rounded-2xl border border-[var(--glass-border)] shadow-sm">
                  <ShoppingCart className="w-5 h-5 text-[var(--text-primary)]" />
-                 <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold border border-[var(--bg-primary)] shadow-md">
+                 <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold border border-[var(--bg-primary)] shadow-md">
                    {totalItems}
                  </span>
                </div>
@@ -101,7 +101,7 @@ export default function FloatingCart() {
            <div className="flex items-center gap-4">
              <div className="relative flex-shrink-0">
                <ShoppingCart className="w-6 h-6 text-[var(--text-primary)]" />
-               <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md border-[1.5px] border-[var(--bg-primary)]">
+               <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-md border-[1.5px] border-[var(--bg-primary)]">
                  {totalItems}
                </span>
              </div>

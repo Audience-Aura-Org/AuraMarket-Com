@@ -240,7 +240,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                       }}
                       className={`shrink-0 px-4 py-3 rounded-xl border text-[10px] font-bold transition-all ${selectedBeneficiary?.id === b.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] opacity-60'}`}>
                         {b.firstName} {b.lastName}
-                        <p className="text-[8px] opacity-50 uppercase mt-0.5">{b.type}</p>
+                        <p className="text-[10px] opacity-50 uppercase mt-0.5">{b.type}</p>
                       </button>
                     ))}
                     <button onClick={() => setSelectedBeneficiary(null)} className="shrink-0 px-4 py-3 rounded-xl border border-dashed border-[var(--glass-border)] text-[10px] font-bold opacity-40">
@@ -273,7 +273,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             {selectedBeneficiary && (
               <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
                 <div>
-                  <p className="text-[8px] font-bold text-emerald-500 opacity-50 uppercase">SAVED RECIPIENT</p>
+                  <p className="text-[10px] font-bold text-emerald-500 opacity-50 uppercase">SAVED RECIPIENT</p>
                   <p className="text-xs font-bold">{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</p>
                 </div>
                 <button onClick={() => setSelectedBeneficiary(null)} className="text-[10px] font-bold text-red-500">Change</button>

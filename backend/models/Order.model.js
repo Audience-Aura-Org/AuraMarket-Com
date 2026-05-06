@@ -111,8 +111,17 @@ const OrderSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+OrderSchema.virtual('shipment', {
+  ref: 'Shipment',
+  localField: '_id',
+  foreignField: 'order_id',
+  justOne: true
+});
 
 // Optional: Indexing primarily used queries
 OrderSchema.index({ customer_id: 1, createdAt: -1 });

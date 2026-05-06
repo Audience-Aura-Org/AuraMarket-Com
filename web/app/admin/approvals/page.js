@@ -139,7 +139,7 @@ export default function AdminApprovals() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
                         <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
@@ -200,7 +200,7 @@ export default function AdminApprovals() {
                                    </p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[9px] font-bold tracking-widest border border-amber-500/20 uppercase">
+                                   <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold tracking-widest border border-amber-500/20 uppercase">
                                       Pending Sync
                                    </span>
                                 </td>
@@ -244,7 +244,7 @@ export default function AdminApprovals() {
                                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 mt-1 uppercase">Merchant Node</p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[9px] font-bold tracking-widest border border-indigo-500/20 uppercase">
+                                   <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[10px] font-bold tracking-widest border border-indigo-500/20 uppercase">
                                       Inventory Lock
                                    </span>
                                 </td>

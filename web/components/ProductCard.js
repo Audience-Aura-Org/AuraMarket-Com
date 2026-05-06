@@ -251,7 +251,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
            </Link>
            
            {user?._id !== vendorUserId && (
-              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[7px] md:text-[11px] font-bold tracking-tight transition-all active:scale-95 shadow-sm border ${isFollowing ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'}`}>
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-[11px] font-bold tracking-tight transition-all active:scale-95 shadow-sm border ${isFollowing ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'}`}>
                  {isFollowing ? 'Following' : '+ Follow'}
               </button>
            )}
@@ -291,7 +291,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             <button 
               onClick={handleBuyNow} 
               disabled={!inStock}
-              className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[9px] md:text-[11px] font-bold tracking-tight rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] md:text-[11px] font-bold tracking-tight rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               {inStock ? 'Buy now' : 'Sold out'}
             </button>

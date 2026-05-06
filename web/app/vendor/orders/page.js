@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/services/api';
+import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -92,6 +93,17 @@ export default function VendorOrdersPage() {
     if (!user || user.role !== 'vendor' || !user.onboarded) return;
     fetchOrders(); 
   }, [fetchOrders, user]);
+
+  // Real-time: re-fetch when logistics updates a shipment status
+  useEffect(() => {
+    const handleOrderUpdate = () => fetchOrders();
+    socketService.on('order_update', handleOrderUpdate);
+    socketService.on('notification', handleOrderUpdate);
+    return () => {
+      socketService.off('order_update', handleOrderUpdate);
+      socketService.off('notification', handleOrderUpdate);
+    };
+  }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
      setUpdatingId(orderId);
@@ -173,7 +185,7 @@ export default function VendorOrdersPage() {
 
       <div className={viewingOrderId ? "w-full" : "p-10 space-y-8 pb-40"}>
          {viewingOrderId ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 p-0 pb-40">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 p-10 pb-40">
                <SingleOrderView 
                   orderId={viewingOrderId} 
                   onBack={handleBack} 
@@ -196,7 +208,7 @@ export default function VendorOrdersPage() {
                               <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                                  <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                               </div>
-                              <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                              <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                            </div>
                            <div>
                               <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
@@ -241,11 +253,11 @@ export default function VendorOrdersPage() {
                                        <div className="flex items-center justify-between mb-2">
                                           <div className="flex items-center gap-3">
                                              <span className="text-[11px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order Trace</span>
-                                             <span className={`px-3 py-1 rounded-full text-[8px] md:text-[9px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 uppercase`}>
+                                             <span className={`px-3 py-1 rounded-full text-[10px] md:text-[10px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 uppercase`}>
                                                 {status.label}
                                              </span>
                                           </div>
-                                          <time className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
+                                          <time className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
                                              <Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString()}
                                           </time>
                                        </div>
@@ -261,7 +273,7 @@ export default function VendorOrdersPage() {
                                     <div className="text-right shrink-0">
                                        <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                        <div className="flex items-center justify-end gap-3 mt-2">
-                                          <span className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{order.products?.length || 1} Payload Node(s)</span>
+                                          <span className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{order.products?.length || 1} Payload Node(s)</span>
                                           <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                              {customer?.avatar ? <img src={customer.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                           </div>

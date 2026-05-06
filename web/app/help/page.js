@@ -75,7 +75,7 @@ export default function HelpHubPage() {
                  </div>
                  <div>
                     <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-tight">{cat.title}</h3>
-                    <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{cat.count} articles</p>
+                    <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{cat.count} articles</p>
                  </div>
               </button>
            ))}
@@ -150,7 +150,7 @@ export default function HelpHubPage() {
 
         {/* Slim Legal Footnote */}
         <div className="pt-12 text-center">
-           <p className="text-[8px] font-medium text-[var(--text-secondary)] opacity-20 tracking-[0.3em] ">
+           <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-20 tracking-[0.3em] ">
               Operated via Aura Global Systems Node // Douala, CM
            </p>
         </div>

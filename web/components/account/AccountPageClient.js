@@ -540,16 +540,18 @@ export default function AccountPageClient() {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-tight bg-${sColor}-500/10 text-${sColor}-500 border border-${sColor}-500/20 capitalize`}>
-                                            {order.order_status || 'pending'}
+                                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight bg-${sColor}-500/10 text-${sColor}-500 border border-${sColor}-500/20 capitalize`}>
+                                            {order.shipment && ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(order.shipment.status) 
+                                              ? order.shipment.status.replace('_', ' ') 
+                                              : order.order_status || 'pending'}
                                           </span>
                                           <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">#{order._id.slice(-8).toUpperCase()}</span>
                                         </div>
                                         <h4 className="text-[11px] font-bold truncate group-hover:text-[var(--accent)] transition-colors">{title}</h4>
                                       </div>
                                       <div className="text-right shrink-0">
-                                        <div className="text-[11px] font-bold text-[var(--text-primary)]">{(order.total_amount || 0).toLocaleString()} <span className="text-[9px] opacity-40">XAF</span></div>
-                                        <div className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                                        <div className="text-[11px] font-bold text-[var(--text-primary)]">{(order.total_amount || 0).toLocaleString()} <span className="text-[10px] opacity-40">XAF</span></div>
+                                        <div className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                                       </div>
                                     </div>
                                   </div>
@@ -924,7 +926,7 @@ export default function AccountPageClient() {
 
                                 <div className="mt-6 pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                                   <div className="flex flex-col items-start gap-1">
-                                    <span className="text-[8px] font-bold text-[var(--text-secondary)]/40 tracking-tight">Status</span>
+                                    <span className="text-[10px] font-bold text-[var(--text-secondary)]/40 tracking-tight">Status</span>
                                     <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1 ">
                                       <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Active
                                     </span>

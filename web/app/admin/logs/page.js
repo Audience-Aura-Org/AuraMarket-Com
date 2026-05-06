@@ -99,7 +99,7 @@ export default function AdminLogsPage() {
                    <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                          <h3 className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight">{log.action}</h3>
-                         <span className="text-[9px] font-medium text-[var(--text-secondary)] opacity-30 tracking-tight">{log.time}</span>
+                         <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-30 tracking-tight">{log.time}</span>
                       </div>
                       <p className="text-xs text-[var(--text-secondary)] opacity-60 truncate font-mono">{log.details}</p>
                    </div>

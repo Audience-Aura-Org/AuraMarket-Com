@@ -172,7 +172,7 @@ export default function VendorDashboard() {
             <div className="flex items-center gap-3 sm:gap-4 pl-3 sm:pl-4 border-l border-[var(--glass-border)]/30">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{user?.name || 'Vendor'}</p>
-                <p className="text-[9px] text-[var(--accent)] font-bold tracking-tight  opacity-80">Store Owner</p>
+                <p className="text-[10px] text-[var(--accent)] font-bold tracking-tight  opacity-80">Store Owner</p>
               </div>
               <div className="size-9 sm:size-10 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
@@ -257,7 +257,7 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[var(--text-primary)]  tracking-tighter">Aura Stories Manager</h3>
-                <p className="text-[9px] text-[var(--text-secondary)] font-bold opacity-50 tracking-tight">Share updates & engage with your followers</p>
+                <p className="text-[10px] text-[var(--text-secondary)] font-bold opacity-50 tracking-tight">Share updates & engage with your followers</p>
               </div>
             </div>
             <Link href="/vendor/stories" className="px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[11px] font-bold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
@@ -272,7 +272,7 @@ export default function VendorDashboard() {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter ">Sales Growth</h3>
-                  <p className="text-[9px] text-[var(--text-secondary)] font-bold opacity-50 tracking-tight">Monthly sales trends</p>
+                  <p className="text-[10px] text-[var(--text-secondary)] font-bold opacity-50 tracking-tight">Monthly sales trends</p>
                 </div>
                 <select className="bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] text-[11px] font-bold rounded-full px-4 py-2 focus:outline-none tracking-tight">
                   <option>Last 6 Months</option>
@@ -332,9 +332,9 @@ export default function VendorDashboard() {
             <div className="p-6 border-b border-[var(--glass-border)] flex justify-between items-center">
               <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter ">Active Transmissions</h3>
               <div className="flex gap-2">
-                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] px-3 py-1 rounded-full font-bold tracking-tight ">ALL</button>
-                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-bold tracking-tight  hover:bg-[var(--accent)]/5">PROCESSING</button>
-                <button className="text-[var(--text-secondary)] text-[9px] px-3 py-1 rounded-full font-bold tracking-tight  hover:bg-[var(--accent)]/5">SHIPPED</button>
+                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] px-3 py-1 rounded-full font-bold tracking-tight ">ALL</button>
+                <button className="text-[var(--text-secondary)] text-[10px] px-3 py-1 rounded-full font-bold tracking-tight  hover:bg-[var(--accent)]/5">PROCESSING</button>
+                <button className="text-[var(--text-secondary)] text-[10px] px-3 py-1 rounded-full font-bold tracking-tight  hover:bg-[var(--accent)]/5">SHIPPED</button>
               </div>
             </div>
             <div className="overflow-x-auto">

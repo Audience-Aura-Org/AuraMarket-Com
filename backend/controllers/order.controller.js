@@ -392,6 +392,7 @@ const getCustomerOrders = async (req, res, next) => {
           select: 'name avatar branding'
         }
       })
+      .populate('shipment', 'status tracking_code')
       .sort('-createdAt');
     res.status(200).json({ success: true, count: orders.length, data: { orders } });
   } catch (error) { next(error); }
@@ -415,6 +416,7 @@ const getVendorOrders = async (req, res, next) => {
           select: 'name avatar branding'
         }
       })
+      .populate('shipment', 'status tracking_code')
       .sort('-createdAt');
     res.status(200).json({ success: true, count: orders.length, data: { orders } });
   } catch (error) { next(error); }

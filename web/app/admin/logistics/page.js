@@ -134,7 +134,7 @@ export default function AdminLogistics() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
                         <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
@@ -214,7 +214,7 @@ export default function AdminLogistics() {
                                    {(s.price || 0).toLocaleString()} <span className="opacity-30">XAF</span>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className={`px-3 py-1 rounded-full text-[9px] font-bold tracking-widest border uppercase ${
+                                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest border uppercase ${
                                       s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
                                       s.status === 'failed' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
                                       'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
@@ -244,7 +244,7 @@ export default function AdminLogistics() {
                                 <td className="px-6 py-6">
                                    <div className="flex flex-wrap gap-1.5 max-w-[200px]">
                                       {f.service_regions?.map(r => (
-                                         <span key={r} className="px-2 py-0.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[8px] font-bold text-[var(--text-secondary)] uppercase tracking-tighter">{r}</span>
+                                         <span key={r} className="px-2 py-0.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-tighter">{r}</span>
                                       ))}
                                    </div>
                                 </td>
@@ -254,7 +254,7 @@ export default function AdminLogistics() {
                                    </p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className={`px-3 py-1 rounded-full text-[9px] font-bold tracking-widest border uppercase ${f.is_verified ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest border uppercase ${f.is_verified ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                                       {f.is_verified ? 'Verified' : 'Pending'}
                                    </span>
                                 </td>
@@ -273,7 +273,7 @@ export default function AdminLogistics() {
                                                }
                                             } catch { toast.error("Handshake failed."); }
                                          }}
-                                         className={`px-4 py-2 rounded-xl text-[9px] font-bold tracking-widest uppercase transition-all shadow-sm ${f.is_verified ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'}`}
+                                         className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all shadow-sm ${f.is_verified ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'bg-[var(--accent)] text-white hover:opacity-90'}`}
                                       >
                                          {f.is_verified ? 'REVOKE' : 'VERIFY'}
                                       </button>
@@ -284,7 +284,7 @@ export default function AdminLogistics() {
                              <tr key={z._id} className="group hover:bg-[var(--accent)]/5 transition-all">
                                 <td className="px-10 py-6 text-[11px] font-bold text-[var(--text-primary)] font-mono uppercase tracking-tight">{z.name}</td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{z.type}</span>
+                                   <span className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{z.type}</span>
                                 </td>
                                 <td className="px-6 py-6 text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">{z.parent_id?.name || 'ROOT_CLUSTER'}</td>
                                 <td className="px-6 py-6">
@@ -294,7 +294,7 @@ export default function AdminLogistics() {
                                    </div>
                                 </td>
                                 <td className="px-10 py-6 text-right">
-                                   <button className="px-4 py-2 rounded-xl border border-rose-500/20 text-rose-500 text-[9px] font-bold tracking-widest uppercase hover:bg-rose-500 hover:text-white transition-all">Purge</button>
+                                   <button className="px-4 py-2 rounded-xl border border-rose-500/20 text-rose-500 text-[10px] font-bold tracking-widest uppercase hover:bg-rose-500 hover:text-white transition-all">Purge</button>
                                 </td>
                              </tr>
                           ))}

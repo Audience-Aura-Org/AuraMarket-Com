@@ -170,7 +170,7 @@ function StoryBubble({ logoUrl, previewUrl, storeName, displayName, hasUnviewed,
         )}
       </div>
 
-      <span className="text-[9px] md:text-[11px] font-bold text-[var(--text-primary)] truncate w-[74px] md:w-[82px] text-center tracking-tight group-hover:text-[var(--accent)] transition-colors">
+      <span className="text-[10px] md:text-[11px] font-bold text-[var(--text-primary)] truncate w-[74px] md:w-[82px] text-center tracking-tight group-hover:text-[var(--accent)] transition-colors">
         {displayName}
       </span>
     </button>

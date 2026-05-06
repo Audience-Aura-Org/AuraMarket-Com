@@ -73,7 +73,7 @@ function DetailDrawer({ wr, onClose, onApprove, onReject, onRecheck, processing 
           <div className="flex-1 min-w-0">
             <p className="font-bold text-[var(--text-primary)] truncate">{wr.requestedBy?.name || '—'}</p>
             <p className="text-[10px] text-[var(--text-secondary)] opacity-50 truncate">{wr.requestedBy?.email}</p>
-            <span className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">{wr.role?.toUpperCase()}</span>
+            <span className="text-[10px] font-bold tracking-widest px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">{wr.role?.toUpperCase()}</span>
           </div>
           <div className="text-right shrink-0">
             <p className="text-xl font-bold tabular-nums">{fmt(wr.amount)}</p>
@@ -300,7 +300,7 @@ export default function AdminWithdrawalsPage() {
               <h1 className="text-2xl font-bold tracking-tight">Payout Queue</h1>
               <p className="text-xs text-[var(--text-secondary)] opacity-60 font-bold tracking-tight">
                 Eversend Withdrawal Approvals
-                {pendingCount > 0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px]">{pendingCount} PENDING</span>}
+                {pendingCount > 0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px]">{pendingCount} PENDING</span>}
               </p>
             </div>
           </div>
@@ -372,7 +372,7 @@ export default function AdminWithdrawalsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-bold text-sm text-[var(--text-primary)] truncate">{w.requestedBy?.name || '—'}</p>
-                      <span className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60 shrink-0">
+                      <span className="text-[10px] font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60 shrink-0">
                         {w.role?.toUpperCase()}
                       </span>
                     </div>

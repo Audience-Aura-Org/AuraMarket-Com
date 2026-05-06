@@ -371,7 +371,7 @@ function ShopContent() {
                         store_name: activeVendor.vendor_id?.store_name,
                         branding: { logo: activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo }
                       })}
-                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                     >
                       Contact
                     </button>

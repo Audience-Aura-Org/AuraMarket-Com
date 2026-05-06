@@ -118,7 +118,7 @@ export default function AdminVendorsPage() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
                         <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
@@ -166,18 +166,18 @@ export default function AdminVendorsPage() {
                           <div className="hidden lg:grid grid-cols-3 gap-12 px-12 border-x border-[var(--glass-border)]/50">
                              <div className="text-center">
                                 <p className="text-lg font-bold tabular-nums tracking-tighter">{v.total_sales || 0}</p>
-                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-1">Volume</p>
+                                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-1">Volume</p>
                              </div>
                              <div className="text-center">
                                 <p className="text-lg font-bold tabular-nums tracking-tighter">{fmt(v.total_revenue)}</p>
-                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-1">Revenue</p>
+                                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-1">Revenue</p>
                              </div>
                              <div className="text-center">
                                 <div className="flex items-center gap-1 justify-center">
                                    <Star className="size-3 text-amber-500 fill-amber-500" />
                                    <p className="text-lg font-bold tabular-nums tracking-tighter">{v.rating?.toFixed(1) || '0.0'}</p>
                                 </div>
-                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-1">Rating</p>
+                                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-1">Rating</p>
                              </div>
                           </div>
 
@@ -187,7 +187,7 @@ export default function AdminVendorsPage() {
                                    <div className={`size-1.5 rounded-full ${v.verified ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'}`} />
                                    <span className="text-[10px] font-bold tracking-widest uppercase opacity-60">{v.verified ? 'Verified' : 'Pending'}</span>
                                 </div>
-                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-20 uppercase tracking-widest">Merchant State</p>
+                                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-20 uppercase tracking-widest">Merchant State</p>
                              </div>
                              
                              <div className="flex items-center gap-2">

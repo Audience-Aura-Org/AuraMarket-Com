@@ -74,7 +74,7 @@ export default function VendorProductsPage() {
         <div className="flex items-center gap-4 lg:gap-6">
           <h2 className="text-fluid-lg lg:text-fluid-xl font-bold text-[var(--text-primary)] tracking-tight ">Product <span className="text-[var(--accent)]">Hub</span></h2>
           <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <p className="text-[var(--text-secondary)] text-[8px] lg:text-[11px] font-bold  tracking-[0.3em] opacity-40"><span>{products.length}</span> Active Listings</p>
+          <p className="text-[var(--text-secondary)] text-[10px] lg:text-[11px] font-bold  tracking-[0.3em] opacity-40"><span>{products.length}</span> Active Listings</p>
         </div>
 
         <div className="flex items-center gap-3 lg:gap-5 self-end lg:self-auto w-full lg:w-auto">
@@ -90,7 +90,7 @@ export default function VendorProductsPage() {
               placeholder="Filter by name or category..." 
             />
           </div>
-          <Link href="/vendor/products/add" className="flex items-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white font-bold px-5 lg:px-8 py-3 lg:py-3.5 rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:-translate-y-0.5 transition-all text-[9px] lg:text-[11px] tracking-tight  shrink-0">
+          <Link href="/vendor/products/add" className="flex items-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white font-bold px-5 lg:px-8 py-3 lg:py-3.5 rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:-translate-y-0.5 transition-all text-[10px] lg:text-[11px] tracking-tight  shrink-0">
             <Zap className="size-4" />
             New Listing
           </Link>

@@ -109,7 +109,7 @@ export const OrdersContent = memo(({ user }) => {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold  text-[var(--text-primary)]">#{order._id.slice(-6).toUpperCase()}</p>
-                  <p className="text-[9px] text-[var(--text-secondary)] opacity-50 tracking-tight">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  <p className="text-[10px] text-[var(--text-secondary)] opacity-50 tracking-tight">{new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">

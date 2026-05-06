@@ -160,7 +160,7 @@ export default function AdminEscrow() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
                         <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
@@ -212,11 +212,11 @@ export default function AdminEscrow() {
                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
                                        <span className="text-[11px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order Trace</span>
-                                       <span className={`px-3 py-1 rounded-full text-[8px] md:text-[9px] font-bold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 uppercase`}>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] md:text-[10px] font-bold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 uppercase`}>
                                           {l.status.replace('_', ' ')}
                                        </span>
                                     </div>
-                                    <time className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
+                                    <time className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
                                        <Clock className="w-3 h-3" /> {new Date(l.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
@@ -232,7 +232,7 @@ export default function AdminEscrow() {
                               <div className="text-right shrink-0">
                                  <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{l.amount.toLocaleString()} <span className="text-[10px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Protocol Secured</span>
+                                    <span className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Protocol Secured</span>
                                     <ShieldCheck className="w-4 h-4 text-emerald-500 opacity-40" />
                                  </div>
                               </div>
@@ -254,16 +254,16 @@ export default function AdminEscrow() {
                                              </p>
                                              <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                   <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest mb-1">Customer Confirmed</p>
+                                                   <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-1">Customer Confirmed</p>
                                                    <p className={`text-[11px] font-bold ${l.customer_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>{l.customer_confirmed ? 'YES' : 'NO'}</p>
                                                 </div>
                                                 <div>
-                                                   <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest mb-1">Vendor Confirmed</p>
+                                                   <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-1">Vendor Confirmed</p>
                                                    <p className={`text-[11px] font-bold ${l.vendor_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>{l.vendor_confirmed ? 'YES' : 'NO'}</p>
                                                 </div>
                                                 {l.release_date && (
                                                   <div className="col-span-2">
-                                                     <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest mb-1">Settlement Date</p>
+                                                     <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-1">Settlement Date</p>
                                                      <p className="text-[11px] font-bold text-[var(--text-primary)]">{new Date(l.release_date).toLocaleString()}</p>
                                                   </div>
                                                 )}

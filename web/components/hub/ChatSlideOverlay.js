@@ -296,7 +296,7 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                                 <div className="flex-1 min-w-0 text-left">
                                   <div className="flex items-center gap-1.5 mb-0.5">
                                     <div className="size-1 rounded-full bg-[var(--accent)] animate-pulse" />
-                                    <span className="text-[7px] font-bold text-[var(--accent)] tracking-tight leading-none">Subject Payload</span>
+                                    <span className="text-[10px] font-bold text-[var(--accent)] tracking-tight leading-none">Subject Payload</span>
                                   </div>
                                   <h5 className="text-[11px] font-bold text-[var(--text-primary)] truncate tracking-tight leading-tight">{msg.product_reference.name}</h5>
                                   <p className="text-[11px] font-bold text-[var(--text-secondary)]/60 tabular-nums">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
@@ -325,10 +325,10 @@ export default function ChatSlideOverlay({ vendorId: initialVendorId, product, i
                                 <div className="flex-1 min-w-0 text-left">
                                   <div className="flex items-center gap-1.5 mb-0.5">
                                     <div className="size-1 rounded-full bg-purple-500 animate-pulse" />
-                                    <span className="text-[7px] font-bold text-purple-400 tracking-tight leading-none">Status Interaction</span>
+                                    <span className="text-[10px] font-bold text-purple-400 tracking-tight leading-none">Status Interaction</span>
                                   </div>
                                   <h5 className="text-[11px] font-bold text-[var(--text-primary)] truncate tracking-tight leading-tight">Replied to Story</h5>
-                                  <p className="text-[9px] font-medium text-[var(--text-secondary)]/40">via Aura Pulse</p>
+                                  <p className="text-[10px] font-medium text-[var(--text-secondary)]/40">via Aura Pulse</p>
                                 </div>
                                 <ExternalLink className="size-3 text-[var(--text-secondary)] opacity-20 mr-1" />
                               </button>

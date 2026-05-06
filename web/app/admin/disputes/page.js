@@ -267,7 +267,7 @@ export default function AdminDisputes() {
                         <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
                            <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
                         </div>
-                        <span className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+                        <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
                      </div>
                      <div>
                         <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.2em] mb-2 uppercase opacity-40">{s.label}</p>
@@ -312,11 +312,11 @@ export default function AdminDisputes() {
                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
                                        <span className="text-[11px] md:text-[13px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Case Node</span>
-                                       <span className={`px-3 py-1 rounded-full text-[8px] md:text-[9px] font-bold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 uppercase`}>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] md:text-[10px] font-bold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 uppercase`}>
                                           {d.status}
                                        </span>
                                     </div>
-                                    <time className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
+                                    <time className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase">
                                        <Clock className="w-3 h-3" /> {new Date(d.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
@@ -332,7 +332,7 @@ export default function AdminDisputes() {
                               <div className="text-right shrink-0">
                                  <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(d.order_id?.total_amount || 0).toLocaleString()} <span className="text-[10px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{d.initiator_id?.name || 'Party'}</span>
+                                    <span className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{d.initiator_id?.name || 'Party'}</span>
                                     <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                        {d.initiator_id?.avatar ? <img src={d.initiator_id.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                     </div>

@@ -98,7 +98,7 @@ export default function PWAOnboarding() {
                   {!isInstallable ? (
                     <div className="p-5 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/20 text-center animate-in fade-in slide-in-from-top-2 duration-700">
                       <p className="text-[11px] font-bold tracking-tight text-[var(--accent)] mb-1">Status: Ready for Sync</p>
-                      <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-60">If the automatic prompt doesn't appear, tap the <span className="font-bold text-[var(--text-primary)]">Browser Menu (⋮ or ≡)</span> and select <span className="font-bold text-[var(--text-primary)]">"Install App"</span>.</p>
+                      <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">If the automatic prompt doesn't appear, tap the <span className="font-bold text-[var(--text-primary)]">Browser Menu (⋮ or ≡)</span> and select <span className="font-bold text-[var(--text-primary)]">"Install App"</span>.</p>
                     </div>
                   ) : (
                     <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 text-center animate-in fade-in zoom-in duration-500">

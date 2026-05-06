@@ -325,7 +325,7 @@ export default function WalletPage() {
                              </p>
                              <div className="flex items-center justify-end gap-1 mt-0.5">
                                 {tx.status === 'pending' && <Clock className="size-2 text-amber-500 animate-pulse" />}
-                                <p className={`text-[9px] font-bold tracking-tight ${
+                                <p className={`text-[10px] font-bold tracking-tight ${
                                    tx.status === 'completed' ? 'text-emerald-500/50' : 
                                    tx.status === 'failed' ? 'text-red-500' : 'text-amber-500'
                                 }`}>

@@ -124,16 +124,16 @@ export default function AdminLogisticsEarningsPage() {
                  {vendors.map((v) => (
                     <div key={v._id?._id || v._id} className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center justify-between group">
                        <div className="flex items-center gap-4">
-                          <div className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] font-bold text-[9px] group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
+                          <div className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] font-bold text-[10px] group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
                              {v._id?.store_name?.[0] || 'V'}
                           </div>
                           <div>
                              <h3 className="text-xs font-bold text-[var(--text-primary)]  truncate w-32">{v.store_name || "Unknown Merchant"}</h3>
-                             <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{v.total_orders || 0} Successful Transmissions</p>
+                             <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{v.total_orders || 0} Successful Transmissions</p>
                           </div>
                        </div>
                        <div className="text-right">
-                          <p className="text-xs font-bold text-[var(--text-primary)] font-mono">{(v.gross_sales || 0).toLocaleString()} <span className="text-[8px] opacity-20">XAF</span></p>
+                          <p className="text-xs font-bold text-[var(--text-primary)] font-mono">{(v.gross_sales || 0).toLocaleString()} <span className="text-[10px] opacity-20">XAF</span></p>
                           <div className="h-1 w-16 bg-white/5 rounded-full mt-1 overflow-hidden">
                              <div className="h-full bg-[var(--accent)]" style={{ width: `${(v.gross_sales / totalRev) * 100}%` }} />
                           </div>
@@ -154,16 +154,16 @@ export default function AdminLogisticsEarningsPage() {
                  {partners.map((p) => (
                     <div key={p._id?._id || p._id} className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] hover:border-indigo-500/30 transition-all flex items-center justify-between group">
                        <div className="flex items-center gap-4">
-                          <div className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] font-bold text-[9px] group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                          <div className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] font-bold text-[10px] group-hover:bg-indigo-500 group-hover:text-white transition-all">
                              {p._id?.company_name?.[0] || 'L'}
                           </div>
                           <div>
                              <h3 className="text-xs font-bold text-[var(--text-primary)]  truncate w-32">{p.company_name || "Unknown Partner"}</h3>
-                             <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{p.total_shipments || 0} Global Dispatches</p>
+                             <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{p.total_shipments || 0} Global Dispatches</p>
                           </div>
                        </div>
                        <div className="text-right">
-                          <p className="text-xs font-bold text-[var(--text-primary)] font-mono">{(p.total_shipping_value || 0).toLocaleString()} <span className="text-[8px] opacity-20">XAF</span></p>
+                          <p className="text-xs font-bold text-[var(--text-primary)] font-mono">{(p.total_shipping_value || 0).toLocaleString()} <span className="text-[10px] opacity-20">XAF</span></p>
                           <div className="h-1 w-16 bg-white/5 rounded-full mt-1 overflow-hidden">
                              <div className="h-full bg-indigo-500" style={{ width: `${(p.total_shipping_value / totalShip) * 100}%` }} />
                           </div>

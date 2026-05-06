@@ -287,7 +287,7 @@ function VerifyContent() {
 
             {/* Reference display */}
             {ref && state !== 'loading' && (
-              <p className="text-center text-[9px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-6">
+              <p className="text-center text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-tight mt-6">
                 Ref: {ref}
               </p>
             )}

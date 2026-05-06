@@ -132,7 +132,7 @@ export default function KYCPage() {
                         </div>
 
                         <div className="flex gap-4">
-                           <button onClick={() => setStep(1)} className="flex-1 py-6 rounded-3xl border border-[var(--glass-border)] font-bold tracking-tight text-[9px] hover:bg-[var(--bg-secondary)] transition-all">Previous</button>
+                           <button onClick={() => setStep(1)} className="flex-1 py-6 rounded-3xl border border-[var(--glass-border)] font-bold tracking-tight text-[10px] hover:bg-[var(--bg-secondary)] transition-all">Previous</button>
                            <button onClick={() => setStep(3)} className="flex-[2] py-6 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-bold  tracking-[.3em] text-[10px] shadow-xl hover:scale-[1.02] transition-all">Continue Sync</button>
                         </div>
                      </motion.div>

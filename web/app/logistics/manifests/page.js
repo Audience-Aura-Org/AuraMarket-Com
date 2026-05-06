@@ -140,7 +140,7 @@ export default function LogisticsManifestsPage() {
            </div>
            
            <div className="hidden lg:flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
-              {['all', 'pending', 'picked_up', 'delivered', 'failed'].map(s => (
+              {['all', 'pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed'].map(s => (
                 <button 
                   key={s}
                   onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
@@ -198,11 +198,11 @@ export default function LogisticsManifestsPage() {
                                           <span className="mx-2 text-[var(--accent)] opacity-50">→</span> 
                                           {(shipment.delivery_address?.quartier || shipment.delivery_address?.city || "Delivery")}
                                        </span>
-                                       <span className={`px-3 py-1 rounded-full text-[8px] md:text-[9px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 uppercase`}>
+                                       <span className={`px-3 py-1 rounded-full text-[10px] md:text-[10px] font-bold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 uppercase`}>
                                           {status.label}
                                        </span>
                                     </div>
-                                    <time className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase hidden md:flex">
+                                    <time className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 uppercase hidden md:flex">
                                        <Clock className="w-3 h-3" /> {new Date(shipment.createdAt).toLocaleDateString()}
                                     </time>
                                  </div>
@@ -218,7 +218,7 @@ export default function LogisticsManifestsPage() {
                               <div className="text-right shrink-0">
                                  <p className="text-xl md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(shipment.price || 0).toLocaleString()} <span className="text-[10px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
                                  <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{shipment.vendor_id?.store_name || 'Vendor'}</span>
+                                    <span className="text-[10px] md:text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{shipment.vendor_id?.store_name || 'Vendor'}</span>
                                     <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
                                        {shipment.vendor_id?.branding?.logo ? <img src={shipment.vendor_id.branding.logo} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                     </div>

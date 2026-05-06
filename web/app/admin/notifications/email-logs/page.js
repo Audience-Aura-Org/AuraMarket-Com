@@ -171,7 +171,7 @@ export default function EmailLogsPage() {
                                   </>
                                )}
                             </div>
-                            {log.error && <p className="text-[9px] text-red-500/60 font-medium mt-1 max-w-[150px] truncate">{log.error}</p>}
+                            {log.error && <p className="text-[10px] text-red-500/60 font-medium mt-1 max-w-[150px] truncate">{log.error}</p>}
                          </td>
                          <td className="p-8 text-right">
                             <button className="px-6 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-transparent transition-all">

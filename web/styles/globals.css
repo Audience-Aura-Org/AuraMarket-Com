@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -10,8 +9,8 @@
   --color-bg-primary: var(--bg-primary);
   --color-text-primary: var(--text-primary);
   --color-card-bg: var(--card-bg);
-  --font-display: "Poppins", sans-serif;
-  --font-sans: "Poppins", sans-serif;
+  --font-display: var(--font-poppins);
+  --font-sans: var(--font-poppins);
 }
 
 :root {

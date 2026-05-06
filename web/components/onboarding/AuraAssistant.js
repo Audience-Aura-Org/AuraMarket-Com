@@ -80,7 +80,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                 <p className="text-xs font-bold tracking-tight">Aura Assistant</p>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                  <p className="text-[9px] opacity-80">Online</p>
+                  <p className="text-[10px] opacity-80">Online</p>
                 </div>
               </div>
               <button

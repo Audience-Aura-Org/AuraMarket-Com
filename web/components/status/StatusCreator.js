@@ -297,7 +297,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                           </span>
                         )}
                         <p className={`text-sm font-bold ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{opt.label}</p>
-                        <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-50 mt-0.5">{opt.sublabel}</p>
+                        <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 mt-0.5">{opt.sublabel}</p>
                       </button>
                     );
                   })}

@@ -232,7 +232,7 @@ export default function AdminAnalyticsPage() {
                    </div>
                    <div className="text-right">
                       <p className="text-[11px] font-bold">{p.purchase_count || 0}</p>
-                      <p className="text-[7px] font-bold opacity-30 ">Sold</p>
+                      <p className="text-[10px] font-bold opacity-30 ">Sold</p>
                    </div>
                 </div>
               ))}

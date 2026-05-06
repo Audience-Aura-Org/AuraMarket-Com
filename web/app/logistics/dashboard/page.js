@@ -52,7 +52,7 @@ export default function LogisticsDashboard() {
   }, [user]);
 
   // Derived Metrics
-  const activeCount = shipments.filter(s => ['at_source', 'in_transit', 'arrived_at_destination'].includes(s.status)).length;
+  const activeCount = shipments.filter(s => ['assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'at_source', 'arrived_at_destination'].includes(s.status)).length;
   const pendingCount = shipments.filter(s => s.status === 'pending').length;
   const totalDelivered = shipments.filter(s => s.status === 'delivered').length;
   const networkYield = shipments.length > 0 
@@ -194,7 +194,7 @@ export default function LogisticsDashboard() {
                   { msg: 'Weather delay at Node A', time: '2m ago' },
                   { msg: 'System check complete', time: '1h ago' }
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between text-[9px]">
+                  <div key={i} className="flex items-center justify-between text-[10px]">
                     <span className="font-bold tracking-tight opacity-60">{item.msg}</span>
                     <span className="opacity-30 whitespace-nowrap font-bold tracking-tight">{item.time}</span>
                   </div>
@@ -235,19 +235,24 @@ export default function LogisticsDashboard() {
                   <tr key={s._id} className="group hover:bg-white/[0.02] transition-colors">
                     <td className="py-4 pr-4">
                       <p className="text-[11px] font-bold tracking-tighter ">#{s._id?.slice(-8).toUpperCase()}</p>
-                      <p className="text-[9px] opacity-40  font-bold tracking-tight">{s.tracking_number || 'TRK-PENDING'}</p>
+                      <p className="text-[10px] opacity-40  font-bold tracking-tight">{s.tracking_number || 'TRK-PENDING'}</p>
                     </td>
                     <td className="py-4 pr-4">
                       <p className="text-xs font-bold truncate max-w-[150px]">{s.destination_address?.city || 'Unknown'}</p>
-                      <p className="text-[9px] opacity-40  font-bold">{s.destination_address?.region || 'N/A'}</p>
+                      <p className="text-[10px] opacity-40  font-bold">{s.destination_address?.region || 'N/A'}</p>
                     </td>
                     <td className="py-4 pr-4">
                       <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-tight ${
                         s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' : 
                         s.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
+                        s.status === 'assigned' ? 'bg-purple-500/10 text-purple-500' :
+                        s.status === 'picked_up' ? 'bg-blue-500/10 text-blue-500' :
+                        s.status === 'in_transit' ? 'bg-indigo-500/10 text-indigo-400' :
+                        s.status === 'out_for_delivery' ? 'bg-cyan-500/10 text-cyan-400' :
+                        s.status === 'failed' ? 'bg-red-500/10 text-red-500' :
                         'bg-blue-500/10 text-blue-500'
                       }`}>
-                        {s.status?.replace(/_/g, ' ')}
+                        {s.status?.replace(/_/g, ' ').toUpperCase()}
                       </span>
                     </td>
                     <td className="py-4 pr-4 text-xs font-bold italic opacity-60">High</td>

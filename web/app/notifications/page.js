@@ -159,7 +159,7 @@ export default function NotificationsPage() {
                       <h3 className={`text-xs font-bold truncate ${!n.is_read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
                         {n.title}
                       </h3>
-                      <span className="text-[9px] font-medium text-[var(--text-secondary)] opacity-40 shrink-0">
+                      <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-40 shrink-0">
                         {timeAgo(n.createdAt)}
                       </span>
                     </div>

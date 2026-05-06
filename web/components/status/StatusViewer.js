@@ -617,7 +617,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             <div>
               <div className="flex items-center gap-1.5">
                 <p className="text-[14px] font-bold text-white tracking-tight drop-shadow">{storeName}</p>
-                <span className="text-[9px] text-white/50 font-semibold">{ago(story.createdAt)}</span>
+                <span className="text-[10px] text-white/50 font-semibold">{ago(story.createdAt)}</span>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="text-[11px] font-bold text-[var(--accent)]">{story.category || 'General'}</span>

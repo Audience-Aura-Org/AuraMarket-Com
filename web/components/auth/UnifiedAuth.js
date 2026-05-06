@@ -186,7 +186,7 @@ export default function UnifiedAuth() {
               </form>
 
               <div className="pt-4 border-t border-[var(--glass-border)] text-center">
-                <p className="text-[9px] text-[var(--text-secondary)] opacity-50 mb-3">New to Aura Market?</p>
+                <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mb-3">New to Aura Market?</p>
                 <button
                   onClick={() => {
                     setIsNewUser(true);
@@ -209,7 +209,7 @@ export default function UnifiedAuth() {
             >
               <button
                 onClick={prevStep}
-                className="inline-flex items-center gap-2 text-[9px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all mb-2"
+                className="inline-flex items-center gap-2 text-[10px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all mb-2"
               >
                 <ArrowLeft className="w-3 h-3" />
                 Change email

@@ -127,7 +127,7 @@ export default function BrandingSuitePage() {
                                     <p className="text-xs font-medium text-[var(--text-secondary)] leading-relaxed opacity-70">
                                         This logo represents your brand in search results, vendor lists, and secure chat threads. 
                                         <br/><br/>
-                                        <span className="font-bold text-[var(--text-primary)]  text-[9px] tracking-tight">Optimal: 500x500 PNG</span>
+                                        <span className="font-bold text-[var(--text-primary)]  text-[10px] tracking-tight">Optimal: 500x500 PNG</span>
                                     </p>
                                     <label className="block w-full">
                                         <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} className="hidden" />

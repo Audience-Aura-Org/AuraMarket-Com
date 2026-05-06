@@ -1228,7 +1228,7 @@ function InputModule({ label, value, onChange, icon: Icon, placeholder, area = f
     <div className="space-y-3 px-1 md:px-2">
       <div className="flex items-center gap-3 ml-2 md:ml-4">
         {Icon && <Icon className="size-4 text-[var(--accent)] opacity-60" />}
-        <label className="text-[9px] md:text-[11px] font-bold tracking-[0.2em] text-[var(--text-secondary)] ">{label}</label>
+        <label className="text-[10px] md:text-[11px] font-bold tracking-[0.2em] text-[var(--text-secondary)] ">{label}</label>
       </div>
       {area ? (
         <textarea
@@ -1279,7 +1279,7 @@ function ActionButton({ icon: Icon, label, desc }) {
         </div>
         <div>
           <p className="text-[11px] md:text-xs font-bold tracking-[0.2em]  transition-colors">{label}</p>
-          <p className="text-[9px] md:text-[11px] font-bold text-[var(--text-secondary)] opacity-60 group-hover:text-white group-hover:opacity-80 transition-colors mt-0.5">{desc}</p>
+          <p className="text-[10px] md:text-[11px] font-bold text-[var(--text-secondary)] opacity-60 group-hover:text-white group-hover:opacity-80 transition-colors mt-0.5">{desc}</p>
         </div>
       </div>
       <ChevronRight className="size-5 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 relative z-10" />

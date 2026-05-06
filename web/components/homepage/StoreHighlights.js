@@ -94,7 +94,7 @@ export default function StoreHighlights({ title, data }) {
                   <div className="pt-2 flex items-center gap-3">
                     <VendorFollowButton 
                       vendorId={vendor._id} 
-                      className="!h-10 !text-[9px] flex-1"
+                      className="!h-10 !text-[10px] flex-1"
                     />
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                       <Users className="w-3.5 h-3.5 opacity-40 text-[var(--accent)]" />

@@ -72,14 +72,14 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
               {logo ? (
                 <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
               ) : (
-                <div className="size-full flex items-center justify-center text-[7px] font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
+                <div className="size-full flex items-center justify-center text-[10px] font-bold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
                   {name[0]}
                 </div>
               )}
             </div>
             <p className="text-[11px] font-bold text-white truncate flex-1">{name}</p>
             {isNew && (
-              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[7px] font-bold shrink-0">
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold shrink-0">
                 <Sparkles className="size-2" /> New
               </div>
             )}
@@ -96,11 +96,11 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
                 <span>{status.views_count || 0}</span>
               </div>
             </div>
-            <span className="text-[7px] font-bold text-white/30">{ago(status.createdAt)}</span>
+            <span className="text-[10px] font-bold text-white/30">{ago(status.createdAt)}</span>
           </div>
 
           {status.linked_product && (
-            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/20 text-[7px] font-bold text-[var(--accent)]">
+            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/20 text-[10px] font-bold text-[var(--accent)]">
               <ShoppingBag className="size-2.5 shrink-0" />
               <span className="truncate">{status.linked_product.name}</span>
             </div>

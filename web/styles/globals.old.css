@@ -110,8 +110,8 @@ h1, h2, h3, h4, h5, h6 {
 
   button[class*=''][class*='text-[10px]'],
   a[class*=''][class*='text-[10px]'],
-  button[class*=''][class*='text-[9px]'],
-  a[class*=''][class*='text-[9px]'] {
+  button[class*=''][class*='text-[10px]'],
+  a[class*=''][class*='text-[10px]'] {
     white-space: nowrap;
     letter-spacing: 0.12em;
   }

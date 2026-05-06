@@ -192,7 +192,7 @@ export default function StorePage() {
                 {user?._id === store.vendor_id?.user_id?._id && (
                    <button 
                     onClick={() => setShowStatusCreator(true)}
-                    className="h-10 md:h-11 px-6 rounded-xl bg-[var(--accent)] text-white font-bold text-[9px] tracking-tight  hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20 flex-1 md:flex-none flex items-center justify-center gap-2"
+                    className="h-10 md:h-11 px-6 rounded-xl bg-[var(--accent)] text-white font-bold text-[10px] tracking-tight  hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20 flex-1 md:flex-none flex items-center justify-center gap-2"
                    >
                      <Activity className="size-3.5" /> Add Story
                    </button>
@@ -202,7 +202,7 @@ export default function StorePage() {
                     store_name: store.vendor_id?.store_name,
                     branding: { logo: store.logo || store.vendor_id?.user_id?.branding?.logo }
                   })}
-                  className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[9px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                  className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-[10px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                 >
                   Contact
                 </button>

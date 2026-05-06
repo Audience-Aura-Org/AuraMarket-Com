@@ -685,7 +685,7 @@ function CheckoutContent() {
                                      </div>
                                      {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                   </div>
-                                  <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct deposit via Eversend secure gateway.</p>
+                                  <p className="text-[10px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct deposit via Eversend secure gateway.</p>
                                </button>
 
                                <button 
@@ -699,7 +699,7 @@ function CheckoutContent() {
                                      </div>
                                      {formData.paymentMethod === 'wallet' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                   </div>
-                                  <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Immediate settlement from your Aura Wallet balance.</p>
+                                  <p className="text-[10px] text-[var(--text-secondary)] font-medium leading-relaxed">Immediate settlement from your Aura Wallet balance.</p>
                                </button>
 
                               <button
@@ -713,7 +713,7 @@ function CheckoutContent() {
                                     </div>
                                     {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                  </div>
-                                 <p className="text-[9px] text-[var(--text-secondary)] font-medium leading-relaxed">Payment is settled when logistics confirms delivery.</p>
+                                 <p className="text-[10px] text-[var(--text-secondary)] font-medium leading-relaxed">Payment is settled when logistics confirms delivery.</p>
                               </button>
                            </div>
 
@@ -726,7 +726,7 @@ function CheckoutContent() {
                                     </div>
                                     <div>
                                        <p className={`text-[11px] font-bold tracking-tight ${formData.escrowEnabled ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>Aura Escrow Protection</p>
-                                       <p className="text-[9px] text-[var(--text-secondary)] font-medium opacity-60 mt-1  tracking-tighter">Secure funds until delivery confirmation</p>
+                                       <p className="text-[10px] text-[var(--text-secondary)] font-medium opacity-60 mt-1  tracking-tighter">Secure funds until delivery confirmation</p>
                                     </div>
                                  </div>
                                  <div className={`w-12 h-6 rounded-full flex items-center p-1 transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--text-secondary)]/20'}`}>
@@ -753,7 +753,7 @@ function CheckoutContent() {
                                        <div className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold flex items-center gap-3 cursor-not-allowed select-none">
                                           <span className="text-[var(--text-primary)]">XAF</span>
                                           <span className="text-[var(--text-secondary)] opacity-50">— Central African Franc</span>
-                                          <span className="ml-auto text-[9px] font-bold tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg">LOCKED</span>
+                                          <span className="ml-auto text-[10px] font-bold tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg">LOCKED</span>
                                        </div>
                                     </div>
                                  </div>

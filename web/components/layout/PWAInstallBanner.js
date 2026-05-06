@@ -114,7 +114,7 @@ export default function PWAInstallBanner() {
           <p className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight leading-none mb-0.5">
             Install Aura Market
           </p>
-          <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-50 leading-none">
+          <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-50 leading-none">
             {isIOS ? 'Add to Home Screen for native experience' : 'Fast. Offline. Native app experience.'}
           </p>
         </div>
@@ -123,7 +123,7 @@ export default function PWAInstallBanner() {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={handleInstall}
-            className="h-8 px-3 rounded-xl bg-[var(--accent)] text-white font-bold text-[9px] tracking-tight shadow-lg shadow-[var(--accent)]/30 hover:opacity-90 flex items-center gap-1.5 transition-all active:scale-95"
+            className="h-8 px-3 rounded-xl bg-[var(--accent)] text-white font-bold text-[10px] tracking-tight shadow-lg shadow-[var(--accent)]/30 hover:opacity-90 flex items-center gap-1.5 transition-all active:scale-95"
           >
             <Download className="size-3" />
             Install
