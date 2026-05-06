@@ -97,115 +97,119 @@ export default function AdminDisputes() {
       {/* Case Details Modal */}
       <AnimatePresence>
         {selectedCase && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 lg:p-10">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedCase(null)} />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-4xl glass-panel bg-[var(--bg-primary)]/95 border border-[var(--glass-border)] rounded-[2.5rem] p-6 lg:p-10 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar"
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-4xl bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-6 md:p-10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col backdrop-blur-3xl"
             >
-              <button onClick={() => setSelectedCase(null)} className="absolute top-6 right-6 p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-[var(--text-secondary)]"><XCircle className="w-6 h-6" /></button>
+              <div className="flex items-start justify-between mb-8 shrink-0">
+                <div className="flex items-center gap-4">
+                   <div className="size-12 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20 shadow-inner"><Scale className="w-6 h-6" /></div>
+                   <div>
+                      <h2 className="text-xl md:text-2xl font-bold tracking-tight">Case Inspection</h2>
+                      <p className="text-[10px] md:text-[11px] font-bold text-[var(--accent)] tracking-[0.3em] uppercase opacity-60 mt-1">Arbitration Protocol // #{selectedCase._id.slice(-6).toUpperCase()}</p>
+                   </div>
+                </div>
+                <button onClick={() => setSelectedCase(null)} className="p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-[var(--text-secondary)]"><XCircle className="w-6 h-6" /></button>
+              </div>
               
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="p-3 bg-[var(--accent)]/10 text-[var(--accent)] rounded-2xl"><Scale className="w-6 h-6" /></div>
-                 <div>
-                    <h2 className="text-xl lg:text-2xl  font-bold text-[var(--text-primary)] tracking-tight  leading-none">Inspect Case #{selectedCase._id.slice(-6).toUpperCase()}</h2>
-                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  mt-2 opacity-50">High-level arbitration in progress</p>
-                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                 {/* Left: Client Evidence */}
-                 <div className="space-y-6">
-                    <h3 className="text-xs  font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
-                       <AlertCircle className="w-3.5 h-3.5" /> Customer Argument
-                    </h3>
-                    <div className="bg-[var(--bg-secondary)]/50 p-6 rounded-3xl border border-[var(--glass-border)]">
-                       <p className="text-sm  font-bold text-[var(--text-primary)] mb-2  tracking-tight">{selectedCase.reason}</p>
-                       <p className="text-xs text-[var(--text-secondary)] leading-relaxed opacity-80">{selectedCase.description}</p>
+              <div className="flex-1 overflow-y-auto no-scrollbar pr-2">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+                    {/* Argument Section */}
+                    <div className="space-y-6">
+                       <h3 className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.3em] uppercase opacity-40 flex items-center gap-2">
+                          <AlertCircle className="w-3.5 h-3.5" /> Customer Argumentation
+                       </h3>
+                       <div className="bg-[var(--bg-secondary)]/40 p-6 rounded-[2rem] border border-[var(--glass-border)] backdrop-blur-xl">
+                          <p className="text-[13px] font-bold text-[var(--text-primary)] mb-3 tracking-tight capitalize">{selectedCase.reason}</p>
+                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed opacity-70">{selectedCase.description}</p>
+                       </div>
+                       
+                       {selectedCase.evidence_urls?.length > 0 ? (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                             {selectedCase.evidence_urls.map((url, i) => (
+                                <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative group shadow-sm">
+                                   <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform cursor-pointer" onClick={() => window.open(url, '_blank')} />
+                                </div>
+                             ))}
+                          </div>
+                       ) : (
+                         <div className="py-12 border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] text-center opacity-10">
+                            <Database className="size-8 mx-auto mb-3" />
+                            <p className="text-[10px] font-bold tracking-widest uppercase">Evidence Void</p>
+                         </div>
+                       )}
                     </div>
-                    
-                    {selectedCase.evidence_urls?.length > 0 ? (
-                       <div className="grid grid-cols-2 gap-3">
-                          {selectedCase.evidence_urls.map((url, i) => (
-                             <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] relative group">
-                                <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform cursor-pointer" onClick={() => window.open(url, '_blank')} />
-                             </div>
-                          ))}
-                       </div>
-                    ) : (
-                      <div className="p-10 border-2 border-dashed border-[var(--glass-border)] rounded-3xl text-center opacity-30">
-                         <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)]">No visual evidence provided by customer</p>
-                      </div>
-                    )}
-                 </div>
 
-                 {/* Right: Logistics Node Check */}
-                 <div className="space-y-6">
-                    <h3 className="text-xs  font-bold text-[var(--text-secondary)] tracking-[0.2em]  mb-4 border-b border-[var(--glass-border)] pb-2 flex items-center gap-2">
-                       <ShieldCheck className="w-3.5 h-3.5" /> Proof of Delivery
-                    </h3>
-                    
-                    {fetchingCase ? (
-                       <div className="flex flex-col items-center justify-center h-64 gap-4">
-                          <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
-                          <p className="text-[10px] lg:text-[12px]  font-semibold tracking-widest text-[var(--text-secondary)]">FETCHING COURIER NODES...</p>
-                       </div>
-                    ) : caseShipment?.proof_of_delivery?.image_url ? (
-                      <div className="space-y-4">
-                         <div className="aspect-[4/3] rounded-[2rem] overflow-hidden border-2 border-[var(--accent)]/10 shadow-xl bg-[var(--bg-secondary)]">
-                            <img src={caseShipment.proof_of_delivery.image_url} className="w-full h-full object-cover" />
-                         </div>
-                         <div className="bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/10">
-                            <div className="flex items-center gap-2 mb-2">
-                               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                               <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-emerald-600">Shipment Operational Log</p>
+                    {/* Logistics Verification */}
+                    <div className="space-y-6">
+                       <h3 className="text-[10px] font-bold text-[var(--text-secondary)] tracking-[0.3em] uppercase opacity-40 flex items-center gap-2">
+                          <ShieldCheck className="w-3.5 h-3.5" /> Network Proof Verify
+                       </h3>
+                       
+                       {fetchingCase ? (
+                          <div className="flex flex-col items-center justify-center py-20 gap-4">
+                             <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
+                             <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">Synchronizing Nodes...</p>
+                          </div>
+                       ) : caseShipment?.proof_of_delivery?.image_url ? (
+                         <div className="space-y-4">
+                            <div className="aspect-[4/3] rounded-[2rem] overflow-hidden border border-[var(--glass-border)] shadow-xl bg-[var(--bg-secondary)] group">
+                               <img src={caseShipment.proof_of_delivery.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                             </div>
-                            <p className="text-xs  font-bold text-[var(--text-primary)]">Recipient: <span className="text-[var(--accent)]">{caseShipment.proof_of_delivery.receiver_name || 'Verified Signatory'}</span></p>
-                            <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] mt-1.5 opacity-70 leading-normal">{caseShipment.proof_of_delivery.note || 'No additional courier notes recorded.'}</p>
+                            <div className="bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/10">
+                               <div className="flex items-center gap-2 mb-2">
+                                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  <p className="text-[10px] font-bold tracking-widest text-emerald-600 uppercase">Operational Proof Log</p>
+                               </div>
+                               <p className="text-[11px] font-bold text-[var(--text-primary)]">Recipient: <span className="text-[var(--accent)]">{caseShipment.proof_of_delivery.receiver_name || 'Verified Signatory'}</span></p>
+                               <p className="text-[10px] text-[var(--text-secondary)] mt-1.5 opacity-60 leading-normal italic">"{caseShipment.proof_of_delivery.note || 'No additional courier telemetry recorded.'}"</p>
+                            </div>
                          </div>
-                      </div>
-                    ) : (
-                      <div className="h-64 border-2 border-dashed border-[var(--glass-border)] rounded-[2.5rem] flex flex-col items-center justify-center px-10 text-center bg-[var(--bg-secondary)]/30 group">
-                         <Scale className="w-10 h-10 mb-4 opacity-10 group-hover:rotate-12 transition-transform duration-500" />
-                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50  tracking-[0.1em] leading-relaxed">
-                            {caseShipment ? 'Courier has not uploaded proof of delivery yet.' : 'No active shipment found matching this order node.'}
-                         </p>
-                      </div>
-                    )}
+                       ) : (
+                         <div className="py-20 border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] flex flex-col items-center justify-center px-10 text-center bg-[var(--bg-secondary)]/20 opacity-20 group">
+                            <Scale className="w-10 h-10 mb-4 group-hover:rotate-12 transition-transform duration-500" />
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] leading-relaxed">
+                               {caseShipment ? 'Logistics proof pending upload' : 'No network shipment matched to node'}
+                            </p>
+                         </div>
+                       )}
+                    </div>
                  </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-[var(--glass-border)]">
-                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-                    <div className="size-10 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8 border-t border-[var(--glass-border)] mt-8 shrink-0">
+                 <div className="flex items-center gap-4 w-full md:w-auto p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)]">
+                    <div className="size-11 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
                        {selectedCase.initiator_id?.avatar ? <img src={selectedCase.initiator_id?.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-40" />}
                     </div>
                     <div>
-                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)]  leading-none mb-1">{selectedCase.initiator_id?.name}</p>
-                      <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50">{selectedCase.initiator_id?.email}</p>
+                      <p className="text-[12px] font-bold tracking-tight text-[var(--text-primary)] leading-none mb-1">{selectedCase.initiator_id?.name}</p>
+                      <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-tighter">{selectedCase.initiator_id?.email}</p>
                     </div>
                  </div>
 
-                 <div className="flex items-center gap-3">
-                    <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-40 mr-4 tracking-tight">Final Resolution:</span>
+                 <div className="flex items-center gap-3 w-full md:w-auto">
                     {selectedCase.status === 'resolved' ? (
-                      <div className="px-8 py-3 rounded-2xl bg-emerald-500 text-white  font-bold text-xs tracking-tight shadow-xl capitalize">
-                         {selectedCase.resolution_type?.replace('_', ' ')} Applied
+                      <div className="w-full md:w-auto px-8 py-4 rounded-2xl bg-emerald-500 text-white font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-emerald-500/20 text-center">
+                         {selectedCase.resolution_type?.replace('_', ' ')} Executed
                       </div>
                     ) : (
                       <>
                         <button 
                           onClick={() => handleResolve(selectedCase._id, 'full_refund')} 
                           disabled={actioning === selectedCase._id}
-                          className="px-8 py-4 rounded-2xl bg-rose-500 text-white  font-bold text-xs tracking-tight shadow-lg shadow-rose-500/20 hover:shadow-rose-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
+                          className="flex-1 md:flex-none h-14 px-8 rounded-2xl bg-rose-500 text-white font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95 flex items-center justify-center gap-3"
                         >
                            {actioning === selectedCase._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Refund
                         </button>
                         <button 
                            onClick={() => handleResolve(selectedCase._id, 'release_payment')} 
                            disabled={actioning === selectedCase._id}
-                           className="px-8 py-4 rounded-2xl bg-emerald-500 text-white  font-bold text-xs tracking-tight shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/50 hover:-translate-y-1 transition-all flex items-center gap-2"
+                           className="flex-1 md:flex-none h-14 px-8 rounded-2xl bg-emerald-500 text-white font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center gap-3"
                         >
                            {actioning === selectedCase._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Release
                         </button>
@@ -218,81 +222,81 @@ export default function AdminDisputes() {
         )}
       </AnimatePresence>
 
-      {/* Surgical Header */}
-      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-16 z-40">
-        <div className="flex items-center gap-6">
-          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20">
-             <Scale className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Dispute <span className="text-[var(--accent)]">Tribunal</span> Matrix</h2>
-            <div className="flex items-center gap-2 mt-1">
-               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Equity Node Active // System_Arbitrator</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+               <Scale className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Dispute <span className="text-[var(--accent)]">Tribunal</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Arbitration Master</p>
+              </div>
             </div>
           </div>
+          <button onClick={fetchDisputes} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-4">
-           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start">
               {['All', 'Investigating', 'Resolved'].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all uppercase ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
                 >
                   {tab}
                 </button>
               ))}
            </div>
-           <button onClick={fetchDisputes} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
+           <button onClick={fetchDisputes} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
         </div>
       </header>
 
-      <div className="p-10 space-y-8 pb-40">
-         {/* Live Stats */}
-         <div className="grid grid-cols-4 gap-6">
+      <div className="p-4 md:p-10 space-y-8 pb-32">
+         {/* Live Intelligence Stats */}
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-               { label: 'Active Disputes', value: disputes.filter(d => d.status !== 'resolved').length, icon: AlertCircle, color: 'var(--accent)', sub: 'THREAT_VECTORS' },
-               { label: 'Settled Cases', value: disputes.filter(d => d.status === 'resolved').length, icon: CheckCircle2, color: '#10b981', sub: 'EQUITY_FEED' },
-               { label: 'Avg Resolution', value: '2.4 Days', icon: Clock, color: '#6366f1', sub: 'TIME_TO_SOLVE' },
-               { label: 'System Integrity', value: 'High', icon: ShieldCheck, color: '#fbbf24', sub: 'PROTOCOL_INDEX' }
+               { label: 'Active Disputes', value: disputes.filter(d => d.status !== 'resolved').length, icon: AlertCircle, color: 'var(--accent)', sub: 'THREATS' },
+               { label: 'Settled Cases', value: disputes.filter(d => d.status === 'resolved').length, icon: CheckCircle2, color: '#10b981', sub: 'EQUITY' },
+               { label: 'Avg Latency', value: '2.4 Days', icon: Clock, color: '#6366f1', sub: 'TIME' },
+               { label: 'System Health', value: 'High', icon: ShieldCheck, color: '#fbbf24', sub: 'INTEGRITY' }
             ].map(s => (
-               <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
-                  <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                  <div className="relative flex flex-col justify-between h-full space-y-8">
-                     <div className="flex items-center justify-between">
-                        <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                           <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
-                        </div>
-                        <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                     <div className="size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)] group-hover:text-[var(--text-primary)] transition-colors">
+                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
                      </div>
-                     <div>
-                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
-                     </div>
+                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase">{s.sub}</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
+                    <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{s.value}</h3>
                   </div>
                </div>
             ))}
          </div>
 
          {/* Dispute Ledger */}
-         <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-            <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
-                  <Database className="w-4 h-4 text-[var(--accent)]" /> 
-                  Platform Dispute Ledger
+         <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
+            <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
+               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
+                  <Database className="size-4 text-[var(--accent)]" /> Platform Dispute Ledger Protocol
                </h3>
-               <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Awaiting Arbitration</p>
+               <p className="hidden md:block text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">Arbitration Queue Synchronized</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="p-4 md:p-8">
               {loading ? (
-                 <LoadingSpinner text="Synchronizing Tribunal Nodes" />
+                 <LoadingSpinner />
               ) : currentDisputes.length > 0 ? (
-                 <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
+                 <div className="grid grid-cols-1 gap-4">
                    {currentDisputes.map(d => {
                      const statusColor = d.status === 'resolved' ? 'text-emerald-500' : 'text-amber-500';
                      const statusBg = statusColor.replace('text-', 'bg-').concat('/10');
@@ -301,42 +305,40 @@ export default function AdminDisputes() {
                         <div 
                            key={d._id} 
                            onClick={() => openCase(d)}
-                           className="group relative rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col cursor-pointer"
+                           className="group relative rounded-[2rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col md:flex-row md:items-center p-5 md:p-6 gap-6 cursor-pointer"
                         >
-                           <div className="p-6 lg:p-8 flex items-center gap-6 md:gap-8">
-                              <div className={`size-12 md:size-14 rounded-[1.5rem] ${statusBg} ${statusColor} flex items-center justify-center shrink-0 border ${statusColor.replace('text-', 'border-')}/10 shadow-inner`}>
-                                 <AlertCircle className="w-6 h-6 md:w-7 md:h-7" />
-                              </div>
+                           <div className={`size-12 md:size-14 rounded-2xl ${statusBg} ${statusColor} flex items-center justify-center shrink-0 border ${statusColor.replace('text-', 'border-')}/10 shadow-inner group-hover:scale-105 transition-transform duration-500`}>
+                              <AlertCircle className="w-6 h-6 md:w-7 h-7" />
+                           </div>
 
-                              <div className="flex-1 min-w-0">
-                                 <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                       <span className="text-[11px] lg:text-[12px] md:text-[13px]  font-semibold text-[var(--text-primary)] tracking-tight capitalize">Case Node</span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold tracking-widest border ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20 capitalize`}>
-                                          {d.status}
-                                       </span>
-                                    </div>
-                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
-                                       <Clock className="w-3 h-3" /> {new Date(d.createdAt).toLocaleDateString()}
-                                    </time>
+                           <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-3">
+                                 <div className="flex items-center gap-3">
+                                    <span className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Case Node #{d._id.slice(-6).toUpperCase()}</span>
+                                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold tracking-widest border uppercase ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20`}>
+                                       {d.status}
+                                    </span>
                                  </div>
-                                 <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                       <span className="font-mono text-[var(--accent)]  font-bold">#{d._id.slice(-6).toUpperCase()}</span>
-                                       <span>•</span>
-                                       <span className="truncate max-w-[200px] md:max-w-md">{d.reason}: {d.description}</span>
-                                    </div>
+                                 <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">
+                                    <Clock className="w-3 h-3" /> {new Date(d.createdAt).toLocaleDateString()}
                                  </div>
                               </div>
+                              <div className="space-y-1">
+                                 <p className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors capitalize truncate">{d.reason}</p>
+                                 <p className="text-[11px] text-[var(--text-secondary)] opacity-60 truncate leading-relaxed">{d.description}</p>
+                              </div>
+                           </div>
 
-                              <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl  font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(d.order_id?.total_amount || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
-                                 <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{d.initiator_id?.name || 'Party'}</span>
-                                    <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
-                                       {d.initiator_id?.avatar ? <img src={d.initiator_id.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
-                                    </div>
+                           <div className="flex items-center justify-between md:flex-col md:items-end md:justify-center gap-4 pt-5 md:pt-0 border-t md:border-t-0 border-[var(--glass-border)]/50">
+                              <div className="text-left md:text-right">
+                                 <p className="text-xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(d.order_id?.total_amount || 0).toLocaleString()} <span className="text-[10px] opacity-30 ml-1 font-mono">XAF</span></p>
+                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-20 uppercase tracking-[0.2em] mt-0.5">Asset Value</p>
+                              </div>
+                              <div className="flex items-center gap-3 bg-[var(--bg-secondary)]/40 p-2 rounded-xl border border-[var(--glass-border)]">
+                                 <div className="size-7 rounded-lg overflow-hidden border border-[var(--glass-border)] shadow-sm shrink-0">
+                                    {d.initiator_id?.avatar ? <img src={d.initiator_id.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
                                  </div>
+                                 <p className="hidden lg:block text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-tighter max-w-[80px] truncate">{d.initiator_id?.name || 'Party'}</p>
                               </div>
                            </div>
                         </div>
@@ -344,14 +346,14 @@ export default function AdminDisputes() {
                    })}
                  </div>
               ) : (
-                 <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
-                    <Scale className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                    <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No active disputes in the system matrix.</p>
+                 <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
+                    <Scale className="w-16 h-16 text-[var(--text-secondary)]" />
+                    <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Active Arbitration Nodes</p>
                  </div>
               )}
             </div>
 
-            <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+            <div className="p-6 md:p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
                <Pagination 
                    currentPage={currentPage}
                    totalPages={totalPages}
@@ -361,5 +363,6 @@ export default function AdminDisputes() {
          </div>
       </div>
     </div>
+
   );
 }

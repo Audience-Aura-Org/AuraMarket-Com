@@ -77,34 +77,44 @@ export default function AdminReviewsPage() {
   return (
     <>
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 lg:px-10 glass-panel border-b border-[var(--glass-border)] z-20 bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 text-[var(--text-primary)]">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg lg:text-xl  font-bold tracking-tight ">Governance <span className="text-[var(--accent)]">Reviews</span></h1>
-          <div className="hidden sm:block h-4 w-px bg-[var(--glass-border)] opacity-30" />
-          <p className="hidden md:block text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold tracking-tight">{reviews.length} System Records</p>
-        </div>
-        <div className="flex items-center gap-3">
-           <button onClick={fetchAllReviews} className="p-2.5 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 transition-all text-[var(--text-secondary)]">
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+               <Star className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Governance <span className="text-[var(--accent)]">Reviews</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">{reviews.length} System Records</p>
+              </div>
+            </div>
+          </div>
+          <button onClick={fetchAllReviews} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="relative group flex-1 md:flex-none md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
+              <input 
+                type="text" 
+                placeholder="Scan by User, Product..." 
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all"
+              />
+           </div>
+           <button onClick={fetchAllReviews} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
         </div>
       </header>
 
       <div className="p-6 lg:p-10 space-y-8">
          
-         {/* Controls */}
-         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-96 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Scan by User, Product, or Keyword..." 
-                value={search}
-                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-3.5 text-xs  font-bold focus:border-[var(--accent)] outline-none transition-all shadow-sm"
-              />
-            </div>
-         </div>
 
          {/* Content */}
          {loading ? (
@@ -116,87 +126,67 @@ export default function AdminReviewsPage() {
               <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] mt-2">The platform has not registered any reviews matching these criteria.</p>
            </div>
          ) : (
-           <div className="glass-panel rounded-[24px] lg:rounded-[32px] border border-[var(--glass-border)] overflow-hidden bg-[var(--bg-primary)]/40 shadow-sm">
-              <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[800px]">
-                    <thead>
-                       <tr className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/60 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)]">
-                          <th className="px-8 py-5">Customer</th>
-                          <th className="px-8 py-5">Product</th>
-                          <th className="px-8 py-5">Rating</th>
-                          <th className="px-8 py-5">Comment</th>
-                          <th className="px-8 py-5 text-right">Actions</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--glass-border)]/50">
-                       {currentReviews.map(r => (
-                         <tr key={r._id} className="hover:bg-[var(--bg-primary)]/60 transition-colors group">
-                            <td className="px-8 py-6">
-                               <div className="flex items-center gap-3">
-                                  <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
-                                     {r.user_id?.avatar ? <img src={r.user_id.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-40" />}
-                                  </div>
-                                  <div className="min-w-0">
-                                     <p className="text-sm  font-bold truncate">{r.user_id?.name || 'Anonymous'}</p>
-                                     <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] truncate">{r.user_id?.email || 'No email'}</p>
-                                  </div>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6">
-                               <div className="flex items-center gap-3 max-w-[200px]">
-                                  <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
-                                     {(() => {
-                                        const imgObj = r.product_id?.images?.[0];
-                                        const imgSrc = typeof imgObj === 'string' ? imgObj : imgObj?.url;
-                                        return imgSrc ? <img src={imgSrc} className="size-full object-cover" /> : <Package className="size-5 opacity-40" />;
-                                     })()}
-                                  </div>
-                                  <p className="text-xs  font-bold truncate">{r.product_id?.name || 'Deleted Product'}</p>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6">
-                               <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star key={i} className={`size-3 ${i < r.rating ? 'text-amber-500 fill-amber-500 shadow-[0_0_8px_#f59e0b44]' : 'text-[var(--text-secondary)] opacity-10'}`} />
-                                  ))}
-                                  <span className="ml-2 text-xs  font-bold text-[var(--text-secondary)]">{r.rating}.0</span>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6">
-                               <div className="max-w-[300px]">
-                                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-2">"{r.comment}"</p>
-                               </div>
-                            </td>
-                            <td className="px-8 py-6 text-right">
-                               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={() => handleDelete(r._id)}
-                                    disabled={deletingId === r._id}
-                                    className="size-10 rounded-xl flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 shadow-sm"
-                                    title="Delete Review"
-                                  >
-                                     {deletingId === r._id ? <RefreshCw className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-                                  </button>
-                               </div>
-                            </td>
-                         </tr>
-                       ))}
-                    </tbody>
-                 </table>
-              </div>
-              
-              <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
-                 <Pagination 
-                   currentPage={currentPage}
-                   totalPages={totalPages}
-                   onPageChange={setCurrentPage}
-                 />
-              </div>
-           </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+               {currentReviews.map(r => (
+                 <div key={r._id} className="group glass-panel rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-6 flex flex-col space-y-4 hover:border-[var(--accent)]/30 transition-all shadow-sm hover:shadow-xl">
+                    <div className="flex items-start justify-between">
+                       <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0">
+                             {r.user_id?.avatar ? <img src={r.user_id.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-40" />}
+                          </div>
+                          <div className="min-w-0">
+                             <p className="text-sm font-bold text-[var(--text-primary)] truncate">{r.user_id?.name || 'Anonymous'}</p>
+                             <div className="flex items-center gap-1 mt-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} className={`size-2.5 ${i < r.rating ? 'text-amber-500 fill-amber-500' : 'text-[var(--text-secondary)] opacity-10'}`} />
+                                ))}
+                             </div>
+                          </div>
+                       </div>
+                       <button 
+                         onClick={() => handleDelete(r._id)}
+                         disabled={deletingId === r._id}
+                         className="size-8 rounded-lg flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
+                       >
+                          {deletingId === r._id ? <RefreshCw className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                       </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
+                       <div className="size-10 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0">
+                          {(() => {
+                             const imgObj = r.product_id?.images?.[0];
+                             const imgSrc = typeof imgObj === 'string' ? imgObj : imgObj?.url;
+                             return imgSrc ? <img src={imgSrc} className="size-full object-cover" /> : <Package className="size-5 opacity-40" />;
+                          })()}
+                       </div>
+                       <div className="min-w-0">
+                          <p className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-tight opacity-40">Product</p>
+                          <p className="text-xs font-bold text-[var(--text-primary)] truncate">{r.product_id?.name || 'Deleted Product'}</p>
+                       </div>
+                    </div>
+
+                    <div className="flex-1">
+                       <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] leading-relaxed line-clamp-4 italic opacity-80">"{r.comment}"</p>
+                    </div>
+
+                    <div className="pt-4 border-t border-[var(--glass-border)]/50 flex items-center justify-between">
+                       <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em]">Rating {r.rating}.0</span>
+                       <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-tight">Active Node</span>
+                    </div>
+                 </div>
+               ))}
+               
+               <div className="col-span-full pt-10">
+                  <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+               </div>
+            </div>
          )}
       </div>
     </>
   );
-}
-
 

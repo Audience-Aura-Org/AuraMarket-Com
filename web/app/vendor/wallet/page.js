@@ -279,26 +279,41 @@ export default function VendorWalletPage() {
         {showWithdraw && <WithdrawModal balance={balance} onClose={() => setWithdraw(false)} onSuccess={() => { load(); setWithdraw(false); }} />}
       </AnimatePresence>
 
-      <div className="px-4 md:px-8 py-8 w-full space-y-8">
-        <div className="flex items-center justify-between mb-2">
-           <div className="flex items-center gap-4">
-              <div className="size-12 rounded-xl bg-emerald-500/10 flex items-center justify-center"><Wallet className="size-6 text-emerald-500" /></div>
-              <div>
-                <h1 className="text-2xl  font-bold text-[var(--text-primary)]">Vendor Wallet</h1>
-                <p className="text-xs text-[var(--text-secondary)]  font-bold opacity-60 tracking-tight">Financial Nexus</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner border border-emerald-500/20 shrink-0">
+               <Wallet className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Vault</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Secured Node</p>
               </div>
-           </div>
-           <button onClick={load} className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-              <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
-           </button>
+            </div>
+          </div>
+          <button onClick={load} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        {/* Clean KPI Grid - Reverting to the "Last Design" style */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="hidden md:flex items-center gap-3 pr-6 border-r border-[var(--glass-border)]/30">
+              <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Status: Nominal</p>
+           </div>
+           <button onClick={load} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+           </button>
+        </div>
+      </header>
+
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
           <KPICard title="Available" value={`${fmt(balance)}`} icon={Wallet} color="emerald" sub="XAF Ready" />
-          <KPICard title="In Escrow" value={`${fmt(escrow)}`} icon={Lock} color="amber" sub="Holding for delivery" />
-          <KPICard title="Total Earned" value={`${fmt(totalEarned)}`} icon={TrendingUp} color="fuchsia" sub="Gross Revenue" />
-          <KPICard title="Withdrawn" value={`${fmt(totalOut)}`} icon={ArrowUpRight} color="blue" sub="Total Outflow" />
+          <KPICard title="In Escrow" value={`${fmt(escrow)}`} icon={Lock} color="amber" sub="Pipeline" />
+          <KPICard title="Total Earned" value={`${fmt(totalEarned)}`} icon={TrendingUp} color="fuchsia" sub="Gross" />
+          <KPICard title="Withdrawn" value={`${fmt(totalOut)}`} icon={ArrowUpRight} color="blue" sub="Total" />
         </div>
 
         {/* Actions */}

@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Package, Search, Loader2, Ban, Eye, Building2, MoreVertical, Star, CheckCircle, Trash2 } from 'lucide-react';
+import { Package, Search, Loader2, Ban, Eye, Building2, MoreVertical, Star, CheckCircle, Trash2, RefreshCw } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -90,43 +90,41 @@ export default function AdminProductsPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <header className="h-16 lg:h-20 flex items-center justify-between px-4 lg:px-6 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-xl shrink-0 z-10 text-[var(--text-primary)]">
-        <div className="flex items-center gap-4 flex-1">
-          <button 
-             onClick={toggleSelectAll}
-             className={`size-5 rounded-lg border flex items-center justify-center transition-all ${selectedIds.length === currentProducts.length && currentProducts.length > 0 ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
-           >
-              {selectedIds.length === currentProducts.length && currentProducts.length > 0 && <CheckCircle className="size-3" />}
-           </button>
-          <h2 className="text-lg lg:text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Global <span className="text-[var(--accent)]">Assets</span></h2>
-          <div className="hidden sm:block h-6 w-px bg-[var(--glass-border)] opacity-30" />
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
-            <Search className="size-4 text-[var(--text-secondary)] opacity-40" />
-            <input
-              type="text"
-              placeholder="Find node by name or vendor..."
-              className="bg-transparent border-none outline-none text-[11px] lg:text-[12px]  font-semibold tracking-tight w-64 placeholder:opacity-40"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            />
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <button 
+               onClick={toggleSelectAll}
+               className={`size-5 rounded-lg border flex items-center justify-center transition-all ${selectedIds.length === currentProducts.length && currentProducts.length > 0 ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
+             >
+                {selectedIds.length === currentProducts.length && currentProducts.length > 0 && <CheckCircle className="size-3" />}
+             </button>
+            <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Global <span className="text-[var(--accent)]">Assets</span></h2>
+            <div className="flex items-center gap-2 mt-0.5 hidden md:flex">
+               <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+               <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Inventory Node</p>
+            </div>
           </div>
+          <button onClick={fetchProducts} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
-        <div className="flex items-center gap-3 lg:gap-4">
-          <div className="flex bg-[var(--bg-secondary)] p-1 rounded-xl border border-[var(--glass-border)]">
-            {['all', 'active', 'pending', 'archived'].map((s) => {
-              const baseBtn = 'px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ';
-              const stateClass = statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/5';
-              return (
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start">
+              {['all', 'active', 'pending', 'archived'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
-                  className={baseBtn + stateClass}
+                  className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all uppercase ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
                 >
                   {s}
                 </button>
-              );
-            })}
-          </div>
+              ))}
+           </div>
+           <button onClick={fetchProducts} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+           </button>
         </div>
       </header>
 
@@ -147,7 +145,6 @@ export default function AdminProductsPage() {
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center opacity-40">
               <Loader2 className="size-12 lg:size-16 animate-spin text-[var(--accent)] shadow-xl" />
-              <p className="text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold  tracking-[0.5em]">Extracting asset data...</p>
             </div>
           ) : (
             <div className="space-y-12">

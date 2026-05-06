@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
@@ -74,34 +74,32 @@ export default function AdminHomepagePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
-      <div className="max-w-[1400px] mx-auto space-y-16">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-6 md:py-12 px-4 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
+      <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-16">
         
         {/* Dynamic Header */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 animate-in fade-in slide-in-from-top-10 duration-700">
-           <div className="flex items-center gap-6">
-              <div className="size-16 rounded-[22px] bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] text-white flex items-center justify-center shadow-xl shadow-[var(--accent)]/30 border border-white/20">
-                 <MonitorPlay className="size-8" />
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 sticky top-0 md:top-16 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-xl py-4 border-b border-[var(--glass-border)] md:border-none md:static md:bg-transparent md:backdrop-blur-none md:p-0">
+           <div className="flex items-center gap-4 md:gap-6">
+              <div className="size-12 md:size-16 rounded-[18px] md:rounded-[22px] bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] text-white flex items-center justify-center shadow-xl shadow-[var(--accent)]/30 border border-white/20 shrink-0">
+                 <MonitorPlay className="size-6 md:size-8" />
               </div>
-              <div className="space-y-1">
-                 <h1 className="text-4xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">CMS <span className="text-[var(--accent)]">Architect</span></h1>
-                 <div className="flex items-center gap-3">
-                    <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Homepage Topology Control</p>
-                    <div className="h-1 w-1 rounded-full bg-[var(--glass-border)]" />
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight">{sections.length} Active Nodes</span>
+              <div className="space-y-0.5 md:space-y-1">
+                 <h1 className="text-2xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">CMS <span className="text-[var(--accent)]">Architect</span></h1>
+                 <div className="flex items-center gap-2 md:gap-3">
+                    <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] opacity-40 uppercase">Topology Control</p>
+                    <div className="h-1 w-1 rounded-full bg-[var(--glass-border)] hidden md:block" />
+                    <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hidden md:block">{sections.length} Active Nodes</span>
                  </div>
               </div>
            </div>
 
-           <div className="flex items-center gap-4">
-              <button 
-                onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
-                className="h-14 px-8 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] flex items-center gap-4 hover:scale-[1.03] active:scale-95 shadow-2xl transition-all group"
-              >
-                 <Plus className="size-4 group-hover:rotate-90 transition-transform duration-300" /> Deploy New Component
-              </button>
-           </div>
-        </div>
+           <button 
+             onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
+             className="w-full md:w-auto h-12 md:h-14 px-6 md:px-8 rounded-xl md:rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] md:text-[11px] lg:text-[12px] font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 shadow-2xl transition-all group"
+           >
+              <Plus className="size-4 group-hover:rotate-90 transition-transform duration-300" /> New Component
+           </button>
+        </header>
 
         {/* Main Architect View */}
         <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">

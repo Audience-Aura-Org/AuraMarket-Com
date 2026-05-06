@@ -62,63 +62,67 @@ export default function VendorRatingsPage() {
   return (
     <div className="w-full min-h-screen max-w-[1600px] mx-auto">
         
-        {/* Page Header */}
-        <div className="hidden md:block px-4 md:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                <Star className="w-6 h-6 text-amber-500" />
-              </div>
-              <div>
-                <h1 className="text-2xl  font-bold tracking-tight text-[var(--text-primary)]">Public Ratings</h1>
-                <p className="text-xs text-[var(--text-secondary)]  font-bold tracking-tight opacity-40">Reputation Intelligence</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-inner border border-amber-500/20 shrink-0">
+               <Star className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Public <span className="text-[var(--accent)]">Ratings</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Reputation Node</p>
               </div>
             </div>
-            <button 
-              onClick={fetchReviews} 
-              className="p-2.5 rounded-xl border border-[var(--glass-border)] hover:bg-white/5 text-[var(--text-secondary)] transition-all"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
           </div>
+          <button onClick={fetchReviews} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="relative group flex-1 md:flex-none md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
+              <input 
+                type="text" 
+                placeholder="Scan reviews..." 
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all"
+              />
+           </div>
+           <button onClick={fetchReviews} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+           </button>
+        </div>
+      </header>
 
         <div className="px-4 md:px-8 py-8">
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             {[
-              { label: 'Average Score', value: avgRating, sub: '/ 5 Stars', icon: Star, color: 'amber' },
-              { label: 'Total Feedback', value: reviews.length, sub: 'Customer reviews', icon: Package, color: 'indigo' },
-              { label: 'Top Tier', value: fiveStars, sub: '5 Star ratings', icon: Star, color: 'emerald' },
-              { label: 'Lower Tier', value: (fourStars + threeStars + twoStars + oneStar), sub: 'Action required', icon: Star, color: 'rose' }
+              { label: 'Score', value: avgRating, sub: '/ 5 Stars', icon: Star, color: 'amber' },
+              { label: 'Feedback', value: reviews.length, sub: 'Total', icon: Package, color: 'indigo' },
+              { label: 'Top Tier', value: fiveStars, sub: '5 Stars', icon: Star, color: 'emerald' },
+              { label: 'Issues', value: (threeStars + twoStars + oneStar), sub: '< 4 Stars', icon: Star, color: 'rose' }
             ].map((stat, i) => (
               <motion.div
                 key={i}
                 whileHover={{ y: -5 }}
-                className="p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-amber-500/30 transition-all"
+                className="p-5 md:p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-amber-500/30 transition-all shadow-sm"
               >
                 <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:scale-110 transition-transform`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
                 </div>
-                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-                <h4 className="text-3xl  font-bold tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[11px] lg:text-[12px]  font-semibold opacity-40 ">{stat.sub}</p>
+                <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight mb-1 uppercase opacity-40">{stat.label}</p>
+                <h4 className="text-2xl md:text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
+                <p className="text-[10px] md:text-[11px] font-semibold opacity-40 uppercase tracking-tight">{stat.sub}</p>
               </motion.div>
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative mb-6">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
-            <input 
-              type="text" 
-              placeholder="Search reviews..." 
-              value={search}
-              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 py-3 text-xs  font-bold focus:outline-none focus:border-[var(--accent)] transition-all"
-            />
-          </div>
 
           {/* Reviews List */}
           {loading ? (

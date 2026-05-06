@@ -70,32 +70,39 @@ export default function VendorProductsPage() {
 
   return (
     <>
-      <header className="min-h-20 py-4 lg:h-24 flex flex-col lg:flex-row lg:items-center justify-between px-4 lg:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 z-10 gap-4 lg:gap-0 text-[var(--text-primary)] sticky top-0 md:top-16 backdrop-blur-xl">
-        <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-6 w-full lg:w-auto">
-          <h2 className="text-xl lg:text-2xl font-bold text-[var(--text-primary)] tracking-tight">Product <span className="text-[var(--accent)]">Hub</span></h2>
-          <div className="flex items-center gap-3">
-             <div className="h-6 w-px bg-[var(--glass-border)] opacity-30" />
-             <p className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] font-semibold tracking-tight opacity-40 truncate"><span>{products.length}</span> Active Listings</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+               <Package className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Product <span className="text-[var(--accent)]">Hub</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">{products.length} Active Listings</p>
+              </div>
+            </div>
           </div>
+          <button onClick={fetchProducts} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full lg:w-80 group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all">
-              <Search className="size-4" />
-            </div>
-            <input 
-              type="text"
-              value={searchTerm}
-              onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight outline-none focus:border-[var(--accent)]/50 transition-all placeholder:opacity-30 text-[var(--text-primary)] shadow-sm" 
-              placeholder="Search inventory..." 
-            />
-          </div>
-          <Link href="/vendor/products/add" className="flex items-center justify-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white font-semibold w-full sm:w-auto px-6 py-3 rounded-2xl shadow-xl shadow-[var(--accent)]/20 active:scale-95 transition-all text-[11px] lg:text-[12px] tracking-tight shrink-0">
-            <Zap className="size-4" />
-            New Listing
-          </Link>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="relative group flex-1 md:flex-none md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
+              <input 
+                type="text" 
+                placeholder="Scan inventory..." 
+                value={searchTerm}
+                onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all"
+              />
+           </div>
+           <Link href="/vendor/products/add" className="hidden md:flex h-11 px-6 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20">
+              <Zap className="size-4" /> New Listing
+           </Link>
         </div>
       </header>
 
@@ -127,13 +134,12 @@ export default function VendorProductsPage() {
             </div>
           ) : (
             <>
-              {/* Product KPIs Container */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                <KPICard title="Total" value={products.length} icon={Package} color="fuchsia" sub={`${products.filter(p => p.stock > 0).length} in stock`} />
-                <KPICard title="Low Stock" value={products.filter(p => p.stock <= 5 && p.stock > 0).length} icon={AlertCircle} color={products.filter(p => p.stock <= 5 && p.stock > 0).length > 0 ? 'red' : 'emerald'} sub="Restock alerts" />
-                <KPICard title="Sales" value={products.reduce((acc, p) => acc + (p.purchase_count || 0), 0)} icon={ShoppingCart} color="emerald" sub="Order volume" />
-                <KPICard title="Hits" value={products.reduce((acc, p) => acc + (p.view_count || 0), 0)} icon={Eye} color="blue" sub="Market exposure" />
-              </div>
+               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                 <KPICard title="Total" value={products.length} icon={Package} color="fuchsia" sub={`${products.filter(p => p.stock > 0).length} Live`} />
+                 <KPICard title="Low Stock" value={products.filter(p => p.stock <= 5 && p.stock > 0).length} icon={AlertCircle} color={products.filter(p => p.stock <= 5 && p.stock > 0).length > 0 ? 'red' : 'emerald'} sub="Restock alerts" />
+                 <KPICard title="Sales" value={products.reduce((acc, p) => acc + (p.purchase_count || 0), 0)} icon={ShoppingCart} color="emerald" sub="Volume" />
+                 <KPICard title="Hits" value={products.reduce((acc, p) => acc + (p.view_count || 0), 0)} icon={Eye} color="blue" sub="Exposure" />
+               </div>
 
                 <div className="space-y-10">
                   <div className="flex items-center justify-between">

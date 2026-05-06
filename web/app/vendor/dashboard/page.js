@@ -145,76 +145,62 @@ export default function VendorDashboard() {
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
-        <header className="min-h-16 py-3 sm:h-16 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 border-b border-[var(--glass-border)] relative z-20 bg-[var(--bg-primary)] backdrop-blur-2xl gap-3 sm:gap-2 min-w-0 text-[var(--text-primary)] sticky top-0 md:top-16">
-          <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-            <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tighter truncate">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
-            <div className="flex sm:hidden items-center gap-3">
-               <button className="size-9 rounded-full glass-panel flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)]">
-                 <span className="material-symbols-outlined text-xl">notifications</span>
-               </button>
-               <div className="size-9 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden">
-                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
-               </div>
+        <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+            <div className="flex items-center gap-4">
+              <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+                 <span className="material-symbols-outlined text-xl md:text-2xl">dashboard</span>
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Command</span></h2>
+                <div className="flex items-center gap-2 mt-0.5">
+                   <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Systems Nominal</p>
+                </div>
+              </div>
             </div>
+            <button className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+               <span className="material-symbols-outlined text-xl">refresh</span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-            <div className="relative flex-1 group sm:w-72">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-lg group-focus-within:text-[var(--accent)] transition-colors">search</span>
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative flex-1 group md:w-80">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-lg opacity-20">search</span>
               <input 
-                className="w-full glass-panel border border-[var(--glass-border)] rounded-full py-2.5 pl-11 pr-6 text-[11px] lg:text-[12px] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all bg-[var(--bg-primary)]/50 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/40 font-bold tracking-tight" 
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all" 
                 placeholder="Find anything..." 
                 type="text" 
               />
             </div>
             
-            <div className="hidden sm:flex items-center gap-3 pl-4 border-l border-[var(--glass-border)]/30">
-              <div className="text-right">
-                <p className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{user?.name || 'Vendor'}</p>
-                <p className="text-[10px] lg:text-[12px] text-[var(--accent)] font-semibold tracking-tight opacity-80 uppercase">Store Owner</p>
-              </div>
-              <div className="size-10 rounded-full border border-[var(--accent)]/30 bg-gradient-to-tr from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden shadow-sm hover:rotate-3 transition-transform">
-                {user?.avatar ? <img src={user.avatar} className="size-full object-cover" alt={user.name} /> : <span>{user?.name?.[0]?.toUpperCase() || 'M'}</span>}
-              </div>
+            <div className="hidden md:flex items-center gap-3 pl-6 border-l border-[var(--glass-border)]/30">
+               <div className="text-right">
+                 <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
+                 <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-tight opacity-50">Store Node</p>
+               </div>
+               <div className="size-10 rounded-xl border border-[var(--accent)]/20 bg-gradient-to-tr from-[var(--accent)]/10 to-indigo-600/5 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden">
+                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" /> : <span>{user?.name?.[0]?.toUpperCase() || 'V'}</span>}
+               </div>
             </div>
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 space-y-6 no-scrollbar relative z-10">
           {error && (
-            <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className=" font-bold">Authentication / Authorization Error</p>
-                  <p className="text-sm mt-1">{error}</p>
-                </div>
-                <div className="flex items-center gap-2">
-      {/* Surgical Header */}
-      <div className="px-4 md:px-6 py-4 md:py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
-              <span className="material-symbols-outlined">dashboard</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Platform Command</h1>
-              <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Administrative Hub</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4">
-             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
-                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-emerald-500 uppercase">Systems Nominal</span>
-             </div>
-             <button className="p-2 md:p-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90">
-                <span className="material-symbols-outlined">refresh</span>
-             </button>
-          </div>
-        </div>
-      </div>
-                <Link href="/login" className="text-sm  font-bold bg-red-600 text-white px-3 py-1 rounded">Sign In</Link>
-                <button onClick={() => logout()} className="text-sm  font-bold border border-red-600 text-red-600 px-3 py-1 rounded">Clear Session</button>
-                </div>
+            <div className="p-5 rounded-[2rem] bg-rose-500/10 border border-rose-500/20 text-rose-500 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-center gap-4">
+                 <div className="size-10 rounded-xl bg-rose-500/20 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined">report</span>
+                 </div>
+                 <div>
+                   <p className="text-sm font-bold tracking-tight">Security Alert</p>
+                   <p className="text-[11px] font-semibold opacity-60 tracking-tight">{error}</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                 <Link href="/login" className="flex-1 md:flex-none px-6 py-2 bg-rose-500 text-white rounded-xl text-[11px] font-bold tracking-tight hover:opacity-90 transition-all text-center">Re-Authenticate</Link>
+                 <button onClick={() => logout()} className="flex-1 md:flex-none px-6 py-2 border border-rose-500/30 text-rose-500 rounded-xl text-[11px] font-bold tracking-tight hover:bg-rose-500/10 transition-all">Clear Node</button>
               </div>
             </div>
           )}

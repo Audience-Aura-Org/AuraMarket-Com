@@ -258,7 +258,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                </div>
 
                <div className="flex flex-col gap-2 min-w-[180px]">
-                  {order.order_status === 'shipped' && !isVendor && (
+                  {(order.order_status === 'shipped' || order.order_status === 'delivered') && !isVendor && (
                     <button onClick={handleConfirmDelivery} className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
                        <CheckCircle2 className="size-3.5" /> CONFIRM ARRIVAL
                     </button>

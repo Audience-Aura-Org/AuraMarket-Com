@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
@@ -74,34 +74,32 @@ export default function StorefrontBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
-      <div className="max-w-[1400px] mx-auto space-y-16">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-6 md:py-12 px-4 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
+      <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-16">
         
         {/* Dynamic Header */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 animate-in fade-in slide-in-from-top-10 duration-700">
-           <div className="flex items-center gap-6">
-              <div className="size-16 rounded-[22px] bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] text-white flex items-center justify-center shadow-xl shadow-[var(--accent)]/30 border border-white/20">
-                 <Layers className="size-8" />
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 sticky top-0 md:top-16 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-xl py-4 border-b border-[var(--glass-border)] md:border-none md:static md:bg-transparent md:backdrop-blur-none md:p-0">
+           <div className="flex items-center gap-4 md:gap-6">
+              <div className="size-12 md:size-16 rounded-[18px] md:rounded-[22px] bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] text-white flex items-center justify-center shadow-xl shadow-[var(--accent)]/30 border border-white/20 shrink-0">
+                 <Layers className="size-6 md:size-8" />
               </div>
-              <div className="space-y-1">
-                 <h1 className="text-4xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">Storefront <span className="text-[var(--accent)]">Architect</span></h1>
-                 <div className="flex items-center gap-3">
-                    <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">System Topology Control</p>
-                    <div className="h-1 w-1 rounded-full bg-[var(--glass-border)]" />
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight">{sections.length} Active Nodes</span>
+              <div className="space-y-0.5 md:space-y-1">
+                 <h1 className="text-2xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">Storefront <span className="text-[var(--accent)]">Architect</span></h1>
+                 <div className="flex items-center gap-2 md:gap-3">
+                    <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] opacity-40 uppercase">System Topology</p>
+                    <div className="h-1 w-1 rounded-full bg-[var(--glass-border)] hidden md:block" />
+                    <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hidden md:block">{sections.length} Active Nodes</span>
                  </div>
               </div>
            </div>
 
-           <div className="flex items-center gap-4">
-              <button 
-                onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
-                className="h-14 px-8 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] flex items-center gap-4 hover:scale-[1.03] active:scale-95 shadow-2xl transition-all group"
-              >
-                 <Plus className="size-4 group-hover:rotate-90 transition-transform duration-300" /> Construct New Sector
-              </button>
-           </div>
-        </div>
+           <button 
+             onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
+             className="w-full md:w-auto h-12 md:h-14 px-6 md:px-8 rounded-xl md:rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] md:text-[11px] lg:text-[12px] font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 shadow-2xl transition-all group"
+           >
+              <Plus className="size-4 group-hover:rotate-90 transition-transform duration-300" /> Construct Sector
+           </button>
+        </header>
 
         {/* Main Architect View */}
         <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
@@ -129,34 +127,34 @@ export default function StorefrontBuilder() {
                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${section.is_active ? 'bg-[var(--accent)] shadow-[2px_0_15px_var(--accent)]/30' : 'bg-[var(--glass-border)]'}`} />
 
                    {/* 1. Sector Control (Side) */}
-                   <div className="p-6 md:p-8 lg:w-80 border-b lg:border-b-0 lg:border-r border-[var(--glass-border)] bg-white/5 flex lg:flex-col items-center justify-between gap-6 shrink-0 backdrop-blur-md">
+                   <div className="p-5 md:p-8 lg:w-80 border-b lg:border-b-0 lg:border-r border-[var(--glass-border)] bg-white/5 flex lg:flex-col items-center justify-between gap-6 shrink-0 backdrop-blur-md">
                       <div className="flex lg:flex-col items-center lg:items-start gap-4 lg:gap-6 w-full">
-                         <div className="size-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] shadow-xl relative overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                         <div className="size-12 md:size-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] shadow-xl relative overflow-hidden group-hover:scale-105 transition-transform duration-500">
                             <div className="absolute inset-0 bg-[var(--accent)]/5 animate-pulse" />
-                            {section.type === 'hero' && <Grid className="size-6 relative" />}
-                            {section.type === 'categories' && <List className="size-6 relative" />}
-                            {section.type === 'stores' && <Store className="size-6 relative" />}
-                            {section.type === 'featured_products' && <Sparkles className="size-6 relative" />}
-                            {section.type === 'trending' && <Activity className="size-6 relative" />}
-                            {(!section.type || !['hero', 'categories', 'stores', 'featured_products', 'trending'].includes(section.type)) && <Package className="size-6 relative" />}
+                            {section.type === 'hero' && <Grid className="size-5 md:size-6 relative" />}
+                            {section.type === 'categories' && <List className="size-5 md:size-6 relative" />}
+                            {section.type === 'stores' && <Store className="size-5 md:size-6 relative" />}
+                            {section.type === 'featured_products' && <Sparkles className="size-5 md:size-6 relative" />}
+                            {section.type === 'trending' && <Activity className="size-5 md:size-6 relative" />}
+                            {(!section.type || !['hero', 'categories', 'stores', 'featured_products', 'trending'].includes(section.type)) && <Package className="size-5 md:size-6 relative" />}
                          </div>
 
-                         <div className="flex-1 lg:w-full space-y-1">
+                         <div className="flex-1 lg:w-full space-y-0.5 md:space-y-1">
                             <div className="flex items-center gap-2">
-                               <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg shadow-[var(--accent)]/20">
+                               <span className="text-[9px] md:text-[10px] font-semibold tracking-tight bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg uppercase">
                                   {section.type.replace('_', ' ')}
                                </span>
-                               <span className={`text-[11px] lg:text-[12px]  font-semibold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} tracking-tight`}>
-                                  {section.is_active ? 'Online' : 'Offline'}
+                               <span className={`text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} tracking-tight uppercase`}>
+                                  {section.is_active ? 'Live' : 'Off'}
                                </span>
                             </div>
-                            <h3 className="text-xl  font-bold text-[var(--text-primary)] leading-tight tracking-tight  truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
-                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  tracking-[0.2em]">{section.data?.length || 0} Linked Elements</p>
+                            <h3 className="text-lg md:text-xl font-bold text-[var(--text-primary)] leading-tight tracking-tight truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
+                            <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight uppercase">{section.data?.length || 0} Nodes Linked</p>
                          </div>
                       </div>
 
                       <div className="flex lg:w-full items-center justify-between gap-4">
-                         <div className="flex items-center gap-1.5 p-1.5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)] shadow-inner">
+                         <div className="flex items-center gap-1.5 p-1 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)] shadow-inner">
                             <button onClick={() => handleMove(index, -1)} disabled={index === 0} className="size-8 rounded-lg flex items-center justify-center hover:bg-white/10 hover:text-[var(--accent)] disabled:opacity-0 transition-all">
                                <ChevronUp className="size-4" />
                             </button>
@@ -169,16 +167,15 @@ export default function StorefrontBuilder() {
                          <div className="flex items-center gap-2">
                             <button 
                               onClick={() => handleToggle(section._id, section.is_active)}
-                              className={`size-10 rounded-xl border border-[var(--glass-border)] flex items-center justify-center transition-all shadow-lg ${section.is_active ? 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white' : 'text-white/20 hover:bg-emerald-500/20 hover:text-emerald-500'}`}
-                              title={section.is_active ? "Deactivate" : "Activate"}
+                              className={`size-9 md:size-10 rounded-xl border border-[var(--glass-border)] flex items-center justify-center transition-all shadow-lg ${section.is_active ? 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white' : 'text-white/20 hover:bg-emerald-500/20 hover:text-emerald-500'}`}
                             >
                                <CheckCircle2 className="size-5" />
                             </button>
                             <button 
                               onClick={() => { setEditingSection(section); setIsFormOpen(true); }}
-                              className="h-10 px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight"
+                              className="h-9 md:h-10 px-3 md:px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[10px] md:text-[11px] font-bold tracking-tight uppercase"
                             >
-                               <Settings2 className="size-4" /> Modify
+                               <Settings2 className="size-4" /> Edit
                             </button>
                          </div>
                       </div>

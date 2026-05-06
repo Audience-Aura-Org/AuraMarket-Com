@@ -58,63 +58,65 @@ export default function VendorDisputesPage() {
   return (
     <div className="w-full min-h-screen max-w-[1600px] mx-auto">
         
-        {/* Page Header */}
-        <div className="hidden md:block px-4 md:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
-                <AlertTriangle className="w-6 h-6 text-rose-500" />
-              </div>
-              <div>
-                <h1 className="text-2xl  font-bold tracking-tight text-[var(--text-primary)]">Resolution Center</h1>
-                <p className="text-xs text-[var(--text-secondary)]  font-bold tracking-tight opacity-40">Conflict Management</p>
-              </div>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-inner border border-rose-500/20 shrink-0">
+               <AlertTriangle className="w-5 h-5 md:w-6 md:h-6" />
             </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={fetchDisputes} 
-                className="p-2.5 rounded-xl border border-[var(--glass-border)] hover:bg-white/5 text-[var(--text-secondary)] transition-all"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Resolution <span className="text-[var(--accent)]">Center</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Conflict Node</p>
+              </div>
             </div>
           </div>
+          <button onClick={fetchDisputes} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="relative group flex-1 md:flex-none md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
+              <input 
+                type="text" 
+                placeholder="Scan disputes..." 
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all"
+              />
+           </div>
+           <button onClick={fetchDisputes} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+           </button>
+        </div>
+      </header>
 
         <div className="px-4 md:px-8 py-8">
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
             {[
-              { label: 'Active Disputes', value: activeCount, sub: 'Needs attention', icon: AlertTriangle, color: 'rose' },
-              { label: 'Resolved', value: (disputes.length - activeCount), sub: 'Session closed', icon: CheckCircle2, color: 'emerald' },
-              { label: 'Success Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Resolution yield', icon: Shield, color: 'indigo' }
+              { label: 'Active', value: activeCount, sub: 'Attention', icon: AlertTriangle, color: 'rose' },
+              { label: 'Resolved', value: (disputes.length - activeCount), sub: 'Closed', icon: CheckCircle2, color: 'emerald' },
+              { label: 'Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Yield', icon: Shield, color: 'indigo' }
             ].map((stat, i) => (
               <div
                 key={i}
-                className="p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-rose-500/30 transition-all cursor-default"
+                className="p-5 md:p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-rose-500/30 transition-all cursor-default shadow-sm"
               >
                 <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
                   <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
                 </div>
-                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-                <h4 className="text-3xl  font-bold tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[11px] lg:text-[12px]  font-semibold opacity-40 ">{stat.sub}</p>
+                <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight mb-1 uppercase opacity-40">{stat.label}</p>
+                <h4 className="text-2xl md:text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
+                <p className="text-[10px] md:text-[11px] font-semibold opacity-40 uppercase tracking-tight">{stat.sub}</p>
               </div>
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative mb-6">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
-            <input 
-              type="text" 
-              placeholder="Search disputes..." 
-              value={search}
-              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 py-3 text-xs  font-bold focus:outline-none focus:border-[var(--accent)] transition-all"
-            />
-          </div>
 
           {/* Disputes List */}
           {loading ? (

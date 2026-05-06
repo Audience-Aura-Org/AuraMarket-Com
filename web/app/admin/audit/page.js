@@ -56,118 +56,133 @@ export default function AdminAuditLogs() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
-      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] shrink-0 sticky top-16 z-10 backdrop-blur-xl text-[var(--text-primary)]">
-        <div className="flex items-center gap-6">
-          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner">
-             <Shield className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">System <span className="text-[var(--accent)]">Audit</span> Ledger</h2>
-            <div className="flex items-center gap-2 mt-1">
-               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  opacity-50">Monitoring immutable event stream</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+               <Shield className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Security <span className="text-[var(--accent)]">Audit</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Live Stream_V3</p>
+              </div>
             </div>
           </div>
+          <button onClick={fetchLogs} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-4">
-           <div className="flex items-center gap-2 bg-[var(--bg-secondary)]/50 p-1 rounded-xl border border-[var(--glass-border)]">
-              {['all', 'product', 'user', 'dispute', 'transaction'].map(type => (
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start shadow-inner">
+              {['all', 'product', 'user', 'dispute'].map(type => (
                 <button 
                   key={type}
                   onClick={() => { setActiveFilter(type); setCurrentPage(1); }}
-                  className={`px-4 py-2 rounded-lg text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ${activeFilter === type ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-border)]'}`}
+                  className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-tight transition-all uppercase ${activeFilter === type ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
                 >
                   {type}
                 </button>
               ))}
            </div>
-           <button onClick={fetchLogs} className="p-3 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all">
+           <button onClick={fetchLogs} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
         </div>
       </header>
 
-      <div className="p-10 space-y-8 pb-32">
-         {/* Live Metadata */}
-         <div className="grid grid-cols-4 gap-4">
+      <div className="p-4 md:p-10 space-y-8 pb-32">
+         {/* Live Intelligence Metadata */}
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-               { label: 'Total Events', value: logs.length, icon: Database, color: 'text-[var(--accent)]' },
-               { label: 'High Priority', value: logs.filter(l => l.action.includes('ban')).length, icon: AlertTriangle, color: 'text-rose-500' },
-               { label: 'Nodes Tracked', value: '7 Active', icon: Fingerprint, color: 'text-indigo-500' },
-               { label: 'Feed Uptime', value: '99.99%', icon: Activity, color: 'text-emerald-500' }
+               { label: 'Total Events', value: logs.length, icon: Database, color: 'text-[var(--accent)]', sub: 'REGISTRY' },
+               { label: 'High Priority', value: logs.filter(l => l.action.includes('ban')).length, icon: AlertTriangle, color: 'text-rose-500', sub: 'CRITICAL' },
+               { label: 'Nodes Tracked', value: '7 Active', icon: Fingerprint, color: 'text-indigo-500', sub: 'IDENTITY' },
+               { label: 'Feed Uptime', value: '99.99%', icon: Activity, color: 'text-emerald-500', sub: 'HEALTH' }
             ].map(s => (
-               <div key={s.label} className="glass-panel p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:-translate-y-1 transition-all">
-                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.2em] mb-2 opacity-40">{s.label}</p>
-                  <div className="flex items-center justify-between">
-                     <h3 className={`text-2xl  font-bold ${s.color}`}>{s.value}</h3>
-                     <s.icon className={`w-5 h-5 ${s.color} opacity-20`} />
+               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl overflow-hidden">
+                  <div className="flex items-center justify-between mb-4">
+                     <div className={`size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center ${s.color} border border-[var(--glass-border)] shadow-inner`}>
+                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
+                     </div>
+                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase font-mono">{s.sub}</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
+                    <h3 className={`text-xl font-bold tracking-tight truncate ${s.color}`}>{s.value}</h3>
                   </div>
                </div>
             ))}
          </div>
 
          {/* Event Stream */}
-         <div className="glass-panel rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-            <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-sm  font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-[var(--accent)]" /> 
-                  Chronological Mutation Stream
+         <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
+            <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
+               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
+                  <Clock className="size-4 text-[var(--accent)]" /> Chronological Mutation Stream
                </h3>
-               <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight">
-                  <Filter className="w-3.5 h-3.5" /> Filter Applied: {activeFilter}
+               <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">
+                  <Filter className="size-3" /> Filter: {activeFilter}
                </div>
             </div>
 
-            <div className="divide-y divide-[var(--glass-border)]/50">
+            <div className="divide-y divide-[var(--glass-border)]/30">
                {loading ? (
-                  <div className="py-40 flex flex-col items-center justify-center opacity-30">
-                     <Loader2 className="w-10 h-10 animate-spin text-[var(--accent)]" />
-                     <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">Decrypting Mutation Stream...</p>
+                  <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-20">
+                     <Loader2 className="animate-spin size-10" />
+                     <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Decrypting Stream...</p>
                   </div>
                ) : currentLogs.length > 0 ? (
                   currentLogs.map(log => (
-                    <div key={log._id} className="p-8 hover:bg-[var(--accent)]/[0.02] transition-colors group flex items-start gap-8">
-                        <div className="flex flex-col items-center gap-3 py-1">
-                           <div className="size-10 rounded-full border border-[var(--glass-border)] overflow-hidden bg-[var(--bg-secondary)] shadow-sm">
-                              {log.user_id?.avatar ? <img src={log.user_id.avatar} className="size-full object-cover" /> : <User className="size-full p-2.5 opacity-30" />}
+                    <div key={log._id} className="p-6 md:p-8 hover:bg-[var(--accent)]/[0.02] transition-colors group flex flex-col md:flex-row gap-6">
+                        <div className="flex items-center md:flex-col md:gap-3 gap-4 shrink-0">
+                           <div className="size-12 md:size-14 rounded-2xl border border-[var(--glass-border)] overflow-hidden bg-[var(--bg-secondary)] shadow-inner">
+                              {log.user_id?.avatar ? <img src={log.user_id.avatar} className="size-full object-cover" alt="" /> : <User className="size-full p-3 opacity-20" />}
                            </div>
-                           <div className="w-px h-full bg-gradient-to-b from-[var(--glass-border)] to-transparent" />
+                           <div className="flex-1 md:hidden">
+                              <p className="text-[13px] font-bold text-[var(--text-primary)] tracking-tight truncate">{log.user_id?.name || 'System Operator'}</p>
+                              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{log.user_id?.role || 'SYSTEM'}</p>
+                           </div>
+                           <div className="hidden md:block w-px h-full bg-gradient-to-b from-[var(--glass-border)] to-transparent" />
                         </div>
 
                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center gap-3">
-                                 <span className="text-sm  font-bold text-[var(--text-primary)] tracking-tight">{log.user_id?.name || 'System Operator'}</span>
-                                 <span className="px-3 py-1 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight border border-[var(--glass-border)]">
+                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                              <div className="hidden md:flex items-center gap-3">
+                                 <span className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{log.user_id?.name || 'System Operator'}</span>
+                                 <span className="px-2 py-0.5 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[10px] font-bold tracking-widest uppercase border border-[var(--glass-border)]">
                                     {log.user_id?.role || 'SYSTEM'}
                                  </span>
-                                 <span className={`px-3 py-1 rounded-lg text-[11px] lg:text-[12px]  font-semibold tracking-tight ${getActionColor(log.action)}`}>
+                              </div>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                 <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-widest uppercase border ${getActionColor(log.action)}`}>
                                     {log.action.replace('_', ' ')}
                                  </span>
+                                 <time className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest flex items-center gap-2">
+                                    <Clock className="w-3 h-3" /> {new Date(log.createdAt).toLocaleString()}
+                                 </time>
                               </div>
-                              <time className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight flex items-center gap-2">
-                                 <Clock className="w-3 h-3" /> {new Date(log.createdAt).toLocaleString()}
-                              </time>
                            </div>
 
-                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                              <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-5 rounded-2xl">
-                                 <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.2em] mb-3 opacity-50 flex items-center gap-2">
-                                    <FileText className="w-3 h-3" /> Targeted Entity
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-5 rounded-2xl group-hover:border-[var(--accent)]/30 transition-colors">
+                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-3 opacity-40 flex items-center gap-2">
+                                    <FileText className="size-3" /> Targeted Entity
                                  </p>
                                  <div className="flex items-center justify-between">
-                                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                                       <span className=" opacity-40">{log.target_type}:</span>
+                                    <p className="text-[11px] font-bold text-[var(--text-primary)] flex items-center gap-2">
+                                       <span className="opacity-30 uppercase">{log.target_type}:</span>
                                        <span className="font-mono text-[var(--accent)] tracking-tighter">#{log.target_id.slice(-8).toUpperCase()}</span>
                                     </p>
-                                    <ChevronRight className="w-4 h-4 opacity-20 group-hover:translate-x-1 transition-transform" />
+                                    <ChevronRight className="size-4 opacity-20 group-hover:translate-x-1 transition-transform" />
                                  </div>
                               </div>
 
-                              <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-5 rounded-2xl overflow-hidden">
-                                 <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.2em] mb-3 opacity-50">Mutation Payload</p>
-                                 <div className="font-mono text-[10px] lg:text-[12px] text-[var(--text-primary)]/80 leading-relaxed max-h-20 overflow-y-auto no-scrollbar">
+                              <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-5 rounded-2xl group-hover:border-[var(--accent)]/30 transition-colors">
+                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-3 opacity-40">Mutation Payload</p>
+                                 <div className="font-mono text-[10px] text-[var(--text-primary)]/80 leading-relaxed max-h-24 overflow-y-auto no-scrollbar scroll-smooth">
                                     {JSON.stringify(log.changes, null, 2)}
                                  </div>
                               </div>
@@ -176,14 +191,14 @@ export default function AdminAuditLogs() {
                     </div>
                   ))
                ) : (
-                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
-                     <Shield className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                     <p className="text-sm  font-bold  tracking-[0.2em] leading-relaxed max-w-sm">No system mutations recorded in this vector.</p>
+                  <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
+                     <Shield className="w-16 h-16 text-[var(--text-secondary)]" />
+                     <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No System Mutations Recorded</p>
                   </div>
                )}
             </div>
 
-            <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+            <div className="p-6 md:p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 flex justify-center">
                <Pagination 
                    currentPage={currentPage}
                    totalPages={totalPages}

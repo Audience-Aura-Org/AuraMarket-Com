@@ -52,34 +52,42 @@ export default function AdminLogsPage() {
   const currentLogs = logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] py-12 px-6 md:px-12 transition-all duration-300">
-      <div className="max-w-5xl mx-auto space-y-12">
-        {/* ... header (kept same) ... */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-[var(--glass-border)]">
-           <div className="flex items-center gap-4">
-              <div className="size-12 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
-                 <Terminal className="size-6" />
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+               <Terminal className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Audit <span className="text-[var(--accent)]">Trail</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">System Events</p>
               </div>
-              <div className="space-y-0.5">
-                 <h1 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">Audit Trail</h1>
-                 <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--text-secondary)] opacity-40">System-wide Event Log</p>
-              </div>
-           </div>
-
-           <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="relative group w-full md:w-64">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
-                 <input 
-                   type="text" 
-                   placeholder="Search hashes..." 
-                   className="w-full h-10 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none text-[var(--text-primary)]"
-                 />
-              </div>
-              <button className="h-10 px-4 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:bg-white/5 transition-all">
-                 <Filter className="size-4" />
-              </button>
-           </div>
+            </div>
+          </div>
+          <button onClick={fetchLogs} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="relative group flex-1 md:flex-none md:w-64">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
+              <input 
+                type="text" 
+                placeholder="Search logs..." 
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs focus:border-[var(--accent)] transition-all outline-none"
+              />
+           </div>
+           <button onClick={fetchLogs} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+           </button>
+        </div>
+      </header>
+
+      <div className="p-4 md:p-10 max-w-5xl mx-auto space-y-6 md:space-y-12">
 
         {/* Dense List */}
         <div className="space-y-3 min-h-[600px]">

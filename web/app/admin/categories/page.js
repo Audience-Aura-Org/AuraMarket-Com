@@ -97,48 +97,59 @@ export default function AdminCategories() {
     return (
       <div key={cat._id} className="w-full">
         <div 
-          className="flex items-center justify-between p-4 lg:p-5 hover:bg-[var(--accent)]/5 border-b border-[var(--glass-border)]/50 transition-all group"
-          style={{ paddingLeft: `${depth * 2 + 2.5}rem` }}
+          className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 hover:bg-[var(--accent)]/5 border-b border-[var(--glass-border)]/50 transition-all group gap-4 md:gap-0"
+          style={{ paddingLeft: typeof window !== 'undefined' && window.innerWidth < 768 ? '1rem' : `${depth * 2.5 + 2.5}rem` }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Indentation Spacer for Mobile */}
+            <div className="md:hidden flex items-center shrink-0" style={{ width: `${depth * 1.5}rem` }}>
+               {depth > 0 && <div className="w-px h-6 bg-[var(--glass-border)] mx-auto opacity-20" />}
+            </div>
+
             {hasChildren ? (
               <button 
                 onClick={() => toggleExpand(cat._id)}
-                className="size-8 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90"
+                className="size-10 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90 shrink-0 shadow-sm"
               >
-                {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                {isExpanded ? <ChevronDown className="size-5" /> : <ChevronRight className="size-5" />}
               </button>
             ) : (
-              <div className="size-8 flex items-center justify-center opacity-10">
-                 <div className="size-1 bg-[var(--text-secondary)] rounded-full" />
+              <div className="size-10 md:size-11 flex items-center justify-center opacity-10 shrink-0">
+                 <div className="size-1.5 bg-[var(--text-secondary)] rounded-full" />
               </div>
             )}
             
-            <div className={`p-2 rounded-xl ${hasChildren ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'} border border-[var(--glass-border)]/20 shadow-sm`}>
-               <Folder className="size-4" />
+            <div className={`size-10 md:size-11 rounded-xl flex items-center justify-center shrink-0 ${hasChildren ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'} border border-[var(--glass-border)]/20 shadow-inner`}>
+               <Folder className="size-5" />
             </div>
 
             {editing?._id === cat._id ? (
               <input 
                 value={editing.name}
                 onChange={e => setEditing({...editing, name: e.target.value})}
-                className="bg-[var(--bg-primary)] border border-[var(--accent)] rounded-xl px-4 py-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] outline-none ring-4 ring-[var(--accent)]/5 shadow-inner capitalize tracking-tight"
+                className="flex-1 min-w-[150px] bg-[var(--bg-primary)] border border-[var(--accent)] rounded-xl px-4 h-10 text-xs font-bold text-[var(--accent)] outline-none ring-4 ring-[var(--accent)]/5 shadow-inner capitalize tracking-tight"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
               />
             ) : (
-              <div className="flex flex-col">
-                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors capitalize">{cat.name}</span>
-                <span className="text-[10px] lg:text-[12px]  font-semibold tracking-widest text-[var(--text-secondary)] opacity-30 capitalize">Node_ID: #{cat._id?.slice(-8).toUpperCase()}</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[12px] md:text-sm font-bold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors capitalize truncate">{cat.name}</span>
+                <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-30 uppercase mt-0.5">Node_ID: #{cat._id?.slice(-8).toUpperCase()}</span>
               </div>
             )}
           </div>
           
-          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+          <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-all transform md:translate-x-2 group-hover:translate-x-0 justify-end">
             {editing?._id === cat._id ? (
               <>
-                <button onClick={handleUpdate} className="size-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"><Save className="size-4" /></button>
-                <button onClick={() => setEditing(null)} className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95"><X className="size-4" /></button>
+                <button onClick={handleUpdate} className="h-10 px-4 md:size-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 text-[10px] font-bold uppercase tracking-widest md:text-transparent">
+                  <span className="md:hidden mr-2">Save</span>
+                  <Save className="size-4" />
+                </button>
+                <button onClick={() => setEditing(null)} className="h-10 px-4 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 text-[10px] font-bold uppercase tracking-widest md:text-transparent">
+                  <span className="md:hidden mr-2">Cancel</span>
+                  <X className="size-4" />
+                </button>
               </>
             ) : (
               <>
@@ -147,21 +158,21 @@ export default function AdminCategories() {
                     setIsAdding(true);
                     setFormData({ name: '', parent_id: cat._id });
                   }}
-                  className="size-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm active:scale-95"
+                  className="size-10 md:size-11 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm active:scale-95"
                   title="Add Sub"
                 >
-                  <Plus className="size-4" />
+                  <Plus className="size-5" />
                 </button>
                 <button 
                   onClick={() => setEditing(cat)}
-                  className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm active:scale-95"
+                  className="size-10 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm active:scale-95"
                   title="Edit"
                 >
                   <Edit2 className="size-4" />
                 </button>
                 <button 
                   onClick={() => handleDelete(cat._id)}
-                  className="size-9 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95"
+                  className="size-10 md:size-11 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95"
                   title="Purge"
                 >
                   <Trash2 className="size-4" />
@@ -171,7 +182,7 @@ export default function AdminCategories() {
           </div>
         </div>
         {isExpanded && hasChildren && (
-          <div className="bg-[var(--bg-secondary)]/10">
+          <div className="bg-[var(--bg-secondary)]/5">
             {cat.children.map(child => renderCategoryRow(child, depth + 1))}
           </div>
         )}
@@ -183,97 +194,75 @@ export default function AdminCategories() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
-      {/* Surgical Header */}
-      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-16 z-40">
-        <div className="flex items-center gap-6">
-          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20">
-             <Database className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Category <span className="text-[var(--accent)]">Taxonomy</span> Matrix</h2>
-            <div className="flex items-center gap-2 mt-1">
-               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Operational Hierarchy // Node_Taxonomy_Root</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center justify-between w-full md:w-auto gap-4">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shadow-inner shrink-0">
+               <Database className="size-5 md:size-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Taxonomy <span className="text-[var(--accent)]">Manager</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Operational Hierarchy</p>
+              </div>
             </div>
           </div>
+          <button onClick={fetchCategories} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] flex items-center justify-center active:scale-95 text-[var(--text-secondary)]">
+             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-4">
-           <button 
-             onClick={() => {
-               setIsAdding(true);
-               setFormData({ name: '', parent_id: null });
-             }}
-             className="h-11 px-8 bg-[var(--accent)] text-white rounded-2xl text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] capitalize shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center gap-2"
+        <button 
+             onClick={() => { setIsAdding(true); setFormData({ name: '', parent_id: null }); }}
+             className="w-full md:w-auto h-12 md:h-14 px-8 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-bold tracking-[0.2em] uppercase shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center justify-center gap-3"
            >
-             <Plus className="w-4 h-4" /> New Origin Node
-           </button>
-           <button onClick={fetchCategories} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </button>
-        </div>
+             <Plus className="size-4 md:size-5" /> New Sector Node
+        </button>
       </header>
 
-      <div className="p-10 space-y-8 pb-40">
-         {/* Live Stats */}
-         <div className="grid grid-cols-4 gap-6">
+      <div className="p-4 md:p-10 space-y-8 pb-32">
+         {/* Live Intelligence */}
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-               { label: 'Total Nodes', value: categories.length, icon: Database, color: 'var(--accent)', sub: 'MATRIX_INDEX' },
-               { label: 'Active Sectors', value: '18', icon: Zap, color: '#10b981', sub: 'FLOW_ACTIVE' },
-               { label: 'Growth Index', value: '+12.4%', icon: Activity, color: '#6366f1', sub: 'SCALE_VECTOR' },
-               { label: 'System Uptime', value: '99.98%', icon: ShieldCheck, color: '#fbbf24', sub: 'CORE_STABLE' }
+               { label: 'Total Nodes', value: categories.length, icon: Database, color: 'var(--accent)', sub: 'REGISTRY' },
+               { label: 'Sectors', value: '18', icon: Zap, color: '#10b981', sub: 'ACTIVE' },
+               { label: 'Growth', value: '+12%', icon: Activity, color: '#6366f1', sub: 'SCALE' },
+               { label: 'Health', value: 'Stable', icon: ShieldCheck, color: '#fbbf24', sub: 'CORE' }
             ].map(s => (
-               <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
-                  <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                  <div className="relative flex flex-col justify-between h-full space-y-8">
-                     <div className="flex items-center justify-between">
-                        <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                           <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
-                        </div>
-                        <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
+               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                     <div className="size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)] group-hover:text-[var(--text-primary)] transition-colors">
+                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
                      </div>
-                     <div>
-                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
-                     </div>
+                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase">{s.sub}</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
+                    <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{s.value}</h3>
                   </div>
                </div>
             ))}
          </div>
 
-         {/* Node Deployment Section */}
          <AnimatePresence>
             {isAdding && (
-               <motion.div 
-                 initial={{ height: 0, opacity: 0 }}
-                 animate={{ height: 'auto', opacity: 1 }}
-                 exit={{ height: 0, opacity: 0 }}
-                 className="overflow-hidden"
-               >
-                  <div className="glass-panel p-10 rounded-[3rem] border border-[var(--accent)]/30 bg-[var(--bg-primary)]/60 shadow-2xl relative mb-8 overflow-hidden group">
-                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.1] transition-opacity pointer-events-none">
-                        <Plus className="size-48" />
+               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                  <div className="p-6 md:p-8 rounded-[2.5rem] border border-[var(--accent)]/30 bg-[var(--bg-primary)]/60 mb-8 shadow-2xl backdrop-blur-2xl">
+                     <div className="flex items-center gap-3 mb-6">
+                        <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+                        <h3 className="text-[10px] font-bold text-[var(--accent)] tracking-[0.3em] uppercase">Provision New Asset Node</h3>
                      </div>
-                     <div className="relative z-10">
-                        <h3 className="text-xs  font-bold text-[var(--accent)] tracking-[0.3em] capitalize mb-8 flex items-center gap-3">
-                           <div className="h-5 w-1 bg-[var(--accent)] rounded-full" />
-                           Provision {formData.parent_id ? 'Subscriber' : 'Origin'} Node
-                        </h3>
-                        <div className="flex flex-col md:flex-row gap-6">
-                           <div className="flex-1 space-y-2">
-                              <label className="text-[10px] lg:text-[12px]  font-semibold tracking-widest text-[var(--text-secondary)] opacity-40 capitalize ml-1">Node Descriptor</label>
-                              <input 
-                                 placeholder="DESIGNATE LABEL..."
-                                 value={formData.name}
-                                 onChange={e => setFormData({...formData, name: e.target.value})}
-                                 className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-[11px] lg:text-[12px]  font-semibold capitalize outline-none focus:border-[var(--accent)] transition-all shadow-inner tracking-widest"
-                                 autoFocus
-                              />
-                           </div>
-                           <div className="flex items-end gap-3">
-                              <button onClick={handleAdd} className="h-14 px-10 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95">Commit</button>
-                              <button onClick={() => setIsAdding(false)} className="h-14 px-10 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.3em] capitalize hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95">Abort</button>
-                           </div>
+                     <div className="flex flex-col md:flex-row gap-4">
+                        <input 
+                           placeholder="Enter Node Designation..."
+                           value={formData.name}
+                           onChange={e => setFormData({...formData, name: e.target.value})}
+                           className="flex-1 h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-sm font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner"
+                        />
+                        <div className="flex gap-3">
+                           <button onClick={handleAdd} className="flex-1 md:flex-none h-14 px-8 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all">Commit</button>
+                           <button onClick={() => setIsAdding(false)} className="flex-1 md:flex-none h-14 px-8 bg-[var(--bg-secondary)] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--glass-border)] transition-all hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/20">Abort</button>
                         </div>
                      </div>
                   </div>
@@ -281,23 +270,20 @@ export default function AdminCategories() {
             )}
          </AnimatePresence>
 
-         {/* Taxonomy Ledger */}
-         <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-            <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
-                  <Database className="w-4 h-4 text-[var(--accent)]" /> 
-                  Platform Taxonomy Ledger
+         <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
+            <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
+               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
+                  <Database className="size-4 text-[var(--accent)]" /> Taxonomy Ledger Protocol
                </h3>
-               <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Global Hierarchy Tree</p>
+               <p className="hidden md:block text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">Sector_Hierarchy_v4.2</p>
             </div>
-
             <div className="min-h-[400px]">
               {loading ? (
-                 <LoadingSpinner text="Synchronizing Taxonomy Nodes" />
+                 <LoadingSpinner />
               ) : categories.length === 0 ? (
-                 <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
-                    <Folder className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                    <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No taxonomy nodes detected in the matrix.</p>
+                 <div className="py-32 flex flex-col items-center justify-center opacity-10 gap-6">
+                    <Folder className="size-20" />
+                    <p className="text-xs font-bold tracking-[0.5em] uppercase">No Synchronization Nodes Detected</p>
                  </div>
               ) : (
                  <div className="divide-y divide-[var(--glass-border)]/50">

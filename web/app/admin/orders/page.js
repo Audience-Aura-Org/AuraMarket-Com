@@ -294,7 +294,6 @@ export default function AdminOrdersPage() {
                                  </div>
                               </div>
                            </div>
-v>
 
                            <AnimatePresence>
                               {isExpanded && (

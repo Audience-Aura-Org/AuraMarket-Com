@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -58,22 +58,38 @@ export default function AdminSubscriptionsPage() {
       <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
 
       <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
-        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)] text-[var(--text-primary)]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shadow-lg shadow-[var(--accent)]/5">
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">Subscription Management</h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-emerald-600 ">System Live</p>
+      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
+        <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+            <div className="flex items-center gap-4">
+              <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+                 <CreditCard className="w-5 h-5 md:w-6 md:h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Recurrent <span className="text-[var(--accent)]">Revenue</span></h2>
+                <div className="flex items-center gap-2 mt-0.5">
+                   <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">System Live</p>
+                </div>
               </div>
             </div>
+            <button className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+               <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
-          <div className="hidden md:flex items-center bg-[var(--bg-secondary)] rounded-full px-4 py-2 border border-[var(--glass-border)] w-80">
-            <svg className="w-4 h-4 text-[var(--text-secondary)] mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-[var(--text-secondary)]/50  font-bold text-[var(--text-primary)]" placeholder="Search vendors, plans, or invoices..." />
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+             <div className="relative group flex-1 md:flex-none md:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
+                <input 
+                  type="text" 
+                  placeholder="Search vendors, plans..." 
+                  className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all"
+                />
+             </div>
+             <button className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
+                <RefreshCw className="w-4 h-4" />
+             </button>
           </div>
         </header>
 
@@ -85,10 +101,10 @@ export default function AdminSubscriptionsPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard label="Active Subscriptions" value="1,284" sub="vs. 1,141 last month" trend="+12.5%" positive Icon={Users} color="fuchsia" />
-              <StatCard label="Monthly Revenue" value="$45,200" sub="vs. $41,750 last month" trend="+8.2%" positive Icon={CreditCard} color="blue" />
-              <StatCard label="Expiring Soon" value="48" sub="Next 7 days" trend="Due" warn Icon={Clock} color="amber" />
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <StatCard label="Active" value="1,284" sub="vs. 1,141 last month" trend="+12.5%" positive Icon={Users} color="fuchsia" />
+              <StatCard label="MRR" value="$45,200" sub="vs. $41,750 last month" trend="+8.2%" positive Icon={CreditCard} color="blue" />
+              <StatCard label="Churn Risk" value="48" sub="Next 7 days" trend="Due" warn Icon={Clock} color="amber" />
             </div>
 
             {/* Table */}
@@ -108,57 +124,54 @@ export default function AdminSubscriptionsPage() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight border-b border-[var(--glass-border)] ">
-                      <th className="px-6 py-4">Vendor Name</th>
-                      <th className="px-6 py-4">Plan Type</th>
-                      <th className="px-6 py-4">Renewal Date</th>
-                      <th className="px-6 py-4">Payment Status</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--glass-border)]">
-                    {loading ? [...Array(5)].map((_, i) => (
-                      <tr key={i}><td colSpan={5} className="px-6 py-5"><div className="h-8 bg-white/5 rounded-xl animate-pulse" /></td></tr>
-                    )) : currentSubs.map((s, i) => (
-                      <tr key={i} className="group hover:bg-[var(--accent)]/5 transition-colors">
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center  font-bold text-[var(--accent)] text-lg shadow-sm">
-                              {s.vendor[0]}
-                            </div>
-                            <div>
-                              <p className="text-sm  font-bold text-[var(--text-primary)]">{s.vendor}</p>
-                              <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold tracking-tight ">{s.id}</p>
-                            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                {loading ? [...Array(6)].map((_, i) => (
+                  <div key={i} className="h-48 bg-white/5 rounded-3xl animate-pulse border border-[var(--glass-border)]" />
+                )) : currentSubs.map((s, i) => (
+                  <div key={i} className="group glass-panel rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-6 flex flex-col space-y-4 hover:border-[var(--accent)]/30 transition-all shadow-sm hover:shadow-xl">
+                    <div className="flex items-start justify-between">
+                       <div className="flex items-center gap-3">
+                          <div className="size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center font-bold text-[var(--accent)] text-lg shrink-0">
+                             {s.vendor[0]}
                           </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs  font-bold  tracking-tight border ${PLAN_BADGE[s.plan]}`}>
-                            {s.plan}
+                          <div className="min-w-0">
+                             <p className="text-sm font-bold text-[var(--text-primary)] truncate">{s.vendor}</p>
+                             <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-tight">{s.id}</p>
+                          </div>
+                       </div>
+                       <button className="size-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 transition-all border border-transparent hover:border-[var(--glass-border)]">
+                          <MoreVertical className="size-4" />
+                       </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                       <div className="p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
+                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Plan Node</p>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-tight border ${PLAN_BADGE[s.plan]}`}>
+                             {s.plan}
                           </span>
-                        </td>
-                        <td className="px-6 py-5">
-                          <p className="text-sm  font-bold text-[var(--text-primary)]">{s.renewal}</p>
-                          <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold tracking-tight mt-0.5 ">{s.billing}</p>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full ${PAYMENT_DOT[s.payment]} ${s.payment === 'overdue' ? 'animate-pulse' : ''} shadow-sm`} />
-                            <span className="text-sm  font-bold capitalize text-[var(--text-primary)]">{s.payment}</span>
+                       </div>
+                       <div className="p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
+                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Status</p>
+                          <div className="flex items-center gap-1.5">
+                             <span className={`w-1.5 h-1.5 rounded-full ${PAYMENT_DOT[s.payment]} shadow-sm`} />
+                             <span className="text-[10px] font-bold text-[var(--text-primary)] uppercase">{s.payment}</span>
                           </div>
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors opacity-0 group-hover:opacity-100">
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                       </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-[var(--glass-border)]/50 flex items-center justify-between">
+                       <div>
+                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-30">Renewal Cycle</p>
+                          <p className="text-xs font-bold text-[var(--text-primary)]">{s.renewal}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-30">Billing</p>
+                          <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">{s.billing}</p>
+                       </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
