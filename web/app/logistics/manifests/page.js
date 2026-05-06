@@ -14,10 +14,13 @@ import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
 import Pagination from '@/components/common/Pagination';
 
 const STATUS_ICONS = {
-  pending: { icon: Clock, bg: 'bg-amber-500/10', color: 'text-amber-500', label: 'PENDING' },
-  picked_up: { icon: Package, bg: 'bg-blue-500/10', color: 'text-blue-500', label: 'IN TRANSIT' },
-  delivered: { icon: CheckCircle2, bg: 'bg-emerald-500/10', color: 'text-emerald-500', label: 'DELIVERED' },
-  failed: { icon: AlertCircle, bg: 'bg-red-500/10', color: 'text-red-500', label: 'FAILED' }
+  pending:          { icon: Clock,        bg: 'bg-amber-500/10',   color: 'text-amber-500',   label: 'PENDING' },
+  assigned:         { icon: Package,      bg: 'bg-purple-500/10',  color: 'text-purple-500',  label: 'ASSIGNED' },
+  picked_up:        { icon: Package,      bg: 'bg-blue-500/10',    color: 'text-blue-500',    label: 'PICKED UP' },
+  in_transit:       { icon: Truck,        bg: 'bg-indigo-500/10',  color: 'text-indigo-400',  label: 'IN TRANSIT' },
+  out_for_delivery: { icon: Truck,        bg: 'bg-cyan-500/10',    color: 'text-cyan-400',    label: 'OUT FOR DELIVERY' },
+  delivered:        { icon: CheckCircle2, bg: 'bg-emerald-500/10', color: 'text-emerald-500', label: 'DELIVERED' },
+  failed:           { icon: AlertCircle,  bg: 'bg-red-500/10',     color: 'text-red-500',     label: 'FAILED' }
 };
 
 export default function LogisticsManifestsPage() {

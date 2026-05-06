@@ -256,7 +256,7 @@ const modifyShipmentStatus = async (req, res, next) => {
 
         await order.save({ session });
       }
-    } else if (status === 'picked_up') {
+    } else if (['picked_up', 'assigned', 'in_transit', 'out_for_delivery'].includes(status)) {
       order.order_status = 'shipped';
       await order.save({ session });
     }
