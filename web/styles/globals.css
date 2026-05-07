@@ -56,9 +56,11 @@ html {
   zoom: 0.7;
   -webkit-text-size-adjust: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
+  scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
   touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: auto;
 }
 
 body {
@@ -70,7 +72,8 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: auto;
   background-image:
     radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 50%),
     radial-gradient(circle at 100% 100%, var(--accent-glow) 0%, transparent 50%);
