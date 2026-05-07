@@ -40,7 +40,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${quicksand.variable}`} data-scroll-behavior="smooth">
+    <html lang="en" className={`${poppins.variable} ${quicksand.variable}`}>
       <head>
         {/* Viewport: Removed interactive-widget=resizes-visual to fix iOS PWA freeze bug */}
         <meta
@@ -66,7 +66,7 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
       </head>
-      <body className="font-sans min-h-screen flex flex-col">
+      <body className="font-sans min-h-screen flex flex-col overflow-x-hidden">
         <Providers>{children}</Providers>
       </body>
     </html>
