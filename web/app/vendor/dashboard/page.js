@@ -139,7 +139,7 @@ export default function VendorDashboard() {
   if (!mounted) return null;
 
   return (
-    <div className="relative min-h-full bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500 overflow-x-hidden">
+    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
         {/* Background blobs */}
         <div className="absolute top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
@@ -186,7 +186,7 @@ export default function VendorDashboard() {
           </div>
         </header>
 
-        <div className="overflow-x-hidden p-3 sm:p-6 space-y-6 relative z-10 pb-32">
+        <div className="p-3 sm:p-6 space-y-6 relative z-10 pb-32">
           {error && (
             <div className="p-5 rounded-[2rem] bg-rose-500/10 border border-rose-500/20 text-rose-500 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
               <div className="flex items-center gap-4">

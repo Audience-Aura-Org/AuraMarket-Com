@@ -414,25 +414,34 @@ function ManagementCard({ product, onDelete }) {
 
 function KPICard({ title, value, icon: Icon, color, sub }) {
   const colorMap = {
-    fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)]',
-    blue:    'bg-indigo-500/10 text-indigo-500',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    amber:   'bg-amber-500/10 text-amber-500',
-    red:     'bg-red-500/10 text-red-500',
+    fuchsia: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]',   bar: 'bg-[var(--accent)]',  badgeBg: 'bg-[var(--accent)]/10',  badgeText: 'text-[var(--accent)]',  glow: 'var(--accent)',  w: '65%' },
+    blue:    { bg: 'bg-indigo-600/10',       text: 'text-indigo-600',        bar: 'bg-indigo-600',       badgeBg: 'bg-indigo-600/10',       badgeText: 'text-indigo-600',       glow: '#4f46e5',        w: '80%' },
+    emerald: { bg: 'bg-emerald-500/10',      text: 'text-emerald-600',       bar: 'bg-emerald-500',      badgeBg: 'bg-emerald-500/10',      badgeText: 'text-emerald-600',      glow: '#10b981',        w: '70%' },
+    amber:   { bg: 'bg-amber-500/10',        text: 'text-amber-500',         bar: 'bg-amber-500',        badgeBg: 'bg-amber-500/10',        badgeText: 'text-amber-500',        glow: '#f59e0b',        w: '45%' },
+    red:     { bg: 'bg-red-500/10',          text: 'text-red-500',           bar: 'bg-red-500',          badgeBg: 'bg-red-500/10',          badgeText: 'text-red-500',          glow: '#ef4444',        w: '15%' },
   };
 
+  const c = colorMap[color] || colorMap.fuchsia;
+
   return (
-    <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-[2rem] p-6 lg:p-7 group hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden glass-panel shadow-sm w-full">
-      <div className={`absolute -right-4 -top-4 w-16 lg:w-24 h-16 lg:h-24 rounded-full blur-3xl opacity-30 ${colorMap[color]?.split(' ')[0]}`} />
-      <div className="flex justify-between items-start mb-5 relative z-10">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorMap[color]} shadow-inner`}>
-          <Icon className="w-6 h-6" />
+    <div className="glass-panel p-4 md:p-5 rounded-2xl md:rounded-[2rem] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-sm hover:shadow-xl group">
+      <div className="flex justify-between items-start mb-3 md:mb-4">
+        <div className={`size-8 md:size-10 rounded-xl md:rounded-2xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner`}>
+          <Icon className="w-4 h-4 md:w-5 md:h-5 group-hover:scale-110 transition-transform" />
         </div>
+        {sub && (
+          <span className={`text-[9px] md:text-[10px] font-semibold px-2 md:px-3 py-0.5 md:py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-tight whitespace-nowrap`}>
+            {sub}
+          </span>
+        )}
       </div>
-      <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-[0.2em]  opacity-50">{title}</p>
-        <h3 className="text-2xl lg:text-3xl  font-bold text-[var(--text-primary)] mt-1.5 truncate tracking-tighter">{value}</h3>
-        {sub && <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold mt-1 opacity-50 tracking-tight truncate">{sub}</p>}
+      <p className="text-[var(--text-secondary)] text-[9px] md:text-[11px] font-semibold tracking-tight opacity-40 mb-1 capitalize">{title}</p>
+      <h3 className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter font-mono">{value}</h3>
+      <div className="mt-3 md:mt-4 h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden shadow-inner">
+        <div
+          className={`${c.bar} h-full transition-all duration-1000`}
+          style={{ width: c.w, boxShadow: `0 0 10px ${c.glow}` }}
+        />
       </div>
     </div>
   );

@@ -50,7 +50,7 @@ export default function VendorAnalyticsPage() {
   const { stats, top_products, recent_orders, sales_history } = data || {};
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
+    <div className="flex-1 bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
       <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto pb-32">
         
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
