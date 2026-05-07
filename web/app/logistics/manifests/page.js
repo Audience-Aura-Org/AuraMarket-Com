@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -112,22 +112,27 @@ export default function LogisticsManifestsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Premium Header matching Admin Transactions */}
-      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-16 z-40">
-        <div className="flex items-center gap-6">
-          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20">
-             <Truck className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">Active <span className="text-[var(--accent)]">Manifests</span></h2>
-            <div className="flex items-center gap-2 mt-1">
-               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Routing Feed</p>
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
+               <Truck className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Active <span className="text-[var(--accent)]">Manifests</span></h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                 <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Routing Feed</p>
+              </div>
             </div>
           </div>
+          <button onClick={fetchShipments} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
+             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-4">
-           <div className="relative w-64 group hidden md:block">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+           <div className="relative flex-1 md:w-64 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
               <input 
                 type="text"
@@ -137,6 +142,18 @@ export default function LogisticsManifestsPage() {
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={handleSearch}
               />
+           </div>
+
+           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar md:hidden">
+              {['all', 'pending', 'in_transit', 'delivered', 'failed'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-semibold tracking-tight transition-all capitalize whitespace-nowrap ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                >
+                  {s.replace('_', ' ')}
+                </button>
+              ))}
            </div>
            
            <div className="hidden lg:flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
@@ -151,13 +168,13 @@ export default function LogisticsManifestsPage() {
               ))}
            </div>
            
-           <button onClick={fetchShipments} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
+           <button onClick={fetchShipments} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
         </div>
       </header>
 
-      <div className="p-10 space-y-8 pb-40">
+      <div className="p-4 md:p-10 space-y-6 md:space-y-8 pb-40">
          {/* Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
@@ -174,7 +191,7 @@ export default function LogisticsManifestsPage() {
                      <Loader2 className="size-8 animate-spin text-[var(--accent)] opacity-50" />
                   </div>
                ) : shipments.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
+                  <div className="grid grid-cols-1 gap-4 p-3 md:p-6 lg:p-10">
                     {shipments.map(shipment => {
                       const status = STATUS_ICONS[shipment.status] || STATUS_ICONS.pending;
                       const Icon = status.icon;
@@ -185,33 +202,31 @@ export default function LogisticsManifestsPage() {
                           onClick={() => openModal(shipment)}
                           className={`group relative rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col cursor-pointer`}
                         >
-                          <div className="p-6 lg:p-8 flex items-center gap-6 md:gap-8">
+                          <div className="p-4 md:p-6 lg:p-8 flex items-center gap-4 md:gap-6 lg:gap-8">
                               <div className={`size-12 md:size-14 rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
                                  <Icon className="w-6 h-6 md:w-7 md:h-7" />
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                 <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                       <span className="text-[11px] lg:text-[12px] md:text-[13px]  font-semibold text-[var(--text-primary)] tracking-tight capitalize">
-                                          {(shipment.pickup_address?.quartier || shipment.pickup_address?.city || "Pickup")} 
-                                          <span className="mx-2 text-[var(--accent)] opacity-50">→</span> 
-                                          {(shipment.delivery_address?.quartier || shipment.delivery_address?.city || "Delivery")}
-                                       </span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
-                                          {status.label}
-                                       </span>
-                                    </div>
-                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize hidden md:flex">
+                                 {/* Route + status row */}
+                                 <div className="flex flex-wrap items-start justify-between gap-y-2 gap-x-3 mb-2">
+                                    <span className="text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] tracking-tight capitalize leading-tight">
+                                       {(shipment.pickup_address?.quartier || shipment.pickup_address?.city || "Pickup")}
+                                       <span className="mx-2 text-[var(--accent)] opacity-50">→</span>
+                                       {(shipment.delivery_address?.quartier || shipment.delivery_address?.city || "Delivery")}
+                                    </span>
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider border shrink-0 ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
+                                       {status.label}
+                                    </span>
+                                 </div>
+                                 {/* Tracking + date */}
+                                 <div className="flex items-center gap-3 flex-wrap">
+                                    <span className="font-mono text-[var(--accent)] font-bold text-[11px]">#{shipment.tracking_code}</span>
+                                    <span className="text-[var(--text-secondary)] opacity-30 text-[10px]">•</span>
+                                    <time className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 flex items-center gap-1">
                                        <Clock className="w-3 h-3" /> {new Date(shipment.createdAt).toLocaleDateString()}
                                     </time>
-                                 </div>
-                                 <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                       <span className="font-mono text-[var(--accent)]  font-bold">#{shipment.tracking_code}</span>
-                                       <span>•</span>
-                                       <span className="truncate max-w-[200px] md:max-w-md hidden md:block">{shipment.delivery_address?.street || shipment.delivery_address?.description}</span>
-                                    </div>
+                                    <span className="hidden md:block truncate max-w-[200px] lg:max-w-md text-[10px] font-medium text-[var(--text-secondary)] opacity-50">{shipment.delivery_address?.street || shipment.delivery_address?.description}</span>
                                  </div>
                               </div>
 

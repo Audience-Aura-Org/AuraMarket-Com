@@ -193,54 +193,48 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-         <div className="space-y-3">
-            <button onClick={onBack} className="flex items-center gap-2 group w-fit">
-               <div className="size-7 rounded-lg bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
-                  <ChevronLeft className="size-3" />
-               </div>
-               <span className="text-[10px] lg:text-[12px]  font-semibold tracking-widest capitalize opacity-40 group-hover:opacity-100 transition-opacity">Back</span>
+      {/* Header: back + title + actions all inline */}
+      <div className="mb-8">
+        {/* Back button */}
+        <button onClick={onBack} className="flex items-center gap-2 group w-fit mb-4">
+           <div className="size-7 rounded-lg bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
+              <ChevronLeft className="size-3" />
+           </div>
+           <span className="text-[10px] lg:text-[12px] font-semibold tracking-widest capitalize opacity-40 group-hover:opacity-100 transition-opacity">Back</span>
+        </button>
+
+        {/* Title row + actions in one line */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tighter leading-tight">
+            ORDER <span className="text-[var(--accent)]">MANIFEST</span>
+          </h1>
+
+          {/* Invoice / Share / Trace — always visible inline */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleDownloadInvoice}
+              title="Download Invoice"
+              className="size-9 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group shrink-0"
+            >
+              <Printer className="size-3.5 group-hover:scale-110 transition-transform" />
             </button>
-            <div className="flex items-center gap-3">
-               <h1 className="text-2xl md:text-3xl  font-black tracking-tighter leading-tight">
-                  ORDER <span className="text-[var(--accent)]">MANIFEST</span>
-               </h1>
-               {isVendor && (
-                  <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] capitalize border border-[var(--accent)]/20 shadow-sm">MERCHANT</span>
-               )}
+            <button
+              title="Share"
+              className="size-9 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group shrink-0"
+            >
+              <Share2 className="size-3.5 group-hover:scale-110 transition-transform" />
+            </button>
+            {/* Trace chip */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] shadow-sm">
+              <Fingerprint className="size-3.5 text-[var(--accent)] shrink-0" />
+              <code className="text-[10px] font-mono font-bold tracking-widest text-[var(--accent)] hidden sm:block">#{order._id.slice(-8)}</code>
+              <div className="flex items-center gap-1">
+                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-semibold text-emerald-500 hidden xs:block">Live</span>
+              </div>
             </div>
-         </div>
-
-         <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={handleDownloadInvoice}
-                className="size-10 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group"
-              >
-                <Printer className="size-4 group-hover:scale-110 transition-transform" />
-              </button>
-              <button 
-                className="size-10 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group"
-              >
-                <Share2 className="size-4 group-hover:scale-110 transition-transform" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-4 p-3 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] backdrop-blur-2xl shadow-sm">
-               <div className="size-8 rounded-lg bg-[var(--bg-primary)] flex items-center justify-center border border-[var(--glass-border)]">
-                 <Fingerprint className="size-4 text-[var(--accent)]" />
-               </div>
-               <div className="space-y-0.5">
-                 <p className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] text-[var(--text-secondary)] opacity-40 capitalize">Trace</p>
-                 <h3 className="text-[10px] lg:text-[12px]  font-semibold font-mono tracking-widest capitalize text-[var(--accent)]">#{order._id.slice(-10)}</h3>
-               </div>
-               <div className="h-6 w-px bg-[var(--glass-border)]" />
-               <div className="flex items-center gap-1.5">
-                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] text-emerald-500 capitalize">Sync</span>
-               </div>
-            </div>
-         </div>
+          </div>
+        </div>
       </div>
 
       <div className="mb-6">
@@ -340,30 +334,48 @@ export default function SingleOrderView({ orderId, onBack }) {
                </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
                <div className="flex items-center gap-2 px-1">
                   <div className="h-2.5 w-[2px] bg-[var(--accent)]" />
-                  <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] text-[var(--text-secondary)] capitalize opacity-40">Manifested Assets</h3>
+                  <h3 className="text-[10px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] capitalize opacity-40">Manifested Assets</h3>
                </div>
-               <div className="grid gap-3">
-                  {order.products.map((item, idx) => (
-                    <div key={item._id} className="group relative overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-3 rounded-2xl flex flex-col md:flex-row items-center gap-4 hover:bg-[var(--bg-secondary)] transition-all">
-                       <div className="relative size-16 rounded-xl overflow-hidden border border-[var(--glass-border)] shadow-sm shrink-0">
-                          <img src={item.image || '/placeholder.png'} className="size-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="" />
+
+               {/* Horizontally scrollable strip — one line per asset, page only scrolls after this */}
+               <div className="overflow-x-auto pb-3 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
+                   {order.products.map((item, idx) => (
+                     <div
+                       key={item._id || idx}
+                       className="group relative w-[270px] shrink-0 overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-3 rounded-2xl flex items-center gap-3 hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all"
+                     >
+                       {/* Thumbnail */}
+                       <div className="relative size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] shadow-sm shrink-0">
+                         <img src={item.image || '/placeholder.png'} className="size-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" alt="" />
                        </div>
-                       <div className="flex-1 text-center md:text-left space-y-1">
-                          <Link href={`/stores/${order.vendor_id?._id || order.vendor_id}`} className="px-2 py-0.5 rounded-md bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] text-[var(--text-secondary)] w-fit mx-auto md:mx-0 inline-flex items-center gap-1 capitalize"><Store className="size-2.5" /> {order.vendor_id?.store_name || 'NODE'}</Link>
-                          <h3 className="text-sm  font-black tracking-tight capitalize leading-none">{item.name} <span className="text-[var(--accent)] opacity-50 ml-2 font-mono">×{item.quantity}</span></h3>
-                          <div className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] font-mono">{(item.price || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-50">XAF</span></div>
+
+                       {/* Info */}
+                       <div className="flex-1 min-w-0">
+                         <h3 className="text-[11px] font-bold tracking-tight capitalize truncate leading-tight">{item.name}</h3>
+                         <div className="flex items-center gap-2 mt-0.5">
+                           <span className="text-[10px] font-bold text-[var(--accent)] font-mono">{(item.price || 0).toLocaleString()} XAF</span>
+                           <span className="text-[var(--text-secondary)] opacity-30">·</span>
+                           <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">×{item.quantity}</span>
+                         </div>
                        </div>
-                       <div className="flex flex-col gap-2 w-full md:w-auto">
-                          {order.order_status === 'completed' && !isVendor && (
-                             <button onClick={() => { setReviewData({ ...reviewData, product_id: item.product_id?._id || item.product_id }); setReviewModal(true); }} className="px-6 py-2 rounded-lg bg-[var(--accent)] text-white text-[10px] lg:text-[12px]  font-semibold tracking-widest capitalize shadow-md shadow-[var(--accent)]/10 hover:scale-105 transition-all">FEEDBACK</button>
-                          )}
-                          <button className="px-6 py-2 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-[10px] lg:text-[12px]  font-semibold tracking-widest capitalize hover:text-[var(--text-primary)] transition-colors">VERIFY</button>
+
+                       {/* Actions */}
+                       <div className="flex flex-col gap-1.5 shrink-0">
+                         {order.order_status === 'completed' && !isVendor && (
+                           <button
+                             onClick={() => { setReviewData({ ...reviewData, product_id: item.product_id?._id || item.product_id }); setReviewModal(true); }}
+                             className="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white text-[9px] font-bold tracking-wider shadow-md shadow-[var(--accent)]/10 hover:scale-105 transition-all whitespace-nowrap"
+                           >REVIEW</button>
+                         )}
+                         <button className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-[9px] font-bold tracking-wider hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">VERIFY</button>
                        </div>
-                    </div>
-                  ))}
+                     </div>
+                   ))}
+                 </div>
                </div>
             </div>
          </div>

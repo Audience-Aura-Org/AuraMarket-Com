@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -186,7 +186,7 @@ export default function VendorDashboard() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 space-y-6 no-scrollbar relative z-10">
+        <div className="overflow-x-hidden p-3 sm:p-6 space-y-6 relative z-10 pb-32">
           {error && (
             <div className="p-5 rounded-[2rem] bg-rose-500/10 border border-rose-500/20 text-rose-500 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
               <div className="flex items-center gap-4">
