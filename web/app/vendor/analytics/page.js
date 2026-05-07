@@ -7,7 +7,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, 
   ShoppingBag, Users, Star, ArrowUpRight, 
   ChevronRight, Calendar, Filter, Download,
-  Loader2, Package, Activity, Wallet, ShieldCheck
+  Loader2, Package, Activity, Wallet, ShieldCheck, RefreshCw
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';

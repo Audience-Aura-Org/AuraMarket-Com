@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Zap, Package, TrendingUp, AlertCircle, Eye, Search, Trash2 } from 'lucide-react';
+import { ShoppingCart, Zap, Package, TrendingUp, AlertCircle, Eye, Search, Trash2, RefreshCw } from 'lucide-react';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
