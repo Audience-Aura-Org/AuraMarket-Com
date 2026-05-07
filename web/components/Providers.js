@@ -69,7 +69,7 @@ export default function Providers({ children }) {
           {!isDashboardRoute && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
-            <main className="flex-1 flex flex-col min-w-0">
+            <main className="flex-1 flex flex-col min-h-screen min-w-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={pathname}

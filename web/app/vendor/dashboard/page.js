@@ -139,13 +139,13 @@ export default function VendorDashboard() {
   if (!mounted) return null;
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
+    <div className="relative min-h-full bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
         {/* Background blobs */}
         <div className="absolute top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
         <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
-        <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
+        <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl relative md:sticky md:top-16 z-40 gap-4 md:gap-0">
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
             <div className="flex items-center gap-4">
               <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
@@ -339,7 +339,7 @@ export default function VendorDashboard() {
           <div className="glass-panel rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
             <div className="p-5 md:p-6 border-b border-[var(--glass-border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Active Transmissions</h3>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0 touch-action-pan-y" style={{ touchAction: 'pan-y' }}>
                 <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight whitespace-nowrap">ALL</button>
                 <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight hover:bg-[var(--accent)]/5 whitespace-nowrap uppercase">Processing</button>
                 <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight hover:bg-[var(--accent)]/5 whitespace-nowrap uppercase">Shipped</button>
@@ -347,7 +347,7 @@ export default function VendorDashboard() {
             </div>
 
             {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto" style={{ touchAction: 'pan-y' }}>
               <table className="w-full text-left">
                 <thead>
                   <tr className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50 uppercase">
