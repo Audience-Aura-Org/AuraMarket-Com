@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -17,35 +17,13 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 import {
   AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
-
-function CompactStat({ title, value, sub, icon: Icon, color }) {
-  const colors = {
-    emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-    red: 'bg-red-500/10 text-red-500 border-red-500/20',
-  };
-
-  return (
-    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl p-4 hover:border-[var(--accent)]/30 transition-all group">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
-          <Icon className="size-4" />
-        </div>
-        <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50">{title}</p>
-      </div>
-      <h3 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">{value}</h3>
-      {sub && <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 mt-1 ">{sub}</p>}
-    </div>
-  );
-}
 
 export default function AdminAnalyticsPage() {
   const user = useAuthStore((s) => s.user);
@@ -122,11 +100,11 @@ export default function AdminAnalyticsPage() {
         
         {/* Metric Grid - High Density */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <CompactStat title="Global Flow" value={`XAF ${fmt(payout_intel?.total_revenue)}`} sub="Total Processed" icon={Wallet} color="emerald" />
-          <CompactStat title="Escrow Pool" value={`XAF ${fmt(payout_intel?.total_escrow)}`} sub="Held Liquidity" icon={Lock} color="amber" />
-          <CompactStat title="Entity count" value={fmt(platform_summary?.total_users)} sub="Registered Items" icon={Users} color="blue" />
-          <CompactStat title="Merchant Base" value={fmt(platform_summary?.total_vendors)} sub="Active Stores" icon={Store} color="purple" />
-          <CompactStat title="Shipment Flow" value={fmt(platform_summary?.live_shipments)} sub="In-Transit Items" icon={Package} color="red" />
+          <StatCard label="Global Flow" value={`XAF ${fmt(payout_intel?.total_revenue)}`} sub="Total Processed" icon="payments" color="emerald" />
+          <StatCard label="Escrow Pool" value={`XAF ${fmt(payout_intel?.total_escrow)}`} sub="Held Liquidity" icon="lock_clock" color="amber" />
+          <StatCard label="Entity count" value={fmt(platform_summary?.total_users)} sub="Registered Items" icon="groups" color="blue" />
+          <StatCard label="Merchant Base" value={fmt(platform_summary?.total_vendors)} sub="Active Stores" icon="store" color="purple" />
+          <StatCard label="Shipment Flow" value={fmt(platform_summary?.live_shipments)} sub="In-Transit Items" icon="local_shipping" color="rose" />
         </div>
 
         {/* Intelligence Matrix */}

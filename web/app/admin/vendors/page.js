@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +14,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
@@ -112,26 +113,12 @@ export default function AdminVendorsPage() {
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Live Intelligence Stats */}
+         {/* Live Intelligence Stats */}
          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-               { label: 'Total Merchants', value: vendors.length, icon: Store, color: 'var(--accent)', sub: 'REGISTRY' },
-               { label: 'Verified Items', value: vendors.filter(v => v.verified).length, icon: ShieldCheck, color: '#10b981', sub: 'TRUST' },
-               { label: 'Avg Rating', value: '4.85', icon: Star, color: '#fbbf24', sub: 'SCORE' },
-               { label: 'Network Yield', value: 'High', icon: TrendingUp, color: '#6366f1', sub: 'SCALE' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                     <div className="size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)] group-hover:text-[var(--text-primary)] transition-colors">
-                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
-                     </div>
-                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase font-mono">{s.sub}</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
-                    <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)] truncate">{s.value}</h3>
-                  </div>
-               </div>
-            ))}
+            <StatCard label="Total Merchants" value={vendors.length} icon="storefront" color="fuchsia" sub="REGISTRY" />
+            <StatCard label="Verified Items" value={vendors.filter(v => v.verified).length} icon="verified_user" color="emerald" sub="TRUST" />
+            <StatCard label="Avg Rating" value="4.85" icon="star" color="amber" sub="SCORE" />
+            <StatCard label="Network Yield" value="High" icon="trending_up" color="indigo" sub="SCALE" />
          </div>
 
          {/* Vendor Ledger */}

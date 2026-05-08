@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
+import StatCard from '@/components/layout/StatCard';
 
 export default function VendorRatingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -100,27 +101,14 @@ export default function VendorRatingsPage() {
 
         <div className="px-4 md:px-8 py-8">
           
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-            {[
-              { label: 'Score', value: avgRating, sub: '/ 5 Stars', icon: Star, color: 'amber' },
-              { label: 'Feedback', value: reviews.length, sub: 'Total', icon: Package, color: 'indigo' },
-              { label: 'Top Tier', value: fiveStars, sub: '5 Stars', icon: Star, color: 'emerald' },
-              { label: 'Issues', value: (threeStars + twoStars + oneStar), sub: '< 4 Stars', icon: Star, color: 'rose' }
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -5 }}
-                className="p-5 md:p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-amber-500/30 transition-all shadow-sm"
-              >
-                <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:scale-110 transition-transform`}>
-                  <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
-                </div>
-                <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight mb-1 uppercase opacity-40">{stat.label}</p>
-                <h4 className="text-2xl md:text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[10px] md:text-[11px] font-semibold opacity-40 uppercase tracking-tight">{stat.sub}</p>
-              </motion.div>
-            ))}
+          {/* Reputation Matrix */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-12">
+            <StatCard label="Active" value={String(reviews.filter(r => new Date(r.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length)} icon="bolt" color="fuchsia" sub="RECENT_FEED" />
+            <StatCard label="Attention" value={String(threeStars + twoStars + oneStar)} icon="warning" color="rose" sub="LOW_SCORES" />
+            <StatCard label="Resolved" value={String(fiveStars)} icon="check_circle" color="emerald" sub="TOP_TIER" />
+            <StatCard label="Closed" value={String(reviews.length)} icon="inventory_2" color="slate" sub="TOTAL_REVIEWS" />
+            <StatCard label="Rate" value={`${((Number(avgRating) / 5) * 100).toFixed(0)}%`} icon="verified_user" color="amber" sub="AVG_SENTIMENT" />
+            <StatCard label="Yield" value={avgRating} icon="star" color="indigo" sub="REP_SCORE" />
           </div>
 
 

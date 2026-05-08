@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,7 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 
 export default function AdminCategories() {
   const { user } = useAuthStore();
@@ -153,16 +154,16 @@ export default function AdminCategories() {
               </>
             ) : (
               <>
-                <button 
-                  onClick={() => {
-                    setIsAdding(true);
-                    setFormData({ name: '', parent_id: cat._id });
-                  }}
-                  className="size-10 md:size-11 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm active:scale-95"
-                  title="Add Sub"
-                >
-                  <Plus className="size-5" />
-                </button>
+                  <button 
+                    onClick={() => {
+                      setIsAdding(true);
+                      setFormData({ name: '', parent_id: cat._id });
+                    }}
+                    className="size-10 md:size-11 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm active:scale-95 text-[10px] font-bold uppercase"
+                    title="Add Sub"
+                  >
+                    Sub
+                  </button>
                 <button 
                   onClick={() => setEditing(cat)}
                   className="size-10 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm active:scale-95"
@@ -217,32 +218,17 @@ export default function AdminCategories() {
              onClick={() => { setIsAdding(true); setFormData({ name: '', parent_id: null }); }}
              className="w-full md:w-auto h-12 md:h-14 px-8 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-bold tracking-[0.2em] uppercase shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center justify-center gap-3"
            >
-             <Plus className="size-4 md:size-5" /> New Sector Node
+             New Sector Node
         </button>
       </header>
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
-         {/* Live Intelligence */}
-         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-               { label: 'Total Items', value: categories.length, icon: Database, color: 'var(--accent)', sub: 'REGISTRY' },
-               { label: 'Sectors', value: '18', icon: Zap, color: '#10b981', sub: 'ACTIVE' },
-               { label: 'Growth', value: '+12%', icon: Activity, color: '#6366f1', sub: 'SCALE' },
-               { label: 'Health', value: 'Stable', icon: ShieldCheck, color: '#fbbf24', sub: 'CORE' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl">
-                  <div className="flex items-center justify-between mb-4">
-                     <div className="size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)] group-hover:text-[var(--text-primary)] transition-colors">
-                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
-                     </div>
-                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase">{s.sub}</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
-                    <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{s.value}</h3>
-                  </div>
-               </div>
-            ))}
+         {/* Intelligence Matrix */}
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <StatCard label="Total Nodes" value={categories.length} icon="database" color="primary" sub="REGISTRY" />
+            <StatCard label="Sectors" value="18" icon="zap" color="emerald" sub="ACTIVE" />
+            <StatCard label="Growth" value="+12%" icon="trending_up" color="blue" sub="SCALE" />
+            <StatCard label="Health" value="Stable" icon="verified_user" color="amber" sub="CORE" />
          </div>
 
          <AnimatePresence>

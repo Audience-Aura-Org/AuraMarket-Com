@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +21,7 @@ import { toast } from 'react-hot-toast';
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SingleOrderView from '@/components/account/SingleOrderView';
+import StatCard from '@/components/layout/StatCard';
 
 const STATUS_CONFIG = {
   placed:         { label: 'Placed',      color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  dot: 'bg-purple-500' },
@@ -133,6 +134,28 @@ export default function VendorOrdersPage() {
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
   const pendingCount = orders.filter(o => ['placed','processing'].includes(o.order_status)).length;
+  const colorMap = {
+    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', bar: 'bg-emerald-500', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-600', glow: '#10b981', w: '70%' },
+    primary: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: 'bg-[var(--accent)]', badgeBg: 'bg-[var(--accent)]/10', badgeText: 'text-[var(--accent)]', glow: 'var(--accent)', w: '55%' },
+    blue: { bg: 'bg-indigo-600/10', text: 'text-indigo-600', bar: 'bg-indigo-600', badgeBg: 'bg-indigo-600/10', badgeText: 'text-indigo-600', glow: '#4f46e5', w: '85%' },
+    purple: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: '', badgeBg: '', badgeText: '', glow: 'var(--accent)', w: '60%' },
+  };
+
+  const completedCount = orders.filter(o => ['delivered', 'completed'].includes(o.order_status)).length;
+  const recentRevenue = orders.filter(o => {
+    const d = new Date(o.createdAt);
+    const now = new Date();
+    return (now - d) < (24 * 60 * 60 * 1000); // last 24h
+  }).reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+  const openOrdersCount = orders.filter(o => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
+
+  const stats = [
+    { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedCount} done`, sub: `+${recentRevenue.toLocaleString()} recent` },
+    { label: 'Open Orders', value: String(openOrdersCount), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.order_status === 'processing').length} processing` },
+    { label: 'Pending Payouts', value: String(pendingCount), icon: 'account_balance', color: 'purple', pct: 'Escrow Lock', sub: 'Awaiting Fulfillment' },
+    { label: 'Completed Orders', value: String(completedCount), icon: 'verified', color: 'blue', pct: 'Manifest Complete', sub: 'Archived for record' }
+  ];
 
   if (user?.role !== 'vendor' || !user.onboarded) return null;
 
@@ -200,27 +223,17 @@ export default function VendorOrdersPage() {
          ) : (
             <>
                {/* Live Stats */}
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  {[
-                     { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: Database, color: 'var(--accent)', sub: 'ACCUMULATED_XAF' },
-                     { label: 'Pending Payouts', value: pendingCount, icon: Zap, color: '#6366f1', sub: 'LOCKED_NODES' },
-                     { label: 'Completed Orders', value: orders.length, icon: ShieldCheck, color: '#10b981', sub: 'MANIFEST_COMPLETE' }
-                  ].map(s => (
-                     <div key={s.label} className="group relative p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
-                        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                        <div className="relative flex flex-col justify-between h-full space-y-6 md:space-y-8">
-                           <div className="flex items-center justify-between">
-                              <div className="size-10 md:size-12 rounded-[1rem] md:rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                                 <s.icon className="w-4 h-4 md:w-5 md:h-5 opacity-40 group-hover:opacity-100" />
-                              </div>
-                              <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
-                           </div>
-                           <div>
-                              <p className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-1 md:mb-2 capitalize opacity-40">{s.label}</p>
-                              <h3 className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
-                           </div>
-                        </div>
-                     </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  {stats.map((stat, idx) => (
+                    <StatCard
+                      key={stat.label}
+                      label={stat.label}
+                      value={stat.value}
+                      icon={stat.icon}
+                      color={stat.color}
+                      pct={stat.pct}
+                      sub={stat.sub}
+                    />
                   ))}
                </div>
 

@@ -940,6 +940,15 @@ export default function AccountPageClient() {
                             </Link>
                           ))}
                         </div>
+                        {followedVendors.length > itemsPerPage && (
+                          <div className="mt-8 flex justify-center">
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={Math.ceil(followedVendors.length / itemsPerPage)}
+                              onPageChange={setCurrentPage}
+                            />
+                          </div>
+                        )}
                       )}
                     </div>
                   </div>
@@ -982,6 +991,15 @@ export default function AccountPageClient() {
                             </div>
                           ))}
                         </div>
+                        {audience.length > itemsPerPage && (
+                          <div className="mt-8 flex justify-center">
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={Math.ceil(audience.length / itemsPerPage)}
+                              onPageChange={setCurrentPage}
+                            />
+                          </div>
+                        )}
                       )}
                     </div>
                   </div>

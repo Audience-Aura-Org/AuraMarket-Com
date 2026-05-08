@@ -338,6 +338,13 @@ export default function WalletPage() {
                     })
                  )}
               </div>
+              <div className="pt-8">
+                 <Pagination 
+                   currentPage={currentPage}
+                   totalPages={Math.ceil(displayItems.length / itemsPerPage)}
+                   onPageChange={setCurrentPage}
+                 />
+              </div>
           </section>
         </div>
 

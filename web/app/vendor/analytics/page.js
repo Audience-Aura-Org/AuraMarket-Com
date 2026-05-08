@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
@@ -18,10 +19,12 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell
 } from 'recharts';
+import StatCard from '@/components/layout/StatCard';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
 export default function VendorAnalyticsPage() {
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -85,19 +88,19 @@ export default function VendorAnalyticsPage() {
         {/* Micro-Stat Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 px-4 md:px-0">
           {[
-            { label: 'Revenue', value: `${fmt(stats?.total_revenue)}`, icon: DollarSign, color: 'emerald' },
-            { label: 'Escrow', value: `${fmt(stats?.pending_escrow)}`, icon: Wallet, color: 'amber' },
-            { label: 'Orders', value: stats?.total_sales, icon: ShoppingBag, color: 'blue' },
-            { label: 'Inventory', value: stats?.total_products, icon: Package, color: 'indigo' },
-            { label: 'Views', value: fmt(stats?.total_views), icon: Users, color: 'rose' }
+            { label: 'Revenue', value: `${fmt(stats?.total_revenue)}`, icon: 'payments', color: 'emerald' },
+            { label: 'Escrow', value: `${fmt(stats?.pending_escrow)}`, icon: 'account_balance_wallet', color: 'amber' },
+            { label: 'Orders', value: String(stats?.total_sales || 0), icon: 'shopping_bag', color: 'blue' },
+            { label: 'Inventory', value: String(stats?.total_products || 0), icon: 'category', color: 'indigo' },
+            { label: 'Views', value: fmt(stats?.total_views), icon: 'visibility', color: 'rose' }
           ].map((s, i) => (
-            <div key={i} className="p-5 rounded-3xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all shadow-sm">
-              <div className={`size-8 rounded-lg mb-4 flex items-center justify-center bg-${s.color}-500/10 text-${s.color}-500 border border-${s.color}-500/20`}>
-                <s.icon className="size-4" />
-              </div>
-              <p className="text-base font-bold mb-1 tracking-tight">{s.value}</p>
-              <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight uppercase">{s.label}</p>
-            </div>
+            <StatCard
+              key={i}
+              label={s.label}
+              value={s.value}
+              icon={s.icon}
+              color={s.color}
+            />
           ))}
         </div>
 
@@ -180,12 +183,15 @@ export default function VendorAnalyticsPage() {
 
         {/* Operational Ledger */}
         <div className="p-6 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
-           <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8">
               <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Recent Transaction Ledger</h3>
-              <button className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight flex items-center gap-1 group">
+              <button 
+                onClick={() => router.push('/vendor/orders')}
+                className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight flex items-center gap-1 group"
+              >
                  View All Ledger <ChevronRight className="size-3 group-hover:translate-x-1 transition-transform" />
               </button>
-           </div>
+            </div>
            
            <div className="space-y-2">
               {recent_orders?.map(o => (

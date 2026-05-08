@@ -12,6 +12,7 @@ import {
 import api from "@/services/api";
 import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
 import Pagination from '@/components/common/Pagination';
+import StatCard from '@/components/layout/StatCard';
 
 const STATUS_ICONS = {
   pending:          { icon: Clock,        bg: 'bg-amber-500/10',   color: 'text-amber-500',   label: 'PENDING' },
@@ -175,6 +176,16 @@ export default function LogisticsManifestsPage() {
       </header>
 
       <div className="p-4 md:p-10 space-y-6 md:space-y-8 pb-40">
+         {/* Operational Telemetry Matrix */}
+         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
+            <StatCard label="Active" value={shipments.filter(s => ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(s.status)).length} icon="local_shipping" color="fuchsia" sub="IN_FLOW" />
+            <StatCard label="Attention" value={shipments.filter(s => s.status === 'failed').length} icon="warning" color="rose" sub="RE-ROUTE" />
+            <StatCard label="Resolved" value={shipments.filter(s => s.status === 'delivered').length} icon="check_circle" color="emerald" sub="FINALIZED" />
+            <StatCard label="Closed" value={total} icon="inventory_2" color="slate" sub="HISTORY" />
+            <StatCard label="Rate" value="99.2%" icon="verified_user" color="amber" sub="SLA_STABLE" />
+            <StatCard label="Yield" value={`${(shipments.reduce((acc, s) => acc + (s.price || 0), 0) / 1000).toFixed(1)}k`} icon="bolt" color="indigo" sub="VAL_FLOW" />
+         </div>
+
          {/* Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
             <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">

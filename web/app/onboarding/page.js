@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -261,7 +261,7 @@ export default function OnboardingFlow() {
 
   // ── Main UI ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] flex flex-col">
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative">
       {/* Ambient glow */}
       <div className={`fixed top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 pointer-events-none opacity-30 transition-all duration-700 ${colors.bg}`} />
 
@@ -326,7 +326,7 @@ export default function OnboardingFlow() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 scrollbar-hide pb-32">
+      <div className="px-6 py-4 space-y-8 pb-32">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4">

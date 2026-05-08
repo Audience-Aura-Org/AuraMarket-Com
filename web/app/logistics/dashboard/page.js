@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { 
@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import StatCard from '@/components/layout/StatCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,27 +100,20 @@ export default function LogisticsDashboard() {
         {/* Core Metrics Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[
-            { label: 'Settlement', value: `${balance.toLocaleString()} XAF`, sub: 'Available Balance', icon: BarChart3, color: 'fuchsia', href: '/wallet' },
-            { label: 'Yield', value: `${networkYield}%`, sub: 'Success vs Failed', icon: Zap, color: 'amber' },
-            { label: 'Pending', value: pendingCount, sub: 'Awaiting dispatch', icon: Clock, color: 'indigo' },
-            { label: 'Delivered', value: totalDelivered, sub: 'Success finalization', icon: CheckCircle2, color: 'emerald' }
+            { label: 'Settlement', value: `${balance.toLocaleString()} XAF`, sub: 'Available Balance', icon: 'account_balance_wallet', color: 'purple', href: '/wallet' },
+            { label: 'Yield', value: `${networkYield}%`, sub: 'Success vs Failed', icon: 'bolt', color: 'amber' },
+            { label: 'Pending', value: String(pendingCount), sub: 'Awaiting dispatch', icon: 'schedule', color: 'indigo' },
+            { label: 'Delivered', value: String(totalDelivered), sub: 'Success finalization', icon: 'verified', color: 'emerald' }
           ].map((stat, i) => (
-            <motion.div
+            <StatCard
               key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              whileHover={{ y: -5 }}
-              onClick={() => stat.href && router.push(stat.href)}
-              className={`p-4 md:p-6 rounded-2xl md:rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-[var(--accent)]/50 transition-all ${stat.href ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
-            >
-              <div className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-${stat.color}-500/10 w-fit mb-3 md:mb-4 group-hover:rotate-12 transition-transform`}>
-                <stat.icon className={`w-4 h-4 md:w-5 md:h-5 text-${stat.color}-500`} />
-              </div>
-              <p className="text-[9px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-              <h4 className="text-xl md:text-3xl font-bold tracking-tighter mb-0.5 md:mb-1">{stat.value}</h4>
-              <p className="text-[9px] md:text-[11px] lg:text-[12px] font-semibold opacity-30 tracking-tight">{stat.sub}</p>
-            </motion.div>
+              label={stat.label}
+              value={stat.value}
+              icon={stat.icon}
+              color={stat.color}
+              sub={stat.sub}
+              href={stat.href}
+            />
           ))}
         </div>
 
@@ -211,9 +205,17 @@ export default function LogisticsDashboard() {
               <h3 className="text-lg md:text-xl font-bold tracking-tighter">Shipment Stream</h3>
             </div>
             
-            <button className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight flex items-center gap-2 hover:bg-white/5 transition-all">
-              <Filter className="w-3 h-3" /> <span className="hidden sm:inline">Filter</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => router.push('/logistics/manifests')}
+                className="hidden sm:flex px-4 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all items-center gap-2 group"
+              >
+                View Full Ledger <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight flex items-center gap-2 hover:bg-white/5 transition-all">
+                <Filter className="w-3 h-3" /> <span className="hidden sm:inline">Filter</span>
+              </button>
+            </div>
           </div>
 
           {/* Desktop Table View */}

@@ -8,6 +8,7 @@ import { Store, Star, ArrowRight, ShieldCheck, Users, Search, Filter } from 'luc
 import { motion } from 'framer-motion';
 import api from '@/services/api';
 import { vendorService } from '@/services/vendor';
+import Pagination from '@/components/common/Pagination';
 
 export default function StoresDirectoryPage() {
   const [stores, setStores] = useState([]);
@@ -182,49 +183,14 @@ export default function StoresDirectoryPage() {
           </motion.div>
 
             {/* Pagination Controls */}
-            {(totalPages > 1 || filteredStores.length === 20 || page > 1) && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex items-center justify-center gap-3 mt-20"
-              >
-                 <motion.button 
-                    disabled={page === 1}
-                    onClick={() => handlePageChange(page - 1)}
-                    whileHover={page > 1 ? { scale: 1.05 } : {}}
-                    whileTap={page > 1 ? { scale: 0.95 } : {}}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-xs  font-bold transition-all disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white shadow-sm"
-                 >
-                    Previous
-                 </motion.button>
-                 <div className="flex items-center gap-1.5">
-                    {Array.from({ length: Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
-                       const maxPages = Math.max(totalPages, page + (filteredStores.length === 20 ? 1 : 0));
-                       if (Math.abs(p - page) > 2 && p !== 1 && p !== maxPages) return p === 2 || p === maxPages - 1 ? <span key={p} className="opacity-30 text-xs  font-bold">...</span> : null;
-                       return (
-                          <motion.button 
-                             key={p}
-                             onClick={() => handlePageChange(p)}
-                             whileHover={{ scale: 1.05 }}
-                             whileTap={{ scale: 0.95 }}
-                             className={`size-10 rounded-lg flex items-center justify-center text-xs  font-bold transition-all ${page === p ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/50'}`}
-                          >
-                             {p}
-                          </motion.button>
-                       );
-                    })}
-                 </div>
-                 <motion.button 
-                    disabled={filteredStores.length < 20}
-                    onClick={() => handlePageChange(page + 1)}
-                    whileHover={filteredStores.length >= 20 ? { scale: 1.05 } : {}}
-                    whileTap={filteredStores.length >= 20 ? { scale: 0.95 } : {}}
-                    className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-xs  font-bold transition-all disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white shadow-sm"
-                 >
-                    Next
-                 </motion.button>
-              </motion.div>
+            {totalPages > 1 && (
+              <div className="mt-20 flex justify-center">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
             )}
           </>
         )}

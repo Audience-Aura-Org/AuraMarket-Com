@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 
 export default function VendorDisputesPage() {
   const router = useRouter();
@@ -99,21 +100,18 @@ export default function VendorDisputesPage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
             {[
-              { label: 'Active', value: activeCount, sub: 'Attention', icon: AlertTriangle, color: 'rose' },
-              { label: 'Resolved', value: (disputes.length - activeCount), sub: 'Closed', icon: CheckCircle2, color: 'emerald' },
-              { label: 'Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Yield', icon: Shield, color: 'indigo' }
+              { label: 'Active', value: activeCount, sub: 'Attention', icon: 'warning', color: 'rose' },
+              { label: 'Resolved', value: (disputes.length - activeCount), sub: 'Closed', icon: 'verified_user', color: 'emerald' },
+              { label: 'Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Yield', icon: 'security', color: 'indigo' }
             ].map((stat, i) => (
-              <div
+              <StatCard
                 key={i}
-                className="p-5 md:p-6 rounded-3xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] group hover:border-rose-500/30 transition-all cursor-default shadow-sm"
-              >
-                <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 w-fit mb-4 group-hover:rotate-12 transition-transform`}>
-                  <stat.icon className={`w-5 h-5 text-${stat.color}-500`} />
-                </div>
-                <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight mb-1 uppercase opacity-40">{stat.label}</p>
-                <h4 className="text-2xl md:text-3xl font-bold tracking-tighter mb-1">{stat.value}</h4>
-                <p className="text-[10px] md:text-[11px] font-semibold opacity-40 uppercase tracking-tight">{stat.sub}</p>
-              </div>
+                label={stat.label}
+                value={String(stat.value)}
+                sub={stat.sub}
+                icon={stat.icon}
+                color={stat.color}
+              />
             ))}
           </div>
 

@@ -12,6 +12,8 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
 
+import Pagination from '@/components/common/Pagination';
+
 /**
  * VendorListPanel
  * WhatsApp-style vendor list. Each vendor acts like a chat contact.
@@ -24,6 +26,9 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchVendors = useCallback(async () => {
     try {
@@ -45,6 +50,10 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
     fetchVendors();
   }, [fetchVendors]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const { followedVendorIds } = useAuthStore();
 
   const filtered = vendors.filter(v => {
@@ -57,6 +66,9 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
     const q = search.toLowerCase();
     return name.toLowerCase().includes(q) || desc.toLowerCase().includes(q);
   });
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentVendors = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <motion.div
@@ -85,7 +97,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
       </div>
 
       {/* Vendor List */}
-      <div className="pb-10">
+      <div className="pb-20">
         {loading ? (
           // Skeleton loaders
           [...Array(8)].map((_, i) => (
@@ -115,17 +127,29 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             </button>
           </div>
         ) : (
-          filtered.map((vendor, i) => (
-            <VendorRow
-              key={vendor._id}
-              vendor={vendor}
-              index={i}
-              hasStatus={followedStatuses.some(s => (s.vendor_id?._id || s.vendor_id) === vendor._id)}
-              onOpenStatus={() => onOpenStatus(vendor._id)}
-              onOpenChat={(vData) => openChat(vendor.user_id?._id, null, vData)}
-              onClick={() => router.push(`/stores/${vendor._id}`)}
-            />
-          ))
+          <>
+            {currentVendors.map((vendor, i) => (
+              <VendorRow
+                key={vendor._id}
+                vendor={vendor}
+                index={i}
+                hasStatus={followedStatuses.some(s => (s.vendor_id?._id || s.vendor_id) === vendor._id)}
+                onOpenStatus={() => onOpenStatus(vendor._id)}
+                onOpenChat={(vData) => openChat(vendor.user_id?._id, null, vData)}
+                onClick={() => router.push(`/stores/${vendor._id}`)}
+              />
+            ))}
+            
+            {totalPages > 1 && (
+              <div className="py-8 px-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 

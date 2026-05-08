@@ -45,6 +45,8 @@ export default function AdminWithdrawalsPage() {
   const [search, setSearch]     = useState('');
   const [processing, setProc]   = useState(null);
   const [selected, setSelected] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     if (!user) { router.replace('/login?from=admin-withdrawals'); return; }
@@ -70,6 +72,10 @@ export default function AdminWithdrawalsPage() {
   }, [filter, roleFilter]);
 
   useEffect(() => { load(); }, [load, filter, roleFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, roleFilter, search]);
 
   const handleApprove = async (id) => {
     setProc('approve');
@@ -382,7 +388,7 @@ export default function AdminWithdrawalsPage() {
                  </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                   {displayed.map(w => {
+                   {displayed.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(w => {
                       const S = STATUS[w.status] || STATUS.pending;
                       const SIcon = S.icon;
                       const MIcon = getMethodIcon(w.withdrawalMethod) || Wallet;
@@ -440,9 +446,14 @@ export default function AdminWithdrawalsPage() {
               )}
             </div>
 
-            <div className="p-6 md:p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 flex justify-center">
+             <div className="p-6 md:p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 flex flex-col items-center gap-4">
+                <Pagination 
+                   currentPage={currentPage}
+                   totalPages={Math.ceil(displayed.length / itemsPerPage)}
+                   onPageChange={setCurrentPage}
+                />
                 <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">End of Active Ledger Node</p>
-            </div>
+             </div>
          </div>
       </div>
     </>

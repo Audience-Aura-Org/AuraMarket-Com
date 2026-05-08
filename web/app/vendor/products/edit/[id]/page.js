@@ -203,13 +203,13 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
+      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] rounded-full pointer-events-none" />
 
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
+      <main className="flex-1 flex flex-col relative z-10 w-full">
         {/* Header */}
-        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] relative z-10 bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-xl text-[var(--text-primary)]">
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => router.back()} className="p-2 rounded-xl hover:bg-[var(--accent)]/5 transition-colors text-[var(--text-primary)]">
               <ArrowLeft className="w-6 h-6" />
@@ -234,7 +234,7 @@ export default function EditProductPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 no-scrollbar w-full">
+        <div className="flex-1 p-10 w-full">
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 w-full">
             
             {/* ── LEFT: Product Details */}

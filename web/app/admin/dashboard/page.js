@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,33 +14,9 @@ import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { motion } from 'framer-motion';
+import StatCard from '@/components/layout/StatCard';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
-
-function CompactStat({ title, value, sub, icon: Icon, color, href }) {
-  const colors = {
-    emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    indigo: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
-    accent: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',
-  };
-
-  const content = (
-    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl p-4 hover:border-[var(--accent)]/30 transition-all group cursor-pointer">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
-          <Icon className="size-4" />
-        </div>
-        <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50">{title}</p>
-      </div>
-      <h3 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">{value}</h3>
-      {sub && <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 mt-1 ">{sub}</p>}
-    </div>
-  );
-
-  return href ? <Link href={href}>{content}</Link> : content;
-}
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
@@ -94,10 +70,10 @@ export default function AdminDashboard() {
         
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <CompactStat title="Actives" value={fmt(stats?.users)} sub="Registered Accounts" icon={Users} color="blue" href="/admin/users" />
-          <CompactStat title="Merchant Queue" value={fmt(stats?.pending_vendors)} sub="Awaiting KYC" icon={Store} color="amber" href="/admin/vendors" />
-          <CompactStat title="Asset Pipeline" value={fmt(stats?.pending_products)} sub="Pending Approval" icon={Package} color="accent" href="/admin/products" />
-          <CompactStat title="Global Volume" value={`${fmt(stats?.revenue)} XAF`} sub="Gross Platform Revenue" icon={TrendingUp} color="emerald" href="/admin/analytics" />
+          <StatCard label="Actives" value={fmt(stats?.users)} sub="Registered Accounts" icon={Users} color="blue" href="/admin/users" />
+          <StatCard label="Merchant Queue" value={fmt(stats?.pending_vendors)} sub="Awaiting KYC" icon={Store} color="amber" href="/admin/vendors" />
+          <StatCard label="Asset Pipeline" value={fmt(stats?.pending_products)} sub="Pending Approval" icon={Package} color="primary" href="/admin/products" />
+          <StatCard label="Global Volume" value={`${fmt(stats?.revenue)} XAF`} sub="Gross Platform Revenue" icon={TrendingUp} color="emerald" href="/admin/analytics" />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -134,21 +110,15 @@ export default function AdminDashboard() {
                 ))}
              </div>
 
-             {/* Telemetry Matrix */}
+             {/* Telemetry Matrix Standardized */}
              <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                  {[
-                    { label: 'Live Items', value: stats?.online_users || 0, icon: Activity },
-                    { label: 'Active 24H', value: stats?.active_users_24h || 0, icon: Clock },
-                    { label: 'Market Depth', value: stats?.active_products || 0, icon: Package },
-                    { label: 'Order Velocity', value: stats?.orders || 0, icon: TrendingUp },
-                  ].map((item, i) => (
-                    <div key={i} className="p-4 rounded-xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] text-center group hover:bg-[var(--bg-primary)] transition-all">
-                      <item.icon className="size-3 mx-auto mb-2 opacity-20 group-hover:opacity-100 transition-opacity" />
-                      <p className="text-lg font-bold tracking-tighter leading-none mb-1 font-mono">{item.value}</p>
-                      <p className="text-[9px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40 uppercase">{item.label}</p>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
+                  <StatCard label="Active" value={stats?.online_users || 0} icon="public" color="fuchsia" sub="LIVE_SESSIONS" />
+                  <StatCard label="Attention" value={stats?.pending_vendors || 0} icon="warning" color="rose" sub="KYC_QUEUE" />
+                  <StatCard label="Resolved" value={`${fmt(stats?.revenue / 1000)}k`} icon="bolt" color="emerald" sub="GROSS_FLOW" />
+                  <StatCard label="Closed" value={stats?.orders || 0} icon="inventory_2" color="slate" sub="SETTLED_TRADES" />
+                  <StatCard label="Rate" value="98.2%" icon="verified_user" color="amber" sub="NODE_STABILITY" />
+                  <StatCard label="Yield" value={stats?.active_products || 0} icon="trending_up" color="indigo" sub="ASSET_DEPTH" />
                 </div>
              </div>
           </section>

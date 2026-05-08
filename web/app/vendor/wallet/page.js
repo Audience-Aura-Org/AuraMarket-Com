@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,9 +13,11 @@ import {
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import Pagination from '@/components/common/Pagination';
 
 const MIN_WITHDRAW = 1000;
 import WithdrawModal from '@/components/wallet/WithdrawModal';
+import StatCard from '@/components/layout/StatCard';
 
 const TX_COLOR = {
   payout:     'text-emerald-500',
@@ -26,34 +28,6 @@ const TX_COLOR = {
 };
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
-
-// ── Components ──
-
-function KPICard({ title, value, icon: Icon, color, sub }) {
-  const colorMap = {
-    fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)]',
-    blue: 'bg-indigo-500/10 text-indigo-500',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    amber: 'bg-amber-500/10 text-amber-500',
-    red: 'bg-red-500/10 text-red-500',
-  };
-
-  return (
-    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl p-6 group hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden glass-panel shadow-sm w-full">
-      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl opacity-20 ${colorMap[color]?.split(' ')[0]}`} />
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorMap[color]}`}>
-          <Icon className="w-6 h-6" />
-        </div>
-      </div>
-      <div className="relative z-10">
-        <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-[0.2em]  opacity-50">{title}</p>
-        <h3 className="text-fluid-base lg:text-fluid-xl  font-bold text-[var(--text-primary)] mt-1 truncate">{value}</h3>
-        {sub && <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold mt-1 opacity-50  tracking-tighter truncate">{sub}</p>}
-      </div>
-    </div>
-  );
-}
 
 function ReceiptModal({ tx, onClose }) {
   if (!tx) return null;
@@ -232,6 +206,8 @@ export default function VendorWalletPage() {
   const [tab, setTab]               = useState('history');
   const [selectedTx, setSelectedTx] = useState(null);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     if (!user) {
@@ -264,6 +240,10 @@ export default function VendorWalletPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tab]);
 
   const totalEarned = transactions
     .filter(t => ['payout', 'deposit', 'refund'].includes(t.type) && t.status === 'completed')
@@ -311,10 +291,10 @@ export default function VendorWalletPage() {
       <div className="p-4 md:p-10 space-y-8 pb-32">
         {/* KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
-          <KPICard title="Available" value={`${fmt(balance)}`} icon={Wallet} color="emerald" sub="XAF Ready" />
-          <KPICard title="In Escrow" value={`${fmt(escrow)}`} icon={Lock} color="amber" sub="Pipeline" />
-          <KPICard title="Total Earned" value={`${fmt(totalEarned)}`} icon={TrendingUp} color="fuchsia" sub="Gross" />
-          <KPICard title="Withdrawn" value={`${fmt(totalOut)}`} icon={ArrowUpRight} color="blue" sub="Total" />
+          <StatCard label="Available" value={`${fmt(balance)}`} icon="account_balance_wallet" color="emerald" sub="XAF Ready" />
+          <StatCard label="In Escrow" value={`${fmt(escrow)}`} icon="lock_clock" color="amber" sub="Pipeline" />
+          <StatCard label="Total Earned" value={`${fmt(totalEarned)}`} icon="trending_up" color="fuchsia" sub="Gross" />
+          <StatCard label="Withdrawn" value={`${fmt(totalOut)}`} icon="arrow_outward" color="blue" sub="Total" />
         </div>
 
         {/* Actions */}
@@ -343,10 +323,10 @@ export default function VendorWalletPage() {
 
            <div className="min-h-[400px]">
               {tab === 'history' && (
-                <div className="space-y-2">
+                <div className="space-y-4">
                    {loading ? <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div> : transactions.length === 0 ? (
                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No transaction data available</div>
-                   ) : transactions.map((tx, i) => (
+                   ) : transactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((tx, i) => (
                      <div key={tx._id || i} onClick={() => setSelectedTx(tx)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
                         <div className={`size-11 rounded-xl flex items-center justify-center ${['payout', 'deposit'].includes(tx.type) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                            {['payout', 'deposit'].includes(tx.type) ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
@@ -372,7 +352,7 @@ export default function VendorWalletPage() {
                     </div>
                     {escrowTxs.length === 0 ? (
                       <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently in pipeline</div>
-                    ) : escrowTxs.map(tx => (
+                    ) : escrowTxs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(tx => (
                       <div key={tx._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
                          <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Clock className="size-5" /></div>
                          <div className="flex-1 min-w-0">
@@ -392,7 +372,7 @@ export default function VendorWalletPage() {
                  <div className="space-y-2">
                     {withdrawalRequests.length === 0 ? (
                       <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No withdrawal requests found</div>
-                    ) : withdrawalRequests.map((wr) => (
+                    ) : withdrawalRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((wr) => (
                       <div key={wr._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
                          <div className={`size-11 rounded-xl flex items-center justify-center ${
                            wr.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 
@@ -415,6 +395,14 @@ export default function VendorWalletPage() {
                     ))}
                  </div>
               )}
+           </div>
+
+           <div className="pt-8">
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={Math.ceil((tab === 'history' ? transactions.length : tab === 'escrow' ? escrowTxs.length : withdrawalRequests.length) / itemsPerPage)}
+                onPageChange={setCurrentPage}
+              />
            </div>
         </div>
       </div>

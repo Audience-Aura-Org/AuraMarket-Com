@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 
 const STATUS_CONFIG = {
   placed:         { label: 'Placed',      color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  dot: 'bg-purple-500' },
@@ -188,30 +189,14 @@ export default function AdminOrdersPage() {
       </header>
 
       <div className="p-4 md:p-10 space-y-8 pb-40">
-         {/* Live Stats */}
-         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {[
-               { label: 'Total Volume', value: stats ? stats.orders : '...', icon: Package, color: 'var(--accent)', sub: 'MANIFEST_TOTAL' },
-               { label: 'Active Pipeline', value: stats ? stats.active_orders : '...', icon: Truck, color: '#6366f1', sub: 'IN_TRANSIT' },
-               { label: 'Settled Payouts', value: stats ? `${(stats.revenue / 1000).toFixed(1)}k` : '...', icon: Zap, color: '#10b981', sub: 'CAPITAL_RESOLVED' },
-               { label: 'Success Rate', value: '98.4%', icon: ShieldCheck, color: '#fbbf24', sub: 'FLOW_STABLE' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
-                  <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                  <div className="relative flex flex-col justify-between h-full space-y-6 md:space-y-8">
-                     <div className="flex items-center justify-between">
-                        <div className="size-10 md:size-12 rounded-[1rem] md:rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                           <s.icon className="w-4 h-4 md:w-5 md:h-5 opacity-40 group-hover:opacity-100" />
-                        </div>
-                        <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
-                     </div>
-                     <div>
-                        <p className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-1 md:mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
-                     </div>
-                  </div>
-               </div>
-            ))}
+         {/* Live Stats Matrix */}
+         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
+            <StatCard label="Active" value={stats ? stats.active_orders : '...'} icon="local_shipping" color="fuchsia" sub="IN_PROGRESS" />
+            <StatCard label="Attention" value={orders.filter(o => o.order_status === 'refund_pending').length} icon="warning" color="rose" sub="ACTION_REQUIRED" />
+            <StatCard label="Resolved" value={stats ? stats.delivered_orders || '0' : '...'} icon="check_circle" color="emerald" sub="CYCLE_COMPLETE" />
+            <StatCard label="Closed" value={stats ? stats.orders : '...'} icon="inventory_2" color="slate" sub="ARCHIVE_TOTAL" />
+            <StatCard label="Rate" value="98.4%" icon="verified_user" color="amber" sub="FLOW_STABLE" />
+            <StatCard label="Yield" value={stats ? `${(stats.revenue / 1000).toFixed(1)}k` : '...'} icon="bolt" color="indigo" sub="NET_OUTPUT" />
          </div>
 
          {/* Order Ledger */}

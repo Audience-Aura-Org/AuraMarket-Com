@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
+import StatCard from '@/components/layout/StatCard';
 
 const mockSubs = [
   { vendor: 'Nova Boutique', id: '#VND-8821', plan: 'Premium', renewal: 'Oct 24, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-10-24' },
@@ -100,11 +101,11 @@ export default function AdminSubscriptionsPage() {
               <p className="text-[var(--text-secondary)] mt-1  font-bold">Real-time overview of your vendor ecosystem and recurring revenue.</p>
             </div>
 
-            {/* Stats */}
+            {/* Stats matrix */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <StatCard label="Active" value="1,284" sub="vs. 1,141 last month" trend="+12.5%" positive Icon={Users} color="fuchsia" />
-              <StatCard label="MRR" value="$45,200" sub="vs. $41,750 last month" trend="+8.2%" positive Icon={CreditCard} color="blue" />
-              <StatCard label="Churn Risk" value="48" sub="Next 7 days" trend="Due" warn Icon={Clock} color="amber" />
+              <StatCard label="Active" value="1,284" sub="vs. 1,141 last month" pct="+12.5%" icon={Users} color="fuchsia" />
+              <StatCard label="MRR" value="$45,200" sub="vs. $41,750 last month" pct="+8.2%" icon={CreditCard} color="blue" />
+              <StatCard label="Churn Risk" value="48" sub="Next 7 days" pct="Due" icon={Clock} color="amber" />
             </div>
 
             {/* Table */}
@@ -119,7 +120,7 @@ export default function AdminSubscriptionsPage() {
                     <Filter className="w-4 h-4" /> Filter
                   </button>
                   <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all text-white ">
-                    <Plus className="w-4 h-4" /> Add Subscription
+                    Add Subscription
                   </button>
                 </div>
               </div>
@@ -218,29 +219,7 @@ export default function AdminSubscriptionsPage() {
   );
 }
 
-function StatCard({ label, value, sub, trend, positive, warn, Icon, color }) {
-  const colors = { 
-    fuchsia: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20', 
-    blue: 'bg-blue-500/10 text-blue-600 border-blue-500/20', 
-    amber: 'bg-amber-500/10 text-amber-600 border-amber-500/20' 
-  };
-  const glows = { fuchsia: 'bg-[var(--accent)]', blue: 'bg-blue-500', amber: 'bg-amber-500' };
-  return (
-    <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-6 relative overflow-hidden group hover:translate-y-[-4px] transition-all glass-panel">
-      <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-10 transition-opacity group-hover:opacity-20 ${glows[color]}`} />
-      <div className="flex items-center justify-between mb-4 relative z-10">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${colors[color]}`}><Icon className="w-5 h-5" /></div>
-        <span className={`text-[11px] lg:text-[12px]  font-semibold tracking-tight flex items-center gap-1  ${warn ? 'text-amber-600' : positive ? 'text-emerald-600' : 'text-red-600'}`}>
-          {!warn && (positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />)}
-          {trend}
-        </span>
-      </div>
-      <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight  relative z-10">{label}</p>
-      <h3 className="text-3xl  font-bold text-[var(--text-primary)] mt-1 relative z-10">{value}</h3>
-      {sub && <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] mt-2  font-semibold tracking-tight  opacity-60">{sub}</p>}
-    </div>
-  );
-}
+
 
 function TierBar({ label, pct, color }) {
   const bar = { fuchsia: 'bg-[var(--accent)]', blue: 'bg-blue-600', slate: 'bg-slate-500' };

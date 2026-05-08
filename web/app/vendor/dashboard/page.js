@@ -5,6 +5,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import api from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 
 export default function VendorDashboard() {
   const { user, token, logout } = useAuthStore();
@@ -171,10 +172,10 @@ export default function VendorDashboard() {
     const maxMonthlySales = Math.max(...monthlySales.map(m => m.value), 1);
 
     return (
-    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
+    <div className="relative bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
         {/* Background blobs */}
-        <div className="absolute top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
-        <div className="absolute bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
+        <div className="fixed top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
+        <div className="fixed bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
         <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-14 lg:top-0 z-40 gap-4 md:gap-0">
@@ -240,42 +241,15 @@ export default function VendorDashboard() {
               </div>
             </div>
           )}
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((stat, idx) => {
-              const c = colorMap[stat.color];
-              return (
-                <div key={stat.label} className="glass-panel p-4 md:p-5 rounded-2xl md:rounded-[2rem] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/60 border border-[var(--glass-border)] shadow-sm hover:shadow-xl group">
-                  <div className="flex justify-between items-start mb-3 md:mb-4">
-                    <div className={`size-8 md:size-10 rounded-xl md:rounded-2xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner`}>
-                      <span className="material-symbols-outlined text-lg md:text-xl group-hover:scale-110 transition-transform">{stat.icon}</span>
-                    </div>
-                    {stat.pct ? (
-                      <span className={`text-[9px] md:text-[11px] lg:text-[12px] font-semibold px-2 md:px-3 py-0.5 md:py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-tight`}>{stat.pct}</span>
-                    ) : (
-                      <Link href="/wallet" className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                        <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
-                      </Link>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-secondary)] text-[9px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight opacity-40 mb-0.5 capitalize">{stat.label}</p>
-                    <h3 className="text-lg md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter font-mono">{stat.value}</h3>
-                    <p className="text-[9px] md:text-[10px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-tight mt-0.5 uppercase">{stat.sub}</p>
-                  </div>
-                  {stat.color !== 'purple' ? (
-                    <div className="mt-3 md:mt-4 h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden shadow-inner">
-                      <div className={`${c.bar} h-full transition-all duration-1000`} style={{ width: c.w, boxShadow: `0 0 10px ${c.glow}` }} />
-                    </div>
-                  ) : (
-                    <div className="mt-3 md:mt-4 flex gap-2">
-                      <Link href="/wallet" className="flex-1 bg-[var(--accent)] hover:opacity-90 text-white text-[9px] md:text-[11px] lg:text-[12px] font-semibold py-2 rounded-xl shadow-lg shadow-[var(--accent)]/20 transition-all tracking-tight active:scale-95 text-center flex items-center justify-center">Withdraw</Link>
-                      <Link href="/wallet" className="flex-1 glass-panel hover:bg-[var(--accent)]/5 text-[var(--text-primary)] text-[9px] md:text-[11px] lg:text-[12px] font-semibold py-2 rounded-xl transition-all text-center border border-[var(--glass-border)] tracking-tight active:scale-95 flex items-center justify-center">Wallet</Link>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+
+          {/* Operational Matrix */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <StatCard label="Active" value={String(openOrders.length)} icon="shopping_bag" color="primary" sub="OPEN_ORDERS" />
+            <StatCard label="Attention" value={String(products.filter(p => Number(p.stock || 0) <= 5).length)} icon="warning" color="rose" sub="LOW_STOCK" />
+            <StatCard label="Resolved" value={String(completedOrders.length)} icon="check_circle" color="emerald" sub="COMPLETED" />
+            <StatCard label="Closed" value={String(orders.length)} icon="inventory_2" color="slate" sub="TOTAL_TRADES" />
+            <StatCard label="Rate" value="96.8%" icon="verified_user" color="amber" sub="FLOW_INDEX" />
+            <StatCard label="Yield" value={`${totalSales.toLocaleString()} XAF`} icon="payments" color="indigo" sub="NET_REVENUE" />
           </div>
           
           {/* Aura Stories Quick Action */}
@@ -337,7 +311,7 @@ export default function VendorDashboard() {
                 <h3 className="text-sm  font-bold text-[var(--text-primary)]  tracking-tighter">Recent Activity</h3>
                 <Link href="/vendor/orders" className="text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:underline">View All</Link>
               </div>
-              <div className="space-y-5 flex-1 overflow-y-auto no-scrollbar max-h-[300px]">
+            <div className="space-y-5 flex-1">
                 {orders.slice(0, 5).map((order, i) => (
                    <Link 
                       key={order._id || i} 
