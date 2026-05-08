@@ -978,6 +978,7 @@ export default function AccountPageClient() {
                           <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">No Followers Yet</p>
                         </div>
                       ) : (
+                        <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {audience.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(follower => (
                             <div key={follower._id} className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] p-5 hover:bg-[var(--accent)]/5 transition-all duration-300">
@@ -1002,6 +1003,7 @@ export default function AccountPageClient() {
                             />
                           </div>
                         )}
+                        </>
                       )}
                     </div>
                   </div>
