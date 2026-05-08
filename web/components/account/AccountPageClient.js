@@ -882,6 +882,7 @@ export default function AccountPageClient() {
                           <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">No Followed Vendors</p>
                         </div>
                       ) : (
+                        <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
                           {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(vendor => (
                             <Link 
@@ -949,6 +950,7 @@ export default function AccountPageClient() {
                             />
                           </div>
                         )}
+                        </>
                       )}
                     </div>
                   </div>
