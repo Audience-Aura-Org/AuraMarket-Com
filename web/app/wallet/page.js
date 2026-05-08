@@ -123,6 +123,8 @@ export default function WalletPage() {
     }
   }, [user]);
 
+  if (!mounted || !user) return null;
+
   const startDeposit = async () => {
     if (!amount || Number(amount) < 100) return showToast('Minimum deposit is 100 XAF.', 'error');
     setDepositStep('phone');
