@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, X, ArrowLeft, Package,
@@ -20,6 +21,7 @@ import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './ch
 export default function MessagingHub({ vendorId: initialVendorId, product, initialData, onClose, fullPage = false }) {
   const { user } = useAuthStore();
   const { isSystemWide } = useChat();
+  const router = useRouter();
   
   // -- State --
   const [activePartnerId, setActivePartnerId] = useState(initialVendorId);
@@ -299,10 +301,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   return (
     <motion.div
-      {...(!fullPage && {
-        initial: { x: '100%' },
+      {...(true && { // Enable drag for both overlay and fullPage
+        initial: !fullPage ? { x: '100%' } : false,
         animate: { x: 0 },
-        exit: { x: '100%' },
+        exit: !fullPage ? { x: '100%' } : false,
         drag: "x",
         dragConstraints: { left: 0, right: 0 },
         dragElastic: { left: 0, right: 0.5 },
@@ -313,14 +315,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               setPartnerInfo(null);
               setMessages([]);
             } else {
-              onClose();
+              // If in Inbox, go back in history (native feel)
+              if (window.history.length > 1) {
+                router.back();
+              }
+              onClose?.();
             }
           }
         }
       })}
       transition={{ type: 'spring', stiffness: 400, damping: 40 }}
       className={fullPage 
-        ? "flex-1 flex flex-col bg-[var(--bg-secondary)] w-full h-full overflow-hidden"
+        ? "flex-1 flex flex-col bg-[var(--bg-secondary)] w-full h-full overflow-hidden touch-none"
         : "fixed inset-y-0 right-0 z-[600] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden touch-none"
       }
     >
