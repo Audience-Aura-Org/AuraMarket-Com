@@ -209,7 +209,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 {(!product.has_variants && product.stock <= 0) ? 'Out of stock' : 'Buy now'}
               </button>
               <div className="flex items-center gap-2">
-                <button onClick={handleChat} className="h-9 px-4 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-semibold shadow-md hover:brightness-110 active:scale-95 transition-all">
+                <button onClick={handleChat} className="h-10 px-6 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all">
                   <MessageSquare className="size-4" />
                   <span>Chat</span>
                 </button>
