@@ -22,10 +22,13 @@ export default function AdminTransactionsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [gatewayFilter, setGatewayFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
   const [syncing, setSyncing] = useState(null);
   const [stats, setStats] = useState(null);
   const [gatewaySyncing, setGatewaySyncing] = useState(false);
+
+  const GATEWAYS = ['eversend', 'mesomb', 'wallet', 'manual', 'paystack'];
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -34,12 +37,13 @@ export default function AdminTransactionsPage() {
         page: currentPage,
         status: statusFilter,
         type: typeFilter,
-        search
+        search,
+        ...(gatewayFilter !== 'all' && { gateway: gatewayFilter })
       };
       const res = await api.get('/admin/transactions', { params });
       if (res.data?.success) {
         setTransactions(res.data.data.transactions || []);
-        setTotalPages(Math.ceil(res.data.total / 50));
+        setTotalPages(Math.ceil((res.data.total || 0) / 50));
       }
     } catch (err) {
       toast.error('Failed to sync financial matrix');
@@ -52,7 +56,9 @@ export default function AdminTransactionsPage() {
     try {
       const res = await api.get('/admin/analytics');
       if (res.data.success) {
-        setStats(res.data.data.stats);
+        // Support both response shapes
+        const d = res.data.data;
+        setStats(d?.stats || d?.payout_intel || d || null);
       }
     } catch (err) {
       console.error('Failed to fetch platform metrics');
@@ -60,14 +66,13 @@ export default function AdminTransactionsPage() {
   };
 
   useEffect(() => {
-    // Only trigger gateway sync on initial mount to avoid overhead during filtering
-    handleGatewaySync();
+    fetchTransactions();
     fetchStats();
   }, []);
 
   useEffect(() => {
     fetchTransactions();
-  }, [currentPage, statusFilter, typeFilter]);
+  }, [currentPage, statusFilter, typeFilter, gatewayFilter]);
 
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
@@ -141,7 +146,16 @@ export default function AdminTransactionsPage() {
              onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
            >
               <option value="all">ALL TYPES</option>
-              {Object.keys(TYPE_CONFIG).map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+              {Object.entries(TYPE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+           </select>
+
+           <select 
+             className="h-11 px-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] outline-none cursor-pointer"
+             value={gatewayFilter}
+             onChange={e => { setGatewayFilter(e.target.value); setCurrentPage(1); }}
+           >
+              <option value="all">ALL GATEWAYS</option>
+              {GATEWAYS.map(g => <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>)}
            </select>
 
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
