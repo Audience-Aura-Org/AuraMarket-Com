@@ -175,16 +175,30 @@ const sendMessage = async (req, res, next) => {
       
       console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
 
-      // 🚀 RESTORED: PWA Push & Email Signal for Chat
+      // 🚀 PWA Push & In-App Signal for Chat
       (async () => {
         try {
           const { sendNotification } = require('../utils/notifier');
-          const senderName = req.user.branding?.store_name || req.user.name || 'Merchant';
-          
+          const senderName = req.user.branding?.store_name || req.user.name || 'Someone';
+          const senderAvatar = req.user.avatar || null;
+
+          // Smart body: show message text truncated, or product context
+          let body;
+          if (text && text.trim()) {
+            body = text.length > 80 ? text.slice(0, 77) + '...' : text;
+          } else if (product_reference) {
+            body = '📦 Shared a product with you';
+          } else if (image_url) {
+            body = '📷 Sent you a photo';
+          } else {
+            body = 'Sent you a message';
+          }
+
           await sendNotification(req.app, receiver_id, {
-            title: `New Message from ${senderName}`,
-            message: text || (product_reference ? '📦 Shared a product with you' : 'Sent you a message'),
+            title: senderName,              // Just the name — clean & direct
+            message: body,
             type: 'message',
+            senderAvatar,
             metadata: { sender_id: req.user._id, link: `/messages?vendorId=${req.user._id}` },
             emailLink: `${process.env.WEB_CLIENT_URL}/messages?vendorId=${req.user._id}`
           });

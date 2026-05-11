@@ -86,7 +86,8 @@ const sendNotification = async (app, recipientId, data) => {
       overrideEmail = null, 
       emailTemplate = null,
       qrCode = null,
-      webUrl = null
+      webUrl = null,
+      senderAvatar = null,   // chat: sender's avatar for richer OS notification
     } = data;
 
     // 1. Create DB Record (Synchronous to ensure ID exists)
@@ -111,13 +112,18 @@ const sendNotification = async (app, recipientId, data) => {
         const subs = await PushSubscription.find({ user_id: recipientId });
 
         if (subs.length > 0) {
-          // Use relative URLs for PWA notifications so they open correctly in the app context
-          // This fixes the issue where PWA notifications were opening in localhost instead of production
           const notificationUrl = metadata?.link || '/discovery';
+
+          // Use sender avatar for chat notifications, app logo for everything else
+          const iconUrl = (type === 'message' && senderAvatar)
+            ? senderAvatar
+            : '/logo-white.png';
+
           const payload = JSON.stringify({
             title,
             body: message,
-            icon: '/logo-white.png', 
+            icon: iconUrl,
+            image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
             tag: type === 'message' ? `msg-${recipientId}` : `alert-${recipientId}-${Date.now()}`,
             data: { url: notificationUrl }
           });

@@ -3,7 +3,7 @@
  * Robust background push handling with redundant notification suppression.
  */
 
-const CACHE_NAME = 'aura-cache-v7'; // Bumped: icon files updated
+const CACHE_NAME = 'aura-cache-v8'; // Bumped: improved notification display
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -68,32 +68,46 @@ self.addEventListener('push', function (event) {
   }
 
   const baseUrl = self.location.origin;
-  const icon = data.icon ? (data.icon.startsWith('http') ? data.icon : baseUrl + data.icon) : baseUrl + '/logo-white.png';
-  const badge = data.badge ? (data.badge.startsWith('http') ? data.badge : baseUrl + data.badge) : baseUrl + '/logo-white.png';
+
+  // Icon: use sender avatar if provided (chat), else app logo
+  const iconRaw = data.icon || '/logo-white.png';
+  const icon = iconRaw.startsWith('http') ? iconRaw : baseUrl + iconRaw;
+  const badge = baseUrl + '/logo-white.png';
+
+  // Large image preview (e.g. sender avatar or product photo)
+  const image = data.image ? (data.image.startsWith('http') ? data.image : baseUrl + data.image) : undefined;
+
+  const isChat = data.tag && data.tag.startsWith('msg-');
 
   const options = {
     body: data.body || data.message || '',
-    icon: icon,
-    badge: badge,
-    vibrate: [200, 100, 200],
+    icon,
+    badge,
+    image,
+    vibrate: isChat ? [100, 50, 100] : [200, 100, 200],
     tag: data.tag || 'aura-notification',
     renotify: true,
-    requireInteraction: true,
+    requireInteraction: !isChat,   // chat: auto-dismiss; alerts: stay until tapped
+    silent: false,
     data: {
-      url: data.data?.url || (data.url || '/')
+      url: data.data?.url || data.url || '/'
     },
-    actions: [
-      { action: 'open', title: 'Open' },
-      { action: 'close', title: 'Dismiss' }
-    ]
+    actions: isChat
+      ? [
+          { action: 'open',  title: 'Reply' },
+          { action: 'close', title: 'Dismiss' }
+        ]
+      : [
+          { action: 'open',  title: 'View' },
+          { action: 'close', title: 'Dismiss' }
+        ]
   };
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      // DOUBLE NOTIFICATION GUARD
       const isFocused = clientList.some(client => client.focused);
       if (isFocused) {
-        console.log('[SW v6] App focused. Suppressing system push for in-app toast.');
+        console.log('[SW] App focused — suppressing OS push for in-app toast.');
         return null;
       }
       return self.registration.showNotification(data.title || 'Aura Market', options);
