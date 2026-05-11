@@ -66,8 +66,6 @@ export default function WalletPage() {
   const [toast, setToast] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState('all');
-  const [withdrawalMethod, setWithdrawalMethod] = useState('');
-  const [accountDetails, setAccountDetails] = useState({ account_number: '', holder_name: '' });
   
   // Deposit Workflow State
   const [depositStep, setDepositStep] = useState('amount'); // 'amount' | 'phone' | 'processing' | 'result'
@@ -185,22 +183,6 @@ export default function WalletPage() {
       setModal('deposit');
       return;
     }
-    
-    if (!amount || Number(amount) <= 0) return showToast('Enter a valid amount.', 'error');
-    setSubmitting(true);
-    try {
-      const endpoint = '/wallet/withdraw';
-      const body = { amount: Number(amount), method: withdrawalMethod, details: accountDetails };
-      const res = await api.post(endpoint, body);
-      if (res.data.success) {
-        showToast(`Withdrawal successful!`);
-        setModal(null);
-        setAmount('');
-        fetchWallet();
-      }
-    } catch (err) {
-      showToast(err?.response?.data?.message || 'Transaction failed.', 'error');
-    } finally { setSubmitting(false); }
   };
 
   const filteredTransactions = transactions.filter(tx => {

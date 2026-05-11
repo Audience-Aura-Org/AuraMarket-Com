@@ -302,12 +302,26 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       {...(!fullPage && {
         initial: { x: '100%' },
         animate: { x: 0 },
-        exit: { x: '100%' }
+        exit: { x: '100%' },
+        drag: "x",
+        dragConstraints: { left: 0, right: 0 },
+        dragElastic: { left: 0, right: 0.5 },
+        onDragEnd: (e, info) => {
+          if (info.offset.x > 100) {
+            if (activePartnerId) {
+              setActivePartnerId(null);
+              setPartnerInfo(null);
+              setMessages([]);
+            } else {
+              onClose();
+            }
+          }
+        }
       })}
       transition={{ type: 'spring', stiffness: 400, damping: 40 }}
       className={fullPage 
         ? "flex-1 flex flex-col bg-[var(--bg-secondary)] w-full h-full overflow-hidden"
-        : "fixed inset-y-0 right-0 z-[600] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden"
+        : "fixed inset-y-0 right-0 z-[600] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden touch-none"
       }
     >
       {/* ── Header ── */}

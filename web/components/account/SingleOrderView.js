@@ -119,6 +119,33 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
   };
 
+  const handleUpdateStatus = async (newStatus) => {
+    const toastId = toast.loading(`Updating protocol to ${newStatus.toUpperCase()}...`);
+    try {
+      const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
+      if (res.data.success) {
+        toast.success(`Protocol updated: ${newStatus.toUpperCase()}`, { id: toastId });
+        fetchOrderManifest();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Protocol update failed.", { id: toastId });
+    }
+  };
+
+  const handleVendorConfirmDelivery = async () => {
+    if (!confirm("Confirm asset delivery completion? This notifies the customer to finalize the manifest.")) return;
+    const toastId = toast.loading('Synchronizing delivery status...');
+    try {
+      const res = await api.post(`/escrow/confirm-delivery/${orderId}`);
+      if (res.data.success) {
+        toast.success("Delivery confirmed. Awaiting customer release.", { id: toastId });
+        fetchOrderManifest();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Delivery confirmation failed.", { id: toastId });
+    }
+  };
+
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     setReviewLoading(true);
@@ -259,10 +286,26 @@ export default function SingleOrderView({ orderId, onBack }) {
                   )}
                   {isVendor && order.order_status === 'placed' && (
                     <button 
-                      onClick={() => toast.success("Processing protocol initiated.")}
-                      className="w-full px-8 py-3 bg-[var(--accent)] text-white rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-[var(--accent)]/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                      onClick={() => handleUpdateStatus('processing')}
+                      className="w-full px-8 py-3 bg-[var(--accent)] text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-[var(--accent)]/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                        <Zap className="size-3.5" /> START PROCESSING
+                    </button>
+                  )}
+                  {isVendor && order.order_status === 'processing' && (
+                    <button 
+                      onClick={() => handleUpdateStatus('shipped')}
+                      className="w-full px-8 py-3 bg-indigo-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-indigo-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                       <Truck className="size-3.5" /> MARK AS SHIPPED
+                    </button>
+                  )}
+                  {isVendor && order.order_status === 'shipped' && (
+                    <button 
+                      onClick={handleVendorConfirmDelivery}
+                      className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                       <CheckCircle2 className="size-3.5" /> CONFIRM DELIVERY
                     </button>
                   )}
                   <button onClick={() => setDisputeModal(true)} className="w-full px-8 py-3 bg-[var(--bg-primary)] text-rose-500 border border-rose-500/20 rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 group">
