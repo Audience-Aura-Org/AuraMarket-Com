@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth.middleware');
 const {
+  // Gateway registry
+  listGateways,
   // Paystack
   initializePayment,
   verifyPayment,
@@ -17,21 +19,31 @@ const {
   eversendDeleteBeneficiary,
   eversendGetTransactions,
   eversendPayoutBeneficiary,
+  // MeSomb
+  mesombInitialize,
+  mesombWebhook,
+  mesombVerify,
 } = require('../controllers/payment.controller');
 
-// ── Webhooks — PUBLIC, must come before protect middleware ───────────────────
-// Eversend: Handled in server.js to bypass global JSON parser
-// Paystack webhook (legacy)
+// ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
 router.post('/webhook', handleWebhook);
+router.post('/mesomb/webhook', mesombWebhook);
 
 // ── Protected routes ─────────────────────────────────────────────────────────
 router.use(protect);
+
+// Gateway Registry — checkout UI reads this to know which methods are available
+router.get('/gateways', listGateways);
 
 // Paystack
 router.post('/initialize', initializePayment);
 router.get('/verify/:reference', verifyPayment);
 
-// Eversend — Advanced Features
+// MeSomb
+router.post('/mesomb/initialize', mesombInitialize);
+router.get('/mesomb/verify/:reference', mesombVerify);
+
+// Eversend
 router.get('/eversend/wallets', eversendGetWallets);
 router.post('/eversend/initialize', eversendInitialize);
 router.get('/eversend/verify/:reference', eversendVerify);

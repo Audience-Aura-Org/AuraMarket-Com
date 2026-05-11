@@ -115,7 +115,7 @@ const initiateDeposit = async (req, res, next) => {
       reference: generateTxRef(),
       status: 'pending', // No longer auto-completing
       description: 'Wallet deposit (Initialized)',
-      gateway: 'manual_simulation'
+      gateway: 'manual'
     });
 
     res.status(200).json({
@@ -336,144 +336,24 @@ const payOrderWithWallet = async (req, res, next) => {
 
   try {
     const { order_id } = req.body;
-    
+    const { settleOrders } = require('../services/payment/settle.service');
+
     const order = await Order.findById(order_id).session(session);
     if (!order) throw new Error('Order not found.');
     if (order.customer_id.toString() !== req.user._id.toString()) throw new Error('Not your order.');
     if (order.payment_status !== 'pending') throw new Error(`Order is already ${order.payment_status}.`);
-    if (order.payment_method !== 'wallet') throw new Error('Order payment method is not configured for wallet.');
 
-    const user = await User.findById(req.user._id).session(session);
+    // Delegate all settlement logic (balance deduction, escrow/direct payout, shipment, notifications)
+    await settleOrders(req.user._id, [order_id], session, req.app, false, process.env.WEB_CLIENT_URL || '');
 
-    if (user.wallet_balance < order.total_amount) {
-      throw new Error('Insufficient wallet balance to cover this order.');
-    }
-
-    // 1. Deduct customer balance
-    user.wallet_balance -= order.total_amount;
-    await user.save({ session });
-
-    // 2. Log transaction
-    await Transaction.create([{
-      user_id: user._id,
-      type: 'payment',
-      amount: order.total_amount,
-      reference: generateTxRef(),
-      status: 'completed',
-      description: `Payment for Order #${order._id.toString().slice(-6).toUpperCase()}`,
-      order_id: order._id,
-    }], { session, ordered: true });
-
-    // 3. Mark order as Paid
-    order.payment_status = 'paid';
-    
-    // 4. Handle Funds (Escrow vs Direct)
-    const settings = await PlatformSettings.getSettings();
-    
-    // Split payment: Logistics fee is removed from the vendor's payout base amount
-    const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id) 
-      ? order.subtotal 
-      : order.total_amount;
-
-    const platformFee = (vendorBaseAmount * settings.commission_rate) / 100;
-    const vendorPayout = vendorBaseAmount - platformFee;
-
-    if (order.escrow_enabled) {
-      // Create Escrow Record (Held)
-      await Escrow.create([{
-        order_id: order._id,
-        vendor_id: order.vendor_id,
-        buyer_id: order.customer_id,
-        amount: vendorBaseAmount,
-        status: 'held'
-      }], { session, ordered: true });
-
-      // Log pending payout for Vendor
-      const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
-      await Transaction.create([{
-        user_id: vendorRecord.user_id,
-        type: 'payout',
-        amount: vendorPayout,
-        reference: `PAYOUT-PEND-${order._id.toString().slice(-6).toUpperCase()}`,
-        status: 'pending',
-        description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow)`,
-        order_id: order._id,
-        gateway: 'escrow'
-      }], { session, ordered: true });
-
-      order.order_status = 'processing';
-    } else {
-      // Direct Payout (No Escrow)
-      const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
-      const vendorUser = await User.findById(vendorRecord.user_id).session(session);
-      
-      // Transfer to Vendor
-      vendorUser.wallet_balance += vendorPayout;
-      await vendorUser.save({ session });
-
-      // Transfer Fee to Platform
-      settings.platform_wallet_balance += platformFee;
-      await settings.save({ session });
-
-      // Log completed payout for Vendor
-      await Transaction.create([{
-        user_id: vendorUser._id,
-        type: 'payout',
-        amount: vendorPayout,
-        reference: `PAYOUT-DIRECT-${order._id.toString().slice(-6).toUpperCase()}`,
-        status: 'completed',
-        description: `Direct payout for Order #${order._id.toString().slice(-6).toUpperCase()} (No Escrow)`,
-        order_id: order._id,
-      }], { session, ordered: true });
-
-      // Log Platform Revenue
-      await Transaction.create([{
-        user_id: vendorUser._id, // Linked to vendor for trace
-        type: 'payment',
-        amount: platformFee,
-        reference: `REV-DIR-${Date.now()}`,
-        status: 'completed',
-        description: `Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
-        order_id: order._id,
-      }], { session, ordered: true });
-
-      order.order_status = 'processing';
-    }
-
-    await order.save({ session });
-
-    // Auto-create shipment tickets when logistics delivery is selected
-    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
-      const quartier = order.shipping_address?.quartier;
-      if (quartier) {
-        await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
-        const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id).session(session);
-        if (logisticsFirm) {
-          const orderWithVendor = order.toObject();
-          const v = await Vendor.findById(order.vendor_id).session(session);
-          orderWithVendor.vendor_id = v;
-
-          await sendNotification(req.app, logisticsFirm.user_id, {
-            title: 'New Shipment Assigned',
-            message: `You have a new shipment for order #${order._id.toString().slice(-6).toUpperCase()}.`,
-            type: 'system_alert',
-            metadata: { order_id: order._id, link: '/logistics/dashboard' },
-            sendEmail: true,
-            emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
-            orderDetails: orderWithVendor,
-            role: 'logistics'
-          });
-        }
-      }
-    }
-
+    const updatedUser = await User.findById(req.user._id).session(session);
     await session.commitTransaction();
     session.endSession();
 
     res.status(200).json({
       success: true,
       message: 'Order paid successfully via Wallet.',
-      data: { order, remaining_balance: user.wallet_balance },
+      data: { order_id, remaining_balance: updatedUser.wallet_balance },
     });
   } catch (error) {
     await session.abortTransaction();
@@ -481,6 +361,9 @@ const payOrderWithWallet = async (req, res, next) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
+
+
+
 
 const getAllWithdrawals = async (req, res, next) => {
   try {

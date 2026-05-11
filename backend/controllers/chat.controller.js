@@ -16,7 +16,20 @@ const mongoose = require('mongoose');
 // ─────────────────────────────────────────────
 const getConversation = async (req, res, next) => {
   try {
-    const { userId } = req.params; // The other person
+    const { userId } = req.params;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 40);
+
+    const total = await Message.countDocuments({
+      $or: [
+        { sender_id: req.user._id, receiver_id: userId },
+        { sender_id: userId, receiver_id: req.user._id },
+      ],
+    });
+
+    // For page > 1 we fetch older messages (skip from the end)
+    const skip = Math.max(0, total - page * limit);
+    const take = total - (page - 1) * limit < limit ? total - (page - 1) * limit : limit;
 
     const messages = await Message.find({
       $or: [
@@ -24,10 +37,12 @@ const getConversation = async (req, res, next) => {
         { sender_id: userId, receiver_id: req.user._id },
       ],
     })
-      .populate('product_reference', 'name price images') // Only pull card essentials
-      .sort('createdAt'); // Oldest to newest for chat UI flow
+      .populate('product_reference', 'name price images')
+      .sort('createdAt')
+      .skip(skip)
+      .limit(take);
 
-    res.status(200).json({ success: true, count: messages.length, data: { messages } });
+    res.status(200).json({ success: true, count: messages.length, data: { messages, total, page, limit } });
   } catch (error) {
     next(error);
   }
@@ -121,7 +136,7 @@ const getUserInbox = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const sendMessage = async (req, res, next) => {
   try {
-    const { receiver_id, text, product_reference, metadata } = req.body;
+    const { receiver_id, text, product_reference, metadata, image_url } = req.body;
 
     if (!receiver_id) {
       return res.status(400).json({ success: false, message: 'Receiver ID is required.' });
@@ -134,7 +149,8 @@ const sendMessage = async (req, res, next) => {
       receiver_id,
       text,
       product_reference: product_reference || null,
-      metadata: metadata || null
+      metadata: metadata || null,
+      image_url: image_url || null,
     });
 
     // Populate for immediate UI consumption if needed

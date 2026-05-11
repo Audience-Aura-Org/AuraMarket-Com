@@ -66,6 +66,14 @@ const mapChatSockets = (server) => {
       }
     });
 
+    socket.on('typing_start', ({ receiver_id }) => {
+      if (receiver_id) io.to(receiver_id.toString()).emit('partner_typing', { userId: socket.userId });
+    });
+
+    socket.on('typing_stop', ({ receiver_id }) => {
+      if (receiver_id) io.to(receiver_id.toString()).emit('partner_stopped_typing', { userId: socket.userId });
+    });
+
     socket.on('disconnect', async () => {
       const userSet = userSockets.get(socket.userId);
       if (userSet) {

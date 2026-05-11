@@ -66,8 +66,8 @@ const TransactionSchema = new mongoose.Schema(
     },
     gateway: {
       type: String,
-      enum: ['paystack', 'eversend', 'flutterwave', 'wallet', 'manual', 'platform'],
-      default: 'paystack',
+      enum: ['paystack', 'eversend', 'mesomb', 'flutterwave', 'wallet', 'manual', 'platform', 'escrow'],
+      default: null,
     },
     currency: {
       type: String,

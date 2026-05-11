@@ -3,7 +3,7 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
-import ChatSlideOverlay from '@/components/hub/ChatSlideOverlay';
+import MessagingHub from '@/components/hub/MessagingHub';
 
 function ChatContent() {
   const { user, loading: authLoading } = useAuthStore();
@@ -22,8 +22,11 @@ function ChatContent() {
   if (!user) return null;
 
   return (
-    <div className="fixed inset-0 z-[600] bg-[var(--bg-secondary)] flex flex-col h-screen w-full">
-      <ChatSlideOverlay 
+    <div
+      className="fixed inset-0 z-[600] bg-[var(--bg-secondary)] flex flex-col w-full"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
+      <MessagingHub 
         vendorId={vendorId} 
         fullPage={true}
         onClose={() => router.push('/')}

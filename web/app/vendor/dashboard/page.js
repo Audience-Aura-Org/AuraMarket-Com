@@ -242,14 +242,87 @@ export default function VendorDashboard() {
             </div>
           )}
 
-          {/* Operational Matrix */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <StatCard label="Active" value={String(openOrders.length)} icon="shopping_bag" color="primary" sub="OPEN_ORDERS" />
-            <StatCard label="Attention" value={String(products.filter(p => Number(p.stock || 0) <= 5).length)} icon="warning" color="rose" sub="LOW_STOCK" />
-            <StatCard label="Resolved" value={String(completedOrders.length)} icon="check_circle" color="emerald" sub="COMPLETED" />
-            <StatCard label="Closed" value={String(orders.length)} icon="inventory_2" color="slate" sub="TOTAL_TRADES" />
-            <StatCard label="Rate" value="96.8%" icon="verified_user" color="amber" sub="FLOW_INDEX" />
-            <StatCard label="Yield" value={`${totalSales.toLocaleString()} XAF`} icon="payments" color="indigo" sub="NET_REVENUE" />
+          {/* Operational Matrix — 4 Core KPIs */}
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Net Revenue */}
+            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
+              <div className="flex items-center justify-between">
+                <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
+                  <span className="material-symbols-outlined text-xl">payments</span>
+                </div>
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-emerald-500/60 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">Revenue</span>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Net Sales</p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+              </div>
+              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '70%' }} />
+              </div>
+              <p className="text-[10px] font-semibold text-emerald-500 opacity-70 tracking-tight">{completedOrders.length} orders fulfilled</p>
+            </div>
+
+            {/* Open Orders */}
+            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
+              <div className="flex items-center justify-between">
+                <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
+                  <span className="material-symbols-outlined text-xl">shopping_bag</span>
+                </div>
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-[var(--accent)]/60 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-2 py-1 rounded-full">Live</span>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Open Orders</p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrders.length}</p>
+              </div>
+              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000" style={{ width: orders.length ? `${Math.min((openOrders.length / orders.length) * 100, 100)}%` : '0%' }} />
+              </div>
+              <p className="text-[10px] font-semibold text-[var(--accent)] opacity-70 tracking-tight">{orders.filter(o => o.order_status === 'processing').length} processing now</p>
+            </div>
+
+            {/* Inventory */}
+            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
+              <div className="flex items-center justify-between">
+                <div className="size-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 border border-indigo-600/20 shrink-0">
+                  <span className="material-symbols-outlined text-xl">category</span>
+                </div>
+                {products.filter(p => Number(p.stock || 0) <= 5).length > 0 && (
+                  <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-rose-500/80 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-full animate-pulse">
+                    {products.filter(p => Number(p.stock || 0) <= 5).length} Low
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Inventory</p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{products.length} <span className="text-sm opacity-50">SKUs</span></p>
+              </div>
+              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: products.length ? `${Math.min((products.filter(p => Number(p.stock || 0) > 0).length / products.length) * 100, 100)}%` : '0%' }} />
+              </div>
+              <p className="text-[10px] font-semibold text-indigo-500 opacity-70 tracking-tight">{products.filter(p => Number(p.stock || 0) > 0).length} in stock · {products.filter(p => Number(p.stock || 0) === 0).length} out</p>
+            </div>
+
+            {/* Wallet Balance */}
+            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
+              <div className="flex items-center justify-between">
+                <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
+                  <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
+                </div>
+                <Link href="/vendor/wallet" className="text-[9px] font-bold tracking-[0.2em] uppercase text-[var(--accent)]/60 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-2 py-1 rounded-full hover:bg-[var(--accent)]/20 transition-all">Withdraw</Link>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Wallet Balance</p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+              </div>
+              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: '60%' }} />
+              </div>
+              <p className="text-[10px] font-semibold text-[var(--accent)] opacity-70 tracking-tight">{pendingEscrow.toLocaleString()} XAF in escrow</p>
+            </div>
           </div>
           
           {/* Aura Stories Quick Action */}

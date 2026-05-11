@@ -41,7 +41,8 @@ function CheckoutContent() {
     escrowEnabled: true,
     logistics_company_id: null,
     quartier: '',
-    eversend: { phone: '', country: 'CM', currency: 'XAF' }
+    eversend: { phone: '', country: 'CM', currency: 'XAF' },
+    mesomb:   { phone: '', service: '' },
   });
     
   // Eversend Country/Currency Mapping
@@ -260,16 +261,27 @@ function CheckoutContent() {
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
     const isEversend = formData.paymentMethod === 'eversend';
+    const isMesomb  = formData.paymentMethod === 'mesomb';
+    const isExternal = isEversend || isMesomb;
 
     // Pre-check wallet balance before attempting wallet payment
-    if (!isPayOnDelivery && !isEversend && walletBalance < totalAmount) {
+    if (!isPayOnDelivery && !isExternal && walletBalance < totalAmount) {
       setBlockReason('insufficient_wallet');
       setError(`Your wallet balance (${walletBalance.toLocaleString()} XAF) is insufficient for this order (${totalAmount.toLocaleString()} XAF).`);
       return;
     }
     if (isEversend && totalAmount < 500) {
       setError(`Eversend requires a minimum payment of 500 XAF. Your current total is ${totalAmount.toLocaleString()} XAF.`);
-      toast.error("Minimum amount for Eversend is 500 XAF");
+      toast.error('Minimum amount for Eversend is 500 XAF');
+      return;
+    }
+    if (isMesomb && totalAmount < 50) {
+      setError(`Mobile Money requires a minimum payment of 50 XAF.`);
+      toast.error('Minimum amount for Mobile Money is 50 XAF');
+      return;
+    }
+    if (isMesomb && !formData.mesomb.phone && !formData.phone) {
+      toast.error('Please enter your Mobile Money number.');
       return;
     }
     setBlockReason(null);
@@ -300,7 +312,10 @@ function CheckoutContent() {
                phone: formData.phone
             },
             escrow_enabled: formData.paymentMethod === 'wallet' && formData.escrowEnabled,
-            payment_method: isPayOnDelivery ? 'pay_on_delivery' : (formData.paymentMethod === 'eversend' ? 'eversend' : (formData.escrowEnabled ? 'escrow' : 'wallet')),
+            payment_method: isPayOnDelivery ? 'pay_on_delivery'
+              : isEversend ? 'eversend'
+              : isMesomb   ? 'mesomb'
+              : (formData.escrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: 'logistics_partner',
             logistics_company_id: formData.logistics_company_id,
             delivery_quartier: formData.quartier
@@ -325,7 +340,38 @@ function CheckoutContent() {
          }
       }
 
-      if (!isEversend) {
+      if (isMesomb) {
+        const mPhone = formData.mesomb.phone || formData.phone;
+        const mRes = await api.post('/payments/mesomb/initialize', {
+          amount: totalAmount,
+          phone: mPhone,
+          service: formData.mesomb.service || undefined,
+          order_ids: finalOrderIds,
+        });
+
+        if (!mRes.data.success) {
+          setBlockReason('collection_failed');
+          setError(mRes.data.message || 'Mobile money collection failed. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        const { reference, status, instructions } = mRes.data.data;
+
+        if (status === 'SUCCESSFUL') {
+          toast.success('Payment confirmed! Your order is being processed.');
+          cartStore.clearCart();
+          setStep(3);
+          return;
+        }
+
+        // PENDING — redirect to polling page
+        toast.success(instructions || 'Check your phone for a payment prompt.');
+        router.push(`/wallet/verify?gateway=mesomb&type=checkout&ref=${reference}`);
+        return;
+      }
+
+      if (!isExternal) {
         for (const id of finalOrderIds) {
           if (isPayOnDelivery) continue;
           if (formData.escrowEnabled) {
@@ -334,7 +380,7 @@ function CheckoutContent() {
             await api.post(`/orders/${id}/pay-direct`);
           }
         }
-      } else {
+      } else if (isEversend) {
         const evRes = await initiateCollection('eversend', {
            amount: totalAmount,
            currency: formData.eversend.currency,
@@ -380,6 +426,8 @@ function CheckoutContent() {
 
       if (isPayOnDelivery) {
         toast.success('Order placed. Payment will be settled on delivery.');
+      } else if (isMesomb) {
+        // handled above with early return
       } else {
         toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'Funds secured in Escrow Protocol.' : 'Direct payment completed successfully.');
       }
@@ -674,6 +722,7 @@ function CheckoutContent() {
                        <div className="pt-4 space-y-4">
                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Payment Strategy</label>
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                               {/* ── Eversend ─────────────────────────────── */}
                                <button 
                                 onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
                                 className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
@@ -681,11 +730,26 @@ function CheckoutContent() {
                                   <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-2">
                                         <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">Mobile Money / Card</span>
+                                        <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">Eversend (Multi-country)</span>
                                      </div>
                                      {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                                   </div>
-                                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct deposit via Eversend secure gateway.</p>
+                                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">MTN, Orange, Airtel — multi-country via Eversend.</p>
+                               </button>
+
+                               {/* ── MeSomb ───────────────────────────────── */}
+                               <button 
+                                onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'mesomb', mesomb: { ...formData.mesomb, phone: formData.mesomb.phone || formData.phone }})}
+                                className={`p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'mesomb' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                               >
+                                  <div className="flex items-center justify-between mb-4">
+                                     <div className="flex items-center gap-2">
+                                        <Smartphone className={`size-5 ${formData.paymentMethod === 'mesomb' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                        <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">MTN / Orange Money</span>
+                                     </div>
+                                     {formData.paymentMethod === 'mesomb' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                  </div>
+                                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct USSD prompt — MTN MoMo &amp; Orange Money (XAF).</p>
                                </button>
 
                                <button 
@@ -732,6 +796,39 @@ function CheckoutContent() {
                                  <div className={`w-12 h-6 rounded-full flex items-center p-1 transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--text-secondary)]/20'}`}>
                                     <div className={`size-4 bg-white rounded-full shadow-sm transition-transform transform ${formData.escrowEnabled ? 'translate-x-[24px]' : 'translate-x-0'}`} />
                                  </div>
+                              </div>
+                           )}
+
+                           {formData.paymentMethod === 'mesomb' && (
+                              <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
+                                 <p className="text-[10px] lg:text-[11px] font-semibold tracking-widest uppercase text-[var(--accent)] mb-4 opacity-70">Mobile Money Details</p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">MoMo / Orange Number</label>
+                                       <input 
+                                          type="tel"
+                                          placeholder="677 XXX XXX or 690 XXX XXX"
+                                          value={formData.mesomb.phone}
+                                          onChange={e => setFormData({...formData, mesomb: {...formData.mesomb, phone: e.target.value}})}
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold  outline-none focus:border-[var(--accent)] transition-all"
+                                       />
+                                    </div>
+                                    <div className="space-y-2">
+                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Network</label>
+                                       <select
+                                          value={formData.mesomb.service}
+                                          onChange={e => setFormData({...formData, mesomb: {...formData.mesomb, service: e.target.value}})}
+                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold  outline-none focus:border-[var(--accent)] transition-all"
+                                       >
+                                          <option value="">Auto-detect from number</option>
+                                          <option value="MTN">MTN Mobile Money</option>
+                                          <option value="ORANGE">Orange Money</option>
+                                       </select>
+                                    </div>
+                                 </div>
+                                 <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-3 leading-relaxed">
+                                    💡 A USSD prompt will be sent to your phone. Approve it to complete payment.
+                                 </p>
                               </div>
                            )}
 

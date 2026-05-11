@@ -209,8 +209,9 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 {(!product.has_variants && product.stock <= 0) ? 'Out of stock' : 'Buy now'}
               </button>
               <div className="flex items-center gap-2">
-                <button onClick={handleChat} className="size-9 rounded-2xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                  <MessageSquare className="size-4.5" />
+                <button onClick={handleChat} className="h-9 px-4 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-semibold shadow-md hover:brightness-110 active:scale-95 transition-all">
+                  <MessageSquare className="size-4" />
+                  <span>Chat</span>
                 </button>
                 <button 
                   onClick={handleAddToCart} 
@@ -295,7 +296,10 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             >
               {inStock ? 'Buy now' : 'Sold out'}
             </button>
-            <button onClick={handleChat} className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/5 border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95"><MessageSquare className="size-4 md:size-4.5" /></button>
+            <button onClick={handleChat} className="h-8 md:h-9 px-3 md:px-4 rounded-lg md:rounded-xl bg-[var(--accent)] text-white flex items-center justify-center gap-1 text-[10px] md:text-[11px] font-semibold shadow-md hover:brightness-110 active:scale-95 transition-all shrink-0">
+              <MessageSquare className="size-3.5 md:size-4" />
+              <span className="hidden sm:inline">Chat</span>
+            </button>
             <button 
               onClick={handleAddToCart} 
               disabled={addingToCart || !inStock} 

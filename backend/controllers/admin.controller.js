@@ -867,7 +867,7 @@ const fulfillOrderFromTransaction = async (req, res, next) => {
     if (!transaction.order_ids || transaction.order_ids.length === 0) return res.status(400).json({ success: false, message: 'No orders linked to this transaction.' });
 
     const { settleOrdersInSession } = require('./payment.controller');
-    await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, null, false, '');
+    await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, null, true, '', 'manual');
 
     res.status(200).json({ 
       success: true, 

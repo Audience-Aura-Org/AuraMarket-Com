@@ -54,21 +54,22 @@ const holdFunds = async (req, res, next) => {
       ? order.subtotal
       : order.total_amount;
 
-    // 3. Log initial payment transaction (Customer view)
     await Transaction.create([{
       user_id: user._id,
       type: 'payment',
       amount: order.total_amount,
       reference: generateTxRef(),
       status: 'completed',
+      gateway: 'escrow',
       description: `Funds secured in Escrow for Order #${order._id.toString().slice(-6).toUpperCase()}`,
       order_id: order._id,
     }, {
-      user_id: vendorAccount.user_id, // Link to vendor's user model
-      type: 'payout', // Or a new type 'incoming'
+      user_id: vendorAccount.user_id,
+      type: 'payout',
       amount: vendorBaseAmount,
       reference: `IN-${generateTxRef()}`,
-      status: 'pending', // IMPORTANT: Status is pending
+      status: 'pending',
+      gateway: 'escrow',
       description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()})`,
       order_id: order._id,
     }], { session, ordered: true });
@@ -175,6 +176,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     amount: platformFee,
     reference: `REV-${generateTxRef()}`,
     status: 'completed',
+    gateway: 'platform',
     description: `Platform Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
     order_id: order._id,
   }], { session, ordered: true });
@@ -185,6 +187,10 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
 
   order.order_status = 'completed';
   await order.save({ session });
+
+  // Credit logistics company for their shipping fee now that the order is complete
+  const { creditLogistics } = require('../services/payment/settle.service');
+  await creditLogistics(order, session);
 
   // Notifications
   const vendor = await Vendor.findById(order.vendor_id);

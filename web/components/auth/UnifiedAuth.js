@@ -1,7 +1,7 @@
 "use client";
 // Force cache bust: v2-alias-fix
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mail, Lock, User, Phone, 
@@ -38,12 +38,15 @@ export default function UnifiedAuth() {
     role: 'customer'
   });
 
-  // Pre-fill remembered email when store hydrates
+  // Pre-fill remembered email once when the store first hydrates.
+  // Using a ref flag prevents this from re-triggering if the user clears the field.
+  const prefilledRef = useRef(false);
   useEffect(() => {
-    if (hasHydrated && rememberedEmail && !formData.email) {
+    if (hasHydrated && rememberedEmail && !prefilledRef.current) {
+      prefilledRef.current = true;
       setFormData(prev => ({ ...prev, email: rememberedEmail }));
     }
-  }, [hasHydrated, rememberedEmail, formData.email]);
+  }, [hasHydrated, rememberedEmail]);
 
   const nextStep = () => {
     if (step === 'IDENTIFIER') setStep('CHALLENGE');

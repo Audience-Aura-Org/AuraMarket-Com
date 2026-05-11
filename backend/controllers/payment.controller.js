@@ -3,18 +3,16 @@ const crypto = require('crypto');
 const Transaction = require('../models/Transaction.model');
 const User = require('../models/User.model');
 const Order = require('../models/Order.model');
-const Escrow = require('../models/Escrow.model');
 const Cart = require('../models/Cart.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
-const logisticsService = require('../services/logistics.service');
-const { PAYSTACK_SECRET_KEY } = require('../config/env');
 const eversend = require('../services/eversend.service');
 const { sendNotification } = require('../utils/notifier');
 const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
-const Vendor = require('../models/Vendor.model');
-const Shipment = require('../models/Shipment.model');
-const PlatformSettings = require('../models/PlatformSettings.model');
+const { PAYSTACK_SECRET_KEY } = require('../config/env');
+// ── New unified services ─────────────────────────────────────────────────────
+const { settleOrders } = require('../services/payment/settle.service');
+const { getAvailableGateways } = require('../services/payment/gateway.registry');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAYSTACK — kept intact for existing wallet flows
@@ -104,197 +102,82 @@ const sanitizePhone = (phone, country = 'CM') => {
 };
 
 /**
- * Internal Helper: Settle orders using the user's wallet balance after a successful payment.
- * @param {string} userId
- * @param {string[]} orderIds
- * @param {object} app - Express app (for notifications)
- * @param {object} externalSession - Mongoose session (optional)
- * @param {boolean} skipBalanceCheck - Skip balance check (for sandbox/prepaid flows)
- * @param {string} webUrl - Base URL for notification links
+ * @desc    GET /api/payments/gateways
+ *          Return all enabled payment gateways for the frontend checkout UI.
+ *          Adding a new gateway requires zero frontend changes — just register it in gateway.registry.js.
+ * @access  Private
  */
-const settleOrdersInSession = async (userId, orderIds, app, externalSession = null, skipBalanceCheck = false, webUrl = '') => {
+const listGateways = async (req, res) => {
+  try {
+    const { currency } = req.query;
+    const gateways = getAvailableGateways(currency || null);
+    return res.status(200).json({ success: true, data: { gateways } });
+  } catch (err) {
+    console.error('[listGateways]', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to load payment gateways.' });
+  }
+};
+
+/**
+ * Internal Helper: Settle orders after a confirmed payment.
+ * Now delegates to settle.service — no duplicate logic here.
+ */
+const settleOrdersInSession = async (userId, orderIds, app, externalSession = null, skipBalanceCheck = false, webUrl = '', paymentGateway = 'wallet') => {
   const session = externalSession || await mongoose.startSession();
   if (!externalSession) session.startTransaction();
-
   try {
-    const user = await User.findById(userId).session(session);
-    if (!user) throw new Error('User not found.');
-
-    for (const orderId of orderIds) {
-      const order = await Order.findById(orderId).session(session);
-      if (!order || order.payment_status !== 'pending') continue;
-
-      if (!skipBalanceCheck && user.wallet_balance < order.total_amount) {
-        throw new Error(`Insufficient liquidity for order #${orderId.toString().slice(-4)}`);
-      }
-
-      if (!skipBalanceCheck || user.wallet_balance >= order.total_amount) {
-        user.wallet_balance -= order.total_amount;
-      }
-
-      order.payment_status = 'paid';
-      order.order_status = 'processing';
-      await order.save({ session });
-
-      await Transaction.create([{
-        user_id: user._id,
-        type: 'payment',
-        amount: order.total_amount,
-        reference: `SETTLE-${Date.now()}-${order._id.toString().slice(-4)}`,
-        status: 'completed',
-        description: `Automatic settlement for Order #${order._id.toString().slice(-6).toUpperCase()}`,
-        order_id: order._id,
-        gateway: 'wallet'
-      }], { session, ordered: true });
-
-      if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
-        const quartier = order.shipping_address?.quartier;
-        if (quartier) {
-          const existingShipment = await Shipment.findOne({ order_id: order._id }).session(session);
-          if (!existingShipment) {
-            await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
-          }
-        }
-      }
-      // ── VENDOR PAYOUT LOGIC ────────────────────────────────────────────────
-      // We replicate the logic from wallet.controller.js:payOrderWithWallet
-      const settings = await PlatformSettings.getSettings();
-
-      const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id) 
-        ? order.subtotal 
-        : order.total_amount;
-
-      const platformFee = (vendorBaseAmount * settings.commission_rate) / 100;
-      const vendorPayout = vendorBaseAmount - platformFee;
-
-      if (order.escrow_enabled) {
-        // Create Escrow Record (Held)
-        await Escrow.create([{
-          order_id: order._id,
-          vendor_id: order.vendor_id,
-          buyer_id: order.customer_id,
-          amount: vendorBaseAmount,
-          status: 'held'
-        }], { session, ordered: true });
-
-        // Log pending payout for Vendor
-        const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
-        await Transaction.create([{
-          user_id: vendorRecord.user_id,
-          type: 'payout',
-          amount: vendorPayout,
-          reference: `PAYOUT-PEND-${order._id.toString().slice(-6).toUpperCase()}`,
-          status: 'pending',
-          description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow)`,
-          order_id: order._id,
-          gateway: 'escrow'
-        }], { session, ordered: true });
-      } else {
-        // Direct Payout (No Escrow)
-        const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
-        const vendorUser = await User.findById(vendorRecord.user_id).session(session);
-        
-        // Transfer to Vendor
-        vendorUser.wallet_balance += vendorPayout;
-        await vendorUser.save({ session });
-
-        // Transfer Fee to Platform
-        settings.platform_wallet_balance += platformFee;
-        await settings.save({ session });
-
-        // Log completed payout for Vendor
-        await Transaction.create([{
-          user_id: vendorUser._id,
-          type: 'payout',
-          amount: vendorPayout,
-          reference: `PAYOUT-DIRECT-${order._id.toString().slice(-6).toUpperCase()}`,
-          status: 'completed',
-          description: `Direct payout for Order #${order._id.toString().slice(-6).toUpperCase()} (No Escrow)`,
-          order_id: order._id,
-          gateway: 'wallet'
-        }], { session, ordered: true });
-
-        // Log Platform Revenue
-        await Transaction.create([{
-          user_id: vendorUser._id, // Linked to vendor for trace
-          type: 'payment',
-          amount: platformFee,
-          reference: `REV-DIR-${Date.now()}`,
-          status: 'completed',
-          description: `Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
-          order_id: order._id,
-          gateway: 'platform'
-        }], { session, ordered: true });
-      }
-      // ───────────────────────────────────────────────────────────────────────
-
-      const vendor = await Vendor.findById(order.vendor_id).session(session);
-      const orderForNotify = order.toObject();
-      orderForNotify.vendor_id = vendor;
-
-      setImmediate(async () => {
-        try {
-          if (vendor) {
-            await sendNotification(app, vendor.user_id, {
-              title: 'Order Paid & Confirmed',
-              message: `Payment received for order #${order._id.toString().slice(-6).toUpperCase()} from ${user.name}.`,
-              type: 'order_status',
-              metadata: { order_id: order._id, link: '/vendor/orders' },
-              sendEmail: true,
-              orderDetails: orderForNotify,
-              role: 'vendor',
-              webUrl,
-            });
-          }
-          await sendNotification(app, user._id, {
-            title: 'Order Payment Confirmed',
-            message: `Your payment for order #${order._id.toString().slice(-6).toUpperCase()} has been verified.`,
-            type: 'order_status',
-            metadata: { order_id: order._id, link: '/orders' },
-            sendEmail: true,
-            orderDetails: orderForNotify,
-            role: 'customer',
-            webUrl,
-          });
-          if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
-            const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
-            if (logisticsFirm) {
-              await sendNotification(app, logisticsFirm.user_id, {
-                title: 'New Shipment Assigned',
-                message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
-                type: 'system_alert',
-                metadata: { order_id: order._id, link: '/logistics/dashboard' },
-                sendEmail: true,
-                role: 'logistics',
-                webUrl,
-              });
-            }
-          }
-        } catch (bgError) {
-          console.error('Settlement bg notification error:', bgError);
-        }
-      });
-    }
-
-    await user.save({ session });
-
-    // Clear user cart once all orders in the session are paid/settled
-    const cart = await Cart.findOne({ user_id: userId }).session(session);
-    if (cart) {
-      cart.items = [];
-      await cart.save({ session });
-    }
-
+    await settleOrders(userId, orderIds, session, app, skipBalanceCheck, webUrl, paymentGateway);
     if (!externalSession) await session.commitTransaction();
-    console.log(`✅ Aura settlement: orders ${orderIds.join(', ')} finalized for user ${userId}`);
+    console.log(`✅ [payment.controller] Settled ${orderIds.length} order(s) for user ${userId} via ${paymentGateway}`);
   } catch (error) {
     if (!externalSession) await session.abortTransaction();
-    console.error('Settlement Error:', error.message);
+    console.error('[settleOrdersInSession]', error.message);
     throw error;
   } finally {
     if (!externalSession) session.endSession();
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESOMB — MTN MoMo / Orange Money (Cameroon)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route   POST /api/payments/mesomb/initialize
+ * @desc    Trigger a MeSomb mobile money collection (sends USSD prompt to payer).
+ *          Can be used for checkout (order_ids) or wallet top-up (no order_ids).
+ * @access  Private
+ * @body    { amount, phone, service?, order_ids? }
+ */
+const mesombInitialize = async (req, res) => {
+  try {
+    const { amount, phone, service, order_ids = [] } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    }
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required.' });
+    }
+
+    const mesombGateway = require('../services/payment/gateways/mesomb.gateway');
+
+    const result = await mesombGateway.initialize({
+      user: req.user,
+      amount: Math.round(amount),
+      currency: 'XAF',
+      orderIds: order_ids,
+      fields: { phone, service },
+      req,
+    });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    console.error('[mesombInitialize]', err.message);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EVERSEND — No OTP. Direct collections only.
@@ -499,10 +382,16 @@ const eversendVerify = async (req, res) => {
         transaction.status = 'completed';
         transaction.gateway_response = result.data;
         await transaction.save({ session });
-        await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
-        if (transaction.order_ids && transaction.order_ids.length > 0) {
-          await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, false, getWebUrl(req));
+
+        const isCheckout = transaction.order_ids && transaction.order_ids.length > 0;
+        if (isCheckout) {
+          // Checkout: settle orders (funds came from Eversend, not wallet)
+          await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
+        } else {
+          // Pure wallet top-up: credit the user's wallet balance
+          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
         }
+
         await session.commitTransaction();
       } catch (err) {
         await session.abortTransaction();
@@ -583,10 +472,14 @@ const eversendRecheck = async (req, res) => {
           transaction.status = 'completed';
           transaction.gateway_response = result.data;
           await transaction.save({ session });
-          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
-          if (transaction.order_ids?.length > 0) {
-            await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, false, getWebUrl(req));
+
+          const isCheckout = transaction.order_ids?.length > 0;
+          if (isCheckout) {
+            await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
+          } else {
+            await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
           }
+
           await session.commitTransaction();
         } catch (err) {
           await session.abortTransaction();
@@ -634,24 +527,27 @@ const eversendWebhook = async (req, res) => {
         $or: [{ reference: data?.transactionRef }, { gateway_transaction_id: data?.transactionId }],
         gateway: 'eversend',
       });
-      // Allow recovery from both 'pending' and 'failed' (lapsed) states
       if (transaction && (transaction.status === 'pending' || transaction.status === 'failed')) {
         transaction.status = 'completed';
         transaction.gateway_response = data;
         await transaction.save();
-        await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
-        if (transaction.order_ids?.length > 0) {
+
+        const isCheckout = transaction.order_ids?.length > 0;
+        if (isCheckout) {
           const session = await mongoose.startSession();
           session.startTransaction();
           try {
-            await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, false, '');
+            await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, '', 'eversend');
             await session.commitTransaction();
           } catch (err) {
             await session.abortTransaction();
             console.error('Webhook Settlement Error:', err.message);
           } finally { session.endSession(); }
+        } else {
+          // Pure wallet top-up
+          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
         }
-        console.log(`✅ Eversend: wallet credited ${transaction.amount} for user ${transaction.user_id}`);
+        console.log(`✅ Eversend: ${isCheckout ? 'orders settled' : 'wallet credited'} ${transaction.amount} for user ${transaction.user_id}`);
       }
     }
 
@@ -768,7 +664,141 @@ const eversendPayoutBeneficiary = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MESOMB — MTN MoMo / Orange Money (Cameroon)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route   POST /api/payments/mesomb/webhook
+ * @desc    MeSomb sends a POST when a transaction is confirmed or failed.
+ *          Marks our Transaction as completed, then settles any linked orders.
+ * @access  PUBLIC (webhook — no auth header, validated by presence of applicationKey in body)
+ */
+const mesombWebhook = async (req, res) => {
+  try {
+    const data = req.body;
+    const status = (data?.status || '').toUpperCase();
+    const trxID  = data?.trxID || data?.transaction?.trxID || data?.transaction?.external_id;
+
+    console.log('[MeSomb Webhook]', { status, trxID, data: JSON.stringify(data).slice(0, 200) });
+
+    if (!trxID) {
+      return res.status(200).json({ received: true, note: 'No trxID — ignored' });
+    }
+
+    // Look up our Transaction by the trxID (which we set as our reference)
+    const transaction = await Transaction.findOne({ reference: trxID, gateway: 'mesomb' });
+    if (!transaction) {
+      return res.status(200).json({ received: true, note: 'Transaction not found — possibly already processed' });
+    }
+
+    if (transaction.status === 'completed') {
+      return res.status(200).json({ received: true, note: 'Already settled' });
+    }
+
+    if (status === 'SUCCESS' || status === 'SUCCESSFUL') {
+      transaction.status = 'completed';
+      transaction.gateway_response = data;
+      await transaction.save();
+
+      // Credit user wallet (for top-up) or settle orders (for checkout)
+      const user = await User.findById(transaction.user_id);
+      if (!user) return res.status(200).json({ received: true, note: 'User not found' });
+
+      if (transaction.order_ids?.length > 0) {
+        // Checkout settlement — mark orders as paid
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+          await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
+          await session.commitTransaction();
+        } catch (e) {
+          await session.abortTransaction();
+          console.error('[mesombWebhook] Settlement error:', e.message);
+        } finally {
+          session.endSession();
+        }
+      } else {
+        // Wallet top-up
+        user.wallet_balance += transaction.amount;
+        await user.save();
+        setImmediate(() => {
+          sendNotification(req.app, user._id, {
+            title: '💰 Wallet Topped Up',
+            message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
+            type: 'wallet_update',
+            sendEmail: true,
+          }).catch(console.error);
+        });
+      }
+    } else if (status === 'FAILED' || status === 'REJECTED') {
+      transaction.status = 'failed';
+      transaction.gateway_response = data;
+      await transaction.save();
+
+      const user = await User.findById(transaction.user_id);
+      if (user) {
+        setImmediate(() => {
+          sendNotification(req.app, user._id, {
+            title: 'Payment Failed',
+            message: 'Your mobile money payment was not approved. Please try again.',
+            type: 'wallet_update',
+          }).catch(console.error);
+        });
+      }
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('[mesombWebhook] Error:', err.message);
+    return res.status(200).json({ received: true, error: err.message });
+  }
+};
+
+/**
+ * @route   GET /api/payments/mesomb/verify/:reference
+ * @desc    Poll MeSomb transaction status by our reference.
+ * @access  Private
+ */
+const mesombVerify = async (req, res) => {
+  try {
+    const { reference } = req.params;
+    const mesombGateway = require('../services/payment/gateways/mesomb.gateway');
+    const result = await mesombGateway.verify(reference);
+
+    if (result.status === 'SUCCESSFUL') {
+      // If checkout, settle orders now (in case webhook was missed)
+      const transaction = await Transaction.findOne({ reference, gateway: 'mesomb' });
+      if (transaction && transaction.order_ids?.length > 0 && transaction.status !== 'completed') {
+        const user = await User.findById(transaction.user_id);
+        if (user) {
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
+            await session.commitTransaction();
+            transaction.status = 'completed';
+            await transaction.save();
+          } catch (e) {
+            await session.abortTransaction();
+            console.error('[mesombVerify] Settlement error:', e.message);
+          } finally {
+            session.endSession();
+          }
+        }
+      }
+    }
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    console.error('[mesombVerify]', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
+  // Gateway registry endpoint
+  listGateways,
   // Paystack
   initializePayment,
   verifyPayment,
@@ -784,5 +814,11 @@ module.exports = {
   eversendDeleteBeneficiary,
   eversendGetTransactions,
   eversendPayoutBeneficiary,
+  // MeSomb
+  mesombInitialize,
+  mesombWebhook,
+  mesombVerify,
+  // Internal
   settleOrdersInSession,
 };
+

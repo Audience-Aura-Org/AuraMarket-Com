@@ -70,9 +70,9 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
             className="relative p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:text-[var(--accent)] transition-all active:scale-95"
           >
             <MessageCircle className="size-5" />
-            {unreadCount > 0 && (
+            {unreadMessages > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-red-500 text-white text-[11px] lg:text-[12px]  font-semibold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none">
-                {unreadCount > 99 ? '99+' : unreadCount}
+                {unreadMessages > 99 ? '99+' : unreadMessages}
               </span>
             )}
           </Link>

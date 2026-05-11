@@ -75,6 +75,49 @@ function VerifyContent() {
       );
 
       stopPollingRef.current = stopFn;
+
+    } else if (gateway === 'mesomb') {
+      // MeSomb — poll our own /api/payments/mesomb/verify/:ref endpoint
+      setState('pending');
+      setMessage('A USSD prompt has been sent to your phone. Approve it to complete payment.');
+
+      let timeoutId;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 24; // 24 × 5s = 2 min
+
+      const poll = async () => {
+        try {
+          attempts++;
+          const res = await api.get(`/payments/mesomb/verify/${ref}`);
+          const { status, reason: r } = res.data?.data || {};
+
+          if (status === 'SUCCESSFUL') {
+            setState('successful');
+            setMessage('Payment confirmed! Your order is being processed.');
+            if (type === 'checkout') cartStore.clearCart();
+            return;
+          }
+          if (status === 'FAILED') {
+            setState('failed');
+            setReason(r || 'Payment was declined or expired. Please try again.');
+            setMessage('Your payment could not be processed.');
+            return;
+          }
+          // Still pending
+          if (attempts >= MAX_ATTEMPTS) {
+            setState('timeout');
+            setMessage('Verification timed out. If you approved the prompt, your payment may still arrive. Use Recheck to confirm.');
+            return;
+          }
+          timeoutId = setTimeout(poll, 5000);
+        } catch {
+          timeoutId = setTimeout(poll, 6000);
+        }
+      };
+
+      timeoutId = setTimeout(poll, 5000);
+      stopPollingRef.current = () => clearTimeout(timeoutId);
+
     } else {
       // Paystack or other — legacy redirect verify
       setState('successful');
@@ -85,13 +128,24 @@ function VerifyContent() {
     };
   }, [ref, gateway, type]);
 
+
   const handleRecheck = async () => {
     if (!ref) return;
     setRecheckLoading(true);
     setState('recheck');
     setMessage(`Re-checking payment status from ${gateway}...`);
 
-    const result = await recheckTransaction(gateway, ref);
+    let result;
+    if (gateway === 'mesomb') {
+      try {
+        const res = await api.get(`/payments/mesomb/verify/${ref}`);
+        result = res.data?.data || { status: 'PENDING' };
+      } catch {
+        result = { status: 'PENDING', message: 'Could not reach server. Try again.' };
+      }
+    } else {
+      result = await recheckTransaction(gateway, ref);
+    }
 
     setRecheckLoading(false);
     if (result.status === 'SUCCESSFUL') {

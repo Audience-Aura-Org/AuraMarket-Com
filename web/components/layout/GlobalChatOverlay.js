@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@/context/ChatContext';
-import ChatSlideOverlay from '@/components/hub/ChatSlideOverlay';
+import MessagingHub from '@/components/hub/MessagingHub';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function GlobalChatOverlay() {
@@ -20,7 +20,7 @@ export default function GlobalChatOverlay() {
             className="fixed inset-0 z-[590] bg-black/40 backdrop-blur-[2px] cursor-pointer"
           />
           
-          <ChatSlideOverlay 
+          <MessagingHub 
             vendorId={activePartnerId}
             product={contextProduct}
             initialData={initialPartnerData}
