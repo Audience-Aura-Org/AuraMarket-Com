@@ -8,18 +8,18 @@ const WEB_URL = process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.ap
 const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/icon-512.png';
 const SUPPORT_EMAIL = process.env.EMAIL_USER || 'info@audienceaura.org';
 
-// App brand colors (Darker, Premium palette)
+// App brand colors — vibrant, light, modern
 const COLORS = {
-  bgPrimary: '#ffffff',
-  bgSecondary: '#f4f4f4',
-  border: '#eeeeee',
-  textPrimary: '#111111',
-  textSecondary: '#444444',
-  accent: '#a30ba3', // Deeper Magenta
-  accentDark: '#800880', // Darker Purple
-  accentGlow: 'rgba(163, 11, 163, 0.04)', // Subtle brand tint
-  gradient: 'linear-gradient(135deg, #a30ba3 0%, #600660 100%)',
-  footerBg: '#1a051a', // Very dark purple for footer
+  bgPrimary:    '#ffffff',
+  bgSecondary:  '#fafafa',
+  border:       '#f0f0f0',
+  textPrimary:  '#1a1a2e',
+  textSecondary:'#64748b',
+  accent:       '#e91e8c',   // Vibrant pink-magenta
+  accentLight:  '#fce4f3',   // Very light pink tint
+  accentDark:   '#c0176e',   // Hover / darker
+  gradient:     'linear-gradient(135deg, #e91e8c 0%, #9b19f5 100%)',
+  footerBg:     '#1e1b2e',   // Deep navy-purple (not pitch black)
 };
 
 /* ─── Premium Email Wrapper ─── */
@@ -33,52 +33,60 @@ const wrap = (title, heading, body) => `
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: ${COLORS.bgSecondary}; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif; color: ${COLORS.textPrimary}; line-height: 1.5; font-size: 13px; padding: 0; -webkit-font-smoothing: antialiased; }
-    
-    .email-wrapper { width: 100%; padding: 20px 10px; background: ${COLORS.bgSecondary}; }
-    .email-container { max-width: 540px; width: 100%; margin: 0 auto; background: ${COLORS.bgPrimary}; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-    
-    .header { padding: 20px 24px; background: ${COLORS.gradient}; display: flex; align-items: center; gap: 10px; color: #ffffff; }
-    .header-logo { height: 28px; width: 28px; border-radius: 6px; border: 1.5px solid rgba(255,255,255,0.2); background: #ffffff; padding: 2px; object-fit: contain; }
-    .header-title { color: #ffffff; font-size: 15px; font-weight: 900; letter-spacing: -1px; margin: 0; text-transform: none; }
-    
-    .content { padding: 24px; }
-    .content h2 { font-size: 18px; color: ${COLORS.textPrimary}; margin-bottom: 14px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.1; }
-    .content p { font-size: 13px; color: ${COLORS.textSecondary}; margin-bottom: 12px; line-height: 1.6; }
-    .content strong { color: ${COLORS.textPrimary}; font-weight: 800; }
-    
-    .card { background: ${COLORS.accentGlow}; border: 1px solid rgba(163, 11, 163, 0.08); border-radius: 10px; padding: 14px; margin: 16px 0; }
-    .card-row { display: flex; justify-content: space-between; padding: 8px 0; align-items: center; }
-    .card-row:not(:last-child) { border-bottom: 1px solid rgba(163, 11, 163, 0.05); }
-    .card-label { color: ${COLORS.textSecondary}; font-weight: 900; text-transform: uppercase; font-size: 9px; letter-spacing: 0.15em; }
-    .card-value { color: ${COLORS.textPrimary}; font-weight: 800; text-align: right; font-size: 12px; letter-spacing: -0.02em; }
-    
-    .role-badge { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: ${COLORS.accentDark}; }
-    
-    .status-badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; background: #ffffff; color: ${COLORS.accentDark}; border: 1px solid rgba(163, 11, 163, 0.15); }
-    
-    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; margin: 12px 0; transition: all 0.2s ease; border: none; text-align: center; box-shadow: 0 4px 10px rgba(163, 11, 163, 0.15); }
-    .btn:hover { background: ${COLORS.accentDark}; transform: translateY(-1px); }
-    
-    .table-products { width: 100%; margin: 16px 0; border-collapse: separate; border-spacing: 0; font-size: 12px; border: 1px solid ${COLORS.border}; border-radius: 10px; overflow: hidden; }
-    .table-products thead { background: ${COLORS.bgSecondary}; }
-    .table-products th { padding: 10px; text-align: left; font-weight: 900; color: ${COLORS.textPrimary}; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid ${COLORS.border}; }
-    .table-products td { padding: 10px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textSecondary}; font-weight: 500; }
-    .table-products td.number { text-align: center; font-weight: 800; }
-    .table-products td.amount { text-align: right; font-weight: 900; color: ${COLORS.textPrimary}; letter-spacing: -0.02em; }
+    body { background: #f5f5f7; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif; color: ${COLORS.textPrimary}; line-height: 1.6; font-size: 14px; -webkit-font-smoothing: antialiased; }
+
+    .email-wrapper { width: 100%; padding: 32px 16px; background: #f5f5f7; }
+    .email-container { max-width: 560px; width: 100%; margin: 0 auto; background: ${COLORS.bgPrimary}; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+
+    .header { padding: 24px 28px; background: ${COLORS.gradient}; display: flex; align-items: center; gap: 12px; }
+    .header-logo { height: 32px; width: 32px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.15); padding: 3px; object-fit: contain; }
+    .header-title { color: #ffffff; font-size: 16px; font-weight: 700; letter-spacing: -0.5px; margin: 0; }
+
+    .content { padding: 28px; }
+    .content h2 { font-size: 20px; color: ${COLORS.textPrimary}; margin-bottom: 10px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
+    .content p { font-size: 14px; color: ${COLORS.textSecondary}; margin-bottom: 14px; line-height: 1.7; }
+    .content strong { color: ${COLORS.textPrimary}; font-weight: 600; }
+
+    .card { background: ${COLORS.accentLight}; border: 1px solid rgba(233,30,140,0.12); border-radius: 12px; padding: 4px 16px; margin: 18px 0; }
+    .card-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
+    .card-row:not(:last-child) { border-bottom: 1px solid rgba(233,30,140,0.08); }
+    .card-label { color: ${COLORS.textSecondary}; font-weight: 500; font-size: 13px; }
+    .card-value { color: ${COLORS.textPrimary}; font-weight: 600; font-size: 13px; text-align: right; }
+
+    .role-badge { font-size: 11px; font-weight: 600; color: ${COLORS.accent}; background: ${COLORS.accentLight}; padding: 2px 8px; border-radius: 20px; }
+
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-placed    { background: #e0f2fe; color: #0369a1; }
+    .badge-processing{ background: #fef9c3; color: #854d0e; }
+    .badge-shipped   { background: #e0e7ff; color: #4338ca; }
+    .badge-delivered { background: #dcfce7; color: #166534; }
+    .badge-completed { background: #dcfce7; color: #166534; }
+    .badge-pending   { background: #fef3c7; color: #92400e; }
+    .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
+    .badge-failed    { background: #fee2e2; color: #991b1b; }
+
+    .btn { display: inline-block; background: ${COLORS.gradient}; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 4px 14px rgba(233,30,140,0.3); }
+
+    .table-products { width: 100%; margin: 18px 0; border-collapse: collapse; font-size: 13px; border: 1px solid ${COLORS.border}; border-radius: 10px; overflow: hidden; }
+    .table-products thead { background: #fafafa; }
+    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: ${COLORS.textSecondary}; font-size: 12px; border-bottom: 1px solid ${COLORS.border}; }
+    .table-products td { padding: 10px 14px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textPrimary}; font-size: 13px; }
+    .table-products td.number { text-align: center; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.accent}; }
     .table-products tbody tr:last-child td { border-bottom: none; }
-    
-    .footer { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; color: #ffffff; }
-    .footer p { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(255,255,255,0.4); margin: 6px 0; }
-    .footer a { color: #ffffff; text-decoration: none; font-weight: 900; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 1px; }
-    .footer-brand { font-size: 13px; font-weight: 900; color: #ffffff; margin-bottom: 10px !important; letter-spacing: -0.8px; text-transform: none; }
-    
-    .highlight { background: ${COLORS.accentGlow}; border-left: 3px solid ${COLORS.accent}; padding: 12px; margin: 16px 0; border-radius: 0 8px 8px 0; }
-    .highlight p { margin: 0; font-size: 12.5px; color: ${COLORS.textPrimary}; font-weight: 600; }
-    
-    .qr-container { text-align: center; margin: 16px 0; padding: 14px; border: 1.5px dashed rgba(163, 11, 163, 0.15); border-radius: 12px; background: #ffffff; }
+
+    .footer { padding: 28px 24px; text-align: center; background: ${COLORS.footerBg}; }
+    .footer p { font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.45); margin: 5px 0; }
+    .footer a { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 500; }
+    .footer a:hover { color: #ffffff; }
+    .footer-brand { font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 10px !important; letter-spacing: -0.5px; }
+
+    .highlight { background: ${COLORS.accentLight}; border-left: 3px solid ${COLORS.accent}; padding: 12px 16px; margin: 18px 0; border-radius: 0 10px 10px 0; }
+    .highlight p { margin: 0; font-size: 13px; color: ${COLORS.textPrimary}; font-weight: 500; }
+
+    .qr-container { text-align: center; margin: 18px 0; padding: 16px; border: 1.5px dashed rgba(233,30,140,0.2); border-radius: 12px; background: #fafafa; }
     .qr-image { width: 100px; height: 100px; margin-bottom: 8px; border-radius: 8px; }
-    .qr-text { font-size: 10px; color: ${COLORS.textSecondary}; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; max-width: 180px; margin: 0 auto; }
+    .qr-text { font-size: 11px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
   </style>
 </head>
 <body>
@@ -184,7 +192,7 @@ const getBadgeClass = (status) => {
 };
 
 const badge = (status) => {
-  const label = status.replace(/_/g, ' ').toUpperCase();
+  const label = status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   return `<span class="status-badge ${getBadgeClass(status)}">${label}</span>`;
 };
 
@@ -257,7 +265,7 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl }) =
   };
   
   const msg = messages[status] || `Your shipment status has been updated to: ${status}.`;
-  const subject = `📦 Delivery Update — ${status.replace(/_/g, ' ').toUpperCase()}`;
+  const subject = `📦 Delivery Update — ${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`;
   const body = `
     <p>Hi <strong>${recipient.name || 'there'}</strong>,</p>
     <p>${msg}</p>
@@ -400,7 +408,7 @@ const orderStatusUpdated = ({ order, customer, qrCode, webUrl }) => {
   
   const body = `
     <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Order status updated to <strong>${status.replace(/_/g, ' ').toUpperCase()}</strong>.</p>
+    <p>Order status updated to <strong>${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong>.</p>
     
     <div class="card">
       <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
