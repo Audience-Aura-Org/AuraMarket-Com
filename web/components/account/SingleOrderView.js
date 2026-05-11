@@ -233,7 +233,7 @@ export default function SingleOrderView({ orderId, onBack }) {
         {/* Title row + actions in one line */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h1 className="text-2xl md:text-3xl font-black tracking-tighter leading-tight">
-            ORDER <span className="text-[var(--accent)]">MANIFEST</span>
+            Order <span className="text-[var(--accent)]">Manifest</span>
           </h1>
 
           {/* Invoice / Share / Trace — always visible inline */}
@@ -272,44 +272,44 @@ export default function SingleOrderView({ orderId, onBack }) {
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                <div className="space-y-2">
-                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded-md border text-[10px] lg:text-[12px]  font-semibold tracking-[0.15em] w-fit bg-${status.color}-500/10 text-${status.color}-500 border-${status.color}-500/20 capitalize`}>
+                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded-md border text-[10px] lg:text-[12px]  font-semibold tracking-[0.15em] w-fit bg-${status.color}-500/10 text-${status.color}-500 border-${status.color}-500/20`}>
                      <Signal className="size-2.5 animate-pulse" /> Telemetry Active
                   </div>
-                  <h2 className="text-2xl  font-black tracking-tighter capitalize leading-none">{status.label}</h2>
+                  <h2 className="text-2xl  font-black tracking-tighter leading-none">{status.label}</h2>
                </div>
 
                <div className="flex flex-col gap-2 min-w-[180px]">
                   {(order.order_status === 'shipped' || order.order_status === 'delivered') && !isVendor && (
-                    <button onClick={handleConfirmDelivery} className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
-                       <CheckCircle2 className="size-3.5" /> CONFIRM ARRIVAL
+                    <button onClick={handleConfirmDelivery} className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+                       <CheckCircle2 className="size-3.5" /> Confirm Arrival
                     </button>
                   )}
                   {isVendor && order.order_status === 'placed' && (
                     <button 
                       onClick={() => handleUpdateStatus('processing')}
-                      className="w-full px-8 py-3 bg-[var(--accent)] text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-[var(--accent)]/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                      className="w-full px-8 py-3 bg-[var(--accent)] text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-[var(--accent)]/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                       <Zap className="size-3.5" /> START PROCESSING
+                       <Zap className="size-3.5" /> Start Processing
                     </button>
                   )}
                   {isVendor && order.order_status === 'processing' && (
                     <button 
                       onClick={() => handleUpdateStatus('shipped')}
-                      className="w-full px-8 py-3 bg-indigo-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-indigo-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                      className="w-full px-8 py-3 bg-indigo-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-indigo-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                       <Truck className="size-3.5" /> MARK AS SHIPPED
+                       <Truck className="size-3.5" /> Mark as Shipped
                     </button>
                   )}
                   {isVendor && order.order_status === 'shipped' && (
                     <button 
                       onClick={handleVendorConfirmDelivery}
-                      className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                      className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                       <CheckCircle2 className="size-3.5" /> CONFIRM DELIVERY
+                       <CheckCircle2 className="size-3.5" /> Confirm Delivery
                     </button>
                   )}
-                  <button onClick={() => setDisputeModal(true)} className="w-full px-8 py-3 bg-[var(--bg-primary)] text-rose-500 border border-rose-500/20 rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] capitalize hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 group">
-                     <Scale className="size-3.5 group-hover:rotate-12 transition-transform" /> INTERVENTION
+                  <button onClick={() => setDisputeModal(true)} className="w-full px-8 py-3 bg-[var(--bg-primary)] text-rose-500 border border-rose-500/20 rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 group">
+                     <Scale className="size-3.5 group-hover:rotate-12 transition-transform" /> Intervention
                   </button>
                </div>
             </div>
@@ -329,7 +329,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                           }`}>
                              <s.icon className="size-3.5" />
                           </div>
-                          <span className={`text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] capitalize ${isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-20'}`}>
+                          <span className={`text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] ${isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-20'}`}>
                              {s.label}
                           </span>
                        </div>
@@ -412,9 +412,9 @@ export default function SingleOrderView({ orderId, onBack }) {
                            <button
                              onClick={() => { setReviewData({ ...reviewData, product_id: item.product_id?._id || item.product_id }); setReviewModal(true); }}
                              className="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white text-[9px] font-bold tracking-wider shadow-md shadow-[var(--accent)]/10 hover:scale-105 transition-all whitespace-nowrap"
-                           >REVIEW</button>
+                           >Review</button>
                          )}
-                         <button className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-[9px] font-bold tracking-wider hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">VERIFY</button>
+                         <button className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-[9px] font-bold tracking-wider hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">Verify</button>
                        </div>
                      </div>
                    ))}
@@ -469,7 +469,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                   <div className="flex justify-between items-center text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize"><span>Shipping</span><span className="font-mono">{(order.shipping_fee || 0).toLocaleString()}</span></div>
                </div>
                <div className="flex justify-between items-center">
-                  <span className="text-[10px] lg:text-[12px]  font-semibold text-[var(--accent)] capitalize">TOTAL</span>
+                  <span className="text-[10px] lg:text-[12px]  font-semibold text-[var(--accent)]">Total</span>
                   <h2 className="text-xl  font-black text-[var(--text-primary)] font-mono">{order.total_amount.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-30">XAF</span></h2>
                </div>
                <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] space-y-2 shadow-inner">

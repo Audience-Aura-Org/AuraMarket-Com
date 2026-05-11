@@ -209,7 +209,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 {(!product.has_variants && product.stock <= 0) ? 'Out of stock' : 'Buy now'}
               </button>
               <div className="flex items-center gap-2">
-                <button onClick={handleChat} className="h-10 px-6 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all">
+                <button onClick={handleChat} className="h-9 px-6 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all">
                   <MessageSquare className="size-4" />
                   <span>Chat</span>
                 </button>
@@ -296,7 +296,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             >
               {inStock ? 'Buy now' : 'Sold out'}
             </button>
-            <button onClick={handleChat} className="h-10 md:h-11 px-4 md:px-6 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] md:text-[13px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all shrink-0">
+            <button onClick={handleChat} className="h-8 md:h-9 px-4 md:px-6 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] md:text-[13px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all shrink-0">
               <MessageSquare className="size-4 md:size-4.5" />
               <span>Chat</span>
             </button>
