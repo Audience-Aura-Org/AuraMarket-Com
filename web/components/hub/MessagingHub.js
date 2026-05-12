@@ -149,6 +149,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const handleScroll = (e) => {
+    if (!activePartnerId) return;
     if (e.target.scrollTop === 0 && hasMore && !loadingMore) {
       const nextPage = page + 1;
       setPage(nextPage);
@@ -325,9 +326,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         }
       })}
       transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-      className={fullPage 
-        ? "flex-1 flex flex-col bg-[var(--bg-secondary)] w-full h-full overflow-hidden touch-none"
-        : "fixed inset-y-0 right-0 z-[600] flex flex-col bg-[var(--bg-secondary)] w-full md:w-[420px] shadow-2xl md:border-l md:border-[var(--glass-border)] shadow-black/50 overflow-hidden touch-none"
+      className={
+        fullPage
+          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#ece5dd] touch-manipulation'
+          : [
+              'fixed z-[600] flex min-h-0 max-h-[100dvh] flex-col overflow-hidden bg-[#ece5dd] shadow-2xl touch-manipulation',
+              'inset-0 h-[100dvh] max-h-[100dvh] w-full',
+              'pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]',
+              'md:inset-auto md:right-4 md:top-auto md:bottom-4 md:left-auto md:h-[min(82dvh,680px)] md:max-h-[82dvh] md:w-[min(420px,calc(100vw-2rem))]',
+              'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.28)]',
+            ].join(' ')
       }
     >
       {/* ── Header ── */}
@@ -340,68 +348,65 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="sticky top-0 z-30 bg-[var(--bg-primary)]/95 backdrop-blur-xl border-b border-[var(--glass-border)]"
+            className="relative z-30 shrink-0 bg-[#075e54] text-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]"
           >
-            {/* Accent bar */}
-            <div className="h-0.5 w-full bg-gradient-to-r from-[var(--accent)]/60 via-[var(--accent)] to-[var(--accent)]/30" />
-            <div className="flex items-center gap-3 px-3 py-3">
+            <div className="flex items-center gap-2 px-2 py-2 sm:gap-3 sm:px-3 sm:py-2.5">
               <button
+                type="button"
                 onClick={() => { setActivePartnerId(null); setPartnerInfo(null); setMessages([]); }}
-                className="size-9 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-all shrink-0"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full text-white/95 transition-colors hover:bg-white/10 active:bg-white/15 sm:size-10"
+                aria-label="Back to chats"
               >
-                <ArrowLeft className="size-5" />
+                <ArrowLeft className="size-[22px] sm:size-5" />
               </button>
 
-              {/* Avatar */}
               <div className="relative shrink-0">
-                <div className="size-11 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 overflow-hidden border border-[var(--accent)]/20 shadow-md">
+                <div className="size-10 overflow-hidden rounded-full bg-white/15 ring-2 ring-white/20 sm:size-11">
                   {partnerAvatar && typeof partnerAvatar === 'string'
                     ? <img src={partnerAvatar} className="size-full object-cover" alt="" />
-                    : <div className="size-full flex items-center justify-center text-base font-black text-[var(--accent)]">{partnerName[0]}</div>}
+                    : <div className="flex size-full items-center justify-center text-lg font-semibold text-white">{partnerName[0]}</div>}
                 </div>
-                <div className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[var(--bg-primary)] ${
-                  partnerInfo?.is_online ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]' : 'bg-gray-400'
+                <div className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#075e54] sm:size-3.5 ${
+                  partnerInfo?.is_online ? 'bg-[#25d366]' : 'bg-neutral-400'
                 }`} />
               </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-black text-[14px] text-[var(--text-primary)] truncate tracking-tight leading-tight capitalize">
+              <div className="min-w-0 flex-1 py-0.5">
+                <h3 className="truncate text-[16px] font-semibold leading-tight tracking-tight text-white sm:text-[17px] capitalize">
                   {isSystemWide && partnerBInfo
-                    ? <span>{partnerName} <span className="opacity-20">&</span> {partnerBInfo?.name}</span>
+                    ? <span>{partnerName} <span className="text-white/40">&</span> {partnerBInfo?.name}</span>
                     : partnerName}
                 </h3>
-                <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="mt-0.5 flex items-center gap-1.5">
                   {partnerTyping ? (
-                    <span className="flex items-center gap-1 text-[var(--accent)] text-[11px] font-bold">
+                    <span className="flex items-center gap-1.5 text-[13px] text-[#b8e5d1]">
                       <span className="flex gap-0.5">
                         {[0,1,2].map(d => (
-                          <motion.span key={d} className="inline-block size-1 rounded-full bg-[var(--accent)]"
+                          <motion.span key={d} className="inline-block size-1 rounded-full bg-[#b8e5d1]"
                             animate={{ y: [0,-3,0] }} transition={{ repeat: Infinity, duration: 0.8, delay: d * 0.15 }} />
                         ))}
                       </span>
-                      typing
+                      typing…
                     </span>
                   ) : (
-                    <p className={`text-[11px] font-semibold ${
-                      partnerInfo?.is_online ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-40'
-                    }`}>
-                      {partnerInfo?.is_online ? '● Online' : 'Offline'}
+                    <p className={`text-[13px] ${partnerInfo?.is_online ? 'text-[#25d366]' : 'text-white/55'}`}>
+                      {partnerInfo?.is_online ? 'online' : 'offline'}
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-0.5">
                 <button
+                  type="button"
                   onClick={() => { if (confirm('Delete this conversation?')) hideConversation(activePartnerId.toString()); }}
-                  className="size-9 rounded-xl flex items-center justify-center text-[var(--text-secondary)] opacity-30 hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                  className="flex size-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
+                  aria-label="Delete chat"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-[18px]" />
                 </button>
-                <button onClick={onClose} className="size-9 rounded-xl flex items-center justify-center text-[var(--text-secondary)] opacity-40 hover:opacity-100 hover:bg-[var(--bg-secondary)] transition-all">
-                  <X className="size-5" />
+                <button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full text-white/85 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15" aria-label="Close chat">
+                  <X className="size-[22px] sm:size-5" />
                 </button>
               </div>
             </div>
@@ -414,35 +419,35 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="sticky top-0 z-30"
+            className="relative z-30 shrink-0"
           >
-            <div className="bg-gradient-to-r from-[var(--accent)] to-[#c0347a] px-5 pt-3 pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-[18px] font-black text-white tracking-tight leading-none">Messages</h2>
+            <div className="bg-[#075e54] px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-[19px] font-semibold tracking-tight text-white sm:text-[20px]">Chats</h2>
                   {inbox.length > 0 && (
-                    <p className="text-[11px] font-semibold text-white/60 mt-0.5">
+                    <p className="mt-0.5 text-[13px] text-[#b8e5d1]">
                       {inbox.filter(c => c.unread_count > 0).length > 0
                         ? `${inbox.filter(c => c.unread_count > 0).length} unread`
-                        : `${inbox.length} conversation${inbox.length > 1 ? 's' : ''}`}
+                        : `${inbox.length} chat${inbox.length > 1 ? 's' : ''}`}
                     </p>
                   )}
                 </div>
-                <button onClick={onClose} className="size-8 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all">
-                  <X className="size-4" />
+                <button type="button" onClick={onClose} className="flex size-10 shrink-0 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:bg-white/15" aria-label="Close">
+                  <X className="size-[22px]" />
                 </button>
               </div>
             </div>
-            {/* Search below gradient */}
-            <div className="bg-[var(--bg-primary)] border-b border-[var(--glass-border)] px-4 py-3">
+            <div className="border-b border-black/5 bg-[#f0f2f5] px-2 py-2 sm:px-3">
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--accent)] opacity-50" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[#667781]" />
                 <input
-                  type="text"
+                  type="search"
+                  enterKeyHint="search"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search conversations..."
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-2.5 pl-10 pr-4 text-[13px] font-medium outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/20 transition-all placeholder:opacity-30"
+                  placeholder="Search"
+                  className="w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-3 text-[15px] text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
                 />
               </div>
             </div>
@@ -452,41 +457,101 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       {/* Product Context */}
       {activePartnerId && product && (
-        <div className="px-5 py-3 bg-gradient-to-r from-[var(--bg-primary)] to-[var(--bg-secondary)] border-b border-[var(--glass-border)] z-20">
-           <div className="flex items-center gap-4">
-              <div className="size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm">
+        <div className="z-20 shrink-0 border-b border-black/5 bg-[#f0f2f5] px-3 py-2 sm:px-4">
+           <div className="flex items-center gap-3">
+              <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-black/5 sm:size-12">
                  <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
               </div>
-              <div className="flex-1 min-w-0">
-                 <p className="text-[9px] font-bold text-[var(--accent)] tracking-[0.15em] mb-0.5 uppercase">Subject Payload</p>
-                 <h4 className="text-[13px] font-bold text-[var(--text-primary)] truncate tracking-tight">{product.name}</h4>
-                 <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">{(product.price || 0).toLocaleString()} XAF</p>
+              <div className="min-w-0 flex-1">
+                 <p className="text-[11px] font-medium uppercase tracking-wide text-[#667781]">Product</p>
+                 <h4 className="truncate text-[14px] font-semibold text-[#111b21]">{product.name}</h4>
+                 <p className="text-[12px] text-[#667781]">{(product.price || 0).toLocaleString()} XAF</p>
               </div>
-              <button className="size-9 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] opacity-40 hover:opacity-100 transition-opacity">
-                 <Package className="size-4" />
+              <button type="button" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-[#54656f] shadow-sm ring-1 ring-black/5 transition active:bg-[#f0f2f5]">
+                 <Package className="size-[18px]" />
               </button>
            </div>
         </div>
       )}
 
-      {/* Main Body */}
+      {/* Main Body: inbox scrolls full column; chat = messages scroll + fixed composer */}
+      {!activePartnerId ? (
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto relative custom-scrollbar"
-        style={activePartnerId ? {
-          background: 'var(--bg-secondary)',
-          backgroundImage: `radial-gradient(circle at 1px 1px, var(--glass-border) 1px, transparent 0)`,
-          backgroundSize: '24px 24px'
-        } : { background: 'var(--bg-secondary)' }}
+        className="chat-scrollbar relative min-h-0 flex-1 overflow-y-auto bg-[#f0f2f5]"
       >
-        {activePartnerId ? (
-          <div className="flex flex-col min-h-full">
-             <div className="flex-1 p-4 space-y-1">
-                {loadingMore && <div className="py-4 flex justify-center"><Loader2 className="animate-spin size-4 opacity-30" /></div>}
+          <div className="p-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:p-3">
+             <div className="space-y-px overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
+                {inboxLoading ? (
+                  <div className="flex flex-col items-center gap-4 bg-white py-20">
+                    <Loader2 className="size-8 animate-spin text-[#00a884]" />
+                    <p className="text-[13px] font-medium text-[#667781]">Loading chats…</p>
+                  </div>
+                ) : filteredInbox.length === 0 ? (
+                  <div className="bg-white px-6 py-16 text-center">
+                    <MessageCircle className="mx-auto mb-4 size-14 text-[#8696a0]" />
+                    <p className="text-[16px] font-medium text-[#111b21]">No chats yet</p>
+                    <p className="mt-2 text-[14px] leading-snug text-[#667781]">Start a conversation from a product or store.</p>
+                  </div>
+                ) : (
+                  filteredInbox.map((chat, i) => (
+                    <button
+                      key={chat._id || i}
+                      type="button"
+                      onClick={() => {
+                        setActivePartnerId(chat.partner?._id);
+                        setPartnerInfo(chat.partner);
+                        if (chat.isSystemWide) setPartnerBInfo(chat.partnerB);
+                      }}
+                      className={`flex w-full items-center gap-3 border-b border-[#f0f2f5] px-3 py-3 text-left transition-colors active:bg-[#f5f6f6] sm:gap-4 sm:px-4 ${
+                        chat.unread_count > 0 ? 'bg-[#f0fff4]' : 'bg-white hover:bg-[#f5f6f6]'
+                      }`}
+                    >
+                      <div className="relative size-[52px] shrink-0 overflow-hidden rounded-full bg-[#dfe5e7] sm:size-14">
+                         {chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo 
+                           ? <img src={chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo} className="size-full object-cover" alt="" />
+                           : <div className="flex size-full items-center justify-center text-xl font-semibold text-[#54656f]">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
+                         {chat.partner?.is_online && (
+                           <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-white bg-[#25d366]" />
+                         )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                         <div className="mb-0.5 flex items-start justify-between gap-2">
+                            <h4 className={`truncate text-[16px] capitalize ${chat.unread_count > 0 ? 'font-semibold text-[#111b21]' : 'font-medium text-[#111b21]'}`}>
+                              {chat.isSystemWide ? `${chat.partner?.name} & ${chat.partnerB?.name}` : (chat.partner?.store_name || chat.partner?.name)}
+                            </h4>
+                            <span className="shrink-0 pt-0.5 text-[12px] text-[#667781]">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
+                         </div>
+                         <div className="flex items-center justify-between gap-2">
+                            <p className={`min-w-0 flex-1 truncate text-[14px] leading-snug ${chat.unread_count > 0 ? 'font-medium text-[#111b21]' : 'text-[#667781]'}`}>
+                              {chat.snippet || 'Tap to open'}
+                            </p>
+                            {chat.unread_count > 0 && (
+                              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#25d366] text-[12px] font-semibold text-white">
+                                {chat.unread_count > 99 ? '99+' : chat.unread_count}
+                              </span>
+                            )}
+                         </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+             </div>
+          </div>
+      </div>
+      ) : (
+      <>
+      <div 
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      >
+          <div className="space-y-1 p-3 pb-4 pt-2 sm:p-4">
+                {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[#8696a0]" /></div>}
                 
                 {loading ? (
-                   <div className="flex flex-col items-center justify-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
+                   <div className="flex flex-col items-center justify-center py-24 opacity-60"><Loader2 className="size-8 animate-spin text-[#00a884]" /></div>
                 ) : (
                   messages.map((msg, i) => {
                     const prevMsg = messages[i - 1];
@@ -502,59 +567,59 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     return (
                       <div key={msg._id || i}>
                         {showDate && (
-                          <div className="flex justify-center my-6">
-                            <span className="px-3 py-1 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest shadow-sm">
+                          <div className="my-5 flex justify-center sm:my-6">
+                            <span className="rounded-lg bg-white/95 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#54656f] shadow-sm ring-1 ring-black/[0.06]">
                               {fmtDate(msg.createdAt)}
                             </span>
                           </div>
                         )}
 
-                        <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-3'}`}>
-                          <div className={`max-w-[85%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                        <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-2.5'}`}>
+                          <div className={`flex max-w-[88%] flex-col gap-1 sm:max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
                             
                             <div className={`
-                              relative group px-4 py-2.5 text-[14px] md:text-[15px] font-medium leading-relaxed
+                              px-3 py-2 text-[14.5px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)]
                               ${isOwn
-                                ? 'bg-gradient-to-br from-[var(--accent)] to-[#c0347a] text-white shadow-lg shadow-[var(--accent)]/25'
-                                : 'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--glass-border)] shadow-sm'}
+                                ? 'bg-[#dcf8c6] text-[#111b21]'
+                                : 'border border-black/[0.06] bg-white text-[#111b21]'}
                               ${rounding}
                             `}>
                               {msg.image_url && (
-                                <div className="mb-2 -mx-1 rounded-lg overflow-hidden border border-black/10">
-                                  <img src={msg.image_url} className="w-full max-h-60 object-cover" alt="Shared" />
+                                <div className="-mx-0.5 mb-2 overflow-hidden rounded-md border border-black/10">
+                                  <img src={msg.image_url} className="max-h-60 w-full object-cover" alt="Shared" />
                                 </div>
                               )}
                               
                               {msg.product_reference && !withPrev && (
-                                <button className="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 flex items-center gap-2 text-left w-full">
+                                <button type="button" className="mb-2 flex w-full items-center gap-2 rounded-lg border border-black/10 bg-black/[0.03] p-2 text-left">
                                   <img 
                                     src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0]} 
                                     className="size-10 rounded object-cover" 
                                     alt="" 
                                   />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-bold truncate">{msg.product_reference.name}</p>
-                                    <p className="text-[10px] opacity-60">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-[12px] font-semibold text-[#111b21]">{msg.product_reference.name}</p>
+                                    <p className="text-[11px] text-[#667781]">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
                                   </div>
                                 </button>
                               )}
 
-                              <p className="whitespace-pre-wrap">{msg.text}</p>
+                              {msg.text ? <p className="whitespace-pre-wrap text-[14.5px]">{msg.text}</p> : null}
                               
-                              <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'} opacity-40 text-[9px] font-bold tabular-nums`}>
-                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              <div className={`mt-1 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'} text-[11px] tabular-nums text-[#667781]`}>
+                                <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 {isOwn && (
-                                  msg.status === 'failed' ? <AlertCircle className="size-3 text-red-300" /> :
-                                  <CheckCheck className={`size-3 ${msg.read_status ? 'text-blue-300' : ''}`} />
+                                  msg.status === 'failed' ? <AlertCircle className="size-3.5 text-red-600" /> :
+                                  <CheckCheck className={`size-3.5 ${msg.read_status ? 'text-[#53bdeb]' : 'text-[#667781]'}`} />
                                 )}
                               </div>
+                            </div>
 
                               {msg.status === 'failed' && (
-                                <button onClick={() => handleSend(msg.text)} className="absolute -left-8 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:scale-110 transition-transform">
-                                  <AlertCircle className="size-5" />
+                                <button type="button" onClick={() => handleSend(msg.text)} className="flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-600 ring-1 ring-red-200 transition-colors active:bg-red-100">
+                                  <AlertCircle className="size-4 shrink-0" /> Retry send
                                 </button>
                               )}
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -562,19 +627,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   })
                 )}
                 <div ref={messagesEndRef} />
-             </div>
+          </div>
+      </div>
 
-             {/* Input Area */}
-             <div className="bg-[var(--bg-primary)]/95 backdrop-blur-xl border-t border-[var(--glass-border)] sticky bottom-0 z-20">
-                {/* Quick Replies */}
-                {messages.length < 5 && activePartnerId && !input && (
-                  <div className="flex gap-2 px-3 py-2.5 overflow-x-auto no-scrollbar border-b border-[var(--glass-border)]/60">
+      <div className="z-20 shrink-0 border-t border-[#e9edef] bg-[#f0f2f5] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
+                {messages.length < 5 && !input && (
+                  <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-[#e9edef]/80 px-2 py-2 sm:px-3">
                     {QUICK_REPLIES.map(q => (
                       <motion.button
                         key={q}
-                        whileTap={{ scale: 0.95 }}
+                        type="button"
+                        whileTap={{ scale: 0.97 }}
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSend(q); }}
-                        className="whitespace-nowrap px-4 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/25 text-[11px] font-bold text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-all shadow-sm"
+                        className="shrink-0 whitespace-nowrap rounded-full bg-white px-3 py-2 text-[13px] font-medium text-[#075e54] shadow-sm ring-1 ring-black/[0.06] transition-colors active:bg-[#e9edef]"
                       >
                         {q}
                       </motion.button>
@@ -582,109 +647,53 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   </div>
                 )}
 
-                <div className="px-3 py-3 flex items-end gap-2">
+                <div className="flex items-end gap-2 px-2 pb-2 pt-1 sm:px-3 sm:pb-3 sm:pt-2">
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
                   <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="size-10 mb-0.5 rounded-2xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all shrink-0"
+                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[#54656f] transition-colors hover:bg-[#e9edef] active:bg-[#e9edef]"
+                    aria-label="Attach image"
                   >
-                    <ImageIcon className="size-5" />
+                    <ImageIcon className="size-[22px]" />
                   </button>
 
-                  {/* Input pill */}
-                  <div className="flex-1 relative bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-[22px] flex items-end focus-within:border-[var(--accent)]/50 focus-within:ring-1 focus-within:ring-[var(--accent)]/20 transition-all overflow-hidden">
+                  <div className="relative flex min-h-[44px] flex-1 items-end overflow-hidden rounded-[24px] bg-white shadow-sm ring-1 ring-black/[0.08] focus-within:ring-2 focus-within:ring-[#00a884]/35">
                     <textarea
                       ref={inputRef}
                       value={input}
                       onChange={e => handleTyping(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                      placeholder="Type a message..."
+                      placeholder="Message"
                       rows={1}
-                      className="flex-1 bg-transparent px-4 py-3 text-[14px] font-medium outline-none resize-none max-h-28 overflow-y-auto w-full"
+                      className="max-h-28 min-h-[44px] w-full flex-1 resize-none bg-transparent px-4 py-3 text-[15px] leading-snug text-[#111b21] outline-none placeholder:text-[#8696a0]"
                       style={{ height: 'auto' }}
-                      onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                      onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 112)}px`; }}
                     />
                   </div>
 
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    type="button"
+                    whileTap={{ scale: 0.92 }}
                     onClick={() => handleSend()}
-                    disabled={!input.trim() && !sending}
-                    className="size-11 mb-0.5 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[#c0347a] text-white flex items-center justify-center shadow-lg shadow-[var(--accent)]/30 disabled:opacity-40 disabled:grayscale transition-all shrink-0"
+                    disabled={sending || !input.trim()}
+                    className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[#00a884] text-white shadow-md transition-all disabled:bg-[#8696a0] disabled:opacity-90 disabled:shadow-none"
+                    aria-label="Send"
                   >
-                    {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-4" />}
+                    {sending ? <Loader2 className="size-6 animate-spin" /> : <Send className="size-[22px]" />}
                   </motion.button>
                 </div>
              </div>
-          </div>
-        ) : (
-          <div className="p-4">
-
-             <div className="space-y-2">
-                {inboxLoading ? (
-                  <div className="py-20 flex flex-col items-center gap-4 opacity-20">
-                    <Loader2 className="animate-spin size-8" />
-                    <p className="text-[10px] font-bold tracking-widest uppercase">Connecting to Pipeline</p>
-                  </div>
-                ) : filteredInbox.length === 0 ? (
-                  <div className="py-20 text-center opacity-20">
-                    <MessageCircle className="size-16 mx-auto mb-4" />
-                    <p className="text-sm font-bold">No channels found</p>
-                    <p className="text-[10px] mt-1 font-medium italic">Start a conversation from any product or store</p>
-                  </div>
-                ) : (
-                  filteredInbox.map((chat, i) => (
-                    <button
-                      key={chat._id || i}
-                      onClick={() => {
-                        setActivePartnerId(chat.partner?._id);
-                        setPartnerInfo(chat.partner);
-                        if (chat.isSystemWide) setPartnerBInfo(chat.partnerB);
-                      }}
-                      className={`w-full p-4 rounded-[1.5rem] border transition-all flex items-center gap-4 group text-left shadow-sm active:scale-[0.98] ${
-                        chat.unread_count > 0
-                          ? 'bg-[var(--accent)]/5 border-[var(--accent)]/30 border-l-2 border-l-[var(--accent)] hover:bg-[var(--accent)]/10'
-                          : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
-                      }`}
-                    >
-                      <div className="size-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border border-[var(--glass-border)] shrink-0 shadow-sm relative">
-                         {chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo 
-                           ? <img src={chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo} className="size-full object-cover" alt="" />
-                           : <div className="size-full flex items-center justify-center text-xl font-bold text-[var(--accent)] bg-[var(--accent)]/5">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
-                         
-                         {chat.partner?.is_online && (
-                           <div className="absolute bottom-0 right-0 size-3.5 bg-emerald-500 border-2 border-[var(--bg-primary)] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                         )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                         <div className="flex justify-between items-start mb-1">
-                            <h4 className="font-bold text-[14px] text-[var(--text-primary)] truncate pr-2 capitalize">
-                              {chat.isSystemWide ? `${chat.partner?.name} & ${chat.partnerB?.name}` : (chat.partner?.store_name || chat.partner?.name)}
-                            </h4>
-                            <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 whitespace-nowrap">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
-                         </div>
-                         <div className="flex items-center justify-between gap-2">
-                            <p className="text-[13px] text-[var(--text-secondary)] truncate opacity-60 font-medium flex-1">
-                              {chat.snippet || 'Click to open conversation'}
-                            </p>
-                            {chat.unread_count > 0 && (
-                              <div className="px-2 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold shadow-lg shadow-[var(--accent)]/20">
-                                {chat.unread_count}
-                              </div>
-                            )}
-                         </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-             </div>
-          </div>
-        )}
-      </div>
+      </>
+      )}
 
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        .chat-bg-pattern {
+          background-color: #ece5dd;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='%23000' fill-opacity='0.035'%3E%3Cpath d='M40 36c8-14 22-24 38-24 24 0 44 20 44 44 0 22-18 40-40 40H36c-13 0-24-11-24-24 0-15 12-28 28-36z'/%3E%3Cpath d='M188 210c10-18 28-30 48-30 32 0 58 26 58 58 0 28-22 52-50 52h-52c-17 0-32-14-32-32 0-20 16-38 28-48z'/%3E%3C/g%3E%3C/svg%3E");
+        }
+        .chat-scrollbar::-webkit-scrollbar { width: 5px; }
+        .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 10px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>

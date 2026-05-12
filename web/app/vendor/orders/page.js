@@ -109,7 +109,7 @@ export default function VendorOrdersPage() {
   const handleUpdateStatus = async (orderId, newStatus) => {
      setUpdatingId(orderId);
      try {
-        const res = await api.patch(`/vendors/orders/${orderId}/status`, { status: newStatus });
+        const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
         if (res.data.success) {
            setOrders(prev => prev.map(o => o._id === orderId ? { ...o, order_status: newStatus } : o));
            toast.success(`Pipeline updated: ${newStatus.toUpperCase()}`);
@@ -160,7 +160,7 @@ export default function VendorOrdersPage() {
   if (user?.role !== 'vendor' || !user.onboarded) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
+    <div className="flex min-h-0 flex-1 flex-col bg-[var(--bg-primary)]">
       {/* Surgical Header */}
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
         <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
@@ -226,14 +226,10 @@ export default function VendorOrdersPage() {
         </div>
       </header>
 
-      <div className={viewingOrderId ? "w-full" : "p-4 md:p-10 space-y-8 pb-40"}>
+      <div className={viewingOrderId ? "flex min-h-0 w-full flex-1 flex-col" : "p-4 md:p-10 space-y-8 pb-40"}>
          {viewingOrderId ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 p-4 md:p-10 pb-40">
-               <SingleOrderView 
-                  orderId={viewingOrderId} 
-                  onBack={handleBack} 
-                  isAdmin={user?.role === 'admin'}
-               />
+            <div className="flex min-h-0 flex-1 flex-col px-3 pb-28 pt-1 animate-in fade-in slide-in-from-bottom-3 duration-500 xs:px-4 sm:px-6 md:px-10 md:pb-40 md:pt-6">
+               <SingleOrderView orderId={viewingOrderId} onBack={handleBack} />
             </div>
          ) : (
             <>

@@ -18,7 +18,7 @@ export default function DashboardLayout({ children, role, hideSidebar = false, h
   if (!mounted) {
     return (
       <div className="flex flex-col min-h-screen bg-[var(--bg-secondary)]">
-        <main className="flex-1 w-full">{children}</main>
+        <main className="flex w-full min-h-0 flex-1 flex-col">{children}</main>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export default function DashboardLayout({ children, role, hideSidebar = false, h
           />
         )}
         
-        <main className="flex-1 relative z-10 w-full pb-24 lg:pb-8">
+        <main className="relative z-10 flex min-h-0 w-full flex-1 flex-col pb-24 lg:pb-8">
           {!hideSidebar && <Breadcrumbs role={role} />}
           {children}
         </main>

@@ -484,7 +484,11 @@ const updateOrderStatus = async (req, res, next) => {
     }
 
     // ── GUARD: First to Launch Wins (Authority Handover) ──
-    if (req.user.role === 'vendor' && order.shipping_method === 'logistics_partner') {
+    // Applies to every logistics-backed order (single checkout or cart-split / "group" orders are separate Order docs each).
+    const orderUsesLogistics =
+      order.shipping_method === 'logistics_partner' || !!order.logistics_company_id;
+
+    if (req.user.role === 'vendor' && orderUsesLogistics) {
       const Shipment = require('../models/Shipment.model');
       const activeShipment = await Shipment.findOne({ 
         order_id: order._id, 

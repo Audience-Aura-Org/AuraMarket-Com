@@ -274,26 +274,37 @@ export default function HubContent() {
                     exit={{ opacity: 0, x: 10 }}
                     className="space-y-3"
                   >
-                     {/* Search */}
-                     <div className="relative mt-4 mb-2">
-                       <input
-                         type="text"
-                         value={searchTerm}
-                         onChange={e => setSearchTerm(e.target.value)}
-                         placeholder="Search chats..."
-                         className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-full py-2 pl-4 pr-12 text-xs focus:ring-1 focus:ring-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
-                       />
-                       <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full shadow-md hover:opacity-90 transition-all flex items-center justify-center  font-bold">
-                         <Search className="size-3" />
-                       </button>
+                     <div className="overflow-hidden rounded-xl bg-[#075e54] text-white shadow-md">
+                       <div className="px-4 pb-3 pt-4">
+                         <h2 className="text-lg font-semibold tracking-tight">Chats</h2>
+                         <p className="mt-0.5 text-[13px] text-[#b8e5d1]">
+                           {filteredInbox.length} conversation{filteredInbox.length !== 1 ? 's' : ''}
+                         </p>
+                       </div>
+                       <div className="bg-[#f0f2f5] px-3 pb-3 pt-0">
+                         <div className="relative">
+                           <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[#667781]" />
+                           <input
+                             type="search"
+                             value={searchTerm}
+                             onChange={e => setSearchTerm(e.target.value)}
+                             placeholder="Search"
+                             className="w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-3 text-[15px] text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
+                           />
+                         </div>
+                       </div>
                      </div>
-                     <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40 mb-2 ml-2">Messages & Followed</p>
+                     <p className="mb-2 ml-1 mt-4 text-[11px] font-semibold uppercase tracking-wide text-[#667781]">Messages &amp; followed</p>
                      {loadingInbox ? (
                         <div className="flex flex-col items-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
                      ) : filteredInbox.length === 0 ? (
                         <EmptyPlaceholder icon={MessageCircle} text="No messages yet. Follow vendors to chat!" />
                      ) : (
-                        filteredInbox.map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)
+                        <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
+                          <div className="divide-y divide-[#f0f2f5]">
+                            {filteredInbox.map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}
+                          </div>
+                        </div>
                      )}
                   </motion.div>
                ) : (
@@ -507,40 +518,54 @@ export default function HubContent() {
           
           {/* TAB: CHATS */}
           {activeTab === 'chats' && (
-            <div className="max-w-6xl mx-auto p-6 lg:px-12">
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Messages Section */}
-                  <div className="space-y-4">
-                     <div className="flex items-center justify-between px-2">
-                        <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40">Operational Dialogues</p>
-                        <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="mx-auto max-w-6xl p-6 lg:px-12">
+               <div className="mb-6 overflow-hidden rounded-2xl bg-[#075e54] text-white shadow-lg md:rounded-xl">
+                  <div className="flex flex-wrap items-end justify-between gap-4 px-6 pb-4 pt-6">
+                     <div>
+                        <h2 className="text-2xl font-semibold tracking-tight">Chats</h2>
+                        <p className="mt-1 text-[14px] text-[#b8e5d1]">Same layout as messages — search and open a thread</p>
                      </div>
-                     <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-2 min-h-[400px] shadow-sm backdrop-blur-xl">
+                     <Heart className="size-6 shrink-0 text-[#b8e5d1] opacity-90" />
+                  </div>
+                  <div className="bg-[#f0f2f5] px-4 pb-4 pt-1">
+                     <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[#667781]" />
+                        <input
+                          type="search"
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          placeholder="Search"
+                          className="w-full rounded-lg border-0 bg-white py-3 pl-10 pr-4 text-[15px] text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <div className="space-y-2">
+                     <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[#667781]">Messages</p>
+                     <div className="min-h-[320px] overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
                         {loadingInbox ? (
-                          <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[var(--accent)]" /></div>
+                          <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-[#00a884]" /></div>
                         ) : filteredInbox.filter(c => !c.isFollowed).length === 0 ? (
-                          <EmptyPlaceholder icon={MessageCircle} text="No active frequency found." />
+                          <EmptyPlaceholder icon={MessageCircle} text="No conversations yet." />
                         ) : (
-                          <div className="space-y-1">
+                          <div className="divide-y divide-[#f0f2f5]">
                              {filteredInbox.filter(c => !c.isFollowed).map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}
                           </div>
                         )}
                      </div>
                   </div>
 
-                  {/* Followed Section */}
-                  <div className="space-y-4">
-                     <div className="flex items-center justify-between px-2">
-                        <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40">Followed Vendors</p>
-                        <Heart className="size-3.5 text-[var(--accent)] fill-[var(--accent)]" />
-                     </div>
-                     <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-3 min-h-[400px] shadow-sm backdrop-blur-xl">
+                  <div className="space-y-2">
+                     <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[#667781]">Followed vendors</p>
+                     <div className="min-h-[320px] overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
                         {loadingInbox ? (
-                          <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[var(--accent)]" /></div>
+                          <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-[#00a884]" /></div>
                         ) : filteredInbox.filter(c => c.isFollowed).length === 0 ? (
                           <EmptyPlaceholder icon={Users} text="Follow vendors to see them here." />
                         ) : (
-                          <div className="space-y-1">
+                          <div className="divide-y divide-[#f0f2f5]">
                              {filteredInbox.filter(c => c.isFollowed).map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}
                           </div>
                         )}
@@ -659,42 +684,53 @@ function ChatLink({ chat }) {
   const partner = chat.partner;
   const partnerId = partner?._id || partner;
   const partnerName = partner?.name || partner?.store_name || 'Unknown';
-  const avatar = partner?.avatar || partner?.branding?.logo || partner?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${partnerName}&backgroundColor=var(--accent)`;
-  
+  const avatar = partner?.avatar || partner?.branding?.logo || partner?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerName)}&backgroundColor=ece5dd`;
+  const unreadCount = typeof chat.unread_count === 'number' ? chat.unread_count : (!chat.read_status && chat.snippet ? 1 : 0);
+
   const handleClick = () => {
-    if (partnerId) router.push(`/messages?vendorId=${partnerId}`);
+    if (partnerId) router.push(`/chat?vendorId=${partnerId}`);
   };
 
   return (
     <button
+      type="button"
       onClick={handleClick}
-      className={`w-full flex items-center gap-3 p-3 rounded-[1.5rem] hover:bg-[var(--bg-secondary)] transition-all group text-left ${chat.isFollowed ? 'border border-dashed border-[var(--glass-border)]' : ''}`}
+      className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors active:bg-[#f5f6f6] sm:gap-4 sm:px-4 ${
+        unreadCount > 0 ? 'bg-[#f0fff4]' : 'bg-white hover:bg-[#f5f6f6]'
+      }`}
     >
       <div className="relative shrink-0">
-        <div className="size-11 rounded-full overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
-          <img src={avatar} className="size-full object-cover" alt={partnerName} />
+        <div className="size-[52px] overflow-hidden rounded-full bg-[#dfe5e7] ring-1 ring-black/[0.06] sm:size-14">
+          <img src={avatar} className="size-full object-cover" alt="" />
         </div>
-        {!chat.read_status && (
-          <div className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)]" />
+        {partner?.is_online && (
+          <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-white bg-[#25d366]" />
         )}
         {chat.isFollowed && (
-          <div className="absolute -bottom-1 -right-1 size-5 rounded-full bg-[var(--accent)] border-2 border-[var(--bg-primary)] flex items-center justify-center">
-            <Heart className="size-2.5 text-white fill-white" />
+          <div className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full border-2 border-white bg-[#00a884] shadow-sm">
+            <Heart className="size-3 fill-white text-white" />
           </div>
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-0.5">
-          <p className={`text-xs truncate ${!chat.read_status ? ' font-bold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
+      <div className="min-w-0 flex-1">
+        <div className="mb-0.5 flex items-start justify-between gap-2">
+          <p className={`truncate text-[16px] capitalize ${unreadCount > 0 ? 'font-semibold text-[#111b21]' : 'font-medium text-[#111b21]'}`}>
             {partnerName}
           </p>
-          <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]/60 shrink-0">
-            {chat.isFollowed ? 'Followed' : formatTime(chat.date)}
+          <span className="shrink-0 pt-0.5 text-[12px] text-[#667781]">
+            {chat.isFollowed ? 'Following' : formatTime(chat.date)}
           </span>
         </div>
-        <p className={`text-[11px] lg:text-[12px] truncate ${chat.isFollowed ? 'text-[var(--accent)] font-medium' : (!chat.read_status ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]')}`}>
-          {chat.snippet}
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className={`min-w-0 flex-1 truncate text-[14px] leading-snug ${unreadCount > 0 ? 'font-medium text-[#111b21]' : 'text-[#667781]'}`}>
+            {chat.snippet || 'Tap to chat'}
+          </p>
+          {unreadCount > 0 && (
+            <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#25d366] text-[12px] font-semibold text-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );
