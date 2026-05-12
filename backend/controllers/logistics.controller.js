@@ -182,7 +182,6 @@ const modifyShipmentStatus = async (req, res, next) => {
     await shipment.save({ session });
 
     // ── Sync Order Status ──────────────────────────────────────────────
-    const order = await Order.findById(shipment.order_id).session(session);
     let orderCompleted = false;
 
     if (status === 'delivered') {
