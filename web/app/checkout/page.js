@@ -284,6 +284,13 @@ function CheckoutContent() {
       toast.error('Please enter your Mobile Money number.');
       return;
     }
+
+    // MANDATORY LOGISTICS VALIDATION
+    if (!formData.logistics_company_id || !formData.quartier) {
+      toast.error('Logistics Critical: Please select a logistics partner and delivery zone to calculate shipment fees.');
+      return;
+    }
+    
     setBlockReason(null);
 
     setLoading(true);
@@ -1001,15 +1008,15 @@ function CheckoutContent() {
 
                 {step === 999 && (
                  <div className="space-y-6">
-
-
-
-
                    <button 
-                    onClick={handlePlaceOrder}
-                    disabled={loading}
-                    className="w-full h-20 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-semibold text-[11px] lg:text-[12px] tracking-[0.4em]  shadow-3xl hover:bg-[var(--accent)] hover:text-white transition-all duration-500 flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
+                     onClick={handlePlaceOrder}
+                     disabled={loading || !formData.logistics_company_id}
+                     className={`w-full h-20 rounded-3xl font-semibold text-[11px] lg:text-[12px] tracking-[0.4em] shadow-3xl transition-all duration-500 flex items-center justify-center gap-4 group ${
+                        !formData.logistics_company_id 
+                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed grayscale' 
+                          : 'bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--accent)] hover:text-white'
+                     } disabled:opacity-50`}
+                    >
                      {loading ? (
                        <span className="flex items-center gap-3">
                          <Loader2 className="size-5 animate-spin" /> 

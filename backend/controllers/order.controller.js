@@ -140,6 +140,14 @@ const createOrder = async (req, res, next) => {
       escrow_enabled 
     } = req.body;
 
+    // MANDATORY LOGISTICS: Block purchase without logistics partner
+    if (shipping_method !== 'logistics_partner' || !logistics_company_id || !delivery_quartier) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'A logistics partner and delivery zone must be selected for shipment fees.' 
+      });
+    }
+
     let shipping_fee = 0;
     if (shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
       const firms = await logisticsService.getCompatibleFirms(delivery_quartier, [vendor_id]);
