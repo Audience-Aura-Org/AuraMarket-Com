@@ -16,7 +16,7 @@ const VENDOR_NAV = [
   { icon: 'shopping_cart',            label: 'Orders',           href: '/vendor/orders',    badge: 'orders' },
   { icon: 'star_rate',                label: 'Client Ratings',   href: '/vendor/ratings' },
   { icon: 'gavel',                    label: 'Disputes',         href: '/vendor/disputes' },
-  { icon: 'chat',                     label: 'Messages',         href: '/messages',         badge: 'messages' },
+  { icon: 'chat',                     label: 'Messages',         href: '/chat',             badge: 'messages' },
   { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/vendor/wallet' },
   { icon: 'analytics',                label: 'Analytics',        href: '/vendor/analytics' },
 ];
@@ -28,7 +28,7 @@ const ADMIN_NAV = [
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
   { icon: 'inventory',      label: 'Products',         href: '/admin/products' },
   { icon: 'receipt_long',   label: 'Orders',           href: '/admin/orders',      badge: 'orders' },
-  { icon: 'chat',           label: 'Messages',         href: '/messages',          badge: 'messages' },
+  { icon: 'chat',           label: 'Messages',         href: '/chat',              badge: 'messages' },
   { icon: 'forum',          label: 'System Comms',     href: '/admin/messages' },
   { icon: 'how_to_reg',     label: 'Vendor KYC',       href: '/admin/approvals' },
   { icon: 'gavel',          label: 'Disputes',         href: '/admin/disputes' },
@@ -49,7 +49,7 @@ const CUSTOMER_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/discovery?tab=discover' },
   { icon: 'shopping_bag',             label: 'Orders',           href: '/profile?tab=orders' },
   { icon: 'favorite',                 label: 'Wishlist',         href: '/wishlist' },
-  { icon: 'chat',                     label: 'Messages',         href: '/messages',         badge: 'messages' },
+  { icon: 'chat',                     label: 'Messages',         href: '/chat',             badge: 'messages' },
   { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
   { icon: 'person',                   label: 'Profile',          href: '/profile?tab=general' },
 ];
@@ -67,7 +67,7 @@ const LOGISTICS_NAV = [
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
   { icon: 'payments',            label: 'Route Pricing',href: '/logistics/pricing' },
   { icon: 'location_on',         label: 'Live Tracking',href: '/logistics/tracking' },
-  { icon: 'chat',                label: 'Messages',     href: '/messages',            badge: 'messages' },
+  { icon: 'chat',                label: 'Messages',     href: '/logistics/messages', badge: 'messages' },
   { icon: 'hub',                 label: 'Relay Nodes',  href: '/logistics/nodes' },
   { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
 ];
@@ -111,7 +111,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
 
   const { unreadCount, unreadMessages } = useNotifications();
-  const { openChat } = useChat();
+  const { openChat, isOpen: chatOverlayOpen } = useChat();
 
   const handleLogout = () => {
     logout();
@@ -181,13 +181,27 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
             const itemTab = item.href.includes('tab=') ? item.href.split('tab=')[1] : null;
             const isTabActive = item.href.startsWith('/profile') && pathname === '/profile' && currentTab === itemTab;
-            const isRegularActive = !item.href.startsWith('/profile') && (pathname === item.href || pathname?.startsWith(item.href + '/'));
+            const isRegularActive =
+              !item.href.startsWith('/profile') &&
+              (pathname === item.href ||
+                pathname?.startsWith(item.href + '/') ||
+                (item.href === '/chat' && pathname === '/messages'));
             
-            const active = item.href.includes('tab=') ? isTabActive : isRegularActive;
+            const isMessages = item.label === 'Messages';
+            const isSystemComms = item.label === 'System Comms';
+            const logisticsMessagesLink = role === 'logistics' && isMessages;
+            const messagesActive =
+              !logisticsMessagesLink && isMessages && chatOverlayOpen;
+            const messagesHubActive =
+              logisticsMessagesLink && pathname === '/logistics/messages';
+            const active = item.href.includes('tab=')
+              ? isTabActive
+              : messagesActive || messagesHubActive || isRegularActive;
 
             const badge = getBadge(item);
-            const isChat = item.label === 'Messages' || item.label === 'System Comms';
-            const Comp = isChat ? 'button' : Link;
+            const isChatTrigger =
+              isSystemComms || (isMessages && role !== 'logistics');
+            const Comp = isChatTrigger ? 'button' : Link;
 
             return (
               <div key={item.href + item.label}>
@@ -197,14 +211,18 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                   </div>
                 )}
                 <Comp
-                  href={isChat ? undefined : item.href}
+                  type={isChatTrigger ? 'button' : undefined}
+                  href={isChatTrigger ? undefined : item.href}
                   onClick={(e) => { 
-                    if (isChat) {
+                    if (isMessages && role !== 'logistics') {
                       e.preventDefault();
-                      const isGlobal = item.label === 'System Comms';
-                      openChat(null, null, null, isGlobal);
+                      openChat(null, null, null, false);
                     }
-                    if(window.innerWidth < 1024) onClose(); 
+                    if (isSystemComms) {
+                      e.preventDefault();
+                      openChat(null, null, null, true);
+                    }
+                    if (window.innerWidth < 1024) onClose(); 
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all group text-left ${
                     active

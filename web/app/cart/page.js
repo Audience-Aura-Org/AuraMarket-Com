@@ -11,9 +11,11 @@ import api from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { cartStore } from '@/services/cartStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useChat } from '@/context/ChatContext';
 
 export default function CartPage() {
   const router = useRouter();
+  const { openChat } = useChat();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
@@ -144,11 +146,28 @@ export default function CartPage() {
                     <div className="flex justify-between items-start mb-1 gap-2">
                        <h3 className="text-sm sm:text-lg  font-bold text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
                        <div className="flex gap-2">
-                         <Link href={`/messages?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm" title="Message vendor">
+                         <button
+                           type="button"
+                           onClick={() => {
+                             const pid = item.id || item.productId;
+                             const productRef =
+                               pid != null
+                                 ? {
+                                     _id: pid,
+                                     name: item.name,
+                                     price: item.price,
+                                     images: item.image ? [{ url: item.image }] : [],
+                                   }
+                                 : null;
+                             openChat(item.vendor_id || null, productRef, null, false);
+                           }}
+                           className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm"
+                           title="Message vendor"
+                         >
                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
                              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v7.5A2.25 2.25 0 0 1 19.5 16.5h-7.818a.75.75 0 0 0-.53.22l-3.53 3.53A.75.75 0 0 1 6 19.5v-3a.75.75 0 0 0-.75-.75H4.5A2.25 2.25 0 0 1 2.25 13.5v-7.5A2.25 2.25 0 0 1 4.5 3.75h15A2.25 2.25 0 0 1 21.75 6.75Z" />
                            </svg>
-                         </Link>
+                         </button>
                          <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
                        </div>
                     </div>

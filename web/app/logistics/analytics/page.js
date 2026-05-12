@@ -85,9 +85,40 @@ export default function LogisticsAnalyticsPage() {
   if (user?.role !== 'logistics') return null;
 
   return (
-    <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pb-20">
-      {/* Header */}
-      <div className="hidden md:block px-4 md:px-8 lg:px-8 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-50">
+    <div className="flex w-full min-w-0 flex-1 flex-col bg-[var(--bg-primary)] pb-[max(5.5rem,env(safe-area-inset-bottom,1.25rem))] text-[var(--text-primary)]">
+      {/* Mobile header */}
+      <div className="sticky top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/90 px-3 py-3 backdrop-blur-xl md:hidden">
+        <div className="mx-auto flex max-w-[1600px] min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10">
+              <BarChart3 className="size-5 text-[var(--accent)]" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-balance text-base font-bold tracking-tight">Logistics Intelligence</h1>
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Analytics</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-1.5">
+            {['7', '30', '90'].map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setRange(t)}
+                className={`touch-manipulation rounded-full px-3 py-2 text-[10px] font-semibold tracking-tight transition-all ${
+                  range === t
+                    ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20'
+                    : 'border border-[var(--glass-border)] text-[var(--text-secondary)] active:bg-white/5'
+                }`}
+              >
+                {t}D
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop header */}
+      <div className="sticky top-0 z-30 hidden border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-6 backdrop-blur-xl md:block md:px-8 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20 shadow-sm transition-transform hover:rotate-3">
@@ -102,6 +133,7 @@ export default function LogisticsAnalyticsPage() {
           <div className="flex gap-2">
             {['7', '30', '90'].map(t => (
               <button
+                type="button"
                 key={t}
                 onClick={() => setRange(t)}
                 className={`px-5 py-2 rounded-full text-[11px] lg:text-[12px]  font-semibold  transition-all tracking-tight ${
@@ -115,31 +147,31 @@ export default function LogisticsAnalyticsPage() {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-8">
+      <div className="mx-auto max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-4 sm:py-6 md:p-8">
         
         {/* Shipment Flux Histogram */}
-        <section className="relative p-8 rounded-[2rem] bg-[var(--bg-secondary)]/10 border border-[var(--glass-border)]">
-          <div className="flex items-center justify-between mb-12">
+        <section className="relative rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-4 sm:rounded-[2rem] sm:p-6 md:p-8">
+          <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-xl  font-bold">Shipment Flux</h3>
-              <p className="text-xs text-[var(--text-secondary)] opacity-60  font-bold tracking-tight mt-1">Daily Volume Trends</p>
+              <h3 className="text-lg font-bold sm:text-xl">Shipment Flux</h3>
+              <p className="mt-1 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 sm:text-xs">Daily Volume Trends</p>
             </div>
             <div className="flex gap-4">
-               <div className="flex flex-col items-end">
-                  <span className="text-[11px] lg:text-[12px]  font-semibold opacity-30 ">Peak Pulse</span>
-                  <span className="text-sm  font-bold text-emerald-500">Normal Range</span>
+               <div className="flex flex-col items-start sm:items-end">
+                  <span className="text-[10px] font-semibold opacity-30 sm:text-[11px]">Peak Pulse</span>
+                  <span className="text-xs font-bold text-emerald-500 sm:text-sm">Normal Range</span>
                </div>
             </div>
           </div>
 
-          <div className="relative h-48 flex items-end gap-1.5 px-2">
+          <div className="relative flex h-40 items-end gap-1 px-1 sm:h-48 sm:gap-1.5 sm:px-2">
             {histogramData.map((d, i) => (
               <motion.div
                 key={i}
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: `${Math.max(8, d.intensity)}%`, opacity: 1 }}
                 transition={{ delay: i * 0.015, duration: 0.6 }}
-                className="group relative flex-1 min-w-[6px] rounded-t-md"
+                className="group relative flex min-w-[5px] flex-1 touch-manipulation rounded-t-md"
                 onMouseEnter={() => setHoveredBlock(d)}
                 onMouseLeave={() => setHoveredBlock(null)}
               >
@@ -175,7 +207,7 @@ export default function LogisticsAnalyticsPage() {
         </section>
 
         {/* Intelligence Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           {[
             { label: 'Network Health', value: networkStatus, sub: `${deliverySuccess}% Success`, icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
             { label: 'Active Manifests', value: activeShipments, sub: 'In pipeline', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
@@ -185,22 +217,22 @@ export default function LogisticsAnalyticsPage() {
             <motion.div
               key={i}
               whileHover={{ scale: 1.02 }}
-              className="p-6 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] group cursor-default shadow-sm hover:shadow-xl transition-all"
+              className="cursor-default rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm transition-all hover:shadow-xl sm:p-6 md:rounded-[2rem] md:p-6"
             >
               <div className={`p-3 rounded-2xl ${stat.bg} w-fit mb-4 group-hover:scale-110 transition-transform shadow-inner`}>
                 <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-              <h4 className="text-3xl  font-bold tracking-tight mb-1">{stat.value}</h4>
+              <h4 className="mb-1 text-2xl font-bold tracking-tight sm:text-3xl">{stat.value}</h4>
               <p className="text-[11px] lg:text-[12px]  font-semibold opacity-40 ">{stat.sub}</p>
             </motion.div>
           ))}
         </div>
 
         {/* Regional Efficiency */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          <section className="p-8 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm">
-            <div className="flex items-center justify-between mb-8">
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+          <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:rounded-[2rem] sm:p-6 md:p-8">
+            <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-lg  font-bold">Regional Efficiency</h3>
                 <p className="text-xs text-[var(--text-secondary)] opacity-60">Transit Time Accuracy</p>
@@ -232,7 +264,7 @@ export default function LogisticsAnalyticsPage() {
             </div>
           </section>
 
-          <section className="p-8 rounded-[2rem] bg-[var(--bg-secondary)]/10 border border-[var(--glass-border)] flex flex-col justify-center items-center text-center shadow-sm">
+          <section className="flex flex-col items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-6 text-center shadow-sm sm:rounded-[2rem] sm:p-8 md:p-8">
             <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-6">
               <Zap className="w-8 h-8 text-[var(--accent)]" />
             </div>
@@ -240,7 +272,7 @@ export default function LogisticsAnalyticsPage() {
             <p className="text-sm text-[var(--text-secondary)] opacity-60 mb-8 max-w-[280px]">
               Regional load in <span className="text-[var(--text-primary)]  font-bold">Douala</span> is peaking. Reallocate assets to Zone 04.
             </p>
-            <button className="px-8 py-3 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 active:scale-95">
+            <button type="button" className="min-h-11 touch-manipulation rounded-full bg-[var(--text-primary)] px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-[var(--bg-primary)] shadow-xl shadow-[var(--accent)]/10 transition-all hover:bg-[var(--accent)] hover:text-white active:scale-95 sm:px-8 sm:tracking-[0.2em]">
               Execute Rebalance
             </button>
           </section>

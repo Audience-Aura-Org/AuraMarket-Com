@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
 
 export default function MobileHeader({ isOpen, toggleSidebar }) {
   const { theme } = useTheme();
   const { user } = useAuthStore();
+  const { openChat, isOpen: chatOverlayOpen } = useChat();
   const { unreadCount, unreadMessages } = useNotifications();
   const [mounted, setMounted] = useState(false);
 
@@ -65,9 +67,11 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
 
         {/* Messages */}
         {user && (
-          <Link
-            href="/chat"
-            className="relative p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:text-[var(--accent)] transition-all active:scale-95"
+          <button
+            type="button"
+            onClick={() => openChat(null, null, null, false)}
+            aria-label="Messages"
+            className={`relative p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--nav-text)] hover:text-[var(--accent)] transition-all active:scale-95 ${chatOverlayOpen ? 'ring-1 ring-[var(--accent)]/35' : ''}`}
           >
             <MessageCircle className="size-5" />
             {unreadMessages > 0 && (
@@ -75,7 +79,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
                 {unreadMessages > 99 ? '99+' : unreadMessages}
               </span>
             )}
-          </Link>
+          </button>
         )}
 
         {/* User Profile / Logo */}

@@ -1,42 +1,120 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { 
-  Loader2, Truck, Search, RefreshCw, 
-  CheckCircle2, AlertCircle, Clock, Package,
-  MapPin, User
+import {
+  Loader2,
+  Truck,
+  Cuboid,
+  Search,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Package,
+  MapPin,
+  User,
+  ChevronRight,
+  ChevronLeft,
+  LayoutDashboard,
+  Activity,
+  LineChart,
+  ArrowRight,
+  Calendar,
+  Wallet,
+  TrendingUp,
 } from "lucide-react";
 import api from "@/services/api";
+import { useAuthStore } from "@/hooks/useAuth";
 import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
-import Pagination from '@/components/common/Pagination';
-import StatCard from '@/components/layout/StatCard';
 
-const STATUS_ICONS = {
-  pending:          { icon: Clock,        bg: 'bg-amber-500/10',   color: 'text-amber-500',   label: 'PENDING' },
-  assigned:         { icon: Package,      bg: 'bg-purple-500/10',  color: 'text-purple-500',  label: 'ASSIGNED' },
-  picked_up:        { icon: Package,      bg: 'bg-blue-500/10',    color: 'text-blue-500',    label: 'PICKED UP' },
-  in_transit:       { icon: Truck,        bg: 'bg-indigo-500/10',  color: 'text-indigo-400',  label: 'IN TRANSIT' },
-  out_for_delivery: { icon: Truck,        bg: 'bg-cyan-500/10',    color: 'text-cyan-400',    label: 'OUT FOR DELIVERY' },
-  delivered:        { icon: CheckCircle2, bg: 'bg-emerald-500/10', color: 'text-emerald-500', label: 'DELIVERED' },
-  failed:           { icon: AlertCircle,  bg: 'bg-red-500/10',     color: 'text-red-500',     label: 'FAILED' }
+const PAGE_SIZE = 10;
+
+const STATUS_THEMES = {
+  pending: {
+    icon: Clock,
+    color: "var(--accent)",
+    bg: "rgba(var(--accent-rgb), 0.1)",
+    border: "rgba(var(--accent-rgb), 0.2)",
+    label: "Awaiting pickup",
+  },
+  assigned: {
+    icon: Package,
+    color: "#a855f7",
+    bg: "rgba(168, 85, 247, 0.1)",
+    border: "rgba(168, 85, 247, 0.2)",
+    label: "Assigned",
+  },
+  picked_up: {
+    icon: Package,
+    color: "#3b82f6",
+    bg: "rgba(59, 130, 246, 0.1)",
+    border: "rgba(59, 130, 246, 0.2)",
+    label: "Picked up",
+  },
+  in_transit: {
+    icon: Truck,
+    color: "#6366f1",
+    bg: "rgba(99, 102, 241, 0.1)",
+    border: "rgba(99, 102, 241, 0.2)",
+    label: "In transit",
+  },
+  out_for_delivery: {
+    icon: Truck,
+    color: "#06b6d4",
+    bg: "rgba(6, 182, 212, 0.1)",
+    border: "rgba(6, 182, 212, 0.2)",
+    label: "Out for delivery",
+  },
+  delivered: {
+    icon: CheckCircle2,
+    color: "#10b981",
+    bg: "rgba(16, 185, 129, 0.1)",
+    border: "rgba(16, 185, 129, 0.2)",
+    label: "Delivered",
+  },
+  failed: {
+    icon: AlertCircle,
+    color: "#ef4444",
+    bg: "rgba(239, 68, 68, 0.1)",
+    border: "rgba(239, 68, 68, 0.2)",
+    label: "Failed",
+  },
 };
 
+function summarizeLineItems(order) {
+  if (!order?.products?.length) return null;
+  const parts = order.products.slice(0, 2).map((p) => {
+    const name = (typeof p.product_id === "object" && p.product_id?.name) || p.name || "Item";
+    return `${name} x${p.quantity ?? 1}`;
+  });
+  const extra = order.products.length > 2 ? ` +${order.products.length - 2}` : "";
+  return parts.join(", ") + extra;
+}
+
 export default function LogisticsManifestsPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [shipments, setShipments] = useState([]);
+  const [balance, setBalance] = useState(0);
   const [total, setTotal] = useState(0);
-  
-  const [selectedShipment, setSelectedShipment] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
+  const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [counts, setCounts] = useState({ pending: 0, active: 0, delivered: 0 });
+
+  const [selectedShipment, setSelectedShipment] = useState(null);
+  const [viewingShipmentId, setViewingShipmentId] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("order_placed");
 
   const [updateData, setUpdateData] = useState({
     status: "pending",
@@ -46,41 +124,56 @@ export default function LogisticsManifestsPage() {
     receiver_name: "",
   });
 
-  const fetchShipments = async () => {
-    setLoading(true);
+  const fetchManifests = useCallback(async (opts = {}) => {
+    const page = opts.page ?? currentPage;
     try {
-      const params = {
-        page: currentPage,
-        limit: 20,
-        status: statusFilter,
-        search
-      };
-      const res = await api.get("/logistics/shipments/firm", { params });
-      if (res.data.success) {
-        setShipments(res.data.data.shipments || []);
-        setTotalPages(res.data.pages || 1);
-        setTotal(res.data.total || 0);
+      setLoading(true);
+      const [shipRes, walletRes] = await Promise.all([
+        api.get("/logistics/shipments/firm", {
+          params: {
+            page,
+            limit: PAGE_SIZE,
+            status: statusFilter,
+            sortBy,
+            search: opts.search ?? search,
+          },
+        }),
+        api.get("/wallet"),
+      ]);
+
+      if (shipRes.data.success) {
+        const list = shipRes.data.data?.shipments ?? shipRes.data.shipments ?? [];
+        setShipments(list);
+        setTotal(shipRes.data.total ?? list.length);
+        setPages(shipRes.data.pages ?? 1);
+        const m = shipRes.data.meta?.counts;
+        if (m) setCounts({ pending: m.pending ?? 0, active: m.active ?? 0, delivered: m.delivered ?? 0 });
       }
+      if (walletRes.data.success) setBalance(walletRes.data.data?.balance ?? 0);
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to load shipments");
+      toast.error(err?.response?.data?.message || "Failed to load manifests");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, statusFilter, sortBy, search]);
 
   useEffect(() => {
-    fetchShipments();
-  }, [currentPage, statusFilter]);
+    const id = new URLSearchParams(window.location.search).get("shipmentId");
+    if (id) setViewingShipmentId(id);
+  }, []);
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter') {
-      setCurrentPage(1);
-      fetchShipments();
-    }
-  };
+  useEffect(() => {
+    const onPop = () => {
+      const id = new URLSearchParams(window.location.search).get("shipmentId");
+      setViewingShipmentId(id || null);
+      if (!id) setSelectedShipment(null);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
-  const openModal = (shipment) => {
-    setSelectedShipment(shipment);
+  const seedUpdateForm = useCallback((shipment) => {
+    if (!shipment) return;
     setUpdateData({
       status: shipment.status || "pending",
       note: shipment.proof_of_delivery?.note || "",
@@ -88,7 +181,78 @@ export default function LogisticsManifestsPage() {
       failure_reason: shipment.failure_reason || "",
       receiver_name: shipment.proof_of_delivery?.receiver_name || "",
     });
-    setIsModalOpen(true);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setViewingShipmentId(null);
+    setSelectedShipment(null);
+    setDetailLoading(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("shipmentId");
+    window.history.pushState({}, "", url);
+  }, []);
+
+  useEffect(() => {
+    if (!viewingShipmentId) return;
+
+    const vid = String(viewingShipmentId);
+    if (selectedShipment && String(selectedShipment._id) === vid) return;
+
+    const fromList = shipments.find((s) => String(s._id) === vid);
+    if (fromList) {
+      setSelectedShipment(fromList);
+      seedUpdateForm(fromList);
+      return;
+    }
+
+    let cancelled = false;
+    setDetailLoading(true);
+    api
+      .get(`/logistics/shipments/${vid}`)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data.success && res.data.data?.shipment) {
+          const s = res.data.data.shipment;
+          setSelectedShipment(s);
+          seedUpdateForm(s);
+        } else {
+          toast.error("Shipment not found.");
+          handleBack();
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err?.response?.data?.message || "Failed to load shipment.");
+          handleBack();
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewingShipmentId, shipments, selectedShipment, handleBack, seedUpdateForm]);
+
+  useEffect(() => {
+    if (user?.role === "logistics") fetchManifests();
+  }, [user, fetchManifests]);
+
+  const handleSearchKey = (e) => {
+    if (e.key === "Enter") {
+      setSearch(searchInput.trim());
+      setCurrentPage(1);
+    }
+  };
+
+  const openShipmentDetail = (shipment) => {
+    setViewingShipmentId(shipment._id);
+    setSelectedShipment(shipment);
+    seedUpdateForm(shipment);
+    const url = new URL(window.location.href);
+    url.searchParams.set("shipmentId", shipment._id);
+    window.history.pushState({}, "", url);
   };
 
   const handleStatusUpdate = async (e) => {
@@ -98,192 +262,286 @@ export default function LogisticsManifestsPage() {
     try {
       const res = await api.patch(`/logistics/shipments/${selectedShipment._id}/status`, updateData);
       if (res.data.success) {
-        toast.success("Shipment status updated");
-        setIsModalOpen(false);
-        setSelectedShipment(null);
-        fetchShipments();
+        toast.success("Shipment updated");
+        handleBack();
+        fetchManifests();
       }
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Could not update shipment");
+      toast.error(err?.response?.data?.message || "Update failed");
     } finally {
       setUpdating(false);
     }
   };
 
+  if (user?.role !== "logistics") return null;
+
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      {/* Premium Header matching Admin Transactions */}
-      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
-        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-4">
-            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-               <Truck className="w-5 h-5 md:w-6 md:h-6" />
+    <div className="flex min-h-0 w-full flex-1 flex-col bg-[var(--bg-primary)] pb-[max(6rem,env(safe-area-inset-bottom,1.25rem))] text-[var(--text-primary)] lg:pb-8">
+      
+      {/* Header Container */}
+      <header className="sticky top-0 z-30 shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-5 sm:py-5 md:px-8 md:py-6">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-[1.1rem] bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/60 shadow-[0_8px_16px_-4px_rgba(var(--accent-rgb),0.3)] sm:size-14 sm:rounded-[1.25rem]">
+              <Cuboid className="size-6 text-[var(--bg-primary)] sm:size-7" strokeWidth={1.35} aria-hidden />
             </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Active <span className="text-[var(--accent)]">Manifests</span></h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                 <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Routing Feed</p>
+            <div className="min-w-0">
+              <h1 className="text-balance text-xl font-black tracking-tight sm:text-2xl md:text-3xl">Manifests</h1>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
+                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Live Ledger</span>
+                </span>
+                <span className="text-[11px] font-medium text-[var(--text-secondary)] opacity-40">#{total} tickets</span>
               </div>
             </div>
           </div>
-          <button onClick={fetchShipments} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
-             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-           <div className="relative flex-1 md:w-64 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
-              <input 
+          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:shrink-0 sm:gap-3">
+            <div className="relative min-w-0 flex-1 sm:flex-initial md:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-40 sm:left-4" />
+              <input
                 type="text"
-                placeholder="Search tracking code..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                onKeyDown={handleSearch}
+                placeholder="Find tracking code…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={handleSearchKey}
+                className="h-11 min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 pl-10 pr-3 text-xs font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 sm:h-12 sm:pl-11 sm:pr-4"
               />
-           </div>
-
-           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar md:hidden">
-              {['all', 'pending', 'in_transit', 'delivered', 'failed'].map(s => (
-                <button
-                  key={s}
-                  onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
-                  className={`px-3 py-1.5 rounded-xl text-[10px] font-semibold tracking-tight transition-all capitalize whitespace-nowrap ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
-                >
-                  {s.replace('_', ' ')}
-                </button>
-              ))}
-           </div>
-           
-           <div className="hidden lg:flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
-              {['all', 'pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed'].map(s => (
-                <button 
-                  key={s}
-                  onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                >
-                  {s.replace('_', ' ')}
-                </button>
-              ))}
-           </div>
-           
-           <button onClick={fetchShipments} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchManifests()}
+              className="flex size-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 hover:bg-[var(--bg-secondary)] transition-colors active:scale-95 sm:size-12"
+            >
+              <RefreshCw className={`size-5 text-[var(--text-secondary)] ${loading ? "animate-spin" : ""}`} />
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="p-4 md:p-10 space-y-6 md:space-y-8 pb-40">
-         {/* Operational Telemetry Matrix */}
-         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
-            <StatCard label="Active" value={shipments.filter(s => ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(s.status)).length} icon="local_shipping" color="fuchsia" sub="IN_FLOW" />
-            <StatCard label="Attention" value={shipments.filter(s => s.status === 'failed').length} icon="warning" color="rose" sub="RE-ROUTE" />
-            <StatCard label="Resolved" value={shipments.filter(s => s.status === 'delivered').length} icon="check_circle" color="emerald" sub="FINALIZED" />
-            <StatCard label="Closed" value={total} icon="inventory_2" color="slate" sub="HISTORY" />
-            <StatCard label="Rate" value="99.2%" icon="verified_user" color="amber" sub="SLA_STABLE" />
-            <StatCard label="Yield" value={`${(shipments.reduce((acc, s) => acc + (s.price || 0), 0) / 1000).toFixed(1)}k`} icon="bolt" color="indigo" sub="VAL_FLOW" />
-         </div>
-
-         {/* Ledger */}
-         <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-            <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
-                  <MapPin className="w-4 h-4 text-[var(--accent)]" /> 
-                  Global Route Assignments
-               </h3>
-               <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{total} Total Tickets</p>
+      {viewingShipmentId ? (
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-1 flex-col px-4 py-5 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
+          {detailLoading && !selectedShipment ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 rounded-[2.5rem] border border-dashed border-[var(--glass-border)] py-12">
+              <Loader2 className="size-10 animate-spin text-[var(--accent)] opacity-40" />
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Loading shipment…</p>
             </div>
-
-            <div className="space-y-4">
-               {loading ? (
-                  <div className="flex items-center justify-center py-40">
-                     <Loader2 className="size-8 animate-spin text-[var(--accent)] opacity-50" />
+          ) : selectedShipment ? (
+            <div className="flex h-full min-h-0 flex-1 flex-col animate-in fade-in slide-in-from-bottom-3 duration-500">
+              <ShipmentStatusModal
+                embedded
+                open
+                shipment={selectedShipment}
+                updateData={updateData}
+                setUpdateData={setUpdateData}
+                updating={updating}
+                onBack={handleBack}
+                onClose={handleBack}
+                onSubmit={handleStatusUpdate}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : (
+      <main className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col space-y-8 px-3 py-6 sm:space-y-10 sm:px-5 sm:py-8 md:px-8">
+        
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Fleet Wallet", value: balance.toLocaleString(), unit: "XAF", icon: Wallet, color: "var(--accent)" },
+            { label: "Active Routes", value: counts.active, sub: "Pickup → Delivery", icon: Truck, color: "#6366f1" },
+            { label: "Open Tickets", value: counts.pending, sub: "Awaiting Action", icon: Clock, color: "#f59e0b" },
+            { label: "Completed", value: counts.delivered, sub: "Closed Today", icon: CheckCircle2, color: "#10b981" },
+          ].map((stat, i) => (
+            <div key={i} className="group relative overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-gradient-to-br from-[var(--bg-secondary)]/40 to-transparent p-6 shadow-sm transition-all hover:shadow-xl hover:border-[var(--accent)]/10">
+              <stat.icon className="absolute -right-4 -top-4 size-24 rotate-12 opacity-[0.03] transition-transform group-hover:scale-110 group-hover:rotate-0" />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-8 items-center justify-center rounded-xl" style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
+                    <stat.icon className="size-4" />
                   </div>
-               ) : shipments.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 p-3 md:p-6 lg:p-10">
-                    {shipments.map(shipment => {
-                      const status = STATUS_ICONS[shipment.status] || STATUS_ICONS.pending;
-                      const Icon = status.icon;
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{stat.label}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-black tracking-tight">{stat.value}</span>
+                  {stat.unit && <span className="text-xs font-bold opacity-30">{stat.unit}</span>}
+                </div>
+                {stat.sub && <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-50">{stat.sub}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-3 sm:grid-cols-3 sm:gap-3">
+          {[
+            { label: "Dashboard", icon: LayoutDashboard, href: "/logistics/dashboard" },
+            { label: "Live Tracking", icon: Activity, href: "/logistics/tracking" },
+            { label: "Zone Rates", icon: LineChart, href: "/logistics/pricing" },
+          ].map((act, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => router.push(act.href)}
+              className="flex min-h-[3.25rem] touch-manipulation flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-2 py-3.5 transition-all hover:bg-[var(--bg-secondary)] active:scale-[0.98] min-[380px]:flex-row min-[380px]:gap-3 min-[380px]:py-4"
+            >
+              <act.icon className="size-4 text-[var(--accent)]" />
+              <span className="text-[11px] font-bold tracking-tight">{act.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Ledger Section */}
+        <section className="flex min-h-0 flex-1 flex-col space-y-6">
+          <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between sm:px-2">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <h2 className="text-lg font-bold tracking-tight sm:text-xl">Active Assignments</h2>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-3 py-2 text-[11px] font-bold text-[var(--text-primary)] outline-none sm:hidden"
+              >
+                <option value="all">All Records</option>
+                <option value="pending">Pending</option>
+                <option value="active">In Transit</option>
+                <option value="delivered">Delivered</option>
+                <option value="failed">Failed</option>
+              </select>
+              <div className="hidden h-5 w-px bg-[var(--glass-border)] sm:block" />
+              <div className="hidden items-center gap-4 sm:flex">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="bg-transparent text-[11px] font-bold text-[var(--text-secondary)] outline-none hover:text-[var(--accent)]"
+                >
+                  <option value="all">All Records</option>
+                  <option value="pending">Pending</option>
+                  <option value="active">In Transit</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+            </div>
+            <p className="shrink-0 font-mono text-[11px] font-bold text-[var(--text-secondary)] opacity-40">
+              Page {currentPage} of {pages || 1}
+            </p>
+          </div>
+
+          <div className="grid min-h-0 flex-1 grid-cols-1 content-start gap-4">
+            {loading && shipments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-32 rounded-[2.5rem] border border-dashed border-[var(--glass-border)]">
+                <Loader2 className="size-10 animate-spin text-[var(--accent)] opacity-20" />
+                <p className="text-xs font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">Synchronizing Ledger…</p>
+              </div>
+            ) : shipments.length > 0 ? (
+              shipments.map((shipment) => {
+                const theme = STATUS_THEMES[shipment.status] || STATUS_THEMES.pending;
+                const Icon = theme.icon;
+                const items = summarizeLineItems(shipment.order_id);
+                
+                return (
+                  <button
+                    type="button"
+                    key={shipment._id}
+                    onClick={() => openShipmentDetail(shipment)}
+                    className="group relative flex w-full touch-manipulation flex-col overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-gradient-to-r from-[var(--bg-secondary)]/30 to-transparent p-1 transition-all hover:border-[var(--accent)]/30 hover:shadow-2xl hover:shadow-[var(--accent)]/5 active:scale-[0.99] sm:rounded-[2.5rem] md:flex-row"
+                  >
+                    <div className="flex flex-1 flex-col gap-6 p-6 sm:p-8 md:flex-row md:items-center">
                       
-                      return (
-                        <div 
-                          key={shipment._id} 
-                          onClick={() => openModal(shipment)}
-                          className={`group relative rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col cursor-pointer`}
-                        >
-                          <div className="p-4 md:p-6 lg:p-8 flex items-center gap-4 md:gap-6 lg:gap-8">
-                              <div className={`size-12 md:size-14 rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
-                                 <Icon className="w-6 h-6 md:w-7 md:h-7" />
-                              </div>
+                      {/* Status Icon */}
+                      <div className="flex size-16 shrink-0 items-center justify-center rounded-3xl border border-[var(--glass-border)] shadow-inner transition-transform group-hover:scale-105" style={{ backgroundColor: theme.bg, borderColor: theme.border }}>
+                        <Icon className="size-8" style={{ color: theme.color }} />
+                      </div>
 
-                              <div className="flex-1 min-w-0">
-                                 {/* Route + status row */}
-                                 <div className="flex flex-wrap items-start justify-between gap-y-2 gap-x-3 mb-2">
-                                    <span className="text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] tracking-tight capitalize leading-tight">
-                                       {(shipment.pickup_address?.quartier || shipment.pickup_address?.city || "Pickup")}
-                                       <span className="mx-2 text-[var(--accent)] opacity-50">→</span>
-                                       {(shipment.delivery_address?.quartier || shipment.delivery_address?.city || "Delivery")}
-                                    </span>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider border shrink-0 ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
-                                       {status.label}
-                                    </span>
-                                 </div>
-                                 {/* Tracking + date */}
-                                 <div className="flex items-center gap-3 flex-wrap">
-                                    <span className="font-mono text-[var(--accent)] font-bold text-[11px]">#{shipment.tracking_code}</span>
-                                    <span className="text-[var(--text-secondary)] opacity-30 text-[10px]">•</span>
-                                    <time className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 flex items-center gap-1">
-                                       <Clock className="w-3 h-3" /> {new Date(shipment.createdAt).toLocaleDateString()}
-                                    </time>
-                                    <span className="hidden md:block truncate max-w-[200px] lg:max-w-md text-[10px] font-medium text-[var(--text-secondary)] opacity-50">{shipment.delivery_address?.street || shipment.delivery_address?.description}</span>
-                                 </div>
-                              </div>
-
-                              <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl  font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{(shipment.price || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">XAF</span></p>
-                                 <div className="flex items-center justify-end gap-3 mt-2">
-                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{shipment.vendor_id?.store_name || 'Vendor'}</span>
-                                    <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
-                                       {shipment.vendor_id?.branding?.logo ? <img src={shipment.vendor_id.branding.logo} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
-                                    </div>
-                                 </div>
-                              </div>
+                      {/* Info Body */}
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[12px] font-black tracking-tighter text-[var(--accent)] uppercase">
+                            {shipment.tracking_code}
+                          </span>
+                          <span className="size-1 rounded-full bg-[var(--text-secondary)] opacity-20" />
+                          <div className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider" style={{ backgroundColor: theme.bg, color: theme.color }}>
+                            {theme.label}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-               ) : (
-                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
-                     <Truck className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                     <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No logistics manifests matching criteria.</p>
-                  </div>
-               )}
-            </div>
 
-            {totalPages > 1 && (
-              <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
-                 <Pagination 
-                     currentPage={currentPage}
-                     totalPages={totalPages}
-                     onPageChange={setCurrentPage}
-                 />
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-[var(--text-primary)]">
+                            {shipment.pickup_address?.quartier || "Merchant"}
+                          </span>
+                          <ArrowRight className="size-4 text-[var(--accent)] opacity-40" />
+                          <span className="text-sm font-bold text-[var(--text-primary)]">
+                            {shipment.delivery_address?.quartier || "Recipient"}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                          {items && (
+                            <div className="flex items-center gap-1.5 opacity-50">
+                              <Package className="size-3.5" />
+                              <span className="text-[11px] font-bold truncate max-w-[200px]">{items}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 opacity-50">
+                            <Calendar className="size-3.5" />
+                            <span className="text-[11px] font-bold">
+                              {new Date(shipment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pricing & CTA */}
+                      <div className="flex shrink-0 flex-row items-center justify-between border-t border-[var(--glass-border)] pt-6 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-10 md:pt-0">
+                        <div className="text-left md:text-right">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-40">Payout</p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-black tracking-tighter">{(shipment.price || 0).toLocaleString()}</span>
+                            <span className="text-[10px] font-bold opacity-30">XAF</span>
+                          </div>
+                        </div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] transition-all group-hover:bg-[var(--accent)] group-hover:text-[var(--bg-primary)] group-hover:translate-x-1">
+                          <ChevronRight className="size-5" />
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center py-32 opacity-30">
+                <Cuboid className="mb-4 size-16" strokeWidth={1.15} aria-hidden />
+                <p className="text-sm font-bold uppercase tracking-widest">No matching records found</p>
               </div>
             )}
-         </div>
-      </div>
+          </div>
 
-      <ShipmentStatusModal
-        open={isModalOpen}
-        shipment={selectedShipment}
-        updateData={updateData}
-        setUpdateData={setUpdateData}
-        updating={updating}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleStatusUpdate}
-      />
+          {/* Pagination */}
+          {total > PAGE_SIZE && (
+            <div className="flex items-center justify-center gap-4 py-8">
+              <button
+                disabled={currentPage <= 1 || loading}
+                onClick={() => setCurrentPage(p => p - 1)}
+                className="flex size-12 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 disabled:opacity-20"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <div className="flex h-12 items-center rounded-2xl border border-[var(--glass-border)] px-6 font-mono text-[11px] font-black">
+                {currentPage} / {pages}
+              </div>
+              <button
+                disabled={currentPage >= pages || loading}
+                onClick={() => setCurrentPage(p => p + 1)}
+                className="flex size-12 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 disabled:opacity-20"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+          )}
+        </section>
+      </main>
+      )}
     </div>
   );
 }

@@ -206,14 +206,32 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
   };
 
-  const shipment = shipments[0];
+  const shipment =
+    Array.isArray(shipments) && shipments.length > 0
+      ? [...shipments].sort(
+          (a, b) =>
+            new Date(b?.createdAt || b?.created_at || 0) -
+            new Date(a?.createdAt || a?.created_at || 0)
+        )[0]
+      : null;
+  const shipmentStatusNorm = (shipment?.status || '').toLowerCase();
   const status = getStatusConfig(order.order_status, shipment?.status);
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
-  const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' || order.logistics_company_id);
-  const carrierLaunched = shipment && ['picked_up', 'in_transit', 'delivered', 'failed'].includes(shipment.status);
+  /** Match backend `orderUsesLogistics`: partner flag on order OR an actual logistics shipment ticket */
+  const isLogisticsOrder = !!(
+    order.shipping_method === 'logistics_partner' ||
+    order.logistics_company_id ||
+    shipment?.logistics_id
+  );
+  /** Courier has taken over movement — vendor manual ship is blocked / irrelevant */
+  const carrierLaunched =
+    !!shipment &&
+    ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed'].includes(shipmentStatusNorm);
   const assignmentTime = shipment?.createdAt || order?.createdAt;
-  const hoursSinceAssignment = assignmentTime ? (new Date() - new Date(assignmentTime)) / (1000 * 60 * 60) : 0;
-  const isProtectedByGracePeriod = isLogisticsOrder && hoursSinceAssignment < 6 && !carrierLaunched;
+  const hoursSinceAssignment = assignmentTime ? (Date.now() - new Date(assignmentTime).getTime()) / (1000 * 60 * 60) : 0;
+  const graceHoursRemaining = Math.max(0, 6 - hoursSinceAssignment);
+  const logisticsGraceActive = isLogisticsOrder && hoursSinceAssignment < 6 && !carrierLaunched;
+  const isProtectedByGracePeriod = logisticsGraceActive && order.order_status === 'processing';
   const customer = order.customer_id;
 
   const STEPS = [
@@ -342,7 +360,30 @@ export default function SingleOrderView({ orderId, onBack }) {
           </div>
 
           <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap sm:w-auto sm:gap-2 lg:max-w-md lg:justify-end">
-            {isVendor && order.order_status === 'placed' && (
+            {isVendor && order.order_status === 'placed' && logisticsGraceActive && (
+              <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap xs:items-stretch">
+                <div className="inline-flex min-h-[48px] w-full flex-1 items-center gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-[11px] font-medium leading-snug text-[var(--text-primary)] xs:min-h-0 sm:py-2.5">
+                  <Clock className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                  <span>
+                    Logistics priority window — manual &ldquo;Mark shipped&rdquo; unlocks in{' '}
+                    <strong className="font-semibold tabular-nums">
+                      {graceHoursRemaining >= 1
+                        ? `${Math.ceil(graceHoursRemaining)}h`
+                        : `${Math.max(1, Math.ceil(graceHoursRemaining * 60))}m`}
+                    </strong>
+                    . Acknowledge prep below if you&apos;re getting the order ready.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus('processing')}
+                  className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-primary)] shadow-sm transition active:border-[var(--accent)]/40 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:border-[var(--accent)]/40"
+                >
+                  <Package className="size-4" /> Acknowledge prep
+                </button>
+              </div>
+            )}
+            {isVendor && order.order_status === 'placed' && !logisticsGraceActive && (
               <button
                 type="button"
                 onClick={() => handleUpdateStatus('processing')}

@@ -36,7 +36,7 @@ export default function DashboardLayout({ children, role, hideSidebar = false, h
         />
       )}
 
-      <div className={`flex-1 flex flex-col relative z-10 w-full ${!hideSidebar ? 'lg:pl-[240px]' : ''}`}>
+      <div className={`flex min-h-0 flex-1 flex-col relative z-10 w-full ${!hideSidebar ? 'lg:pl-[240px]' : ''}`}>
         {!hideSidebar && (
           <MobileHeader 
             isOpen={isSidebarOpen} 

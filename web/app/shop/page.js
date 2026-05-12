@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { 
   Search, Star, LayoutGrid, Users,
-  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin
+  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';

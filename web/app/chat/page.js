@@ -5,6 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import MessagingHub from '@/components/hub/MessagingHub';
 
+function chatExitHref(role) {
+  if (role === 'vendor') return '/vendor/dashboard';
+  if (role === 'admin') return '/admin/dashboard';
+  if (role === 'logistics') return '/logistics/dashboard';
+  return '/discovery?tab=discover';
+}
+
 function ChatContent() {
   const { user, loading: authLoading } = useAuthStore();
   const router = useRouter();
@@ -29,7 +36,7 @@ function ChatContent() {
       <MessagingHub 
         vendorId={vendorId} 
         fullPage={true}
-        onClose={() => router.push('/')}
+        onClose={() => router.push(chatExitHref(user?.role))}
       />
     </div>
   );

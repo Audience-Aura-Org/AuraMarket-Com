@@ -76,10 +76,13 @@ const getSearchCompatibleFirms = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getFirmShipments = async (req, res, next) => {
   try {
-    const { status, search, page = 1, limit = 50 } = req.query;
-    
+    const { status, search, page = 1, limit = 50, sortBy = 'assignment' } = req.query;
+    const lim = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const pageNum = Math.max(Number(page) || 1, 1);
+    const skip = (pageNum - 1) * lim;
+
     let firm = await LogisticsCompany.findOne({ user_id: req.user._id });
-    
+
     // Auto-provision stub if missing for a logistics user
     if (!firm) {
       firm = await LogisticsCompany.create({
@@ -95,32 +98,139 @@ const getFirmShipments = async (req, res, next) => {
     }
 
     const query = { logistics_id: firm._id };
-    
+
     if (status && status !== 'all') {
-      query.status = status;
+      if (status === 'active') {
+        query.status = { $in: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] };
+      } else if (status === 'open') {
+        query.status = { $in: ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery'] };
+      } else {
+        query.status = status;
+      }
     }
-    
+
     if (search) {
       query.tracking_code = { $regex: search, $options: 'i' };
     }
 
     const total = await Shipment.countDocuments(query);
 
-    const shipments = await Shipment.find(query)
-      .populate('order_id', 'total_amount products tracking_number createdAt')
-      .populate('vendor_id', 'store_name phone branding.logo')
-      .sort('-createdAt')
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
+    const populateOrder = {
+      path: 'order_id',
+      select: 'total_amount products tracking_number createdAt order_status shipping_fee subtotal shipping_method delivery_description shipping_address payment_status payment_method',
+      populate: {
+        path: 'products.product_id',
+        select: 'name images',
+      },
+    };
 
-    res.status(200).json({ 
-      success: true, 
+    let shipments;
+
+    if (sortBy === 'order_placed') {
+      const pipeline = [
+        { $match: query },
+        {
+          $lookup: {
+            from: 'orders',
+            localField: 'order_id',
+            foreignField: '_id',
+            as: 'ord',
+          },
+        },
+        { $unwind: '$ord' },
+        { $sort: { 'ord.createdAt': -1 } },
+        { $skip: skip },
+        { $limit: lim },
+        { $project: { _id: 1 } },
+      ];
+      const idRows = await Shipment.aggregate(pipeline);
+      const ids = idRows.map((r) => r._id);
+      if (ids.length === 0) {
+        shipments = [];
+      } else {
+        const unordered = await Shipment.find({ _id: { $in: ids } })
+          .populate(populateOrder)
+          .populate('vendor_id', 'store_name phone branding.logo');
+        const map = new Map(unordered.map((s) => [s._id.toString(), s]));
+        shipments = ids.map((id) => map.get(id.toString())).filter(Boolean);
+      }
+    } else {
+      shipments = await Shipment.find(query)
+        .populate(populateOrder)
+        .populate('vendor_id', 'store_name phone branding.logo')
+        .sort('-createdAt')
+        .skip(skip)
+        .limit(lim);
+    }
+
+    const baseScope = { logistics_id: firm._id };
+    const [countPending, countActive, countDelivered] = await Promise.all([
+      Shipment.countDocuments({ ...baseScope, status: 'pending' }),
+      Shipment.countDocuments({
+        ...baseScope,
+        status: { $in: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
+      }),
+      Shipment.countDocuments({ ...baseScope, status: 'delivered' }),
+    ]);
+
+    res.status(200).json({
+      success: true,
       count: shipments.length,
       total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
-      data: { shipments } 
+      page: pageNum,
+      pages: Math.ceil(total / lim) || 1,
+      data: { shipments },
+      meta: {
+        counts: {
+          pending: countPending,
+          active: countActive,
+          delivered: countDelivered,
+        },
+        sortBy: sortBy === 'order_placed' ? 'order_placed' : 'assignment',
+      },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics/shipments/:id
+// @desc    Firm (or admin) loads one assigned shipment for detail / deep links
+// ─────────────────────────────────────────────
+const getFirmShipmentById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid shipment id.' });
+    }
+
+    const populateOrder = {
+      path: 'order_id',
+      select:
+        'total_amount products tracking_number createdAt order_status shipping_fee subtotal shipping_method delivery_description shipping_address payment_status payment_method',
+      populate: {
+        path: 'products.product_id',
+        select: 'name images',
+      },
+    };
+
+    const shipment = await Shipment.findById(id)
+      .populate(populateOrder)
+      .populate('vendor_id', 'store_name phone branding.logo');
+
+    if (!shipment) {
+      return res.status(404).json({ success: false, message: 'Shipment not found.' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
+      if (!firm || shipment.logistics_id?.toString() !== firm._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied.' });
+      }
+    }
+
+    res.status(200).json({ success: true, data: { shipment } });
   } catch (error) {
     next(error);
   }
@@ -536,6 +646,7 @@ const updatePricing = async (req, res, next) => {
 module.exports = {
   onboardLogistics,
   getFirmShipments,
+  getFirmShipmentById,
   getVendorShipments,
   modifyShipmentStatus,
   getSearchCompatibleFirms,

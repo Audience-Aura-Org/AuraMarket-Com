@@ -9,6 +9,7 @@ const router = express.Router();
 const {
   onboardLogistics,
   getFirmShipments,
+  getFirmShipmentById,
   getVendorShipments,
   modifyShipmentStatus,
   getPublicLogisticsFirms,
@@ -42,6 +43,7 @@ router.get('/shipments/vendor', restrictTo('vendor', 'admin'), getVendorShipment
 // ── Logistics Firm Dashboard ──
 router.post('/onboard', onboardLogistics);
 router.get('/shipments/firm', restrictTo('logistics', 'admin'), getFirmShipments);
+router.get('/shipments/:id', restrictTo('logistics', 'admin'), getFirmShipmentById);
 router.get('/profile', restrictTo('logistics', 'admin'), getProfile);
 router.patch('/profile', restrictTo('logistics', 'admin'), updateProfile);
 router.patch('/pricing', restrictTo('logistics', 'admin'), updatePricing);

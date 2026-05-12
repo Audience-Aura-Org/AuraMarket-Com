@@ -42,6 +42,11 @@ export default function Providers({ children }) {
                           pathname?.startsWith('/logistics');
 
   const isAuthRoute = pathname?.startsWith('/auth') || pathname === '/onboarding';
+
+  /** Full-screen chat (WhatsApp-style) — hide storefront chrome so it doesn’t frame MessagingHub */
+  const isImmersiveChat =
+    pathname === '/chat' ||
+    pathname === '/messages';
   
   return (
     <ThemeProvider>
@@ -66,7 +71,7 @@ export default function Providers({ children }) {
           <OnboardingWatcher />
 
           {/* Top navigation — eager on non-dashboard routes */}
-          {!isDashboardRoute && <TopNav />}
+          {!isDashboardRoute && !isImmersiveChat && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
             <main className="flex-1 flex flex-col min-w-0">
@@ -82,13 +87,13 @@ export default function Providers({ children }) {
                   {children}
                 </motion.div>
               </AnimatePresence>
-              {!isDashboardRoute && !isAuthRoute && <Footer />}
+              {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && <Footer />}
             </main>
             {/* Cart sidebar — only on storefront routes */}
-            {!isDashboardRoute && !isAuthRoute && <CartSidebar />}
+            {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && <CartSidebar />}
           </div>
 
-          {!isAuthRoute && <BottomNav />}
+          {!isAuthRoute && !isImmersiveChat && <BottomNav />}
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}

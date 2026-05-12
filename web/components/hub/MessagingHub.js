@@ -302,39 +302,39 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   return (
     <motion.div
-      {...(true && { // Enable drag for both overlay and fullPage
-        initial: !fullPage ? { x: '100%' } : false,
-        animate: { x: 0 },
-        exit: !fullPage ? { x: '100%' } : false,
-        drag: "x",
+      {...(!fullPage
+        ? {
+            initial: { opacity: 0, y: 28, scale: 0.98 },
+            animate: { opacity: 1, y: 0, scale: 1 },
+            exit: { opacity: 0, y: 20, scale: 0.99 },
+            drag: 'x',
         dragConstraints: { left: 0, right: 0 },
-        dragElastic: { left: 0, right: 0.5 },
+            dragElastic: { left: 0, right: 0.45 },
         onDragEnd: (e, info) => {
-          if (info.offset.x > 100) {
+              if (info.offset.x > 80) {
             if (activePartnerId) {
               setActivePartnerId(null);
               setPartnerInfo(null);
               setMessages([]);
             } else {
-              // If in Inbox, go back in history (native feel)
-              if (window.history.length > 1) {
-                router.back();
+                  if (window.history.length > 1) router.back();
+                  onClose?.();
+                }
               }
-              onClose?.();
-            }
+            },
           }
-        }
-      })}
-      transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+        : {})}
+      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={
         fullPage
           ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#ece5dd] touch-manipulation'
           : [
-              'fixed z-[600] flex min-h-0 max-h-[100dvh] flex-col overflow-hidden bg-[#ece5dd] shadow-2xl touch-manipulation',
-              'inset-0 h-[100dvh] max-h-[100dvh] w-full',
-              'pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]',
-              'md:inset-auto md:right-4 md:top-auto md:bottom-4 md:left-auto md:h-[min(82dvh,680px)] md:max-h-[82dvh] md:w-[min(420px,calc(100vw-2rem))]',
-              'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.28)]',
+              'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[#ece5dd] touch-manipulation',
+              'left-3 right-3 top-[max(0.5rem,env(safe-area-inset-top))] bottom-3',
+              'max-h-[min(92dvh,calc(100dvh-1.5rem))] rounded-2xl border border-black/10',
+              'shadow-[0_20px_64px_rgba(0,0,0,0.3)]',
+              'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
+              'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
             ].join(' ')
       }
     >
@@ -613,7 +613,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                                   <CheckCheck className={`size-3.5 ${msg.read_status ? 'text-[#53bdeb]' : 'text-[#667781]'}`} />
                                 )}
                               </div>
-                            </div>
+                              </div>
 
                               {msg.status === 'failed' && (
                                 <button type="button" onClick={() => handleSend(msg.text)} className="flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-600 ring-1 ring-red-200 transition-colors active:bg-red-100">
@@ -628,7 +628,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 )}
                 <div ref={messagesEndRef} />
           </div>
-      </div>
+             </div>
 
       <div className="z-20 shrink-0 border-t border-[#e9edef] bg-[#f0f2f5] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
                 {messages.length < 5 && !input && (

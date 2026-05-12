@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import socketService from '@/services/socket';
+import { useChat } from '@/context/ChatContext';
 
 export default function HubContent() {
   const { user } = useAuthStore();
@@ -680,7 +681,7 @@ function EmptyPlaceholder({ icon: Icon, text }) {
 }
 
 function ChatLink({ chat }) {
-  const router = useRouter();
+  const { openChat } = useChat();
   const partner = chat.partner;
   const partnerId = partner?._id || partner;
   const partnerName = partner?.name || partner?.store_name || 'Unknown';
@@ -688,7 +689,7 @@ function ChatLink({ chat }) {
   const unreadCount = typeof chat.unread_count === 'number' ? chat.unread_count : (!chat.read_status && chat.snippet ? 1 : 0);
 
   const handleClick = () => {
-    if (partnerId) router.push(`/chat?vendorId=${partnerId}`);
+    if (partnerId) openChat(partnerId, null, partner, false);
   };
 
   return (

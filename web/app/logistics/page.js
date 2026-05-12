@@ -1,100 +1,132 @@
 ﻿"use client";
 
-import { useEffect, useState } from 'react';
-import { 
-  Truck, Globe, Package, Target, 
-  MapPin, RefreshCw, Zap, TrendingUp, Activity, ArrowRight, Loader2
-} from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import {
+  Truck,
+  LayoutDashboard,
+  MapPin,
+  MessageCircle,
+  Network,
+  LineChart,
+  ChevronRight,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/hooks/useAuth";
+import {
+  LogisticsSubpageHeader,
+  LogisticsShortcutsRow,
+} from "@/components/logistics/LogisticsSubpageShell";
 
 export default function GlobalLogisticsPage() {
   const [mounted, setMounted] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
+
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted || !user) return;
+    if (user.role === "logistics") {
+      router.replace("/logistics/dashboard");
+    }
+  }, [mounted, user, router]);
 
   if (!mounted) return null;
 
+  if (user?.role === "logistics") {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center bg-[var(--bg-secondary)]">
+        <p className="text-[12px] font-medium text-[var(--text-secondary)]">
+          Opening logistics dashboard…
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300">
-      <div className="max-w-4xl mx-auto space-y-12">
-        
-        {/* Header Section (Slim) */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between items-start gap-4">
-           <div className="space-y-4">
-              <div className="flex items-center gap-2 text-[var(--accent)] bg-white/5 px-3 py-1 rounded-full border border-white/10 w-fit">
-                 <Activity className="size-3 animate-pulse" />
-                 <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.4em]">Fulfillment Sync</span>
-              </div>
-              <h1 className="text-4xl  font-bold text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
-                 Unified <span className="text-[var(--accent)]">Transit</span>
-              </h1>
-              <p className="text-xs font-medium text-[var(--text-secondary)] max-w-sm opacity-40 leading-relaxed">
-                 Real-time operational telemetry for global fulfillment and cross-border settlement.
+    <div className="min-h-screen bg-[var(--bg-secondary)] px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[max(2.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-[var(--text-primary)] transition-all md:px-12">
+      <div className="mx-auto max-w-[960px] space-y-10">
+        <LogisticsSubpageHeader
+          Icon={Truck}
+          title="Aura"
+          accentTitle="logistics"
+          tag="Fulfillment network"
+          hint="Partners manage manifests, tracking, and route pricing from the dashboard. Sign in with a logistics account to continue."
+        />
+
+        <LogisticsShortcutsRow
+          links={[
+            {
+              label: "Partner dashboard",
+              sub: "Sign in required",
+              href: "/logistics/dashboard",
+              icon: LayoutDashboard,
+            },
+            {
+              label: "Live tracking",
+              sub: "Public info",
+              href: "/logistics/tracking",
+              icon: MapPin,
+            },
+            {
+              label: "Route pricing",
+              sub: "Partner tools",
+              href: "/logistics/pricing",
+              icon: LineChart,
+            },
+          ]}
+        />
+
+        <div className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 p-6 md:p-8">
+          <h2 className="text-lg font-bold tracking-tight">Get started</h2>
+          <p className="mt-2 max-w-lg text-[12px] leading-relaxed text-[var(--text-secondary)] opacity-85">
+            Vendors choose logistics at checkout; your firm receives shipment
+            tickets, updates statuses, and gets paid the shipping fee when
+            delivery completes on partner-managed orders.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link
+              href="/login?from=logistics"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-2.5 text-[11px] font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition hover:opacity-95"
+            >
+              Partner sign in <ChevronRight className="size-4" />
+            </Link>
+            <Link
+              href="/discovery?tab=discover"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-6 py-2.5 text-[11px] font-semibold transition hover:border-[var(--accent)]/30"
+            >
+              Browse marketplace
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/logistics/messages"
+            className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4 transition hover:border-[var(--accent)]/30"
+          >
+            <MessageCircle className="size-5 text-[var(--accent)]" />
+            <div>
+              <p className="text-[12px] font-bold">Message hub</p>
+              <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
+                After sign-in — relay comms
               </p>
-           </div>
-           <div className="flex gap-2">
-              <Link href="/logistics/tracking" className="h-10 px-6 bg-[var(--accent)] text-white rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[var(--accent)]/10">
-                 Track Signal <RefreshCw className="size-3" />
-              </Link>
-              <Link href="/logistics/dashboard" className="h-10 px-6 bg-white/5 border border-white/10 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight flex items-center gap-2 hover:bg-white/10 transition-all text-[var(--text-primary)]">
-                 Dashboard
-              </Link>
-           </div>
+            </div>
+          </Link>
+          <Link
+            href="/logistics/nodes"
+            className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4 transition hover:border-[var(--accent)]/30"
+          >
+            <Network className="size-5 text-[var(--accent)]" />
+            <div>
+              <p className="text-[12px] font-bold">Relay nodes</p>
+              <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
+                Zone registry
+              </p>
+            </div>
+          </Link>
         </div>
-
-        {/* Global Operational Snapshot (Slim) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           {[
-              { label: 'Latency', value: '3.4d', icon: Zap },
-              { label: 'Active Flows', value: '1,240', icon: TrendingUp },
-              { label: 'Node Uptime', value: '99.9%', icon: Activity },
-              { label: 'Regions', value: '184', icon: Globe }
-           ].map(stat => (
-              <div key={stat.label} className="p-5 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] flex flex-col gap-4 group">
-                 <div className="size-8 rounded-lg bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] group-hover:scale-110 transition-transform">
-                    <stat.icon className="size-4" />
-                 </div>
-                 <div>
-                    <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40 ">{stat.label}</h4>
-                    <p className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">{stat.value}</p>
-                 </div>
-              </div>
-           ))}
-        </div>
-
-        {/* Unified Supply Chain (Slim Segment) */}
-        <div className="p-8 rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/5 blur-2xl rounded-full translate-x-12 -translate-y-12" />
-           <div className="space-y-8 relative z-10">
-              <div className="space-y-2">
-                 <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">Active Delivery Hubs</h2>
-                 <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">Real-time settlement mapping</p>
-              </div>
-              
-              <div className="space-y-2">
-                 {[
-                    { node: 'Route AF-7', status: 'In Transit', progress: 84 },
-                    { node: 'Route EU-4', status: 'Processing', progress: 12 },
-                    { node: 'Route US-9', status: 'Delivered', progress: 100 }
-                 ].map(item => (
-                    <div key={item.node} className="p-4 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-between gap-6 hover:bg-[var(--bg-secondary)] transition-all">
-                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] opacity-60 ">{item.node}</p>
-                       <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-[var(--accent)] transition-all duration-1000" style={{ width: `${item.progress}%` }} />
-                       </div>
-                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight w-20 text-right">{item.status}</p>
-                    </div>
-                 ))}
-              </div>
-           </div>
-        </div>
-
-        {/* Global Registry Footer */}
-        <div className="pt-12 text-center opacity-30">
-           <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)] ">
-              Aura Logistics Dispatch // Unified Fulfillment Systems v4.0
-           </p>
-        </div>
-
       </div>
     </div>
   );

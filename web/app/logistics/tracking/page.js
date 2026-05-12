@@ -1,112 +1,316 @@
 ﻿"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import {
+  Loader2,
+  MapPin,
+  RefreshCw,
+  ChevronRight,
+  ChevronLeft,
+  LayoutDashboard,
+  List,
+  LineChart,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
+import { useAuthStore } from "@/hooks/useAuth";
+import StatCard from "@/components/layout/StatCard";
+import {
+  LogisticsSubpageHeader,
+  LogisticsShortcutsRow,
+} from "@/components/logistics/LogisticsSubpageShell";
 
-import Pagination from '@/components/common/Pagination';
+const PAGE_SIZE = 10;
+
+function summarizeLineItems(order) {
+  if (!order?.products?.length) return "—";
+  const parts = order.products.slice(0, 2).map((p) => {
+    const name =
+      (typeof p.product_id === "object" && p.product_id?.name) ||
+      p.name ||
+      "Item";
+    return `${name} ×${p.quantity ?? 1}`;
+  });
+  const extra = order.products.length > 2 ? ` +${order.products.length - 2}` : "";
+  return parts.join(" · ") + extra;
+}
+
+function destinationLine(s) {
+  const d = s.delivery_address;
+  if (!d || (!d.city && !d.region && !d.quartier))
+    return { main: "—", sub: "" };
+  const main = d.city || d.quartier || d.region || "—";
+  const sub = [d.quartier, d.region].filter(Boolean).join(" · ") || "";
+  return { main, sub };
+}
 
 export default function LogisticsTrackingPage() {
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [shipments, setShipments] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [balance, setBalance] = useState(0);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [sortBy, setSortBy] = useState("order_placed");
+  const [counts, setCounts] = useState({
+    pending: 0,
+    active: 0,
+    delivered: 0,
+  });
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [shipRes, walletRes] = await Promise.all([
+        api.get("/logistics/shipments/firm", {
+          params: {
+            page,
+            limit: PAGE_SIZE,
+            status: filterStatus,
+            sortBy,
+          },
+        }),
+        api.get("/wallet"),
+      ]);
+      if (shipRes.data.success) {
+        const list =
+          shipRes.data.data?.shipments ?? shipRes.data.shipments ?? [];
+        setShipments(list);
+        setTotal(shipRes.data.total ?? list.length);
+        setPages(shipRes.data.pages ?? 1);
+        const m = shipRes.data.meta?.counts;
+        if (m) {
+          setCounts({
+            pending: m.pending ?? 0,
+            active: m.active ?? 0,
+            delivered: m.delivered ?? 0,
+          });
+        }
+      }
+      if (walletRes.data.success) {
+        setBalance(walletRes.data.data?.balance ?? 0);
+      }
+    } catch (err) {
+      toast.error("Failed to load live tracking");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, filterStatus, sortBy]);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get("/logistics/shipments/firm");
-        if (res.data.success) setShipments(res.data.data.shipments || []);
-      } catch (err) {
-        toast.error("Failed to load live tracking");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    if (!user || user.role !== "logistics") return;
+    fetchData();
+  }, [user, fetchData]);
 
-  const totalPages = Math.ceil(shipments.length / itemsPerPage);
-  const currentShipments = shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const grouped = useMemo(() => {
-    return {
-      pending: shipments.filter((s) => ["pending", "assigned"].includes(s.status)),
-      transit: shipments.filter((s) => ["picked_up", "in_transit", "out_for_delivery"].includes(s.status)),
-      done: shipments.filter((s) => s.status === "delivered"),
-      failed: shipments.filter((s) => s.status === "failed"),
-    };
-  }, [shipments]);
-
-  const cards = [
-    ["Pending", grouped.pending.length],
-    ["In Transit", grouped.transit.length],
-    ["Delivered", grouped.done.length],
-    ["Failed", grouped.failed.length],
-  ];
+  if (user?.role !== "logistics") return null;
 
   return (
-    <div className="p-4 lg:p-10 space-y-6">
-      <div>
-        <h1 className="text-lg lg:text-2xl  font-bold tracking-tight">Live Tracking</h1>
-        <p className="text-[10px] lg:text-[12px] lg:text-xs  font-semibold tracking-tight opacity-60">
-          Shipment flow by current status
-        </p>
-      </div>
+    <div className="flex w-full min-w-0 flex-col bg-[var(--bg-primary)] pb-[max(6rem,env(safe-area-inset-bottom,1.25rem))] text-[var(--text-primary)] lg:pb-12">
+      <LogisticsSubpageHeader
+        Icon={MapPin}
+        title="Live"
+        accentTitle="tracking"
+        tag="Signal stream"
+        hint="Newest customer orders first, or switch to assignment time. Tap a row to open tracking detail."
+        actions={
+          <button
+            type="button"
+            onClick={() => fetchData()}
+            className="flex size-11 min-h-[2.75rem] min-w-[2.75rem] touch-manipulation items-center justify-center rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] transition hover:bg-white/5"
+            aria-label="Refresh"
+          >
+            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        }
+      />
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="size-6 animate-spin text-[var(--accent)]" />
+      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          <StatCard
+            label="Wallet"
+            value={`${balance.toLocaleString()} XAF`}
+            sub="Available balance"
+            icon="account_balance_wallet"
+            color="purple"
+            href="/wallet"
+          />
+          <StatCard
+            label="In transit"
+            value={String(counts.active)}
+            sub="Pickup → delivery"
+            icon="local_shipping"
+            color="indigo"
+          />
+          <StatCard
+            label="Awaiting pickup"
+            value={String(counts.pending)}
+            sub="New tickets"
+            icon="schedule"
+            color="amber"
+          />
+          <StatCard
+            label="Delivered"
+            value={String(counts.delivered)}
+            sub="Closed"
+            icon="verified"
+            color="emerald"
+          />
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {cards.map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4">
-                <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-50">{label}</p>
-                <p className="text-xl  font-bold">{value}</p>
+
+        <LogisticsShortcutsRow
+          links={[
+            {
+              label: "Dashboard",
+              sub: "Overview",
+              href: "/logistics/dashboard",
+              icon: LayoutDashboard,
+            },
+            {
+              label: "Manifests",
+              sub: "Update status",
+              href: "/logistics/manifests",
+              icon: List,
+            },
+            {
+              label: "Route pricing",
+              sub: "Zones & fees",
+              href: "/logistics/pricing",
+              icon: LineChart,
+            },
+          ]}
+        />
+
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setPage(1);
+            }}
+            className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold outline-none sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+          >
+            <option value="order_placed">Recent orders first</option>
+            <option value="assignment">Recent assignments first</option>
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              setPage(1);
+            }}
+            className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold outline-none sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+          >
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="active">In transit (active)</option>
+            <option value="assigned">Assigned</option>
+            <option value="picked_up">Picked up</option>
+            <option value="in_transit">In transit</option>
+            <option value="out_for_delivery">Out for delivery</option>
+            <option value="delivered">Delivered</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled / vendor</option>
+          </select>
+        </div>
+
+        <section className="overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+          <div className="border-b border-[var(--glass-border)] px-4 py-4 md:px-8">
+            <p className="font-mono text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">
+              {total} log{total === 1 ? "" : "s"} · page {page}/{pages || 1}
+            </p>
+          </div>
+
+          <div className="p-3 md:p-6">
+            {loading && shipments.length === 0 ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="size-8 animate-spin text-[var(--accent)] opacity-50" />
               </div>
-            ))}
+            ) : shipments.length === 0 ? (
+              <p className="py-16 text-center text-[12px] font-medium text-[var(--text-secondary)] opacity-60">
+                No shipment activity for this filter.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {shipments.map((s) => {
+                  const order = s.order_id;
+                  const dest = destinationLine(s);
+                  const placed = order?.createdAt
+                    ? new Date(order.createdAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })
+                    : "—";
+                  return (
+                    <button
+                      key={s._id}
+                      type="button"
+                      onClick={() =>
+                        router.push(`/logistics/tracking?shipment=${s._id}`)
+                      }
+                      className="flex w-full touch-manipulation flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-4 text-left transition hover:border-[var(--accent)]/30 active:scale-[0.99] md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="font-mono text-[12px] font-bold text-[var(--accent)]">
+                          {s.tracking_code}
+                        </p>
+                        <p className="text-[11px] text-[var(--text-secondary)] opacity-70">
+                          {dest.main}
+                          {dest.sub ? ` · ${dest.sub}` : ""}
+                        </p>
+                        <p className="line-clamp-2 text-[11px] text-[var(--text-secondary)]">
+                          {summarizeLineItems(order)}
+                        </p>
+                        <p className="text-[10px] font-medium opacity-45">
+                          Order placed {placed}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-semibold capitalize">
+                        {(s.status || "").replace(/_/g, " ")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-4 lg:p-6 min-h-[400px] flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-               <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-60">Recent activity</p>
-               <p className="text-[11px] lg:text-[12px]  font-semibold opacity-40 tracking-tight">{shipments.length} Total Logs</p>
+          {total > 0 ? (
+            <div className="flex flex-col items-center justify-between gap-3 border-t border-[var(--glass-border)] px-4 py-5 md:flex-row md:px-8">
+              <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-70">
+                Showing {(page - 1) * PAGE_SIZE + 1}–
+                {Math.min(page * PAGE_SIZE, total)} of {total}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1 || loading}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-[var(--glass-border)] px-3 py-2 text-[11px] font-semibold transition enabled:hover:bg-[var(--bg-secondary)] disabled:opacity-40"
+                >
+                  <ChevronLeft className="size-4" /> Previous
+                </button>
+                <span className="min-w-[4rem] text-center font-mono text-[11px] opacity-70">
+                  {page} / {pages || 1}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= pages || loading}
+                  onClick={() => setPage((p) => (p < pages ? p + 1 : p))}
+                  className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-[var(--glass-border)] px-3 py-2 text-[11px] font-semibold transition enabled:hover:bg-[var(--bg-secondary)] disabled:opacity-40"
+                >
+                  Next <ChevronRight className="size-4" />
+                </button>
+              </div>
             </div>
-            
-            <div className="space-y-2 flex-1">
-              {currentShipments.map((s) => (
-                <div key={s._id} className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] px-3 py-2 hover:bg-[var(--accent)]/5 transition-colors">
-                  <div>
-                    <p className="text-xs  font-bold">{s.tracking_code}</p>
-                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] ">
-                      Order #{(s.order_id?._id || s.order_id || "").toString().slice(-8).toUpperCase()}
-                    </p>
-                    <p className="text-[11px] lg:text-[12px]  font-semibold opacity-60 truncate max-w-[200px]">
-                      {s.delivery_address?.quartier || s.delivery_address?.city || "Unknown destination"}
-                    </p>
-                  </div>
-                  <span className="text-[11px] lg:text-[12px]  font-semibold  bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-2.5 py-1 rounded-lg">{(s.status || "").replace(/_/g, " ")}</span>
-                </div>
-              ))}
-              {!shipments.length && <p className="text-[11px] lg:text-[12px]  font-semibold  opacity-40 py-20 text-center">No shipment activity yet</p>}
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-[var(--glass-border)]/50">
-               <Pagination 
-                 currentPage={currentPage}
-                 totalPages={totalPages}
-                 onPageChange={setCurrentPage}
-               />
-            </div>
-          </div>
-        </>
-      )}
+          ) : null}
+        </section>
+      </div>
     </div>
   );
 }
