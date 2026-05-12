@@ -500,7 +500,17 @@ const updateOrderStatus = async (req, res, next) => {
         // Mark pending shipments as cancelled so courier dashboard is cleared
         await Shipment.updateMany(
           { order_id: order._id, status: { $in: ['pending', 'assigned'] } },
-          { $set: { status: 'cancelled' } }
+          { 
+            $set: { status: 'cancelled' },
+            $push: { 
+              shipment_logs: {
+                status: 'cancelled',
+                updated_by: req.user._id,
+                timestamp: new Date(),
+                note: 'Vendor has launched this shipment manually. Logistics authority revoked.'
+              }
+            }
+          }
         ).session(session);
 
         // Convert to vendor managed so vendor receives the full shipping fee payout

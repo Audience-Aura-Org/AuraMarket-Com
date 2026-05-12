@@ -249,11 +249,15 @@ export default function LogisticsDashboard() {
                         s.status === 'picked_up' ? 'bg-blue-500/10 text-blue-500' :
                         s.status === 'in_transit' ? 'bg-indigo-500/10 text-indigo-400' :
                         s.status === 'out_for_delivery' ? 'bg-cyan-500/10 text-cyan-400' :
-                        s.status === 'failed' ? 'bg-red-500/10 text-red-500' :
+                        s.status === 'failed' ? 'bg-rose-500/10 text-rose-500' :
+                        s.status === 'cancelled' ? 'bg-rose-500/10 text-rose-500' :
                         'bg-blue-500/10 text-blue-500'
                       }`}>
-                        {s.status?.replace(/_/g, ' ').toUpperCase()}
+                        {s.status === 'cancelled' ? 'INTERVENED' : s.status?.replace(/_/g, ' ').toUpperCase()}
                       </span>
+                      {s.status === 'cancelled' && (
+                        <p className="text-[9px] text-rose-400 mt-1 font-semibold opacity-80 italic">Vendor Managed</p>
+                      )}
                     </td>
                     <td className="py-4 pr-4 text-[10px] md:text-xs font-bold italic opacity-60">High</td>
                     <td className="py-4 text-right">
@@ -276,18 +280,24 @@ export default function LogisticsDashboard() {
                     <p className="text-[11px] font-semibold tracking-tighter">#{s._id?.slice(-8).toUpperCase()}</p>
                     <p className="text-[9px] opacity-40 font-semibold uppercase">{s.tracking_number || 'TRK-PENDING'}</p>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-tight ${
-                    s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' : 
-                    s.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
-                    s.status === 'assigned' ? 'bg-purple-500/10 text-purple-500' :
-                    s.status === 'picked_up' ? 'bg-blue-500/10 text-blue-500' :
-                    s.status === 'in_transit' ? 'bg-indigo-500/10 text-indigo-400' :
-                    s.status === 'out_for_delivery' ? 'bg-cyan-500/10 text-cyan-400' :
-                    s.status === 'failed' ? 'bg-red-500/10 text-red-500' :
-                    'bg-blue-500/10 text-blue-500'
-                  }`}>
-                    {s.status?.replace(/_/g, ' ').toUpperCase()}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-tight ${
+                      s.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' : 
+                      s.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
+                      s.status === 'assigned' ? 'bg-purple-500/10 text-purple-500' :
+                      s.status === 'picked_up' ? 'bg-blue-500/10 text-blue-500' :
+                      s.status === 'in_transit' ? 'bg-indigo-500/10 text-indigo-400' :
+                      s.status === 'out_for_delivery' ? 'bg-cyan-500/10 text-cyan-400' :
+                      s.status === 'failed' ? 'bg-rose-500/10 text-rose-500' :
+                      s.status === 'cancelled' ? 'bg-rose-500/10 text-rose-500' :
+                      'bg-blue-500/10 text-blue-500'
+                    }`}>
+                      {s.status === 'cancelled' ? 'INTERVENED' : s.status?.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                    {s.status === 'cancelled' && (
+                      <span className="text-[8px] text-rose-400 font-bold italic">Vendor Managed</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-3">
                   <div className="flex items-center gap-2">

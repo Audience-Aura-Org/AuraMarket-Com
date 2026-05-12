@@ -35,6 +35,7 @@ const ShipmentSchema = new mongoose.Schema(
         'out_for_delivery',  // Final mile
         'delivered',         // Success
         'failed',            // Issue reported
+        'cancelled',         // Aborted by vendor/admin
       ],
       default: 'pending',
     },
