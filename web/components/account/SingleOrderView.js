@@ -211,7 +211,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const shipment = shipments[0];
   const status = getStatusConfig(order.order_status, shipment?.status);
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
-  const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' && order.logistics_company_id);
+  const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' || order.logistics_company_id);
   const carrierLaunched = shipment && ['picked_up', 'in_transit', 'delivered', 'failed'].includes(shipment.status);
   const assignmentTime = shipment?.createdAt || order?.createdAt;
   const hoursSinceAssignment = assignmentTime ? (new Date() - new Date(assignmentTime)) / (1000 * 60 * 60) : 0;

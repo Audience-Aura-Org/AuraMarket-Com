@@ -717,7 +717,18 @@ const createOrdersFromCart = async (req, res, next) => {
     }
 
     const createdOrderIds = [];
-    const { shipping_address, payment_method, logistics_company_id, delivery_quartier, delivery_description } = req.body;
+    const { 
+      shipping_address, 
+      payment_method, 
+      logistics_company_id, 
+      delivery_quartier, 
+      delivery_description 
+    } = req.body;
+
+    // MANDATORY LOGISTICS: Block purchase without logistics partner
+    if (!logistics_company_id || !delivery_quartier) {
+       throw new Error('A logistics partner and delivery zone must be selected for all items in your cart.');
+    }
 
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
       let subtotal = 0;
@@ -777,8 +788,8 @@ const createOrdersFromCart = async (req, res, next) => {
         shipping_fee: shippingFee,
         total_amount: subtotal + shippingFee,
         payment_method,
-        shipping_method: logistics_company_id ? 'logistics_partner' : 'vendor_managed',
-        logistics_company_id: logistics_company_id || null,
+        shipping_method: 'logistics_partner',
+        logistics_company_id: logistics_company_id,
         shipping_address: { ...shipping_address, email: req.user.email, phone: req.user.phone },
         delivery_description,
         payment_status: 'pending',
