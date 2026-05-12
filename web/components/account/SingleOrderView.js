@@ -238,33 +238,31 @@ export default function SingleOrderView({ orderId, onBack }) {
         </button>
 
         {/* Title row + actions in one line */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-2xl md:text-3xl font-black tracking-tighter leading-tight">
+        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-4">
+          <h1 className="text-2xl xs:text-3xl font-black tracking-tighter leading-tight">
             Order <span className="text-[var(--accent)]">Manifest</span>
           </h1>
 
           {/* Invoice / Share / Trace — always visible inline */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 xs:pb-0">
             <button
               onClick={handleDownloadInvoice}
-              title="Download Invoice"
               className="size-9 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group shrink-0"
             >
-              <Printer className="size-3.5 group-hover:scale-110 transition-transform" />
+              <Printer className="size-3.5" />
             </button>
             <button
-              title="Share"
               className="size-9 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group shrink-0"
             >
-              <Share2 className="size-3.5 group-hover:scale-110 transition-transform" />
+              <Share2 className="size-3.5" />
             </button>
-            {/* Trace chip */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] shadow-sm">
+            {/* Trace chip — visible on mobile now */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] shadow-sm shrink-0">
               <Fingerprint className="size-3.5 text-[var(--accent)] shrink-0" />
-              <code className="text-[10px] font-mono font-bold tracking-widest text-[var(--accent)] hidden sm:block">#{order._id.slice(-8)}</code>
+              <code className="text-[10px] font-mono font-bold tracking-widest text-[var(--accent)]">#{order._id.slice(-8).toUpperCase()}</code>
               <div className="flex items-center gap-1">
-                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-semibold text-emerald-500 hidden xs:block">Live</span>
+                <div className="size-1 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter">Live</span>
               </div>
             </div>
           </div>

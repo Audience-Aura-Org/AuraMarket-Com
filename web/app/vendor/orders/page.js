@@ -209,6 +209,21 @@ export default function VendorOrdersPage() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
         </div>
+
+        {/* Mobile Filter Tabs */}
+        <div className="flex md:hidden w-full overflow-x-auto no-scrollbar pb-2 pt-1 border-t border-[var(--glass-border)]/10 mt-2">
+           <div className="flex items-center gap-2 pr-4">
+              {['all', 'placed', 'processing', 'shipped', 'delivered', 'cancelled'].map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
+                  className={`px-5 py-2.5 rounded-2xl text-[10px] font-bold tracking-[0.1em] transition-all capitalize whitespace-nowrap border ${activeTab === tab ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-60'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+           </div>
+        </div>
       </header>
 
       <div className={viewingOrderId ? "w-full" : "p-4 md:p-10 space-y-8 pb-40"}>
@@ -223,7 +238,7 @@ export default function VendorOrdersPage() {
          ) : (
             <>
                {/* Live Stats */}
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                   {stats.map((stat, idx) => (
                     <StatCard
                       key={stat.label}
@@ -238,20 +253,20 @@ export default function VendorOrdersPage() {
                </div>
 
                {/* Sales Ledger */}
-               <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-                  <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-                     <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
-                        <Database className="w-4 h-4 text-[var(--accent)]" /> 
+               <div className="glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
+                  <div className="p-5 md:p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
+                     <h3 className="text-[10px] md:text-[11px] lg:text-[12px]  font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-2 md:gap-3 capitalize">
+                        <Database className="w-3.5 h-3.5 md:w-4 md:h-4 text-[var(--accent)]" /> 
                         Store Sales Ledger
                      </h3>
-                     <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Real-time Order Resolution</p>
+                     <p className="text-[9px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest hidden xs:block">Real-time Order Resolution</p>
                   </div>
 
                   <div className="space-y-4">
                   {loading ? (
                      <LoadingSpinner />
                   ) : currentOrders.length > 0 ? (
-                     <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
+                     <div className="grid grid-cols-1 gap-3 md:gap-4 p-4 md:p-10">
                         {currentOrders.map(order => {
                         const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
                         const customer = order.customer_id;
@@ -259,10 +274,10 @@ export default function VendorOrdersPage() {
                         return (
                               <button 
                                  key={order._id} 
-                                 className={`group relative w-full text-left rounded-[2rem] md:rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col`}
+                                 className={`group relative w-full text-left rounded-[1.5rem] md:rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col`}
                                  onClick={() => handleViewOrder(order._id)}
                               >
-                                 <div className="p-5 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-8">
+                                 <div className="p-4 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-8">
                                     <div className="flex items-center gap-4 w-full sm:w-auto">
                                        <div className={`size-12 md:size-14 rounded-[1.25rem] md:rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
                                           <Package className="w-5 h-5 md:w-7 md:h-7" />
