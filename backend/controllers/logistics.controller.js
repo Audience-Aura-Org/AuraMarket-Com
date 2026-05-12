@@ -141,6 +141,14 @@ const modifyShipmentStatus = async (req, res, next) => {
     const shipment = await Shipment.findById(id).session(session);
     if (!shipment) throw new Error('Shipment not found.');
 
+    const order = await Order.findById(shipment.order_id).session(session);
+    if (!order) throw new Error('Associated order not found.');
+
+    // ── GUARD: Couriers can only update orders using the logistics_partner method ──
+    if (order.shipping_method !== 'logistics_partner') {
+      throw new Error('This order is vendor-managed. Logistics partners cannot intervene.');
+    }
+
     const firm = await LogisticsCompany.findById(shipment.logistics_id).session(session);
     if (req.user.role !== 'admin' && firm?.user_id.toString() !== req.user._id.toString()) {
       throw new Error('Access denied.');
