@@ -213,6 +213,9 @@ export default function SingleOrderView({ orderId, onBack }) {
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
   const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' && order.logistics_company_id);
   const carrierLaunched = shipment && ['picked_up', 'in_transit', 'delivered', 'failed'].includes(shipment.status);
+  const assignmentTime = shipment?.createdAt || order?.createdAt;
+  const hoursSinceAssignment = assignmentTime ? (new Date() - new Date(assignmentTime)) / (1000 * 60 * 60) : 0;
+  const isProtectedByGracePeriod = isLogisticsOrder && hoursSinceAssignment < 6 && !carrierLaunched;
   const customer = order.customer_id;
 
   const STEPS = [
@@ -317,14 +320,29 @@ export default function SingleOrderView({ orderId, onBack }) {
                     </div>
                   )}
 
-                  {/* Vendor: Ship button — Available if NOT logistics OR if logistics hasn't launched yet */}
+                  {/* Vendor: Ship button — Available if NOT logistics OR if logistics hasn't launched yet AND grace period passed */}
                   {isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
-                    <button 
-                      onClick={() => handleUpdateStatus('shipped')}
-                      className="w-full px-8 py-3 bg-indigo-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-indigo-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                       <Truck className="size-3.5" /> Mark as Shipped
-                    </button>
+                    <div className="w-full space-y-3">
+                      {isProtectedByGracePeriod && (
+                        <div className="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
+                           <Clock className="size-3 text-amber-500 shrink-0" />
+                           <span className="text-[9px] font-semibold text-amber-500 leading-tight">
+                             Exclusive Logistics Window: Carrier has {Math.ceil(6 - hoursSinceAssignment)}h left to respond.
+                           </span>
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => handleUpdateStatus('shipped')}
+                        disabled={isProtectedByGracePeriod}
+                        className={`w-full px-8 py-3 rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg transition-all flex items-center justify-center gap-2 ${
+                          isProtectedByGracePeriod
+                            ? 'bg-zinc-800 text-zinc-500 border border-white/5 cursor-not-allowed grayscale'
+                            : 'bg-indigo-500 text-white shadow-indigo-500/10 hover:scale-[1.02] active:scale-95'
+                        }`}
+                      >
+                         <Truck className="size-3.5" /> {isProtectedByGracePeriod ? 'Awaiting Carrier Window' : 'Mark as Shipped'}
+                      </button>
+                    </div>
                   )}
 
                   {/* Vendor: Delivery Confirmation — Only for vendor-managed or vendor-launched orders */}

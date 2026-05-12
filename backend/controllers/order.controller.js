@@ -497,6 +497,21 @@ const updateOrderStatus = async (req, res, next) => {
 
       // B. If vendor launches (marks as shipped) BEFORE the courier, they take over authority
       if (order_status === 'shipped') {
+        // ── PROTECTIVE DELAY: Give courier 6 hours to react ──
+        const anyShipment = await Shipment.findOne({ order_id: order._id }).session(session);
+        const startTime = anyShipment?.createdAt || order.createdAt;
+        const hoursElapsed = (new Date() - new Date(startTime)) / (1000 * 60 * 60);
+
+        if (hoursElapsed < 6) {
+          await session.abortTransaction();
+          session.endSession();
+          const remaining = Math.ceil(6 - hoursElapsed);
+          return res.status(403).json({
+            success: false,
+            message: `Exclusive Logistics Window: Please wait ${remaining} hour(s) before manual takeover. Logistics partners have priority for 6 hours after assignment.`
+          });
+        }
+
         // Mark pending shipments as cancelled so courier dashboard is cleared
         await Shipment.updateMany(
           { order_id: order._id, status: { $in: ['pending', 'assigned'] } },
