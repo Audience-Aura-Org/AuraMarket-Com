@@ -30,7 +30,7 @@ function ChatContent() {
 
   return (
     <div
-      className="fixed inset-0 z-[600] flex w-full min-h-0 flex-col bg-[#ece5dd]"
+      className="fixed inset-0 z-[600] flex w-full min-h-0 flex-col bg-[var(--bg-secondary)]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <MessagingHub 

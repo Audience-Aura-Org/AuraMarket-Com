@@ -117,6 +117,48 @@ i, em { font-style: normal !important; }
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
 }
 
+/* Order detail / manifest — Plus Jakarta Sans (set via --font-order on <html>) */
+.font-order-detail {
+  font-family: var(--font-order), var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-optical-sizing: auto;
+}
+.font-order-detail h1,
+.font-order-detail h2,
+.font-order-detail h3,
+.font-order-detail h4 {
+  font-family: var(--font-order), var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+  font-style: normal;
+}
+
+/* Global chat message area — theme-aware wallpaper */
+.chat-bg-pattern {
+  background-color: var(--bg-secondary);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 0%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 70% at 92% 100%, color-mix(in srgb, var(--accent-light) 12%, transparent) 0%, transparent 50%),
+    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 60%, transparent) 0%, transparent 42%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%2364748b' stroke-opacity='0.14'%3E%3Cpath d='M0 36h72M36 0v72'/%3E%3Ccircle cx='36' cy='36' r='1.2' fill='%2364748b' fill-opacity='0.16'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, auto, 72px 72px;
+}
+
+.dark .chat-bg-pattern {
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% 0%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 70% at 92% 100%, color-mix(in srgb, var(--accent-light) 14%, transparent) 0%, transparent 50%),
+    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 25%, transparent) 0%, transparent 45%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%2394a3b8' stroke-opacity='0.16'%3E%3Cpath d='M0 36h72M36 0v72'/%3E%3Ccircle cx='36' cy='36' r='1.2' fill='%2394a3b8' fill-opacity='0.18'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, auto, 72px 72px;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-primary) 16%, transparent);
+  border-radius: 10px;
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 

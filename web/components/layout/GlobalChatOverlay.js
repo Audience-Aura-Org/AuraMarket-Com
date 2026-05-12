@@ -17,7 +17,7 @@ export default function GlobalChatOverlay() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeChat}
-            className="fixed inset-0 z-[590] cursor-pointer bg-black/50 backdrop-blur-[3px] md:bg-black/35"
+            className="fixed inset-0 z-[590] cursor-pointer bg-black/55 backdrop-blur-[4px] max-md:bg-black/45 max-md:backdrop-blur-sm md:bg-black/35"
           />
           
           <MessagingHub 

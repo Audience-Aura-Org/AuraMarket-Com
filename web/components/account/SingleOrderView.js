@@ -162,14 +162,14 @@ export default function SingleOrderView({ orderId, onBack }) {
   };
 
   if (loading) return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-4 py-14 sm:rounded-3xl sm:px-6 sm:py-16">
+    <div className="font-order-detail flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-4 py-14 sm:rounded-3xl sm:px-6 sm:py-16">
       <div className="size-11 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin" />
       <p className="text-[11px] font-semibold tracking-wide text-[var(--text-secondary)]">Loading order…</p>
     </div>
   );
 
   if (!order) return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-6 py-16 text-center sm:rounded-3xl sm:px-8 sm:py-20">
+    <div className="font-order-detail flex flex-col items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-6 py-16 text-center sm:rounded-3xl sm:px-8 sm:py-20">
       <AlertTriangle className="mb-4 size-11 text-amber-500/80" />
       <h1 className="mb-2 text-xl font-bold tracking-tight text-[var(--text-primary)]">Order not found</h1>
       <p className="mb-6 max-w-sm text-[12px] text-[var(--text-secondary)]">We couldn&apos;t load this order. It may have been removed or you may not have access.</p>
@@ -286,7 +286,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const cardBase = 'rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-sm shadow-sm';
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0 sm:gap-8 sm:pb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="font-order-detail flex w-full min-w-0 flex-1 flex-col gap-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0 sm:gap-8 sm:pb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Top bar */}
       <header className="flex flex-col gap-5 border-b border-[var(--glass-border)] pb-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:pb-6">
         <div className="min-w-0 space-y-3 sm:space-y-4">
@@ -305,7 +305,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-60">
               Order detail
             </p>
-            <h1 className="mt-1 truncate text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl md:text-3xl">
+            <h1 className="mt-1 truncate text-2xl font-bold tracking-tighter text-[var(--text-primary)] sm:text-3xl md:text-4xl">
               #{order._id.slice(-8).toUpperCase()}
             </h1>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--text-secondary)] sm:text-[11px]">

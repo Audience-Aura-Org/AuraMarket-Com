@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, X, ArrowLeft, Package,
@@ -21,7 +20,6 @@ import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './ch
 export default function MessagingHub({ vendorId: initialVendorId, product, initialData, onClose, fullPage = false }) {
   const { user } = useAuthStore();
   const { isSystemWide } = useChat();
-  const router = useRouter();
   
   // -- State --
   const [activePartnerId, setActivePartnerId] = useState(initialVendorId);
@@ -53,6 +51,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const messagesEndRef = useRef(null);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const [mobileLayout, setMobileLayout] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const apply = () => setMobileLayout(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   const hideConversation = (partnerId) => {
     const updated = [...new Set([...deletedConvos, partnerId])];
@@ -300,44 +308,82 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const partnerName = (partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User').toString();
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
 
+  const dismissOverlay = () => {
+    onClose?.();
+  };
+
+  const pullToClose = (info) => {
+    if (info.offset.y > 48 || info.velocity.y > 420) {
+      if (activePartnerId) {
+        setActivePartnerId(null);
+        setPartnerInfo(null);
+        setMessages([]);
+      } else {
+        dismissOverlay();
+      }
+    }
+  };
+
+  const headerSwipeProps =
+    !fullPage && mobileLayout
+      ? {
+          drag: 'x',
+          dragConstraints: { left: 0, right: 0 },
+          dragElastic: { left: 0, right: 0.42 },
+          dragDirectionLock: true,
+          onDragEnd: (e, info) => {
+            if (info.offset.x > 56 || info.velocity.x > 520) {
+              if (activePartnerId) {
+                setActivePartnerId(null);
+                setPartnerInfo(null);
+                setMessages([]);
+              } else {
+                dismissOverlay();
+              }
+            }
+          },
+        }
+      : {};
+
   return (
     <motion.div
       {...(!fullPage
         ? {
-            initial: { opacity: 0, y: 28, scale: 0.98 },
-            animate: { opacity: 1, y: 0, scale: 1 },
-            exit: { opacity: 0, y: 20, scale: 0.99 },
-            drag: 'x',
-        dragConstraints: { left: 0, right: 0 },
-            dragElastic: { left: 0, right: 0.45 },
-        onDragEnd: (e, info) => {
-              if (info.offset.x > 80) {
-            if (activePartnerId) {
-              setActivePartnerId(null);
-              setPartnerInfo(null);
-              setMessages([]);
-            } else {
-                  if (window.history.length > 1) router.back();
-                  onClose?.();
-                }
-              }
-            },
+            initial: { opacity: 0, y: 18 },
+            animate: { opacity: 1, y: 0 },
+            exit: { opacity: 0, y: 16 },
           }
         : {})}
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={
         fullPage
-          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#ece5dd] touch-manipulation'
+          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation'
           : [
-              'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[#ece5dd] touch-manipulation',
-              'left-3 right-3 top-[max(0.5rem,env(safe-area-inset-top))] bottom-3',
-              'max-h-[min(92dvh,calc(100dvh-1.5rem))] rounded-2xl border border-black/10',
-              'shadow-[0_20px_64px_rgba(0,0,0,0.3)]',
+              'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
+              'max-md:inset-0 max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none max-md:pt-[env(safe-area-inset-top,0px)]',
               'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
               'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
+              'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_20px_64px_rgba(0,0,0,0.28)]',
             ].join(' ')
       }
     >
+      {/* Mobile: pull handle + swipe-right on header to close / go back */}
+      {!fullPage && (
+        <div className="flex shrink-0 flex-col items-center border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] md:hidden">
+          <motion.div
+            role="presentation"
+            aria-hidden
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.35 }}
+            onDragEnd={(e, info) => pullToClose(info)}
+            className="flex w-full cursor-grab touch-none justify-center py-2 active:cursor-grabbing"
+          >
+            <span className="h-1 w-10 rounded-full bg-black/20" />
+          </motion.div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <AnimatePresence mode="wait">
         {activePartnerId ? (
@@ -348,13 +394,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="relative z-30 shrink-0 bg-[#075e54] text-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]"
+            className="relative z-30 shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
           >
-            <div className="flex items-center gap-2 px-2 py-2 sm:gap-3 sm:px-3 sm:py-2.5">
+            <motion.div {...headerSwipeProps} className="block w-full">
+            <div className="flex items-center gap-1.5 px-2 py-1.5 max-md:gap-2 max-md:py-2 sm:gap-3 sm:px-3 sm:py-2.5">
               <button
                 type="button"
                 onClick={() => { setActivePartnerId(null); setPartnerInfo(null); setMessages([]); }}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full text-white/95 transition-colors hover:bg-white/10 active:bg-white/15 sm:size-10"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/95 transition-colors hover:bg-white/10 active:bg-white/15 sm:size-10"
                 aria-label="Back to chats"
               >
                 <ArrowLeft className="size-[22px] sm:size-5" />
@@ -364,32 +411,32 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 <div className="size-10 overflow-hidden rounded-full bg-white/15 ring-2 ring-white/20 sm:size-11">
                   {partnerAvatar && typeof partnerAvatar === 'string'
                     ? <img src={partnerAvatar} className="size-full object-cover" alt="" />
-                    : <div className="flex size-full items-center justify-center text-lg font-semibold text-white">{partnerName[0]}</div>}
+                    : <div className="flex size-full items-center justify-center text-lg font-semibold text-[var(--nav-text)]">{partnerName[0]}</div>}
                 </div>
-                <div className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#075e54] sm:size-3.5 ${
-                  partnerInfo?.is_online ? 'bg-[#25d366]' : 'bg-neutral-400'
+                <div className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-[var(--nav-bg)] sm:size-3.5 ${
+                  partnerInfo?.is_online ? 'bg-emerald-500' : 'bg-neutral-400'
                 }`} />
               </div>
 
               <div className="min-w-0 flex-1 py-0.5">
-                <h3 className="truncate text-[16px] font-semibold leading-tight tracking-tight text-white sm:text-[17px] capitalize">
+                <h3 className="truncate text-[15px] font-semibold leading-tight tracking-tight text-[var(--nav-text)] max-md:text-[14px] sm:text-[17px] capitalize">
                   {isSystemWide && partnerBInfo
-                    ? <span>{partnerName} <span className="text-white/40">&</span> {partnerBInfo?.name}</span>
+                    ? <span>{partnerName} <span className="text-[var(--nav-text)]/40">&</span> {partnerBInfo?.name}</span>
                     : partnerName}
                 </h3>
                 <div className="mt-0.5 flex items-center gap-1.5">
                   {partnerTyping ? (
-                    <span className="flex items-center gap-1.5 text-[13px] text-[#b8e5d1]">
+                    <span className="flex items-center gap-1.5 text-[12px] text-[var(--nav-text)]/70 max-md:text-[11px] sm:text-[13px]">
                       <span className="flex gap-0.5">
                         {[0,1,2].map(d => (
-                          <motion.span key={d} className="inline-block size-1 rounded-full bg-[#b8e5d1]"
+                          <motion.span key={d} className="inline-block size-1 rounded-full bg-[var(--nav-text)]/45"
                             animate={{ y: [0,-3,0] }} transition={{ repeat: Infinity, duration: 0.8, delay: d * 0.15 }} />
                         ))}
                       </span>
                       typing…
                     </span>
                   ) : (
-                    <p className={`text-[13px] ${partnerInfo?.is_online ? 'text-[#25d366]' : 'text-white/55'}`}>
+                    <p className={`text-[12px] max-md:text-[11px] sm:text-[13px] ${partnerInfo?.is_online ? 'text-emerald-400' : 'text-[var(--nav-text)]/55'}`}>
                       {partnerInfo?.is_online ? 'online' : 'offline'}
                     </p>
                   )}
@@ -400,16 +447,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 <button
                   type="button"
                   onClick={() => { if (confirm('Delete this conversation?')) hideConversation(activePartnerId.toString()); }}
-                  className="flex size-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
+                  className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/80 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15"
                   aria-label="Delete chat"
                 >
                   <Trash2 className="size-[18px]" />
                 </button>
-                <button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full text-white/85 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15" aria-label="Close chat">
+                <button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/85 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15" aria-label="Close chat">
                   <X className="size-[22px] sm:size-5" />
                 </button>
               </div>
             </div>
+            </motion.div>
           </motion.div>
         ) : (
           /* Inbox Header */
@@ -421,33 +469,33 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             transition={{ duration: 0.2 }}
             className="relative z-30 shrink-0"
           >
-            <div className="bg-[#075e54] px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
-              <div className="flex items-center justify-between gap-3">
+            <motion.div {...headerSwipeProps} className="bg-[var(--nav-bg)] px-3 pb-2.5 pt-2.5 max-md:pb-2 max-md:pt-2 sm:px-4 sm:pb-4 sm:pt-4">
+              <div className="flex items-center justify-between gap-2 sm:gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-[19px] font-semibold tracking-tight text-white sm:text-[20px]">Chats</h2>
+                  <h2 className="text-[17px] font-semibold tracking-tight text-[var(--nav-text)] max-md:text-[16px] sm:text-[20px]">Chats</h2>
                   {inbox.length > 0 && (
-                    <p className="mt-0.5 text-[13px] text-[#b8e5d1]">
+                    <p className="mt-0.5 text-[12px] text-[var(--nav-text)]/70 max-md:text-[11px] sm:text-[13px]">
                       {inbox.filter(c => c.unread_count > 0).length > 0
                         ? `${inbox.filter(c => c.unread_count > 0).length} unread`
                         : `${inbox.length} chat${inbox.length > 1 ? 's' : ''}`}
                     </p>
                   )}
                 </div>
-                <button type="button" onClick={onClose} className="flex size-10 shrink-0 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:bg-white/15" aria-label="Close">
+                <button type="button" onClick={onClose} className="flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15" aria-label="Close">
                   <X className="size-[22px]" />
                 </button>
               </div>
-            </div>
-            <div className="border-b border-black/5 bg-[#f0f2f5] px-2 py-2 sm:px-3">
+            </motion.div>
+            <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 py-1.5 max-md:py-1.5 sm:px-3 sm:py-2">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[#667781]" />
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-[16px] -translate-y-1/2 text-[var(--text-secondary)] max-md:left-2 max-md:size-[15px] sm:left-3 sm:size-[18px]" />
                 <input
                   type="search"
                   enterKeyHint="search"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search"
-                  className="w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-3 text-[15px] text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
+                  className="w-full rounded-lg border-0 bg-[var(--bg-primary)] py-2 pl-9 pr-2.5 text-[14px] text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-[var(--glass-border)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)]/40 max-md:py-2 max-md:text-[13px] sm:py-2.5 sm:pl-10 sm:pr-3 sm:text-[15px]"
                 />
               </div>
             </div>
@@ -457,17 +505,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       {/* Product Context */}
       {activePartnerId && product && (
-        <div className="z-20 shrink-0 border-b border-black/5 bg-[#f0f2f5] px-3 py-2 sm:px-4">
+        <div className="z-20 shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4">
            <div className="flex items-center gap-3">
-              <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-black/5 sm:size-12">
+              <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)] ring-1 ring-[var(--glass-border)] sm:size-12">
                  <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
               </div>
               <div className="min-w-0 flex-1">
-                 <p className="text-[11px] font-medium uppercase tracking-wide text-[#667781]">Product</p>
-                 <h4 className="truncate text-[14px] font-semibold text-[#111b21]">{product.name}</h4>
-                 <p className="text-[12px] text-[#667781]">{(product.price || 0).toLocaleString()} XAF</p>
+                 <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Product</p>
+                 <h4 className="truncate text-[14px] font-semibold text-[var(--text-primary)]">{product.name}</h4>
+                 <p className="text-[12px] text-[var(--text-secondary)]">{(product.price || 0).toLocaleString()} XAF</p>
               </div>
-              <button type="button" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-[#54656f] shadow-sm ring-1 ring-black/5 transition active:bg-[#f0f2f5]">
+              <button type="button" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] transition active:bg-[var(--bg-secondary)]">
                  <Package className="size-[18px]" />
               </button>
            </div>
@@ -479,20 +527,20 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="chat-scrollbar relative min-h-0 flex-1 overflow-y-auto bg-[#f0f2f5]"
+        className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto bg-[var(--bg-secondary)]"
       >
-          <div className="p-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:p-3">
+          <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] max-md:space-y-0 sm:p-3">
              <div className="space-y-px overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
                 {inboxLoading ? (
                   <div className="flex flex-col items-center gap-4 bg-white py-20">
-                    <Loader2 className="size-8 animate-spin text-[#00a884]" />
-                    <p className="text-[13px] font-medium text-[#667781]">Loading chats…</p>
+                    <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
+                    <p className="text-[13px] font-medium text-[var(--text-secondary)]">Loading chats…</p>
                   </div>
                 ) : filteredInbox.length === 0 ? (
                   <div className="bg-white px-6 py-16 text-center">
-                    <MessageCircle className="mx-auto mb-4 size-14 text-[#8696a0]" />
-                    <p className="text-[16px] font-medium text-[#111b21]">No chats yet</p>
-                    <p className="mt-2 text-[14px] leading-snug text-[#667781]">Start a conversation from a product or store.</p>
+                    <MessageCircle className="mx-auto mb-4 size-14 text-[var(--text-secondary)]" />
+                    <p className="text-[16px] font-medium text-[var(--text-primary)]">No chats yet</p>
+                    <p className="mt-2 text-[14px] leading-snug text-[var(--text-secondary)]">Start a conversation from a product or store.</p>
                   </div>
                 ) : (
                   filteredInbox.map((chat, i) => (
@@ -504,31 +552,31 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                         setPartnerInfo(chat.partner);
                         if (chat.isSystemWide) setPartnerBInfo(chat.partnerB);
                       }}
-                      className={`flex w-full items-center gap-3 border-b border-[#f0f2f5] px-3 py-3 text-left transition-colors active:bg-[#f5f6f6] sm:gap-4 sm:px-4 ${
-                        chat.unread_count > 0 ? 'bg-[#f0fff4]' : 'bg-white hover:bg-[#f5f6f6]'
+                      className={`flex w-full items-center gap-2.5 border-b border-[var(--glass-border)] px-2.5 py-2.5 text-left transition-colors active:bg-[var(--bg-secondary)] max-md:gap-3 max-md:px-3 max-md:py-2.5 sm:gap-4 sm:px-4 sm:py-3 ${
+                        chat.unread_count > 0 ? 'bg-[var(--accent)]/[0.08]' : 'bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)]'
                       }`}
                     >
-                      <div className="relative size-[52px] shrink-0 overflow-hidden rounded-full bg-[#dfe5e7] sm:size-14">
+                      <div className="relative size-[46px] shrink-0 overflow-hidden rounded-full bg-[var(--component-bg)] max-md:size-11 sm:size-14">
                          {chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo 
                            ? <img src={chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo} className="size-full object-cover" alt="" />
-                           : <div className="flex size-full items-center justify-center text-xl font-semibold text-[#54656f]">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
+                           : <div className="flex size-full items-center justify-center text-xl font-semibold text-[var(--text-secondary)]">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
                          {chat.partner?.is_online && (
-                           <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-white bg-[#25d366]" />
+                           <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-[var(--bg-primary)] bg-emerald-500" />
                          )}
                       </div>
                       <div className="min-w-0 flex-1">
                          <div className="mb-0.5 flex items-start justify-between gap-2">
-                            <h4 className={`truncate text-[16px] capitalize ${chat.unread_count > 0 ? 'font-semibold text-[#111b21]' : 'font-medium text-[#111b21]'}`}>
+                            <h4 className={`truncate text-[15px] capitalize max-md:text-[14px] sm:text-[16px] ${chat.unread_count > 0 ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
                               {chat.isSystemWide ? `${chat.partner?.name} & ${chat.partnerB?.name}` : (chat.partner?.store_name || chat.partner?.name)}
                             </h4>
-                            <span className="shrink-0 pt-0.5 text-[12px] text-[#667781]">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
+                            <span className="shrink-0 pt-0.5 text-[11px] text-[var(--text-secondary)] max-md:text-[10px] sm:text-[12px]">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
                          </div>
                          <div className="flex items-center justify-between gap-2">
-                            <p className={`min-w-0 flex-1 truncate text-[14px] leading-snug ${chat.unread_count > 0 ? 'font-medium text-[#111b21]' : 'text-[#667781]'}`}>
+                            <p className={`min-w-0 flex-1 truncate text-[13px] leading-snug max-md:text-[12px] sm:text-[14px] ${chat.unread_count > 0 ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                               {chat.snippet || 'Tap to open'}
                             </p>
                             {chat.unread_count > 0 && (
-                              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#25d366] text-[12px] font-semibold text-white">
+                              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[12px] font-semibold text-white">
                                 {chat.unread_count > 99 ? '99+' : chat.unread_count}
                               </span>
                             )}
@@ -545,13 +593,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain"
       >
-          <div className="space-y-1 p-3 pb-4 pt-2 sm:p-4">
-                {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[#8696a0]" /></div>}
+          <div className="space-y-0.5 p-2 pb-3 pt-1.5 max-md:space-y-px sm:space-y-1 sm:p-4">
+                {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" /></div>}
                 
                 {loading ? (
-                   <div className="flex flex-col items-center justify-center py-24 opacity-60"><Loader2 className="size-8 animate-spin text-[#00a884]" /></div>
+                   <div className="flex flex-col items-center justify-center py-24 opacity-60"><Loader2 className="size-8 animate-spin text-[var(--accent)]" /></div>
                 ) : (
                   messages.map((msg, i) => {
                     const prevMsg = messages[i - 1];
@@ -567,21 +615,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     return (
                       <div key={msg._id || i}>
                         {showDate && (
-                          <div className="my-5 flex justify-center sm:my-6">
-                            <span className="rounded-lg bg-white/95 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#54656f] shadow-sm ring-1 ring-black/[0.06]">
+                          <div className="my-3 flex justify-center max-md:my-3.5 sm:my-6">
+                            <span className="rounded-lg bg-[var(--bg-primary)]/95 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] max-md:px-2 max-md:text-[9px] sm:px-3 sm:py-1.5 sm:text-[11px]">
                               {fmtDate(msg.createdAt)}
                             </span>
                           </div>
                         )}
 
-                        <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-2.5'}`}>
-                          <div className={`flex max-w-[88%] flex-col gap-1 sm:max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                        <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 max-md:mb-1 sm:mb-2.5'}`}>
+                          <div className={`flex max-w-[92%] flex-col gap-0.5 sm:max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
                             
                             <div className={`
-                              px-3 py-2 text-[14.5px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)]
+                              px-2.5 py-1.5 text-[13px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] max-md:px-2.5 max-md:py-1.5 max-md:text-[12.5px] sm:px-3 sm:py-2 sm:text-[14.5px]
                               ${isOwn
-                                ? 'bg-[#dcf8c6] text-[#111b21]'
-                                : 'border border-black/[0.06] bg-white text-[#111b21]'}
+                                ? 'border border-[var(--accent)]/25 bg-[var(--accent)]/12 text-[var(--text-primary)]'
+                                : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)]'}
                               ${rounding}
                             `}>
                               {msg.image_url && (
@@ -598,19 +646,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                                     alt="" 
                                   />
                                   <div className="min-w-0 flex-1">
-                                    <p className="truncate text-[12px] font-semibold text-[#111b21]">{msg.product_reference.name}</p>
-                                    <p className="text-[11px] text-[#667781]">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
+                                    <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">{msg.product_reference.name}</p>
+                                    <p className="text-[11px] text-[var(--text-secondary)]">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
                                   </div>
                                 </button>
                               )}
 
-                              {msg.text ? <p className="whitespace-pre-wrap text-[14.5px]">{msg.text}</p> : null}
+                              {msg.text ? <p className="whitespace-pre-wrap text-[13px] max-md:text-[12.5px] sm:text-[14.5px]">{msg.text}</p> : null}
                               
-                              <div className={`mt-1 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'} text-[11px] tabular-nums text-[#667781]`}>
+                              <div className={`mt-0.5 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'} text-[10px] tabular-nums text-[var(--text-secondary)] max-md:text-[9.5px] sm:mt-1 sm:text-[11px]`}>
                                 <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 {isOwn && (
                                   msg.status === 'failed' ? <AlertCircle className="size-3.5 text-red-600" /> :
-                                  <CheckCheck className={`size-3.5 ${msg.read_status ? 'text-[#53bdeb]' : 'text-[#667781]'}`} />
+                                  <CheckCheck className={`size-3.5 ${msg.read_status ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
                                 )}
                               </div>
                               </div>
@@ -630,16 +678,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
              </div>
 
-      <div className="z-20 shrink-0 border-t border-[#e9edef] bg-[#f0f2f5] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
+      <div className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
                 {messages.length < 5 && !input && (
-                  <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-[#e9edef]/80 px-2 py-2 sm:px-3">
+                  <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3">
                     {QUICK_REPLIES.map(q => (
                       <motion.button
                         key={q}
                         type="button"
                         whileTap={{ scale: 0.97 }}
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSend(q); }}
-                        className="shrink-0 whitespace-nowrap rounded-full bg-white px-3 py-2 text-[13px] font-medium text-[#075e54] shadow-sm ring-1 ring-black/[0.06] transition-colors active:bg-[#e9edef]"
+                        className="shrink-0 whitespace-nowrap rounded-full bg-[var(--bg-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--accent)] shadow-sm ring-1 ring-[var(--glass-border)] transition-colors active:bg-[var(--bg-secondary)] max-md:px-2.5 max-md:py-1.5 max-md:text-[11px] sm:px-3 sm:py-2 sm:text-[13px]"
                       >
                         {q}
                       </motion.button>
@@ -647,18 +695,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   </div>
                 )}
 
-                <div className="flex items-end gap-2 px-2 pb-2 pt-1 sm:px-3 sm:pb-3 sm:pt-2">
+                <div className="flex items-end gap-1.5 px-2 pb-1.5 pt-0.5 max-md:gap-1.5 sm:gap-2 sm:px-3 sm:pb-3 sm:pt-2">
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[#54656f] transition-colors hover:bg-[#e9edef] active:bg-[#e9edef]"
+                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)] active:bg-[var(--bg-primary)]"
                     aria-label="Attach image"
                   >
                     <ImageIcon className="size-[22px]" />
                   </button>
 
-                  <div className="relative flex min-h-[44px] flex-1 items-end overflow-hidden rounded-[24px] bg-white shadow-sm ring-1 ring-black/[0.08] focus-within:ring-2 focus-within:ring-[#00a884]/35">
+                  <div className="relative flex min-h-[44px] flex-1 items-end overflow-hidden rounded-[24px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] focus-within:ring-2 focus-within:ring-[var(--accent)]/35">
                     <textarea
                       ref={inputRef}
                       value={input}
@@ -666,7 +714,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                       placeholder="Message"
                       rows={1}
-                      className="max-h-28 min-h-[44px] w-full flex-1 resize-none bg-transparent px-4 py-3 text-[15px] leading-snug text-[#111b21] outline-none placeholder:text-[#8696a0]"
+                      className="max-h-24 min-h-[40px] w-full flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] max-md:min-h-[40px] max-md:px-3 max-md:py-2 max-md:text-[13px] sm:min-h-[44px] sm:px-4 sm:py-3 sm:text-[15px]"
                       style={{ height: 'auto' }}
                       onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 112)}px`; }}
                     />
@@ -677,7 +725,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     whileTap={{ scale: 0.92 }}
                     onClick={() => handleSend()}
                     disabled={sending || !input.trim()}
-                    className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[#00a884] text-white shadow-md transition-all disabled:bg-[#8696a0] disabled:opacity-90 disabled:shadow-none"
+                    className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30 transition-all disabled:bg-[var(--text-secondary)] disabled:opacity-90 disabled:shadow-none"
                     aria-label="Send"
                   >
                     {sending ? <Loader2 className="size-6 animate-spin" /> : <Send className="size-[22px]" />}
@@ -687,16 +735,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       </>
       )}
 
-      <style jsx global>{`
-        .chat-bg-pattern {
-          background-color: #ece5dd;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='%23000' fill-opacity='0.035'%3E%3Cpath d='M40 36c8-14 22-24 38-24 24 0 44 20 44 44 0 22-18 40-40 40H36c-13 0-24-11-24-24 0-15 12-28 28-36z'/%3E%3Cpath d='M188 210c10-18 28-30 48-30 32 0 58 26 58 58 0 28-22 52-50 52h-52c-17 0-32-14-32-32 0-20 16-38 28-48z'/%3E%3C/g%3E%3C/svg%3E");
-        }
-        .chat-scrollbar::-webkit-scrollbar { width: 5px; }
-        .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 10px; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </motion.div>
   );
 }

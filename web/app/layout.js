@@ -1,5 +1,5 @@
 import '../styles/globals.css';
-import { Poppins, Quicksand } from 'next/font/google';
+import { Poppins, Quicksand, Plus_Jakarta_Sans } from 'next/font/google';
 import Providers from '@/components/Providers';
 
 const poppins = Poppins({
@@ -13,7 +13,15 @@ const quicksand = Quicksand({
   weight: ['300', '400', '500', '600', '700'],
   subsets: ['latin'],
   display: 'swap',
-  variable: '--',
+  variable: '--font-quicksand',
+});
+
+/** Dense order / manifest views — high legibility, modern retail UI */
+const plusJakarta = Plus_Jakarta_Sans({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-order',
 });
 
 export const metadata = {
@@ -40,7 +48,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${quicksand.variable}`} data-scroll-behavior="smooth">
+    <html lang="en" className={`${poppins.variable} ${quicksand.variable} ${plusJakarta.variable}`} data-scroll-behavior="smooth">
       <head>
         {/* Viewport: Removed interactive-widget=resizes-visual to fix iOS PWA freeze bug */}
         <meta
