@@ -12,6 +12,7 @@ const Vendor = require('../models/Vendor.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
+const Shipment = require('../models/Shipment.model');
 const logisticsService = require('../services/logistics.service');
 const Cart = require('../models/Cart.model');
 const { sendNotification } = require('../utils/notifier');
@@ -187,6 +188,22 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
 
   order.order_status = 'completed';
   await order.save({ session });
+
+  // ── SYNC SHIPMENT STATUS: If customer confirms, logistics node must be updated ──
+  await Shipment.updateMany(
+    { order_id: order._id, status: { $ne: 'delivered' } },
+    { 
+      $set: { status: 'delivered' },
+      $push: {
+        shipment_logs: {
+          status: 'delivered',
+          updated_by: req.user._id,
+          timestamp: new Date(),
+          note: 'Delivery confirmed by customer via Escrow Handshake. Shipment closed.'
+        }
+      }
+    }
+  ).session(session);
 
   // ── FALLBACK: Credit logistics fee if not already settled by logistics controller ──
   // (Covers edge case where logistics controller didn't fire or escrow.logistics_settled wasn't set)
