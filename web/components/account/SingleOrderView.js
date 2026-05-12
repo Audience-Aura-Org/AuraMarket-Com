@@ -167,7 +167,6 @@ export default function SingleOrderView({ orderId, onBack }) {
   if (loading) return (
     <div className="py-20 flex flex-col items-center justify-center">
       <div className="size-12 border-2 border-[var(--accent)]/10 border-t-[var(--accent)] rounded-full animate-spin" />
-      
     </div>
   );
 
@@ -180,7 +179,6 @@ export default function SingleOrderView({ orderId, onBack }) {
   );
 
   const getStatusConfig = (orderStatus, shipmentStatus) => {
-    // If we have a shipment status that indicates transit, prioritize it for the visual step
     if (['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(shipmentStatus?.toLowerCase())) {
       const labels = {
         assigned: 'Assigned to Carrier',
@@ -188,12 +186,7 @@ export default function SingleOrderView({ orderId, onBack }) {
         in_transit: 'In Transit',
         out_for_delivery: 'Out for Delivery'
       };
-      return { 
-        color: 'blue', 
-        label: labels[shipmentStatus?.toLowerCase()] || 'In Transit', 
-        icon: Truck, 
-        step: 3 
-      };
+      return { color: 'blue', label: labels[shipmentStatus?.toLowerCase()] || 'In Transit', icon: Truck, step: 3 };
     }
 
     switch (orderStatus?.toLowerCase()) {
@@ -227,9 +220,7 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header: back + title + actions all inline */}
       <div className="mb-8">
-        {/* Back button */}
         <button onClick={onBack} className="flex items-center gap-2 group w-fit mb-4">
            <div className="size-7 rounded-lg bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
               <ChevronLeft className="size-3" />
@@ -237,13 +228,11 @@ export default function SingleOrderView({ orderId, onBack }) {
            <span className="text-[10px] lg:text-[12px] font-semibold tracking-widest capitalize opacity-40 group-hover:opacity-100 transition-opacity">Back</span>
         </button>
 
-        {/* Title row + actions in one line */}
         <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-4">
           <h1 className="text-2xl xs:text-3xl font-black tracking-tighter leading-tight">
             Order <span className="text-[var(--accent)]">Manifest</span>
           </h1>
 
-          {/* Invoice / Share / Trace — always visible inline */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 xs:pb-0">
             <button
               onClick={handleDownloadInvoice}
@@ -256,7 +245,6 @@ export default function SingleOrderView({ orderId, onBack }) {
             >
               <Share2 className="size-3.5" />
             </button>
-            {/* Trace chip — visible on mobile now */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] shadow-sm shrink-0">
               <Fingerprint className="size-3.5 text-[var(--accent)] shrink-0" />
               <code className="text-[10px] font-mono font-bold tracking-widest text-[var(--accent)]">#{order._id.slice(-8).toUpperCase()}</code>
@@ -270,124 +258,141 @@ export default function SingleOrderView({ orderId, onBack }) {
       </div>
 
       <div className="mb-6">
-         <div className="glass-panel p-6 md:p-8 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 relative overflow-hidden shadow-sm">
-            <div className="absolute top-0 right-0 p-4 opacity-[0.02] pointer-events-none">
-               <Navigation className="size-32" />
+          <div className="glass-panel p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 relative overflow-hidden shadow-2xl group/panel">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover/panel:scale-110 transition-transform duration-1000">
+               <Navigation className="size-48 lg:size-64" />
             </div>
+            <div className="absolute -bottom-24 -left-24 size-64 bg-[var(--accent)]/5 blur-[100px] rounded-full pointer-events-none" />
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-               <div className="space-y-2">
-                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded-md border text-[10px] lg:text-[12px]  font-semibold tracking-[0.15em] w-fit bg-${status.color}-500/10 text-${status.color}-500 border-${status.color}-500/20`}>
-                     <Signal className="size-2.5 animate-pulse" /> Telemetry Active
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12 relative z-10">
+               <div className="space-y-4">
+                  <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full border text-[10px] lg:text-[11px] font-bold tracking-[0.2em] w-fit uppercase bg-emerald-500/5 text-emerald-500 border-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.05)]`}>
+                     <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,1)]" /> Telemetry Active
                   </div>
-                  <h2 className="text-2xl  font-black tracking-tighter leading-none">{status.label}</h2>
+                  <div className="space-y-1">
+                    <p className="text-[10px] lg:text-[12px] font-bold text-[var(--text-secondary)] opacity-40 tracking-[0.2em] uppercase">Manifest Status</p>
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-[var(--text-primary)]">{status.label}</h2>
+                  </div>
                   {escrow?.vendor_confirmed && !escrow?.customer_confirmed && !isVendor && (
-                    <p className="text-[10px] lg:text-[11px] font-medium text-emerald-500 flex items-center gap-1.5 mt-2 animate-pulse">
-                      <CheckCircle2 className="size-3" /> Vendor has confirmed delivery. Please confirm arrival to release funds.
-                    </p>
+                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 mt-4 animate-in slide-in-from-left-4">
+                      <div className="size-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                        <CheckCircle2 className="size-4" />
+                      </div>
+                      <p className="text-xs font-bold text-emerald-500/80 leading-tight">
+                        Vendor has confirmed delivery.<br/><span className="opacity-60 font-medium">Verify arrival to release vault funds.</span>
+                      </p>
+                    </div>
                   )}
                </div>
 
-               <div className="flex flex-col gap-2 min-w-[180px]">
-                  {/* Customer: Confirm Arrival — always shown when delivered, regardless of shipping method */}
+               <div className="flex flex-col gap-3 min-w-full md:min-w-[240px]">
                   {(order.order_status === 'shipped' || order.order_status === 'delivered') && !isVendor && (
-                    <button onClick={handleConfirmDelivery} className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
-                       <CheckCircle2 className="size-3.5" /> Confirm Arrival
+                    <button 
+                      onClick={handleConfirmDelivery} 
+                      className="w-full px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                    >
+                       <CheckCircle2 className="size-4 group-hover:scale-110 transition-transform" /> Confirm Arrival
                     </button>
                   )}
 
-                  {/* Vendor: Accept order — always available (logistics or not) */}
                   {isVendor && order.order_status === 'placed' && (
                     <button 
                       onClick={() => handleUpdateStatus('processing')}
-                      className="w-full px-8 py-3 bg-[var(--accent)] text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-[var(--accent)]/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                      className="w-full px-8 py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-[0_10px_25px_-5px_rgba(var(--accent-rgb),0.3)] hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-3 group"
                     >
-                       <Zap className="size-3.5" /> Start Processing
+                       <Zap className="size-4 group-hover:scale-110 transition-transform" /> Start Processing
                     </button>
                   )}
 
-                  {/* Vendor: Logistics-managed order info badge — only shown when carrier HAS launched */}
                   {isVendor && isLogisticsOrder && carrierLaunched && (order.order_status === 'processing' || order.order_status === 'shipped' || order.order_status === 'delivered') && (
-                    <div className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
-                      <Truck className="size-3.5 text-indigo-400 shrink-0" />
-                      <span className="text-[10px] lg:text-[11px] font-semibold text-indigo-400 leading-tight">
+                    <div className="w-full p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3">
+                      <div className="size-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+                        <Truck className="size-4" />
+                      </div>
+                      <span className="text-[11px] font-bold text-indigo-400/80 leading-tight pt-1 uppercase tracking-tight">
                         {order.order_status === 'delivered'
-                          ? 'Delivered by carrier. Awaiting customer confirmation to release funds.'
-                          : 'Shipment launched by carrier. Tracking active.'}
+                          ? 'Carrier Delivered • Pending Approval'
+                          : 'Carrier In-Transit • Real-time Tracking'}
                       </span>
                     </div>
                   )}
 
-                  {/* Vendor: Ship button — Available if NOT logistics OR if logistics hasn't launched yet AND grace period passed */}
                   {isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
                     <div className="w-full space-y-3">
                       {isProtectedByGracePeriod && (
-                        <div className="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
-                           <Clock className="size-3 text-amber-500 shrink-0" />
-                           <span className="text-[9px] font-semibold text-amber-500 leading-tight">
-                             Exclusive Logistics Window: Carrier has {Math.ceil(6 - hoursSinceAssignment)}h left to respond.
+                        <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-3 animate-pulse">
+                           <Clock className="size-4 text-amber-500 shrink-0" />
+                           <span className="text-[10px] font-bold text-amber-500 uppercase tracking-tight leading-tight">
+                             Logistics Priority Window • {Math.ceil(6 - hoursSinceAssignment)}h Remaining
                            </span>
                         </div>
                       )}
                       <button 
                         onClick={() => handleUpdateStatus('shipped')}
                         disabled={isProtectedByGracePeriod}
-                        className={`w-full px-8 py-3 rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg transition-all flex items-center justify-center gap-2 ${
+                        className={`w-full px-8 py-4 rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-xl transition-all flex items-center justify-center gap-3 ${
                           isProtectedByGracePeriod
-                            ? 'bg-zinc-800 text-zinc-500 border border-white/5 cursor-not-allowed grayscale'
-                            : 'bg-indigo-500 text-white shadow-indigo-500/10 hover:scale-[1.02] active:scale-95'
+                            ? 'bg-zinc-800/50 text-zinc-600 border border-white/5 cursor-not-allowed'
+                            : 'bg-indigo-500 text-white shadow-indigo-500/20 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95'
                         }`}
                       >
-                         <Truck className="size-3.5" /> {isProtectedByGracePeriod ? 'Awaiting Carrier Window' : 'Mark as Shipped'}
+                         <Truck className="size-4" /> {isProtectedByGracePeriod ? 'Awaiting Carrier' : 'Mark as Shipped'}
                       </button>
                     </div>
                   )}
 
-                  {/* Vendor: Delivery Confirmation — Only for vendor-managed or vendor-launched orders */}
                   {isVendor && !isLogisticsOrder && order.order_status === 'shipped' && (
                     <button 
                       onClick={handleVendorConfirmDelivery}
                       disabled={escrow?.vendor_confirmed}
-                      className={`w-full px-8 py-3 rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg transition-all flex items-center justify-center gap-2 ${
+                      className={`w-full px-8 py-4 rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-xl transition-all flex items-center justify-center gap-3 ${
                         escrow?.vendor_confirmed 
-                          ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 cursor-default shadow-none' 
-                          : 'bg-emerald-500 text-white shadow-emerald-500/10 hover:scale-[1.02] active:scale-95'
+                          ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10 cursor-default' 
+                          : 'bg-emerald-500 text-white shadow-emerald-500/20 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95'
                       }`}
                     >
-                       <CheckCircle2 className="size-3.5" /> {escrow?.vendor_confirmed ? 'Delivery Confirmed' : 'Confirm Delivery'}
+                       <CheckCircle2 className="size-4" /> {escrow?.vendor_confirmed ? 'Delivery Recorded' : 'Confirm Delivery'}
                     </button>
                   )}
 
-                  <button onClick={() => setDisputeModal(true)} className="w-full px-8 py-3 bg-[var(--bg-primary)] text-rose-500 border border-rose-500/20 rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 group">
-                     <Scale className="size-3.5 group-hover:rotate-12 transition-transform" /> Intervention
+                  <button 
+                    onClick={() => setDisputeModal(true)} 
+                    className="w-full px-8 py-4 bg-[var(--bg-primary)]/50 text-rose-500 border border-rose-500/10 rounded-2xl font-black text-xs tracking-[0.15em] uppercase hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all flex items-center justify-center gap-3 group shadow-sm"
+                  >
+                     <Scale className="size-4 group-hover:rotate-12 transition-transform" /> Intervention
                   </button>
                </div>
             </div>
 
-            <div className="relative pt-8 pb-4 px-4">
-               <div className="absolute top-7 left-0 w-full h-[1px] bg-[var(--glass-border)]" />
-               <div className="relative flex justify-between max-w-2xl mx-auto">
+            <div className="relative pt-12 pb-2 px-4 relative z-10">
+               <div className="absolute top-[3.75rem] left-8 right-8 h-[2px] bg-[var(--glass-border)] hidden xs:block" />
+               <div className="relative flex justify-between max-w-3xl mx-auto gap-2">
                   {STEPS.map((s, idx) => {
                      const isActive = status.step > idx;
                      const isCurrent = status.step === idx + 1;
                      return (
-                       <div key={idx} className="flex flex-col items-center gap-2 relative z-10">
-                          <div className={`size-8 rounded-lg flex items-center justify-center border transition-all duration-700 ${
-                             isActive ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-md' : 
-                             isCurrent ? 'bg-[var(--bg-primary)] border-[var(--accent)] text-[var(--accent)] animate-pulse' :
-                             'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-20'
+                       <div key={idx} className="flex flex-col items-center gap-4 relative z-10 group">
+                          <div className={`size-10 md:size-12 rounded-2xl flex items-center justify-center border transition-all duration-1000 ${
+                             isActive ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]' : 
+                             isCurrent ? 'bg-[var(--bg-primary)] border-[var(--accent)] text-[var(--accent)] animate-pulse shadow-[0_0_30px_rgba(var(--accent-rgb),0.2)]' :
+                             'bg-[var(--bg-secondary)]/50 border-[var(--glass-border)] text-[var(--text-secondary)] opacity-30'
                           }`}>
-                             <s.icon className="size-3.5" />
+                             <s.icon className={`size-4 md:size-5 ${isActive ? 'scale-110' : ''}`} />
                           </div>
-                          <span className={`text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] ${isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-20'}`}>
-                             {s.label}
-                          </span>
+                          <div className="text-center space-y-1">
+                            <span className={`text-[9px] md:text-[10px] lg:text-[11px] font-black tracking-[0.2em] uppercase block transition-colors duration-500 ${isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-30'}`}>
+                               {s.label}
+                            </span>
+                            {isCurrent && (
+                              <div className="h-1 w-1 rounded-full bg-[var(--accent)] mx-auto animate-bounce" />
+                            )}
+                          </div>
                        </div>
                      );
                   })}
                </div>
             </div>
-         </div>
+          </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -433,7 +438,6 @@ export default function SingleOrderView({ orderId, onBack }) {
                   <h3 className="text-[10px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] capitalize opacity-40">Manifested Assets</h3>
                </div>
 
-               {/* Horizontally scrollable strip — one line per asset, page only scrolls after this */}
                <div className="overflow-x-auto pb-3 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
                  <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
                    {order.products.map((item, idx) => (
@@ -441,12 +445,10 @@ export default function SingleOrderView({ orderId, onBack }) {
                        key={item._id || idx}
                        className="group relative w-[270px] shrink-0 overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-3 rounded-2xl flex items-center gap-3 hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all"
                      >
-                       {/* Thumbnail */}
                        <div className="relative size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] shadow-sm shrink-0">
                          <img src={item.image || '/placeholder.png'} className="size-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" alt="" />
                        </div>
 
-                       {/* Info */}
                        <div className="flex-1 min-w-0">
                          <h3 className="text-[11px] font-bold tracking-tight capitalize truncate leading-tight">{item.name}</h3>
                          <div className="flex items-center gap-2 mt-0.5">
@@ -456,7 +458,6 @@ export default function SingleOrderView({ orderId, onBack }) {
                          </div>
                        </div>
 
-                       {/* Actions */}
                        <div className="flex flex-col gap-1.5 shrink-0">
                          {order.order_status === 'completed' && !isVendor && (
                            <button
@@ -474,7 +475,6 @@ export default function SingleOrderView({ orderId, onBack }) {
          </div>
 
          <div className="lg:col-span-4 space-y-8">
-            {/* Customer Details - Denser */}
             <div className="glass-panel p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-3xl shadow-sm space-y-4 relative overflow-hidden">
                <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] flex items-center gap-2 capitalize text-[var(--text-secondary)] opacity-40"><User className="size-3 text-[var(--accent)]" /> Client</h3>
                <div className="flex items-center gap-3">
@@ -532,7 +532,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] flex items-center gap-2 capitalize text-[var(--text-secondary)] opacity-40"><MapPin className="size-3 text-[var(--accent)]" /> Destination</h3>
                <div className="space-y-4">
                   <div className="space-y-2 bg-[var(--bg-secondary)]/50 p-4 rounded-xl border border-[var(--glass-border)]/30">
-                     <h4 className="text-[12px]  font-semibold capitalize tracking-tight text-[var(--text-primary)] mb-1">{order.shipping_address?.full_name || customer?.name || 'RECIPIENT'}</h4>
+                     <h4 className="text-sm font-semibold capitalize tracking-tight text-[var(--text-primary)] mb-1">{order.shipping_address?.full_name || customer?.name || 'RECIPIENT'}</h4>
                      <div className="flex flex-col gap-1.5 text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)]">
                         <div className="flex items-start gap-2">
                            <MapPin className="size-3 text-[var(--accent)] mt-0.5 shrink-0" />
