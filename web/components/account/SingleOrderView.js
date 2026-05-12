@@ -212,6 +212,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const status = getStatusConfig(order.order_status, shipment?.status);
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
   const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' && order.logistics_company_id);
+  const carrierLaunched = shipment && ['picked_up', 'in_transit', 'delivered', 'failed'].includes(shipment.status);
   const customer = order.customer_id;
 
   const STEPS = [
@@ -304,20 +305,20 @@ export default function SingleOrderView({ orderId, onBack }) {
                     </button>
                   )}
 
-                  {/* Vendor: Logistics-managed order info badge — replaces ship/confirm buttons */}
-                  {isVendor && isLogisticsOrder && (order.order_status === 'processing' || order.order_status === 'shipped' || order.order_status === 'delivered') && (
+                  {/* Vendor: Logistics-managed order info badge — only shown when carrier HAS launched */}
+                  {isVendor && isLogisticsOrder && carrierLaunched && (order.order_status === 'processing' || order.order_status === 'shipped' || order.order_status === 'delivered') && (
                     <div className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
                       <Truck className="size-3.5 text-indigo-400 shrink-0" />
                       <span className="text-[10px] lg:text-[11px] font-semibold text-indigo-400 leading-tight">
                         {order.order_status === 'delivered'
-                          ? 'Delivered. Awaiting customer confirmation to release funds.'
-                          : 'Awaiting carrier delivery confirmation.'}
+                          ? 'Delivered by carrier. Awaiting customer confirmation to release funds.'
+                          : 'Shipment launched by carrier. Tracking active.'}
                       </span>
                     </div>
                   )}
 
-                  {/* Vendor: Vendor-managed ship + confirm — only shown when NO logistics partner */}
-                  {isVendor && !isLogisticsOrder && order.order_status === 'processing' && (
+                  {/* Vendor: Ship button — Available if NOT logistics OR if logistics hasn't launched yet */}
+                  {isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
                     <button 
                       onClick={() => handleUpdateStatus('shipped')}
                       className="w-full px-8 py-3 bg-indigo-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-indigo-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -325,6 +326,8 @@ export default function SingleOrderView({ orderId, onBack }) {
                        <Truck className="size-3.5" /> Mark as Shipped
                     </button>
                   )}
+
+                  {/* Vendor: Delivery Confirmation — Only for vendor-managed or vendor-launched orders */}
                   {isVendor && !isLogisticsOrder && order.order_status === 'shipped' && (
                     <button 
                       onClick={handleVendorConfirmDelivery}

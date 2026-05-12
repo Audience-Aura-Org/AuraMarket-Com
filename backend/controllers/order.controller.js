@@ -475,32 +475,37 @@ const updateOrderStatus = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Order not found.' });
     }
 
-    // ── GUARD: Vendor cannot intervene once a courier has taken over ──
-    const logisticsStatuses = ['shipped', 'delivered', 'out_for_delivery', 'at_source', 'arrived_at_destination', 'picked_up'];
-    
-    if (
-      req.user.role === 'vendor' &&
-      order.shipping_method === 'logistics_partner' &&
-      order.logistics_company_id
-    ) {
-      // 1. Block vendor from marking as shipped/delivered (reserved for carrier)
-      if (logisticsStatuses.includes(order_status)) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(403).json({
-          success: false,
-          message: 'Fulfillment is managed by a logistics partner. Shipment status is updated by the carrier.'
-        });
+    // ── GUARD: First to Launch Wins (Authority Handover) ──
+    if (req.user.role === 'vendor' && order.shipping_method === 'logistics_partner') {
+      const Shipment = require('../models/Shipment.model');
+      const activeShipment = await Shipment.findOne({ 
+        order_id: order._id, 
+        status: { $in: ['picked_up', 'in_transit', 'delivered'] } 
+      }).session(session);
+
+      // A. If courier already launched (picked up), vendor is locked out of shipment controls
+      if (activeShipment) {
+        if (['shipped', 'delivered', 'cancelled'].includes(order_status)) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(403).json({
+            success: false,
+            message: 'Carrier has already launched this shipment. Vendor intervention is blocked.'
+          });
+        }
       }
 
-      // 2. Block vendor from cancelling if the carrier has already picked up/shipped the item
-      if (order_status === 'cancelled' && logisticsStatuses.includes(order.order_status)) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(403).json({
-          success: false,
-          message: 'Cannot cancel order. The logistics partner has already picked up the shipment.'
-        });
+      // B. If vendor launches (marks as shipped) BEFORE the courier, they take over authority
+      if (order_status === 'shipped') {
+        // Mark pending shipments as cancelled so courier dashboard is cleared
+        await Shipment.updateMany(
+          { order_id: order._id, status: { $in: ['pending', 'assigned'] } },
+          { $set: { status: 'cancelled' } }
+        ).session(session);
+
+        // Convert to vendor managed so vendor receives the full shipping fee payout
+        order.shipping_method = 'vendor_managed';
+        console.log(`🚚 Vendor launched shipment for Order #${order._id}. Logistics partner locked out.`);
       }
     }
 
