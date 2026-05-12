@@ -234,30 +234,44 @@ const releaseFunds = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  try {
-    const { orderId } = req.params;
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error('Order not found.');
 
     const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
-    if (!escrow) throw new Error('Escrow vault not found for this order.');
-    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
-
-    const order = await Order.findById(orderId).session(session);
 
     // ── CASE: Admin Override ────────────────────────────────────────────────
     if (req.user.role === 'admin') {
-      await finalizeEscrowPayout(escrow, order, req, session);
+      if (escrow) {
+        await finalizeEscrowPayout(escrow, order, req, session);
+      } else {
+        order.order_status = 'completed';
+        await order.save({ session });
+      }
       await session.commitTransaction();
       session.endSession();
-      return res.status(200).json({ success: true, message: 'Admin override: Escrow released immediately.' });
+      return res.status(200).json({ success: true, message: 'Admin override: Protocol finalized.' });
     }
+
+    // ── CASE: Non-Escrow Order ──────────────────────────────────────────────
+    if (!escrow) {
+      if (order.customer_id.toString() !== req.user._id.toString()) {
+        throw new Error('Not authorized to release this order.');
+      }
+      order.order_status = 'completed';
+      await order.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json({ success: true, message: 'Order marked as completed.' });
+    }
+
+    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
 
     // ── CASE: Customer Confirmation ──────────────────────────────────────────
     if (escrow.buyer_id.toString() !== req.user._id.toString()) {
       throw new Error('Only the customer or an admin can initiate this release.');
     }
 
-    // Aura Signature: Escrow is released immediately upon customer acceptance. 
-    // No mutual agreement bottleneck required for the payout to finalize.
+    escrow.customer_confirmed = true;
     await finalizeEscrowPayout(escrow, order, req, session);
     
     await session.commitTransaction();
@@ -268,7 +282,7 @@ const releaseFunds = async (req, res, next) => {
       message: 'Escrow released successfully. Funds are now available in the vendor node.' 
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) await session.abortTransaction();
     session.endSession();
     return res.status(400).json({ success: false, message: error.message });
   }
@@ -286,40 +300,62 @@ const vendorConfirmRelease = async (req, res, next) => {
   try {
     const { orderId } = req.params;
 
-    const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
-    if (!escrow) throw new Error('Escrow vault not found.');
-    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
+    const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error('Order not found.');
 
     const vendorRecord = await Vendor.findOne({ user_id: req.user._id }).session(session);
-    if (!vendorRecord || escrow.vendor_id.toString() !== vendorRecord._id.toString()) {
+    if (!vendorRecord || order.vendor_id.toString() !== vendorRecord._id.toString()) {
       throw new Error('Not authorized to confirm delivery for this order.');
     }
 
-    const order = await Order.findById(orderId).session(session);
+    const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
 
+    // ── CASE: Non-Escrow Order ──────────────────────────────────────────────
+    if (!escrow) {
+      order.order_status = 'delivered';
+      await order.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      // Notify Customer
+      sendNotification(req.app, order.customer_id, {
+        title: 'Package Delivered',
+        message: `Vendor has marked Order #${order._id.toString().slice(-6).toUpperCase()} as delivered.`,
+        type: 'order_status',
+        metadata: { order_id: order._id },
+        role: 'customer'
+      });
+
+      return res.status(200).json({ success: true, message: 'Delivery confirmed and order status updated.' });
+    }
+
+    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
+
+    // ── CASE: Escrow Confirmation ───────────────────────────────────────────
     escrow.vendor_confirmed = true;
+    order.order_status = 'delivered';
     
-    // We maintain the 'held' or 'pending_release' status until the CUSTOMER approves.
-    // The vendor's confirmation acts as a trigger/notification for the customer.
     await escrow.save({ session });
+    await order.save({ session });
+    
     await session.commitTransaction();
     session.endSession();
 
     // Notify Customer to prompt them for the final release click
     sendNotification(req.app, escrow.buyer_id, {
       title: 'Vendor Confirmed Delivery',
-      message: `The vendor for Order #${order._id.toString().slice(-6).toUpperCase()} has marked it as delivered. Please review and confirm receipt to release the funds.`,
+      message: `The vendor for Order #${order._id.toString().slice(-6).toUpperCase()} has marked it as delivered. Please confirm receipt to release funds.`,
       type: 'order_status',
-      metadata: { order_id: order._id, link: '/profile?tab=orders' },
+      metadata: { order_id: order._id },
       role: 'customer'
     });
 
     return res.status(200).json({ 
       success: true, 
-      message: 'Delivery confirmed. The customer has been notified to release the funds.' 
+      message: 'Delivery confirmed. Awaiting customer to release escrowed funds.' 
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) await session.abortTransaction();
     session.endSession();
     return res.status(400).json({ success: false, message: error.message });
   }

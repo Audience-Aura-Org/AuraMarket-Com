@@ -456,7 +456,9 @@ const getOrderById = async (req, res, next) => {
         }
       });
 
-    res.status(200).json({ success: true, data: { order, shipments } });
+    const escrow = await Escrow.findOne({ order_id: order._id }).select('status vendor_confirmed customer_confirmed');
+
+    res.status(200).json({ success: true, data: { order, shipments, escrow } });
   } catch (error) { next(error); }
 };
 

@@ -21,6 +21,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 export default function SingleOrderView({ orderId, onBack }) {
   const [order, setOrder] = useState(null);
   const [shipments, setShipments] = useState([]);
+  const [escrow, setEscrow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [disputeModal, setDisputeModal] = useState(false);
   const [disputeData, setDisputeData] = useState({ reason: 'item_not_received', description: '' });
@@ -38,6 +39,7 @@ export default function SingleOrderView({ orderId, onBack }) {
       if (res.data.success) {
         setOrder(res.data.data.order);
         setShipments(res.data.data.shipments || []);
+        setEscrow(res.data.data.escrow || null);
       }
     } catch (err) {
       toast.error("Failed to load order manifest.");
@@ -276,6 +278,11 @@ export default function SingleOrderView({ orderId, onBack }) {
                      <Signal className="size-2.5 animate-pulse" /> Telemetry Active
                   </div>
                   <h2 className="text-2xl  font-black tracking-tighter leading-none">{status.label}</h2>
+                  {escrow?.vendor_confirmed && !escrow?.customer_confirmed && !isVendor && (
+                    <p className="text-[10px] lg:text-[11px] font-medium text-emerald-500 flex items-center gap-1.5 mt-2 animate-pulse">
+                      <CheckCircle2 className="size-3" /> Vendor has confirmed delivery. Please confirm arrival to release funds.
+                    </p>
+                  )}
                </div>
 
                <div className="flex flex-col gap-2 min-w-[180px]">
@@ -303,9 +310,14 @@ export default function SingleOrderView({ orderId, onBack }) {
                   {isVendor && order.order_status === 'shipped' && (
                     <button 
                       onClick={handleVendorConfirmDelivery}
-                      className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                      disabled={escrow?.vendor_confirmed}
+                      className={`w-full px-8 py-3 rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg transition-all flex items-center justify-center gap-2 ${
+                        escrow?.vendor_confirmed 
+                          ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 cursor-default shadow-none' 
+                          : 'bg-emerald-500 text-white shadow-emerald-500/10 hover:scale-[1.02] active:scale-95'
+                      }`}
                     >
-                       <CheckCircle2 className="size-3.5" /> Confirm Delivery
+                       <CheckCircle2 className="size-3.5" /> {escrow?.vendor_confirmed ? 'DELIVERY CONFIRMED' : 'Confirm Delivery'}
                     </button>
                   )}
                   <button onClick={() => setDisputeModal(true)} className="w-full px-8 py-3 bg-[var(--bg-primary)] text-rose-500 border border-rose-500/20 rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 group">
