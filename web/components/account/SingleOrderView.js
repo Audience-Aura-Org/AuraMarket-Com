@@ -211,6 +211,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const shipment = shipments[0];
   const status = getStatusConfig(order.order_status, shipment?.status);
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
+  const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' && order.logistics_company_id);
   const customer = order.customer_id;
 
   const STEPS = [
@@ -286,11 +287,14 @@ export default function SingleOrderView({ orderId, onBack }) {
                </div>
 
                <div className="flex flex-col gap-2 min-w-[180px]">
+                  {/* Customer: Confirm Arrival — always shown when delivered, regardless of shipping method */}
                   {(order.order_status === 'shipped' || order.order_status === 'delivered') && !isVendor && (
                     <button onClick={handleConfirmDelivery} className="w-full px-8 py-3 bg-emerald-500 text-white rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-emerald-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
                        <CheckCircle2 className="size-3.5" /> Confirm Arrival
                     </button>
                   )}
+
+                  {/* Vendor: Accept order — always available (logistics or not) */}
                   {isVendor && order.order_status === 'placed' && (
                     <button 
                       onClick={() => handleUpdateStatus('processing')}
@@ -299,7 +303,21 @@ export default function SingleOrderView({ orderId, onBack }) {
                        <Zap className="size-3.5" /> Start Processing
                     </button>
                   )}
-                  {isVendor && order.order_status === 'processing' && (
+
+                  {/* Vendor: Logistics-managed order info badge — replaces ship/confirm buttons */}
+                  {isVendor && isLogisticsOrder && (order.order_status === 'processing' || order.order_status === 'shipped' || order.order_status === 'delivered') && (
+                    <div className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
+                      <Truck className="size-3.5 text-indigo-400 shrink-0" />
+                      <span className="text-[10px] lg:text-[11px] font-semibold text-indigo-400 leading-tight">
+                        {order.order_status === 'delivered'
+                          ? 'Delivered. Awaiting customer confirmation to release funds.'
+                          : 'Awaiting carrier delivery confirmation.'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Vendor: Vendor-managed ship + confirm — only shown when NO logistics partner */}
+                  {isVendor && !isLogisticsOrder && order.order_status === 'processing' && (
                     <button 
                       onClick={() => handleUpdateStatus('shipped')}
                       className="w-full px-8 py-3 bg-indigo-500 text-white rounded-xl font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] shadow-lg shadow-indigo-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -307,7 +325,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                        <Truck className="size-3.5" /> Mark as Shipped
                     </button>
                   )}
-                  {isVendor && order.order_status === 'shipped' && (
+                  {isVendor && !isLogisticsOrder && order.order_status === 'shipped' && (
                     <button 
                       onClick={handleVendorConfirmDelivery}
                       disabled={escrow?.vendor_confirmed}
@@ -317,9 +335,10 @@ export default function SingleOrderView({ orderId, onBack }) {
                           : 'bg-emerald-500 text-white shadow-emerald-500/10 hover:scale-[1.02] active:scale-95'
                       }`}
                     >
-                       <CheckCircle2 className="size-3.5" /> {escrow?.vendor_confirmed ? 'DELIVERY CONFIRMED' : 'Confirm Delivery'}
+                       <CheckCircle2 className="size-3.5" /> {escrow?.vendor_confirmed ? 'Delivery Confirmed' : 'Confirm Delivery'}
                     </button>
                   )}
+
                   <button onClick={() => setDisputeModal(true)} className="w-full px-8 py-3 bg-[var(--bg-primary)] text-rose-500 border border-rose-500/20 rounded-xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.1em] hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 group">
                      <Scale className="size-3.5 group-hover:rotate-12 transition-transform" /> Intervention
                   </button>

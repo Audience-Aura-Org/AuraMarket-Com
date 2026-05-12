@@ -475,6 +475,21 @@ const updateOrderStatus = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Order not found.' });
     }
 
+    // ── GUARD: Vendor cannot update status for logistics-managed orders ──
+    // Only the logistics carrier or an admin can progress these orders.
+    if (
+      req.user.role === 'vendor' &&
+      order.shipping_method === 'logistics_partner' &&
+      order.logistics_company_id
+    ) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(403).json({
+        success: false,
+        message: 'This order is managed by a logistics partner. Status is updated by the carrier.'
+      });
+    }
+
     if (order_status) order.order_status = order_status;
     if (tracking_number) order.tracking_number = tracking_number;
     await order.save({ session });

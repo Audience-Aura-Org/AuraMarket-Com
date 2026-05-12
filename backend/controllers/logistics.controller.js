@@ -187,17 +187,81 @@ const modifyShipmentStatus = async (req, res, next) => {
       if (allDelivered) {
         order.order_status = 'delivered';
 
-        // Pay vendor on delivery (COD)
-        // Pay vendor on delivery (COD)
-        if (order.payment_method === 'pay_on_delivery' && order.payment_status === 'pending') {
+        const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
+        const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' && order.logistics_company_id);
+        const isEscrowOrder = !!(escrow && escrow.status === 'held');
+
+        // ── STEP 1: Pay logistics firm their shipping fee (always, for all paid orders) ──
+        if (isLogisticsOrder && order.shipping_fee > 0) {
+          const logisticsAlreadyPaid = isEscrowOrder ? escrow.logistics_settled : false;
+
+          if (!logisticsAlreadyPaid) {
+            // Check transaction log as additional guard for non-escrow orders
+            const alreadyTxn = !isEscrowOrder
+              ? await Transaction.findOne({
+                  user_id: firm.user_id,
+                  order_id: order._id,
+                  type: 'payout',
+                  description: { $regex: 'Delivery payout' }
+                }).session(session)
+              : null;
+
+            if (!alreadyTxn) {
+              const logisticsUser = await User.findById(firm.user_id).session(session);
+              if (logisticsUser) {
+                logisticsUser.wallet_balance += order.shipping_fee;
+                await logisticsUser.save({ session });
+
+                await Transaction.create([{
+                  user_id:     logisticsUser._id,
+                  type:        'payout',
+                  amount:      order.shipping_fee,
+                  reference:   `LOG-${generateTxRef()}`,
+                  status:      'completed',
+                  description: `Delivery payout for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+                  order_id:    order._id,
+                  gateway:     'wallet'
+                }], { session, ordered: true });
+
+                if (isEscrowOrder) {
+                  escrow.logistics_settled = true;
+                  await escrow.save({ session });
+                }
+
+                console.log(`📦 Logistics firm credited ${order.shipping_fee} XAF for Order #${order._id.toString().slice(-6).toUpperCase()}.`);
+              }
+            }
+          }
+        }
+
+        // ── STEP 2: Resolve vendor + order finalization based on payment type ──
+
+        if (isEscrowOrder) {
+          // ── ESCROW + LOGISTICS: Logistics fee settled above. Vendor funds remain held.
+          // Order stays 'delivered'. Customer must confirm to release vendor escrow.
+          escrow.vendor_confirmed = true; // logistics delivery acts as vendor confirmation
+          await escrow.save({ session });
+
+          console.log(`🔒 Escrow order #${order._id} delivered by logistics. Vendor funds held. Awaiting customer confirmation.`);
+
+          // Notify customer to confirm arrival
+          setImmediate(() => {
+            sendNotification(req.app, order.customer_id, {
+              title: 'Your order has been delivered',
+              message: `Order #${order._id.toString().slice(-6).toUpperCase()} was delivered by the carrier. Please confirm receipt to release funds to the vendor.`,
+              type: 'order_status',
+              metadata: { order_id: order._id },
+              role: 'customer'
+            });
+          });
+
+        } else if (order.payment_method === 'pay_on_delivery') {
+          // ── COD + LOGISTICS: Customer pays logistics in cash. Credit vendor subtotal immediately.
           const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
           if (vendorAccount) {
             const vendorUser = await User.findById(vendorAccount.user_id).session(session);
             if (vendorUser) {
-              const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
-                ? order.subtotal
-                : order.total_amount;
-
+              const vendorBaseAmount = isLogisticsOrder ? order.subtotal : order.total_amount;
               vendorUser.wallet_balance += vendorBaseAmount;
               await vendorUser.save({ session });
 
@@ -207,51 +271,49 @@ const modifyShipmentStatus = async (req, res, next) => {
                 amount:      vendorBaseAmount,
                 reference:   generateTxRef(),
                 status:      'completed',
-                description: `Payment on delivery settled (Order #${order._id.toString().slice(-6).toUpperCase()})`,
+                description: `COD payment settled via logistics (Order #${order._id.toString().slice(-6).toUpperCase()})`,
                 order_id:    order._id,
               }], { session, ordered: true });
 
               order.payment_status = 'paid';
+              order.order_status = 'completed';
+              orderCompleted = true;
             }
           }
-        }
 
-        // ── Pay Logistics Firm on delivery (all digitally paid orders) ────
-        if (order.shipping_fee > 0 && order.logistics_company_id) {
-          const logisticsUser = await User.findById(firm.user_id).session(session);
-          if (logisticsUser) {
-            // Only credit if this delivery fee hasn't already been settled
-            const alreadySettled = await Transaction.findOne({
-              user_id: logisticsUser._id,
-              order_id: order._id,
-              type: 'payout',
-              description: { $regex: 'Delivery payout' }
-            }).session(session);
+        } else {
+          // ── NON-ESCROW DIGITAL PAYMENT + LOGISTICS: Pay vendor subtotal immediately.
+          const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
+          if (vendorAccount) {
+            const vendorUser = await User.findById(vendorAccount.user_id).session(session);
+            if (vendorUser) {
+              const settings = await PlatformSettings.findOne();
+              const commission = settings ? (order.subtotal * settings.commission_rate) / 100 : 0;
+              const vendorPayout = order.subtotal - commission;
 
-            if (!alreadySettled) {
-              logisticsUser.wallet_balance += order.shipping_fee;
-              await logisticsUser.save({ session });
+              vendorUser.wallet_balance += vendorPayout;
+              await vendorUser.save({ session });
+
+              if (settings) {
+                settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + commission;
+                await settings.save({ session });
+              }
 
               await Transaction.create([{
-                user_id:     logisticsUser._id,
+                user_id:     vendorUser._id,
                 type:        'payout',
-                amount:      order.shipping_fee,
-                reference:   `LOG-${generateTxRef()}`,
+                amount:      vendorPayout,
+                reference:   generateTxRef(),
                 status:      'completed',
-                description: `Delivery payout for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+                description: `Vendor payout on logistics delivery (Order #${order._id.toString().slice(-6).toUpperCase()})`,
                 order_id:    order._id,
                 gateway:     'wallet'
               }], { session, ordered: true });
 
-              console.log(`📦 Logistics firm credited ${order.shipping_fee} XAF for Order #${order._id.toString().slice(-6).toUpperCase()}.`);
+              order.order_status = 'completed';
+              orderCompleted = true;
             }
           }
-        }
-
-        // REQUIRE MUTUAL AGREEMENT: Notify both to confirm release
-        if (order.escrow_enabled && order.payment_status === 'paid') {
-          // Status stays 'delivered' until both parties confirm in Escrow Controller
-          console.log(`📦 Order #${order._id} delivered. Awaiting mutual escrow confirmation for Vendor payload.`);
         }
 
         await order.save({ session });

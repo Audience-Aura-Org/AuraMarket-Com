@@ -44,6 +44,12 @@ const EscrowSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    logistics_settled: {
+      type: Boolean,
+      default: false,
+      // Set to true when the logistics firm's shipping_fee has been credited.
+      // Prevents double-payment if both modifyShipmentStatus and releaseFunds run.
+    },
     release_date: {
       type: Date,
       default: null,

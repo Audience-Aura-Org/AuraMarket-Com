@@ -151,7 +151,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   const platformFee = (escrow.amount * settings.commission_rate) / 100;
   const vendorPayout = escrow.amount - platformFee;
 
-  // Transfer funds
+  // Transfer vendor funds
   vendorUser.wallet_balance += vendorPayout;
   await vendorUser.save({ session });
 
@@ -188,16 +188,24 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   order.order_status = 'completed';
   await order.save({ session });
 
-  // Credit logistics company for their shipping fee now that the order is complete
-  const { creditLogistics } = require('../services/payment/settle.service');
-  await creditLogistics(order, session);
+  // ── FALLBACK: Credit logistics fee if not already settled by logistics controller ──
+  // (Covers edge case where logistics controller didn't fire or escrow.logistics_settled wasn't set)
+  if (
+    order.shipping_method === 'logistics_partner' &&
+    order.logistics_company_id &&
+    order.shipping_fee > 0 &&
+    !escrow.logistics_settled
+  ) {
+    const { creditLogistics } = require('../services/payment/settle.service');
+    await creditLogistics(order, session);
+  }
 
   // Notifications
   const vendor = await Vendor.findById(order.vendor_id);
   const orderWithVendor = order.toObject();
   orderWithVendor.vendor_id = vendor;
 
-  // Notify Logistics
+  // Notify Logistics (order complete)
   if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
     const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
     if (logisticsFirm) {
@@ -214,10 +222,19 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     }
   }
 
+  // Notify Vendor of payout
+  sendNotification(req.app, vendorUser._id, {
+    title: 'Funds Released',
+    message: `Customer confirmed delivery. ${vendorPayout.toLocaleString()} XAF has been released to your wallet for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+    type: 'wallet_update',
+    metadata: { order_id: order._id },
+    role: 'vendor'
+  });
+
   // Notify Customer
   sendNotification(req.app, order.customer_id, {
     title: 'Order Finalized',
-    message: `Your order #${order._id.toString().slice(-6).toUpperCase()} has been completed and funds released to vendor.`,
+    message: `Your order #${order._id.toString().slice(-6).toUpperCase()} has been completed and funds released to the vendor.`,
     type: 'order_status',
     sendEmail: true,
     orderDetails: orderWithVendor,
@@ -302,6 +319,16 @@ const vendorConfirmRelease = async (req, res, next) => {
 
     const order = await Order.findById(orderId).session(session);
     if (!order) throw new Error('Order not found.');
+
+    // ── GUARD: Logistics-managed orders — vendor cannot confirm delivery ──
+    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(403).json({
+        success: false,
+        message: 'Delivery confirmation for logistics orders is handled by the carrier. You will be paid once the carrier marks the shipment as delivered.'
+      });
+    }
 
     const vendorRecord = await Vendor.findOne({ user_id: req.user._id }).session(session);
     if (!vendorRecord || order.vendor_id.toString() !== vendorRecord._id.toString()) {
