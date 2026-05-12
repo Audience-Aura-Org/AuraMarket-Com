@@ -247,7 +247,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
                 <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
               </div>
-              <h4 className="text-[11px] lg:text-[12px] sm:text-[12px]  font-semibold text-[var(--text-primary)] leading-none flex-1 truncate">{vendor_id?.store_name || 'Verified node'}</h4>
+               <h4 className="text-[10px] sm:text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)] leading-none flex-1 truncate whitespace-nowrap">{vendor_id?.store_name || 'Verified node'}</h4>
               {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
            </Link>
            
