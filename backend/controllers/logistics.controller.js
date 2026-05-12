@@ -149,6 +149,10 @@ const modifyShipmentStatus = async (req, res, next) => {
       throw new Error('This order is vendor-managed. Logistics partners cannot intervene.');
     }
 
+    if (['cancelled', 'refunded'].includes(order.order_status)) {
+      throw new Error('Cannot update shipment for a cancelled or refunded order.');
+    }
+
     const firm = await LogisticsCompany.findById(shipment.logistics_id).session(session);
     if (req.user.role !== 'admin' && firm?.user_id.toString() !== req.user._id.toString()) {
       throw new Error('Access denied.');

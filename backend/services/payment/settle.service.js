@@ -139,9 +139,9 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       gateway: 'platform',
     }], { session, ordered: true });
 
-    // Credit logistics company for their shipping fee on direct-pay orders.
-    // (Escrow orders credit logistics in finalizeEscrowPayout after delivery confirmation.)
-    await creditLogistics(order, session);
+    // NOTE: Logistics company is NO LONGER credited here. 
+    // They are credited in logistics.controller.js ONLY after successful delivery.
+    // This ensures couriers are only paid for completed work. ───
   }
 };
 

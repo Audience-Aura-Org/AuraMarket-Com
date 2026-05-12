@@ -475,30 +475,51 @@ const updateOrderStatus = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Order not found.' });
     }
 
-    // ── GUARD: Vendor cannot update status for logistics-managed orders ──
-    // Only the logistics carrier or an admin can progress these orders.
+    // ── GUARD: Vendor cannot intervene once a courier has taken over ──
+    const logisticsStatuses = ['shipped', 'delivered', 'out_for_delivery', 'at_source', 'arrived_at_destination', 'picked_up'];
+    
     if (
       req.user.role === 'vendor' &&
       order.shipping_method === 'logistics_partner' &&
       order.logistics_company_id
     ) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(403).json({
-        success: false,
-        message: 'This order is managed by a logistics partner. Status is updated by the carrier.'
-      });
+      // 1. Block vendor from marking as shipped/delivered (reserved for carrier)
+      if (logisticsStatuses.includes(order_status)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(403).json({
+          success: false,
+          message: 'Fulfillment is managed by a logistics partner. Shipment status is updated by the carrier.'
+        });
+      }
+
+      // 2. Block vendor from cancelling if the carrier has already picked up/shipped the item
+      if (order_status === 'cancelled' && logisticsStatuses.includes(order.order_status)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot cancel order. The logistics partner has already picked up the shipment.'
+        });
+      }
     }
 
     if (order_status) order.order_status = order_status;
     if (tracking_number) order.tracking_number = tracking_number;
     await order.save({ session });
 
-    // ── AUTO-RELEASE ESCROW ON DELIVERY ──
-    if (order_status === 'delivered') {
-      const { releaseFundsInternal } = require('../services/payment.service');
-      await releaseFundsInternal(order._id, session, req.app);
+    // ── SYNC: If cancelled, mark shipments as cancelled too ──
+    if (order_status === 'cancelled') {
+      const Shipment = require('../models/Shipment.model');
+      await Shipment.updateMany(
+        { order_id: order._id },
+        { $set: { status: 'cancelled' } }
+      ).session(session);
     }
+
+    // ── NOTE: Fund release is handled either by logistics.controller (on delivery) 
+    // or by escrow.controller (on customer confirmation). We do not auto-release 
+    // here to prevent vendors from bypassing customer confirmation. ──
 
     await session.commitTransaction();
     session.endSession();
