@@ -21,31 +21,33 @@ const COLORS = {
   gradient:     'linear-gradient(135deg, #e91e8c 0%, #9b19f5 100%)',
   footerBg:     '#1e1b2e',   // Deep navy-purple (not pitch black)
 };
-
 /* ─── Premium Email Wrapper ─── */
 const wrap = (title, heading, body) => `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="x-apple-disable-message-reformatting" />
   <title>${title}</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #f5f5f7; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif; color: ${COLORS.textPrimary}; line-height: 1.6; font-size: 14px; -webkit-font-smoothing: antialiased; }
+    body, #bodyTable { margin: 0 !important; padding: 0 !important; width: 100% !important; background: #ffffff; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: ${COLORS.textPrimary}; -webkit-font-smoothing: antialiased; }
+    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; display: block; }
+    table { border-collapse: collapse !important; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    td { padding: 0; }
+    a { color: ${COLORS.accent}; }
 
-    .email-wrapper { width: 100%; padding: 0; background: #f5f5f7; }
-    .email-container { width: 100%; margin: 0; background: ${COLORS.bgPrimary}; border-radius: 0; overflow: hidden; }
+    .header-td  { padding: 22px 28px; background: ${COLORS.gradient}; }
+    .logo-img   { height: 32px; width: 32px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); }
+    .header-title { color: #ffffff; font-size: 16px; font-weight: 700; letter-spacing: -0.5px; margin: 0; font-family: 'Poppins', Arial, sans-serif; }
 
-    .header { padding: 24px 28px; background: ${COLORS.gradient}; display: flex; align-items: center; gap: 12px; }
-    .header-logo { height: 32px; width: 32px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.15); padding: 3px; object-fit: contain; }
-    .header-title { color: #ffffff; font-size: 16px; font-weight: 700; letter-spacing: -0.5px; margin: 0; }
-
-    .content { padding: 28px; }
-    .content h2 { font-size: 20px; color: ${COLORS.textPrimary}; margin-bottom: 10px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
-    .content p { font-size: 14px; color: ${COLORS.textSecondary}; margin-bottom: 14px; line-height: 1.7; }
-    .content strong { color: ${COLORS.textPrimary}; font-weight: 600; }
+    .content-td { padding: 28px 28px 8px; background: ${COLORS.bgPrimary}; }
+    .content-td h2 { font-size: 20px; color: ${COLORS.textPrimary}; margin-bottom: 10px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; font-family: 'Poppins', Arial, sans-serif; }
+    .content-td p  { font-size: 14px; color: ${COLORS.textSecondary}; margin-bottom: 14px; line-height: 1.7; font-family: 'Poppins', Arial, sans-serif; }
+    .content-td strong { color: ${COLORS.textPrimary}; font-weight: 600; }
 
     .card { background: ${COLORS.accentLight}; border: 1px solid rgba(233,30,140,0.12); border-radius: 12px; padding: 4px 16px; margin: 18px 0; }
     .card-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
@@ -65,7 +67,7 @@ const wrap = (title, heading, body) => `
     .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
     .badge-failed    { background: #fee2e2; color: #991b1b; }
 
-    .btn { display: inline-block; background: ${COLORS.gradient}; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 4px 14px rgba(233,30,140,0.3); }
+    .btn { display: inline-block; background: ${COLORS.gradient}; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 4px 14px rgba(233,30,140,0.3); font-family: 'Poppins', Arial, sans-serif; }
 
     .table-products { width: 100%; margin: 18px 0; border-collapse: collapse; font-size: 13px; border: 1px solid ${COLORS.border}; border-radius: 10px; overflow: hidden; }
     .table-products thead { background: #fafafa; }
@@ -75,38 +77,69 @@ const wrap = (title, heading, body) => `
     .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.accent}; }
     .table-products tbody tr:last-child td { border-bottom: none; }
 
-    .footer { padding: 28px 24px; text-align: center; background: ${COLORS.footerBg}; }
-    .footer p { font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.45); margin: 5px 0; }
-    .footer a { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 500; }
-    .footer a:hover { color: #ffffff; }
+    .footer-td { padding: 28px 24px; text-align: center; background: ${COLORS.footerBg}; }
+    .footer-td p { font-size: 12px; color: rgba(255,255,255,0.45); margin: 5px 0; font-family: 'Poppins', Arial, sans-serif; }
+    .footer-td a { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 500; }
     .footer-brand { font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 10px !important; letter-spacing: -0.5px; }
 
     .highlight { background: ${COLORS.accentLight}; border-left: 3px solid ${COLORS.accent}; padding: 12px 16px; margin: 18px 0; border-radius: 0 10px 10px 0; }
     .highlight p { margin: 0; font-size: 13px; color: ${COLORS.textPrimary}; font-weight: 500; }
 
     .qr-container { text-align: center; margin: 18px 0; padding: 16px; border: 1.5px dashed rgba(233,30,140,0.2); border-radius: 12px; background: #fafafa; }
-    .qr-image { width: 100px; height: 100px; margin-bottom: 8px; border-radius: 8px; }
+    .qr-image { width: 100px; height: 100px; margin: 0 auto 8px; border-radius: 8px; }
     .qr-text { font-size: 11px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
+
+    @media only screen and (max-width: 600px) {
+      .content-td { padding: 20px 16px 8px !important; }
+      .header-td  { padding: 18px 16px !important; }
+      .footer-td  { padding: 20px 16px !important; }
+      .card-row   { flex-direction: column; align-items: flex-start; gap: 2px; }
+      .card-value { text-align: left !important; }
+      .btn        { display: block !important; text-align: center !important; }
+      table[width="100%"] { max-width: 100% !important; width: 100% !important; }
+    }
   </style>
 </head>
-<body>
-  <div class="email-wrapper">
-    <div class="email-container">
-      <div class="header">
-        <img src="${LOGO_URL}" alt="Aura" class="header-logo" />
-        <h1 class="header-title">Aura Market</h1>
-      </div>
-      <div class="content">
-        <h2>${heading}</h2>
-        ${body}
-      </div>
-      <div class="footer">
-        <p class="footer-brand">Aura Market</p>
-        <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
-        <p>© ${new Date().getFullYear()} Aura Market • Audience Aura Org</p>
-      </div>
-    </div>
-  </div>
+<body style="margin:0;padding:0;background:#ffffff;">
+  <table id="bodyTable" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;width:100%;background:#ffffff;">
+    <tr>
+      <td align="center" valign="top">
+        <!-- Outer wrapper: full-bleed on mobile, max-width on desktop -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;">
+          <!-- HEADER -->
+          <tr>
+            <td class="header-td">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding-right:12px;vertical-align:middle;">
+                    <img src="${LOGO_URL}" alt="Aura" class="logo-img" width="32" height="32" />
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <p class="header-title">Aura Market</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- CONTENT -->
+          <tr>
+            <td class="content-td">
+              <h2>${heading}</h2>
+              ${body}
+            </td>
+          </tr>
+          <!-- FOOTER -->
+          <tr>
+            <td class="footer-td">
+              <p class="footer-brand">Aura Market</p>
+              <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
+              <p>© ${new Date().getFullYear()} Aura Market • Audience Aura Org</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 

@@ -250,6 +250,8 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
 const releaseFunds = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
+  try {
+    const { orderId } = req.params;
 
     const order = await Order.findById(orderId).session(session);
     if (!order) throw new Error('Order not found.');
