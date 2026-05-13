@@ -61,7 +61,7 @@ export default function AccountPageClient() {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 24;
   
   useEffect(() => {
     setCurrentPage(1);
@@ -1061,35 +1061,33 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
-                    <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
-                    
-                    <div className="relative z-10">
+                  <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)] md:rounded-[3rem]">
+                    <div className="px-4 md:px-8 lg:px-12 py-6">
                       {wishlistLoading ? (
                         <div className="flex items-center justify-center py-16">
                           <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
                         </div>
                       ) : wishlist.length === 0 ? (
-                        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/10 to-transparent border border-[var(--glass-border)] rounded-[2rem] p-12 text-center shadow-inner">
-                          <Heart className="size-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                          <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Your wishlist is empty</p>
+                        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-12 text-center shadow-inner">
+                          <Heart className="mx-auto mb-4 size-12 text-[var(--accent)] opacity-40" />
+                          <p className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)] lg:text-[12px]">Your wishlist is empty</p>
                         </div>
                       ) : (
                         <>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                          {wishlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(product => (
-                            <ProductCard key={product._id} product={product} />
-                          ))}
-                        </div>
-                        {wishlist.length > itemsPerPage && (
-                          <div className="mt-8 flex justify-center">
-                            <Pagination
-                              currentPage={currentPage}
-                              totalPages={Math.ceil(wishlist.length / itemsPerPage)}
-                              onPageChange={setCurrentPage}
-                            />
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4">
+                            {wishlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((product) => (
+                              <ProductCard key={product._id} product={product} layout="grid" />
+                            ))}
                           </div>
-                        )}
+                          {wishlist.length > itemsPerPage && (
+                            <div className="mt-8 flex justify-center">
+                              <Pagination
+                                currentPage={currentPage}
+                                totalPages={Math.ceil(wishlist.length / itemsPerPage)}
+                                onPageChange={setCurrentPage}
+                              />
+                            </div>
+                          )}
                         </>
                       )}
                     </div>

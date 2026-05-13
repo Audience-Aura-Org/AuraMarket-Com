@@ -182,7 +182,7 @@ export default function VendorProductsPage() {
                         <div className="overflow-x-auto p-6 md:p-10">
                           <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
-                              <tr className="text-[10px] lg:text-[12px] font-semibold tracking-widest text-[var(--text-secondary)] opacity-40 uppercase border-b border-[var(--glass-border)]">
+                              <tr className="border-b border-[var(--glass-border)] text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-60">
                                 <th className="pb-6 pr-4">Asset Node</th>
                                 <th className="pb-6 px-4">Vector</th>
                                 <th className="pb-6 px-4 text-center">Telemetry</th>
@@ -239,7 +239,7 @@ function ManagementCard({ product, onDelete }) {
           </div>
         )}
         <div className="absolute top-4 left-4 z-10">
-          <span className={`px-3 py-1 rounded-full text-[9px] font-bold tracking-widest border backdrop-blur-md ${status.bg} ${status.color} border-current/10 uppercase`}>
+          <span className={`text-[10px] font-medium tracking-wide ${status.color}`}>
             {status.label}
           </span>
         </div>
@@ -255,8 +255,8 @@ function ManagementCard({ product, onDelete }) {
       <Link href={`/vendor/products/edit/${product._id}`} className="p-6 space-y-4 flex-1 flex flex-col">
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-semibold text-[var(--accent)] tracking-widest uppercase">{product.category || 'GENERAL'}</p>
-            <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-30">
+            <p className="text-[10px] font-medium capitalize tracking-wide text-[var(--text-secondary)] opacity-70">{product.category || 'General'}</p>
+            <div className="flex items-center gap-2 text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
                <span className="flex items-center gap-1"><Eye className="size-2.5" /> {product.view_count || 0}</span>
                <span className="flex items-center gap-1"><Zap className="size-2.5" /> {product.purchase_count || 0}</span>
             </div>
@@ -265,11 +265,11 @@ function ManagementCard({ product, onDelete }) {
         </div>
         <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-4">
            <div className="space-y-0.5">
-              <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-tighter">Valuation</p>
+              <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-65">Price</p>
               <p className="text-sm font-bold text-[var(--text-primary)] font-mono">{product.price?.toLocaleString()} <span className="text-[10px] opacity-30">XAF</span></p>
            </div>
            <div className="text-right space-y-0.5">
-              <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-tighter">Available</p>
+              <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-65">In stock</p>
               <p className={`text-sm font-bold ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-[var(--text-primary)]'}`}>{product.stock}</p>
            </div>
         </div>
@@ -305,18 +305,18 @@ function TabularRow({ product, onDelete }) {
         </div>
       </td>
       <td className="py-5 px-4">
-        <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest bg-[var(--bg-secondary)] px-2.5 py-1 rounded-lg border border-[var(--glass-border)]">
+        <span className="rounded-md border border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 px-2 py-0.5 text-[10px] font-medium capitalize tracking-wide text-[var(--text-secondary)] opacity-75">
           {product.category || 'General'}
         </span>
       </td>
       <td className="py-5 px-4 text-center">
-        <div className="flex items-center justify-center gap-3 text-[10px] font-bold text-[var(--text-secondary)] opacity-30">
+        <div className="flex items-center justify-center gap-3 text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
           <span className="flex items-center gap-1.5"><Eye className="size-3" /> {product.view_count || 0}</span>
           <span className="flex items-center gap-1.5"><Zap className="size-3" /> {product.purchase_count || 0}</span>
         </div>
       </td>
       <td className="py-5 px-4 text-center">
-        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold tracking-widest border ${status.bg} ${status.color} border-current/10 uppercase`}>
+        <span className={`text-[10px] font-medium capitalize tracking-wide ${status.color}`}>
           {status.label}
         </span>
       </td>

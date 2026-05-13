@@ -28,14 +28,14 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'prima
           ) : null}
         </div>
         {pct && (
-          <span className={`text-[9px] md:text-[11px] lg:text-[12px] font-semibold px-2 md:px-3 py-0.5 md:py-1 rounded-full ${c.badgeBg} ${c.badgeText} tracking-tight`}>{pct}</span>
+          <span className="max-w-[48%] truncate text-right text-[10px] font-medium text-[var(--text-secondary)] opacity-65 tracking-wide">{pct}</span>
         )}
       </div>
       <div>
-        <p className="text-[var(--text-secondary)] text-[9px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight opacity-40 mb-0.5 capitalize">{label}</p>
-        <h3 className="text-lg md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter font-mono truncate">{value}</h3>
+        <p className="mb-0.5 text-[10px] font-medium capitalize tracking-wide text-[var(--text-secondary)] opacity-65">{label}</p>
+        <h3 className="truncate font-mono text-lg font-semibold tracking-tight text-[var(--text-primary)] md:text-2xl">{value}</h3>
         {sub && (
-          <p className="text-[9px] md:text-[10px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-tight mt-0.5 uppercase truncate">{sub}</p>
+          <p className="mt-0.5 truncate text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-55">{sub}</p>
         )}
       </div>
     </div>

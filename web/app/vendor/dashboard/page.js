@@ -251,16 +251,16 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
                   <span className="material-symbols-outlined text-xl">payments</span>
                 </div>
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-emerald-500/60 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full">Revenue</span>
+                <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Revenue</span>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Net Sales</p>
+                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
                 <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '70%' }} />
               </div>
-              <p className="text-[10px] font-semibold text-emerald-500 opacity-70 tracking-tight">{completedOrders.length} orders fulfilled</p>
+              <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">{completedOrders.length} orders fulfilled</p>
             </div>
 
             {/* Open Orders */}
@@ -270,16 +270,16 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
                   <span className="material-symbols-outlined text-xl">shopping_bag</span>
                 </div>
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-[var(--accent)]/60 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-2 py-1 rounded-full">Live</span>
+                <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Open Orders</p>
+                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
                 <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrders.length}</p>
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000" style={{ width: orders.length ? `${Math.min((openOrders.length / orders.length) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-semibold text-[var(--accent)] opacity-70 tracking-tight">{orders.filter(o => o.order_status === 'processing').length} processing now</p>
+              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{orders.filter(o => o.order_status === 'processing').length} processing now</p>
             </div>
 
             {/* Inventory */}
@@ -290,19 +290,19 @@ export default function VendorDashboard() {
                   <span className="material-symbols-outlined text-xl">category</span>
                 </div>
                 {products.filter(p => Number(p.stock || 0) <= 5).length > 0 && (
-                  <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-rose-500/80 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-full animate-pulse">
-                    {products.filter(p => Number(p.stock || 0) <= 5).length} Low
+                  <span className="text-[10px] font-medium tracking-wide text-rose-500/90">
+                    {products.filter(p => Number(p.stock || 0) <= 5).length} low stock
                   </span>
                 )}
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Inventory</p>
+                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
                 <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{products.length} <span className="text-sm opacity-50">SKUs</span></p>
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: products.length ? `${Math.min((products.filter(p => Number(p.stock || 0) > 0).length / products.length) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-semibold text-indigo-500 opacity-70 tracking-tight">{products.filter(p => Number(p.stock || 0) > 0).length} in stock · {products.filter(p => Number(p.stock || 0) === 0).length} out</p>
+              <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">{products.filter(p => Number(p.stock || 0) > 0).length} in stock · {products.filter(p => Number(p.stock || 0) === 0).length} out</p>
             </div>
 
             {/* Wallet Balance */}
@@ -312,16 +312,18 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
                   <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
                 </div>
-                <Link href="/vendor/wallet" className="text-[9px] font-bold tracking-[0.2em] uppercase text-[var(--accent)]/60 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-2 py-1 rounded-full hover:bg-[var(--accent)]/20 transition-all">Withdraw</Link>
+                <Link href="/vendor/wallet" className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70 transition-colors hover:text-[var(--accent)] hover:opacity-100">
+                  Withdraw
+                </Link>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight mb-1">Wallet Balance</p>
+                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Wallet balance</p>
                 <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: '60%' }} />
               </div>
-              <p className="text-[10px] font-semibold text-[var(--accent)] opacity-70 tracking-tight">{pendingEscrow.toLocaleString()} XAF in escrow</p>
+              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} XAF in escrow</p>
             </div>
           </div>
           
@@ -350,8 +352,8 @@ export default function VendorDashboard() {
                   <h3 className="text-sm  font-bold text-[var(--text-primary)] tracking-tighter ">Sales Growth</h3>
                   <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold opacity-50 tracking-tight">Monthly revenue trends</p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-full text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50">
-                  <span className="size-2 rounded-full bg-[var(--accent)] animate-pulse" /> Live Analysis
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 text-[10px] font-medium text-[var(--text-secondary)] opacity-80">
+                  <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)] opacity-80" /> Live analysis
                 </div>
               </div>
               <div className="relative h-48 w-full flex items-end gap-3 pt-8">

@@ -148,24 +148,28 @@ export const WishlistContent = memo(({ user }) => {
   }, []);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full overflow-y-auto px-4 py-6">
-       <div className="max-w-4xl mx-auto">
-          <h3 className="text-sm  font-bold text-[var(--text-primary)]  tracking-[0.3em] mb-6">Saved Hardware</h3>
-          {loading ? (
-             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-               {[...Array(4)].map((_, i) => <div key={i} className="aspect-square rounded-3xl bg-[var(--bg-primary)] animate-pulse" />)}
-             </div>
-          ) : wishlist.length > 0 ? (
-             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {wishlist.map(p => <ProductCard key={p._id} product={p} />)}
-             </div>
-          ) : (
-             <div className="flex flex-col items-center justify-center p-12">
-                <Heart className="size-10 text-[var(--accent)] opacity-10 mb-4" />
-                <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40 text-[var(--text-secondary)]">Zero Savings Found</p>
-             </div>
-          )}
-       </div>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full overflow-y-auto">
+      <div className="px-4 md:px-8 lg:px-12 py-6">
+        <h3 className="mb-6 text-sm font-bold tracking-tight text-[var(--text-primary)]">Saved items</h3>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="aspect-square animate-pulse rounded-[2rem] bg-[var(--bg-primary)]" />
+            ))}
+          </div>
+        ) : wishlist.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4">
+            {wishlist.map((p) => (
+              <ProductCard key={p._id} product={p} layout="grid" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-12">
+            <Heart className="mb-4 size-10 text-[var(--accent)] opacity-10" />
+            <p className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40 lg:text-[12px]">No saved items yet</p>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 });

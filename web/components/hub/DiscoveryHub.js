@@ -552,8 +552,8 @@ export default function DiscoveryHub() {
       </main>
 
       {/* ── THE Discovery BOTTOM NAV ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[400] w-full overflow-hidden rounded-t-[28px] border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-primary)_92%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_12%,transparent),0_-12px_44px_-6px_rgba(0,0,0,0.32)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--bg-primary)_82%,transparent)] sm:hidden dark:shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_18%,transparent),0_-14px_48px_-4px_rgba(0,0,0,0.55)] pb-[env(safe-area-inset-bottom,0px)]">
-        <div className="relative flex h-[72px] w-full items-center justify-around px-1 pt-0.5">
+      <nav className="fixed bottom-0 left-0 right-0 z-[400] w-full overflow-hidden rounded-t-[24px] border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-primary)_94%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_8%,transparent),0_-8px_32px_-8px_rgba(0,0,0,0.14)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--bg-primary)_88%,transparent)] sm:hidden dark:shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_10%,transparent),0_-10px_36px_-8px_rgba(0,0,0,0.35)] pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="relative flex h-[68px] w-full items-center justify-around px-1 pt-0.5">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -562,26 +562,23 @@ export default function DiscoveryHub() {
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id)}
-                className={`relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1 transition-all duration-200 active:scale-[0.97] ${
+                className={`relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-colors duration-200 active:scale-[0.98] ${
                   isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 <div
-                  className={`relative rounded-2xl p-2 transition-all duration-300 ${
+                  className={`relative rounded-xl p-1.5 transition-colors duration-200 ${
                     isActive
-                      ? "scale-[1.06] bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent)_35%,transparent),0_8px_20px_-6px_color-mix(in_srgb,var(--accent)_45%,transparent)]"
-                      : "bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)]"
+                      ? "bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--accent)_22%,transparent)]"
+                      : "bg-transparent"
                   }`}
                 >
-                  <Icon className={`size-[22px] shrink-0 transition-all ${isActive ? "stroke-[2.5px]" : "stroke-2"}`} />
-                  {isActive && (
-                    <div className="absolute -right-0.5 -top-0.5 size-1.5 animate-pulse rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]" />
-                  )}
+                  <Icon className="size-5 shrink-0 stroke-2 transition-colors" />
                 </div>
 
                 <span
-                  className={`max-w-full truncate px-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
-                    isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"
+                  className={`max-w-full truncate px-0.5 text-[9px] font-medium tracking-wide transition-colors ${
+                    isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] opacity-90"
                   }`}
                 >
                   {tab.label}
@@ -590,7 +587,7 @@ export default function DiscoveryHub() {
                 {isActive && (
                   <motion.div
                     layoutId="hub-indicator"
-                    className="absolute bottom-1 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-[var(--accent)] shadow-[0_0_12px_var(--accent)]"
+                    className="absolute bottom-1 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-[var(--accent)] opacity-80"
                   />
                 )}
               </button>
@@ -601,7 +598,7 @@ export default function DiscoveryHub() {
 
       {/* Desktop/Tablet Floating Dock Fallback */}
       <nav className="hidden sm:block fixed bottom-6 left-1/2 -translate-x-1/2 z-[400] w-full max-w-lg">
-        <div className="flex items-center h-[58px] bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] px-1.5 overflow-hidden">
+        <div className="flex items-center h-[54px] bg-black/50 backdrop-blur-2xl border border-white/10 rounded-[22px] shadow-[0_12px_40px_rgba(0,0,0,0.22)] px-1.5 overflow-hidden">
           {TABS.map((tab, idx) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -614,8 +611,8 @@ export default function DiscoveryHub() {
                     isActive ? 'text-[var(--accent)]' : 'text-white/50 hover:text-white/80'
                   }`}
                 >
-                   <Icon className={`size-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-                   <span className="text-[10px] lg:text-[12px] font-medium tracking-[0.02em] mt-1.5">{tab.label}</span>
+                   <Icon className={`size-[18px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
+                   <span className={`text-[9px] font-medium tracking-wide mt-1.5 ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{tab.label}</span>
                 </button>
               </div>
             );
