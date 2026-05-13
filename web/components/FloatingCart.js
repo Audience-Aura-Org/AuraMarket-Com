@@ -96,7 +96,7 @@ export default function FloatingCart() {
       </div>
 
       {/* Mobile Floating Cart (Bottom Edge above BottomNav) */}
-      <div className="md:hidden fixed bottom-20 left-4 right-4 z-[40] animate-fade-in pointer-events-none">
+      <div className="pointer-events-none fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px)+0.75rem)] left-4 right-4 z-[40] animate-fade-in md:hidden">
         <div className="bg-[var(--bg-primary)]/90 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[1.5rem] p-3 pl-4 flex flex-row items-center justify-between shadow-2xl shadow-[var(--text-primary)]/5 pointer-events-auto">
            <div className="flex items-center gap-4">
              <div className="relative flex-shrink-0">

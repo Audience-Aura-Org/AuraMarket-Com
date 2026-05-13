@@ -126,7 +126,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     if (!user) { alert('Please login to wishlist'); return; }
     setWishlistLoading(true);
     try {
-      await api.post('/wishlist/toggle', { product_id: productId });
+      await api.post(`/wishlist/toggle/${productId}`);
       setWishlisted(!wishlisted);
       if (!wishlisted) trackWishlist(product);
     } catch { 

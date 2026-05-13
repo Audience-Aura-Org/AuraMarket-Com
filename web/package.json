@@ -11,13 +11,19 @@
     "dev:network": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "mobile:sync:android": "npx cap sync android",
+    "mobile:open:android": "npx cap open android",
+    "mobile:build:android:debug": "cd android && gradlew.bat assembleDebug"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@tailwindcss/postcss": "^4.2.2",
     "autoprefixer": "^10.4.27",
     "axios": "^1.13.6",

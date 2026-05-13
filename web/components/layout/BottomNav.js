@@ -25,10 +25,13 @@ export default function BottomNav() {
   // ─── Skeleton State ────────────────────────────────────────────────────────
   if (!mounted) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-[500] w-full h-[72px] bg-white/[0.02] border-t border-white/[0.08] rounded-t-[32px] sm:hidden animate-pulse">
-        <div className="flex items-center justify-around h-full px-6">
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[500] w-full animate-pulse rounded-t-[28px] border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-primary)_88%,transparent)] shadow-[0_-12px_40px_-8px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:hidden"
+        style={{ height: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
+      >
+        <div className="flex h-[72px] items-center justify-around px-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="size-10 rounded-xl bg-white/5" />
+            <div key={i} className="size-10 rounded-xl bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)]" />
           ))}
         </div>
       </div>
@@ -58,10 +61,13 @@ export default function BottomNav() {
 
   return (
     <>
-      <div className="h-[72px] sm:hidden pointer-events-none" />
-      {/* Mobile Bottom Nav - Exact match of Discovery Hub */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[500] w-full backdrop-blur-2xl bg-white/[0.02] border-t border-white/[0.08] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] rounded-t-[32px] overflow-hidden sm:hidden">
-        <div className="flex items-center justify-around h-[72px] px-2 pb-2 pt-1 relative w-full">
+      <div
+        className="pointer-events-none sm:hidden"
+        style={{ height: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
+      />
+      {/* Mobile Bottom Nav — aligned with Discovery Hub */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[500] w-full overflow-hidden rounded-t-[28px] border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-primary)_92%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_12%,transparent),0_-12px_44px_-6px_rgba(0,0,0,0.32)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--bg-primary)_82%,transparent)] sm:hidden dark:shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_18%,transparent),0_-14px_48px_-4px_rgba(0,0,0,0.55)] pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="relative flex h-[72px] w-full items-center justify-around px-1 pt-0.5">
           {menu.map((item) => {
             const Icon = item.icon;
             // Strict exact match for root '/' to avoid highlighting Vendor everywhere
@@ -82,27 +88,37 @@ export default function BottomNav() {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex-1 flex flex-col items-center justify-center h-full transition-all duration-300 relative ${
-                  isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'
+                className={`relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1 transition-all duration-200 active:scale-[0.97] ${
+                  isActive
+                    ? "text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
-                <div className={`relative p-1.5 rounded-xl transition-all duration-500 ${isActive ? 'bg-[var(--accent)]/10 scale-105 shadow-lg shadow-[var(--accent)]/10' : ''}`}>
-                  <Icon className={`size-5 transition-all ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                <div
+                  className={`relative rounded-2xl p-2 transition-all duration-300 ${
+                    isActive
+                      ? "scale-[1.06] bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent)_35%,transparent),0_8px_20px_-6px_color-mix(in_srgb,var(--accent)_45%,transparent)]"
+                      : "bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)]"
+                  }`}
+                >
+                  <Icon className={`size-[22px] shrink-0 transition-all ${isActive ? "stroke-[2.5px]" : "stroke-2"}`} />
                   {isActive && (
-                    <div className="absolute -top-1 -right-1 size-1.5 bg-[var(--accent)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent)]"></div>
+                    <div className="absolute -right-0.5 -top-0.5 size-1.5 animate-pulse rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]" />
                   )}
                 </div>
-                
-                <span className={`text-[10px] lg:text-[12px] font-medium tracking-[0.02em] mt-1.5 transition-all ${
-                  isActive ? 'text-[var(--accent)] opacity-100' : 'text-[var(--text-secondary)] opacity-60'
-                }`}>
+
+                <span
+                  className={`max-w-full truncate px-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
+                    isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"
+                  }`}
+                >
                   {item.label}
                 </span>
 
                 {isActive && (
-                  <motion.div 
-                    layoutId="global-nav-indicator" 
-                    className="absolute bottom-0 inset-x-6 h-[3px] bg-[var(--accent)] rounded-full shadow-[0_0_12px_var(--accent)]" 
+                  <motion.div
+                    layoutId="global-nav-indicator"
+                    className="absolute bottom-1 left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-[var(--accent)] shadow-[0_0_12px_var(--accent)]"
                   />
                 )}
               </Link>

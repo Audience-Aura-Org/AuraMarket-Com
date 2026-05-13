@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { ShoppingCart, Search, User as UserIcon, Moon, Sun, MessageCircle, Wallet } from 'lucide-react';
-import { useTheme } from "@/context/ThemeContext";
+import { ShoppingCart, Search, User as UserIcon, MessageCircle, Wallet } from 'lucide-react';
 import { trackSearch } from "@/services/tracking";
 import api from '@/services/api';
 import socketService from '@/services/socket';
@@ -19,7 +18,6 @@ export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { theme, toggleTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
@@ -101,10 +99,10 @@ export default function TopNav() {
   const hideSearchIcon = pathname === '/shop' || pathname === '/discovery' || pathname === '/stores';
 
   return (
-    <header className="sticky top-0 z-[500] bg-[var(--nav-bg)] border-b border-[var(--nav-border)] w-full transition-all duration-300">
+    <header className="sticky top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-all duration-300 dark:shadow-[0_10px_36px_-12px_rgba(0,0,0,0.12)]">
       {/* iOS Dynamic Island / notch safe-area spacer */}
-      <div className="w-full bg-[var(--nav-bg)]" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
-      <div className="px-4 md:px-6 py-3 md:py-4 max-w-[1920px] mx-auto flex items-center justify-between gap-4">
+      <div className="w-full shrink-0" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
+      <div className="mx-auto flex max-w-[1920px] items-center justify-between gap-3 px-4 py-2.5 md:gap-4 md:px-6 md:py-4">
         
         {/* Logo Section */}
         <div className="flex items-center gap-4 lg:gap-12 shrink-0">
@@ -122,7 +120,7 @@ export default function TopNav() {
           <div className="hidden lg:flex flex-1 justify-end mr-4">
              <button 
                onClick={() => setIsSearchOpen(!isSearchOpen)}
-               className="size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-[var(--glass-border)] hover:text-[var(--accent)] transition-all active:scale-95 shadow-sm group"
+               className="group flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
              >
                <Search className="size-5 transition-transform group-hover:scale-110" />
              </button>
@@ -135,7 +133,7 @@ export default function TopNav() {
           {!hideSearchIcon && (
             <button 
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="lg:hidden size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:text-[var(--accent)] transition-all active:scale-95 shadow-sm"
+              className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))] lg:hidden"
             >
               <Search className="size-5" />
             </button>
@@ -143,11 +141,11 @@ export default function TopNav() {
 
           <button 
             onClick={() => openChat(null)}
-            className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm"
+            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
           >
             <MessageCircle className="size-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] lg:text-[12px]  font-semibold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] animate-pulse leading-none shadow-lg">
+              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-lg animate-pulse lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -156,7 +154,7 @@ export default function TopNav() {
           {user && (
             <Link 
               href="/wallet" 
-              className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm"
+              className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
               title="Wallet"
             >
               <Wallet className="size-5" />
@@ -164,10 +162,10 @@ export default function TopNav() {
           )}
 
           <div className="relative group/cart">
-            <Link href="/cart" className="relative size-10 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:text-[var(--accent)] transition-all text-[var(--text-primary)] active:scale-95 shadow-sm">
+            <Link href="/cart" className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]">
               <ShoppingCart className="size-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--accent)] text-white text-[10px] lg:text-[12px]  font-semibold rounded-full flex items-center justify-center border-2 border-[var(--nav-bg)] leading-none shadow-lg">
+                <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-1 text-[10px] font-semibold leading-none text-white shadow-lg lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
@@ -184,17 +182,17 @@ export default function TopNav() {
               className="shrink-0"
             >
                <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all">
-                 <div className="size-full bg-[var(--bg-primary)] rounded-full flex items-center justify-center overflow-hidden">
+                 <div className="size-full rounded-full bg-[#0f0a14] flex items-center justify-center overflow-hidden dark:bg-[var(--bg-primary)]">
                     {user.branding?.logo || user.avatar ? (
                       <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt={user.name} />
                     ) : (
-                      <span className="text-[var(--text-primary)]  font-bold text-xs">{user.name?.[0]?.toUpperCase()}</span>
+                      <span className="text-[11px] font-bold text-white dark:text-[var(--text-primary)]">{user.name?.[0]?.toUpperCase()}</span>
                     )}
                  </div>
                </div>
             </Link>
           ) : (
-            <Link href="/login" className="flex items-center gap-2 bg-[var(--text-primary)] text-[var(--bg-primary)] px-6 py-2.5 rounded-full  font-semibold text-[10px] lg:text-[12px] capitalize tracking-[0.12em] hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl shadow-[var(--accent)]/10 whitespace-nowrap active:scale-95">
+            <Link href="/login" className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-[10px] font-semibold capitalize tracking-[0.12em] text-[#0a051a] shadow-xl transition-all hover:bg-[var(--accent)] hover:text-white whitespace-nowrap active:scale-95 dark:bg-[var(--text-primary)] dark:text-[var(--bg-primary)] dark:shadow-xl lg:text-[12px] dark:hover:bg-[var(--accent)] dark:hover:text-white">
               <UserIcon className="size-3.5" />
               <span>Login</span>
             </Link>
@@ -204,7 +202,7 @@ export default function TopNav() {
 
       {/* Standardized Search Overlay */}
       {isSearchOpen && !hideSearchIcon && (
-        <div className="absolute left-0 top-full w-full bg-[var(--nav-bg)] p-4 border-b border-[var(--glass-border)] animate-in slide-in-from-top-4 duration-500 shadow-2xl">
+        <div className="animate-in slide-in-from-top-4 duration-500 absolute left-0 top-full w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] p-4 text-[var(--nav-text)] shadow-[0_16px_48px_-10px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.14)]">
           <div className="relative w-full max-w-2xl mx-auto">
             <input 
               autoFocus
@@ -212,7 +210,7 @@ export default function TopNav() {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
               placeholder="Search products, vendors, and management..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-3.5 pl-6 pr-14 text-sm text-[var(--text-primary)]  font-bold focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all shadow-inner placeholder:opacity-30"
+              className="w-full rounded-full border border-white/15 bg-white/10 py-3.5 pl-6 pr-14 text-sm font-bold text-[var(--nav-text)] shadow-inner outline-none transition-all placeholder:text-white/40 focus:ring-1 focus:ring-[var(--accent)] dark:border-[var(--glass-border)] dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)] dark:placeholder:text-[var(--text-secondary)] dark:placeholder:opacity-60"
             />
             <button 
               onClick={() => { trackSearch(search); router.push(`/shop?q=${search}`); setIsSearchOpen(false); }} 

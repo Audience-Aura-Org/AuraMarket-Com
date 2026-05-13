@@ -223,7 +223,7 @@ export default function StorePage() {
           )}
         </AnimatePresence>
 
-        <div className="px-6 lg:px-12">
+        <div className="px-2 md:px-6 lg:px-12">
           <div ref={productsAnchor} className="mt-12 md:mt-16 mb-8 md:mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
                {[
