@@ -404,7 +404,6 @@ export default function OnboardingFlow() {
           {((!isVendor && step === 1) || (isVendor && step === 2)) && (
             <div className="space-y-4 max-w-md mx-auto w-full">
               {!isVendor && (
-              {!isVendor && (
                 <div className="group relative">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                   <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
