@@ -6,8 +6,11 @@ import Link from 'next/link';
 import api from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import StatCard from '@/components/layout/StatCard';
+import { useRouter } from 'next/navigation';
+import { ShieldAlert, Sparkles, LogOut, ArrowRight, RefreshCw, Search, Dashboard as DashboardIcon } from 'lucide-react';
 
 export default function VendorDashboard() {
+  const router = useRouter();
   const { user, token, logout, updateUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState([]);
@@ -63,11 +66,11 @@ export default function VendorDashboard() {
           try {
             return await api.get(url);
           } catch (err) {
-            if (err.response?.status === 403) {
+            if (err.response?.status === 403 || err.response?.status === 404) {
               const msg = err.response?.data?.message?.toLowerCase() || '';
-              if (msg.includes('onboarding') || msg.includes('profile not found')) {
+              if (msg.includes('onboarding') || msg.includes('profile not found') || msg.includes('vendor profile not found')) {
                 console.warn('[Dashboard] Authorization failed (Profile/Onboarding), redirecting...', url);
-                updateUser({ onboarded: false }); // Break potential redirect loops
+                updateUser({ ...user, onboarded: false }); // Break potential redirect loops
                 router.replace('/onboarding');
                 throw new Error('ONBOARDING_REQUIRED');
               }
@@ -245,25 +248,52 @@ export default function VendorDashboard() {
 
         <div className="p-3 sm:p-6 space-y-6 relative z-10 pb-32">
           {error && (
-            <div className="p-5 rounded-[2rem] bg-rose-500/10 border border-rose-500/20 text-rose-500 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
-              <div className="flex items-center gap-4">
-                 <div className="size-10 rounded-xl bg-rose-500/20 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined">report</span>
+            <div className="relative overflow-hidden p-6 rounded-[2rem] bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-white/5 shadow-2xl animate-in fade-in slide-in-from-top-4 flex flex-col md:flex-row items-center justify-between gap-6">
+              {/* Background accent for onboarding */}
+              {error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') ? (
+                <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent)]/5 to-transparent pointer-events-none" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 to-transparent pointer-events-none" />
+              )}
+
+              <div className="flex items-center gap-5 relative">
+                 <div className={`size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 shadow-[var(--accent)]/10' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-rose-500/10'}`}>
+                    {error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') ? <Sparkles className="size-6" /> : <ShieldAlert className="size-6" />}
                  </div>
-                 <div>
-                   <p className="text-sm font-bold tracking-tight">
-                     {error.includes('onboarding') ? 'Onboarding Required' : 'Security Alert'}
+                 <div className="space-y-1">
+                   <p className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+                     {error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') ? 'Onboarding Required' : 'Security Alert'}
                    </p>
-                   <p className="text-[11px] font-semibold opacity-60 tracking-tight">{error}</p>
+                   <p className="text-[11px] lg:text-[12px] font-medium opacity-50 tracking-tight leading-relaxed max-w-md">
+                     {error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') 
+                       ? 'Your vendor profile is incomplete. Finish setup to access the marketplace and start selling.' 
+                       : `Security verification required: ${error}`}
+                   </p>
                  </div>
               </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                 {error.includes('onboarding') ? (
-                   <Link href="/onboarding" className="flex-1 md:flex-none px-6 py-2 bg-[var(--accent)] text-white rounded-xl text-[11px] font-bold tracking-tight hover:opacity-90 transition-all text-center">Complete Onboarding</Link>
+              
+              <div className="flex items-center gap-3 w-full md:w-auto relative">
+                 {error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') ? (
+                   <Link 
+                     href="/onboarding" 
+                     className="flex-1 md:flex-none px-8 py-3 bg-[var(--accent)] text-white rounded-xl text-xs font-bold tracking-tight hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-[var(--accent)]/20 flex items-center justify-center gap-2"
+                   >
+                     Setup Store <ArrowRight className="size-4" />
+                   </Link>
                  ) : (
-                   <Link href="/login" className="flex-1 md:flex-none px-6 py-2 bg-rose-500 text-white rounded-xl text-[11px] font-bold tracking-tight hover:opacity-90 transition-all text-center">Re-Authenticate</Link>
+                   <Link 
+                     href="/login" 
+                     className="flex-1 md:flex-none px-8 py-3 bg-rose-500 text-white rounded-xl text-xs font-bold tracking-tight hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-rose-500/20 flex items-center justify-center gap-2"
+                   >
+                     Re-Authenticate
+                   </Link>
                  )}
-                 <button onClick={() => logout()} className="flex-1 md:flex-none px-6 py-2 border border-rose-500/30 text-rose-500 rounded-xl text-[11px] font-bold tracking-tight hover:bg-rose-500/10 transition-all">Sign Out</button>
+                 <button 
+                   onClick={() => logout()} 
+                   className="flex-1 md:flex-none px-6 py-3 border border-white/10 text-[var(--text-secondary)] hover:text-rose-500 rounded-xl text-xs font-bold tracking-tight hover:bg-rose-500/5 transition-all flex items-center justify-center gap-2"
+                 >
+                   <LogOut className="size-4" /> Sign Out
+                 </button>
               </div>
             </div>
           )}
