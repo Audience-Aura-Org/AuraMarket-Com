@@ -558,58 +558,52 @@ export default function OnboardingFlow() {
 
           {/* ── Step: Vendor Profile (Vendors Step 0) ── */}
           {isVendor && step === 0 && (
-            <div className="space-y-4">
-              <div className="space-y-4 max-w-md">
+            <div className="space-y-5 max-w-md mx-auto">
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                 <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-              <div className="space-y-5 max-w-md mx-auto">
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                  <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-3 block">Store Name</label>
-                    <div className="relative flex items-center">
-                      <Store className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                      <input
-                        type="text"
-                        placeholder="e.g. Aura Fashion"
-                        value={vendorProfile.store_name}
-                        onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
-                        className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                  <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Support Contact</label>
-                    <div className="relative flex items-center">
-                      <Phone className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                      <input
-                        type="tel"
-                        placeholder="+237 6XX XXX XXX"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                  <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Brand Description</label>
-                    <textarea
-                      placeholder="Tell buyers what makes your store unique..."
-                      value={vendorProfile.description}
-                      onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value }))}
-                      rows={4}
-                      className="w-full bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
+                  <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-3 block">Store Name</label>
+                  <div className="relative flex items-center">
+                    <Store className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Aura Fashion"
+                      value={vendorProfile.store_name}
+                      onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
+                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Support Contact</label>
+                  <div className="relative flex items-center">
+                    <Phone className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                    <input
+                      type="tel"
+                      placeholder="+237 6XX XXX XXX"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Brand Description</label>
+                  <textarea
+                    placeholder="Tell buyers what makes your store unique..."
+                    value={vendorProfile.description}
+                    onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value }))}
+                    rows={4}
+                    className="w-full bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
+                  />
                 </div>
               </div>
             </div>
