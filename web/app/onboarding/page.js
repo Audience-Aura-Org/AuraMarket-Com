@@ -365,23 +365,20 @@ export default function OnboardingFlow() {
                     <button
                       key={cat._id}
                       onClick={() => setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id])}
-                      className={`relative flex items-center justify-between gap-3 p-3 rounded-[1.2rem] border transition-all group ${sel ? 'bg-rose-500/5 border-rose-500/30 shadow-md' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-rose-500/30'}`}
+                      className={`relative flex items-center gap-3 p-3.5 rounded-[1.5rem] border transition-all duration-300 group ${sel ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'bg-[var(--bg-primary)]/40 backdrop-blur-md border-white/5 hover:border-[var(--accent)]/20 hover:bg-[var(--bg-primary)]/60'}`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`size-10 rounded-lg flex items-center justify-center shrink-0 border border-[var(--glass-border)] ${sel ? 'bg-rose-500/10 text-rose-500' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40'}`}>
-                          <LayoutGrid className="size-5" />
-                        </div>
-                        <div className="flex flex-col text-left min-w-0">
-                          <span className="text-sm  font-bold text-[var(--text-primary)] truncate">{cat.name}</span>
-                          <span className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium opacity-50">
-                            {cat.product_count > 0 ? `${cat.product_count} products` : 'Explore category'}
-                          </span>
-                        </div>
+                      <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 ${sel ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-white/5 border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-[var(--accent)]/30'}`}>
+                        <LayoutGrid className="size-5" />
                       </div>
-                      
-                      <div className={`size-6 rounded-full border flex items-center justify-center transition-all ${sel ? 'bg-rose-500 border-rose-500 text-white' : 'border-[var(--glass-border)]'}`}>
-                        {sel && <Check className="size-3.5 stroke-[3]" />}
+                      <div className="flex flex-col text-left min-w-0">
+                        <span className={`text-[13px] font-bold tracking-tight transition-colors ${sel ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{cat.name}</span>
+                        <span className="text-[10px] font-medium opacity-40 truncate">Explore {cat.name}</span>
                       </div>
+                      {sel && (
+                        <div className="ml-auto size-5 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-lg animate-in zoom-in-50 duration-300">
+                           <div className="size-1.5 rounded-full bg-white" />
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -407,42 +404,49 @@ export default function OnboardingFlow() {
           {((!isVendor && step === 1) || (isVendor && step === 2)) && (
             <div className="space-y-4 max-w-md mx-auto w-full">
               {!isVendor && (
-                <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all group focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight mb-1 block opacity-60">Primary Contact</label>
-                  <div className="relative">
-                    <Phone className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
-                    <input
-                      type="tel"
-                      placeholder="+237 6XX XXX XXX"
-                      value={phone}
-                      onChange={e => setPhone(e.target.value)}
-                      className="w-full bg-transparent pl-8 pr-2 py-1 text-sm  font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
-                    />
+              {!isVendor && (
+                <div className="group relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                    <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-2 block">Primary Contact</label>
+                    <div className="relative flex items-center">
+                      <Phone className="absolute left-0 size-4 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                      <input
+                        type="tel"
+                        placeholder="+237 6XX XXX XXX"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        className="w-full bg-transparent pl-8 pr-2 py-1.5 text-sm font-semibold outline-none placeholder:text-[var(--text-secondary)]/20"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Base City</label>
-                {zonesLoading ? (
-                  <div className="flex items-center gap-3 py-1">
-                    <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
-                    <span className="text-xs  font-bold opacity-40">Loading...</span>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <MapPin className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
-                    <select
-                      value={location.city}
-                      onChange={e => setLocation(p => ({ ...p, city: e.target.value, quartier: '' }))}
-                      className="w-full bg-transparent pl-8 pr-10 py-1 text-sm  font-bold outline-none appearance-none cursor-pointer"
-                    >
-                      <option value="">Select city...</option>
-                      {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                    </select>
-                    <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-3.5 opacity-20 rotate-90" />
-                  </div>
-                )}
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">Base City</label>
+                  {zonesLoading ? (
+                    <div className="flex items-center gap-3 py-1">
+                      <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
+                      <span className="text-xs font-bold opacity-40">Loading...</span>
+                    </div>
+                  ) : (
+                    <div className="relative flex items-center">
+                      <MapPin className="absolute left-0 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                      <select
+                        value={location.city}
+                        onChange={e => setLocation(p => ({ ...p, city: e.target.value, quartier: '' }))}
+                        className="w-full bg-transparent pl-8 pr-10 py-1.5 text-sm font-semibold outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="" className="bg-[var(--bg-primary)]">Select city...</option>
+                        {cities.map(z => <option key={z._id} value={z.name} className="bg-[var(--bg-primary)]">{z.name}</option>)}
+                      </select>
+                      <ChevronRight className="absolute right-0 size-3.5 opacity-20 rotate-90" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {location.city && (
@@ -451,32 +455,38 @@ export default function OnboardingFlow() {
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-4"
                 >
-                  <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                    <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Neighbourhood / Zone</label>
-                    <div className="relative">
-                      <Globe className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
-                      <select
-                        value={location.quartier}
-                        disabled={zonesLoading}
-                        onChange={e => setLocation(p => ({ ...p, quartier: e.target.value }))}
-                        className="w-full bg-transparent pl-8 pr-10 py-1 text-sm  font-bold outline-none appearance-none cursor-pointer disabled:opacity-30"
-                      >
-                        <option value="">Select zone...</option>
-                        {quartiers.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                      </select>
-                      <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 size-3.5 opacity-20 rotate-90" />
+                  <div className="group relative">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                    <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">Neighbourhood / Zone</label>
+                      <div className="relative flex items-center">
+                        <Globe className="absolute left-0 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                        <select
+                          value={location.quartier}
+                          disabled={zonesLoading}
+                          onChange={e => setLocation(p => ({ ...p, quartier: e.target.value }))}
+                          className="w-full bg-transparent pl-8 pr-10 py-1.5 text-sm font-semibold outline-none appearance-none cursor-pointer disabled:opacity-30"
+                        >
+                          <option value="" className="bg-[var(--bg-primary)]">Select zone...</option>
+                          {quartiers.map(z => <option key={z._id} value={z.name} className="bg-[var(--bg-primary)]">{z.name}</option>)}
+                        </select>
+                        <ChevronRight className="absolute right-0 size-3.5 opacity-20 rotate-90" />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm transition-all focus-within:border-[var(--accent)]/40">
-                    <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1 block opacity-60">Address Details / Notes</label>
-                    <textarea
-                      placeholder={isVendor ? "e.g. Opposite Total Station, gate #4..." : "e.g. Door #5, blue building..."}
-                      value={location.address_description}
-                      onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
-                      rows={3}
-                      className="w-full bg-transparent py-1 text-xs  font-bold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
-                    />
+                  <div className="group relative">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                    <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">Address Details / Notes</label>
+                      <textarea
+                        placeholder={isVendor ? "e.g. Opposite Total Station, gate #4..." : "e.g. Door #5, blue building..."}
+                        value={location.address_description}
+                        onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
+                        rows={3}
+                        className="w-full bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
+                      />
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -511,41 +521,38 @@ export default function OnboardingFlow() {
                  </span>
                </div>
 
-               {/* Vendor Feed Style */}
-               <div className="space-y-3">
-                 {filteredVendors.slice(0, 20).map(v => {
-                   const isFollowing = followedVendors.includes(v._id);
-                   const isSyncing = syncing === v._id;
-                   return (
-                     <div 
+                <div className="space-y-3">
+                  {filteredVendors.slice(0, 20).map(v => {
+                    const isFollowing = followedVendors.includes(v._id);
+                    const isSyncing = syncing === v._id;
+                    return (
+                      <div 
                         key={v._id} 
-                        className={`group flex items-center justify-between gap-3 p-3 rounded-[1.2rem] border transition-all cursor-pointer ${isFollowing ? 'bg-blue-500/5 border-blue-500/30 shadow-md' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30'}`}
+                        className={`group flex items-center gap-3 p-3.5 rounded-[1.5rem] border transition-all duration-300 cursor-pointer ${isFollowing ? 'bg-blue-500/5 border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.1)]' : 'bg-[var(--bg-primary)]/40 backdrop-blur-md border-white/5 hover:border-blue-500/20 hover:bg-[var(--bg-primary)]/60'}`}
                         onClick={() => !isSyncing && handleToggleFollow(v._id)}
                      >
-                       <div className="flex items-center gap-3 min-w-0">
-                         <div className="size-10 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-inner">
-                           {v.user_id?.branding?.logo || v.user_id?.avatar
-                             ? <img src={v.user_id?.branding?.logo || v.user_id?.avatar} className="size-full object-cover" alt="" />
-                             : <div className="size-full flex items-center justify-center text-[var(--accent)]  font-bold text-lg">{v.store_name?.[0]}</div>
-                           }
+                       <div className={`size-10 rounded-xl overflow-hidden border transition-all duration-300 shrink-0 shadow-inner ${isFollowing ? 'border-blue-500/30' : 'border-white/10 opacity-60 group-hover:opacity-100 group-hover:border-blue-500/20'}`}>
+                         {v.user_id?.branding?.logo || v.user_id?.avatar
+                           ? <img src={v.user_id?.branding?.logo || v.user_id?.avatar} className="size-full object-cover" alt="" />
+                           : <div className="size-full flex items-center justify-center text-[var(--accent)] font-bold text-lg">{v.store_name?.[0]}</div>
+                         }
+                       </div>
+                       <div className="flex flex-col min-w-0 text-left">
+                         <div className="flex items-center gap-1.5">
+                           <span className={`text-[13px] font-bold tracking-tight transition-colors ${isFollowing ? 'text-blue-500' : 'text-[var(--text-primary)]'}`}>{v.store_name}</span>
+                           {v.verified && <div className="size-3 rounded-full bg-blue-500 flex items-center justify-center"><div className="size-1 rounded-full bg-white" /></div>}
                          </div>
-                         <div className="flex flex-col min-w-0">
-                            <h3 className="text-sm  font-bold text-[var(--text-primary)] truncate">{v.store_name || 'Verified Vendor'}</h3>
-                            <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium opacity-50">Verified Merchant</p>
+                         <span className="text-[10px] font-medium opacity-40 truncate">{v.description || 'Verified Aura Vendor'}</span>
+                       </div>
+                       <div className="ml-auto">
+                         <div className={`size-6 rounded-lg border flex items-center justify-center transition-all duration-300 ${isFollowing ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-blue-500/30'}`}>
+                           {isSyncing ? <Loader2 className="size-3 animate-spin" /> : isFollowing ? <div className="size-1.5 rounded-full bg-white" /> : <Plus className="size-3.5" />}
                          </div>
                        </div>
-                       
-                       <button 
-                         onClick={(e) => { e.stopPropagation(); !isSyncing && handleToggleFollow(v._id); }}
-                         className={`px-4 py-2 rounded-xl text-[11px] lg:text-[12px]  font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 ${isFollowing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'}`}
-                       >
-                         {isSyncing ? <Loader2 className="size-3.5 animate-spin" /> : isFollowing ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
-                         {isFollowing ? 'Followed' : 'Follow'}
-                       </button>
                      </div>
-                   );
-                 })}
-               </div>
+                    );
+                  })}
+                </div>
                {vendors.length === 0 && <p className="text-center text-sm opacity-40 py-12">Connecting to vendor matrix...</p>}
              </div>
           )}
@@ -554,44 +561,53 @@ export default function OnboardingFlow() {
           {isVendor && step === 0 && (
             <div className="space-y-4">
               <div className="space-y-4 max-w-md">
-                <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] mb-2 block opacity-50">Store Name</label>
-                  <div className="relative">
-                    <Store className="absolute left-0 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)]" />
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Store Name</label>
+                  <div className="relative flex items-center">
+                    <Store className="absolute left-0 size-5 text-[var(--accent)] opacity-40 group-focus-within:opacity-100 transition-all" />
                     <input
                       type="text"
                       placeholder="e.g. Aura Fashion"
                       value={vendorProfile.store_name}
                       onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
-                      className="w-full bg-transparent pl-10 pr-2 py-2 text-base  font-bold outline-none"
+                      className="w-full bg-transparent pl-10 pr-2 py-2 text-base font-bold outline-none"
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] mb-2 block opacity-50">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-0 top-1/2 -translate-y-1/2 size-5 text-[var(--accent)]" />
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Phone Number</label>
+                  <div className="relative flex items-center">
+                    <Phone className="absolute left-0 size-5 text-[var(--accent)] opacity-40 group-focus-within:opacity-100 transition-all" />
                     <input
                       type="tel"
                       placeholder="+237 6XX XXX XXX"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      className="w-full bg-transparent pl-10 pr-2 py-2 text-base  font-bold outline-none"
+                      className="w-full bg-transparent pl-10 pr-2 py-2 text-base font-bold outline-none"
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="p-5 rounded-[2rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-xl transition-all focus-within:border-[var(--accent)]/40">
-                  <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] mb-2 block opacity-50">Brand Description</label>
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Brand Description</label>
                   <textarea
                     placeholder="Tell buyers what makes your store unique..."
                     value={vendorProfile.description}
                     onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value }))}
                     rows={4}
-                    className="w-full bg-transparent py-1 text-sm font-medium outline-none resize-none"
+                    className="w-full bg-transparent py-1 text-sm font-semibold outline-none resize-none"
                   />
                 </div>
+              </div>
               </div>
             </div>
           )}
@@ -659,9 +675,11 @@ export default function OnboardingFlow() {
                 <button
                   onClick={finish}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-bold text-sm tracking-tight shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full py-4 rounded-xl font-bold text-sm tracking-tight shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-white"
+                  style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)' }}
                 >
                   {loading ? <Loader2 className="size-3.5 animate-spin" /> : 'Enter the Marketplace'}
+                  {!loading && <ArrowRight className="size-4" />}
                 </button>
               </div>
             </div>
