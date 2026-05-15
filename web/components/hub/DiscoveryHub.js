@@ -577,7 +577,7 @@ export default function DiscoveryHub() {
                 </div>
 
                 <span
-                  className={`max-w-full truncate px-0.5 text-[9px] font-medium tracking-wide transition-colors ${
+                  className={`max-w-full truncate px-0.5 text-[11px] font-medium tracking-tight transition-colors ${
                     isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] opacity-90"
                   }`}
                 >
@@ -612,7 +612,7 @@ export default function DiscoveryHub() {
                   }`}
                 >
                    <Icon className={`size-[18px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
-                   <span className={`text-[9px] font-medium tracking-wide mt-1.5 ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{tab.label}</span>
+                   <span className={`text-[10px] font-medium tracking-tight mt-1.5 ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{tab.label}</span>
                 </button>
               </div>
             );

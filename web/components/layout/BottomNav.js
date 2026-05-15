@@ -105,7 +105,7 @@ export default function BottomNav() {
                 </div>
 
                 <span
-                  className={`max-w-full truncate px-0.5 text-[9px] font-medium tracking-wide transition-colors ${
+                  className={`max-w-full truncate px-0.5 text-[11px] font-medium tracking-tight transition-colors ${
                     isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] opacity-90"
                   }`}
                 >
