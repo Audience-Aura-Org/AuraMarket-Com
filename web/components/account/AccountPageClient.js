@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
+import PasswordInput from '@/components/common/PasswordInput';
 import StatusManager from '@/components/status/StatusManager';
 import SingleOrderView from '@/components/account/SingleOrderView';
 import dynamic from 'next/dynamic';
@@ -1114,6 +1115,15 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           disabled={disabled}
           rows={4}
           className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
+        />
+      ) : type === 'password' ? (
+        <PasswordInput
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoComplete="current-password"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 pr-12 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       ) : (
         <input

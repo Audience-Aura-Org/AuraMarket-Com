@@ -52,11 +52,11 @@ export default function OnboardingWatcher() {
         return;
       }
       
-      // 3.2. Onboarding check — ONLY for customers
-      // Professional roles are exempt from customer calibration
-      if (role === 'customer' && !user.onboarded && sessionStorage.getItem('onboarding_skipped') !== 'true') {
-        console.warn('[Watcher] Customer not onboarded, redirecting to /onboarding');
-        router.push('/onboarding');
+      // 3.2. Onboarding check — for customers and vendors
+      // Ensures they complete their profile before accessing protected features
+      if ((role === 'customer' || role === 'vendor') && !user.onboarded && sessionStorage.getItem('onboarding_skipped') !== 'true') {
+        console.warn('[Watcher] User not onboarded, redirecting to /onboarding');
+        router.replace('/onboarding');
         return;
       }
     }

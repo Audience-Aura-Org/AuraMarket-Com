@@ -8,7 +8,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import StatCard from '@/components/layout/StatCard';
 
 export default function VendorDashboard() {
-  const { user, token, logout } = useAuthStore();
+  const { user, token, logout, updateUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -58,11 +58,29 @@ export default function VendorDashboard() {
         setLoading(true);
         setError(null);
         
+        // Helper to safely handle individual requests and detect 403 onboarding
+        const safeGet = async (url) => {
+          try {
+            return await api.get(url);
+          } catch (err) {
+            if (err.response?.status === 403) {
+              const msg = err.response?.data?.message?.toLowerCase() || '';
+              if (msg.includes('onboarding') || msg.includes('profile not found')) {
+                console.warn('[Dashboard] Authorization failed (Profile/Onboarding), redirecting...', url);
+                updateUser({ onboarded: false }); // Break potential redirect loops
+                router.replace('/onboarding');
+                throw new Error('ONBOARDING_REQUIRED');
+              }
+            }
+            throw err;
+          }
+        };
+
         const [productsRes, ordersRes, walletRes, vendorProfileRes] = await Promise.all([
-          api.get('/vendor/products'),
-          api.get('/vendor/orders'),
-          api.get('/wallet'),
-          api.get('/vendor/me'),
+          safeGet('/vendor/products'),
+          safeGet('/vendor/orders'),
+          safeGet('/wallet'),
+          safeGet('/vendor/me'),
         ]);
 
         if (isMounted) {
@@ -82,6 +100,8 @@ export default function VendorDashboard() {
           setLoading(false);
         }
       } catch (err) {
+        if (err.message === 'ONBOARDING_REQUIRED') return; // Handled above
+
         console.error('[VendorDashboard] Error:', err);
         if (isMounted) {
           setError(err.response?.data?.message || err.message || 'Failed to fetch data');
@@ -231,12 +251,18 @@ export default function VendorDashboard() {
                     <span className="material-symbols-outlined">report</span>
                  </div>
                  <div>
-                   <p className="text-sm font-bold tracking-tight">Security Alert</p>
+                   <p className="text-sm font-bold tracking-tight">
+                     {error.includes('onboarding') ? 'Onboarding Required' : 'Security Alert'}
+                   </p>
                    <p className="text-[11px] font-semibold opacity-60 tracking-tight">{error}</p>
                  </div>
               </div>
               <div className="flex items-center gap-3 w-full md:w-auto">
-                 <Link href="/login" className="flex-1 md:flex-none px-6 py-2 bg-rose-500 text-white rounded-xl text-[11px] font-bold tracking-tight hover:opacity-90 transition-all text-center">Re-Authenticate</Link>
+                 {error.includes('onboarding') ? (
+                   <Link href="/onboarding" className="flex-1 md:flex-none px-6 py-2 bg-[var(--accent)] text-white rounded-xl text-[11px] font-bold tracking-tight hover:opacity-90 transition-all text-center">Complete Onboarding</Link>
+                 ) : (
+                   <Link href="/login" className="flex-1 md:flex-none px-6 py-2 bg-rose-500 text-white rounded-xl text-[11px] font-bold tracking-tight hover:opacity-90 transition-all text-center">Re-Authenticate</Link>
+                 )}
                  <button onClick={() => logout()} className="flex-1 md:flex-none px-6 py-2 border border-rose-500/30 text-rose-500 rounded-xl text-[11px] font-bold tracking-tight hover:bg-rose-500/10 transition-all">Sign Out</button>
               </div>
             </div>

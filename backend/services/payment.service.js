@@ -10,6 +10,7 @@ const Vendor = require('../models/Vendor.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { sendNotification } = require('../utils/notifier');
+const { syncShipmentsToOrderStatus } = require('./orderSync.service');
 
 /**
  * Internal helper to release held escrow funds to a vendor.
@@ -66,9 +67,14 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
   escrow.release_date = new Date();
   await escrow.save({ session });
 
-  // 7. Update Order status
+  // 7. Update Order status + sync shipments
   order.order_status = 'completed';
   await order.save({ session });
+
+  await syncShipmentsToOrderStatus(order, 'completed', {
+    session,
+    note: 'Auto-release: order completed.',
+  });
 
   // 8. Notifications (Non-blocking if app is provided)
   if (app) {

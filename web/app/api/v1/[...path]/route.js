@@ -62,11 +62,10 @@ async function handleRequest(request, params, method) {
     if (!['GET', 'HEAD'].includes(method)) {
       const contentType = request.headers.get('content-type') || '';
       
-      // For multipart/form-data (uploads), we must forward the raw body stream
+      // Multipart: forward raw bytes + original boundary (re-parsing formData breaks large uploads)
       if (contentType.includes('multipart/form-data')) {
-        options.body = await request.formData();
-        // Browser sets boundary automatically, so we let the backend handle it
-        headers.delete('content-type'); 
+        options.body = await request.arrayBuffer();
+        headers.set('content-type', contentType);
       } else {
         const body = await request.arrayBuffer();
         if (body.byteLength > 0) options.body = body;

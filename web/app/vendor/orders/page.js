@@ -111,8 +111,9 @@ export default function VendorOrdersPage() {
      try {
         const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
         if (res.data.success) {
-           setOrders(prev => prev.map(o => o._id === orderId ? { ...o, order_status: newStatus } : o));
-           toast.success(`Pipeline updated: ${newStatus.toUpperCase()}`);
+           const synced = res.data.data?.order?.order_status || newStatus;
+           setOrders(prev => prev.map(o => o._id === orderId ? { ...o, order_status: synced } : o));
+           toast.success(`Pipeline updated: ${synced.toUpperCase()}`);
         }
      } catch (err) {
         toast.error(err.response?.data?.message || 'Sequence update failed');

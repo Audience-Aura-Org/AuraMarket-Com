@@ -6,15 +6,27 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { uploadToS3, uploadMultipleToS3, isS3Enabled } = require('../utils/s3');
-const { compressVideo } = require('../utils/videoCompression');
+const { uploadToS3, uploadMultipleToS3, createPresignedUpload, isS3Enabled } = require('../utils/s3');
+const { compressVideo, compressVideoForStatus } = require('../utils/videoCompression');
 
-async function maybeTranscodeVideoForWeb(file) {
+const SKIP_TRANSCODE_MAX_BYTES = 28 * 1024 * 1024; // already-mp4 under ~28MB → upload as-is
+
+async function maybeTranscodeVideoForWeb(file, folder = 'general') {
   if (!file?.buffer || !file?.mimetype?.startsWith('video/')) {
     return {
       buffer: file?.buffer,
       originalname: file?.originalname,
       mimetype: file?.mimetype,
+    };
+  }
+
+  const isMp4 = file.mimetype === 'video/mp4' || /\.mp4$/i.test(file.originalname || '');
+  if (isMp4 && file.buffer.length <= SKIP_TRANSCODE_MAX_BYTES) {
+    console.log(`🎬 [Video] Skipping transcode (${(file.buffer.length / 1024 / 1024).toFixed(1)}MB mp4)`);
+    return {
+      buffer: file.buffer,
+      originalname: file.originalname?.replace(/\.[^.]+$/, '') + '.mp4' || 'video.mp4',
+      mimetype: 'video/mp4',
     };
   }
 
@@ -27,10 +39,11 @@ async function maybeTranscodeVideoForWeb(file) {
   const outputBase = (file.originalname || 'video').replace(/\.[^.]+$/, '');
   const outputName = `${outputBase}-web.mp4`;
   const outputPath = path.join(tmpDir, `out-${Date.now()}-${outputName}`);
+  const compressFn = folder === 'statuses' ? compressVideoForStatus : compressVideo;
 
   try {
     fs.writeFileSync(inputPath, file.buffer);
-    await compressVideo(inputPath, outputPath);
+    await compressFn(inputPath, outputPath);
     const outBuffer = fs.readFileSync(outputPath);
     const compressedSize = (outBuffer.length / 1024 / 1024).toFixed(2);
     const reduction = (((file.buffer.length - outBuffer.length) / file.buffer.length) * 100).toFixed(0);
@@ -78,7 +91,7 @@ const uploadSingle = async (req, res) => {
     if (isS3Enabled()) {
       const folder = req.body.type || 'general';
       console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
-      const uploadPayload = await maybeTranscodeVideoForWeb(req.file);
+      const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder);
       const s3Result = await uploadToS3(
         uploadPayload.buffer,
         uploadPayload.originalname,
@@ -220,7 +233,48 @@ const uploadMultiple = async (req, res) => {
   }
 };
 
+/** @route POST /api/upload/presign — direct browser → S3 (fast path for status videos) */
+const presignUpload = async (req, res) => {
+  try {
+    if (!isS3Enabled()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Direct upload unavailable. S3 is not configured — use /upload/single instead.',
+        fallback: 'single',
+      });
+    }
+
+    const { fileName, contentType, type: folder = 'statuses' } = req.body;
+    if (!fileName || !contentType) {
+      return res.status(400).json({ success: false, message: 'fileName and contentType are required.' });
+    }
+    if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
+      return res.status(400).json({ success: false, message: 'Only image and video uploads are allowed.' });
+    }
+
+    const result = await createPresignedUpload({
+      fileName,
+      folder,
+      contentType,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        uploadUrl: result.uploadUrl,
+        url: result.publicUrl,
+        key: result.key,
+        method: 'PUT',
+      },
+    });
+  } catch (err) {
+    console.error('❌ [API] Presign failed:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   uploadSingle,
-  uploadMultiple
+  uploadMultiple,
+  presignUpload,
 };

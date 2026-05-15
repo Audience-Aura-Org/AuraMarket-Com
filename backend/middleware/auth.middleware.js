@@ -111,7 +111,7 @@ const loadVendor = async (req, res, next) => {
     if (!vendor && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Vendor profile required. Please complete onboarding.'
+        message: 'Vendor profile not found. If you just signed up, please complete your profile onboarding first.'
       });
     }
 

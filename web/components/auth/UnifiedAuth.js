@@ -1,5 +1,5 @@
 "use client";
-// Force cache bust: v2-alias-fix
+// Force cache bust: v3-clean-fix
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
+import PasswordInput from '@/components/common/PasswordInput';
 
 /**
  * UnifiedAuth
@@ -39,7 +40,6 @@ export default function UnifiedAuth() {
   });
 
   // Pre-fill remembered email once when the store first hydrates.
-  // Using a ref flag prevents this from re-triggering if the user clears the field.
   const prefilledRef = useRef(false);
   useEffect(() => {
     if (hasHydrated && rememberedEmail && !prefilledRef.current) {
@@ -68,7 +68,7 @@ export default function UnifiedAuth() {
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     
-    // Force dismiss the mobile keyboard to prevent iOS PWA routing freeze
+    // Force dismiss the mobile keyboard
     if (typeof document !== 'undefined' && document.activeElement) {
       document.activeElement.blur();
     }
@@ -85,7 +85,6 @@ export default function UnifiedAuth() {
         };
         const result = await register(formattedData);
         if (result.success) {
-          // Small delay to allow iOS keyboard to fully dismiss and viewport to stabilize
           setTimeout(() => {
             handleRedirect();
           }, 300);
@@ -96,7 +95,6 @@ export default function UnifiedAuth() {
         // Logging in
         const result = await login({ email: formData.email, password: formData.password });
         if (result.success) {
-          // Small delay to allow iOS keyboard to fully dismiss and viewport to stabilize
           setTimeout(() => {
             handleRedirect();
           }, 300);
@@ -110,41 +108,32 @@ export default function UnifiedAuth() {
     }
   };
 
-
-
   const handleRedirect = () => {
     const user = useAuthStore.getState().user;
     const role = user?.role?.toLowerCase();
     
-    // Prefetch for instant navigate
     if (role === 'vendor') {
-      router.prefetch('/vendor/dashboard');
       router.push('/vendor/dashboard');
     } else if (role === 'admin') {
-      router.prefetch('/admin/dashboard');
       router.push('/admin/dashboard');
     } else if (role === 'logistics') {
-      router.prefetch('/logistics/dashboard');
       router.push('/logistics/dashboard');
     } else {
-      // For customers, check onboarding status
       if (user?.onboarded === false) {
-        router.prefetch('/onboarding');
         router.push('/onboarding');
       } else {
-        router.prefetch('/discovery');
         router.push('/discovery');
       }
     }
   };
 
   return (
-    <div className={`w-full max-w-[420px] mx-auto transition-all duration-700`}>
+    <div className="w-full max-w-[420px] mx-auto transition-all duration-700">
       <div className="bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-[2rem] p-5 md:p-7 shadow-2xl relative overflow-hidden">
         
         {/* Progress Bar (Aesthetic Dots) */}
         <div className="flex justify-center gap-1 mb-6">
-          <div className={`h-1 rounded-full transition-all duration-500 w-8 bg-[var(--accent)]`} />
+          <div className="h-1 rounded-full transition-all duration-500 w-8 bg-[var(--accent)]" />
           <div className={`h-1 rounded-full transition-all duration-500 ${step === 'CHALLENGE' ? 'w-8 bg-[var(--accent)]' : 'w-2 bg-[var(--accent)]/30'}`} />
         </div>
 
@@ -158,7 +147,7 @@ export default function UnifiedAuth() {
               className="space-y-5"
             >
               <div className="text-center space-y-1">
-                <h1 className="text-[15px]  font-bold text-[var(--text-primary)] tracking-tight">Welcome to Aura</h1>
+                <h1 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight">Welcome to Aura</h1>
                 <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-60">
                   Enter your email to continue
                 </p>
@@ -181,7 +170,7 @@ export default function UnifiedAuth() {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white  font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group"
                 >
                   Continue
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -195,7 +184,7 @@ export default function UnifiedAuth() {
                     setIsNewUser(true);
                     setStep('CHALLENGE');
                   }}
-                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)]  font-semibold text-[11px] lg:text-[12px] hover:bg-[var(--accent)]/5 transition-all"
+                  className="w-full py-3.5 rounded-2xl border border-[var(--accent)]/30 text-[var(--accent)] font-semibold text-[11px] lg:text-[12px] hover:bg-[var(--accent)]/5 transition-all"
                 >
                   Create an account
                 </button>
@@ -204,7 +193,6 @@ export default function UnifiedAuth() {
           ) : (
             <motion.div
               key="challenge"
-              // ... existing challenge code ...
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -219,22 +207,21 @@ export default function UnifiedAuth() {
               </button>
 
               <div className="space-y-0.5">
-                <h2 className="text-[14px]  font-bold text-[var(--text-primary)] tracking-tight">
+                <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">
                   {isNewUser ? 'Create your account' : 'Enter your password'}
                 </h2>
-                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] truncate max-w-full opacity-80">
+                <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] truncate max-w-full opacity-80">
                   {formData.email}
                 </p>
               </div>
 
               {error && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] lg:text-[12px]  font-semibold text-center">
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] lg:text-[12px] font-semibold text-center">
                   {error}
                 </div>
               )}
 
               <form onSubmit={handleFinalSubmit} className="space-y-4">
-                {/* Name, Email (editable), & Phone for New Users */}
                 {isNewUser && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
@@ -252,7 +239,7 @@ export default function UnifiedAuth() {
                         className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[11px] lg:text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
-                    
+
                     <div className="relative group">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]" />
                       <input
@@ -277,7 +264,6 @@ export default function UnifiedAuth() {
                       />
                     </div>
 
-                    {/* Role Picker (WhatsApp-style selector) */}
                     <div className="grid grid-cols-3 gap-2">
                        {['customer', 'vendor', 'logistics'].map((r) => (
                          <button
@@ -293,24 +279,22 @@ export default function UnifiedAuth() {
                            {r === 'customer' && <ShoppingBag className="w-4 h-4" />}
                            {r === 'vendor' && <Store className="w-4 h-4" />}
                            {r === 'logistics' && <Truck className="w-4 h-4" />}
-                           <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">{r}</span>
+                           <span className="text-[11px] lg:text-[12px] font-semibold tracking-tighter">{r}</span>
                          </button>
                        ))}
                     </div>
                   </motion.div>
                 )}
 
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]" />
-                  <input
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    placeholder="Enter password"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all placeholder:text-[var(--text-secondary)]/30"
-                  />
-                </div>
+                <PasswordInput
+                  required
+                  icon={Lock}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter password"
+                  autoComplete={isNewUser ? 'new-password' : 'current-password'}
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-4 pl-12 pr-12 text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/50 transition-all placeholder:text-[var(--text-secondary)]/30"
+                />
 
                 <div className="flex items-center justify-between px-1">
                   <button
@@ -325,7 +309,7 @@ export default function UnifiedAuth() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white  font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -339,7 +323,7 @@ export default function UnifiedAuth() {
         </AnimatePresence>
       </div>
 
-      <p className="mt-8 text-center text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  tracking-[0.3em] opacity-40">
+      <p className="mt-8 text-center text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-[0.3em] opacity-40">
       </p>
     </div>
   );

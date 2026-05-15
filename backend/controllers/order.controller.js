@@ -26,6 +26,11 @@ const { sendEmail }           = require('../utils/emailService');
 const { generateInvoice }     = require('../utils/invoiceGenerator');
 const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
+const {
+  syncShipmentsToOrderStatus,
+  getOrderFulfillmentSnapshot,
+  notifyOrderStatusChange,
+} = require('../services/orderSync.service');
 const templates               = require('../utils/emailTemplates');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -550,13 +555,13 @@ const updateOrderStatus = async (req, res, next) => {
     if (tracking_number) order.tracking_number = tracking_number;
     await order.save({ session });
 
-    // ── SYNC: If cancelled, mark shipments as cancelled too ──
-    if (order_status === 'cancelled') {
-      const Shipment = require('../models/Shipment.model');
-      await Shipment.updateMany(
-        { order_id: order._id },
-        { $set: { status: 'cancelled' } }
-      ).session(session);
+    // ── SYNC: Align shipment tickets with order status everywhere ──
+    if (order_status) {
+      await syncShipmentsToOrderStatus(order, order_status, {
+        session,
+        updatedBy: req.user._id,
+        note: `Order status updated to ${order_status} by ${req.user.role}.`,
+      });
     }
 
     // ── NOTE: Fund release is handled either by logistics.controller (on delivery) 
@@ -580,7 +585,7 @@ const updateOrderStatus = async (req, res, next) => {
     sendNotification(req.app, order.customer_id, {
       title: customerEmailTemplate.subject,
       message: `Your Order #${order._id.toString().slice(-6).toUpperCase()} status is now ${order_status || 'updated'}.`,
-      type: 'order_status',
+      type: 'order_update',
       metadata: { order_id: order._id, link: `/orders/${order._id}` },
       sendEmail: true,
       emailTemplate: customerEmailTemplate,
@@ -589,7 +594,17 @@ const updateOrderStatus = async (req, res, next) => {
       orderDetails: order.toObject()
     });
 
-    res.status(200).json({ success: true, message: 'Order status updated.', data: { order } });
+    notifyOrderStatusChange(req.app, order, order_status, {
+      roles: ['vendor'],
+      vendorMessage: `Order #${order._id.toString().slice(-6).toUpperCase()} is now ${(order_status || 'updated').replace(/_/g, ' ')}.`,
+    });
+
+    const snapshot = await getOrderFulfillmentSnapshot(order._id);
+    res.status(200).json({
+      success: true,
+      message: 'Order status updated.',
+      data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+    });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -655,6 +670,12 @@ const approveRefund = async (req, res, next) => {
     order.order_status = 'refunded';
     order.payment_status = 'refunded';
     await order.save({ session });
+
+    await syncShipmentsToOrderStatus(order, 'refunded', {
+      session,
+      updatedBy: req.user._id,
+      note: 'Refund approved; shipments cancelled.',
+    });
 
     await session.commitTransaction();
     session.endSession();

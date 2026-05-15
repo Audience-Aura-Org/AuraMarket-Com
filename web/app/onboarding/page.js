@@ -80,16 +80,25 @@ export default function OnboardingFlow() {
   useEffect(() => {
     if (!user) return;
 
-    // Eject non-customer roles immediately
+    // Eject non-customer roles immediately (Admins and Logistics)
+    // Vendors only get ejected if they have already onboarded AND are not forcing onboarding
     const role = user.role?.toLowerCase();
-    if (role === 'admin' || role === 'vendor' || role === 'logistics') {
-      console.warn('[Onboarding] Non-customer detected, ejecting to dashboard:', role);
-      const dashboard = role === 'admin' ? '/admin/dashboard' : role === 'vendor' ? '/vendor/dashboard' : '/logistics/dashboard';
+    if (role === 'admin' || role === 'logistics') {
+      console.warn('[Onboarding] Professional role detected, ejecting to dashboard:', role);
+      const dashboard = role === 'admin' ? '/admin/dashboard' : '/logistics/dashboard';
       router.replace(dashboard);
       return;
     }
 
-    if (user.onboarded) {
+    if (role === 'vendor' && user.onboarded) {
+       // Optional: Add a check if they are explicitly here to "edit" or if they are lost
+       console.log('[Onboarding] Vendor already onboarded, allowing stay or redirecting to dashboard if appropriate');
+       // For now, let's keep the ejection but make it clear
+       // router.replace('/vendor/dashboard'); 
+       // return;
+    }
+
+    if (role === 'customer' && user.onboarded) {
       router.replace('/discovery');
       return;
     }

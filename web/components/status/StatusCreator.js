@@ -34,6 +34,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [products, setProducts]         = useState([]);
   const [searchTerm, setSearchTerm]     = useState('');
   const [loading, setLoading]           = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadPhase, setUploadPhase]   = useState('');
   const [error, setError]               = useState(null);
   const [expiryDays, setExpiryDays]     = useState(initialData?.expiry_days || 3);
   const [selectedCategory, setSelectedCategory] = useState(initialData?.category || null);
@@ -96,15 +98,21 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const handlePost = async () => {
     if (!selectedCategory) { setError('Please select a category.'); return; }
     setLoading(true);
+    setUploadProgress(0);
+    setUploadPhase('');
     setError(null);
     try {
       let finalUrl = previewUrl;
 
       // If resharing image/video and no new file was selected, reuse existing URL
       if (type !== 'text' && file) {
-        const uploadRes = await uploadService.uploadSingle(file, 'statuses');
-        if (!uploadRes.success) throw new Error('Media upload failed');
+        setUploadPhase(file.type.startsWith('video/') ? 'Uploading video…' : 'Uploading image…');
+        const uploadRes = await uploadService.uploadSingle(file, 'statuses', {
+          onProgress: (pct) => setUploadProgress(pct),
+        });
+        if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
         finalUrl = uploadRes.data.url;
+        setUploadPhase('Publishing story…');
       } else if (type !== 'text' && !isReshare && !previewUrl) {
         throw new Error('Please select a file to upload');
       }
@@ -129,9 +137,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         onClose();
       }
     } catch (err) {
-      setError(err.message || 'Failed to post story');
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Failed to post story';
+      setError(msg);
     } finally {
       setLoading(false);
+      setUploadProgress(0);
+      setUploadPhase('');
     }
   };
 
@@ -405,6 +420,21 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
               {/* Spacer push */}
               <div className="flex-1" />
+
+              {loading && uploadPhase && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[11px] font-semibold text-[var(--text-secondary)]">
+                    <span>{uploadPhase}</span>
+                    {uploadProgress > 0 && <span className="tabular-nums">{uploadProgress}%</span>}
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                    <div
+                      className="h-full bg-[var(--accent)] transition-all duration-300"
+                      style={{ width: `${Math.max(uploadProgress, uploadPhase ? 8 : 0)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Submit */}
               <button

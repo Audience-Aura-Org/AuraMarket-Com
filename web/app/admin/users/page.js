@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import PasswordInput from '@/components/common/PasswordInput';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
@@ -278,7 +279,13 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="space-y-2">
                     <p className="text-[10px] font-bold tracking-widest opacity-40 uppercase ml-1">Cipher Override</p>
-                    <input type="password" value={editForm.password} onChange={e=>setEditForm(f=>({...f,password:e.target.value}))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner" placeholder="••••••••" />
+                    <PasswordInput
+                      value={editForm.password}
+                      onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                      className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 pr-12 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner"
+                    />
                   </div>
                 </div>
 

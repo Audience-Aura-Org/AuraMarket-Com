@@ -31,7 +31,7 @@ const s3Client = new S3Client({
 const corsConfiguration = {
   CORSRules: [
     {
-      AllowedMethods: ['GET', 'HEAD'],
+      AllowedMethods: ['GET', 'HEAD', 'PUT'],
       AllowedOrigins: ['*'], // Allow all origins (stricter in production)
       AllowedHeaders: ['*'],
       ExposeHeaders: ['ETag', 'x-amz-server-side-encryption'],

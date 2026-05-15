@@ -51,6 +51,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const messagesEndRef = useRef(null);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const panelTouchRef = useRef(null);
   const [mobileLayout, setMobileLayout] = useState(false);
 
   useEffect(() => {
@@ -312,34 +313,74 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     onClose?.();
   };
 
+  const goBackOrClose = () => {
+    if (activePartnerId) {
+      setActivePartnerId(null);
+      setPartnerInfo(null);
+      setMessages([]);
+    } else {
+      dismissOverlay();
+    }
+  };
+
+  /** Reliable swipe-right / swipe-down dismiss (works alongside framer drag on header). */
+  const handlePanelTouchStart = (e) => {
+    if (!mobileLayout) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    panelTouchRef.current = {
+      x: t.clientX,
+      y: t.clientY,
+      t: Date.now(),
+      fromMessages: !!e.target.closest('[data-chat-messages]'),
+      fromComposer: !!e.target.closest('[data-chat-composer]'),
+    };
+  };
+
+  const handlePanelTouchEnd = (e) => {
+    if (!mobileLayout || !panelTouchRef.current) return;
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    const start = panelTouchRef.current;
+    panelTouchRef.current = null;
+
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const dt = Date.now() - start.t;
+    if (dt > 650) return;
+
+    const horizontal = Math.abs(dx) > Math.abs(dy) * 1.1;
+    const fromLeftEdge = start.x < 80;
+    const strongSwipeRight = dx > 72 || (dx > 48 && fromLeftEdge);
+
+    if (horizontal && strongSwipeRight) {
+      if (!start.fromComposer && (!start.fromMessages || dx > 90 || fromLeftEdge)) {
+        goBackOrClose();
+        return;
+      }
+    }
+
+    if (!horizontal && dy > 64 && dy > Math.abs(dx) && start.y < 120) {
+      goBackOrClose();
+    }
+  };
+
   const pullToClose = (info) => {
     if (info.offset.y > 48 || info.velocity.y > 420) {
-      if (activePartnerId) {
-        setActivePartnerId(null);
-        setPartnerInfo(null);
-        setMessages([]);
-      } else {
-        dismissOverlay();
-      }
+      goBackOrClose();
     }
   };
 
   const headerSwipeProps =
-    !fullPage && mobileLayout
+    mobileLayout
       ? {
           drag: 'x',
           dragConstraints: { left: 0, right: 0 },
-          dragElastic: { left: 0, right: 0.42 },
-          dragDirectionLock: true,
-          onDragEnd: (e, info) => {
-            if (info.offset.x > 56 || info.velocity.x > 520) {
-              if (activePartnerId) {
-                setActivePartnerId(null);
-                setPartnerInfo(null);
-                setMessages([]);
-              } else {
-                dismissOverlay();
-              }
+          dragElastic: { left: 0, right: 0.5 },
+          dragMomentum: false,
+          onDragEnd: (_e, info) => {
+            if (info.offset.x > 40 || info.velocity.x > 380) {
+              goBackOrClose();
             }
           },
         }
@@ -347,6 +388,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   return (
     <motion.div
+      onTouchStart={handlePanelTouchStart}
+      onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
         ? {
             initial: { opacity: 0, y: 18 },
@@ -367,8 +410,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             ].join(' ')
       }
     >
-      {/* Mobile: pull handle + swipe-right on header to close / go back */}
-      {!fullPage && (
+      {/* Mobile: pull handle — swipe down to close / go back */}
+      {mobileLayout && (
         <div className="flex shrink-0 flex-col items-center border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] md:hidden">
           <motion.div
             role="presentation"
@@ -376,7 +419,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.35 }}
-            onDragEnd={(e, info) => pullToClose(info)}
+            onDragEnd={(_e, info) => pullToClose(info)}
             className="flex w-full cursor-grab touch-none justify-center py-2 active:cursor-grabbing"
           >
             <span className="h-1 w-10 rounded-full bg-black/20" />
@@ -395,8 +438,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
             className="relative z-30 shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
+            data-chat-header
           >
-            <motion.div {...headerSwipeProps} className="block w-full">
+            <motion.div {...headerSwipeProps} className="block w-full touch-pan-y">
             <div className="flex items-center gap-1.5 px-2 py-1.5 max-md:gap-2 max-md:py-2 sm:gap-3 sm:px-3 sm:py-2.5">
               <button
                 type="button"
@@ -468,8 +512,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
             className="relative z-30 shrink-0"
+            data-chat-header
           >
-            <motion.div {...headerSwipeProps} className="bg-[var(--nav-bg)] px-3 pb-2.5 pt-2.5 max-md:pb-2 max-md:pt-2 sm:px-4 sm:pb-4 sm:pt-4">
+            <motion.div {...headerSwipeProps} className="bg-[var(--nav-bg)] px-3 pb-2.5 pt-2.5 max-md:pb-2 max-md:pt-2 sm:px-4 sm:pb-4 sm:pt-4 touch-pan-y">
               <div className="flex items-center justify-between gap-2 sm:gap-3">
                 <div className="min-w-0">
                   <h2 className="text-[17px] font-semibold tracking-tight text-[var(--nav-text)] max-md:text-[16px] sm:text-[20px]">Chats</h2>
@@ -593,6 +638,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
+        data-chat-messages
         className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain"
       >
           <div className="space-y-0.5 p-2 pb-3 pt-1.5 max-md:space-y-px sm:space-y-1 sm:p-4">
@@ -678,7 +724,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
              </div>
 
-      <div className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
+      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
                 {messages.length < 5 && !input && (
                   <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3">
                     {QUICK_REPLIES.map(q => (

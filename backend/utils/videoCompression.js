@@ -23,14 +23,40 @@ const execAsync = promisify(exec);
  * Target: 1.5 Mbps bitrate, H.264 codec, AAC audio
  * Result: ~5-10MB for typical 30-60s video
  */
+/** Status stories — prioritize speed: 720p cap, ultrafast preset */
+const compressVideoForStatus = async (inputPath, outputPath) => {
+  return new Promise((resolve, reject) => {
+    const command = `ffmpeg -i "${inputPath}" \
+      -vf "scale='min(720,iw)':-2" \
+      -vcodec libx264 \
+      -preset ultrafast \
+      -b:v 1200k \
+      -maxrate 1500k \
+      -bufsize 3000k \
+      -acodec aac \
+      -b:a 96k \
+      -movflags +faststart \
+      -y \
+      "${outputPath}"`;
+
+    exec(command, { timeout: 120000 }, (error) => {
+      if (error) {
+        reject(new Error(`Status video compression failed: ${error.message}`));
+        return;
+      }
+      const stats = fs.statSync(outputPath);
+      resolve({
+        success: true,
+        path: outputPath,
+        size: stats.size,
+        sizeMB: parseFloat((stats.size / 1024 / 1024).toFixed(2)),
+      });
+    });
+  });
+};
+
 const compressVideo = async (inputPath, outputPath) => {
   return new Promise((resolve, reject) => {
-    // Video codec: H.264 (widely supported)
-    // Bitrate: 1.5M (balance quality + speed)
-    // Audio: AAC 128k (standard)
-    // Format: MP4 (universal support)
-    // movflags faststart: Enable streaming (metadata at start)
-    
     const command = `ffmpeg -i "${inputPath}" \
       -vcodec libx264 \
       -preset faster \
@@ -125,6 +151,7 @@ const generateThumbnail = async (videoPath, outputPath) => {
 
 module.exports = {
   compressVideo,
+  compressVideoForStatus,
   checkVideoQuality,
   generateThumbnail,
 };

@@ -61,11 +61,13 @@ router.use('/wishlist', wishlistRoutes);
 router.use('/qa', qaRoutes);
 router.use('/legal', legalRoutes);
 router.use('/categories', publicLimiter, categoryRoutes);
+router.use('/category', categoryRoutes);
 router.use('/homepage', homepageRoutes);
 router.use('/discovery', publicLimiter, discoveryRoutes);
 router.use('/track', trackingRoutes);
 router.use('/push', pushRoutes);
 router.use('/statuses', statusRoutes);
+router.use('/status', statusRoutes);
 router.use('/withdrawals', withdrawalRoutes);
 // Dev/debug routes (safe to mount locally)
 router.use('/debug', debugRoutes);

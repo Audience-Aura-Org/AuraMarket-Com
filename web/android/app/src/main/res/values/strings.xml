@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AuraMarket</string>
+    <string name="title_activity_main">AuraMarket</string>
+    <string name="package_name">com.auramarket.app</string>
+    <string name="custom_url_scheme">com.auramarket.app</string>
+</resources>

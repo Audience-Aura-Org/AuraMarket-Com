@@ -11,6 +11,7 @@ const Escrow = require('../models/Escrow.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
+const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 
 // @route   POST /api/disputes
 // @desc    Customer raises a dispute for an order
@@ -46,6 +47,10 @@ const createDispute = async (req, res, next) => {
     // Update Order Status
     order.order_status = 'refund_pending';
     await order.save();
+
+    notifyOrderStatusChange(req.app, order, 'refund_pending', {
+      message: `A dispute has been opened for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+    });
 
     // Notify Vendor
     const vendor = await Vendor.findById(order.vendor_id);
@@ -140,6 +145,12 @@ const resolveDispute = async (req, res, next) => {
         await escrow.save({ session });
       }
 
+      await syncShipmentsToOrderStatus(order, 'refunded', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Dispute resolved: full refund.',
+      });
+
     } else if (resolution_type === 'release_payment') {
       // Release funds to vendor from escrow
       order.order_status = 'completed';
@@ -174,6 +185,12 @@ const resolveDispute = async (req, res, next) => {
         escrow.release_date = new Date();
         await escrow.save({ session });
       }
+
+      await syncShipmentsToOrderStatus(order, 'completed', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Dispute resolved: payment released to vendor.',
+      });
     }
 
     const { logAction } = require('./audit.controller');
@@ -195,6 +212,10 @@ const resolveDispute = async (req, res, next) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    notifyOrderStatusChange(req.app, order, order.order_status, {
+      message: `Dispute resolved: ${resolution_type.replace(/_/g, ' ')}.`,
+    });
 
     res.status(200).json({
       success: true,

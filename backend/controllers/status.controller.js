@@ -8,7 +8,7 @@ const Notification = require('../models/Notification.model');
 // @access  Private (Vendor only)
 exports.createStatus = async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ user_id: req.user.id });
+    const vendor = await Vendor.findOne({ user_id: req.user._id || req.user.id });
     if (!vendor) {
       return res.status(403).json({ success: false, message: 'Only vendors can post statuses' });
     }
@@ -55,7 +55,7 @@ exports.getActiveStatuses = async (req, res) => {
       if (!req.user) {
         return res.status(200).json({ success: true, count: 0, data: [] });
       }
-      const followed = await Follow.find({ user_id: req.user.id }).select('vendor_id').lean();
+      const followed = await Follow.find({ user_id: req.user._id || req.user.id }).select('vendor_id').lean();
       query.vendor_id = { $in: followed.map(f => f.vendor_id) };
     }
 
@@ -97,10 +97,11 @@ exports.reactToStatus = async (req, res) => {
     if (!status) return res.status(404).json({ success: false, message: 'Status not found' });
 
     // Check if already reacted
-    const index = status.reactions.findIndex(r => r.user_id.toString() === req.user.id);
+    const userId = req.user._id || req.user.id;
+    const index = status.reactions.findIndex(r => r.user_id.toString() === userId.toString());
     
     if (index === -1) {
-      status.reactions.push({ user_id: req.user.id });
+      status.reactions.push({ user_id: userId });
       
       // Notify Vendor (once per reaction)
       const vendor = await Vendor.findById(status.vendor_id);
@@ -141,7 +142,7 @@ exports.viewStatus = async (req, res) => {
   try {
     const update = { $inc: { views_count: 1 } };
     if (req.user) {
-      update.$addToSet = { viewer_ids: req.user.id };
+      update.$addToSet = { viewer_ids: req.user._id || req.user.id };
     }
 
     // Respond immediately — don't block on socket/vendor lookup
@@ -172,7 +173,7 @@ exports.viewStatus = async (req, res) => {
 // @access  Private (Vendor)
 exports.getMyStatuses = async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ user_id: req.user.id });
+    const vendor = await Vendor.findOne({ user_id: req.user._id || req.user.id });
     if (!vendor) return res.status(403).json({ success: false, message: 'Vendor profile required' });
 
     const statuses = await Status.find({ vendor_id: vendor._id })
@@ -193,7 +194,7 @@ exports.getMyStatuses = async (req, res) => {
 // @access  Private (Vendor Owner)
 exports.deleteStatus = async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ user_id: req.user.id });
+    const vendor = await Vendor.findOne({ user_id: req.user._id || req.user.id });
     const status = await Status.findById(req.params.id);
 
     if (!status) return res.status(404).json({ success: false, message: 'Status not found' });

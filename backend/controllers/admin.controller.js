@@ -21,6 +21,7 @@ const Transaction = require('../models/Transaction.model');
 const EmailLog = require('../models/EmailLog.model');
 const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('../services/logistics.service');
+const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const templates = require('../utils/emailTemplates');
 
 // ─────────────────────────────────────────────
@@ -285,6 +286,17 @@ const updateOrderAdmin = async (req, res, next) => {
     if (shipping_method) order.shipping_method = shipping_method;
     if (typeof logistics_company_id !== 'undefined') order.logistics_company_id = logistics_company_id || null;
     await order.save();
+
+    if (order_status) {
+      await syncShipmentsToOrderStatus(order, order_status, {
+        updatedBy: req.user._id,
+        note: `Admin updated order status to ${order_status}.`,
+      });
+      notifyOrderStatusChange(req.app, order, order_status, {
+        message: `An admin updated Order #${order._id.toString().slice(-6).toUpperCase()} to ${order_status.replace(/_/g, ' ')}.`,
+      });
+    }
+
     if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
       let shipment = await Shipment.findOne({ order_id: order._id });
       if (!shipment) {

@@ -14,6 +14,11 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const Shipment = require('../models/Shipment.model');
 const logisticsService = require('../services/logistics.service');
+const {
+  syncShipmentsToOrderStatus,
+  getOrderFulfillmentSnapshot,
+  notifyOrderStatusChange,
+} = require('../services/orderSync.service');
 const Cart = require('../models/Cart.model');
 const { sendNotification } = require('../utils/notifier');
 const crypto = require('crypto');
@@ -189,21 +194,11 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   order.order_status = 'completed';
   await order.save({ session });
 
-  // ── SYNC SHIPMENT STATUS: If customer confirms, logistics node must be updated ──
-  await Shipment.updateMany(
-    { order_id: order._id, status: { $ne: 'delivered' } },
-    { 
-      $set: { status: 'delivered' },
-      $push: {
-        shipment_logs: {
-          status: 'delivered',
-          updated_by: req.user._id,
-          timestamp: new Date(),
-          note: 'Delivery confirmed by customer via Escrow Handshake. Shipment closed.'
-        }
-      }
-    }
-  ).session(session);
+  await syncShipmentsToOrderStatus(order, 'completed', {
+    session,
+    updatedBy: req.user._id,
+    note: 'Delivery confirmed by customer via Escrow Handshake. Shipment closed.',
+  });
 
   // ── FALLBACK: Credit logistics fee if not already settled by logistics controller ──
   // (Covers edge case where logistics controller didn't fire or escrow.logistics_settled wasn't set)
@@ -282,10 +277,23 @@ const releaseFunds = async (req, res, next) => {
       } else {
         order.order_status = 'completed';
         await order.save({ session });
+        await syncShipmentsToOrderStatus(order, 'completed', {
+          session,
+          updatedBy: req.user._id,
+          note: 'Admin override: order completed.',
+        });
       }
       await session.commitTransaction();
       session.endSession();
-      return res.status(200).json({ success: true, message: 'Admin override: Protocol finalized.' });
+      notifyOrderStatusChange(req.app, order, 'completed', {
+        message: 'An admin finalized this order.',
+      });
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Admin override: Protocol finalized.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
     }
 
     // ── CASE: Non-Escrow Order ──────────────────────────────────────────────
@@ -295,9 +303,20 @@ const releaseFunds = async (req, res, next) => {
       }
       order.order_status = 'completed';
       await order.save({ session });
+      await syncShipmentsToOrderStatus(order, 'completed', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Customer confirmed receipt (non-escrow).',
+      });
       await session.commitTransaction();
       session.endSession();
-      return res.status(200).json({ success: true, message: 'Order marked as completed.' });
+      notifyOrderStatusChange(req.app, order, 'completed');
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Order marked as completed.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
     }
 
     if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
@@ -309,13 +328,21 @@ const releaseFunds = async (req, res, next) => {
 
     escrow.customer_confirmed = true;
     await finalizeEscrowPayout(escrow, order, req, session);
-    
+
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Escrow released successfully. Funds are now available in the vendor node.' 
+    notifyOrderStatusChange(req.app, order, 'completed', {
+      message: 'Your order is complete and funds have been released to the vendor.',
+      vendorMessage: `Customer confirmed receipt. Funds released for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+    });
+
+    const snapshot = await getOrderFulfillmentSnapshot(orderId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Escrow released successfully. Funds are now available in the vendor node.',
+      data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
     });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
@@ -360,8 +387,15 @@ const vendorConfirmRelease = async (req, res, next) => {
     if (!escrow) {
       order.order_status = 'delivered';
       await order.save({ session });
+      await syncShipmentsToOrderStatus(order, 'delivered', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Vendor marked order as delivered.',
+      });
       await session.commitTransaction();
       session.endSession();
+
+      notifyOrderStatusChange(req.app, order, 'delivered');
 
       // Notify Customer
       sendNotification(req.app, order.customer_id, {
@@ -380,12 +414,22 @@ const vendorConfirmRelease = async (req, res, next) => {
     // ── CASE: Escrow Confirmation ───────────────────────────────────────────
     escrow.vendor_confirmed = true;
     order.order_status = 'delivered';
-    
+
     await escrow.save({ session });
     await order.save({ session });
-    
+
+    await syncShipmentsToOrderStatus(order, 'delivered', {
+      session,
+      updatedBy: req.user._id,
+      note: 'Vendor marked order as delivered. Awaiting customer confirmation.',
+    });
+
     await session.commitTransaction();
     session.endSession();
+
+    notifyOrderStatusChange(req.app, order, 'delivered', {
+      message: `The vendor marked Order #${order._id.toString().slice(-6).toUpperCase()} as delivered. Please confirm receipt.`,
+    });
 
     // Notify Customer to prompt them for the final release click
     sendNotification(req.app, escrow.buyer_id, {
@@ -459,8 +503,18 @@ const refundFunds = async (req, res, next) => {
     order.order_status = 'cancelled';
     await order.save({ session });
 
+    await syncShipmentsToOrderStatus(order, 'cancelled', {
+      session,
+      updatedBy: req.user._id,
+      note: 'Escrow refunded; shipments cancelled.',
+    });
+
     await session.commitTransaction();
     session.endSession();
+
+    notifyOrderStatusChange(req.app, order, 'cancelled', {
+      message: `Order #${order._id.toString().slice(-6).toUpperCase()} was cancelled and refunded.`,
+    });
 
     res.status(200).json({
       success: true,

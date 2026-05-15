@@ -21,11 +21,13 @@ const Follow = require('../models/Follow.model');
 // @access  Private (Role: vendor)
 // ─────────────────────────────────────────────
 const onboardVendor = async (req, res, next) => {
+  console.log(`🚀 [ONBOARD] Starting onboarding for user: ${req.user?._id} (${req.user?.role})`);
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const { store_name, description, categories, phone, location } = req.body;
+    console.log(`📦 [ONBOARD] Payload:`, { store_name, phone, location_city: location?.city });
 
     // 1. Check if vendor profile already exists for this user (WITHIN SESSION)
     let vendor = await Vendor.findOne({ user_id: req.user._id }).session(session);
@@ -102,6 +104,8 @@ const onboardVendor = async (req, res, next) => {
     const User = require('../models/User.model');
     const brandingUpdates = {};
     if (store_name) brandingUpdates['branding.store_name'] = store_name; // and more if needed
+    
+    console.log(`✅ [ONBOARD] Successfully synchronized vendor/store for user: ${req.user._id}`);
     
     await User.findByIdAndUpdate(req.user._id, { 
       onboarded: true,

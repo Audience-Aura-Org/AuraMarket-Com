@@ -11,24 +11,42 @@ import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
 
 const STORY_DURATION = 5000;
-const VIDEO_PRELOAD_AHEAD = 4;
-const VIDEO_WAIT_TIMEOUT_MS = 8000;
+const VIDEO_PRELOAD_AHEAD = 6;
+const VIDEO_WAIT_TIMEOUT_MS = 6000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
 const videoPreloadMap = new Map();
-function preloadMedia(url, type) {
+function preloadMedia(url, type, { eager = false } = {}) {
   if (!url || preloadCache.has(url)) return;
   preloadCache.add(url);
   if (type === 'video') {
+    const existing = videoPreloadMap.get(url);
+    if (existing) {
+      if (eager && existing.preload !== 'auto') {
+        existing.preload = 'auto';
+        existing.load();
+      }
+      return;
+    }
     const v = document.createElement('video');
-    v.preload = 'metadata';
+    v.preload = eager ? 'auto' : 'metadata';
     v.src = url;
     v.muted = true;
+    v.playsInline = true;
     v.load();
     videoPreloadMap.set(url, v);
+
+    if (eager && typeof document !== 'undefined') {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'video';
+      link.href = url;
+      document.head.appendChild(link);
+    }
   } else {
     const img = new Image();
+    img.fetchPriority = eager ? 'high' : 'auto';
     img.src = url;
   }
 }
@@ -114,7 +132,9 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
 
     let cancelled = false;
     const probe = document.createElement('video');
-    probe.setAttribute('crossOrigin', 'anonymous');
+    if (src?.includes('res.cloudinary.com')) {
+      probe.setAttribute('crossOrigin', 'anonymous');
+    }
     probe.muted   = true;
     probe.preload = 'metadata';
     probe.src     = src;
@@ -248,8 +268,8 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         playsInline
         webkit-playsinline="true"
         muted={true}
-        crossOrigin="anonymous"
         preload="auto"
+        {...(playbackSrc?.includes('res.cloudinary.com') ? { crossOrigin: 'anonymous' } : {})}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlay={handleReady}
         onPlaying={handleReady}
@@ -410,7 +430,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
       const nextStory = initialStatuses[i];
       if (!nextStory) break;
-      preloadMedia(nextStory.content_url, nextStory.type);
+      const eager = i <= globalIdx + 2;
+      preloadMedia(nextStory.content_url, nextStory.type, { eager });
       if (nextStory.type === 'video') keepVideoUrls.push(nextStory.content_url);
     }
 
@@ -436,7 +457,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     transitionUnlockRef.current = setTimeout(() => {
       transitionLockRef.current = false;
       transitionUnlockRef.current = null;
-    }, 220);
+    }, 140);
   }, []);
 
   const goNext = useCallback(() => {
@@ -524,10 +545,18 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     if (isReplying) return;
     clearTimeout(holdTimer.current);
     const duration = Date.now() - touchStart.current.t;
-    const distY    = e.clientY - touchStart.current.y;
+    const distY = e.clientY - touchStart.current.y;
+    const distX = e.clientX - touchStart.current.x;
     if (paused) { setPaused(false); return; }
-    if (distY > 120 && duration < 400) { onClose(); return; }
-  }, [isReplying, paused, onClose]);
+    if (distY > 100 && duration < 450 && Math.abs(distY) > Math.abs(distX)) {
+      onClose();
+      return;
+    }
+    if (duration < 400 && Math.abs(distX) > 56 && Math.abs(distX) > Math.abs(distY) * 1.15) {
+      if (distX < 0) goNext();
+      else goPrev();
+    }
+  }, [isReplying, paused, onClose, goNext, goPrev]);
 
   if (!story) return null;
 
@@ -562,13 +591,13 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               onProgress={handleVideoProgress}
             />
           ) : story.type === 'image' ? (
-            <BlurUpImage
+            <img
               key={story._id}
               src={story.content_url}
               alt=""
-              priority="high"
-              className="absolute inset-0 w-full h-full"
-              objectFit="cover"
+              fetchPriority="high"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           ) : (
             <div

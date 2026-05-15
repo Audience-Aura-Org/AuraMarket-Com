@@ -75,17 +75,23 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   useEffect(() => {
     if (!orderId || !user?._id) return;
-    const handleUpdate = (notif) => {
-      if (notif.metadata?.order_id?.toString() === orderId.toString()) {
+    const handleUpdate = (payload) => {
+      const metaOrderId = payload?.metadata?.order_id?.toString();
+      if (metaOrderId && metaOrderId === orderId.toString()) {
         fetchOrderManifest();
-        toast.success(`Logistics update: ${notif.title || 'Manifest synced'}`, {
+        const label = payload?.title || 'Order updated';
+        toast.success(label, {
           icon: '⚡',
           style: { borderRadius: '12px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--accent)', fontSize: '11px', fontWeight: 'bold' }
         });
       }
     };
     socketService.on('notification', handleUpdate);
-    return () => socketService.off('notification', handleUpdate);
+    socketService.on('order_update', handleUpdate);
+    return () => {
+      socketService.off('notification', handleUpdate);
+      socketService.off('order_update', handleUpdate);
+    };
   }, [orderId, user?._id]);
 
   const handleRaiseDispute = async (e) => {
@@ -105,13 +111,26 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
   };
 
+  const applyManifestPayload = (data) => {
+    if (!data) return;
+    if (data.order) setOrder(data.order);
+    if (data.shipments) setShipments(data.shipments);
+    if (data.escrow !== undefined) setEscrow(data.escrow);
+  };
+
   const handleConfirmDelivery = async () => {
     if (!confirm("Confirm asset arrival? This releases escrowed funds to the vendor node.")) return;
     try {
       const res = await api.post(`/escrow/release/${orderId}`);
       if (res.data.success) {
         toast.success("Funds released. Order finalized.");
-        fetchOrderManifest();
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
+        // Prompt for review if there are products
+        if (order.products?.length > 0) {
+          setReviewData({ ...reviewData, product_id: order.products[0].product_id?._id || order.products[0].product_id });
+          setReviewModal(true);
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Release vector blocked.");
@@ -124,7 +143,8 @@ export default function SingleOrderView({ orderId, onBack }) {
       const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
       if (res.data.success) {
         toast.success(`Protocol updated: ${newStatus.toUpperCase()}`, { id: toastId });
-        fetchOrderManifest();
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Protocol update failed.", { id: toastId });
@@ -138,7 +158,8 @@ export default function SingleOrderView({ orderId, onBack }) {
       const res = await api.post(`/escrow/confirm-delivery/${orderId}`);
       if (res.data.success) {
         toast.success("Delivery confirmed. Awaiting customer release.", { id: toastId });
-        fetchOrderManifest();
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Delivery confirmation failed.", { id: toastId });
@@ -406,6 +427,28 @@ export default function SingleOrderView({ orderId, onBack }) {
                 <Truck className="size-4" /> {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
               </button>
             )}
+            {/* CUSTOMER ACTION: Confirm Receipt (Escrow Release) */}
+            {!isVendor && order.order_status !== 'completed' && (order.order_status === 'shipped' || order.order_status === 'delivered') && (
+              <button
+                type="button"
+                onClick={handleConfirmDelivery}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-emerald-500/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+              >
+                <CheckCircle2 className="size-4" /> Confirm receipt
+              </button>
+            )}
+
+            {/* VENDOR ACTION: Mark Delivered (For self-managed/non-logistics shipments) */}
+            {isVendor && order.order_status === 'shipped' && !isLogisticsOrder && (
+              <button
+                type="button"
+                onClick={handleVendorConfirmDelivery}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+              >
+                <Package className="size-4" /> Mark as delivered
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setDisputeModal(true)}

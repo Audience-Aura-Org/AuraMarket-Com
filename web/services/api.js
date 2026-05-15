@@ -3,9 +3,11 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isLocal = window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.hostname === '10.0.2.2';
     if (isLocal) {
-       return process.env.NEXT_PUBLIC_API_URL || `http://localhost:5000/api/v1`;
+       return process.env.NEXT_PUBLIC_API_URL || `http://10.0.2.2:5000/api/v1`;
     }
     
     // In production (Vercel), ALWAYS use the Next.js Bridge (/api/v1).
@@ -28,7 +30,9 @@ const api = axios.create({
 // Correctly derive origin for asset normalization
 const getApiOrigin = () => {
   if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isLocal = window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.hostname === '10.0.2.2';
     if (!isLocal) return window.location.origin;
   }
   return getBaseURL().replace(/\/api\/v1\/?$/, '');

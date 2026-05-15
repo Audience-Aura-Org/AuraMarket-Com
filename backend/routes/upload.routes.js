@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const { protect } = require('../middleware/auth.middleware');
-const { uploadSingle, uploadMultiple } = require('../controllers/upload.controller');
+const { uploadSingle, uploadMultiple, presignUpload } = require('../controllers/upload.controller');
 
 const router = express.Router();
 
@@ -31,10 +31,26 @@ const upload = multer({
 
 router.use(protect); // Ensure all uploads are authenticated
 
+// @route   POST /api/upload/presign — JSON body; returns S3 PUT URL (no file through API)
+router.post('/presign', presignUpload);
+
+// Accept image | file | video field names (status creator compatibility)
+const pickUploadFile = (req, res, next) => {
+  req.file = req.files?.image?.[0] || req.files?.file?.[0] || req.files?.video?.[0] || null;
+  next();
+};
+
 // @route   POST /api/upload/single
-// @desc    Upload a single file to S3 (or Cloudinary/Local fallback)
-// @access  Private
-router.post('/single', upload.single('image'), uploadSingle);
+router.post(
+  '/single',
+  upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'file', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
+  ]),
+  pickUploadFile,
+  uploadSingle
+);
 
 // @route   POST /api/upload/multiple
 // @desc    Upload multiple files to S3 (limit 5)

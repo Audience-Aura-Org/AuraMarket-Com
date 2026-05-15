@@ -144,8 +144,8 @@ export default function BottomNav() {
 
             const itemContent = (
               <>
-                  <Icon className={`size-[18px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
-                  <span className={`text-[9px] font-medium tracking-wide mt-1.5 ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{item.label}</span>
+                  <Icon className={`size-[20px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
+                  <span className={`text-[11px] font-medium tracking-wide mt-1.5 ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{item.label}</span>
               </>
             );
 

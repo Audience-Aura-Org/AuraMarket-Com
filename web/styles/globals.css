@@ -61,6 +61,46 @@ html {
   touch-action: pan-y;
 }
 
+/* Desktop readability — 16px base with fixed 0.7 zoom */
+@media (min-width: 1024px) {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    line-height: 1.45;
+    font-weight: 400;
+  }
+
+  /* Fixed px micro-type stays tiny at 0.7 zoom — lift to readable minimums */
+  :where([class*="text-[10px]"]) {
+    font-size: 0.75rem !important;
+    line-height: 1.35;
+  }
+  :where([class*="text-[11px]"]) {
+    font-size: 0.8125rem !important;
+    line-height: 1.4;
+  }
+  :where([class*="text-[12px]"]) {
+    font-size: 0.875rem !important;
+    line-height: 1.45;
+  }
+  .text-xs {
+    font-size: 0.8125rem !important;
+    line-height: 1.45;
+  }
+  .text-sm {
+    font-size: 0.9375rem !important;
+    line-height: 1.5;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 16px;
+  }
+}
+
 body {
   font-family: var(--font-display);
   background-color: var(--bg-secondary);
@@ -99,14 +139,23 @@ i, em { font-style: normal !important; }
 }
 
 @layer utilities {
-  .text-fluid-xs { font-size: clamp(0.6rem, 2vw, 0.75rem); }
-  .text-fluid-sm { font-size: clamp(0.8rem, 2.5vw, 0.875rem); }
-  .text-fluid-base { font-size: clamp(0.9rem, 3vw, 1rem); }
-  .text-fluid-lg { font-size: clamp(1rem, 4vw, 1.125rem); }
-  .text-fluid-xl { font-size: clamp(1.25rem, 5vw, 1.5rem); }
-  .text-fluid-2xl { font-size: clamp(1.5rem, 6vw, 1.875rem); }
-  .p-fluid { padding: clamp(1rem, 5vw, 2.5rem); }
-  .gap-fluid { gap: clamp(0.5rem, 3vw, 1.5rem); }
+  .text-fluid-xs { font-size: clamp(0.6rem, 1vw, 0.8rem); }
+  .text-fluid-sm { font-size: clamp(0.8rem, 1.5vw, 0.95rem); }
+  .text-fluid-base { font-size: clamp(0.9rem, 2vw, 1.1rem); }
+  .text-fluid-lg { font-size: clamp(1rem, 2.5vw, 1.3rem); }
+  .text-fluid-xl { font-size: clamp(1.25rem, 3.5vw, 1.8rem); }
+  .text-fluid-2xl { font-size: clamp(1.5rem, 5vw, 2.4rem); }
+
+  @media (min-width: 1024px) {
+    .text-fluid-xs { font-size: clamp(0.75rem, 0.8vw, 0.9rem); }
+    .text-fluid-sm { font-size: clamp(0.875rem, 1.2vw, 1.05rem); }
+    .text-fluid-base { font-size: clamp(1rem, 1.6vw, 1.2rem); }
+    .text-fluid-lg { font-size: clamp(1.125rem, 2vw, 1.4rem); }
+    .text-fluid-xl { font-size: clamp(1.35rem, 2.8vw, 1.95rem); }
+    .text-fluid-2xl { font-size: clamp(1.65rem, 4vw, 2.6rem); }
+  }
+  .p-fluid { padding: clamp(1rem, 5vw, 3rem); }
+  .gap-fluid { gap: clamp(0.5rem, 3vw, 2rem); }
 }
 
 .glass-panel {
