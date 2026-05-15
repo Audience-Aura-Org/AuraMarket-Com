@@ -275,8 +275,8 @@ export default function OnboardingFlow() {
       <div className={`fixed top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 pointer-events-none opacity-30 transition-all duration-700 ${colors.bg}`} />
 
       {/* Header / Step Progress */}
-      <header className="shrink-0 sticky top-0 z-20 px-6 py-6">
-        <div className="max-w-[95%] mx-auto flex items-center justify-between bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[2.5rem] px-6 py-3 shadow-2xl">
+      <header className="shrink-0 sticky top-0 z-20 px-4 py-4 md:px-6 md:py-6">
+        <div className="max-w-2xl mx-auto flex items-center justify-between bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[2rem] px-5 py-2.5 shadow-2xl">
           {/* Back / Logo */}
           <div className="flex items-center gap-4">
             {step > 0 ? (
@@ -321,10 +321,10 @@ export default function OnboardingFlow() {
       </header>
 
       {/* Step Title */}
-      <div className="shrink-0 pt-8 pb-6 px-6">
-        <div className="max-w-[95%] mx-auto">
-          <div className="flex items-center gap-4">
-            <div className={`size-14 rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
+      <div className="shrink-0 pt-6 pb-4 px-4 md:pt-8 md:pb-6 md:px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className={`size-12 md:size-14 rounded-xl md:rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
               {currentStepMeta && <currentStepMeta.icon className={`size-6 ${colors.text}`} />}
             </div>
             <div>
@@ -335,7 +335,7 @@ export default function OnboardingFlow() {
         </div>
       </div>
 
-      <div className="px-6 py-4 space-y-8 pb-32">
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-6 md:px-6 md:py-4 md:space-y-8 pb-32">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4">
@@ -346,7 +346,7 @@ export default function OnboardingFlow() {
                   placeholder="Filter categories..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-5 py-3.5 text-sm outline-none focus:border-[var(--accent)]/60 transition-all"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
                 />
               </div>
 
@@ -365,10 +365,10 @@ export default function OnboardingFlow() {
                     <button
                       key={cat._id}
                       onClick={() => setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id])}
-                      className={`relative flex items-center justify-between gap-4 p-4 rounded-[1.5rem] border transition-all group ${sel ? 'bg-rose-500/5 border-rose-500/30 shadow-md' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-rose-500/30'}`}
+                      className={`relative flex items-center justify-between gap-3 p-3 rounded-[1.2rem] border transition-all group ${sel ? 'bg-rose-500/5 border-rose-500/30 shadow-md' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-rose-500/30'}`}
                     >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className={`size-12 rounded-2xl flex items-center justify-center shrink-0 border border-[var(--glass-border)] ${sel ? 'bg-rose-500/10 text-rose-500' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40'}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`size-10 rounded-lg flex items-center justify-center shrink-0 border border-[var(--glass-border)] ${sel ? 'bg-rose-500/10 text-rose-500' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-40'}`}>
                           <LayoutGrid className="size-5" />
                         </div>
                         <div className="flex flex-col text-left min-w-0">
@@ -494,7 +494,7 @@ export default function OnboardingFlow() {
                    placeholder="Search vendors..."
                    value={search}
                    onChange={e => setSearch(e.target.value)}
-                   className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-5 py-3.5 text-sm outline-none focus:border-[var(--accent)]/60 transition-all"
+                   className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
                  />
                </div>
 
@@ -519,11 +519,11 @@ export default function OnboardingFlow() {
                    return (
                      <div 
                         key={v._id} 
-                        className={`group flex items-center justify-between gap-4 p-4 rounded-[1.5rem] border transition-all cursor-pointer ${isFollowing ? 'bg-blue-500/5 border-blue-500/30 shadow-md' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30'}`}
+                        className={`group flex items-center justify-between gap-3 p-3 rounded-[1.2rem] border transition-all cursor-pointer ${isFollowing ? 'bg-blue-500/5 border-blue-500/30 shadow-md' : 'bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30'}`}
                         onClick={() => !isSyncing && handleToggleFollow(v._id)}
                      >
-                       <div className="flex items-center gap-4 min-w-0">
-                         <div className="size-12 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-inner">
+                       <div className="flex items-center gap-3 min-w-0">
+                         <div className="size-10 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shrink-0 shadow-inner">
                            {v.user_id?.branding?.logo || v.user_id?.avatar
                              ? <img src={v.user_id?.branding?.logo || v.user_id?.avatar} className="size-full object-cover" alt="" />
                              : <div className="size-full flex items-center justify-center text-[var(--accent)]  font-bold text-lg">{v.store_name?.[0]}</div>
@@ -659,9 +659,9 @@ export default function OnboardingFlow() {
                 <button
                   onClick={finish}
                   disabled={loading}
-                  className="w-full py-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-bold text-sm tracking-tight shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full py-3.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-bold text-sm tracking-tight shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="size-4 animate-spin" /> : 'Enter the Marketplace'}
+                  {loading ? <Loader2 className="size-3.5 animate-spin" /> : 'Enter the Marketplace'}
                 </button>
               </div>
             </div>
@@ -675,11 +675,11 @@ export default function OnboardingFlow() {
             {/* Primary Action Button */}
             <button
               onClick={goNext}
-              className="w-full py-4 rounded-2xl  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
+              className="w-full py-3.5 rounded-xl font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
               style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
             >
               {step === 2 ? 'Final Review' : 'Continue'}
-              <ArrowRight className="size-4" />
+              <ArrowRight className="size-3.5" />
             </button>
           </div>
         </div>

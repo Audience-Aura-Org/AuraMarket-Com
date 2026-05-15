@@ -196,6 +196,21 @@ export default function AccountPageClient() {
       setKycStatus(user.kyc.status);
       setKycData(d => ({ ...d, ...user.kyc }));
     }
+
+    if (user.role === 'vendor') {
+      api.get('/vendors/me').then(res => {
+        if (res.data.success) {
+          const v = res.data.data.vendor;
+          setStoreData({
+            store_name: v.store_name || '',
+            description: v.description || '',
+            logo: v.logo || '',
+            banner: v.banner || '',
+            pickup_address: v.pickup_address || { city: '', quartier: '', address_description: '' }
+          });
+        }
+      }).catch(() => {});
+    }
   }, [user]);
 
   const handleUpdateProfile = async () => {

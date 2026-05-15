@@ -83,11 +83,9 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
                 ? "/admin/dashboard"
                 : user?.role === "logistics"
                   ? "/logistics/dashboard"
-                  : user?.role === "vendor"
-                    ? "/vendor/dashboard"
-                    : "/profile"
+                  : "/profile"
             }
-            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_88%,transparent)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] sm:size-10"
+            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_88%,transparent)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] sm:size-10 relative z-[600] pointer-events-auto cursor-pointer"
           >
             {user?.branding?.logo || user?.avatar ? (
               <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt="" />

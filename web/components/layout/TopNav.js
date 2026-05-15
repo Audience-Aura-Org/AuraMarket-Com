@@ -79,9 +79,6 @@ export default function TopNav() {
 
   // Hide on auth, admin, vendor, logistics, wallet, and full-screen chat pages
   if (
-    pathname?.startsWith('/admin') ||
-    pathname?.startsWith('/vendor') ||
-    pathname?.startsWith('/logistics') ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/messages') ||
     pathname === '/login' ||
@@ -178,8 +175,8 @@ export default function TopNav() {
           
           {user ? (
             <Link 
-              href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'logistics' ? '/logistics/dashboard' : user.role === 'vendor' ? '/vendor/dashboard' : '/profile'} 
-              className="shrink-0"
+              href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'logistics' ? '/logistics/dashboard' : '/profile'} 
+              className="shrink-0 relative z-[600] pointer-events-auto cursor-pointer"
             >
                <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all">
                  <div className="size-full rounded-full bg-[#0f0a14] flex items-center justify-center overflow-hidden dark:bg-[var(--bg-primary)]">
