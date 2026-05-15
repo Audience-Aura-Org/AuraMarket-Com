@@ -239,8 +239,16 @@ export default function VendorDashboard() {
                  <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
                  <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-tight opacity-50">Store Info</p>
                </div>
-               <div className="size-10 rounded-xl border border-[var(--accent)]/20 bg-gradient-to-tr from-[var(--accent)]/10 to-indigo-600/5 flex items-center justify-center font-bold text-[var(--accent)] overflow-hidden">
-                 {user?.avatar ? <img src={user.avatar} className="size-full object-cover" /> : <span>{user?.name?.[0]?.toUpperCase() || 'V'}</span>}
+               <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all cursor-pointer">
+                 <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
+                   {user?.avatar ? (
+                     <img src={user.avatar} className="size-full object-cover" alt={user.name} />
+                   ) : (
+                     <span className="text-[11px] font-bold text-[var(--text-primary)] uppercase">
+                       {user?.name?.[0] || 'V'}
+                     </span>
+                   )}
+                 </div>
                </div>
             </div>
           </div>

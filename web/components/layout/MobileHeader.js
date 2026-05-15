@@ -85,13 +85,17 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
                   ? "/logistics/dashboard"
                   : "/profile"
             }
-            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_88%,transparent)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] sm:size-10 relative z-[600] pointer-events-auto cursor-pointer"
+            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-sm transition-all active:scale-[0.97] sm:size-10 relative z-[600] pointer-events-auto cursor-pointer"
           >
-            {user?.branding?.logo || user?.avatar ? (
-              <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt="" />
-            ) : (
-              <User className="size-4 text-white/75 dark:text-[var(--text-secondary)]" />
-            )}
+            <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
+              {user?.branding?.logo || user?.avatar ? (
+                <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt="" />
+              ) : (
+                <span className="text-[10px] font-bold text-[var(--text-primary)] uppercase">
+                  {user?.name?.[0] || 'U'}
+                </span>
+              )}
+            </div>
           </Link>
         </div>
       </div>
