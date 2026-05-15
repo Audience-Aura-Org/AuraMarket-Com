@@ -440,34 +440,6 @@ export default function AccountPageClient() {
                           icon={Mail}
                         />
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <FormSelect
-                            label="City"
-                            value={userData.onboarding_location.city}
-                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, city: v, quartier: ''}})}
-                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
-                            icon={MapPin}
-                            placeholder="Select city"
-                          />
-                          <FormSelect
-                            label="Quartier"
-                            value={userData.onboarding_location.quartier}
-                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, quartier: v}})}
-                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === userData.onboarding_location.city).map(z => ({ label: z.name, value: z.name }))}
-                            icon={MapPin}
-                            placeholder="Select quartier"
-                            disabled={!userData.onboarding_location.city}
-                          />
-                        </div>
-
-                        <FormField
-                          label="Address Description"
-                          value={userData.onboarding_location.address_description}
-                          onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })}
-                          icon={MapPin}
-                          placeholder="Additional address details..."
-                          textarea={true}
-                        />
 
                         <button
                           onClick={handleUpdateProfile}
