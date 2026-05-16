@@ -60,12 +60,20 @@ async function handleRequest(request, params, method) {
       backendHost = backendUrl.replace(/^https?:\/\//, '').split('/')[0];
     }
 
-    if (backendHost) headers.set('Host', backendHost);
+    if (backendHost) {
+      // Note: Setting 'Host' header manually is forbidden in standard Fetch API and will throw TypeError.
+      // We rely on fetch() to set the correct host based on the URL.
+      console.log(`[Bridge] Target Host: ${backendHost}`);
+    }
     headers.set('Origin', frontendUrl);
+    headers.set('X-Forwarded-For', request.headers.get('x-forwarded-for') || '');
+    headers.set('X-Forwarded-Host', backendHost);
 
     const options = {
       method,
       headers,
+      // Increase timeout/keepalive settings implicitly by avoiding forbidden headers
+      cache: 'no-store',
     };
 
     // Handle Body for mutation requests (POST/PUT/PATCH/DELETE)
