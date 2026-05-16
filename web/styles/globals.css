@@ -11,7 +11,7 @@
   --color-card-bg: var(--card-bg);
   --font-display: var(--font-poppins);
   --font-sans: var(--font-poppins);
-  --font-quicksand: var(--font-quicksand);
+  --font-quicksand: var(--font-poppins);
 }
 
 :root {
