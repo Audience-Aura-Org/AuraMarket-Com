@@ -3,7 +3,7 @@ import { Poppins, Quicksand, Plus_Jakarta_Sans } from 'next/font/google';
 import Providers from '@/components/Providers';
 
 const poppins = Poppins({
-  weight: ['300', '400', '500'],
+  weight: ['300', '400', '500', '600', '700'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-poppins',

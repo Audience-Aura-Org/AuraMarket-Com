@@ -118,10 +118,28 @@ body {
 }
 
 h1,h2,h3,h4,h5,h6 {
-  font-family: var(--font-quicksand);
+  font-family: var(--font-poppins);
   text-wrap: balance;
   letter-spacing: -0.02em;
   font-style: normal !important;
+}
+
+/* ── Global Case Suppression for Dashboards ── */
+.admin-no-uppercase .uppercase,
+.admin-no-uppercase .capitalize,
+.admin-no-uppercase .tracking-widest,
+.admin-no-uppercase .tracking-[0.2em],
+.admin-no-uppercase .tracking-[0.3em],
+.admin-no-uppercase .tracking-[0.4em],
+.admin-no-uppercase h1,
+.admin-no-uppercase h2,
+.admin-no-uppercase h3,
+.admin-no-uppercase h4,
+.admin-no-uppercase p,
+.admin-no-uppercase span,
+.admin-no-uppercase button {
+  text-transform: none !important;
+  letter-spacing: normal !important;
 }
 
 i, em { font-style: normal !important; }
