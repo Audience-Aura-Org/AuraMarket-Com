@@ -110,26 +110,33 @@ export default function AdminDashboard() {
                 ))}
              </div>
 
-             {/* Telemetry Matrix Standardized */}
+             {/* Telemetry Matrix Refined */}
              <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { title: 'VECTOR_ALPHA', desc: 'Platform Volume', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue' },
-                    { title: 'RISK_LOG', desc: 'Failed Attempts', count: '9', icon: ShieldAlert, color: 'rose' },
-                    { title: 'SECURED_NODES', desc: 'Escrow Flow', count: '18 000 XAF', icon: ShieldCheck, color: 'emerald' },
-                    { title: 'CORE_STABLE', desc: 'System Uptime', count: '99.98%', icon: Zap, color: 'amber' },
+                    { title: 'Vector Alpha', desc: 'Total Platform Volume', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue', signal: 'Primary' },
+                    { title: 'Risk Log', desc: 'Auth Failure Signals', count: '9', icon: ShieldAlert, color: 'rose', signal: 'Warning' },
+                    { title: 'Secured Nodes', desc: 'Active Escrow Flow', count: '18,000 XAF', icon: ShieldCheck, color: 'emerald', signal: 'Secure' },
+                    { title: 'Core Stable', desc: 'Platform Uptime', count: '99.98%', icon: Zap, color: 'amber', signal: 'Nominal' },
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
-                      <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color}-500 bg-${item.color}-500/5`}>
-                        <item.icon className="size-4" />
+                    <div key={i} className="relative overflow-hidden p-5 rounded-3xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all">
+                      <div className="flex items-center justify-between mb-4">
+                         <div className={`size-10 rounded-xl flex items-center justify-center text-${item.color}-500 bg-${item.color}-500/10 border border-${item.color}-500/20`}>
+                           <item.icon className="size-4" />
+                         </div>
+                         <div className="text-right">
+                           <p className="text-[9px] font-bold tracking-widest opacity-30 uppercase">{item.signal}</p>
+                           <p className="text-[10px] font-bold text-[var(--text-primary)]">{item.title}</p>
+                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[11px] lg:text-[12px] font-semibold truncate uppercase tracking-tight">{item.title}</p>
-                        <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
+                      
+                      <div className="space-y-1">
+                        <p className="text-xl font-bold font-mono tracking-tighter text-[var(--text-primary)]">{item.count}</p>
+                        <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold font-mono whitespace-nowrap">{item.count}</p>
-                      </div>
+
+                      {/* Micro-sparkline effect */}
+                      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent opacity-20" />
                     </div>
                   ))}
                 </div>
