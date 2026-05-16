@@ -134,7 +134,7 @@ h1,h2,h3,h4,h5,h6 {
 .admin-no-uppercase p,
 .admin-no-uppercase span,
 .admin-no-uppercase button {
-  text-transform: none !important;
+  text-transform: capitalize !important;
   letter-spacing: normal !important;
 }
 
