@@ -72,29 +72,32 @@ async function handleRequest(request, params, method) {
     headers.set('X-Forwarded-For', request.headers.get('x-forwarded-for') || '');
     headers.set('X-Forwarded-Host', backendHost);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const options = {
       method,
       headers,
-      // Increase timeout/keepalive settings implicitly by avoiding forbidden headers
+      signal: controller.signal,
       cache: 'no-store',
+      redirect: 'follow',
     };
 
     // Handle Body for mutation requests (POST/PUT/PATCH/DELETE)
     if (!['GET', 'HEAD'].includes(method)) {
-      const contentType = request.headers.get('content-type') || '';
-      
-      // Multipart: forward raw bytes + original boundary (re-parsing formData breaks large uploads)
-      if (contentType.includes('multipart/form-data')) {
-        options.body = await request.arrayBuffer();
-        headers.set('content-type', contentType);
-      } else {
+      try {
         const body = await request.arrayBuffer();
-        if (body.byteLength > 0) options.body = body;
+        if (body && body.byteLength > 0) {
+          options.body = body;
+        }
+      } catch (e) {
+        console.warn('[Bridge] No body available for mutation request');
       }
     }
 
     console.log(`[Bridge] ${method} -> ${BACKEND_URL}`);
     const response = await fetch(BACKEND_URL, options);
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       console.warn(`[Bridge Error] Backend returned ${response.status} for ${path}`);
