@@ -39,7 +39,10 @@ async function handleRequest(request, params, method) {
 
   // Sanitize backendUrl to prevent double prefixes if the user includes /api in their env var
   const cleanBackendUrl = backendUrl.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
-  const BACKEND_URL = `${cleanBackendUrl}/api/v1/${path}${searchParams}`;
+  
+  // 🔥 CRITICAL: Ensure the final URL used for fetch() has a protocol (http/https)
+  const baseWithProtocol = cleanBackendUrl.startsWith('http') ? cleanBackendUrl : `http://${cleanBackendUrl}`;
+  const BACKEND_URL = `${baseWithProtocol}/api/v1/${path}${searchParams}`;
 
   try {
     const headers = new Headers();
