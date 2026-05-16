@@ -104,7 +104,7 @@ export default function AdminTransactionsPage() {
 
     setUpdatingStatus(txId);
     try {
-      const res = await api.patch(`/admin/transactions/${txId}`, { status: newStatus, admin_note });
+      const res = await api.patch(`/admin/transactions/manual-fix/${txId}`, { status: newStatus, admin_note });
       if (res.data.success) {
         toast.success(`Transaction shifted to ${newStatus}`);
         fetchTransactions();
