@@ -8,7 +8,7 @@ import {
   Activity, Shield, Zap, Search, 
   Filter, RefreshCw, ChevronRight, 
   ArrowUpRight, Clock, ShieldCheck,
-  LayoutDashboard, Terminal
+  LayoutDashboard, Terminal, ShieldAlert
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -112,13 +112,26 @@ export default function AdminDashboard() {
 
              {/* Telemetry Matrix Standardized */}
              <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
-                  <StatCard label="Active" value={stats?.online_users || 0} icon="public" color="fuchsia" sub="LIVE_SESSIONS" />
-                  <StatCard label="Attention" value={stats?.pending_vendors || 0} icon="warning" color="rose" sub="KYC_QUEUE" />
-                  <StatCard label="Resolved" value={`${fmt(stats?.revenue / 1000)}k`} icon="bolt" color="emerald" sub="GROSS_FLOW" />
-                  <StatCard label="Closed" value={stats?.orders || 0} icon="inventory_2" color="slate" sub="SETTLED_TRADES" />
-                  <StatCard label="Rate" value="98.2%" icon="verified_user" color="amber" sub="NODE_STABILITY" />
-                  <StatCard label="Yield" value={stats?.active_products || 0} icon="trending_up" color="indigo" sub="ASSET_DEPTH" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                  {[
+                    { title: 'VECTOR_ALPHA', desc: 'Platform Volume', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue' },
+                    { title: 'RISK_LOG', desc: 'Failed Attempts', count: '9', icon: ShieldAlert, color: 'rose' },
+                    { title: 'SECURED_NODES', desc: 'Escrow Flow', count: '18 000 XAF', icon: ShieldCheck, color: 'emerald' },
+                    { title: 'CORE_STABLE', desc: 'System Uptime', count: '99.98%', icon: Zap, color: 'amber' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
+                      <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color}-500 bg-${item.color}-500/5`}>
+                        <item.icon className="size-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] lg:text-[12px] font-semibold truncate uppercase tracking-tight">{item.title}</p>
+                        <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold font-mono whitespace-nowrap">{item.count}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
              </div>
           </section>

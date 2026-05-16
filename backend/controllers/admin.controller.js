@@ -140,11 +140,12 @@ const getPlatformAnalytics = async (req, res, next) => {
     ]);
     const totalRevenue = revenueStats.length > 0 ? revenueStats[0].totalRevenue : 0;
     const pendingKYC = await KYC.countDocuments({ status: 'pending' });
-    const escrowStats = await Escrow.aggregate([
-      { $match: { status: 'held' } },
-      { $group: { _id: null, totalHeldFunds: { $sum: '$amount' } } }
+    const escrowAgg = await Escrow.aggregate([
+      { $group: { _id: '$status', total: { $sum: '$amount' } } }
     ]);
-    const totalHeldFunds = escrowStats.length > 0 ? escrowStats[0].totalHeldFunds : 0;
+    const totalHeldFunds = escrowAgg.find(s => s._id === 'held')?.total || 0;
+    const totalReleasedFunds = escrowAgg.find(s => s._id === 'released')?.total || 0;
+    const totalDisputedFunds = escrowAgg.find(s => s._id === 'disputed')?.total || 0;
 
     // Presence Metrics
     const onlineUsers = await User.countDocuments({ is_online: true });
@@ -167,6 +168,9 @@ const getPlatformAnalytics = async (req, res, next) => {
           orders: totalOrders,
           revenue: totalRevenue,
           escrow_vault: totalHeldFunds,
+          escrow_held: totalHeldFunds,
+          escrow_released: totalReleasedFunds,
+          escrow_disputed: totalDisputedFunds,
           failed_transactions: await Transaction.countDocuments({ status: 'failed' }),
           delivered_orders: await Order.countDocuments({ order_status: 'delivered' }),
           active_orders: await Order.countDocuments({ order_status: { $in: ['placed', 'processing', 'shipped'] } })

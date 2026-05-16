@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { fmt, STATUS_CONFIG, getStatusConfig, getMethodIcon } from '@/utils/adminFinance';
+import Pagination from '@/components/common/Pagination';
 
 // Map STATUS_CONFIG shape to the local `cls` string format used in this page
 const STATUS = Object.fromEntries(
@@ -40,7 +41,7 @@ export default function AdminWithdrawalsPage() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
-  const [filter, setFilter]     = useState('pending');
+  const [filter, setFilter]     = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [search, setSearch]     = useState('');
   const [processing, setProc]   = useState(null);
@@ -53,8 +54,6 @@ export default function AdminWithdrawalsPage() {
     if (user.role !== 'admin') { router.replace('/wallet'); }
   }, [user, router]);
 
-  if (!user || user.role !== 'admin') return null;
-
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,12 +62,18 @@ export default function AdminWithdrawalsPage() {
       if (filter !== 'all') params.status = filter;
       if (roleFilter !== 'all') params.role = roleFilter;
       const res = await api.get('/withdrawals/admin', { params });
-      if (res.data.success) {
-        setWithdrawals(res.data.data.withdrawals || []);
-        setPendingCount(res.data.data.pendingCount || 0);
+      
+      const payload = res.data?.data || res.data;
+      if (res.data?.success || res.status === 200) {
+        setWithdrawals(payload?.withdrawals || []);
+        setPendingCount(payload?.pendingCount || 0);
       }
-    } catch { toast.error('Failed to load withdrawals'); }
-    finally { setLoading(false); }
+    } catch (err) { 
+      console.error('[Withdrawals] Load failed:', err);
+      toast.error('Failed to load withdrawals'); 
+    } finally { 
+      setLoading(false); 
+    }
   }, [filter, roleFilter]);
 
   useEffect(() => { load(); }, [load, filter, roleFilter]);
@@ -122,6 +127,9 @@ export default function AdminWithdrawalsPage() {
            (w.requestedBy?.email || '').toLowerCase().includes(q) ||
            (w._id || '').toLowerCase().includes(q);
   });
+
+
+  if (!user || user.role !== 'admin') return null;
 
   return (
     <>
@@ -300,7 +308,7 @@ export default function AdminWithdrawalsPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar py-1">
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 shrink-0">
-              {['pending', 'approved', 'completed', 'all'].map(f => (
+              {TABS.map(f => (
                 <button 
                   key={f}
                   onClick={() => { setFilter(f); }} 
@@ -382,9 +390,17 @@ export default function AdminWithdrawalsPage() {
                     <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Synchronizing Ledger...</p>
                  </div>
               ) : displayed.length === 0 ? (
-                 <div className="py-40 text-center border border-dashed border-[var(--glass-border)] rounded-[2.5rem] opacity-10 flex flex-col items-center gap-6">
-                    <Wallet className="size-16" />
-                    <p className="text-xs font-bold tracking-[0.4em] uppercase">No Transaction Data Found</p>
+                 <div className="py-40 text-center border border-dashed border-[var(--glass-border)] rounded-[2.5rem] flex flex-col items-center gap-6">
+                    <Wallet className="size-16 opacity-10" />
+                    <p className="text-xs font-bold tracking-[0.4em] uppercase opacity-10">No Transaction Data Found</p>
+                    {filter !== 'all' && (
+                       <button 
+                         onClick={() => setFilter('all')}
+                         className="px-6 py-3 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all"
+                       >
+                         View All History
+                       </button>
+                    )}
                  </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">

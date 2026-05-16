@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +7,8 @@ import {
   ShieldCheck, Lock, Unlock, History, 
   DollarSign, ArrowUpRight, ArrowDownLeft, RefreshCw,
   Search, Filter, Database, Loader2, Zap, CreditCard,
-  AlertCircle, Clock, XCircle, CheckCircle2
+  AlertCircle, Clock, XCircle, CheckCircle2,
+  Globe
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -20,6 +21,7 @@ export default function AdminEscrow() {
   const [mounted, setMounted] = useState(false);
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,13 +37,20 @@ export default function AdminEscrow() {
   const fetchEscrow = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/escrow/logs');
-      if (res.data?.success) {
-        setLogs(res.data.data.logs || []);
-        setStats(res.data.data.stats || []);
+      const [escrowRes, analyticsRes] = await Promise.all([
+        api.get('/admin/escrow/logs'),
+        api.get('/admin/analytics')
+      ]);
+
+      if (escrowRes.data?.success) {
+        setLogs(escrowRes.data.data.logs || []);
+        setStats(escrowRes.data.data.stats || []);
+      }
+      if (analyticsRes.data?.success) {
+        setAnalytics(analyticsRes.data.data.stats || null);
       }
     } catch (err) {
-      console.error('Failed to fetch escrow data:', err);
+      console.error('Failed to sync vault data:', err);
       toast.error('Failed to sync with secure vault');
     } finally {
       setLoading(false);
@@ -150,23 +159,24 @@ export default function AdminEscrow() {
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Live Intelligence Stats */}
-         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
             {[
-               { label: 'Custody Total', value: `${heldTotal.toLocaleString()} XAF`, icon: Lock, color: 'var(--accent)', sub: 'LOCKED' },
-               { label: 'Settled Capital', value: `${releasedTotal.toLocaleString()} XAF`, icon: Unlock, color: '#10b981', sub: 'RELEASED' },
-               { label: 'Contested', value: `${disputedTotal.toLocaleString()} XAF`, icon: AlertCircle, color: '#f43f5e', sub: 'DISPUTE' },
-               { label: 'System Health', value: 'High', icon: Zap, color: '#fbbf24', sub: 'TRUST' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                     <div className="size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)] group-hover:text-[var(--text-primary)] transition-colors">
-                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
-                     </div>
-                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase font-mono">{s.sub}</span>
+               { title: 'LOCKED', desc: 'Custody Total', count: `${heldTotal.toLocaleString()} XAF`, icon: Database, color: 'blue' },
+               { title: 'RELEASED', desc: 'Settled Capital', count: `${releasedTotal.toLocaleString()} XAF`, icon: CheckCircle2, color: 'emerald' },
+               { title: 'DISPUTE', desc: 'Contested', count: `${disputedTotal.toLocaleString()} XAF`, icon: AlertCircle, color: 'rose' },
+               { title: 'TRUST', desc: 'System Health', count: 'High', icon: Zap, color: 'amber' },
+               { title: 'REVENUE', desc: 'Gross Platform', count: analytics ? `${analytics.revenue.toLocaleString()} XAF` : '...', icon: Globe, color: 'indigo' },
+            ].map((item, i) => (
+               <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
+                  <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color}-500 bg-${item.color}-500/5`}>
+                     <item.icon className="size-4" />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
-                    <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)] truncate">{s.value}</h3>
+                  <div className="flex-1 min-w-0">
+                     <p className="text-[11px] lg:text-[12px] font-semibold truncate uppercase tracking-tight">{item.title}</p>
+                     <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-xs font-bold font-mono whitespace-nowrap">{item.count}</p>
                   </div>
                </div>
             ))}

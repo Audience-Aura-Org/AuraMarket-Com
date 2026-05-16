@@ -6,7 +6,8 @@ import {
   CreditCard, Clock, User,
   Search, RefreshCw,
   XCircle, Globe, 
-  Database, Loader2, Zap
+  Database, Loader2, Zap,
+  CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -187,32 +188,24 @@ export default function AdminTransactionsPage() {
 
       <div className="p-10 space-y-8 pb-40">
          {/* Live Stats */}
-         <div className="grid grid-cols-4 gap-6">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
             {[
-               { label: 'Platform Volume', value: stats ? `${fmt(stats.revenue)} XAF` : '...', icon: Database, color: 'var(--accent)', sub: 'VECTOR_ALPHA' },
-               { label: 'Failed Attempts', value: stats ? stats.failed_transactions : '...', icon: XCircle, color: '#f43f5e', sub: 'RISK_LOG' },
-               { label: 'Escrow Flow', value: stats ? `${fmt(stats.escrow_vault)} XAF` : '...', icon: Globe, color: '#6366f1', sub: 'SECURED_NODES' },
-               { label: 'System Uptime', value: '99.98%', icon: Zap, color: '#10b981', sub: 'CORE_STABLE' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
-                  {/* Decorative Radial Glow */}
-                  <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                  
-                  <div className="relative flex flex-col justify-between h-full space-y-8">
-                     <div className="flex items-center justify-between">
-                        <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                           <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
-                        </div>
-                        <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
-                     </div>
-
-                     <div>
-                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <div className="flex items-end gap-2">
-                           <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
-                           {s.label === 'System Uptime' && <div className="size-2 rounded-full bg-emerald-500 animate-pulse mb-1" />}
-                        </div>
-                     </div>
+               { title: 'LOCKED', desc: 'Custody Total', count: stats ? `${fmt(stats.escrow_held)} XAF` : '...', icon: Database, color: 'blue' },
+               { title: 'RELEASED', desc: 'Settled Capital', count: stats ? `${fmt(stats.escrow_released)} XAF` : '...', icon: CheckCircle2, color: 'emerald' },
+               { title: 'DISPUTE', desc: 'Contested', count: stats ? `${fmt(stats.escrow_disputed)} XAF` : '...', icon: AlertCircle, color: 'rose' },
+               { title: 'TRUST', desc: 'System Health', count: 'High', icon: Zap, color: 'amber' },
+               { title: 'REVENUE', desc: 'Gross Platform', count: stats ? `${fmt(stats.revenue)} XAF` : '...', icon: Globe, color: 'indigo' },
+            ].map((item, i) => (
+               <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
+                  <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color}-500 bg-${item.color}-500/5`}>
+                     <item.icon className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                     <p className="text-[11px] lg:text-[12px] font-semibold truncate uppercase tracking-tight">{item.title}</p>
+                     <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-xs font-bold font-mono whitespace-nowrap">{item.count}</p>
                   </div>
                </div>
             ))}
