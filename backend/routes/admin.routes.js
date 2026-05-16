@@ -118,6 +118,7 @@ router.get('/audit', getAuditLogs);
 
 // Global Transactions Monitoring
 router.get('/transactions', getAllTransactions);
+router.patch('/transactions/:id', updateTransactionStatus); // Legacy alias to prevent 404 during deployment
 router.patch('/transactions/manual-fix/:id', updateTransactionStatus);
 router.post('/transactions/sync-eversend', syncWithEversend);
 router.post('/transactions/:transactionId/fulfill', fulfillOrderFromTransaction);
