@@ -339,12 +339,12 @@ const eversendVerify = async (req, res) => {
       });
     }
 
-    // Check for timeout — if pending for > 60 seconds with no gateway ID
+    // Check for timeout — if pending for > 15 minutes with no gateway ID
     if (!transaction.gateway_transaction_id) {
       const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
-      if (ageSeconds > 60) {
+      if (ageSeconds > 900) {
         transaction.status = 'failed';
-        transaction.gateway_response = { message: 'Verification timed out — no gateway transaction ID received.' };
+        transaction.gateway_response = { message: 'Verification timed out — no gateway transaction ID received after 15 minutes.' };
         await transaction.save();
         return res.status(200).json({ success: false, status: 'FAILED', message: 'Payment verification timed out. Please check your transaction history or recheck payment status.', reference });
       }
@@ -366,9 +366,9 @@ const eversendVerify = async (req, res) => {
       txStatus = result?.data?.status || result?.status;
     }
 
-    // Check timeout — if API still returns pending after 60 seconds
+    // Check timeout — if API still returns pending after 15 minutes
     const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
-    if (txStatus === 'PENDING' && ageSeconds > 60) {
+    if (txStatus === 'PENDING' && ageSeconds > 900) {
       transaction.status = 'failed';
       transaction.gateway_response = result.data || result;
       await transaction.save();
@@ -767,23 +767,44 @@ const mesombVerify = async (req, res) => {
     const result = await mesombGateway.verify(reference);
 
     if (result.status === 'SUCCESSFUL') {
-      // If checkout, settle orders now (in case webhook was missed)
       const transaction = await Transaction.findOne({ reference, gateway: 'mesomb' });
-      if (transaction && transaction.order_ids?.length > 0 && transaction.status !== 'completed') {
+      if (transaction && transaction.status !== 'completed') {
         const user = await User.findById(transaction.user_id);
         if (user) {
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
-            await session.commitTransaction();
+          if (transaction.order_ids?.length > 0) {
+            // Checkout settlement
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            try {
+              await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
+              transaction.status = 'completed';
+              transaction.gateway_response = result.gateway_response || transaction.gateway_response;
+              await transaction.save({ session });
+              await session.commitTransaction();
+            } catch (e) {
+              await session.abortTransaction();
+              console.error('[mesombVerify] Settlement error:', e.message);
+            } finally {
+              session.endSession();
+            }
+          } else {
+            // Pure wallet top-up (Deposit)
+            user.wallet_balance += transaction.amount;
+            await user.save();
+            
             transaction.status = 'completed';
+            transaction.gateway_response = result.gateway_response || transaction.gateway_response;
             await transaction.save();
-          } catch (e) {
-            await session.abortTransaction();
-            console.error('[mesombVerify] Settlement error:', e.message);
-          } finally {
-            session.endSession();
+
+            // Background notification
+            setImmediate(() => {
+              sendNotification(req.app, user._id, {
+                title: '💰 Wallet Topped Up',
+                message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
+                type: 'wallet_update',
+                sendEmail: true,
+              }).catch(console.error);
+            });
           }
         }
       }

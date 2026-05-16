@@ -45,6 +45,7 @@ const {
   bulkDeleteUsers,
   bulkDeleteProducts,
   getAllTransactions,
+  updateTransactionStatus,
   fulfillOrderFromTransaction,
   syncWithEversend
 } = require('../controllers/admin.controller');
@@ -117,6 +118,7 @@ router.get('/audit', getAuditLogs);
 
 // Global Transactions Monitoring
 router.get('/transactions', getAllTransactions);
+router.patch('/transactions/:id', updateTransactionStatus);
 router.post('/transactions/sync-eversend', syncWithEversend);
 router.post('/transactions/:transactionId/fulfill', fulfillOrderFromTransaction);
 

@@ -966,6 +966,92 @@ const syncWithEversend = async (req, res, next) => {
   }
 };
 
+const updateTransactionStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, admin_note } = req.body;
+    
+    const transaction = await Transaction.findById(id);
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+
+    // If marking as completed and it wasn't already completed
+    if (status === 'completed' && transaction.status !== 'completed') {
+      const user = await User.findById(transaction.user_id);
+      if (!user) return res.status(404).json({ success: false, message: 'User mapping failed: recipient account not found.' });
+
+      // Handle cascading effects based on transaction type
+      if (transaction.type === 'deposit') {
+        // A deposit is either a pure top-up OR a checkout funding source
+        const isCheckout = transaction.order_ids && transaction.order_ids.length > 0;
+        
+        if (isCheckout) {
+          // Checkout funding — settle the associated orders
+          const { settleOrders } = require('../services/payment/settle.service');
+          const mongoose = require('mongoose');
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            await settleOrders(user._id, transaction.order_ids, session, req.app, true, '', transaction.gateway || 'admin_manual');
+            
+            transaction.status = 'completed';
+            if (admin_note) {
+              transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_confirmed_by: req.user._id };
+            }
+            await transaction.save({ session });
+            await session.commitTransaction();
+          } catch (e) {
+            await session.abortTransaction();
+            console.error('[updateTransactionStatus] Settlement Error:', e.message);
+            return res.status(500).json({ success: false, message: `Status update failed during order settlement: ${e.message}` });
+          } finally {
+            session.endSession();
+          }
+        } else {
+          // Pure wallet top-up
+          user.wallet_balance += transaction.amount;
+          await user.save();
+          
+          transaction.status = 'completed';
+          if (admin_note) {
+            transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_confirmed_by: req.user._id };
+          }
+          await transaction.save();
+
+          // Notify User
+          await sendNotification(req.app, user._id, {
+            title: '💰 Wallet Credited (Manual)',
+            message: `An administrator has manually confirmed your deposit of ${transaction.amount.toLocaleString()} ${transaction.currency || 'XAF'}.`,
+            type: 'wallet_update',
+            sendEmail: true
+          });
+        }
+      } else if (transaction.type === 'withdrawal') {
+        // Withdrawal: status update only (funds were already deducted on request creation)
+        transaction.status = 'completed';
+        if (admin_note) {
+          transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_processed_by: req.user._id };
+        }
+        await transaction.save();
+      } else {
+        // Other types (refund, payment, payout)
+        transaction.status = status;
+        await transaction.save();
+      }
+    } else {
+      // Just update status normally (e.g. marking as failed or pending)
+      transaction.status = status;
+      if (admin_note) {
+        transaction.metadata = { ...transaction.metadata, admin_note, updated_by: req.user._id };
+      }
+      await transaction.save();
+    }
+
+    res.status(200).json({ success: true, message: `Transaction ${transaction.reference} shifted to ${status}.`, data: { transaction } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -1002,6 +1088,7 @@ module.exports = {
   bulkDeleteUsers,
   bulkDeleteProducts,
   getAllTransactions,
+  updateTransactionStatus,
   fulfillOrderFromTransaction,
   syncWithEversend,
 };

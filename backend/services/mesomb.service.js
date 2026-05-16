@@ -116,7 +116,7 @@ const makeCollect = async ({
 
 /**
  * Get the status of a MeSomb transaction.
- * @param {string} transactionId - MeSomb transaction ID (pk field in response)
+ * @param {string} transactionId - MeSomb transaction ID or our trxID reference
  * @returns {Object} transaction data
  */
 const getTransactionStatus = async (transactionId) => {
@@ -130,7 +130,8 @@ const getTransactionStatus = async (transactionId) => {
     secretKey: SECRET_KEY,
   });
 
-  const response = await client.getStatus();
+  // MeSomb status can be checked by our trxID or their pk
+  const response = await client.getStatus(transactionId);
   return response;
 };
 

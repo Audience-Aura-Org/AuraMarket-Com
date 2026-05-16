@@ -71,7 +71,7 @@ function VerifyContent() {
           },
         },
         5000,  // poll every 5s
-        65000  // 65s max before timeout
+        600000  // 10 min max before timeout
       );
 
       stopPollingRef.current = stopFn;
@@ -83,7 +83,7 @@ function VerifyContent() {
 
       let timeoutId;
       let attempts = 0;
-      const MAX_ATTEMPTS = 24; // 24 × 5s = 2 min
+      const MAX_ATTEMPTS = 120; // 120 × 5s = 10 min
 
       const poll = async () => {
         try {
@@ -93,7 +93,7 @@ function VerifyContent() {
 
           if (status === 'SUCCESSFUL') {
             setState('successful');
-            setMessage('Payment confirmed! Your order is being processed.');
+            setMessage('Payment confirmed! Your account has been updated.');
             if (type === 'checkout') cartStore.clearCart();
             return;
           }
@@ -106,7 +106,7 @@ function VerifyContent() {
           // Still pending
           if (attempts >= MAX_ATTEMPTS) {
             setState('timeout');
-            setMessage('Verification timed out. If you approved the prompt, your payment may still arrive. Use Recheck to confirm.');
+            setMessage('Verification is taking longer than expected. If you have already approved the prompt, your payment will be processed shortly. You can also use the Recheck button below.');
             return;
           }
           timeoutId = setTimeout(poll, 5000);

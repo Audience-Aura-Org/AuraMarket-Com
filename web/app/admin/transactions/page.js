@@ -28,6 +28,7 @@ export default function AdminTransactionsPage() {
   const [syncing, setSyncing] = useState(null);
   const [stats, setStats] = useState(null);
   const [gatewaySyncing, setGatewaySyncing] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   const GATEWAYS = ['eversend', 'mesomb', 'wallet', 'manual', 'paystack'];
 
@@ -97,17 +98,21 @@ export default function AdminTransactionsPage() {
     }
   };
 
-  const handleFulfillOrders = async (txId) => {
-    setSyncing(txId);
+  const handleUpdateStatus = async (txId, newStatus) => {
+    const admin_note = window.prompt(`Are you sure you want to shift this transaction to ${newStatus.toUpperCase()}? This will trigger cascading effects (wallet credit or order settlement) if marking as completed. Enter reason:`, 'Administrative Correction');
+    if (admin_note === null) return;
+
+    setUpdatingStatus(txId);
     try {
-      const res = await api.post(`/admin/transactions/${txId}/fulfill`);
+      const res = await api.patch(`/admin/transactions/${txId}`, { status: newStatus, admin_note });
       if (res.data.success) {
-        toast.success('Orders re-synchronized successfully');
+        toast.success(`Transaction shifted to ${newStatus}`);
+        fetchTransactions();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Sync failed');
+      toast.error(err.response?.data?.message || 'Status update failed');
     } finally {
-      setSyncing(null);
+      setUpdatingStatus(null);
     }
   };
 
@@ -342,6 +347,23 @@ export default function AdminTransactionsPage() {
                                            <pre>{JSON.stringify(tx.gateway_response || {}, null, 2)}</pre>
                                         </div>
                                         <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[var(--bg-secondary)] to-transparent pointer-events-none group-hover/payload:opacity-0 transition-opacity" />
+                                     </div>
+
+                                     <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl">
+                                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize">Manual Status Correction</p>
+                                        <div className="flex flex-wrap gap-2">
+                                           {['completed', 'pending', 'failed'].map(s => (
+                                              <button 
+                                                key={s}
+                                                onClick={() => handleUpdateStatus(tx._id, s)}
+                                                disabled={updatingStatus === tx._id || tx.status === s}
+                                                className={`flex-1 h-10 px-4 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize border ${tx.status === s ? 'bg-[var(--bg-secondary)] border-[var(--glass-border)] opacity-30 text-[var(--text-secondary)] cursor-not-allowed' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)] text-[var(--text-primary)] active:scale-95'}`}
+                                              >
+                                                 {updatingStatus === tx._id ? <Loader2 className="w-3 h-3 animate-spin" /> : `Mark ${s}`}
+                                              </button>
+                                           ))}
+                                        </div>
+                                        <p className="text-[9px] lg:text-[10px]  font-semibold text-[var(--text-secondary)] mt-3 opacity-30 leading-relaxed italic">* Marking as COMPLETED will automatically credit user wallets or settle linked orders.</p>
                                      </div>
 
                                      {tx.status === 'completed' && tx.order_ids?.length > 0 && (

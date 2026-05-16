@@ -139,18 +139,49 @@ const mesombGateway = {
     const tx = await Transaction.findOne({ reference, gateway: 'mesomb' });
     if (!tx) return { status: 'PENDING' };
 
+    // If already completed in our DB, return success
     if (tx.status === 'completed') return { status: 'SUCCESSFUL', amount: tx.amount };
-    if (tx.status === 'failed') return { status: 'FAILED', reason: tx.gateway_response?.message };
 
-    // For pending, check how old the transaction is — after 5 minutes, mark failed
+    // Even if it failed in our DB (due to timeout), we should check the live status 
+    // because the user might have approved it after our 5-min internal timeout.
+    
+    // Check how old the transaction is — after 20 minutes, really mark failed if still pending
     const ageMinutes = (Date.now() - new Date(tx.createdAt).getTime()) / 60000;
-    if (ageMinutes > 5) {
-      await Transaction.findByIdAndUpdate(tx._id, { status: 'failed' });
-      return { status: 'FAILED', reason: 'Payment prompt expired. Please try again.' };
-    }
+    
+    try {
+      // Poll MeSomb using the gateway ID or our reference
+      const response = await mesomb.getTransactionStatus(tx.gateway_transaction_id || reference);
+      const status = mesomb.mapStatus(response);
 
-    // Still within the approval window — return pending
-    return { status: 'PENDING' };
+      if (status === 'SUCCESSFUL') {
+        // Don't update the DB here — let the controller or webhook handle it to ensure atomicity
+        // and consistency with settlement logic. But return SUCCESSFUL so they can trigger it.
+        return { status: 'SUCCESSFUL', amount: tx.amount, gateway_response: response };
+      }
+
+      if (status === 'FAILED') {
+        return { status: 'FAILED', reason: response?.message || 'Transaction was declined.' };
+      }
+
+      // If it's still PENDING on MeSomb but too old for us
+      if (ageMinutes > 20) {
+        if (tx.status !== 'failed') {
+          await Transaction.findByIdAndUpdate(tx._id, { status: 'failed' });
+        }
+        return { status: 'FAILED', reason: 'Payment prompt expired. Please try again.' };
+      }
+
+      return { status: 'PENDING' };
+    } catch (err) {
+      console.error('[mesomb.gateway] Status check error:', err.message);
+      
+      // Fallback to internal timeout if MeSomb API is unreachable
+      if (ageMinutes > 20) {
+        if (tx.status !== 'failed') await Transaction.findByIdAndUpdate(tx._id, { status: 'failed' });
+        return { status: 'FAILED', reason: 'Verification timed out. Please try again.' };
+      }
+      return { status: 'PENDING' };
+    }
   },
 };
 

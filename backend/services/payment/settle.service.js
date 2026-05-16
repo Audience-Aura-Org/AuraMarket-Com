@@ -274,7 +274,29 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
 
   for (const orderId of orderIds) {
     const order = await Order.findById(orderId).session(session);
-    if (!order || order.payment_status !== 'pending') continue;
+    if (!order) continue;
+
+    // Handle already paid orders (e.g., from a duplicate or delayed successful attempt)
+    if (order.payment_status !== 'pending') {
+      if (skipBalanceDeduct) {
+        // Since we aren't deducting from balance, these are 'new' funds from a gateway.
+        // If the order is already paid, credit these funds to the user's wallet so they aren't lost.
+        user.wallet_balance += order.total_amount;
+        await user.save({ session });
+        
+        await Transaction.create([{
+          user_id: user._id,
+          type: 'deposit',
+          amount: order.total_amount,
+          reference: genRef('ADJ'),
+          status: 'completed',
+          gateway: paymentGateway,
+          description: `Wallet credit (Order #${order._id.toString().slice(-6).toUpperCase()} already paid)`,
+          order_id: order._id,
+        }], { session, ordered: true });
+      }
+      continue;
+    }
 
     if (!skipBalanceDeduct && user.wallet_balance < order.total_amount) {
       throw new Error(`Insufficient wallet balance for order #${orderId.toString().slice(-4)}.`);
