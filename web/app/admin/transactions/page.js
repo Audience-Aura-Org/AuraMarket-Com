@@ -5,7 +5,7 @@ import api from '@/services/api';
 import { 
   CreditCard, Clock, User,
   Search, RefreshCw,
-  XCircle, Globe, 
+  XCircle, Globe, Mail, Phone,
   Database, Loader2, Zap,
   CheckCircle2, AlertCircle
 } from 'lucide-react';
@@ -342,11 +342,27 @@ export default function AdminTransactionsPage() {
 
                                   <div className="flex-1 space-y-4">
                                      <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl relative overflow-hidden group/payload">
-                                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize">Gateway Payload</p>
-                                        <div className="font-mono text-[10px] lg:text-[12px] text-[var(--text-primary)]/80 leading-relaxed max-h-32 overflow-y-auto no-scrollbar scroll-smooth">
-                                           <pre>{JSON.stringify(tx.gateway_response || {}, null, 2)}</pre>
+                                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize">User Identity</p>
+                                        <div className="space-y-3">
+                                           <div className="flex items-center gap-3">
+                                              <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)]">
+                                                 <Mail className="size-3.5" />
+                                              </div>
+                                              <div>
+                                                 <p className="text-[10px] lg:text-[11px] font-semibold opacity-30 capitalize tracking-widest">Email Address</p>
+                                                 <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)]">{tx.user_id?.email || 'No email attached'}</p>
+                                              </div>
+                                           </div>
+                                           <div className="flex items-center gap-3">
+                                              <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)]">
+                                                 <Phone className="size-3.5" />
+                                              </div>
+                                              <div>
+                                                 <p className="text-[10px] lg:text-[11px] font-semibold opacity-30 capitalize tracking-widest">Phone Number</p>
+                                                 <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)]">{tx.user_id?.phone || 'No phone recorded'}</p>
+                                              </div>
+                                           </div>
                                         </div>
-                                        <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[var(--bg-secondary)] to-transparent pointer-events-none group-hover/payload:opacity-0 transition-opacity" />
                                      </div>
 
                                      <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl">

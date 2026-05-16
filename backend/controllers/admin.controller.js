@@ -839,7 +839,7 @@ const getAllTransactions = async (req, res, next) => {
     }
 
     const transactions = await Transaction.find(query)
-      .populate('user_id', 'name email avatar role')
+      .populate('user_id', 'name email avatar role phone')
       .populate({
         path: 'order_id',
         select: 'vendor_id',
