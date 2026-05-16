@@ -115,7 +115,13 @@ async function handleRequest(request, params, method) {
     return NextResponse.json({ 
       success: false, 
       message: 'Secure Bridge Handshake Failed', 
-      detail: error.message 
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        backend: BACKEND_URL,
+        method: method
+      }
     }, { status: 502 });
   }
 }
