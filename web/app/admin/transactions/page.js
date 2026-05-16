@@ -273,11 +273,13 @@ export default function AdminTransactionsPage() {
                                     </time>
                                  </div>
                                  <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                       <span className="font-mono text-[var(--accent)]  font-bold">#{tx.reference.slice(-8).toUpperCase()}</span>
-                                       <span>•</span>
-                                       <span className="truncate max-w-[200px] md:max-w-md">{tx.description}</span>
-                                    </div>
+                                     <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
+                                        <span className="font-mono text-[var(--accent)]  font-bold">#{tx.reference.slice(-8).toUpperCase()}</span>
+                                        <span>•</span>
+                                        <span className="text-[var(--text-primary)] font-bold">{tx.user_id?.phone || 'No Phone'}</span>
+                                        <span>•</span>
+                                        <span className="truncate max-w-[150px] md:max-w-sm">{tx.description}</span>
+                                     </div>
                                  </div>
                               </div>
 
