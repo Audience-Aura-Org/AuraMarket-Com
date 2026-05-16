@@ -49,9 +49,19 @@ async function handleRequest(request, params, method) {
     
     // Set appropriate origin and host headers based on environment
     const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://aura-market-com.vercel.app';
-    const backendHost = new URL(backendUrl).host;
+    
+    let backendHost = '';
+    try {
+      // Ensure backendUrl has a protocol for the URL parser
+      const urlWithProtocol = backendUrl.startsWith('http') ? backendUrl : `http://${backendUrl}`;
+      backendHost = new URL(urlWithProtocol).host;
+    } catch (e) {
+      console.warn('[Bridge] Host parsing failed, using fallback host logic');
+      backendHost = backendUrl.replace(/^https?:\/\//, '').split('/')[0];
+    }
+
+    if (backendHost) headers.set('Host', backendHost);
     headers.set('Origin', frontendUrl);
-    headers.set('Host', backendHost);
 
     const options = {
       method,
