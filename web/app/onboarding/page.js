@@ -7,7 +7,7 @@ import {
   Users, Heart, MapPin, CheckCircle2, 
   ArrowRight, ArrowLeft, Loader2, Store, 
   LayoutGrid, Check, Search, SkipForward, Globe,
-  Phone, Sparkles, Zap, Star, ChevronRight, ShieldCheck
+  Phone, Sparkles, Zap, Star, ChevronRight, ShieldCheck, Plus
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
