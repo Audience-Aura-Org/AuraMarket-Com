@@ -13,6 +13,7 @@ const {
   eversendInitialize,
   eversendVerify,
   eversendRecheck,
+  eversendRecover,
   eversendWebhook,
   eversendGetBeneficiaries,
   eversendCreateBeneficiary,
@@ -27,6 +28,7 @@ const {
 
 // ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
 router.post('/webhook', handleWebhook);
+router.post('/eversend/webhook', eversendWebhook);
 router.post('/mesomb/webhook', mesombWebhook);
 
 // ── Protected routes ─────────────────────────────────────────────────────────
@@ -48,6 +50,8 @@ router.get('/eversend/wallets', eversendGetWallets);
 router.post('/eversend/initialize', eversendInitialize);
 router.get('/eversend/verify/:reference', eversendVerify);
 router.get('/eversend/recheck/:reference', eversendRecheck);
+// Admin: manually recover a payment the gateway confirmed but our DB missed
+router.post('/eversend/recover/:reference', eversendRecover);
 
 // Beneficiaries
 router.get('/eversend/beneficiaries', eversendGetBeneficiaries);

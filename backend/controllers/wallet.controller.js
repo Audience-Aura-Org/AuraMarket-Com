@@ -62,10 +62,11 @@ const getTransactionHistory = async (req, res, next) => {
   try {
     // ── AUTO-FAIL OLD PENDING EVERSEND DEPOSITS ───────────────────────────────
     try {
-      // If a deposit is stuck in 'pending' for > 1 hour, it's likely expired or 
-      // failed at the gateway without a webhook/callback. Mark as failed.
-      const ONE_HOUR = 60 * 60 * 1000;
-      const cutoff = new Date(Date.now() - ONE_HOUR);
+      // Only auto-fail if stuck in 'pending' for > 24 hours with no gateway confirmation.
+      // Webhook confirmations can arrive late; 1 hour was too aggressive and caused
+      // valid payments (gateway received funds) to be incorrectly marked as failed.
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+      const cutoff = new Date(Date.now() - TWENTY_FOUR_HOURS);
 
       await Transaction.updateMany(
         {

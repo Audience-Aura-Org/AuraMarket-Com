@@ -590,6 +590,129 @@ const eversendWebhook = async (req, res) => {
 };
 
 /**
+ * @route   POST /api/payments/eversend/recover/:reference
+ * @desc    Admin: Manually recover a payment the gateway confirmed but our DB marked as failed/pending.
+ *          Use this for transactions like AURA-1779123970906-6a0b454d300557850d5da752 where Eversend
+ *          received funds (gateway_response = Success) but our webhook was missed or auto-fail ran early.
+ * @access  Private (admin only)
+ * @body    { force?: boolean }  — if true, skip live gateway check and credit directly
+ */
+const eversendRecover = async (req, res) => {
+  try {
+    const { reference } = req.params;
+    const { force = false } = req.body;
+
+    const transaction = await Transaction.findOne({
+      $or: [
+        { reference },
+        { gateway_transaction_id: reference },
+      ],
+      gateway: 'eversend',
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: `No Eversend transaction found for reference: ${reference}` });
+    }
+
+    if (transaction.status === 'completed') {
+      return res.status(200).json({ success: true, message: 'Transaction already completed — wallet was already credited.', data: { transaction } });
+    }
+
+    let shouldCredit = false;
+    let resolvedStatus = null;
+
+    if (force) {
+      // Admin-forced recovery — trust the gateway receipt provided by the user
+      shouldCredit = true;
+      resolvedStatus = 'force-recovered';
+      console.warn(`[eversendRecover] FORCE recovery by admin ${req.user._id} for ref=${reference}`);
+    } else {
+      // Try live gateway check first
+      if (transaction.gateway_transaction_id && !transaction.gateway_transaction_id.startsWith('SBX-')) {
+        try {
+          const result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
+          const txStatus = result?.data?.status || result?.status;
+          console.log(`[eversendRecover] Live status for ${transaction.gateway_transaction_id}:`, txStatus);
+
+          if (txStatus === 'SUCCESSFUL') {
+            shouldCredit = true;
+            resolvedStatus = 'gateway-confirmed';
+          } else if (txStatus === 'FAILED') {
+            return res.status(400).json({ success: false, message: `Gateway confirms this transaction is FAILED. Use force=true to override if you have proof of payment.`, status: txStatus });
+          } else {
+            return res.status(400).json({ success: false, message: `Gateway status is still ${txStatus || 'UNKNOWN'}. Use force=true if you have confirmed receipt from the gateway dashboard.`, status: txStatus });
+          }
+        } catch (checkErr) {
+          console.warn('[eversendRecover] Could not reach gateway for live check:', checkErr.message);
+          return res.status(400).json({ success: false, message: `Could not verify with gateway: ${checkErr.message}. Use force=true if you have confirmed receipt.` });
+        }
+      } else {
+        return res.status(400).json({ success: false, message: 'No gateway_transaction_id on this transaction. Use force=true to recover based on manual gateway confirmation.' });
+      }
+    }
+
+    if (!shouldCredit) {
+      return res.status(400).json({ success: false, message: 'Recovery conditions not met.' });
+    }
+
+    // Credit the wallet
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      transaction.status = 'completed';
+      transaction.gateway_response = {
+        ...(transaction.gateway_response || {}),
+        recovered_by: req.user._id,
+        recovered_at: new Date(),
+        recovery_method: resolvedStatus,
+      };
+      await transaction.save({ session });
+
+      const isCheckout = transaction.order_ids?.length > 0;
+      if (isCheckout) {
+        await settleOrders(transaction.user_id, transaction.order_ids, session, req.app, true, getWebUrl(req), 'eversend');
+      } else {
+        await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
+      }
+
+      await session.commitTransaction();
+    } catch (err) {
+      await session.abortTransaction();
+      throw err;
+    } finally {
+      session.endSession();
+    }
+
+    // Notify the user
+    setImmediate(() => {
+      sendNotification(req.app, transaction.user_id, {
+        title: '💰 Wallet Credited',
+        message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet. (Ref: ${transaction.reference})`,
+        type: 'wallet_update',
+        metadata: { link: '/wallet' },
+        sendEmail: true,
+      }).catch(console.error);
+    });
+
+    const updatedUser = await User.findById(transaction.user_id).select('wallet_balance name email');
+    console.log(`✅ [eversendRecover] Successfully recovered ${transaction.amount} XAF for user ${transaction.user_id}. New balance: ${updatedUser?.wallet_balance}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `✅ Transaction recovered. ${transaction.amount.toLocaleString()} XAF credited to user's wallet.`,
+      data: {
+        transaction,
+        user: { name: updatedUser?.name, email: updatedUser?.email, new_balance: updatedUser?.wallet_balance },
+        recovery_method: resolvedStatus,
+      },
+    });
+  } catch (error) {
+    console.error('[eversendRecover] Error:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
  * @route   GET /api/payments/eversend/beneficiaries
  * @desc    List all saved Eversend beneficiaries
  */
@@ -829,6 +952,7 @@ module.exports = {
   eversendInitialize,
   eversendVerify,
   eversendRecheck,
+  eversendRecover,
   eversendWebhook,
   eversendGetBeneficiaries,
   eversendCreateBeneficiary,

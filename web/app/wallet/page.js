@@ -75,6 +75,7 @@ export default function WalletPage() {
   const [depositStatus, setDepositStatus] = useState('pending');
   const [depositMessage, setDepositMessage] = useState('');
   const [depositReason, setDepositReason] = useState('');
+  const [recheckingDeposit, setRecheckingDeposit] = useState(false);
   const itemsPerPage = 10;
 
   const showToast = (msg, type = 'success') => {
@@ -131,7 +132,12 @@ export default function WalletPage() {
   const handleDepositInit = async () => {
     if (!amount || Number(amount) < 500) return showToast('Minimum deposit is 500 XAF.', 'error');
     if (!depositPhone) return showToast('Phone number is required.', 'error');
+
+    // ── Immediate UI feedback — switch to processing BEFORE the API call ──
+    setDepositStep('processing');
+    setDepositMessage('Sending request to payment gateway...');
     setSubmitting(true);
+
     try {
       const payload = {
         amount: Number(amount),
@@ -141,17 +147,19 @@ export default function WalletPage() {
       };
       
       const res = await initiateCollection('eversend', payload);
+
       if (res.success) {
-        setDepositRef(res.data.reference);
-        setDepositStep('processing');
-        setDepositMessage('Awaiting mobile money confirmation...');
-        
-        const stopPolling = pollTransactionStatus(
+        const ref = res.data.reference;
+        setDepositRef(ref);
+        setDepositMessage('Charge request sent. Awaiting approval on your phone...');
+
+        // Poll for up to 110s (under 2 min) with 5s intervals
+        pollTransactionStatus(
           'eversend',
-          res.data.reference,
+          ref,
           {
-            onPending: (data) => setDepositMessage(data.message || 'Processing...'),
-            onSuccess: (data) => {
+            onPending: (data) => setDepositMessage(data.message || 'Awaiting mobile money confirmation...'),
+            onSuccess: () => {
               setDepositStatus('success');
               setDepositStep('result');
               setDepositMessage('Payment confirmed! Your wallet has been credited.');
@@ -160,20 +168,53 @@ export default function WalletPage() {
             onFailed: (data) => {
               setDepositStatus('failed');
               setDepositStep('result');
-              setDepositReason(data.reason || 'Payment failed.');
+              setDepositReason(data.reason || 'Payment was declined by the gateway.');
             },
             onTimeout: () => {
               setDepositStatus('timeout');
               setDepositStep('result');
-              setDepositMessage('Verification timed out. Check your transaction history.');
+              setDepositMessage('Verification timed out. If you approved the prompt, use "Recheck Payment" below.');
             }
-          }
+          },
+          5000,   // poll every 5 seconds
+          110000  // 110 second max window (under 2 min)
         );
+      } else {
+        // Gateway returned a non-success response
+        setDepositStatus('failed');
+        setDepositStep('result');
+        setDepositReason(res.message || 'Payment initiation failed. Please try again.');
       }
     } catch (err) {
-      showToast(err?.response?.data?.message || 'Initialization failed.', 'error');
+      // API call itself threw — go back to form with toast
+      setDepositStep('amount');
+      showToast(err?.response?.data?.message || 'Initialization failed. Please try again.', 'error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDepositRecheck = async () => {
+    if (!depositRef) return;
+    setRecheckingDeposit(true);
+    try {
+      const res = await api.get(`/payments/eversend/recheck/${depositRef}`);
+      const { status, data, message, reason } = res.data;
+      if (status === 'SUCCESSFUL') {
+        setDepositStatus('success');
+        setDepositStep('result');
+        setDepositMessage(message || 'Payment confirmed! Your wallet has been credited.');
+        fetchWallet();
+      } else if (status === 'FAILED') {
+        setDepositStatus('failed');
+        setDepositReason(reason || message || 'Payment was declined.');
+      } else {
+        showToast('Still processing — please wait a moment and try again.', 'info');
+      }
+    } catch {
+      showToast('Could not reach server. Please try again.', 'error');
+    } finally {
+      setRecheckingDeposit(false);
     }
   };
 
@@ -437,25 +478,38 @@ export default function WalletPage() {
                            depositStatus === 'timeout' ? <AlertTriangle className="size-10" /> : 
                            <XCircle className="size-10" />}
                        </div>
-                       <h4 className={`text-xl  font-bold tracking-tight mb-2 ${depositStatus === 'success' ? 'text-emerald-500' : depositStatus === 'timeout' ? 'text-amber-500' : 'text-rose-500'}`}>
+                       <h4 className={`text-xl font-bold tracking-tight mb-2 ${depositStatus === 'success' ? 'text-emerald-500' : depositStatus === 'timeout' ? 'text-amber-500' : 'text-rose-500'}`}>
                           {depositStatus === 'success' ? 'Confirmed' : 
-                           depositStatus === 'timeout' ? 'Lapsed' : 'Failed'}
+                           depositStatus === 'timeout' ? 'Timed Out' : 'Failed'}
                        </h4>
-                       <div className="bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-xl p-4 mb-8 w-full">
-                          <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60 leading-relaxed tracking-tight">
+                       <div className="bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-xl p-4 mb-4 w-full">
+                          <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-60 leading-relaxed tracking-tight">
                              {depositStatus === 'success' ? depositMessage : depositReason || depositMessage}
                           </p>
-                          {depositStatus === 'failed' && (
-                             <p className="text-[10px] lg:text-[12px]  font-semibold text-rose-500 mt-2 tracking-tight">Transaction ID: {depositRef || 'unknown'}</p>
+                          {(depositStatus === 'failed' || depositStatus === 'timeout') && depositRef && (
+                             <p className="text-[10px] font-mono text-rose-400/60 mt-2 tracking-tight break-all">Ref: {depositRef}</p>
                           )}
                        </div>
+
+                       {/* Recheck — for failed/timeout: the gateway may have already processed */}
+                       {(depositStatus === 'failed' || depositStatus === 'timeout') && depositRef && (
+                         <button
+                           onClick={handleDepositRecheck}
+                           disabled={recheckingDeposit}
+                           className="w-full h-12 rounded-2xl border border-amber-500/30 text-amber-400 font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:bg-amber-500/5 transition-all mb-3 disabled:opacity-50"
+                         >
+                           {recheckingDeposit ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
+                           Recheck payment status
+                         </button>
+                       )}
+
                        <button 
-                         onClick={() => { setModal(null); setDepositStep('amount'); setAmount(''); }} 
-                         className={`w-full h-14 rounded-2xl  font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all shadow-lg ${
+                         onClick={() => { setModal(null); setDepositStep('amount'); setAmount(''); setDepositStatus('pending'); setDepositReason(''); }} 
+                         className={`w-full h-14 rounded-2xl font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all shadow-lg ${
                             depositStatus === 'success' ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--glass-border)]'
                          }`}
                        >
-                          Return to wallet
+                         {depositStatus === 'success' ? 'Return to wallet' : 'Try again'}
                        </button>
                     </motion.div>
                   )}

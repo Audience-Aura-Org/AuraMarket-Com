@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { 
   CreditCard, Clock, User,
-  Search, RefreshCw,
+  Search, RefreshCw, RotateCcw,
   XCircle, Globe, Mail, Phone,
   Database, Loader2, Zap,
   CheckCircle2, AlertCircle
@@ -29,6 +29,7 @@ export default function AdminTransactionsPage() {
   const [stats, setStats] = useState(null);
   const [gatewaySyncing, setGatewaySyncing] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [recoveringId, setRecoveringId] = useState(null);
 
   const GATEWAYS = ['eversend', 'mesomb', 'wallet', 'manual', 'paystack'];
 
@@ -113,6 +114,62 @@ export default function AdminTransactionsPage() {
       toast.error(err.response?.data?.message || 'Status update failed');
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  // Recover a failed/stuck Eversend deposit that the gateway actually processed
+  const handleRecoverPayment = async (tx) => {
+    const confirmed = window.confirm(
+      `Recover payment for ${tx.reference}?\n\nThis will:\n• Re-check with Eversend gateway\n• Credit ${tx.amount?.toLocaleString()} XAF to the user's wallet if confirmed\n• Notify the user\n\nOnly proceed if you have confirmed the gateway received funds.`
+    );
+    if (!confirmed) return;
+
+    setRecoveringId(tx._id);
+    try {
+      const res = await api.post(`/payments/eversend/recover/${tx.reference}`);
+      if (res.data.success) {
+        toast.success(`✅ ${res.data.message}`);
+        fetchTransactions();
+      } else {
+        // Gateway check didn't confirm — offer force option
+        const forceIt = window.confirm(
+          `Gateway check returned: "${res.data.message}"\n\nDo you want to FORCE recover this payment?\n\nOnly do this if you have a confirmed receipt from the Eversend dashboard showing funds were received.`
+        );
+        if (forceIt) {
+          const forceRes = await api.post(`/payments/eversend/recover/${tx.reference}`, { force: true });
+          if (forceRes.data.success) {
+            toast.success(`✅ Force recovered: ${forceRes.data.message}`);
+            fetchTransactions();
+          } else {
+            toast.error(forceRes.data.message || 'Force recovery failed.');
+          }
+        }
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Recovery request failed.';
+      // 400 means gateway check ran but returned non-success — offer force
+      if (err.response?.status === 400) {
+        const forceIt = window.confirm(
+          `${msg}\n\nForce recover anyway?\n(Only if you have confirmed gateway receipt)`
+        );
+        if (forceIt) {
+          try {
+            const forceRes = await api.post(`/payments/eversend/recover/${tx.reference}`, { force: true });
+            if (forceRes.data.success) {
+              toast.success(`✅ Force recovered: ${forceRes.data.message}`);
+              fetchTransactions();
+            } else {
+              toast.error(forceRes.data.message || 'Force recovery failed.');
+            }
+          } catch (forceErr) {
+            toast.error(forceErr.response?.data?.message || 'Force recovery failed.');
+          }
+        }
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setRecoveringId(null);
     }
   };
 
@@ -383,6 +440,36 @@ export default function AdminTransactionsPage() {
                                         </div>
                                         <p className="text-[9px] lg:text-[10px]  font-semibold text-[var(--text-secondary)] mt-3 opacity-30 leading-relaxed italic">* Marking as COMPLETED will automatically credit user wallets or settle linked orders.</p>
                                      </div>
+
+                                      {/* ── Gateway Payment Recovery (Eversend only) ──────── */}
+                                      {tx.gateway === 'eversend' && ['failed', 'pending'].includes(tx.status) && tx.type === 'deposit' && (
+                                        <div className="bg-amber-500/5 border border-amber-500/20 p-6 rounded-3xl">
+                                          <div className="flex items-start gap-3 mb-4">
+                                            <div className="size-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                                              <RotateCcw className="size-4" />
+                                            </div>
+                                            <div>
+                                              <p className="text-[11px] lg:text-[12px] font-semibold text-amber-400 tracking-tight">Gateway Payment Recovery</p>
+                                              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60 mt-0.5 leading-relaxed">
+                                                Use when Eversend confirmed receipt but our system marked this as <span className="text-amber-400 capitalize">{tx.status}</span>. Re-verifies live and credits wallet on success.
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl p-2.5 mb-4 font-mono text-[9px] text-[var(--text-secondary)] opacity-50 break-all">
+                                            {tx.reference}
+                                          </div>
+                                          <button
+                                            onClick={() => handleRecoverPayment(tx)}
+                                            disabled={recoveringId === tx._id}
+                                            className="w-full h-12 bg-amber-500 text-white rounded-2xl font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                                          >
+                                            {recoveringId === tx._id
+                                              ? <><Loader2 className="size-4 animate-spin" /> Verifying with gateway...</>
+                                              : <><RotateCcw className="size-4" /> Recover {tx.amount?.toLocaleString()} XAF</>
+                                            }
+                                          </button>
+                                        </div>
+                                      )}
 
                                      {tx.status === 'completed' && tx.order_ids?.length > 0 && (
                                         <button 
