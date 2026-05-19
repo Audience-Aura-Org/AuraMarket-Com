@@ -52,6 +52,23 @@ function CompactStat({ title, value, sub, icon: Icon, color }) {
   );
 }
 
+function ElapsedTimer() {
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setSecs(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  const label = m > 0 ? `${m}m ${s}s` : `${s}s`;
+  return (
+    <div className="mb-6 flex flex-col items-center">
+      <div className="text-4xl font-bold tracking-tight text-[var(--accent)] tabular-nums">{label}</div>
+      <p className="text-[10px] font-semibold opacity-30 tracking-tight mt-1">elapsed</p>
+    </div>
+  );
+}
+
 export default function WalletPage() {
   const { user } = useAuthStore();
   const router = useRouter();
@@ -588,28 +605,48 @@ export default function WalletPage() {
                   )}
 
                   {depositStep === 'processing' && (
-                    <motion.div key="processing" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-10 flex flex-col items-center text-center">
-                       <div className="relative mb-8">
-                          <div className="size-24 rounded-[2.5rem] bg-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center shadow-inner">
-                             <Smartphone className="size-10 text-[var(--accent)] animate-bounce" />
-                          </div>
-                          <span className="absolute -top-2 -right-2 size-8 bg-[var(--accent)] rounded-full flex items-center justify-center shadow-lg animate-pulse border-4 border-[var(--bg-primary)]">
-                             <Loader2 className="size-4 text-white animate-spin" />
-                          </span>
-                       </div>
-                       <h4 className="text-xl  font-bold tracking-tight mb-2">Request sent</h4>
-                       <p className="text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60 px-6 leading-relaxed mb-8">
-                          Charge request initiated to <span className="text-[var(--text-primary)] font-mono">{depositPhone}</span>. Please confirm on your mobile device.
-                       </p>
-                       
-                       <div className="w-full bg-[var(--bg-secondary)] rounded-2xl p-4 border border-[var(--glass-border)] mb-8 flex items-center gap-4">
-                          <div className="size-2 rounded-full bg-emerald-500 animate-ping" />
-                          <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)]">{depositMessage}</p>
-                       </div>
+                    <motion.div key="processing" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-8 flex flex-col items-center text-center">
 
-                       <p className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-20">Do not close this window</p>
+                      {/* Elapsed timer */}
+                      <ElapsedTimer />
+
+                      {/* Steps */}
+                      <div className="w-full space-y-2 mb-6">
+                        {[
+                          { label: 'Request sent to gateway', done: true, active: false },
+                          { label: `Approve prompt on ${depositPhone}`, done: false, active: true },
+                          { label: 'Confirming payment', done: false, active: false },
+                        ].map((step, i) => (
+                          <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                            step.done ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
+                            step.active ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 text-[var(--accent)]' :
+                            'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-30'
+                          }`}>
+                            <div className={`size-5 rounded-full flex items-center justify-center shrink-0 ${
+                              step.done ? 'bg-emerald-500' : step.active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'
+                            }`}>
+                              {step.done
+                                ? <CheckCircle2 className="size-3 text-white" />
+                                : step.active
+                                  ? <Loader2 className="size-3 text-white animate-spin" />
+                                  : <span className="text-[8px] font-bold text-white">{i + 1}</span>
+                              }
+                            </div>
+                            <p className="text-[11px] font-semibold tracking-tight text-left">{step.label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Live status */}
+                      <div className="w-full bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--glass-border)] flex items-center gap-3">
+                        <div className="size-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                        <p className="text-[11px] font-semibold tracking-tight text-[var(--accent)] text-left">{depositMessage || 'Waiting for mobile money confirmation...'}</p>
+                      </div>
+
+                      <p className="text-[10px] font-semibold tracking-tight opacity-20 mt-4">Do not close this window</p>
                     </motion.div>
                   )}
+
 
                   {depositStep === 'result' && (
                     <motion.div key="result" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-6 flex flex-col items-center text-center">
