@@ -76,6 +76,7 @@ export default function WalletPage() {
   const [depositMessage, setDepositMessage] = useState('');
   const [depositReason, setDepositReason] = useState('');
   const [recheckingDeposit, setRecheckingDeposit] = useState(false);
+  const [recheckingTxId, setRecheckingTxId] = useState(null);
   const itemsPerPage = 10;
 
   const showToast = (msg, type = 'success') => {
@@ -94,7 +95,42 @@ export default function WalletPage() {
         setBalance(balRes.data.data.balance || 0);
         setPendingBalance(balRes.data.data.pending_escrow || 0);
       }
-      if (txRes.data.success) setTransactions(txRes.data.data.transactions || []);
+      if (txRes.data.success) {
+        const txList = txRes.data.data.transactions || [];
+        setTransactions(txList);
+
+        // ── AUTO-RECHECK PENDING EVERSEND DEPOSITS ──────────────────────────
+        // Silently re-verify any pending eversend deposit < 30 min old.
+        // Runs in background — does not block UI rendering.
+        const pending = txList.filter(
+          tx => tx.status === 'pending'
+            && tx.gateway === 'eversend'
+            && tx.type === 'deposit'
+            && (Date.now() - new Date(tx.createdAt).getTime()) < 30 * 60 * 1000
+        );
+        if (pending.length > 0) {
+          setTimeout(async () => {
+            let anyChanged = false;
+            for (const tx of pending) {
+              try {
+                const r = await api.get(`/payments/eversend/recheck/${tx.reference}`);
+                if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') {
+                  anyChanged = true;
+                }
+              } catch { /* silent — don't disrupt UI */ }
+            }
+            if (anyChanged) {
+              // Refresh silently to show updated statuses
+              try {
+                const [b2, t2] = await Promise.all([api.get('/wallet'), api.get('/wallet/transactions')]);
+                if (b2.data.success) { setBalance(b2.data.data.balance || 0); setPendingBalance(b2.data.data.pending_escrow || 0); }
+                if (t2.data.success) setTransactions(t2.data.data.transactions || []);
+              } catch { /* silent */ }
+            }
+          }, 2000);
+        }
+        // ────────────────────────────────────────────────────────────────────
+      }
       if (wdRes.data.success) setWithdrawalRequests(wdRes.data.data.withdrawals || []);
     } catch (err) {
       console.error('Wallet fetch error:', err);
@@ -170,10 +206,28 @@ export default function WalletPage() {
               setDepositStep('result');
               setDepositReason(data.reason || 'Payment was declined by the gateway.');
             },
-            onTimeout: () => {
+            onTimeout: async () => {
               setDepositStatus('timeout');
               setDepositStep('result');
-              setDepositMessage('Verification timed out. If you approved the prompt, use "Recheck Payment" below.');
+              setDepositMessage('Verification window ended. Checking payment status one more time...');
+              // Auto-recheck once — the gateway may have confirmed after the polling window
+              try {
+                const ref = depositRef;
+                if (ref) {
+                  const r = await api.get(`/payments/eversend/recheck/${ref}`);
+                  if (r.data?.status === 'SUCCESSFUL') {
+                    setDepositStatus('success');
+                    setDepositMessage('Payment confirmed! Your wallet has been credited.');
+                    fetchWallet();
+                    return;
+                  } else if (r.data?.status === 'FAILED') {
+                    setDepositStatus('failed');
+                    setDepositReason(r.data?.reason || r.data?.message || 'Payment was declined.');
+                    return;
+                  }
+                }
+              } catch { /* silent — show timeout screen as fallback */ }
+              setDepositMessage('Could not confirm automatically. If you approved the USSD prompt, tap "Recheck Payment" below.');
             }
           },
           5000,   // poll every 5 seconds
@@ -251,7 +305,6 @@ export default function WalletPage() {
   };
 
   // Recheck a specific pending transaction from the ledger
-  const [recheckingTxId, setRecheckingTxId] = useState(null);
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
     try {

@@ -437,31 +437,64 @@ const eversendVerify = async (req, res) => {
 const eversendRecheck = async (req, res) => {
   try {
     const { reference } = req.params;
-    const transaction = await Transaction.findOne({ reference, gateway: 'eversend' });
+
+    // Look up by our internal reference OR by Eversend's transactionRef field
+    const transaction = await Transaction.findOne({
+      $or: [
+        { reference },
+        { gateway_transaction_id: reference },
+      ],
+      gateway: 'eversend',
+    });
 
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
 
     // Already settled
     if (transaction.status === 'completed') {
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment has already been confirmed and processed.', data: { balance_added: transaction.amount } });
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment has already been confirmed and your wallet was credited.', data: { balance_added: transaction.amount } });
     }
 
+    // No gateway ID yet — Eversend hasn't assigned one (payment still queued)
     if (!transaction.gateway_transaction_id) {
-      return res.status(200).json({ success: false, status: 'PENDING', message: 'Still processing — no confirmation from gateway yet. Check back shortly.' });
+      const ageMin = (Date.now() - new Date(transaction.createdAt).getTime()) / 60000;
+      if (ageMin > 15) {
+        // Mark as failed after 15 min with no gateway response
+        transaction.status = 'failed';
+        await transaction.save();
+        return res.status(400).json({ success: false, status: 'FAILED', message: 'Gateway did not respond within 15 minutes. The transaction has been cancelled.' });
+      }
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Still waiting for gateway response. Please wait and try again in a moment.' });
     }
 
     let txStatus;
     let result;
 
-    const isSandbox = transaction.metadata?.is_sandbox || (transaction.gateway_transaction_id && transaction.gateway_transaction_id.startsWith('SBX-'));
+    const isSandbox = transaction.metadata?.is_sandbox || (transaction.gateway_transaction_id?.startsWith('SBX-'));
     if (isSandbox) {
-      console.log('[Eversend Recheck] Sandbox bypass — forcing SUCCESSFUL');
       txStatus = 'SUCCESSFUL';
       result = { data: { status: 'SUCCESSFUL' } };
     } else {
-      result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
-      txStatus = result?.data?.status || result?.status;
-      console.log(`[Eversend Recheck] ref=${reference} status=${txStatus}`);
+      try {
+        result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
+        txStatus = result?.data?.status || result?.status;
+        console.log(`[Eversend Recheck] ref=${reference} gatewayId=${transaction.gateway_transaction_id} status=${txStatus}`);
+      } catch (apiErr) {
+        const errStatus = apiErr.response?.status;
+        const errData = apiErr.response?.data;
+        console.error(`[Eversend Recheck] Gateway API error (${errStatus}):`, errData || apiErr.message);
+
+        // 404 from Eversend = transaction ID not found on their end
+        if (errStatus === 404) {
+          return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway has not recorded this transaction yet. If you approved the USSD prompt, check back in 1-2 minutes.' });
+        }
+
+        // Auth errors — return meaningful message
+        if (errStatus === 401 || errStatus === 403) {
+          return res.status(500).json({ success: false, message: 'Payment gateway authentication failed. Please contact support.' });
+        }
+
+        return res.status(503).json({ success: false, message: 'Could not reach payment gateway. Please try again in a moment.' });
+      }
     }
 
     if (txStatus === 'SUCCESSFUL') {
@@ -481,6 +514,17 @@ const eversendRecheck = async (req, res) => {
           }
 
           await session.commitTransaction();
+
+          // Notify user
+          setImmediate(() => {
+            sendNotification(req.app, transaction.user_id, {
+              title: '💰 Wallet Credited',
+              message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet.`,
+              type: 'wallet_update',
+              metadata: { link: '/wallet' },
+            }).catch(console.error);
+          });
+
         } catch (err) {
           await session.abortTransaction();
           throw err;
@@ -488,22 +532,23 @@ const eversendRecheck = async (req, res) => {
           session.endSession();
         }
       }
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed! Your order has been completed.', data: { balance_added: transaction.amount } });
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed! Your wallet has been credited.', data: { balance_added: transaction.amount } });
     }
 
     if (txStatus === 'FAILED') {
       const reason = result?.data?.message || result?.message || 'Payment was declined by the gateway.';
       transaction.status = 'failed';
-      transaction.gateway_response = result.data || result;
+      transaction.gateway_response = result?.data || result;
       await transaction.save();
-      return res.status(400).json({ success: false, status: 'FAILED', message: `Payment failed. Reason: ${reason}`, reason });
+      return res.status(400).json({ success: false, status: 'FAILED', message: `Payment failed: ${reason}`, reason });
     }
 
-    return res.status(200).json({ success: true, status: 'PENDING', message: 'Still processing. Check back shortly.' });
+    // Still PENDING
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed by the gateway. This usually takes 30-90 seconds.' });
 
   } catch (error) {
     console.error('Eversend Recheck Error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Failed to recheck payment status.' });
+    res.status(500).json({ success: false, message: 'Failed to recheck payment status. Please try again.' });
   }
 };
 
@@ -516,11 +561,23 @@ const eversendWebhook = async (req, res) => {
   try {
     const signature = req.headers['x-eversend-signature'];
     const isValid = eversend.verifyWebhookSignature(req.body, signature);
-    if (!isValid) { console.warn('Eversend webhook: invalid signature'); return res.status(401).send('Unauthorized'); }
+    if (!isValid) {
+      console.warn('[Eversend Webhook] Invalid signature — rejecting');
+      return res.status(401).send('Unauthorized');
+    }
 
-    const event = JSON.parse(req.body);
+    // Body-parser may have already parsed this as an object, or it may be a raw string/Buffer
+    let event;
+    if (typeof req.body === 'string') {
+      event = JSON.parse(req.body);
+    } else if (Buffer.isBuffer(req.body)) {
+      event = JSON.parse(req.body.toString('utf8'));
+    } else {
+      event = req.body; // already parsed by body-parser
+    }
+
     const { type, data } = event;
-    console.log(`Eversend webhook received: ${type}`, data?.transactionRef);
+    console.log(`[Eversend Webhook] type=${type} ref=${data?.transactionRef} id=${data?.transactionId}`);
 
     if (type === 'transaction.success' || type === 'collection.success') {
       const transaction = await Transaction.findOne({
