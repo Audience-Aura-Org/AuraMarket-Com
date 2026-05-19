@@ -208,6 +208,19 @@ const getTransactionStatus = async (transactionId) => {
 };
 
 /**
+ * Look up a collection by the transactionRef WE sent to Eversend.
+ * This is the fallback when we have no gateway_transaction_id stored.
+ * Uses GET /collections/:transactionRef
+ * @param {string} transactionRef - Our internal reference (e.g. AURA-1779...-userId)
+ */
+const getCollectionByRef = async (transactionRef) => {
+  return withAutoRefresh(async (client) => {
+    const res = await client.get(`/collections/${encodeURIComponent(transactionRef)}`);
+    return res.data;
+  });
+};
+
+/**
  * Legacy alias — kept for any code that still calls getCollectionStatus.
  * Internally uses getTransactionStatus.
  * @deprecated Use getTransactionStatus instead.
@@ -394,6 +407,7 @@ module.exports = {
   initiateCollection,
   initiateNGNCollection,
   getTransactionStatus,
+  getCollectionByRef,
   getCollectionStatus, // Legacy alias
   // Payouts
   getPayoutQuotation,

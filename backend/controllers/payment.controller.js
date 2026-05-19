@@ -454,16 +454,91 @@ const eversendRecheck = async (req, res) => {
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment has already been confirmed and your wallet was credited.', data: { balance_added: transaction.amount } });
     }
 
-    // No gateway ID yet — Eversend hasn't assigned one (payment still queued)
+    // No gateway_transaction_id stored — try to find the transaction on Eversend
+    // by the reference WE sent them (transactionRef). This handles the case where
+    // Eversend collected the money but the webhook didn't fire (401 bug, now fixed).
     if (!transaction.gateway_transaction_id) {
-      const ageMin = (Date.now() - new Date(transaction.createdAt).getTime()) / 60000;
-      if (ageMin > 15) {
-        // Mark as failed after 15 min with no gateway response
-        transaction.status = 'failed';
-        await transaction.save();
-        return res.status(400).json({ success: false, status: 'FAILED', message: 'Gateway did not respond within 15 minutes. The transaction has been cancelled.' });
+      const isSandbox = transaction.metadata?.is_sandbox;
+      if (isSandbox) {
+        // Sandbox: auto-succeed
+        if (transaction.status !== 'completed') {
+          transaction.status = 'completed';
+          await transaction.save();
+          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
+        }
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.', data: { balance_added: transaction.amount } });
       }
-      return res.status(200).json({ success: true, status: 'PENDING', message: 'Still waiting for gateway response. Please wait and try again in a moment.' });
+
+      // Real transaction — ask Eversend by our reference
+      let collectionData;
+      try {
+        const collRes = await eversend.getCollectionByRef(transaction.reference);
+        collectionData = collRes?.data || collRes;
+        console.log(`[Eversend Recheck] Lookup by ref=${transaction.reference}:`, JSON.stringify(collectionData)?.slice(0, 200));
+      } catch (refErr) {
+        const errStatus = refErr.response?.status;
+        const errMsg = refErr.response?.data?.message || refErr.message;
+        console.error(`[Eversend Recheck] getCollectionByRef failed (${errStatus}):`, errMsg);
+
+        if ((errStatus === 401 || errStatus === 403) && (errMsg || '').toLowerCase().includes('origin')) {
+          return res.status(503).json({ success: false, message: 'Payment gateway is only accessible from the production server. Please check from the live site.' });
+        }
+        if (errStatus === 404) {
+          return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway has not recorded this transaction yet. If you approved the USSD prompt, please wait 1-2 minutes and try again.' });
+        }
+        return res.status(503).json({ success: false, message: 'Could not reach payment gateway. Please try again shortly.' });
+      }
+
+      // Parse status from the collection response
+      const colStatus = collectionData?.status || collectionData?.data?.status;
+      const colTxId   = collectionData?.transactionId || collectionData?.id || collectionData?.data?.transactionId;
+      console.log(`[Eversend Recheck] colStatus=${colStatus} colTxId=${colTxId}`);
+
+      if (colStatus === 'SUCCESSFUL' || colStatus === 'successful' || colStatus === 'completed') {
+        if (transaction.status !== 'completed') {
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            transaction.status = 'completed';
+            if (colTxId) transaction.gateway_transaction_id = colTxId;
+            transaction.gateway_response = collectionData;
+            await transaction.save({ session });
+
+            const isCheckout = transaction.order_ids?.length > 0;
+            if (isCheckout) {
+              await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
+            } else {
+              await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
+            }
+            await session.commitTransaction();
+
+            setImmediate(() => {
+              sendNotification(req.app, transaction.user_id, {
+                title: '💰 Wallet Credited',
+                message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet.`,
+                type: 'wallet_update',
+                metadata: { link: '/wallet' },
+              }).catch(console.error);
+            });
+          } catch (err) {
+            await session.abortTransaction();
+            throw err;
+          } finally {
+            session.endSession();
+          }
+        }
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed! Your wallet has been credited.', data: { balance_added: transaction.amount } });
+      }
+
+      if (colStatus === 'FAILED' || colStatus === 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = collectionData;
+        await transaction.save();
+        return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined by the gateway.', reason: collectionData?.message || 'Declined' });
+      }
+
+      // PENDING or unknown — don't auto-fail, keep waiting
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed. Please check back in a moment.' });
     }
 
     let txStatus;
