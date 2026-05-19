@@ -397,8 +397,8 @@ export default function WalletPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <CompactStat title="Available" value={fmt(balance)} sub="Liquid capital" icon={Wallet} color="emerald" />
             <CompactStat title="In escrow" value={fmt(pendingBalance)} sub="Held for delivery" icon={Lock} color="amber" />
-            <CompactStat title="Total received" value={fmt(transactions.filter(t => ['deposit','refund','payout'].includes(t.type)).reduce((s,t)=>s+t.amount,0))} sub="Platform in" icon={ArrowDownLeft} color="fuchsia" />
-            <CompactStat title="Total sent" value={fmt(transactions.filter(t => ['withdrawal','payment'].includes(t.type)).reduce((s,t)=>s+t.amount,0))} sub="Platform out" icon={ArrowUpRight} color="blue" />
+            <CompactStat title="Successful" value={transactions.filter(t => t.status === 'completed').length} sub={`${fmt(transactions.filter(t=>t.status==='completed').reduce((s,t)=>s+t.amount,0))} XAF`} icon={CheckCircle2} color="emerald" />
+            <CompactStat title="Failed" value={transactions.filter(t => t.status === 'failed').length} sub="Payments declined" icon={XCircle} color="fuchsia" />
           </div>
 
           {/* Action Hub */}
