@@ -17,6 +17,7 @@ import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
+import socketService from '@/services/socket';
 
 const TX_ICONS = {
   deposit:    { Icon: ArrowDownLeft,  color: 'emerald' },
@@ -159,6 +160,31 @@ export default function WalletPage() {
     }
   }, [user]);
 
+  // ── Socket: instant wallet credit notification ──────────────────────────
+  // When the Eversend webhook fires on the backend, it emits 'wallet:credited'
+  // to the user's socket room. We listen here and immediately show success,
+  // bypassing the need to wait for the next poll cycle (saves up to 3s).
+  useEffect(() => {
+    if (!user?._id) return;
+    const callbackId = 'wallet-credited';
+    socketService.on('wallet:credited', callbackId, (data) => {
+      // Update balance display immediately
+      fetchWallet();
+      // If the deposit modal is open and processing, snap to success
+      if (depositStep === 'processing' && data.type === 'deposit') {
+        setDepositStatus('success');
+        setDepositStep('result');
+        setDepositMessage('Payment confirmed! Your wallet has been credited.');
+      }
+    });
+    socketService.on('withdrawal:paid', 'withdrawal-paid', () => fetchWallet());
+    return () => {
+      socketService.off('wallet:credited', callbackId);
+      socketService.off('withdrawal:paid', 'withdrawal-paid');
+    };
+  }, [user?._id, depositStep]);
+  // ───────────────────────────────────────────────────────────────────────
+
   if (!mounted || !user) return null;
 
   const startDeposit = async () => {
@@ -190,7 +216,7 @@ export default function WalletPage() {
         setDepositRef(ref);
         setDepositMessage('Charge request sent. Awaiting approval on your phone...');
 
-        // Poll for up to 110s (under 2 min) with 5s intervals
+        // Poll for up to 110s with 3s intervals (faster fallback; socket push handles the instant case)
         pollTransactionStatus(
           'eversend',
           ref,
@@ -231,8 +257,8 @@ export default function WalletPage() {
               setDepositMessage('Could not confirm automatically. If you approved the USSD prompt, tap "Recheck Payment" below.');
             }
           },
-          5000,   // poll every 5 seconds
-          110000  // 110 second max window (under 2 min)
+          3000,   // poll every 3s (socket push handles instant case; this is fallback)
+          110000  // 110 second max window
         );
       } else {
         // Gateway returned a non-success response
