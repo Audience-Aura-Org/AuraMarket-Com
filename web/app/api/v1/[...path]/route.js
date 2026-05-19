@@ -49,6 +49,7 @@ async function handleRequest(request, params, method) {
     // Inherit critical headers from the frontend request
     if (request.headers.get('authorization')) headers.set('authorization', request.headers.get('authorization'));
     if (request.headers.get('content-type')) headers.set('content-type', request.headers.get('content-type'));
+    if (request.headers.get('cookie')) headers.set('cookie', request.headers.get('cookie')); // forward auth cookie
     
     // Set appropriate origin and host headers based on environment
     const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://aura-market-com.vercel.app';
@@ -73,7 +74,8 @@ async function handleRequest(request, params, method) {
     headers.set('X-Forwarded-Host', backendHost);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    // 25s timeout: Eversend MoMo initiation + token fetch can take 10-15s on first call
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     const options = {
       method,
