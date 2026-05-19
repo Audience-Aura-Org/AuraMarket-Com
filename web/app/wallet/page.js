@@ -106,6 +106,7 @@ export default function WalletPage() {
           tx => tx.status === 'pending'
             && tx.gateway === 'eversend'
             && tx.type === 'deposit'
+            && !tx.gateway_transaction_id?.startsWith('SBX-') // skip sandbox test transactions
             && (Date.now() - new Date(tx.createdAt).getTime()) < 30 * 60 * 1000
         );
         if (pending.length > 0) {

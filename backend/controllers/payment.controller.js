@@ -488,8 +488,13 @@ const eversendRecheck = async (req, res) => {
           return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway has not recorded this transaction yet. If you approved the USSD prompt, check back in 1-2 minutes.' });
         }
 
-        // Auth errors — return meaningful message
+        // Auth errors — check if it's an IP whitelist rejection vs real auth failure
         if (errStatus === 401 || errStatus === 403) {
+          const ipBlocked = (apiErr.response?.data?.message || '').toLowerCase().includes('origin');
+          if (ipBlocked) {
+            console.error('[Eversend Recheck] IP not whitelisted — must call from production server (13.51.198.119)');
+            return res.status(503).json({ success: false, message: 'Payment gateway is only accessible from the production server. Please check from the live site.' });
+          }
           return res.status(500).json({ success: false, message: 'Payment gateway authentication failed. Please contact support.' });
         }
 

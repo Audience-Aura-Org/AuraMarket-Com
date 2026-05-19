@@ -77,8 +77,14 @@ const withAutoRefresh = async (fn) => {
     return await fn(client);
   } catch (err) {
     if (err.response?.status === 401) {
+      const errMsg = err.response?.data?.message || '';
+      // 'Invalid request origin' = IP whitelist rejection — retrying won't help
+      if (errMsg.toLowerCase().includes('origin') || errMsg.toLowerCase().includes('whitelist')) {
+        console.error('[Eversend] IP whitelist rejection — this server is not whitelisted by Eversend. Only the production server (13.51.198.119) can call Eversend APIs.');
+        throw err; // don't retry
+      }
       console.warn('[Eversend] 401 received — refreshing token and retrying...');
-      const client = await eversendClient(true); // force fresh token
+      const client = await eversendClient(true);
       return await fn(client);
     }
     throw err;
