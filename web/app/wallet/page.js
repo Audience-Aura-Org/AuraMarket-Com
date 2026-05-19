@@ -186,9 +186,26 @@ export default function WalletPage() {
         setDepositReason(res.message || 'Payment initiation failed. Please try again.');
       }
     } catch (err) {
-      // API call itself threw — go back to form with toast
-      setDepositStep('amount');
-      showToast(err?.response?.data?.message || 'Initialization failed. Please try again.', 'error');
+      const errMsg = err?.response?.data?.message;
+
+      if (depositRef) {
+        // We have a ref — initiation succeeded but something crashed after.
+        // Stay on result/timeout screen so user can recheck.
+        setDepositStatus('timeout');
+        setDepositStep('result');
+        setDepositMessage('Request sent but server confirmation was interrupted. Use "Recheck Payment" below.');
+      } else {
+        // We have NO ref — the API call itself failed (timeout, server error).
+        // Eversend may or may not have received the request.
+        // NEVER go back to 'amount' — user may have already gotten a USSD prompt.
+        setDepositStatus('timeout');
+        setDepositStep('result');
+        setDepositMessage(
+          errMsg
+            ? errMsg
+            : 'Could not reach the payment gateway. If you received and approved a USSD prompt on your phone, your payment may still be processing — check your transaction history below.'
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -220,9 +237,39 @@ export default function WalletPage() {
 
   const handleAction = async (type) => {
     if (type === 'deposit') {
-      setDepositStep('amount');
+      // Reset ONLY if we're not mid-transaction
+      if (!['processing'].includes(depositStep)) {
+        setDepositStep('amount');
+        setDepositStatus('pending');
+        setDepositReason('');
+        setDepositRef(null);
+        setDepositMessage('');
+      }
       setModal('deposit');
       return;
+    }
+  };
+
+  // Recheck a specific pending transaction from the ledger
+  const [recheckingTxId, setRecheckingTxId] = useState(null);
+  const handleRecheckTx = async (tx) => {
+    setRecheckingTxId(tx._id);
+    try {
+      const res = await api.get(`/payments/eversend/recheck/${tx.reference}`);
+      const { status, message, reason } = res.data;
+      if (status === 'SUCCESSFUL') {
+        showToast('Payment confirmed! Your wallet has been credited.', 'success');
+        fetchWallet();
+      } else if (status === 'FAILED') {
+        showToast(reason || message || 'Payment could not be confirmed.', 'error');
+        fetchWallet();
+      } else {
+        showToast('Still processing — your phone may still have a pending prompt.', 'info');
+      }
+    } catch {
+      showToast('Could not reach server. Try again shortly.', 'error');
+    } finally {
+      setRecheckingTxId(null);
     }
   };
 
@@ -330,15 +377,32 @@ export default function WalletPage() {
                       const config = TX_ICONS[tx.type] || TX_ICONS.payment;
                       const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
                       return (
-                        <div key={tx._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group cursor-pointer">
+                        <div key={tx._id || i} className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
+                          tx.status === 'pending' && tx.gateway === 'eversend' && tx.type === 'deposit'
+                            ? 'border-amber-500/30 bg-amber-500/5'
+                            : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
+                        }`}>
                           <div className={`size-10 rounded-xl flex items-center justify-center bg-${config.color}-500/10 text-${config.color}-500 border border-${config.color}-500/20`}>
                             <config.Icon className="size-4" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                             <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                            {/* Inline recheck for stuck pending eversend deposits */}
+                            {['pending', 'failed'].includes(tx.status) && tx.gateway === 'eversend' && tx.type === 'deposit' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
+                                disabled={recheckingTxId === tx._id}
+                                className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
+                              >
+                                {recheckingTxId === tx._id
+                                  ? <><Loader2 className="size-3 animate-spin" /> Checking...</>
+                                  : <><RotateCcw className="size-3" /> Recheck payment</>
+                                }
+                              </button>
+                            )}
                           </div>
-                          <div className="text-right">
+                          <div className="text-right shrink-0">
                              <p className={`text-base  font-bold tracking-tight ${
                                 tx.status === 'completed' 
                                   ? (isCredit ? 'text-emerald-500' : 'text-red-500')
