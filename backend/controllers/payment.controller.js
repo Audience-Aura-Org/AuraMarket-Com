@@ -327,106 +327,106 @@ const eversendVerify = async (req, res) => {
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
 
     if (transaction.status === 'completed') {
-      return res.status(200).json({ success: true, message: 'Payment already processed and orders settled.', status: 'SUCCESSFUL' });
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed and wallet credited.' });
     }
 
-    if (transaction.status === 'failed') {
-      return res.status(400).json({
-        success: false,
-        status: 'FAILED',
-        message: `Your deposit of ${transaction.amount} ${transaction.currency || 'XAF'} failed.`,
-        reason: transaction.gateway_response?.message || 'Payment was declined by the gateway.',
-      });
-    }
-
-    // Check for timeout — if pending for > 15 minutes with no gateway ID
-    if (!transaction.gateway_transaction_id) {
-      const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
-      if (ageSeconds > 900) {
-        transaction.status = 'failed';
-        transaction.gateway_response = { message: 'Verification timed out — no gateway transaction ID received after 15 minutes.' };
+    // ── Sandbox bypass ────────────────────────────────────────────────────
+    if (transaction.metadata?.is_sandbox || transaction.gateway_transaction_id?.startsWith('SBX-')) {
+      if (transaction.status !== 'completed') {
+        transaction.status = 'completed';
         await transaction.save();
-        return res.status(200).json({ success: false, status: 'FAILED', message: 'Payment verification timed out. Please check your transaction history or recheck payment status.', reference });
+        await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
       }
-      return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting mobile money confirmation from gateway.' });
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
     }
 
-    // Poll Eversend using /transactions/:id
-    let txStatus;
-    let result;
+    // ── Helper: credit wallet after confirmation ──────────────────────────
+    const settleTransaction = async (gatewayData, gatewayTxId) => {
+      const sess = await mongoose.startSession();
+      sess.startTransaction();
+      try {
+        transaction.status = 'completed';
+        transaction.gateway_response = gatewayData;
+        if (gatewayTxId && !transaction.gateway_transaction_id) transaction.gateway_transaction_id = gatewayTxId;
+        await transaction.save({ session: sess });
 
-    const isSandbox = transaction.metadata?.is_sandbox || (transaction.gateway_transaction_id && transaction.gateway_transaction_id.startsWith('SBX-'));
-    if (isSandbox) {
-      console.log('[Eversend Verify] Sandbox bypass — forcing SUCCESSFUL');
-      txStatus = 'SUCCESSFUL';
-      result = { data: { status: 'SUCCESSFUL', message: 'Sandbox Success' } };
-    } else {
-      result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
-      console.log(`[Eversend Verify] ref=${reference} txId=${transaction.gateway_transaction_id} status=`, result?.data?.status || result?.status);
+        if (transaction.order_ids?.length > 0) {
+          await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, sess, true, getWebUrl(req), 'eversend');
+        } else {
+          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session: sess });
+        }
+        await sess.commitTransaction();
+      } catch (e) {
+        await sess.abortTransaction();
+        throw e;
+      } finally {
+        sess.endSession(); }
+    };
+
+    // ── Path A: No gateway_transaction_id — look up by our reference ──────
+    if (!transaction.gateway_transaction_id) {
+      let colData, colStatus, colTxId;
+      try {
+        const colRes = await eversend.getCollectionByRef(transaction.reference);
+        colData   = colRes?.data || colRes;
+        colStatus = colData?.status;
+        colTxId   = colData?.transactionId || colData?.id;
+        console.log(`[Eversend Verify] byRef ref=${reference} status=${colStatus} id=${colTxId}`);
+      } catch (refErr) {
+        const code = refErr.response?.status;
+        const msg  = refErr.response?.data?.message || refErr.message || '';
+        console.warn(`[Eversend Verify] getCollectionByRef failed (${code}): ${msg}`);
+        // If Eversend can't be reached, stay PENDING — don't fail the transaction
+        return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting mobile money confirmation from gateway.' });
+      }
+
+      if (colStatus === 'SUCCESSFUL' || colStatus === 'successful' || colStatus === 'completed') {
+        await settleTransaction(colData, colTxId);
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment verified and wallet credited.', data: { balance_added: transaction.amount } });
+      }
+      if (colStatus === 'FAILED' || colStatus === 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = colData;
+        await transaction.save();
+        return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined by the gateway.', reason: colData?.message || 'Declined' });
+      }
+      // PENDING or unknown — keep waiting
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting mobile money confirmation. Please approve the prompt on your phone.' });
+    }
+
+    // ── Path B: We have a gateway_transaction_id — use getTransactionStatus ─
+    let txStatus, result;
+    try {
+      result   = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
       txStatus = result?.data?.status || result?.status;
-    }
-
-    // Check timeout — if API still returns pending after 15 minutes
-    const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
-    if (txStatus === 'PENDING' && ageSeconds > 900) {
-      transaction.status = 'failed';
-      transaction.gateway_response = result.data || result;
-      await transaction.save();
-      return res.status(200).json({ success: false, status: 'FAILED', message: 'Payment verification timed out. Please check your transaction history or recheck payment status.', reference });
+      console.log(`[Eversend Verify] byId ref=${reference} id=${transaction.gateway_transaction_id} status=${txStatus}`);
+    } catch (apiErr) {
+      const code = apiErr.response?.status;
+      const msg  = apiErr.response?.data?.message || apiErr.message || '';
+      console.warn(`[Eversend Verify] getTransactionStatus failed (${code}): ${msg}`);
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway temporarily unreachable. Please wait.' });
     }
 
     if (txStatus === 'SUCCESSFUL') {
-      const session = await mongoose.startSession();
-      session.startTransaction();
-      try {
-        transaction.status = 'completed';
-        transaction.gateway_response = result.data;
-        await transaction.save({ session });
-
-        const isCheckout = transaction.order_ids && transaction.order_ids.length > 0;
-        if (isCheckout) {
-          // Checkout: settle orders (funds came from Eversend, not wallet)
-          await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
-        } else {
-          // Pure wallet top-up: credit the user's wallet balance
-          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
-        }
-
-        await session.commitTransaction();
-      } catch (err) {
-        await session.abortTransaction();
-        throw err;
-      } finally {
-        session.endSession();
-      }
+      await settleTransaction(result?.data, null);
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment verified and wallet credited.', data: { balance_added: transaction.amount } });
     }
-
     if (txStatus === 'FAILED') {
-      const reason = result?.data?.message || result?.message || 'Payment was declined by the gateway.';
+      const reason = result?.data?.message || result?.message || 'Payment was declined.';
       transaction.status = 'failed';
-      transaction.gateway_response = result.data || result;
+      transaction.gateway_response = result?.data || result;
       await transaction.save();
-      return res.status(400).json({
-        success: false,
-        status: 'FAILED',
-        message: `Your deposit of ${transaction.amount} ${transaction.currency || 'XAF'} failed. Reason: ${reason}`,
-        reason,
-        reference,
-      });
+      return res.status(400).json({ success: false, status: 'FAILED', message: `Payment failed: ${reason}`, reason, reference });
     }
 
     return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed. Please wait.' });
 
   } catch (error) {
     console.error('Eversend Verify Error:', error.response?.data || error.message);
-    const statusCode = error.response?.status || 500;
-    if (statusCode === 500) {
-      return res.status(503).json({ success: false, message: 'Eversend service is temporarily unavailable. Please try again in a few minutes.' });
-    }
-    res.status(500).json({ success: false, message: 'Eversend verification error.' });
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'Verification temporarily unavailable. Please wait.' });
   }
 };
+
 
 /**
  * @route   GET /api/payments/eversend/recheck/:reference
