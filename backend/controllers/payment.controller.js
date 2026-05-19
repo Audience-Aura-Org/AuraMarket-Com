@@ -469,11 +469,11 @@ const eversendRecheck = async (req, res) => {
       }
 
       // Parse status from the collection response
-      const colStatus = collectionData?.status || collectionData?.data?.status;
+      const colStatus = (collectionData?.status || collectionData?.data?.status || '').toUpperCase();
       const colTxId   = collectionData?.transactionId || collectionData?.id || collectionData?.data?.transactionId;
       console.log(`[Eversend Recheck] colStatus=${colStatus} colTxId=${colTxId}`);
 
-      if (colStatus === 'SUCCESSFUL' || colStatus === 'successful' || colStatus === 'completed') {
+      if (colStatus === 'SUCCESSFUL' || colStatus === 'COMPLETED') {
         if (transaction.status !== 'completed') {
           const session = await mongoose.startSession();
           session.startTransaction();
@@ -530,7 +530,7 @@ const eversendRecheck = async (req, res) => {
     } else {
       try {
         result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
-        txStatus = result?.data?.status || result?.status;
+        txStatus = (result?.data?.status || result?.status || '').toUpperCase(); // normalize: Eversend returns lowercase
         console.log(`[Eversend Recheck] ref=${reference} gatewayId=${transaction.gateway_transaction_id} status=${txStatus}`);
       } catch (apiErr) {
         const errStatus = apiErr.response?.status;
