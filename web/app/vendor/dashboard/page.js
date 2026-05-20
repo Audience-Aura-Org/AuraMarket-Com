@@ -392,22 +392,24 @@ export default function VendorDashboard() {
           </div>
           
           {/* Aura Stories Quick Action */}
-          <div className="glass-panel p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shadow-lg">
+          <div className="glass-panel p-5 sm:p-6 rounded-[2rem] border border-[var(--accent)]/20 bg-gradient-to-br from-[var(--accent)]/5 to-[var(--bg-primary)]/80 flex flex-col md:flex-row items-center justify-between gap-5">
+            {/* Icon + Text — centered on mobile, left on desktop */}
+            <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-3 md:gap-4 w-full md:w-auto">
+              <div className="size-14 md:size-12 rounded-2xl bg-[var(--accent)]/15 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/25 shadow-lg shadow-[var(--accent)]/10 shrink-0">
                 <span className="material-symbols-outlined text-2xl">auto_awesome</span>
               </div>
               <div>
-                <h3 className="text-sm  font-bold text-[var(--text-primary)]  tracking-tighter">Aura Stories Manager</h3>
-                <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold opacity-50 tracking-tight">Share updates & engage with your followers</p>
+                <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Aura Stories Manager</h3>
+                <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-60 tracking-tight mt-0.5">Share updates &amp; engage with your followers</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-wrap md:flex-nowrap">
-              <Link href="/vendor/products/add" className="flex items-center gap-2 px-6 py-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-full text-[11px] lg:text-[12px] font-semibold tracking-tight hover:border-[var(--accent)]/50 transition-all">
+            {/* Buttons — full-width centered on mobile, auto on desktop */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              <Link href="/vendor/products/add" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-full text-[12px] font-semibold tracking-tight hover:border-[var(--accent)]/50 transition-all">
                 <span className="material-symbols-outlined text-lg">add_box</span>
                 Add Product
               </Link>
-              <Link href="/vendor/stories" className="flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[11px] lg:text-[12px] font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
+              <Link href="/vendor/stories" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[12px] font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/25 hover:scale-105 active:scale-95 transition-all">
                 <span className="material-symbols-outlined text-lg">auto_awesome</span>
                 Launch Story Hub
               </Link>
