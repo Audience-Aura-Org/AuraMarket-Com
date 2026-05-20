@@ -130,9 +130,22 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         const newMsgs = chatRes.data.data?.messages || [];
         const total = chatRes.data.data?.total || 0;
         
-        setMessages(prev => pageNum === 1 ? newMsgs : [...newMsgs, ...prev]);
-        setHasMore(messages.length + newMsgs.length < total);
-        if (pageNum === 1) {
+        if (pageNum > 1 && scrollRef.current) {
+          const prevScrollHeight = scrollRef.current.scrollHeight;
+          const prevScrollTop = scrollRef.current.scrollTop;
+          
+          setMessages(prev => [...newMsgs, ...prev]);
+          setHasMore((messages.length + newMsgs.length) < total);
+          
+          setTimeout(() => {
+            if (scrollRef.current) {
+              const newScrollHeight = scrollRef.current.scrollHeight;
+              scrollRef.current.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+            }
+          }, 50);
+        } else {
+          setMessages(newMsgs);
+          setHasMore(newMsgs.length < total);
           scrollToBottom('auto');
           markAsRead(pid);
         }
@@ -189,6 +202,30 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       loadInbox();
     };
 
+    const handleSentMessageEcho = (msg) => {
+      const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
+      const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
+
+      if (activePartnerId && (senderId === activePartnerId.toString() || receiverId === activePartnerId.toString())) {
+        setMessages(prev => {
+          if (prev.some(m => m._id === msg._id)) return prev;
+          
+          const tempId = prev.find(m => 
+            ((m.text && m.text === msg.text) || (m.image_url && m.image_url === msg.image_url)) && 
+            m.status === 'sending'
+          )?._id;
+          
+          if (tempId) {
+            return prev.map(m => m._id === tempId ? { ...msg, status: 'sent' } : m);
+          }
+          
+          return [...prev, msg];
+        });
+        scrollToBottom();
+      }
+      loadInbox();
+    };
+
     const onPartnerTyping = ({ userId }) => {
       if (userId === activePartnerId?.toString()) setPartnerTyping(true);
     };
@@ -210,12 +247,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
 
     socketService.on('receive_message', handleNewMessage);
+    socketService.on('sent_message_echo', handleSentMessageEcho);
     socketService.on('partner_typing', onPartnerTyping);
     socketService.on('partner_stopped_typing', onPartnerStoppedTyping);
     socketService.on('user_presence', onUserPresence);
 
     return () => {
       socketService.off('receive_message', handleNewMessage);
+      socketService.off('sent_message_echo', handleSentMessageEcho);
       socketService.off('partner_typing', onPartnerTyping);
       socketService.off('partner_stopped_typing', onPartnerStoppedTyping);
       socketService.off('user_presence', onUserPresence);
@@ -263,6 +302,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const handleSend = async (customText = null, imageUrl = null) => {
     const text = (customText || input).trim();
     if ((!text && !imageUrl) || !activePartnerId || sending) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    setIsTyping(false);
+    socketService.emit('typing_stop', { receiver_id: activePartnerId });
 
     setSending(true);
     const optimisticMsg = {
