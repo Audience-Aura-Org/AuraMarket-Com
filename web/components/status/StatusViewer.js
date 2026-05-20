@@ -436,6 +436,20 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     api.post(`/statuses/${story._id}/view`).catch(() => {});
   }, [story?._id]);
 
+  const dismissKeyboard = useCallback(() => {
+    if (typeof document !== 'undefined') {
+      const activeEl = document.activeElement;
+      if (activeEl && typeof activeEl.blur === 'function') {
+        activeEl.blur();
+      }
+    }
+  }, []);
+
+  const handleClose = useCallback(() => {
+    dismissKeyboard();
+    onClose();
+  }, [onClose, dismissKeyboard]);
+
   const resetStoryState = useCallback(() => {
     setLiked(false);
     setReplyText('');
@@ -454,18 +468,20 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
   const goNext = useCallback(() => {
     if (transitionLockRef.current) return;
+    dismissKeyboard();
     lockTransition();
     if (storyIdx < totalInGroup - 1) {
       setStoryIdx(s => s + 1); resetStoryState();
     } else if (vendorIdx < totalVendors - 1) {
       setVendorIdx(v => v + 1); setStoryIdx(0); resetStoryState();
     } else {
-      onClose();
+      handleClose();
     }
-  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState, lockTransition]);
+  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, handleClose, resetStoryState, lockTransition, dismissKeyboard]);
 
   const goPrev = useCallback(() => {
     if (transitionLockRef.current) return;
+    dismissKeyboard();
     lockTransition();
     if (storyIdx > 0) {
       setStoryIdx(s => s - 1); resetStoryState();
@@ -475,7 +491,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       setStoryIdx(prevGroup.stories.length - 1);
       resetStoryState();
     }
-  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition]);
+  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition, dismissKeyboard]);
 
   const handleVideoProgress = useCallback((e) => {
     const { currentTime, duration } = e.target;
@@ -502,15 +518,15 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
   const handleViewProduct = useCallback(() => {
     if (!story?.linked_product?._id) return;
-    onClose();
+    handleClose();
     router.push(`/products/${story.linked_product._id}`);
-  }, [story, onClose, router]);
+  }, [story, handleClose, router]);
 
   const handleVendorClick = useCallback((e, vendorId) => {
     e.stopPropagation();
-    onClose();
+    handleClose();
     router.push(`/stores/${vendorId}`);
-  }, [onClose, router]);
+  }, [handleClose, router]);
 
   const toggleLike = useCallback(() => {
     setLiked(l => !l);
@@ -531,6 +547,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
     if (!recipientUserId) return;
     const text = replyText.trim();
+    dismissKeyboard();
     setReplyText('');
     setIsReplying(false);
     api.post('/chat', {
@@ -540,7 +557,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     }).catch(() => {});
     window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
     setPaused(false);
-  }, [replyText, story]);
+  }, [replyText, story, dismissKeyboard]);
 
   const onPointerDown = useCallback((e) => {
     if (isReplying) return;
@@ -556,14 +573,14 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     const distX = e.clientX - touchStart.current.x;
     if (paused) { setPaused(false); return; }
     if (distY > 100 && duration < 450 && Math.abs(distY) > Math.abs(distX)) {
-      onClose();
+      handleClose();
       return;
     }
     if (duration < 400 && Math.abs(distX) > 56 && Math.abs(distX) > Math.abs(distY) * 1.15) {
       if (distX < 0) goNext();
       else goPrev();
     }
-  }, [isReplying, paused, onClose, goNext, goPrev]);
+  }, [isReplying, paused, handleClose, goNext, goPrev]);
 
   if (!story) return null;
 
@@ -575,7 +592,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={onClose}
+      onClick={handleClose}
       className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
     >
       <div
@@ -738,7 +755,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               </button>
             )}
             <button
-              onClick={e => { e.stopPropagation(); onClose(); }}
+              onClick={e => { e.stopPropagation(); handleClose(); }}
               className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white"
             >
               <X className="size-4.5" />

@@ -186,7 +186,17 @@ export default function OnboardingFlow() {
     }
   }, [followedVendors]);
 
+  const dismissKeyboard = () => {
+    if (typeof document !== 'undefined') {
+      const activeEl = document.activeElement;
+      if (activeEl && typeof activeEl.blur === 'function') {
+        activeEl.blur();
+      }
+    }
+  };
+
   const goNext = () => {
+    dismissKeyboard();
     if (isVendor) {
       if (step === 0 && (!vendorProfile.store_name || !vendorProfile.description || !phone))
         return toast.error('Store name, description and phone are required.');
@@ -207,10 +217,11 @@ export default function OnboardingFlow() {
     setStep(s => s + 1);
   };
 
-  const goBack = () => { setSearch(''); setStep(s => s - 1); };
-  const skip = () => { sessionStorage.setItem('onboarding_skipped', 'true'); router.push('/discovery'); };
+  const goBack = () => { dismissKeyboard(); setSearch(''); setStep(s => s - 1); };
+  const skip = () => { dismissKeyboard(); sessionStorage.setItem('onboarding_skipped', 'true'); router.push('/discovery'); };
 
   const finish = async () => {
+    dismissKeyboard();
     setLoading(true);
     try {
       if (isVendor) {
