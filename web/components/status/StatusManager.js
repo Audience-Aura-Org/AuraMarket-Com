@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Eye, Heart,
-  RefreshCw, Activity, Calendar, Clock, Zap, Flame, Shield, RotateCcw
+  RefreshCw, Activity, Calendar, Clock, Zap, Flame, Shield, RotateCcw,
+  ShoppingBag
 } from 'lucide-react';
+import Link from 'next/link';
 import api from '@/services/api';
 import socketService from '@/services/socket';
 import StatusCreator from './StatusCreator';
@@ -77,13 +79,22 @@ export default function StatusManager() {
             Active <span className="opacity-40">Statuses</span>
           </h2>
         </div>
-        <button 
-          onClick={() => { setReshareTarget(null); setShowCreator(true); }}
-          className="bg-[var(--accent)] text-white px-8 md:px-10 py-4 rounded-2xl font-bold text-[11px] md:text-xs tracking-tight hover:opacity-90 transition-all flex items-center justify-center gap-3 shadow-xl shadow-[var(--accent)]/20 active:scale-95 w-full md:w-auto"
-        >
-          <Plus className="size-4" />
-          Deploy New Story
-        </button>
+        <div className="flex items-center gap-3 w-full md:w-auto flex-wrap md:flex-nowrap">
+          <Link 
+            href="/vendor/products/add"
+            className="flex-1 md:flex-none border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-primary)] px-8 md:px-10 py-4 rounded-2xl font-bold text-[11px] md:text-xs tracking-tight hover:border-[var(--accent)]/40 hover:bg-[var(--bg-secondary)] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-sm"
+          >
+            <ShoppingBag className="size-4 text-[var(--accent)]" />
+            Add Product
+          </Link>
+          <button 
+            onClick={() => { setReshareTarget(null); setShowCreator(true); }}
+            className="flex-1 md:flex-none bg-[var(--accent)] text-white px-8 md:px-10 py-4 rounded-2xl font-bold text-[11px] md:text-xs tracking-tight hover:opacity-90 transition-all flex items-center justify-center gap-3 shadow-xl shadow-[var(--accent)]/20 active:scale-95"
+          >
+            <Plus className="size-4" />
+            Deploy New Story
+          </button>
+        </div>
       </section>
 
       {/* Bento Grid */}

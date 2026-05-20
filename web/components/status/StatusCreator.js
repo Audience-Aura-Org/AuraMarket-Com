@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Image as ImageIcon, Video, Type, 
   ShoppingBag, Trash2, Send, Loader2,
-  AlertCircle, Clock, Search, Tag, RotateCcw
+  AlertCircle, Clock, Search, Tag, RotateCcw,
+  Plus
 } from 'lucide-react';
 import { uploadService } from '@/services/upload';
 import api from '@/services/api';
@@ -382,38 +383,52 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     </button>
                   </div>
                 ) : (
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
-                      <Search className="size-4" />
-                    </div>
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      placeholder="Search your products..."
-                      className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-sm font-medium focus:border-[var(--accent)] outline-none transition-all"
-                    />
-                    {searchTerm && (
-                      <div className="absolute top-full left-0 right-0 mt-2 max-h-52 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl z-50 p-1.5 space-y-0.5">
-                        {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                          <button
-                            key={p._id}
-                            onClick={() => { setLinkedProduct(p); setSearchTerm(''); }}
-                            className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-left"
-                          >
-                            <div className="size-10 rounded-lg overflow-hidden border border-[var(--glass-border)] shrink-0">
-                              <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
-                            </div>
-                            <div>
-                              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate">{p.name}</p>
-                              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] mt-0.5">{p.price?.toLocaleString()} XAF</p>
-                            </div>
-                          </button>
-                        )) : (
-                          <div className="p-6 text-center text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-30">No products found</div>
-                        )}
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
+                        <Search className="size-4" />
                       </div>
-                    )}
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="Search your products..."
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-sm font-medium focus:border-[var(--accent)] outline-none transition-all"
+                      />
+                      {searchTerm && (
+                        <div className="absolute top-full left-0 right-0 mt-2 max-h-52 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl z-50 p-1.5 space-y-0.5">
+                          {filteredProducts.length > 0 ? filteredProducts.map(p => (
+                            <button
+                              key={p._id}
+                              onClick={() => { setLinkedProduct(p); setSearchTerm(''); }}
+                              className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-left"
+                            >
+                              <div className="size-10 rounded-lg overflow-hidden border border-[var(--glass-border)] shrink-0">
+                                <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
+                              </div>
+                              <div>
+                                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate">{p.name}</p>
+                                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] mt-0.5">{p.price?.toLocaleString()} XAF</p>
+                              </div>
+                            </button>
+                          )) : (
+                            <div className="p-6 text-center text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-30">No products found</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] lg:text-[11px] font-medium text-[var(--text-secondary)] opacity-60">Can't find your product?</span>
+                      <a 
+                        href="/vendor/products/add" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-[10px] lg:text-[11px] font-bold text-[var(--accent)] hover:underline flex items-center gap-1 transition-all"
+                      >
+                        <Plus className="size-3" />
+                        Add new product
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>

@@ -8,8 +8,8 @@ import { useChat } from '@/context/ChatContext';
 
 const ACTIONS = {
   vendor: [
-    { label: 'Add Product', icon: ShoppingBag, href: '/vendor/products/new', color: 'bg-emerald-500' },
-    { label: 'Post Story', icon: Activity, href: '/vendor/stories/new', color: 'bg-purple-500' },
+    { label: 'Add Product', icon: ShoppingBag, href: '/vendor/products/add', color: 'bg-emerald-500' },
+    { label: 'Post Story', icon: Activity, href: '/vendor/stories', color: 'bg-purple-500' },
     { label: 'Messages', icon: MessageCircle, href: '/chat', color: 'bg-blue-500', chatOverlay: true },
   ],
   admin: [

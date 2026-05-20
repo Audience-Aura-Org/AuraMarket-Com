@@ -54,7 +54,7 @@ export default function BottomNav() {
   ] : [
     { label: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
     { label: "Shop", href: "/discovery?tab=discover", icon: Compass },
-    { label: "Aura Story", href: "/discovery?tab=status", icon: Activity },
+    { label: "Story Hub", href: "/vendor/stories", icon: Activity },
     { label: "Overtime", href: "/overtime", icon: House },
     { label: "Profile", href: "/profile", icon: User }
   ];
