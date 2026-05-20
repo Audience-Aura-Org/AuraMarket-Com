@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   X, Heart, ShoppingBag,
   Volume2, VolumeX,
-  Eye, Send, Share2, Pause, Play, Loader2
+  Eye, Send, Share2, Pause, Play, Loader2, Clock
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
@@ -331,6 +331,24 @@ const ProgressBar = forwardRef(function ProgressBar(
   );
 });
 
+// Helper to calculate time remaining until status expiration
+const getEndingSoonInfo = (story) => {
+  if (!story) return null;
+  const expiresTime = story.expires_at 
+    ? new Date(story.expires_at).getTime() 
+    : new Date(story.createdAt).getTime() + 24 * 60 * 60 * 1000;
+  const msLeft = expiresTime - Date.now();
+  const hrsLeft = msLeft / (1000 * 60 * 60);
+  if (hrsLeft > 0 && hrsLeft <= 12) {
+    if (hrsLeft < 1) {
+      const mins = Math.max(1, Math.floor(msLeft / (1000 * 60)));
+      return `${mins}m left`;
+    }
+    return `${Math.round(hrsLeft)}h left`;
+  }
+  return null;
+};
+
 // ─── StatusViewer ─────────────────────────────────────────────────────────────
 export default function StatusViewer({ initialStatuses, initialStoryId, onClose }) {
   const router = useRouter();
@@ -366,7 +384,13 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const [storyIdx,   setStoryIdx]   = useState(initialPos.sIdx);
   const [paused,     setPaused]     = useState(false);
   const [liked,      setLiked]      = useState(false);
-  const [muted,      setMuted]      = useState(true);
+  const [muted,      setMuted]      = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('aura_stories_muted');
+      return stored === null ? true : stored === 'true';
+    }
+    return true;
+  });
   const [replyText,  setReplyText]  = useState('');
   const [isReplying, setIsReplying] = useState(false);
 
@@ -493,6 +517,15 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     api.post(`/statuses/${story._id}/react`).catch(() => {});
   }, [story?._id]);
 
+  const toggleMuted = useCallback((e) => {
+    e.stopPropagation();
+    setMuted(m => {
+      const newMuted = !m;
+      localStorage.setItem('aura_stories_muted', String(newMuted));
+      return newMuted;
+    });
+  }, []);
+
   const handleSendReply = useCallback(() => {
     if (!replyText.trim()) return;
     const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
@@ -564,10 +597,12 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             return (
               <div
                 key={s._id}
-                className={`absolute inset-0 transition-all duration-300 transform ${
+                className={`absolute inset-0 transition-all duration-500 ease-out transform ${
                   isActive 
-                    ? 'opacity-100 scale-100 z-10 pointer-events-auto' 
-                    : 'opacity-0 scale-95 z-0 pointer-events-none'
+                    ? 'translate-x-0 opacity-100 z-10 pointer-events-auto' 
+                    : idx < storyIdx
+                      ? '-translate-x-full opacity-0 z-0 pointer-events-none'
+                      : 'translate-x-full opacity-0 z-0 pointer-events-none'
                 }`}
               >
                 {isVid ? (
@@ -599,6 +634,33 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                       {s.text_content}
                     </p>
                   </div>
+                )}
+
+                {/* Floating Interactive Shopping Sticker */}
+                {isActive && s.linked_product && (s.linked_product.name || typeof s.linked_product === 'object') && (
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', delay: 0.4, stiffness: 200, damping: 15 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewProduct();
+                    }}
+                    style={{
+                      left: s.sticker_x !== undefined ? `${s.sticker_x}%` : '30%',
+                      top: s.sticker_y !== undefined ? `${s.sticker_y}%` : '50%',
+                    }}
+                    className="absolute z-30 pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur border border-white/20 text-white text-[12px] font-bold shadow-2xl hover:scale-105 active:scale-95 transition-transform"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]"></span>
+                    </span>
+                    <ShoppingBag className="size-3.5 text-[var(--accent)]" />
+                    <span className="max-w-[120px] truncate">
+                      {(s.linked_product && typeof s.linked_product === 'object' && s.linked_product.name) || 'Shop Now'}
+                    </span>
+                  </motion.button>
                 )}
               </div>
             );
@@ -645,8 +707,18 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                 <p className="text-[14px]  font-bold text-white tracking-tight drop-shadow group-hover:underline">{storeName}</p>
                 <span className="text-[10px] lg:text-[12px] text-white/50  font-semibold">{ago(story.createdAt)}</span>
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{story.category || 'General'}</span>
+                {(() => {
+                  const endingSoon = getEndingSoonInfo(story);
+                  if (!endingSoon) return null;
+                  return (
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/25 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                      <Clock className="size-3" />
+                      <span>{endingSoon}</span>
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -659,8 +731,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             )}
             {isVideo && (
               <button
-                onClick={e => { e.stopPropagation(); setMuted(m => !m); }}
-                className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white"
+                onClick={toggleMuted}
+                className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white cursor-pointer"
               >
                 {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
               </button>
