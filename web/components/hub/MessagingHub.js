@@ -284,7 +284,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       socketService.off('user_presence', onUserPresence);
       socketService.off('message_deleted', handleMessageDeleted);
     };
-  }, [activePartnerId]);
+  }, [activePartnerId, user?._id]);
 
   // -- Typing Logic --
   const handleTyping = (val) => {

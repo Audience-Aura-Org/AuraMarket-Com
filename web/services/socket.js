@@ -39,14 +39,23 @@ class SocketService {
   lastError = null;
 
   connect(userId) {
-    if (this.socket && this.socket.connected) {
-      console.log('⚡ Socket already connected, skipping reconnect');
-      return;
-    }
+    const token = typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null;
 
-    if (this.socket && !this.socket.connected) {
-      console.log('⚡ Socket exists but disconnected, attempting reconnect...');
-      this.socket.connect();
+    if (this.socket) {
+      const currentAuth = this.socket.auth || {};
+      if (currentAuth.userId === userId && currentAuth.token === token) {
+        if (this.socket.connected) {
+          console.log('⚡ Socket already connected with correct credentials, skipping reconnect');
+          return;
+        }
+        console.log('⚡ Socket exists but disconnected, attempting reconnect...');
+        this.socket.connect();
+        return;
+      }
+
+      console.log('⚡ Socket credentials changed, updating auth and forcing reconnect...');
+      this.socket.auth = { userId, token };
+      this.socket.disconnect().connect();
       return;
     }
 
