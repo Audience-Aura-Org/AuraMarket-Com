@@ -11,9 +11,14 @@ const isVideo = (file) => file?.type?.startsWith('video/');
  * Direct S3 presigned PUT — fastest path; bypasses Next.js/Vercel body limits.
  */
 async function uploadViaPresign(file, folder, onProgress) {
+  const isVid = isVideo(file);
+  const contentType = file.type || 'application/octet-stream';
+  const cacheControl = isVid ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
+  const contentDisposition = isVid ? 'inline' : 'attachment';
+
   const presignRes = await api.post('/upload/presign', {
     fileName: file.name,
-    contentType: file.type || 'application/octet-stream',
+    contentType: contentType,
     type: folder,
   });
 
@@ -24,7 +29,11 @@ async function uploadViaPresign(file, folder, onProgress) {
   const { uploadUrl, url } = presignRes.data.data;
 
   await axios.put(uploadUrl, file, {
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    headers: { 
+      'Content-Type': contentType,
+      'Cache-Control': cacheControl,
+      'Content-Disposition': contentDisposition
+    },
     maxBodyLength: Infinity,
     maxContentLength: Infinity,
     timeout: 600000,
@@ -67,14 +76,11 @@ export const uploadService = {
       try {
         return await uploadViaPresign(file, folder, onProgress);
       } catch (presignErr) {
-        const status = presignErr.response?.status;
-        if (status === 503 || presignErr.response?.data?.fallback === 'single') {
-          if (onProgress) onProgress(10);
-          const result = await uploadViaApi(file, folder, 'video');
-          if (onProgress) onProgress(100);
-          return result;
-        }
-        throw presignErr;
+        console.warn('⚠️ [Upload] Direct S3 upload failed, falling back to legacy API upload:', presignErr.message || presignErr);
+        if (onProgress) onProgress(10);
+        const result = await uploadViaApi(file, folder, 'video');
+        if (onProgress) onProgress(100);
+        return result;
       }
     }
 
