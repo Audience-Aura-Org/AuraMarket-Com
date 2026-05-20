@@ -25,6 +25,7 @@ const getConversation = async (req, res, next) => {
         { sender_id: req.user._id, receiver_id: userId },
         { sender_id: userId, receiver_id: req.user._id },
       ],
+      deleted_for: { $ne: req.user._id }
     });
 
     // For page > 1 we fetch older messages (skip from the end)
@@ -36,6 +37,7 @@ const getConversation = async (req, res, next) => {
         { sender_id: req.user._id, receiver_id: userId },
         { sender_id: userId, receiver_id: req.user._id },
       ],
+      deleted_for: { $ne: req.user._id }
     })
       .populate('product_reference', 'name price images')
       .sort('createdAt')
@@ -60,6 +62,7 @@ const getUserInbox = async (req, res, next) => {
       {
         $match: {
           $or: [{ sender_id: req.user._id }, { receiver_id: req.user._id }],
+          deleted_for: { $ne: new mongoose.Types.ObjectId(req.user._id) }
         },
       },
       {
@@ -327,7 +330,62 @@ const getSystemWideInbox = async (req, res, next) => {
         };
       });
 
-    res.status(200).json({ success: true, count: activeChats.length, data: { activeChats } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   DELETE /api/chat/message/:messageId
+// @desc    Delete a message (for me or for everyone)
+// @access  Private
+// ─────────────────────────────────────────────
+const deleteMessage = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+    const { type } = req.body; // 'me' or 'everyone'
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: 'Message not found.' });
+    }
+
+    const isSender = message.sender_id.toString() === req.user._id.toString();
+    const isReceiver = message.receiver_id.toString() === req.user._id.toString();
+
+    if (!isSender && !isReceiver) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this message.' });
+    }
+
+    if (type === 'everyone') {
+      if (!isSender) {
+        return res.status(403).json({ success: false, message: 'Only the sender can delete a message for everyone.' });
+      }
+
+      message.text = 'This message was deleted';
+      message.product_reference = null;
+      message.image_url = null;
+      message.deleted_everyone = true;
+      await message.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(message.sender_id.toString()).emit('message_deleted', { messageId, deletedFor: 'everyone', text: 'This message was deleted' });
+        io.to(message.receiver_id.toString()).emit('message_deleted', { messageId, deletedFor: 'everyone', text: 'This message was deleted' });
+      }
+    } else {
+      if (!message.deleted_for.includes(req.user._id)) {
+        message.deleted_for.push(req.user._id);
+        await message.save();
+      }
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(req.user._id.toString()).emit('message_deleted', { messageId, deletedFor: 'me' });
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Message deleted successfully.' });
   } catch (error) {
     next(error);
   }
@@ -340,4 +398,5 @@ module.exports = {
   markAsRead,
   getAllMessagesAdmin,
   getSystemWideInbox,
+  deleteMessage,
 };

@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { getConversation, getUserInbox, sendMessage, markAsRead, getAllMessagesAdmin, getSystemWideInbox } = require('../controllers/chat.controller');
+const { getConversation, getUserInbox, sendMessage, markAsRead, getAllMessagesAdmin, getSystemWideInbox, deleteMessage } = require('../controllers/chat.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
 
@@ -22,5 +22,6 @@ router.get('/', getUserInbox);                 // List of all active distinct co
 router.post('/', sendMessage);                // Send a new message
 router.get('/:userId', getConversation);       // Historical loop between current user and the dynamically requested User ID
 router.patch('/read/:userId', markAsRead);     // Mark all incoming messages from this user as read
+router.delete('/message/:messageId', deleteMessage); // Delete single message for me or for everyone
 
 module.exports = router;

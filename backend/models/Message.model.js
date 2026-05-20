@@ -45,6 +45,16 @@ const MessageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    deleted_for: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }
+    ],
+    deleted_everyone: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

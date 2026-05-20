@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, X, ArrowLeft, Package,
   MessageCircle, CheckCheck, Loader2, 
-  Search, Trash2, Image as ImageIcon, AlertCircle
+  Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical
 } from 'lucide-react';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
@@ -32,6 +32,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [sending, setSending] = useState(false);
   const [partnerInfo, setPartnerInfo] = useState(initialData);
   const [partnerBInfo, setPartnerBInfo] = useState(null);
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -180,6 +181,22 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   };
 
+  const handleDeleteMessage = async (messageId, type) => {
+    try {
+      const res = await api.delete(`/chat/message/${messageId}`, { data: { type } });
+      if (res.data.success) {
+        if (type === 'everyone') {
+          setMessages(prev => prev.map(m => m._id === messageId ? { ...m, text: 'This message was deleted', product_reference: null, image_url: null, deleted_everyone: true } : m));
+        } else {
+          setMessages(prev => prev.filter(m => m._id !== messageId));
+        }
+        setActiveMenuMsgId(null);
+      }
+    } catch (err) {
+      console.error('Delete message failed:', err);
+    }
+  };
+
   // -- Socket Events --
   useEffect(() => {
     if (!socketService.connected) return;
@@ -246,11 +263,20 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }));
     };
 
+    const handleMessageDeleted = ({ messageId, deletedFor, text }) => {
+      if (deletedFor === 'everyone') {
+        setMessages(prev => prev.map(m => m._id === messageId ? { ...m, text: text || 'This message was deleted', product_reference: null, image_url: null, deleted_everyone: true } : m));
+      } else if (deletedFor === 'me') {
+        setMessages(prev => prev.filter(m => m._id !== messageId));
+      }
+    };
+
     socketService.on('receive_message', handleNewMessage);
     socketService.on('sent_message_echo', handleSentMessageEcho);
     socketService.on('partner_typing', onPartnerTyping);
     socketService.on('partner_stopped_typing', onPartnerStoppedTyping);
     socketService.on('user_presence', onUserPresence);
+    socketService.on('message_deleted', handleMessageDeleted);
 
     return () => {
       socketService.off('receive_message', handleNewMessage);
@@ -258,6 +284,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       socketService.off('partner_typing', onPartnerTyping);
       socketService.off('partner_stopped_typing', onPartnerStoppedTyping);
       socketService.off('user_presence', onUserPresence);
+      socketService.off('message_deleted', handleMessageDeleted);
     };
   }, [activePartnerId]);
 
@@ -714,13 +741,54 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                         <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 max-md:mb-1 sm:mb-2.5'}`}>
                           <div className={`flex max-w-[92%] flex-col gap-0.5 sm:max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
                             
-                            <div className={`
-                              px-2.5 py-1.5 text-[13px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] max-md:px-2.5 max-md:py-1.5 max-md:text-[12.5px] sm:px-3 sm:py-2 sm:text-[14.5px]
-                              ${isOwn
-                                ? 'border border-[var(--accent)]/25 bg-[var(--accent)]/12 text-[var(--text-primary)]'
-                                : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)]'}
-                              ${rounding}
-                            `}>
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                              className={`
+                                group relative px-2.5 py-1.5 pr-6 text-[13px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] max-md:px-2.5 max-md:py-1.5 max-md:text-[12.5px] sm:px-3 sm:py-2 sm:text-[14.5px]
+                                hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300
+                                ${isOwn
+                                  ? 'border border-[var(--accent)]/25 bg-[var(--accent)]/12 text-[var(--text-primary)] hover:border-[var(--accent)]/35'
+                                  : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--glass-border)]/40'}
+                                ${rounding}
+                              `}
+                            >
+                              {!msg.deleted_everyone && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id); }}
+                                  className={`absolute right-1 top-1 size-5 rounded bg-black/[0.03] text-[var(--text-secondary)] transition-opacity hover:bg-black/[0.08] flex items-center justify-center ${activeMenuMsgId === msg._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                  aria-label="Message options"
+                                >
+                                  <MoreVertical className="size-3" />
+                                </button>
+                              )}
+
+                              {activeMenuMsgId === msg._id && (
+                                <>
+                                  <div className="fixed inset-0 z-45 cursor-default bg-transparent" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
+                                  <div className={`absolute z-50 min-w-[130px] rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-lg ring-1 ring-black/5 animate-in fade-in duration-100 ${isOwn ? 'right-1 top-6' : 'left-1 top-6'}`} onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteMessage(msg._id, 'me')}
+                                      className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                                    >
+                                      <Trash2 className="size-3 text-[var(--text-secondary)]" /> Delete for me
+                                    </button>
+                                    {isOwn && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteMessage(msg._id, 'everyone')}
+                                        className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                      >
+                                        <Trash2 className="size-3 text-red-500" /> Delete for everyone
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+
                               {msg.image_url && (
                                 <div className="-mx-0.5 mb-2 overflow-hidden rounded-md border border-black/10">
                                   <img src={msg.image_url} className="max-h-60 w-full object-cover" alt="Shared" />
@@ -741,22 +809,28 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                                 </button>
                               )}
 
-                              {msg.text ? <p className="whitespace-pre-wrap text-[13px] max-md:text-[12.5px] sm:text-[14.5px]">{msg.text}</p> : null}
+                              {msg.deleted_everyone ? (
+                                <p className="italic text-[var(--text-secondary)]/60 whitespace-pre-wrap text-[13px] max-md:text-[12.5px] sm:text-[14.5px]">
+                                  This message was deleted
+                                </p>
+                              ) : msg.text ? (
+                                <p className="whitespace-pre-wrap text-[13px] max-md:text-[12.5px] sm:text-[14.5px]">{msg.text}</p>
+                              ) : null}
                               
                               <div className={`mt-0.5 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'} text-[10px] tabular-nums text-[var(--text-secondary)] max-md:text-[9.5px] sm:mt-1 sm:text-[11px]`}>
                                 <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 {isOwn && (
                                   msg.status === 'failed' ? <AlertCircle className="size-3.5 text-red-600" /> :
-                                  <CheckCheck className={`size-3.5 ${msg.read_status ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                  <CheckCheck className={`size-3.5 transition-colors duration-300 ${msg.read_status ? 'text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)]' : 'text-[var(--text-secondary)]/50'}`} />
                                 )}
                               </div>
-                              </div>
+                            </motion.div>
 
-                              {msg.status === 'failed' && (
-                                <button type="button" onClick={() => handleSend(msg.text)} className="flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-600 ring-1 ring-red-200 transition-colors active:bg-red-100">
-                                  <AlertCircle className="size-4 shrink-0" /> Retry send
-                                </button>
-                              )}
+                            {msg.status === 'failed' && (
+                              <button type="button" onClick={() => handleSend(msg.text)} className="flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-600 ring-1 ring-red-200 transition-colors active:bg-red-100">
+                                <AlertCircle className="size-4 shrink-0" /> Retry send
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -786,16 +860,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
                 <div className="flex items-end gap-1.5 px-2 pb-1.5 pt-0.5 max-md:gap-1.5 sm:gap-2 sm:px-3 sm:pb-3 sm:pt-2">
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                  <button
+                  <motion.button
                     type="button"
+                    whileHover={{ scale: 1.1, rotate: 8 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => fileInputRef.current?.click()}
-                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)] active:bg-[var(--bg-primary)]"
+                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] active:bg-[var(--bg-primary)]"
                     aria-label="Attach image"
                   >
                     <ImageIcon className="size-[22px]" />
-                  </button>
+                  </motion.button>
 
-                  <div className="relative flex min-h-[44px] flex-1 items-end overflow-hidden rounded-[24px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] focus-within:ring-2 focus-within:ring-[var(--accent)]/35">
+                  <div className="relative flex min-h-[44px] flex-1 items-end overflow-hidden rounded-[24px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] focus-within:ring-2 focus-within:ring-[var(--accent)]/35 transition-all duration-300">
                     <textarea
                       ref={inputRef}
                       value={input}
@@ -811,10 +887,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
                   <motion.button
                     type="button"
-                    whileTap={{ scale: 0.92 }}
+                    whileHover={sending || !input.trim() ? {} : { scale: 1.05 }}
+                    whileTap={sending || !input.trim() ? {} : { scale: 0.92 }}
                     onClick={() => handleSend()}
                     disabled={sending || !input.trim()}
-                    className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30 transition-all disabled:bg-[var(--text-secondary)] disabled:opacity-90 disabled:shadow-none"
+                    className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30 transition-all hover:shadow-[var(--accent)]/45 disabled:bg-[var(--text-secondary)] disabled:opacity-90 disabled:shadow-none"
                     aria-label="Send"
                   >
                     {sending ? <Loader2 className="size-6 animate-spin" /> : <Send className="size-[22px]" />}
