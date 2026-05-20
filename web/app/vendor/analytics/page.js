@@ -40,7 +40,7 @@ export default function VendorAnalyticsPage() {
         setData(res.data.data);
       }
     } catch (err) {
-      toast.error('Failed to synchronize intelligence hub');
+      toast.error('Failed to refresh analytics');
     } finally {
       setLoading(false);
     }
@@ -63,10 +63,10 @@ export default function VendorAnalyticsPage() {
                <Activity className="w-5 h-5 md:w-6 md:h-6" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Merchant <span className="text-[var(--accent)]">Intel</span></h2>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Sales <span className="text-[var(--accent)]">Analytics</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Synched Hub</p>
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Live</p>
               </div>
             </div>
           </div>
@@ -77,10 +77,10 @@ export default function VendorAnalyticsPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
            <button onClick={fetchAnalytics} className="hidden md:flex h-11 px-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all items-center gap-2">
-              <Activity className="size-4" /> Synchronize
+              <Activity className="size-4" /> Refresh
            </button>
            <button className="flex-1 md:flex-none h-11 px-6 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
-              Export Intelligence
+              Download Report
            </button>
         </div>
       </header>
@@ -110,7 +110,7 @@ export default function VendorAnalyticsPage() {
           {/* Revenue Velocity Chart */}
           <div className="lg:col-span-2 p-6 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Revenue Velocity (30D)</h3>
+              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Revenue Over Time (30D)</h3>
               <div className="flex items-center gap-4">
                  <div className="flex items-center gap-1.5">
                     <div className="size-1.5 rounded-full bg-[var(--accent)]" />
@@ -147,7 +147,7 @@ export default function VendorAnalyticsPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full w-full flex items-center justify-center border border-dashed border-[var(--glass-border)] rounded-3xl bg-[var(--bg-primary)]/5 opacity-20">
-                  <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">No Intelligence Data Available</p>
+                  <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">No sales data available yet.</p>
                 </div>
               )}
             </div>
@@ -155,7 +155,7 @@ export default function VendorAnalyticsPage() {
 
           {/* Top Asset Matrix */}
           <div className="p-6 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
-             <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40 mb-6">Asset Conversion</h3>
+             <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40 mb-6">Top Selling Products</h3>
              <div className="space-y-4">
                 {top_products?.map((p, i) => (
                    <div key={p._id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--bg-primary)]/50 transition-all border border-transparent hover:border-[var(--glass-border)]">
@@ -170,7 +170,7 @@ export default function VendorAnalyticsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                          <p className="text-[11px] lg:text-[12px]  font-semibold  truncate">{p.name}</p>
-                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-0.5">{p.purchase_count || 0} CONVERSIONS</p>
+                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-0.5">{p.purchase_count || 0} SALES</p>
                       </div>
                       <div className="text-right shrink-0">
                          <p className="text-[11px] lg:text-[12px]  font-semibold">FCFA {fmt(p.price)}</p>
@@ -184,12 +184,12 @@ export default function VendorAnalyticsPage() {
         {/* Operational Ledger */}
         <div className="p-6 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Recent Transaction Ledger</h3>
+              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Recent Orders</h3>
               <button 
                 onClick={() => router.push('/vendor/orders')}
                 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight flex items-center gap-1 group"
               >
-                 View All Ledger <ChevronRight className="size-3 group-hover:translate-x-1 transition-transform" />
+                 View All Orders <ChevronRight className="size-3 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
            
@@ -214,7 +214,7 @@ export default function VendorAnalyticsPage() {
                   </div>
                   <div className="text-right min-w-[100px]">
                     <p className="text-[11px] lg:text-[12px]  font-semibold">FCFA {fmt(o.total_amount)}</p>
-                    <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-20 tracking-tight mt-0.5">Total Settlement</p>
+                    <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-20 tracking-tight mt-0.5">Settlement Amount</p>
                   </div>
                 </div>
               ))}

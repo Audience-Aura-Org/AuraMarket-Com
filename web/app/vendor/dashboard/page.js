@@ -208,10 +208,10 @@ export default function VendorDashboard() {
                  <span className="material-symbols-outlined text-xl md:text-2xl">dashboard</span>
               </div>
               <div>
-                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Command</span></h2>
+                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
                 <div className="flex items-center gap-2 mt-0.5">
                    <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                   <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Systems Nominal</p>
+                   <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Store Active</p>
                 </div>
               </div>
             </div>
@@ -402,9 +402,16 @@ export default function VendorDashboard() {
                 <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold opacity-50 tracking-tight">Share updates & engage with your followers</p>
               </div>
             </div>
-            <Link href="/vendor/stories" className="px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
-              Launch Story Hub
-            </Link>
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-wrap md:flex-nowrap">
+              <Link href="/vendor/products/add" className="flex items-center gap-2 px-6 py-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-full text-[11px] lg:text-[12px] font-semibold tracking-tight hover:border-[var(--accent)]/50 transition-all">
+                <span className="material-symbols-outlined text-lg">add_box</span>
+                Add Product
+              </Link>
+              <Link href="/vendor/stories" className="flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[11px] lg:text-[12px] font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:scale-105 transition-all">
+                <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                Launch Story Hub
+              </Link>
+            </div>
           </div>
 
           {/* Middle: Chart + Orders */}
@@ -482,7 +489,7 @@ export default function VendorDashboard() {
           {/* Live Order Tracking Table */}
           <div className="glass-panel rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
             <div className="p-5 md:p-6 border-b border-[var(--glass-border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Active Transmissions</h3>
+              <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Recent Orders</h3>
               <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
                 <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight whitespace-nowrap">ALL</button>
                 <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight hover:bg-[var(--accent)]/5 whitespace-nowrap uppercase">Processing</button>
@@ -545,7 +552,7 @@ export default function VendorDashboard() {
               {orders.length === 0 && (
                 <div className="px-6 py-20 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-20 text-center">
                   <span className="material-symbols-outlined text-6xl mb-4">analytics</span>
-                  <p className="text-[11px] font-bold tracking-[0.4em] uppercase">No Data Transmission</p>
+                  <p className="text-[11px] font-bold tracking-[0.4em] uppercase">No orders yet</p>
                 </div>
               )}
             </div>
@@ -590,7 +597,7 @@ export default function VendorDashboard() {
               {orders.length === 0 && (
                 <div className="p-20 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-20 text-center">
                   <span className="material-symbols-outlined text-5xl mb-4">analytics</span>
-                  <p className="text-[11px] font-bold tracking-[0.3em] uppercase">No Data Transmission</p>
+                  <p className="text-[11px] font-bold tracking-[0.3em] uppercase">No orders yet</p>
                 </div>
               )}
             </div>

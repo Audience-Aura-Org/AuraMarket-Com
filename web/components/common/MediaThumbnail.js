@@ -94,7 +94,7 @@ const MediaThumbnail = memo(({ src, alt, className = '', imgClassName = '', obje
     if (src.includes('res.cloudinary.com')) {
       try {
         const poster = src
-          .replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/')
+          .replace('/video/upload/', '/video/upload/so_0,q_auto,f_jpg,w_300,h_400,c_fill/')
           .replace(/\.[^/.]+$/, '.jpg');
         return (
           <BlurUpImage

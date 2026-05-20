@@ -8,6 +8,7 @@ import {
   Search, Trash2, Image as ImageIcon, AlertCircle
 } from 'lucide-react';
 import api from '@/services/api';
+import { uploadService } from '@/services/upload';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
 import socketService from '@/services/socket';
@@ -244,12 +245,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     setSending(true);
     try {
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      const res = await api.post('/upload/single', formData);
-      if (res.data.success) {
-        handleSend('', res.data.data.url);
+      const res = await uploadService.uploadSingle(file, 'general');
+      if (res.success) {
+        handleSend('', res.data.url);
+      } else {
+        throw new Error(res.message || 'Upload failed');
       }
     } catch (err) {
       console.error('Upload failed:', err);

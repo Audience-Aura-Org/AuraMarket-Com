@@ -113,10 +113,10 @@ export default function VendorOrdersPage() {
         if (res.data.success) {
            const synced = res.data.data?.order?.order_status || newStatus;
            setOrders(prev => prev.map(o => o._id === orderId ? { ...o, order_status: synced } : o));
-           toast.success(`Pipeline updated: ${synced.toUpperCase()}`);
+           toast.success(`Order status updated to: ${synced.toUpperCase()}`);
         }
      } catch (err) {
-        toast.error(err.response?.data?.message || 'Sequence update failed');
+        toast.error(err.response?.data?.message || 'Failed to update order status');
      } finally {
         setUpdatingId(null);
      }
@@ -154,8 +154,8 @@ export default function VendorOrdersPage() {
   const stats = [
     { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedCount} done`, sub: `+${recentRevenue.toLocaleString()} recent` },
     { label: 'Open Orders', value: String(openOrdersCount), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.order_status === 'processing').length} processing` },
-    { label: 'Pending Payouts', value: String(pendingCount), icon: 'account_balance', color: 'purple', pct: 'Escrow Lock', sub: 'Awaiting Fulfillment' },
-    { label: 'Completed Orders', value: String(completedCount), icon: 'verified', color: 'blue', pct: 'Manifest Complete', sub: 'Archived for record' }
+    { label: 'Pending Payouts', value: String(pendingCount), icon: 'account_balance', color: 'purple', pct: 'Held in Escrow', sub: 'Pending Delivery' },
+    { label: 'Completed Orders', value: String(completedCount), icon: 'verified', color: 'blue', pct: 'Fully Completed', sub: 'Delivered and Settled' }
   ];
 
   if (user?.role !== 'vendor' || !user.onboarded) return null;
@@ -170,7 +170,7 @@ export default function VendorOrdersPage() {
                <ShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Sales <span className="text-[var(--accent)]">Manifest</span></h2>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Orders</h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
                  <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight truncate max-w-[150px] uppercase">{user.store_name || 'STORE_ID'}</p>
@@ -254,9 +254,9 @@ export default function VendorOrdersPage() {
                   <div className="p-5 md:p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
                      <h3 className="text-[10px] md:text-[11px] lg:text-[12px]  font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-2 md:gap-3 capitalize">
                         <Database className="w-3.5 h-3.5 md:w-4 md:h-4 text-[var(--accent)]" /> 
-                        Store Sales Ledger
+                        Sales History
                      </h3>
-                     <p className="text-[9px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest hidden xs:block">Real-time Order Resolution</p>
+                     <p className="text-[9px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest hidden xs:block">Real-time Order Status</p>
                   </div>
 
                   <div className="space-y-4">
@@ -281,7 +281,7 @@ export default function VendorOrdersPage() {
                                        </div>
                                        <div className="sm:hidden flex-1 min-w-0">
                                           <div className="flex items-center justify-between">
-                                             <span className="text-[11px] font-semibold text-[var(--text-primary)] tracking-tight">Order Trace</span>
+                                             <span className="text-[11px] font-semibold text-[var(--text-primary)] tracking-tight">Order Summary</span>
                                              <time className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-1 capitalize">
                                                 <Clock className="w-2.5 h-2.5" /> {new Date(order.createdAt).toLocaleDateString()}
                                              </time>
@@ -295,7 +295,7 @@ export default function VendorOrdersPage() {
                                     <div className="flex-1 min-w-0 w-full sm:w-auto">
                                        <div className="hidden sm:flex items-center justify-between mb-2">
                                           <div className="flex items-center gap-3">
-                                             <span className="text-[11px] lg:text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] tracking-tight capitalize">Order Trace</span>
+                                             <span className="text-[11px] lg:text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] tracking-tight capitalize">Order Summary</span>
                                              <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
                                                 {status.label}
                                              </span>
@@ -330,7 +330,7 @@ export default function VendorOrdersPage() {
                   ) : (
                      <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                         <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                        <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No sales manifests detected in this vector.</p>
+                        <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No orders found.</p>
                      </div>
                   )}
                   </div>

@@ -68,10 +68,22 @@ export default function UnifiedAuth() {
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     
-    // Force dismiss the mobile keyboard
-    if (typeof document !== 'undefined' && document.activeElement) {
-      document.activeElement.blur();
+    // Force dismiss the mobile keyboard safely
+    if (typeof document !== 'undefined') {
+      const activeEl = document.activeElement;
+      if (activeEl && typeof activeEl.blur === 'function') {
+        activeEl.blur();
+      }
+      // Also blur any input elements to trigger OS keyboard collapse
+      const inputs = document.querySelectorAll('input, button, select, textarea');
+      inputs.forEach(input => {
+        if (typeof input.blur === 'function') input.blur();
+      });
     }
+
+    // Wait a brief period for the browser/OS to process the keyboard collapse transition
+    // and reset the viewport dimensions before we set loading or re-render.
+    await new Promise(resolve => setTimeout(resolve, 250));
 
     setLoading(true);
     setError('');
@@ -85,9 +97,13 @@ export default function UnifiedAuth() {
         };
         const result = await register(formattedData);
         if (result.success) {
+          // Double check keyboard is down on success
+          if (typeof document !== 'undefined' && document.activeElement) {
+            document.activeElement.blur();
+          }
           setTimeout(() => {
             handleRedirect();
-          }, 300);
+          }, 600); // Give ample time for layout to fully settle before page transition
         } else {
           setError(result.message || 'Registration failed');
         }
@@ -95,9 +111,13 @@ export default function UnifiedAuth() {
         // Logging in
         const result = await login({ email: formData.email, password: formData.password });
         if (result.success) {
+          // Double check keyboard is down on success
+          if (typeof document !== 'undefined' && document.activeElement) {
+            document.activeElement.blur();
+          }
           setTimeout(() => {
             handleRedirect();
-          }, 300);
+          }, 600); // Give ample time for layout to fully settle before page transition
         }
         else setError(result.message || 'Login failed');
       }

@@ -392,14 +392,14 @@ export default function WalletPage() {
                 <Wallet className="size-5" />
               </div>
               <div>
-                <h1 className="text-lg  font-bold tracking-tight">Wallet control</h1>
-                <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Active liquidity vault</p>
+                <h1 className="text-lg  font-bold tracking-tight">My Wallet</h1>
+                <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Available Balance</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                   <ShieldCheck className="size-3 text-emerald-500" />
-                  <span className="text-[10px] lg:text-[12px]  font-semibold text-emerald-500 tracking-tight">Verified Nexus</span>
+                  <span className="text-[10px] lg:text-[12px]  font-semibold text-emerald-500 tracking-tight">Secure Account</span>
                </div>
                <button onClick={fetchWallet} className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                   <RotateCcw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -412,8 +412,8 @@ export default function WalletPage() {
           
           {/* Micro Stat Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <CompactStat title="Available" value={fmt(balance)} sub="Liquid capital" icon={Wallet} color="emerald" />
-            <CompactStat title="In escrow" value={fmt(pendingBalance)} sub="Held for delivery" icon={Lock} color="amber" />
+            <CompactStat title="Available" value={fmt(balance)} sub="Available to spend" icon={Wallet} color="emerald" />
+            <CompactStat title="In escrow" value={fmt(pendingBalance)} sub="Held in escrow" icon={Lock} color="amber" />
             <CompactStat title="Successful" value={transactions.filter(t => t.status === 'completed').length} sub={`${fmt(transactions.filter(t=>t.status==='completed').reduce((s,t)=>s+t.amount,0))} XAF`} icon={CheckCircle2} color="emerald" />
             <CompactStat title="Failed" value={transactions.filter(t => t.status === 'failed').length} sub="Payments declined" icon={XCircle} color="fuchsia" />
           </div>
@@ -421,10 +421,10 @@ export default function WalletPage() {
           {/* Action Hub */}
           <div className="grid grid-cols-2 gap-4">
              <button onClick={() => handleAction('deposit')} className="h-14 rounded-2xl bg-emerald-500 text-white  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all">
-                <ArrowDownLeft className="size-5" /> Deposit funds
+                <ArrowDownLeft className="size-5" /> Deposit Money
              </button>
              <button onClick={() => setModal('withdraw')} className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all">
-                <ArrowUpRight className="size-5" /> Withdraw funds
+                <ArrowUpRight className="size-5" /> Withdraw Money
              </button>
           </div>
 
@@ -432,8 +432,8 @@ export default function WalletPage() {
           <section className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                  <h3 className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Transaction ledger</h3>
-                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">History synchronized with Aura network</p>
+                  <h3 className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Transaction History</h3>
+                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">Real-time transaction history</p>
                 </div>
                  <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5 overflow-x-auto no-scrollbar">
                    {['all', 'in', 'out', 'withdrawals'].map(t => (
@@ -546,7 +546,7 @@ export default function WalletPage() {
                     <motion.div key="init" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                       <div className="flex items-center justify-between mb-8">
                         <div>
-                           <h3 className="text-xl  font-bold tracking-tight">Add liquidity</h3>
+                           <h3 className="text-xl  font-bold tracking-tight">Deposit Money</h3>
                            <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight mt-1">Mobile money deposit</p>
                         </div>
                         <button onClick={() => setModal(null)} className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"><X className="size-4" /></button>
@@ -579,7 +579,7 @@ export default function WalletPage() {
                         </div>
 
                         <div className="space-y-2">
-                           <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Network region</label>
+                           <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Country</label>
                            <div className="grid grid-cols-2 gap-2">
                               {[
                                  { id: 'CM', label: 'Cameroon' },

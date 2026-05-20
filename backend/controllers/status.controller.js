@@ -82,7 +82,17 @@ exports.getActiveStatuses = async (req, res) => {
       })
       .lean();
 
-    res.status(200).json({ success: true, count: statuses.length, data: statuses });
+    const userId = req.user?._id || req.user?.id;
+    const formattedStatuses = statuses.map(s => {
+      const viewerIds = s.viewer_ids || [];
+      const isViewed = userId ? viewerIds.some(id => id.toString() === userId.toString()) : false;
+      return {
+        ...s,
+        isViewed
+      };
+    });
+
+    res.status(200).json({ success: true, count: formattedStatuses.length, data: formattedStatuses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

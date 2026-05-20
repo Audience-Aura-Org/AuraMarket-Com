@@ -66,8 +66,8 @@ export default function VendorProductsPage() {
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Terminate this asset node? This action is irreversible.')) return;
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
     try {
       const res = await api.delete(`/vendors/products/${id}`);
       if (res.data.success) {
@@ -90,7 +90,7 @@ export default function VendorProductsPage() {
                <Package className="w-5 h-5 md:w-6 md:h-6" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Product <span className="text-[var(--accent)]">Manifest</span></h2>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Product <span className="text-[var(--accent)]">Catalog</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
                  <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase truncate max-w-[150px]">{user.store_name || 'STORE_ID'}</p>
@@ -113,7 +113,7 @@ export default function VendorProductsPage() {
                 className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
               />
            </div>
-           <Link href="/vendor/products/add" className="hidden md:flex h-11 px-6 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20">
+           <Link href="/vendor/products/add" className="flex shrink-0 px-4 md:px-6 h-11 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20">
               New Asset Node
            </Link>
            <button onClick={fetchProducts} className="hidden md:flex size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
@@ -131,10 +131,10 @@ export default function VendorProductsPage() {
           )}
           {/* Operational Matrix */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <StatCard label="Active" value={products.filter(p => p.stock > 0).length} icon="inventory_2" color="fuchsia" sub="LIVE_NODES" />
-            <StatCard label="Attention" value={products.filter(p => p.stock <= 5 && p.stock > 0).length} icon="warning" color="rose" sub="RESTOCK_READY" />
-            <StatCard label="Resolved" value={products.reduce((acc, p) => acc + (p.purchase_count || 0), 0)} icon="check_circle" color="emerald" sub="SALES_VOLUME" />
-            <StatCard label="Yield" value={products.reduce((acc, p) => acc + (p.view_count || 0), 0)} icon="bolt" color="indigo" sub="TOTAL_HITS" />
+            <StatCard label="Active" value={products.filter(p => p.stock > 0).length} icon="inventory_2" color="fuchsia" sub="ACTIVE PRODUCTS" />
+            <StatCard label="Attention" value={products.filter(p => p.stock <= 5 && p.stock > 0).length} icon="warning" color="rose" sub="LOW STOCK" />
+            <StatCard label="Resolved" value={products.reduce((acc, p) => acc + (p.purchase_count || 0), 0)} icon="check_circle" color="emerald" sub="UNITS SOLD" />
+            <StatCard label="Yield" value={products.reduce((acc, p) => acc + (p.view_count || 0), 0)} icon="bolt" color="indigo" sub="TOTAL VIEWS" />
           </div>
 
                 {/* Inventory Ledger */}
@@ -143,9 +143,9 @@ export default function VendorProductsPage() {
                       <div className="space-y-1">
                         <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
                            <Database className="w-4 h-4 text-[var(--accent)]" /> 
-                           Asset Manifest Resolution
+                           Product Directory
                         </h3>
-                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Real-time Node Status: {filteredProducts.length} items</p>
+                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Real-time Product Status: {filteredProducts.length} items</p>
                       </div>
 
                       <div className="flex items-center gap-2 p-1 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl shadow-inner self-start md:self-auto">
@@ -183,8 +183,8 @@ export default function VendorProductsPage() {
                           <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
                               <tr className="border-b border-[var(--glass-border)] text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-60">
-                                <th className="pb-6 pr-4">Asset Node</th>
-                                <th className="pb-6 px-4">Vector</th>
+                                <th className="pb-6 pr-4">Product</th>
+                                <th className="pb-6 px-4">Category</th>
                                 <th className="pb-6 px-4 text-center">Telemetry</th>
                                 <th className="pb-6 px-4 text-center">Status</th>
                                 <th className="pb-6 px-4 text-right">Valuation</th>
@@ -202,7 +202,7 @@ export default function VendorProductsPage() {
                    ) : (
                       <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
                          <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                         <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No asset manifests detected in this vector.</p>
+                         <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No products found in this category.</p>
                       </div>
                    )}
                    </div>

@@ -35,7 +35,11 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
     <motion.button
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-[1.5rem] shadow-xl cursor-pointer ${className}`}
+      className={`group relative overflow-hidden rounded-[1.5rem] shadow-xl cursor-pointer transition-all duration-300 ${
+        isNew 
+          ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-secondary)]' 
+          : 'opacity-75 hover:opacity-100'
+      } ${className}`}
     >
       {/* Media */}
       <div className="absolute inset-0">
@@ -294,7 +298,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                     <PremiumCard
                       key={s._id}
                       status={s}
-                      isNew={i < 3}
+                      isNew={!s.isViewed}
                       priority={i < 4 ? 'high' : 'auto'}
                       className="aspect-[3/4]"
                       onClick={() => handleOpen(s, activePool)}
@@ -309,6 +313,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                       key={s._id}
                       status={s}
                       rank={i < 10 ? i + 1 : null}
+                      isNew={!s.isViewed}
                       priority={i < 6 ? 'high' : 'auto'}
                       className={`w-full break-inside-avoid ${i % 3 === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
                       onClick={() => handleOpen(s, activePool)}

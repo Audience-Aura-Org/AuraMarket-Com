@@ -66,7 +66,7 @@ const getVideoPoster = (src) => {
   if (!src || !src.includes('res.cloudinary.com')) return null;
   try {
     return src
-      .replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/')
+      .replace('/video/upload/', '/video/upload/so_0,q_auto,f_jpg,w_300,h_400,c_fill/')
       .replace(/\.[^/.]+$/, '.jpg');
   } catch {
     return null;
@@ -112,8 +112,8 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     setIsWaiting(false);
     setHasStarted(false);
   }, [src]);
-
-  // Poster extraction (only needed for non-Cloudinary)
+  // Poster/preload extraction: we only keep Cloudinary's fast edge poster cache.
+  // Otherwise, we do not perform heavy canvas probing.
   useEffect(() => {
     if (loadedVideos.has(src)) {
       setVideoReady(true);
@@ -121,43 +121,11 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     }
     const instant = getVideoPoster(src);
     if (instant) { 
-      setPoster(instant); 
-      setVideoReady(false); 
-      return; 
+      setPoster(instant);
+    } else {
+      setPoster(null);
     }
-
-    setPoster(null);
     setVideoReady(false);
-    if (!src) return;
-
-    let cancelled = false;
-    const probe = document.createElement('video');
-    if (src?.includes('res.cloudinary.com')) {
-      probe.setAttribute('crossOrigin', 'anonymous');
-    }
-    probe.muted   = true;
-    probe.preload = 'metadata';
-    probe.src     = src;
-
-    probe.addEventListener('loadedmetadata', () => {
-      if (cancelled) return;
-      try { probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1); } catch {}
-    }, { once: true });
-
-    probe.addEventListener('seeked', () => {
-      if (cancelled) return;
-      try {
-        const w = Math.min(probe.videoWidth, 640);
-        const h = Math.round(w * (probe.videoHeight / (probe.videoWidth || 1)));
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(probe, 0, 0, w, h);
-        if (!cancelled) setPoster(c.toDataURL('image/jpeg', 0.35));
-      } catch {}
-    }, { once: true });
-
-    probe.load();
-    return () => { cancelled = true; probe.src = ''; };
   }, [src]);
 
   // Play / pause
@@ -514,6 +482,12 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     router.push(`/products/${story.linked_product._id}`);
   }, [story, onClose, router]);
 
+  const handleVendorClick = useCallback((e, vendorId) => {
+    e.stopPropagation();
+    onClose();
+    router.push(`/stores/${vendorId}`);
+  }, [onClose, router]);
+
   const toggleLike = useCallback(() => {
     setLiked(l => !l);
     api.post(`/statuses/${story._id}/react`).catch(() => {});
@@ -580,38 +554,55 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       >
         {/* Media Layer */}
         <div className="absolute inset-0 z-10">
-          {isVideo ? (
-            <StoryVideo
-              key={story._id}
-              src={story.content_url}
-              muted={muted}
-              active={true}
-              paused={paused || isReplying}
-              onEnded={goNext}
-              onProgress={handleVideoProgress}
-            />
-          ) : story.type === 'image' ? (
-            <img
-              key={story._id}
-              src={story.content_url}
-              alt=""
-              fetchPriority="high"
-              decoding="async"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className="absolute inset-0 flex items-center justify-center p-12 text-center"
-              style={{ background: 'linear-gradient(165deg,#050505 0%,#150824 100%)' }}
-            >
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[350px] rounded-full bg-[var(--accent)]/12 blur-[100px]" />
+          {currentGroup.stories.map((s, idx) => {
+            const isActive = idx === storyIdx;
+            const isNeighbor = Math.abs(idx - storyIdx) <= 1;
+            if (!isActive && !isNeighbor) return null;
+            const isVid = s.type === 'video';
+            const isImg = s.type === 'image';
+            
+            return (
+              <div
+                key={s._id}
+                className={`absolute inset-0 transition-all duration-300 transform ${
+                  isActive 
+                    ? 'opacity-100 scale-100 z-10 pointer-events-auto' 
+                    : 'opacity-0 scale-95 z-0 pointer-events-none'
+                }`}
+              >
+                {isVid ? (
+                  <StoryVideo
+                    src={s.content_url}
+                    muted={muted}
+                    active={isActive}
+                    paused={!isActive || paused || isReplying}
+                    onEnded={goNext}
+                    onProgress={isActive ? handleVideoProgress : undefined}
+                  />
+                ) : isImg ? (
+                  <img
+                    src={s.content_url}
+                    alt=""
+                    fetchPriority={isActive ? 'high' : 'low'}
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center p-12 text-center"
+                    style={{ background: 'linear-gradient(165deg,#050505 0%,#150824 100%)' }}
+                  >
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[350px] rounded-full bg-[var(--accent)]/12 blur-[100px]" />
+                    </div>
+                    <p className="relative z-10 text-3xl  font-bold text-white leading-tight drop-shadow-2xl">
+                      {s.text_content}
+                    </p>
+                  </div>
+                )}
               </div>
-              <p className="relative z-10 text-3xl  font-bold text-white leading-tight drop-shadow-2xl">
-                {story.text_content}
-              </p>
-            </div>
-          )}
+            );
+          })}
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85 pointer-events-none z-20" />
         </div>
 
@@ -634,8 +625,14 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none ${(paused || isReplying) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}`}
           style={{ top: 'calc(max(env(safe-area-inset-top, 0px), 14px) + 14px)' }}
         >
-          <div className="flex items-center gap-3">
-            <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-lg shrink-0">
+          <div 
+            onClick={(e) => {
+              const vId = story.vendor_id?._id || story.vendor_id;
+              if (vId) handleVendorClick(e, vId);
+            }}
+            className="flex items-center gap-3 pointer-events-auto cursor-pointer group"
+          >
+            <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-lg shrink-0 transition-transform group-hover:scale-105">
               <div className="size-full rounded-full overflow-hidden border-2 border-black bg-black">
                 {vendorLogo
                   ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
@@ -645,7 +642,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-[14px]  font-bold text-white tracking-tight drop-shadow">{storeName}</p>
+                <p className="text-[14px]  font-bold text-white tracking-tight drop-shadow group-hover:underline">{storeName}</p>
                 <span className="text-[10px] lg:text-[12px] text-white/50  font-semibold">{ago(story.createdAt)}</span>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
