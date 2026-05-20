@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
 import { MessageCircle, Bell, Package, Truck, CreditCard, X } from 'lucide-react';
 
 /**
@@ -20,6 +21,7 @@ const NOTIF_CONFIG = {
 export default function SocketProvider({ children }) {
   const { user } = useAuthStore();
   const router = useRouter();
+  const { isOpen, activePartnerId } = useChat();
 
   // Toast states
   const [chatToast, setChatToast] = useState(null);
@@ -47,6 +49,12 @@ export default function SocketProvider({ children }) {
       // FOCUS GUARD: Only show toast if window is focused or tab is active
       if (!document.hasFocus()) return;
       if (window.location.pathname.startsWith('/chat')) return;
+
+      // Suppress double notification if chat is active with this sender
+      const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
+      if (isOpen && activePartnerId && activePartnerId.toString() === senderId) {
+        return;
+      }
 
       const senderName = msg.sender_id?.name || 'Aura User';
       const text = msg.text || (msg.product_reference ? '📦 Shared a product' : 'Sent you a message');
@@ -89,7 +97,7 @@ export default function SocketProvider({ children }) {
       socketService.off('receive_message', handleNewMessage);
       socketService.off('notification',    handleNotification);
     };
-  }, [user?._id]);
+  }, [user?._id, isOpen, activePartnerId]);
 
   // Handle local Cart Added event (browser-side)
   useEffect(() => {
@@ -145,20 +153,19 @@ export default function SocketProvider({ children }) {
         >
           <div
             onClick={() => { router.push('/chat'); setChatToast(null); }}
-            className="bg-[var(--bg-primary)] backdrop-blur-2xl border border-[var(--glass-border)] rounded-2xl p-4 shadow-2xl flex items-start gap-3 cursor-pointer hover:border-[var(--accent)]/50 transition-all group"
-            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)' }}
+            className="bg-emerald-500/95 backdrop-blur-2xl border border-emerald-400/30 rounded-2xl p-4 shadow-2xl flex items-center gap-4 cursor-pointer hover:scale-[1.02] transition-all group text-white"
           >
-            <div className="size-10 rounded-full bg-[var(--accent)]/15 flex items-center justify-center shrink-0 border border-[var(--accent)]/25 group-hover:scale-110 transition-transform">
-              <MessageCircle className="size-5 text-[var(--accent)]" />
+            <div className="size-12 rounded-xl bg-white/10 shrink-0 border border-white/20 flex items-center justify-center text-white">
+              <MessageCircle className="size-6 text-white" />
             </div>
-            <div className="flex-1 min-w-0 pt-0.5">
-              <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)] mb-1 leading-none">New Message</p>
-              <p className="text-sm  font-bold text-[var(--text-primary)] truncate leading-tight">{chatToast.sender}</p>
-              <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5 leading-snug">{chatToast.text}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-white/70 mb-0.5 leading-none">New Message</p>
+              <p className="text-sm font-bold truncate leading-tight">{chatToast.sender}</p>
+              <p className="text-xs text-white/80 truncate mt-0.5 leading-snug">{chatToast.text}</p>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); setChatToast(null); }}
-              className="p-1 rounded-full hover:bg-[var(--glass-border)] text-[var(--text-secondary)] transition-colors opacity-60 hover:opacity-100 shrink-0"
+              className="p-1 rounded-full hover:bg-white/15 text-white/60 hover:text-white transition-colors shrink-0"
             >
               <X className="size-3.5" />
             </button>
@@ -173,33 +180,24 @@ export default function SocketProvider({ children }) {
           style={{ animation: 'slideInFromTop 0.3s ease-out' }}
         >
           {(() => {
-            const { Icon, color } = resolveConfig(notifToast.type);
+            const { Icon } = resolveConfig(notifToast.type);
             const href = notifToast.link || resolveConfig(notifToast.type).href;
             return (
               <div
                 onClick={() => { router.push(href); setNotifToast(null); }}
-                className="bg-[var(--bg-primary)] backdrop-blur-2xl border rounded-2xl p-4 shadow-2xl flex items-start gap-3 cursor-pointer transition-all group"
-                style={{
-                  borderColor: `${color}40`,
-                  boxShadow: `0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px ${color}15`,
-                }}
+                className="bg-emerald-500/95 backdrop-blur-2xl border border-emerald-400/30 rounded-2xl p-4 shadow-2xl flex items-center gap-4 cursor-pointer hover:scale-[1.02] transition-all group text-white"
               >
-                <div
-                  className="size-10 rounded-full flex items-center justify-center shrink-0 border group-hover:scale-110 transition-transform"
-                  style={{ background: `${color}18`, borderColor: `${color}35` }}
-                >
-                  <Icon className="size-5" style={{ color }} />
+                <div className="size-12 rounded-xl bg-white/10 shrink-0 border border-white/20 flex items-center justify-center text-white">
+                  <Icon className="size-6 text-white" />
                 </div>
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight mb-1 leading-none" style={{ color }}>
-                    Aura Market
-                  </p>
-                  <p className="text-sm  font-bold text-[var(--text-primary)] leading-tight truncate">{notifToast.title}</p>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5 leading-snug line-clamp-2">{notifToast.message}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-white/70 mb-0.5 leading-none">Aura Market</p>
+                  <p className="text-sm font-bold truncate leading-tight">{notifToast.title}</p>
+                  <p className="text-xs text-white/80 line-clamp-2 mt-0.5 leading-snug">{notifToast.message}</p>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setNotifToast(null); }}
-                  className="p-1 rounded-full hover:bg-[var(--glass-border)] text-[var(--text-secondary)] transition-colors opacity-60 hover:opacity-100 shrink-0"
+                  className="p-1 rounded-full hover:bg-white/15 text-white/60 hover:text-white transition-colors shrink-0"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -220,12 +218,18 @@ export default function SocketProvider({ children }) {
             className="bg-emerald-500/95 backdrop-blur-2xl border border-emerald-400/30 rounded-2xl p-4 shadow-2xl flex items-center gap-4 cursor-pointer hover:scale-[1.02] transition-all group text-white"
           >
             <div className="size-12 rounded-xl bg-white/10 shrink-0 border border-white/20 overflow-hidden">
-               {cartToast.image ? <img src={cartToast.image} className="size-full object-cover" /> : <div className="size-full flex items-center justify-center  font-bold">📦</div>}
+               {cartToast.image ? <img src={cartToast.image} className="size-full object-cover" /> : <div className="size-full flex items-center justify-center font-bold">📦</div>}
             </div>
             <div className="flex-1 min-w-0">
-               <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-white/70 mb-0.5 leading-none">Added to Stack</p>
-               <p className="text-sm  font-bold truncate leading-tight">{cartToast.name}</p>
+               <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-white/70 mb-0.5 leading-none">Added to Stack</p>
+               <p className="text-sm font-bold truncate leading-tight">{cartToast.name}</p>
             </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setCartToast(null); }}
+              className="p-1 rounded-full hover:bg-white/15 text-white/60 hover:text-white transition-colors shrink-0"
+            >
+              <X className="size-3.5" />
+            </button>
           </div>
         </div>
       )}

@@ -126,7 +126,6 @@ export default function ProductDetailsPage() {
       };
       const res = await api.post('/cart', payload);
       cartStore.setCart(res.data.data.cart);
-      hotToast.success('Added to cart');
     } catch {
       hotToast.error('Cart update failed');
       cartStore.refresh();

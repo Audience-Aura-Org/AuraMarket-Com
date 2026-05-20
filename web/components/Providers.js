@@ -61,8 +61,8 @@ export default function Providers({ children }) {
           style: { background: '#111', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }
         }}
       />
-      <SocketProvider>
-        <ChatProvider>
+      <ChatProvider>
+        <SocketProvider>
           {/* PWA initializers — fully deferred */}
           <PWAInit />
           {!isAuthRoute && <PWAInstallBanner />}
@@ -97,8 +97,8 @@ export default function Providers({ children }) {
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}
-        </ChatProvider>
-      </SocketProvider>
+        </SocketProvider>
+      </ChatProvider>
     </ThemeProvider>
   );
 }
