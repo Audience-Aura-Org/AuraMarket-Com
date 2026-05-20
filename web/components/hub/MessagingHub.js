@@ -183,7 +183,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const handleDeleteMessage = async (messageId, type) => {
     try {
-      const res = await api.delete(`/chat/message/${messageId}`, { data: { type } });
+      const res = await api.delete(`/chat/message/${messageId}?type=${type}`);
       if (res.data.success) {
         if (type === 'everyone') {
           setMessages(prev => prev.map(m => m._id === messageId ? { ...m, text: 'This message was deleted', product_reference: null, image_url: null, deleted_everyone: true } : m));
@@ -527,9 +527,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     ? <img src={partnerAvatar} className="size-full object-cover" alt="" />
                     : <div className="flex size-full items-center justify-center text-lg font-semibold text-[var(--nav-text)]">{partnerName[0]}</div>}
                 </div>
-                <div className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-[var(--nav-bg)] sm:size-3.5 ${
-                  partnerInfo?.is_online ? 'bg-emerald-500' : 'bg-neutral-400'
-                }`} />
+                {/* Status dot removed per user preference to only show online/offline text */}
               </div>
 
               <div className="min-w-0 flex-1 py-0.5">
@@ -675,9 +673,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                          {chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo 
                            ? <img src={chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo} className="size-full object-cover" alt="" />
                            : <div className="flex size-full items-center justify-center text-xl font-semibold text-[var(--text-secondary)]">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
-                         {chat.partner?.is_online && (
-                           <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-[var(--bg-primary)] bg-emerald-500" />
-                         )}
+                         {/* Status dot removed per user preference to only show online/offline status */}
                       </div>
                       <div className="min-w-0 flex-1">
                          <div className="mb-0.5 flex items-start justify-between gap-2">
@@ -758,7 +754,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id); }}
-                                  className={`absolute right-1 top-1 size-5 rounded bg-black/[0.03] text-[var(--text-secondary)] transition-opacity hover:bg-black/[0.08] flex items-center justify-center ${activeMenuMsgId === msg._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                  className={`absolute right-1 top-1 size-5 rounded bg-black/[0.03] text-[var(--text-secondary)] transition-opacity hover:bg-black/[0.08] flex items-center justify-center ${activeMenuMsgId === msg._id ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
                                   aria-label="Message options"
                                 >
                                   <MoreVertical className="size-3" />

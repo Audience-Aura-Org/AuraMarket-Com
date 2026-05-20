@@ -20,12 +20,15 @@ const getConversation = async (req, res, next) => {
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
     const limit = Math.min(100, parseInt(req.query.limit) || 40);
 
+    const userObjectId = new mongoose.Types.ObjectId(req.user._id);
+    const partnerObjectId = new mongoose.Types.ObjectId(userId);
+
     const total = await Message.countDocuments({
       $or: [
-        { sender_id: req.user._id, receiver_id: userId },
-        { sender_id: userId, receiver_id: req.user._id },
+        { sender_id: userObjectId, receiver_id: partnerObjectId },
+        { sender_id: partnerObjectId, receiver_id: userObjectId },
       ],
-      deleted_for: { $ne: req.user._id }
+      deleted_for: { $ne: userObjectId }
     });
 
     // For page > 1 we fetch older messages (skip from the end)
@@ -34,10 +37,10 @@ const getConversation = async (req, res, next) => {
 
     const messages = await Message.find({
       $or: [
-        { sender_id: req.user._id, receiver_id: userId },
-        { sender_id: userId, receiver_id: req.user._id },
+        { sender_id: userObjectId, receiver_id: partnerObjectId },
+        { sender_id: partnerObjectId, receiver_id: userObjectId },
       ],
-      deleted_for: { $ne: req.user._id }
+      deleted_for: { $ne: userObjectId }
     })
       .populate('product_reference', 'name price images')
       .sort('createdAt')
@@ -343,7 +346,7 @@ const getSystemWideInbox = async (req, res, next) => {
 const deleteMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
-    const { type } = req.body; // 'me' or 'everyone'
+    const type = req.body.type || req.query.type || 'me'; // 'me' or 'everyone', supports body or query param
 
     const message = await Message.findById(messageId);
     if (!message) {
@@ -374,8 +377,10 @@ const deleteMessage = async (req, res, next) => {
         io.to(message.receiver_id.toString()).emit('message_deleted', { messageId, deletedFor: 'everyone', text: 'This message was deleted' });
       }
     } else {
-      if (!message.deleted_for.includes(req.user._id)) {
-        message.deleted_for.push(req.user._id);
+      const userObjectId = new mongoose.Types.ObjectId(req.user._id);
+      const isAlreadyDeleted = message.deleted_for.some(id => id.toString() === userObjectId.toString());
+      if (!isAlreadyDeleted) {
+        message.deleted_for.push(userObjectId);
         await message.save();
       }
 
