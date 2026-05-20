@@ -199,8 +199,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   // -- Socket Events --
   useEffect(() => {
-    if (!socketService.connected) return;
-
     const handleNewMessage = (msg) => {
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
       const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
