@@ -7,9 +7,56 @@ const socketIo = require('socket.io');
 const Message = require('../models/Message.model');
 
 const mapChatSockets = (server) => {
+  const os = require('os');
+  const getLocalIPs = () => {
+    const interfaces = os.networkInterfaces();
+    const ips = [];
+    for (const [, addrs] of Object.entries(interfaces)) {
+      for (const addr of addrs) {
+        if (addr.family === 'IPv4' && !addr.internal) {
+          ips.push(addr.address);
+        }
+      }
+    }
+    return ips;
+  };
+
+  const localIPs = getLocalIPs();
+  const allowedOrigins = [
+    'https://space.audienceaura.org',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://10.0.2.2:3000',      // Android Emulator Loopback
+    'capacitor://localhost',
+    'http://localhost',
+    process.env.WEB_CLIENT_URL,
+  ].filter(Boolean);
+
+  for (const ip of localIPs) {
+    allowedOrigins.push(`http://${ip}:3000`);
+    allowedOrigins.push(`http://${ip}:5000`);
+  }
+
   const io = socketIo(server, {
     cors: {
-      origin: [process.env.WEB_CLIENT_URL, 'http://localhost:3000'],
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (process.env.NODE_ENV === 'development') return callback(null, true);
+
+        const isAllowed = allowedOrigins.some(o => {
+          try {
+            return new URL(o).origin === new URL(origin).origin;
+          } catch (e) {
+            return o === origin;
+          }
+        });
+
+        if (isAllowed) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
       allowEIO3: true,

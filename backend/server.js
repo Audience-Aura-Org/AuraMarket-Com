@@ -80,21 +80,41 @@ const getLocalIPs = () => {
 };
 
 const localIPs = getLocalIPs();
-const corsOrigins = [
+const allowedOrigins = [
   'https://space.audienceaura.org',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://10.0.2.2:3000',      // Android Emulator Loopback
+  'capacitor://localhost',
+  'http://localhost',
   process.env.WEB_CLIENT_URL,
-];
+].filter(Boolean);
 
 // Add all local network IPs to CORS for development
 for (const ip of localIPs) {
-  corsOrigins.push(`http://${ip}:3000`);
-  corsOrigins.push(`http://${ip}:5000`);
+  allowedOrigins.push(`http://${ip}:3000`);
+  allowedOrigins.push(`http://${ip}:5000`);
 }
 
 app.use(cors({
-  origin: corsOrigins.filter(Boolean),
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV === 'development') return callback(null, true);
+
+    const isAllowed = allowedOrigins.some(o => {
+      try {
+        return new URL(o).origin === new URL(origin).origin;
+      } catch (e) {
+        return o === origin;
+      }
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));

@@ -185,18 +185,6 @@ class SocketService {
     this.socket.on('disconnect', (reason) => {
       try {
         console.warn(`🔌 Socket disconnected | Reason: ${reason}`);
-        // Mark all listeners as not attached so they're re-attached on reconnect
-        if (this.listeners instanceof Map) {
-          this.listeners.forEach((eventMap) => {
-            if (eventMap instanceof Map) {
-              for (const [callbackId, entry] of eventMap.entries()) {
-                if (entry && typeof entry === 'object') {
-                  eventMap.set(callbackId, { ...entry, attached: false });
-                }
-              }
-            }
-          });
-        }
       } catch (e) {
         console.error('[SocketService] Error in disconnect handler:', e);
       }
