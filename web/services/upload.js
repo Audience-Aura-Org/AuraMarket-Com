@@ -28,21 +28,37 @@ async function uploadViaPresign(file, folder, onProgress) {
 
   const { uploadUrl, url } = presignRes.data.data;
 
-  await axios.put(uploadUrl, file, {
-    headers: { 
-      'Content-Type': contentType,
-      'Cache-Control': cacheControl,
-      'Content-Disposition': contentDisposition
-    },
-    maxBodyLength: Infinity,
-    maxContentLength: Infinity,
-    timeout: 600000,
-    onUploadProgress: (e) => {
-      if (onProgress && e.total) {
-        onProgress(Math.min(99, Math.round((e.loaded * 100) / e.total)));
+  try {
+    await axios.put(uploadUrl, file, {
+      headers: { 
+        'Content-Type': contentType,
+        'Cache-Control': cacheControl,
+        'Content-Disposition': contentDisposition
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 600000,
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) {
+          onProgress(Math.min(99, Math.round((e.loaded * 100) / e.total)));
+        }
+      },
+    });
+  } catch (err) {
+    console.error('❌ [Upload] S3 Direct PUT failed:', {
+      message: err.message,
+      status: err.response?.status,
+      statusText: err.response?.statusText,
+      data: err.response?.data,
+      config: {
+        url: uploadUrl,
+        contentType,
+        cacheControl,
+        contentDisposition
       }
-    },
-  });
+    });
+    throw err;
+  }
 
   if (onProgress) onProgress(100);
   return { success: true, data: { url, method: 'S3-direct' } };
