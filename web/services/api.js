@@ -5,7 +5,7 @@ const getBaseURL = () => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     
-    // Overrides for localhost, loopbacks and emulators
+    // Overrides for localhost, loopbacks and emulators (Direct connection)
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:5000/api/v1';
     }
@@ -13,24 +13,16 @@ const getBaseURL = () => {
       return 'http://10.0.2.2:5000/api/v1';
     }
     
-    // Dynamic fallback: If accessed via local network IP (e.g. http://192.168.1.15:3000)
-    // we should use the same IP for the backend API
+    // Dynamic fallback for Local Network Testing (Direct connection)
     const isIP = /^[0-9.]+$/.test(hostname);
     if (isIP) {
       return `http://${hostname}:5000/api/v1`;
     }
     
-    // Production/fallback logic
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      // If we are on a remote domain but the API URL points to a local IP, use root bridge
-      const isWindowLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1') || /^[0-9.]+$/.test(hostname);
-      if (!isWindowLocal && process.env.NEXT_PUBLIC_API_URL.includes('192.168.')) {
-        return '/api/v1';
-      }
-      return process.env.NEXT_PUBLIC_API_URL;
-    }
-    
-    // In production (Vercel), ALWAYS use the Next.js Bridge (/api/v1).
+    // 🔥 CRITICAL FIX: For ALL hosted domains (Vercel, etc.), ALWAYS use the Next.js Proxy Bridge.
+    // Why? If the EC2 backend is HTTP and the Vercel frontend is HTTPS, the browser will block direct 
+    // API calls due to "Mixed Content" security policies, resulting in silent "Network Errors".
+    // The Next.js Bridge runs server-side and is immune to Mixed Content and CORS restrictions.
     return '/api/v1';
   }
   
