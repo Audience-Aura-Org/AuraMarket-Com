@@ -81,21 +81,22 @@ class SocketService {
 
     this.connectionAttempts++;
     console.log(`⚡ [Attempt ${this.connectionAttempts}] Connecting to WebSocket at: ${SOCKET_URL}`);
+    console.log(`   Transports: WebSocket (primary), XHR Polling (fallback)`);
     console.log(`   Auth Token: ${(typeof window !== 'undefined' ? localStorage.getItem('aura_token') : 'N/A')?.substring(0, 20)}...`);
+    console.log(`   User ID: ${userId}`);
 
     this.socket = io(SOCKET_URL, {
       auth: { 
         userId, 
         token
       },
-      // Start with polling, then upgrade to websocket for maximum compatibility
-      // Polling is more reliable on networks with strict firewalls or reverse proxies
-      transports: ['polling', 'websocket'],
+      // ✅ Try WebSocket first (more reliable, no CORS/XHR issues), then fall back to polling
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 10000,
       randomizationFactor: 0.5,
-      upgrade: true,
+      upgrade: false,  // Don't upgrade between transports (WebSocket is best; if it fails, polling unlikely to work either)
       path: '/socket.io',
       withCredentials: true,
       // Advanced: Help with debugging connection issues
@@ -112,6 +113,14 @@ class SocketService {
       try {
         const transport = this.socket.io?.engine?.transport?.name || 'unknown';
         console.log(`✅ Connected to Aura Socket (${this.socket.id}) | Transport: ${transport} | Attempts: ${this.connectionAttempts}`);
+        
+        // Log transport details for debugging
+        if (transport === 'websocket') {
+          console.log(`   ✓ Using WebSocket (optimal — low latency, full duplex)`);
+        } else if (transport === 'polling') {
+          console.log(`   ⚠ Using XHR Polling (fallback — higher latency, higher overhead)`);
+        }
+        
         this.lastError = null;
         this.connectionAttempts = 0; // Reset on successful connect
         
@@ -183,7 +192,18 @@ class SocketService {
         const errorMsg = err?.message || err?.toString?.() || 'Unknown error';
         console.warn(`⚠️ Socket Connect Error (Attempt ${this.connectionAttempts}): ${errorMsg}`);
         console.warn(`   URL: ${SOCKET_URL}`);
-        console.warn(`   This is usually temporary. Retrying...`);
+        
+        // Provide specific guidance based on error type
+        if (errorMsg.includes('xhr poll error') || errorMsg.includes('ERR_NAME_NOT_RESOLVED') || errorMsg.includes('ECONNREFUSED')) {
+          console.warn(`   → Backend socket server may not be running on ${SOCKET_URL}`);
+          console.warn(`   → Or there's a network/firewall issue preventing access`);
+        } else if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
+          console.warn(`   → CORS or auth issue — check backend cors and middleware`);
+        } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+          console.warn(`   → Auth token invalid or expired — re-login may help`);
+        }
+        
+        console.warn(`   Retrying with exponential backoff...`);
         console.warn(`   Full error:`, err);
         this.lastError = errorMsg;
       } catch (e) {

@@ -89,26 +89,6 @@ export default function SocketProvider({ children }) {
       chatToastTimer.current = setTimeout(() => setChatToast(null), 6000);
     };
 
-    // Emit identification to server after a short delay to ensure server-side room join
-    const attemptRegisterRoom = () => {
-      try {
-        if (socketService && socketService.isConnected && socketService.isConnected()) {
-          console.log('[SocketProvider] Registering socket with server rooms for user', user._id);
-          // Common server-side handlers may accept these events; harmless if ignored
-          socketService.emit('identify', { userId: user._id });
-          socketService.emit('join_user_room', { userId: user._id });
-        } else {
-          console.warn('[SocketProvider] Socket not connected yet — will retry register in 1s');
-          setTimeout(attemptRegisterRoom, 1000);
-        }
-      } catch (e) {
-        console.error('[SocketProvider] Error during register attempt:', e);
-      }
-    };
-
-    // Kick off a single attempt shortly after connecting
-    setTimeout(attemptRegisterRoom, 800);
-
     // ── Handler: in-app notification (order/logistics/payment/system) ──────
     const handleNotification = (notif) => {
       console.log('🔔 Real-time notification received:', notif.title || notif.type);
@@ -201,10 +181,6 @@ export default function SocketProvider({ children }) {
       socketService.disconnect();
       connectedUserId.current = null;
     }
-    // Log current socket status for debugging
-    try {
-      console.log('[SocketProvider] Socket status:', { connected: socketService.isConnected(), transport: socketService.getTransport(), lastError: socketService.getLastError() });
-    } catch (e) { /* ignore */ }
   }, [user]);
 
   // ── Resolve notification display config ──────────────────────────────────
