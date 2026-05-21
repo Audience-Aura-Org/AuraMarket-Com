@@ -171,6 +171,29 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   }, [activePartnerId, isSystemWide]);
 
+  useEffect(() => {
+    if (!activePartnerId) return;
+
+    let stopped = false;
+    const pollIfSocketUnavailable = () => {
+      if (stopped || socketService.isConnected()) return;
+      loadConversation(activePartnerId, 1, {
+        silent: true,
+        skipProfile: true,
+        skipPresence: true,
+      });
+    };
+
+    const warmup = setTimeout(pollIfSocketUnavailable, 2500);
+    const interval = setInterval(pollIfSocketUnavailable, 6000);
+
+    return () => {
+      stopped = true;
+      clearTimeout(warmup);
+      clearInterval(interval);
+    };
+  }, [activePartnerId, isSystemWide, partnerBInfo?._id]);
+
   const loadInbox = async () => {
     setInboxLoading(true);
     try {
@@ -186,9 +209,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   };
 
-  const loadConversation = async (pid, pageNum = 1) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
+  const loadConversation = async (pid, pageNum = 1, options = {}) => {
+    const silent = Boolean(options.silent);
+    if (!silent) {
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+    }
 
     try {
       let chatEndpoint = `/chat/${pid}?page=${pageNum}&limit=30`;
@@ -199,7 +225,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       const [chatRes, partnerRes] = await Promise.all([
         api.get(chatEndpoint),
-        pageNum === 1 ? api.get(`/users/profile/${pid}`).catch(() => null) : Promise.resolve(null)
+        pageNum === 1 && !options.skipProfile ? api.get(`/users/profile/${pid}`).catch(() => null) : Promise.resolve(null)
       ]);
 
       if (chatRes.data.success) {
@@ -220,9 +246,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             }
           }, 50);
         } else {
+          const previousLastId = messagesRef.current[messagesRef.current.length - 1]?._id ||
+            messagesRef.current[messagesRef.current.length - 1]?.client_id;
+          const incomingLastId = newMsgs[newMsgs.length - 1]?._id || newMsgs[newMsgs.length - 1]?.client_id;
           upsertMessages(pid, newMsgs);
           setHasMore(newMsgs.length < total);
-          scrollToBottom('auto');
+          if (!silent || (incomingLastId && incomingLastId !== previousLastId)) {
+            scrollToBottom(silent ? 'smooth' : 'auto');
+          }
           markAsRead(pid);
         }
       }
@@ -252,14 +283,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
 
       // Query real-time presence status (more accurate than DB field)
-      if (pageNum === 1) {
+      if (pageNum === 1 && !options.skipPresence) {
         socketService.emit('check_online_status', { userId: pid.toString() });
       }
     } catch (err) {
       console.error('Conversation load error:', err);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (!silent) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   };
 
