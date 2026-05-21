@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import socketService from '@/services/socket';
+import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 
 const ChatContext = createContext(null);
@@ -509,6 +510,7 @@ function chatReducer(state, action) {
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const stateRef = useRef(state);
+  const syncInFlightRef = useRef(false);
   const { user } = useAuthStore();
   const router = useRouter();
 
@@ -519,6 +521,49 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     dispatch({ type: 'SET_CURRENT_USER', userId: user?._id?.toString?.() || null });
   }, [user?._id]);
+
+  const syncInboxFromServer = useCallback(async () => {
+    if (!user?._id || syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+    try {
+      const res = await api.get('/chat');
+      if (res.data?.success) {
+        dispatch({ type: 'UPSERT_CONVERSATIONS', conversations: res.data.data?.activeChats || [] });
+      }
+    } catch (error) {
+      console.error('[ChatContext] Inbox sync failed:', error);
+    } finally {
+      syncInFlightRef.current = false;
+    }
+  }, [user?._id]);
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    syncInboxFromServer();
+
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      if (!socketService.isConnected()) syncInboxFromServer();
+    };
+
+    const interval = setInterval(tick, 3000);
+    const onFocus = () => syncInboxFromServer();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') syncInboxFromServer();
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      stopped = true;
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [user?._id, syncInboxFromServer]);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -661,6 +706,7 @@ export function ChatProvider({ children }) {
       markConversationRead,
       updatePresence,
       deleteMessage,
+      syncInboxFromServer,
     };
   }, [
     state,
@@ -675,6 +721,7 @@ export function ChatProvider({ children }) {
     markConversationRead,
     updatePresence,
     deleteMessage,
+    syncInboxFromServer,
   ]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

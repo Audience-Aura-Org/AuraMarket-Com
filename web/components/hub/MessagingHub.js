@@ -35,6 +35,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     markMessageFailed,
     markConversationRead,
     deleteMessage,
+    syncInboxFromServer,
   } = useChat();
   
   // -- State --
@@ -61,7 +62,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const initialChatSyncRef = useRef(null);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('aura_deleted_convos') || '[]'); } catch { return []; }
+    if (typeof window === 'undefined') return {};
+    try {
+      const stored = JSON.parse(localStorage.getItem('aura_deleted_convos') || '{}');
+      if (Array.isArray(stored)) return Object.fromEntries(stored.map((id) => [id, 0]));
+      return stored && typeof stored === 'object' ? stored : {};
+    } catch {
+      return {};
+    }
   });
   
   const messagesEndRef = useRef(null);
@@ -141,10 +149,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   }, []);
 
   const hideConversation = (partnerId) => {
-    const updated = [...new Set([...deletedConvos, partnerId])];
+    const updated = { ...deletedConvos, [partnerId]: Date.now() };
     setDeletedConvos(updated);
     localStorage.setItem('aura_deleted_convos', JSON.stringify(updated));
     setActiveConversation(null);
+    syncInboxFromServer?.();
   };
 
   const scrollToBottom = (behavior = 'smooth') => {
@@ -451,7 +460,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // -- Computed --
   const filteredInbox = useMemo(() => {
     return inbox
-      .filter(c => !deletedConvos.includes((c.partner?._id || '').toString()))
+      .filter(c => {
+        const partnerId = (c.partner?._id || '').toString();
+        const hiddenAt = deletedConvos[partnerId];
+        if (hiddenAt === undefined) return true;
+        return new Date(c.date || 0).getTime() > Number(hiddenAt || 0);
+      })
       .filter(c => {
         const name = (c.partner?.store_name || c.partner?.name || '').toLowerCase();
         return name.includes(searchQuery.toLowerCase());
