@@ -512,14 +512,24 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     ? Date.now() - new Date(lastPartnerMessageAt).getTime() < 2 * 60 * 1000
     : false;
   const socketConnected = socketService.isConnected();
+  const formatLastSeen = (value) => {
+    if (!value) return 'offline';
+    const last = new Date(value).getTime();
+    if (!Number.isFinite(last)) return 'offline';
+    const diff = Date.now() - last;
+    if (diff < 60 * 1000) return 'last seen just now';
+    if (diff < 60 * 60 * 1000) return `last seen ${Math.max(1, Math.floor(diff / 60000))}m ago`;
+    if (diff < 24 * 60 * 60 * 1000) return `last seen ${Math.floor(diff / 3600000)}h ago`;
+    return `last seen ${new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+  };
   const partnerStatus = (() => {
     if (partnerTyping || partnerInfo?.is_online === true || partnerRecentlyActive) {
       return { label: 'online', className: 'text-emerald-400' };
     }
     if (partnerInfo?.is_online === false && socketConnected) {
-      return { label: 'offline', className: 'text-[var(--nav-text)]/55' };
+      return { label: formatLastSeen(partnerInfo?.last_seen || partnerInfo?.lastSeen), className: 'text-[var(--nav-text)]/55' };
     }
-    return { label: 'checking status...', className: 'text-[var(--nav-text)]/55' };
+    return { label: formatLastSeen(partnerInfo?.last_seen || partnerInfo?.lastSeen), className: 'text-[var(--nav-text)]/55' };
   })();
 
   const dismissOverlay = () => {
@@ -614,10 +624,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={
         fullPage
-          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation'
+          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:h-[var(--app-visual-height,100dvh)]'
           : [
               'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
-              'max-md:inset-0 max-md:h-full max-md:max-h-full max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
+              'max-md:left-0 max-md:right-0 max-md:top-0 max-md:h-[var(--app-visual-height,100dvh)] max-md:max-h-[var(--app-visual-height,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
               'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
               'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
               'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_20px_64px_rgba(0,0,0,0.28)]',
@@ -719,7 +729,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                           setChatMenuOpen(false);
                           if (confirm('Delete this conversation from your inbox?')) hideConversation(activePartnerId.toString());
                         }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20"
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20 whitespace-nowrap"
                       >
                         <Trash2 className="size-4" />
                         Delete conversation
