@@ -21,7 +21,7 @@ const NOTIF_CONFIG = {
 export default function SocketProvider({ children }) {
   const { user } = useAuthStore();
   const router = useRouter();
-  const { isOpen, activePartnerId } = useChat();
+  const { isOpen, activePartnerId, openChat } = useChat();
 
   // Toast states
   const [chatToast, setChatToast] = useState(null);
@@ -46,8 +46,6 @@ export default function SocketProvider({ children }) {
     // ── Handler: new chat message ──────────────────────────────────────────
     const handleNewMessage = (msg) => {
       console.log('💬 New chat message received from:', msg.sender_id?.name || 'Aura User');
-      // FOCUS GUARD: Only show toast if window is focused or tab is active
-      if (!document.hasFocus()) return;
       if (window.location.pathname.startsWith('/chat')) return;
 
       // Suppress double notification if chat is active with this sender
@@ -57,12 +55,25 @@ export default function SocketProvider({ children }) {
       }
 
       const senderName = msg.sender_id?.name || 'Aura User';
+      const senderAvatar = msg.sender_id?.avatar || msg.sender_id?.branding?.logo || null;
       const text = msg.text || (msg.product_reference ? '📦 Shared a product' : 'Sent you a message');
       
       // Dispatch global event for unread highlighting
       window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: msg }));
 
-      setChatToast({ id: msg._id || Date.now(), sender: senderName, text });
+      setChatToast({ 
+        id: msg._id || Date.now(), 
+        sender: senderName, 
+        senderId,
+        senderData: {
+          _id: senderId,
+          name: senderName,
+          avatar: senderAvatar,
+          store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
+          is_online: msg.sender_id?.is_online,
+        },
+        text 
+      });
 
       if (chatToastTimer.current) clearTimeout(chatToastTimer.current);
       chatToastTimer.current = setTimeout(() => setChatToast(null), 6000);
@@ -71,7 +82,6 @@ export default function SocketProvider({ children }) {
     // ── Handler: in-app notification (order/logistics/payment/system) ──────
     const handleNotification = (notif) => {
       console.log('🔔 Real-time notification received:', notif.title || notif.type);
-      if (!document.hasFocus()) return;
 
       const type = notif?.type || 'default';
       const title   = notif?.title   || 'New Notification';
@@ -152,7 +162,12 @@ export default function SocketProvider({ children }) {
           style={{ animation: 'slideInFromTop 0.3s ease-out' }}
         >
           <div
-            onClick={() => { router.push('/chat'); setChatToast(null); }}
+            onClick={() => { 
+              if (chatToast.senderId) {
+                openChat(chatToast.senderId, null, chatToast.senderData);
+              }
+              setChatToast(null); 
+            }}
             className="bg-emerald-500/95 backdrop-blur-2xl border border-emerald-400/30 rounded-2xl p-4 shadow-2xl flex items-center gap-4 cursor-pointer hover:scale-[1.02] transition-all group text-white"
           >
             <div className="size-12 rounded-xl bg-white/10 shrink-0 border border-white/20 flex items-center justify-center text-white">

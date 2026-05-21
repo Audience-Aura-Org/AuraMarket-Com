@@ -65,6 +65,7 @@ const mapChatSockets = (server) => {
   });
 
   const userSockets = new Map();
+  const disconnectTimers = new Map(); // Grace period before marking offline
 
   io.use((socket, next) => {
     const userId = socket.handshake.auth?.userId;
@@ -78,15 +79,26 @@ const mapChatSockets = (server) => {
   io.on('connection', (socket) => {
     console.log(`⚡ Socket connected: ${socket.userId}`);
 
+    // Cancel any pending offline timer for this user (reconnect scenario)
+    if (disconnectTimers.has(socket.userId)) {
+      clearTimeout(disconnectTimers.get(socket.userId));
+      disconnectTimers.delete(socket.userId);
+      console.log(`⚡ Cancelled offline timer for ${socket.userId} (reconnected)`);
+    }
+
     // Track this socket connection and Mark Online
+    const isFirstSocket = !userSockets.has(socket.userId) || userSockets.get(socket.userId).size === 0;
     if (!userSockets.has(socket.userId)) {
       userSockets.set(socket.userId, new Set());
+    }
+    userSockets.get(socket.userId).add(socket.id);
+
+    if (isFirstSocket) {
       // Mark as online in DB
       require('../models/User.model').findByIdAndUpdate(socket.userId, { is_online: true, last_seen: Date.now() }).catch(e => console.error(e));
       // Broadcast online status to others
-      io.emit('user_presence', { userId: socket.userId, isOnline: true });
+      io.emit('user_presence', { userId: socket.userId, isOnline: true, lastSeen: Date.now() });
     }
-    userSockets.get(socket.userId).add(socket.id);
 
     const userRoom = socket.userId.toString();
     socket.join(userRoom);
@@ -121,16 +133,41 @@ const mapChatSockets = (server) => {
       if (receiver_id) io.to(receiver_id.toString()).emit('partner_stopped_typing', { userId: socket.userId });
     });
 
-    socket.on('disconnect', async () => {
+    // Allow client to query if a specific user is currently online
+    socket.on('check_online_status', (data, callback) => {
+      const targetId = (data?.userId || '').toString();
+      if (!targetId) return;
+      const isOnline = userSockets.has(targetId) && userSockets.get(targetId).size > 0;
+      const response = { userId: targetId, isOnline };
+      // Support both callback and emit patterns
+      if (typeof callback === 'function') {
+        callback(response);
+      } else {
+        socket.emit('user_presence', response);
+      }
+    });
+
+    socket.on('disconnect', () => {
       const userSet = userSockets.get(socket.userId);
       if (userSet) {
         userSet.delete(socket.id);
         if (userSet.size === 0) {
-          userSockets.delete(socket.userId);
-          // Mark as offline in DB
-          await require('../models/User.model').findByIdAndUpdate(socket.userId, { is_online: false, last_seen: Date.now() }).catch(e => console.error(e));
-          // Broadcast offline status
-          io.emit('user_presence', { userId: socket.userId, isOnline: false, lastSeen: Date.now() });
+          // Grace period: wait 3 seconds before marking offline
+          // This prevents false offline flickers during page refresh / reconnect
+          const timer = setTimeout(async () => {
+            disconnectTimers.delete(socket.userId);
+            // Re-check: user might have reconnected during grace period
+            const currentSet = userSockets.get(socket.userId);
+            if (currentSet && currentSet.size > 0) return;
+            
+            userSockets.delete(socket.userId);
+            // Mark as offline in DB
+            await require('../models/User.model').findByIdAndUpdate(socket.userId, { is_online: false, last_seen: Date.now() }).catch(e => console.error(e));
+            // Broadcast offline status
+            io.emit('user_presence', { userId: socket.userId, isOnline: false, lastSeen: Date.now() });
+            console.log(`🔌 User marked offline: ${socket.userId}`);
+          }, 3000);
+          disconnectTimers.set(socket.userId, timer);
         }
       }
       console.log(`🔌 Socket disconnected: ${socket.userId}`);

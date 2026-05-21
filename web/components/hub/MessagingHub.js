@@ -155,6 +155,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (partnerRes?.data?.success) {
         setPartnerInfo(partnerRes.data.data?.user || partnerRes.data.user);
       }
+
+      // Query real-time presence status (more accurate than DB field)
+      if (pageNum === 1) {
+        socketService.emit('check_online_status', { userId: pid.toString() });
+      }
     } catch (err) {
       console.error('Conversation load error:', err);
     } finally {
@@ -250,11 +255,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
 
     const onUserPresence = ({ userId, isOnline }) => {
-      if (activePartnerId && userId === activePartnerId.toString()) {
+      const uid = userId?.toString();
+      if (activePartnerId && uid === activePartnerId.toString()) {
         setPartnerInfo(prev => prev ? { ...prev, is_online: isOnline } : prev);
       }
       setInbox(prev => prev.map(chat => {
-        if (chat.partner?._id === userId) {
+        if (chat.partner?._id?.toString() === uid) {
           return { ...chat, partner: { ...chat.partner, is_online: isOnline } };
         }
         return chat;
@@ -471,7 +477,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation'
           : [
               'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
-              'max-md:inset-0 max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none max-md:pt-[env(safe-area-inset-top,0px)]',
+              'max-md:inset-0 max-md:h-full max-md:max-h-full max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
               'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
               'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
               'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_20px_64px_rgba(0,0,0,0.28)]',
