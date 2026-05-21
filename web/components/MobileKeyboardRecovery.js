@@ -37,27 +37,6 @@ const recoverViewport = () => {
 
 export default function MobileKeyboardRecovery() {
   useEffect(() => {
-    const setViewportVars = () => {
-      if (typeof window === 'undefined' || typeof document === 'undefined') return;
-      const height = Math.round(window.visualViewport?.height || window.innerHeight || 0);
-      if (height > 0) {
-        document.documentElement.style.setProperty('--app-visual-height', `${height}px`);
-      }
-    };
-
-    setViewportVars();
-    window.visualViewport?.addEventListener('resize', setViewportVars);
-    window.visualViewport?.addEventListener('scroll', setViewportVars);
-    window.addEventListener('resize', setViewportVars);
-
-    return () => {
-      window.visualViewport?.removeEventListener('resize', setViewportVars);
-      window.visualViewport?.removeEventListener('scroll', setViewportVars);
-      window.removeEventListener('resize', setViewportVars);
-    };
-  }, []);
-
-  useEffect(() => {
     if (!isIOSStandalone()) return;
 
     const onKeyDown = (event) => {

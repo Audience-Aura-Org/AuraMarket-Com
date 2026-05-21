@@ -547,7 +547,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   };
 
-  /** Reliable swipe-right / swipe-down dismiss (works alongside framer drag on header). */
+  /** Reliable swipe-down dismiss. Horizontal swipe is avoided on iOS to prevent browser-history navigation. */
   const handlePanelTouchStart = (e) => {
     if (!mobileLayout) return;
     const t = e.touches?.[0];
@@ -568,23 +568,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const start = panelTouchRef.current;
     panelTouchRef.current = null;
 
-    const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
     const dt = Date.now() - start.t;
     if (dt > 650) return;
 
-    const horizontal = Math.abs(dx) > Math.abs(dy) * 1.1;
-    const fromLeftEdge = start.x < 80;
-    const strongSwipeRight = dx > 72 || (dx > 48 && fromLeftEdge);
-
-    if (horizontal && strongSwipeRight) {
-      if (!start.fromComposer && (!start.fromMessages || dx > 90 || fromLeftEdge)) {
-        goBackOrClose();
-        return;
-      }
-    }
-
-    if (!horizontal && dy > 64 && dy > Math.abs(dx) && start.y < 120) {
+    if (dy > 64 && start.y < 120 && !start.fromComposer) {
       goBackOrClose();
     }
   };
@@ -598,12 +586,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const headerSwipeProps =
     mobileLayout
       ? {
-          drag: 'x',
-          dragConstraints: { left: 0, right: 0 },
-          dragElastic: { left: 0, right: 0.5 },
+          drag: 'y',
+          dragConstraints: { top: 0, bottom: 0 },
+          dragElastic: { top: 0, bottom: 0.28 },
           dragMomentum: false,
           onDragEnd: (_e, info) => {
-            if (info.offset.x > 40 || info.velocity.x > 380) {
+            if (info.offset.y > 44 || info.velocity.y > 420) {
               goBackOrClose();
             }
           },
@@ -624,10 +612,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={
         fullPage
-          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:h-[var(--app-visual-height,100dvh)]'
+          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:h-[100dvh] max-md:min-h-[100dvh]'
           : [
-              'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
-              'max-md:left-0 max-md:right-0 max-md:top-0 max-md:h-[var(--app-visual-height,100dvh)] max-md:max-h-[var(--app-visual-height,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
+              'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
+              'max-md:inset-0 max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:min-h-[100dvh] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
               'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
               'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
               'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_20px_64px_rgba(0,0,0,0.28)]',
