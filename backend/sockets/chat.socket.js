@@ -40,22 +40,9 @@ const mapChatSockets = (server) => {
   const io = socketIo(server, {
     cors: {
       origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        if (process.env.NODE_ENV === 'development') return callback(null, true);
-
-        const isAllowed = allowedOrigins.some(o => {
-          try {
-            return new URL(o).origin === new URL(origin).origin;
-          } catch (e) {
-            return o === origin;
-          }
-        });
-
-        if (isAllowed) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
+        // Dynamically allow the exact requesting origin (Reflect origin).
+        // This prevents Socket CORS errors regardless of where the frontend is hosted.
+        callback(null, origin || true);
       },
       methods: ['GET', 'POST'],
       credentials: true,
