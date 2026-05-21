@@ -117,6 +117,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html.ios-keyboard-recovering,
+html.ios-keyboard-recovering body {
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
 h1,h2,h3,h4,h5,h6 {
   font-family: var(--font-poppins);
   text-wrap: balance;

@@ -162,6 +162,28 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }, 100);
   };
 
+  const releaseMobileKeyboard = () => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    const active = document.activeElement;
+    if (active && typeof active.blur === 'function') active.blur();
+    inputRef.current?.blur?.();
+
+    const settle = () => {
+      scrollToBottom('auto');
+      if (window.visualViewport) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
+      document.body.style.transform = 'translateZ(0)';
+      requestAnimationFrame(() => {
+        document.body.style.transform = '';
+      });
+    };
+
+    requestAnimationFrame(settle);
+    setTimeout(settle, 180);
+    setTimeout(settle, 420);
+  };
+
   useEffect(() => {
     const syncKey = `${initialVendorKey || 'inbox'}:${initialDataKey || 'no-data'}`;
     if (initialChatSyncRef.current === syncKey) return;
@@ -410,6 +432,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const handleSend = async (customText = null, imageUrl = null) => {
     const text = (customText || input).trim();
     if ((!text && !imageUrl) || !activePartnerId || sending) return;
+    releaseMobileKeyboard();
     const sendPartnerId = activePartnerId.toString();
     const sentDraftKey = draftKey;
 
@@ -1024,7 +1047,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       ref={inputRef}
                       value={input}
                       onChange={e => handleTyping(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          releaseMobileKeyboard();
+                          handleSend();
+                        }
+                      }}
                       placeholder="Message"
                       rows={1}
                       className="max-h-24 min-h-[40px] w-full flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] max-md:min-h-[40px] max-md:px-3 max-md:py-2 max-md:text-[13px] sm:min-h-[44px] sm:px-4 sm:py-3 sm:text-[15px]"
