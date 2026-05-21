@@ -119,13 +119,21 @@ const sendNotification = async (app, recipientId, data) => {
             ? senderAvatar
             : '/logo-white.png';
 
+          const senderId = metadata?.sender_id || metadata?.senderId;
+
           const payload = JSON.stringify({
             title,
             body: message,
             icon: iconUrl,
             image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
-            tag: type === 'message' ? `msg-${recipientId}` : `alert-${recipientId}-${Date.now()}`,
-            data: { url: notificationUrl }
+            tag: (type === 'message' && senderId) ? `msg-${senderId}` : `alert-${recipientId}-${Date.now()}`,
+            data: { 
+              url: notificationUrl,
+              sender_id: senderId,
+              senderId: senderId
+            },
+            sender_id: senderId,
+            senderId: senderId
           });
 
           await Promise.allSettled(subs.map(sub => 

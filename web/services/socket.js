@@ -1,8 +1,24 @@
 import { io } from 'socket.io-client';
 
 const getSocketURL = () => {
+  // 1. Priority: Explicitly defined socket URL
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
+
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    const origin = window.location.origin || '';
+    
+    // Detect Capacitor or mobile webview environment where hostname is 'localhost'
+    const isCapacitor = origin.startsWith('capacitor://') || 
+                       (hostname === 'localhost' && (window.Capacitor || window.cordova || /Android|iPhone|iPad/i.test(navigator.userAgent)));
+
+    // For mobile native apps, DO NOT use localhost:5000 since the backend is on the PC/Cloud.
+    // Derive from process.env.NEXT_PUBLIC_API_URL (which has the developer's PC IP or production domain)
+    if (isCapacitor && process.env.NEXT_PUBLIC_API_URL) {
+      console.log('📱 Mobile container detected. Deriving socket server from API URL:', process.env.NEXT_PUBLIC_API_URL);
+      return process.env.NEXT_PUBLIC_API_URL.replace(/\/api(\/v1)?\/?$/, '');
+    }
+
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:5000';
     }
@@ -14,9 +30,6 @@ const getSocketURL = () => {
       return `http://${hostname}:5000`;
     }
   }
-
-  // 1. Priority: Explicitly defined socket URL
-  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
 
   // 2. Derive from API URL if available (most reliable for production)
   // Example: "https://aura-backend.herokuapp.com/api/v1" -> "https://aura-backend.herokuapp.com"

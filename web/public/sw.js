@@ -131,19 +131,24 @@ self.addEventListener('notificationclick', function (event) {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {
+      // Look for an existing open window/tab of this origin
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
         if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
-          // Send message to client with the notification payload so the page can handle opening chat
+          // Send message to client with the notification payload so the page can handle opening chat smoothly
           try {
-            client.postMessage({ type: 'notification-click', payload: event.notification.data?.payload || {} });
+            client.postMessage({ 
+              type: 'notification-click', 
+              payload: event.notification.data?.payload || {} 
+            });
           } catch (e) {
-            // ignore
+            console.error('[SW] Failed to postMessage:', e);
           }
-          client.navigate(urlToOpen);
+          // Focus the window client (brings app to foreground)
           return client.focus();
         }
       }
+      // If the app isn't open, load it in a fresh window/tab
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
