@@ -95,6 +95,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // -- Data Fetching --
   useEffect(() => {
     if (activePartnerId) {
+      // Clear stale UI while loading fresh conversation
+      setMessages([]);
+      setPartnerInfo(null);
       loadConversation(activePartnerId, 1);
     } else {
       loadInbox();
@@ -157,8 +160,29 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         }
       }
       
+      // Prefer explicit partner profile when available
       if (partnerRes?.data?.success) {
         setPartnerInfo(partnerRes.data.data?.user || partnerRes.data.user);
+      } else {
+        // Fallback: derive partner info from messages if profile endpoint failed
+        try {
+          const fromMsgs = (chatRes.data.data?.messages || []);
+          // Find first message where sender or receiver is a populated object
+          const found = fromMsgs.find(m => {
+            const s = m.sender_id;
+            const r = m.receiver_id;
+            return (s && typeof s === 'object' && (s.name || s.avatar || s.store_name)) || (r && typeof r === 'object' && (r.name || r.avatar || r.store_name));
+          });
+          if (found) {
+            const candidate = ((found.sender_id && ((found.sender_id._id || found.sender_id) !== user?._id?.toString())) ? found.sender_id : found.receiver_id);
+            if (candidate && typeof candidate === 'object') {
+              const { is_online, ...withoutPresence } = candidate;
+              setPartnerInfo(withoutPresence);
+            }
+          }
+        } catch (e) {
+          // ignore fallback failures
+        }
       }
 
       // Query real-time presence status (more accurate than DB field)
@@ -276,20 +300,30 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // -- Socket Events --
   useEffect(() => {
     const handleNewMessage = (msg) => {
-      const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
-      const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
-      
+      const senderId = (msg.sender_id?._id || msg.sender_id)?.toString?.();
+      const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString?.();
+
+      const meId = user?._id?.toString();
       // Ignore messages from self (handled via optimistic updates in handleSend)
-      if (senderId === user?._id?.toString()) return;
-      
-      if (activePartnerId && (senderId === activePartnerId.toString() || receiverId === activePartnerId.toString())) {
+      if (senderId && meId && senderId === meId) return;
+
+      // If the message contains populated partner info, ensure partnerInfo/inbox reflect it
+      const rawPartnerObj = (senderId === meId) ? msg.receiver_id : msg.sender_id;
+      if (rawPartnerObj && typeof rawPartnerObj === 'object' && (rawPartnerObj.name || rawPartnerObj.avatar || rawPartnerObj.store_name)) {
+        setPartnerInfo(prev => ({ ...(prev || {}), ...rawPartnerObj }));
+      }
+
+      // Robust active conversation match: compare string IDs where possible
+      const activeIdStr = activePartnerId?.toString?.();
+      if (activeIdStr && ((senderId && senderId === activeIdStr) || (receiverId && receiverId === activeIdStr))) {
         setMessages(prev => {
-          if (prev.some(m => m._id === msg._id)) return prev;
+          // If incoming message has an _id, avoid duplicates; otherwise append
+          if (msg._id && prev.some(m => (m._id || '') === msg._id)) return prev;
           return [...prev, msg];
         });
         setPartnerTyping(false);
         scrollToBottom();
-        // ✅ Auto-mark as read: user is actively viewing this conversation
+        // Auto-mark as read: user is actively viewing this conversation
         markAsRead(activePartnerId);
       }
       locallyUpdateInbox(msg);
