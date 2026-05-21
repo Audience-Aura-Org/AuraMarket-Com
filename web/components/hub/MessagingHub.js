@@ -178,7 +178,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     
     const isSentByMe = senderId === currentUserId;
     const partnerId = isSentByMe ? receiverId : senderId;
-    const partnerObj = isSentByMe ? msg.receiver_id : msg.sender_id;
+
+    // ✅ Only use partnerObj if it's a full populated object (has a name or avatar field)
+    const rawPartnerObj = isSentByMe ? msg.receiver_id : msg.sender_id;
+    const isPopulated = rawPartnerObj && typeof rawPartnerObj === 'object' && (rawPartnerObj.name || rawPartnerObj.avatar || rawPartnerObj.store_name);
     
     if (!partnerId) return;
 
@@ -199,9 +202,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       const snippetText = msg.text || (msg.product_reference ? '📦 Shared a product' : (msg.image_url ? '📷 Sent a photo' : 'Sent you a message'));
 
+      // ✅ Merge partner: prefer populated data from message, fall back to existing inbox entry
+      //    This prevents partner name/avatar being lost when API returns unpopulated IDs
+      const mergedPartner = isPopulated
+        ? { ...(baseChat.partner || {}), ...rawPartnerObj }
+        : (baseChat.partner || { _id: partnerId });
+
       const updatedChat = {
         ...baseChat,
-        partner: typeof partnerObj === 'object' && partnerObj ? { ...(baseChat.partner || {}), ...partnerObj } : (baseChat.partner || { _id: partnerId }),
+        partner: mergedPartner,
         snippet: snippetText,
         unread_count: newUnreadCount,
         read_status: isSentByMe || isActiveChat,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -33,6 +33,11 @@ export default function SocketProvider({ children }) {
   const notifToastTimer = useRef(null);
   const cartToastTimer = useRef(null);
   const connectedUserId = useRef(null);
+  // ✅ Refs to avoid stale closures in socket handlers
+  const isOpenRef = useRef(isOpen);
+  const activePartnerIdRef = useRef(activePartnerId);
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+  useEffect(() => { activePartnerIdRef.current = activePartnerId; }, [activePartnerId]);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -45,12 +50,14 @@ export default function SocketProvider({ children }) {
 
     // ── Handler: new chat message ──────────────────────────────────────────
     const handleNewMessage = (msg) => {
-      console.log('💬 New chat message received from:', msg.sender_id?.name || 'Aura User');
-      if (window.location.pathname.startsWith('/chat')) return;
-
-      // Suppress double notification if chat is active with this sender
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
-      if (isOpen && activePartnerId && activePartnerId.toString() === senderId) {
+
+      // ✅ Suppress if user is on any chat or messages page
+      const path = window.location.pathname;
+      if (path.startsWith('/chat') || path.startsWith('/messages')) return;
+
+      // ✅ Suppress if the MessagingHub overlay is open with this exact sender (use refs to avoid stale closure)
+      if (isOpenRef.current && activePartnerIdRef.current && activePartnerIdRef.current.toString() === senderId) {
         return;
       }
 
@@ -70,7 +77,8 @@ export default function SocketProvider({ children }) {
           name: senderName,
           avatar: senderAvatar,
           store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
-          is_online: msg.sender_id?.is_online,
+          // ✅ Don't include is_online — message payloads never have live presence.
+          //    The chat will fetch the real status from the API on open.
         },
         text 
       });
@@ -107,7 +115,8 @@ export default function SocketProvider({ children }) {
       socketService.off('receive_message', handleNewMessage);
       socketService.off('notification',    handleNotification);
     };
-  }, [user?._id, isOpen, activePartnerId]);
+  // Only re-register when the USER changes. isOpen/activePartnerId are read via refs.
+  }, [user?._id]);
 
   // Handle local Cart Added event (browser-side)
   useEffect(() => {
