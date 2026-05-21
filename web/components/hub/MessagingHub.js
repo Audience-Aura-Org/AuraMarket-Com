@@ -82,7 +82,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   useEffect(() => {
     setActivePartnerId(initialVendorId);
-    if (initialData) setPartnerInfo(initialData);
+    if (initialData) {
+      // ✅ Set partner data from notification, but strip incomplete presence info
+      // The real is_online status will come from the API response or socket event
+      const { is_online, ...partnerWithoutPresence } = initialData;
+      setPartnerInfo(partnerWithoutPresence);
+    }
     setPage(1);
     setHasMore(true);
   }, [initialVendorId, initialData]);
@@ -202,11 +207,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       const snippetText = msg.text || (msg.product_reference ? '📦 Shared a product' : (msg.image_url ? '📷 Sent a photo' : 'Sent you a message'));
 
-      // ✅ Merge partner: prefer populated data from message, fall back to existing inbox entry
-      //    This prevents partner name/avatar being lost when API returns unpopulated IDs
+      // ✅ Strong merge: populate from message first, then fall back to existing data
+      //    If message has populated partner data, merge it deeply with existing partner info
+      //    If message has unpopulated IDs (just strings), preserve all existing partner fields
+      const existingPartner = baseChat.partner || {};
       const mergedPartner = isPopulated
-        ? { ...(baseChat.partner || {}), ...rawPartnerObj }
-        : (baseChat.partner || { _id: partnerId });
+        ? { ...existingPartner, ...rawPartnerObj }  // Merge populated data with existing (overwrites selectively)
+        : { ...existingPartner, _id: partnerId };   // Keep all existing fields, just ensure _id is set
 
       const updatedChat = {
         ...baseChat,
@@ -652,8 +659,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       typing…
                     </span>
                   ) : (
-                    <p className={`text-[12px] max-md:text-[11px] sm:text-[13px] ${partnerInfo?.is_online ? 'text-emerald-400' : 'text-[var(--nav-text)]/55'}`}>
-                      {partnerInfo?.is_online ? 'online' : 'offline'}
+                    <p className={`text-[12px] max-md:text-[11px] sm:text-[13px] ${
+                      partnerInfo?.is_online === true ? 'text-emerald-400' : 'text-[var(--nav-text)]/55'
+                    }`}>
+                      {partnerInfo?.is_online === true ? 'online' : partnerInfo?.is_online === false ? 'offline' : 'checking status…'}
                     </p>
                   )}
                 </div>

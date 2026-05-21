@@ -52,14 +52,16 @@ export default function SocketProvider({ children }) {
     const handleNewMessage = (msg) => {
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
 
-      // ✅ Suppress if user is on any chat or messages page
-      const path = window.location.pathname;
-      if (path.startsWith('/chat') || path.startsWith('/messages')) return;
-
-      // ✅ Suppress if the MessagingHub overlay is open with this exact sender (use refs to avoid stale closure)
+      // ✅ FIRST: Check if MessagingHub modal is open with this exact sender (highest priority)
+      //    This works on ANY page (home, products, etc.), not just /chat or /messages
       if (isOpenRef.current && activePartnerIdRef.current && activePartnerIdRef.current.toString() === senderId) {
         return;
       }
+
+      // ✅ SECOND: If on a dedicated chat/messages page, also suppress
+      //    (fallback check for full-page chat views)
+      const path = window.location.pathname;
+      if (path.startsWith('/chat') || path.startsWith('/messages')) return;
 
       const senderName = msg.sender_id?.name || 'Aura User';
       const senderAvatar = msg.sender_id?.avatar || msg.sender_id?.branding?.logo || null;
