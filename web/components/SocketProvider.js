@@ -120,6 +120,44 @@ export default function SocketProvider({ children }) {
   // Only re-register when the USER changes. isOpen/activePartnerId are read via refs.
   }, [user?._id]);
 
+  // Listen for messages from the Service Worker (e.g., notification click payload)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+
+    const onSWMessage = (e) => {
+      const msg = e.data;
+      if (!msg || msg.type !== 'notification-click') return;
+      const payload = msg.payload || {};
+
+      // Attempt to extract a partner/sender id from common fields
+      const senderId = payload.sender_id || payload.senderId || payload.userId || payload.data?.sender_id || payload.data?.senderId;
+      let partnerId = senderId;
+      if (!partnerId && payload.tag && typeof payload.tag === 'string' && payload.tag.startsWith('msg-')) {
+        const parts = payload.tag.split('-');
+        if (parts.length > 1) partnerId = parts[1];
+      }
+
+      const partnerData = payload.sender || payload.senderData || payload.data?.senderData || payload.data?.sender || {
+        _id: partnerId,
+        name: payload.title || payload.name || 'Aura User',
+        avatar: payload.icon || null,
+        store_name: payload.store_name || payload.storeName
+      };
+
+      // Strip any presence flag from the push payload — we prefer real-time status
+      const { is_online, ...partnerNoPresence } = partnerData || {};
+
+      if (partnerId) {
+        openChat(partnerId, null, partnerNoPresence);
+      } else if (payload.url) {
+        router.push(payload.url);
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', onSWMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onSWMessage);
+  }, [openChat, router]);
+
   // Handle local Cart Added event (browser-side)
   useEffect(() => {
     const handleCartItemAdded = (e) => {

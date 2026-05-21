@@ -89,8 +89,10 @@ self.addEventListener('push', function (event) {
     renotify: true,
     requireInteraction: !isChat,   // chat: auto-dismiss; alerts: stay until tapped
     silent: false,
+    // Store the full payload so notificationclick can forward rich data to the client
     data: {
-      url: data.data?.url || data.url || '/'
+      url: data.data?.url || data.url || '/',
+      payload: data
     },
     actions: isChat
       ? [
@@ -132,6 +134,12 @@ self.addEventListener('notificationclick', function (event) {
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
         if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          // Send message to client with the notification payload so the page can handle opening chat
+          try {
+            client.postMessage({ type: 'notification-click', payload: event.notification.data?.payload || {} });
+          } catch (e) {
+            // ignore
+          }
           client.navigate(urlToOpen);
           return client.focus();
         }
