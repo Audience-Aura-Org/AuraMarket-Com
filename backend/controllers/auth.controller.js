@@ -294,14 +294,14 @@ const changePassword = async (req, res, next) => {
 const getUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let user = await User.findById(id).select('name avatar role branding');
+    let user = await User.findById(id).select('name avatar role branding is_online last_seen');
 
     // If ID isn't a direct User ID, try resolving it as a Vendor ID (e.g. from Cart/Product pages)
     if (!user) {
       const vendor = await require('../models/Vendor.model').findById(id);
       if (vendor) {
         const VendorStore = await require('../models/Store.model').findOne({ vendor_id: vendor._id });
-        user = await User.findById(vendor.user_id).select('name avatar role branding');
+        user = await User.findById(vendor.user_id).select('name avatar role branding is_online last_seen');
         if (user) {
           user = user.toObject();
           user.name = vendor.store_name; 

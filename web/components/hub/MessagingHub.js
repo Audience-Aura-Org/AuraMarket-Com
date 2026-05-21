@@ -44,6 +44,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [sending, setSending] = useState(false);
   const [partnerBInfo, setPartnerBInfo] = useState(null);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -184,8 +185,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       });
     };
 
-    const warmup = setTimeout(pollIfSocketUnavailable, 2500);
-    const interval = setInterval(pollIfSocketUnavailable, 6000);
+    const warmup = setTimeout(pollIfSocketUnavailable, 1000);
+    const interval = setInterval(pollIfSocketUnavailable, 2500);
 
     return () => {
       stopped = true;
@@ -194,8 +195,25 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
   }, [activePartnerId, isSystemWide, partnerBInfo?._id]);
 
-  const loadInbox = async () => {
-    setInboxLoading(true);
+  useEffect(() => {
+    if (activePartnerId) return;
+
+    let stopped = false;
+    const pollInboxIfSocketUnavailable = () => {
+      if (stopped || socketService.isConnected()) return;
+      loadInbox({ silent: true });
+    };
+
+    const interval = setInterval(pollInboxIfSocketUnavailable, 5000);
+    return () => {
+      stopped = true;
+      clearInterval(interval);
+    };
+  }, [activePartnerId, isSystemWide]);
+
+  const loadInbox = async (options = {}) => {
+    const silent = Boolean(options.silent);
+    if (!silent) setInboxLoading(true);
     try {
       const endpoint = isSystemWide ? '/chat/admin/inbox' : '/chat';
       const res = await api.get(endpoint);
@@ -205,7 +223,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     } catch (err) {
       console.error('Inbox load failed:', err);
     } finally {
-      setInboxLoading(false);
+      if (!silent) setInboxLoading(false);
     }
   };
 
@@ -225,7 +243,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       const [chatRes, partnerRes] = await Promise.all([
         api.get(chatEndpoint),
-        pageNum === 1 && !options.skipProfile ? api.get(`/users/profile/${pid}`).catch(() => null) : Promise.resolve(null)
+        pageNum === 1 && !options.skipProfile ? api.get(`/auth/users/${pid}`).catch(() => null) : Promise.resolve(null)
       ]);
 
       if (chatRes.data.success) {
@@ -442,13 +460,39 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const partnerName = (partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User').toString();
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
+  const lastPartnerMessageAt = useMemo(() => {
+    if (!activePartnerId) return null;
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const msg = messages[i];
+      const senderId = toId(msg.sender_id);
+      if (senderId && senderId === activePartnerId.toString()) {
+        return msg.createdAt || msg.updatedAt || null;
+      }
+    }
+    return null;
+  }, [activePartnerId, messages]);
+  const partnerRecentlyActive = lastPartnerMessageAt
+    ? Date.now() - new Date(lastPartnerMessageAt).getTime() < 2 * 60 * 1000
+    : false;
+  const socketConnected = socketService.isConnected();
+  const partnerStatus = (() => {
+    if (partnerTyping || partnerInfo?.is_online === true || partnerRecentlyActive) {
+      return { label: 'online', className: 'text-emerald-400' };
+    }
+    if (partnerInfo?.is_online === false && socketConnected) {
+      return { label: 'offline', className: 'text-[var(--nav-text)]/55' };
+    }
+    return { label: 'checking status...', className: 'text-[var(--nav-text)]/55' };
+  })();
 
   const dismissOverlay = () => {
+    setChatMenuOpen(false);
     setActiveConversation(null);
     onClose?.();
   };
 
   const goBackOrClose = () => {
+    setChatMenuOpen(false);
     if (activePartnerId) {
       setActiveConversation(null);
     } else {
@@ -611,24 +655,41 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       typing...
                     </span>
                   ) : (
-                    <p className={`text-[12px] max-md:text-[11px] sm:text-[13px] ${
-                      partnerInfo?.is_online === true ? 'text-emerald-400' : 'text-[var(--nav-text)]/55'
-                    }`}>
-                      {partnerInfo?.is_online === true ? 'online' : partnerInfo?.is_online === false ? 'offline' : 'checking status...'}
+                    <p className={`text-[12px] max-md:text-[11px] sm:text-[13px] ${partnerStatus.className}`}>
+                      {partnerStatus.label}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-0.5">
+              <div className="relative flex shrink-0 items-center gap-0.5">
                 <button
                   type="button"
-                  onClick={() => { if (confirm('Delete this conversation?')) hideConversation(activePartnerId.toString()); }}
+                  onClick={() => setChatMenuOpen((open) => !open)}
                   className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/80 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15"
-                  aria-label="Delete chat"
+                  aria-label="Chat options"
+                  aria-expanded={chatMenuOpen}
                 >
-                  <Trash2 className="size-[18px]" />
+                  <MoreVertical className="size-[20px]" />
                 </button>
+                {chatMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setChatMenuOpen(false)} />
+                    <div className="absolute right-10 top-10 z-50 min-w-[180px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-xl ring-1 ring-black/5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChatMenuOpen(false);
+                          if (confirm('Delete this conversation from your inbox?')) hideConversation(activePartnerId.toString());
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20"
+                      >
+                        <Trash2 className="size-4" />
+                        Delete conversation
+                      </button>
+                    </div>
+                  </>
+                )}
                 <button type="button" onClick={dismissOverlay} className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/85 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15" aria-label="Close chat">
                   <X className="size-[22px] sm:size-5" />
                 </button>
@@ -787,6 +848,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     const withNext = sameGroup(msg, nextMsg);
                     
                     const rounding = bubbleRounding(isOwn, withPrev, withNext);
+                    const canDeleteMessage = Boolean(
+                      msg._id &&
+                      !msg._id.toString().startsWith('opt-') &&
+                      msg.status !== 'sending'
+                    );
 
                     return (
                       <div key={msg._id || i}>
@@ -814,7 +880,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                                 ${rounding}
                               `}
                             >
-                              {!msg.deleted_everyone && (
+                              {!msg.deleted_everyone && canDeleteMessage && (
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id); }}
