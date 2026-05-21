@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
-import { initiateCollection } from '@/services/paymentProvider';
+import { initiateCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -71,6 +71,11 @@ function CheckoutContent() {
   const [zones, setZones] = useState([]);
   const [compatibleFee, setCompatibleFee] = useState(0);
   const [zoneOpen, setZoneOpen] = useState(false);
+  const [eversendCheckout, setEversendCheckout] = useState({
+    active: false,
+    reference: null,
+    message: '',
+  });
 
   const selectedLogistics = logisticsFirms.find(f => f._id === formData.logistics_company_id);
 
@@ -388,6 +393,12 @@ function CheckoutContent() {
           }
         }
       } else if (isEversend) {
+        setEversendCheckout({
+          active: true,
+          reference: null,
+          message: 'Sending request to Eversend...',
+        });
+
         const evRes = await initiateCollection('eversend', {
            amount: totalAmount,
            currency: formData.eversend.currency,
@@ -397,36 +408,59 @@ function CheckoutContent() {
            redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`,
         });
 
-        if (!evRes.data.success) {
+        if (!evRes.success) {
           setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
-          setError(evRes.data.message || 'Payment collection failed. Please try a different payment method.');
+          setError(evRes.message || 'Payment collection failed. Please try a different payment method.');
+          setEversendCheckout({ active: false, reference: null, message: '' });
           setLoading(false);
           return;
         }
 
-        const { checkout_url, reference, transaction_id } = evRes.data.data;
+        const { reference, transaction_id } = evRes.data || {};
         const ref = reference || transaction_id;
 
-        if (checkout_url) {
-          toast.success('Redirecting to secure payment gateway...');
-          window.location.href = checkout_url;
-          return;
-        }
-
         if (ref) {
-          if (ref.startsWith('SBX-')) {
-            toast.success('Sandbox order processed successfully!');
-            cartStore.clearCart();
-            setStep(3);
-            return;
-          }
           toast.success('Payment request sent to your phone. Please approve to complete.');
-          router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${ref}`);
+          setEversendCheckout({
+            active: true,
+            reference: ref,
+            message: 'Charge request sent. Approve the prompt on your phone...',
+          });
+          setLoading(false);
+
+          pollTransactionStatus(
+            'eversend',
+            ref,
+            {
+              onPending: (data) => setEversendCheckout((current) => ({
+                ...current,
+                message: data.message || 'Awaiting mobile money confirmation...',
+              })),
+              onSuccess: () => {
+                toast.success('Payment confirmed! Your order is being processed.');
+                cartStore.clearCart();
+                setEversendCheckout({ active: false, reference: null, message: '' });
+                setStep(3);
+              },
+              onFailed: (data) => {
+                setEversendCheckout({ active: false, reference: null, message: '' });
+                setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
+                setError(data.reason || 'Payment was declined by the gateway.');
+              },
+              onTimeout: () => {
+                setEversendCheckout({ active: false, reference: null, message: '' });
+                router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${ref}`);
+              },
+            },
+            3000,
+            110000
+          );
           return;
         }
 
         setBlockReason('collection_failed');
         setError('No transaction reference returned from the payment gateway. Please try again.');
+        setEversendCheckout({ active: false, reference: null, message: '' });
         setLoading(false);
         return;
       }
@@ -446,6 +480,7 @@ function CheckoutContent() {
       console.log('[Checkout Error Interceptor]', err.response?.status, err.response?.data);
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
+      setEversendCheckout({ active: false, reference: null, message: '' });
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -505,6 +540,55 @@ function CheckoutContent() {
 
         {/* ââ Payment Blocking Screen âââââââââââââââââââââââââââââââââââââââ */}
         <AnimatePresence>
+          {eversendCheckout.active && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              className="fixed inset-0 z-[220] flex items-center justify-center bg-black/75 p-6 backdrop-blur-md"
+            >
+              <div className="w-full max-w-sm rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-8 text-center shadow-2xl">
+                <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-[1.5rem] border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]">
+                  <Loader2 className="size-8 animate-spin" />
+                </div>
+                <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Approve Payment</h2>
+                <p className="mt-2 text-[12px] font-semibold leading-relaxed tracking-tight text-[var(--text-secondary)] opacity-70">
+                  {eversendCheckout.message || 'Waiting for mobile money confirmation...'}
+                </p>
+                <div className="mt-6 space-y-2 text-left">
+                  {[
+                    'Request sent to gateway',
+                    `Approve prompt on ${formData.eversend.phone || formData.phone}`,
+                    'Confirming order payment',
+                  ].map((label, index) => (
+                    <div key={label} className={`flex items-center gap-3 rounded-xl border p-3 ${
+                      index === 0
+                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
+                        : index === 1
+                          ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
+                          : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50'
+                    }`}>
+                      <div className={`flex size-5 shrink-0 items-center justify-center rounded-full ${
+                        index === 0 ? 'bg-emerald-500' : index === 1 ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'
+                      }`}>
+                        {index === 0 ? <CheckCircle2 className="size-3 text-white" /> : index === 1 ? <Loader2 className="size-3 animate-spin text-white" /> : <span className="text-[8px] font-bold text-white">{index + 1}</span>}
+                      </div>
+                      <p className="text-[11px] font-semibold tracking-tight">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                {eversendCheckout.reference && (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${eversendCheckout.reference}`)}
+                    className="mt-6 w-full rounded-2xl border border-[var(--glass-border)] px-4 py-3 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] transition hover:border-[var(--accent)]/40"
+                  >
+                    Open verification page
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
           {blockReason && (
             <motion.div
               initial={{ opacity: 0, scale: 0.97 }}
