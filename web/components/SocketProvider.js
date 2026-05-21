@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -51,17 +51,13 @@ export default function SocketProvider({ children }) {
     // ── Handler: new chat message ──────────────────────────────────────────
     const handleNewMessage = (msg) => {
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
+      if (senderId && senderId === user?._id?.toString()) return;
 
-      // ✅ FIRST: Check if MessagingHub modal is open with this exact sender (highest priority)
-      //    This works on ANY page (home, products, etc.), not just /chat or /messages
-      if (isOpenRef.current && activePartnerIdRef.current && activePartnerIdRef.current.toString() === senderId) {
+      // Suppress chat toasts whenever this exact thread is the active chat surface.
+      // Refs keep this accurate for overlay, full-page chat, and rapid partner switches.
+      if ((isOpenRef.current || activePartnerIdRef.current) && activePartnerIdRef.current?.toString() === senderId) {
         return;
       }
-
-      // ✅ SECOND: If on a dedicated chat/messages page, also suppress
-      //    (fallback check for full-page chat views)
-      const path = window.location.pathname;
-      if (path.startsWith('/chat') || path.startsWith('/messages')) return;
 
       const senderName = msg.sender_id?.name || 'Aura User';
       const senderAvatar = msg.sender_id?.avatar || msg.sender_id?.branding?.logo || null;

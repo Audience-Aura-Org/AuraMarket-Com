@@ -10,7 +10,7 @@ import {
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import { useAuthStore } from '@/hooks/useAuth';
-import { useChat } from '@/context/ChatContext';
+import { toId, useChat } from '@/context/ChatContext';
 import socketService from '@/services/socket';
 import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './chat/ChatUtils';
 
@@ -20,17 +20,28 @@ import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './ch
  */
 export default function MessagingHub({ vendorId: initialVendorId, product, initialData, onClose, fullPage = false }) {
   const { user } = useAuthStore();
-  const { isSystemWide } = useChat();
+  const {
+    isSystemWide,
+    activePartnerId,
+    activeMessages,
+    activeConversation,
+    conversations,
+    typingIndicators,
+    setActiveConversation,
+    upsertConversations,
+    upsertMessages,
+    receiveMessage,
+    reconcileOptimisticMessage,
+    markMessageFailed,
+    markConversationRead,
+    deleteMessage,
+  } = useChat();
   
   // -- State --
-  const [activePartnerId, setActivePartnerId] = useState(initialVendorId);
-  const [inbox, setInbox] = useState([]);
-  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [partnerInfo, setPartnerInfo] = useState(initialData);
   const [partnerBInfo, setPartnerBInfo] = useState(null);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   
@@ -41,10 +52,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   
   // UX Features
   const [isTyping, setIsTyping] = useState(false);
-  const [partnerTyping, setPartnerTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
+  const activePartnerIdRef = useRef(activePartnerId);
+  const messagesRef = useRef(activeMessages);
+  const initialChatSyncRef = useRef(null);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     try { return JSON.parse(localStorage.getItem('aura_deleted_convos') || '[]'); } catch { return []; }
@@ -55,6 +68,65 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const inputRef = useRef(null);
   const panelTouchRef = useRef(null);
   const [mobileLayout, setMobileLayout] = useState(false);
+  const inbox = conversations;
+  const messages = activeMessages;
+  const partnerInfo = activeConversation?.partner || initialData || null;
+  const partnerTyping = Boolean(activePartnerId && typingIndicators[activePartnerId]);
+  const latestMessageKey = messages.length
+    ? messages[messages.length - 1]?._id || messages[messages.length - 1]?.client_id || messages[messages.length - 1]?.createdAt
+    : null;
+  const draftKey = user?._id && activePartnerId ? `aura_chat_draft:${user._id}:${activePartnerId}` : null;
+  const trimmedInput = input.trim();
+
+  useEffect(() => {
+    activePartnerIdRef.current = activePartnerId;
+  }, [activePartnerId]);
+
+  useEffect(() => {
+    messagesRef.current = activeMessages;
+  }, [activeMessages]);
+
+  useEffect(() => {
+    if (!activePartnerId || loadingMore || loading) return;
+    scrollToBottom('smooth');
+  }, [activePartnerId, latestMessageKey, loading, loadingMore]);
+
+  useEffect(() => {
+    if (!activePartnerId) return;
+
+    const requestPresence = () => {
+      socketService.emit('check_online_status', { userId: activePartnerId.toString() });
+    };
+
+    requestPresence();
+    const retries = [750, 2000, 5000].map((delay) => setTimeout(requestPresence, delay));
+    socketService.on('connect', requestPresence);
+    return () => {
+      retries.forEach(clearTimeout);
+      socketService.off('connect', requestPresence);
+    };
+  }, [activePartnerId]);
+
+  useEffect(() => {
+    if (!draftKey || typeof window === 'undefined') {
+      setInput('');
+      return;
+    }
+
+    setInput(localStorage.getItem(draftKey) || '');
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftKey || typeof window === 'undefined') return;
+
+    const timer = setTimeout(() => {
+      const draft = input.trim();
+      if (draft) localStorage.setItem(draftKey, input);
+      else localStorage.removeItem(draftKey);
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [draftKey, input]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -69,9 +141,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const updated = [...new Set([...deletedConvos, partnerId])];
     setDeletedConvos(updated);
     localStorage.setItem('aura_deleted_convos', JSON.stringify(updated));
-    setActivePartnerId(null);
-    setPartnerInfo(null);
-    setMessages([]);
+    setActiveConversation(null);
   };
 
   const scrollToBottom = (behavior = 'smooth') => {
@@ -81,23 +151,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   useEffect(() => {
-    setActivePartnerId(initialVendorId);
-    if (initialData) {
-      // ✅ Set partner data from notification, but strip incomplete presence info
-      // The real is_online status will come from the API response or socket event
-      const { is_online, ...partnerWithoutPresence } = initialData;
-      setPartnerInfo(partnerWithoutPresence);
-    }
+    const syncKey = `${initialVendorId || 'inbox'}:${toId(initialData) || 'no-data'}`;
+    if (initialChatSyncRef.current === syncKey) return;
+    initialChatSyncRef.current = syncKey;
+
+    setActiveConversation(initialVendorId || null, initialData || null);
     setPage(1);
     setHasMore(true);
-  }, [initialVendorId, initialData]);
+  }, [initialVendorId, initialData, setActiveConversation]);
 
   // -- Data Fetching --
   useEffect(() => {
     if (activePartnerId) {
-      // Clear stale UI while loading fresh conversation
-      setMessages([]);
-      setPartnerInfo(null);
       loadConversation(activePartnerId, 1);
     } else {
       loadInbox();
@@ -110,7 +175,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const endpoint = isSystemWide ? '/chat/admin/inbox' : '/chat';
       const res = await api.get(endpoint);
       if (res.data.success) {
-        setInbox(res.data.data.activeChats || []);
+        upsertConversations(res.data.data.activeChats || []);
       }
     } catch (err) {
       console.error('Inbox load failed:', err);
@@ -143,8 +208,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           const prevScrollHeight = scrollRef.current.scrollHeight;
           const prevScrollTop = scrollRef.current.scrollTop;
           
-          setMessages(prev => [...newMsgs, ...prev]);
-          setHasMore((messages.length + newMsgs.length) < total);
+          upsertMessages(pid, newMsgs, { prepend: true });
+          setHasMore((messagesRef.current.length + newMsgs.length) < total);
           
           setTimeout(() => {
             if (scrollRef.current) {
@@ -153,7 +218,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             }
           }, 50);
         } else {
-          setMessages(newMsgs);
+          upsertMessages(pid, newMsgs);
           setHasMore(newMsgs.length < total);
           scrollToBottom('auto');
           markAsRead(pid);
@@ -162,7 +227,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       
       // Prefer explicit partner profile when available
       if (partnerRes?.data?.success) {
-        setPartnerInfo(partnerRes.data.data?.user || partnerRes.data.user);
+        setActiveConversation(pid, partnerRes.data.data?.user || partnerRes.data.user);
       } else {
         // Fallback: derive partner info from messages if profile endpoint failed
         try {
@@ -176,8 +241,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           if (found) {
             const candidate = ((found.sender_id && ((found.sender_id._id || found.sender_id) !== user?._id?.toString())) ? found.sender_id : found.receiver_id);
             if (candidate && typeof candidate === 'object') {
-              const { is_online, ...withoutPresence } = candidate;
-              setPartnerInfo(withoutPresence);
+              setActiveConversation(pid, candidate);
             }
           }
         } catch (e) {
@@ -200,73 +264,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const locallyUpdateInbox = (msg) => {
     if (!msg) return;
     const currentUserId = user?._id?.toString();
-    if (!currentUserId) return;
-
-    const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
-    const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
-    
-    const isSentByMe = senderId === currentUserId;
-    const partnerId = isSentByMe ? receiverId : senderId;
-
-    // ✅ Only use partnerObj if it's a full populated object (has a name or avatar field)
-    const rawPartnerObj = isSentByMe ? msg.receiver_id : msg.sender_id;
-    const isPopulated = rawPartnerObj && typeof rawPartnerObj === 'object' && (rawPartnerObj.name || rawPartnerObj.avatar || rawPartnerObj.store_name);
-    
-    if (!partnerId) return;
-
-    setInbox(prev => {
-      const existingIdx = prev.findIndex(chat => (chat.partner?._id || chat.partner)?.toString() === partnerId);
-      
-      let baseChat = {};
-      let prevUnread = 0;
-      if (existingIdx > -1) {
-        baseChat = prev[existingIdx];
-        prevUnread = baseChat.unread_count || 0;
-      }
-
-      // If active conversation is open with this partner, don't increment unread count
-      const isActiveChat = activePartnerId?.toString() === partnerId;
-      const isUnread = !isSentByMe && !isActiveChat;
-      const newUnreadCount = isUnread ? prevUnread + 1 : (isActiveChat ? 0 : prevUnread);
-
-      const snippetText = msg.text || (msg.product_reference ? '📦 Shared a product' : (msg.image_url ? '📷 Sent a photo' : 'Sent you a message'));
-
-      // ✅ Strong merge: populate from message first, then fall back to existing data
-      //    If message has populated partner data, merge it deeply with existing partner info
-      //    If message has unpopulated IDs (just strings), preserve all existing partner fields
-      const existingPartner = baseChat.partner || {};
-      const mergedPartner = isPopulated
-        ? { ...existingPartner, ...rawPartnerObj }  // Merge populated data with existing (overwrites selectively)
-        : { ...existingPartner, _id: partnerId };   // Keep all existing fields, just ensure _id is set
-
-      const updatedChat = {
-        ...baseChat,
-        partner: mergedPartner,
-        snippet: snippetText,
-        unread_count: newUnreadCount,
-        read_status: isSentByMe || isActiveChat,
-        date: msg.createdAt || new Date().toISOString()
-      };
-
-      const remaining = [...prev];
-      if (existingIdx > -1) {
-        remaining.splice(existingIdx, 1);
-      }
-      
-      return [updatedChat, ...remaining];
+    const senderId = toId(msg.sender_id);
+    const receiverId = toId(msg.receiver_id);
+    const partnerId = senderId === currentUserId ? receiverId : senderId;
+    receiveMessage(msg, {
+      partnerId,
+      isActive: Boolean(partnerId && activePartnerIdRef.current === partnerId),
     });
   };
 
   const markAsRead = async (pid) => {
     try {
       await api.patch(`/chat/read/${pid}`);
-      // Mark local unread as zero instantly
-      setInbox(prev => prev.map(chat => {
-        if ((chat.partner?._id || chat.partner)?.toString() === pid?.toString()) {
-          return { ...chat, unread_count: 0, read_status: true };
-        }
-        return chat;
-      }));
+      markConversationRead(pid);
     } catch (err) {
       console.error('Mark read failed:', err);
     }
@@ -285,152 +295,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     try {
       const res = await api.delete(`/chat/message/${messageId}?type=${type}`);
       if (res.data.success) {
-        if (type === 'everyone') {
-          setMessages(prev => prev.map(m => m._id === messageId ? { ...m, text: 'This message was deleted', product_reference: null, image_url: null, deleted_everyone: true } : m));
-        } else {
-          setMessages(prev => prev.filter(m => m._id !== messageId));
-        }
+        deleteMessage({
+          messageId,
+          deletedFor: type === 'everyone' ? 'everyone' : 'me',
+          text: 'This message was deleted',
+        });
         setActiveMenuMsgId(null);
       }
     } catch (err) {
       console.error('Delete message failed:', err);
     }
   };
-
-  // -- Socket Events --
-  useEffect(() => {
-    const handleNewMessage = (msg) => {
-      const senderId = (msg.sender_id?._id || msg.sender_id)?.toString?.();
-      const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString?.();
-
-      const meId = user?._id?.toString();
-      // Ignore messages from self (handled via optimistic updates in handleSend)
-      if (senderId && meId && senderId === meId) return;
-
-      // If the message contains populated partner info, ensure partnerInfo/inbox reflect it
-      const rawPartnerObj = (senderId === meId) ? msg.receiver_id : msg.sender_id;
-      if (rawPartnerObj && typeof rawPartnerObj === 'object' && (rawPartnerObj.name || rawPartnerObj.avatar || rawPartnerObj.store_name)) {
-        setPartnerInfo(prev => ({ ...(prev || {}), ...rawPartnerObj }));
-      }
-
-      // Robust active conversation match: compare string IDs where possible
-      const activeIdStr = activePartnerId?.toString?.();
-      if (activeIdStr && ((senderId && senderId === activeIdStr) || (receiverId && receiverId === activeIdStr))) {
-        setMessages(prev => {
-          // If incoming message has an _id, avoid duplicates; otherwise append
-          if (msg._id && prev.some(m => (m._id || '') === msg._id)) return prev;
-          return [...prev, msg];
-        });
-        setPartnerTyping(false);
-        scrollToBottom();
-        // Auto-mark as read: user is actively viewing this conversation
-        markAsRead(activePartnerId);
-      }
-      locallyUpdateInbox(msg);
-    };
-
-    const handleSentMessageEcho = (msg) => {
-      const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
-      const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
-
-      if (activePartnerId && (senderId === activePartnerId.toString() || receiverId === activePartnerId.toString())) {
-        setMessages(prev => {
-          if (prev.some(m => m._id === msg._id)) return prev;
-          
-          // Match any optimistic message starting with 'opt-' that shares the same content
-          const tempMsg = prev.find(m => 
-            m._id.toString().startsWith?.('opt-') && 
-            ((m.text && m.text === msg.text) || (m.image_url && m.image_url === msg.image_url))
-          );
-          
-          if (tempMsg) {
-            return prev.map(m => m._id === tempMsg._id ? { ...msg, status: 'sent' } : m);
-          }
-          
-          return [...prev, msg];
-        });
-        scrollToBottom();
-      }
-      locallyUpdateInbox(msg);
-    };
-
-    // ✅ Real-time blue-tick update: when receiver reads our messages, update read_status instantly
-    const handleMessagesRead = ({ sender_id }) => {
-      const readSenderId = sender_id?.toString();
-      if (!readSenderId) return;
-
-      // Update messages sent by current user to this partner — mark them as read
-      setMessages(prev => prev.map(m => {
-        const msgSenderId = (m.sender_id?._id || m.sender_id)?.toString();
-        if (msgSenderId === user?._id?.toString()) {
-          return { ...m, read_status: true };
-        }
-        return m;
-      }));
-
-      // Update inbox thread: clear unread badge for this partner
-      setInbox(prev => prev.map(chat => {
-        const partnerId = (chat.partner?._id || chat.partner)?.toString();
-        if (partnerId === readSenderId) {
-          return { ...chat, unread_count: 0, read_status: true };
-        }
-        return chat;
-      }));
-    };
-
-    const onPartnerTyping = ({ userId }) => {
-      if (userId === activePartnerId?.toString()) setPartnerTyping(true);
-    };
-
-    const onPartnerStoppedTyping = ({ userId }) => {
-      if (userId === activePartnerId?.toString()) setPartnerTyping(false);
-    };
-
-    const onUserPresence = ({ userId, isOnline }) => {
-      const uid = userId?.toString();
-      if (activePartnerId && uid === activePartnerId.toString()) {
-        setPartnerInfo(prev => prev ? { ...prev, is_online: isOnline } : prev);
-      }
-      setInbox(prev => prev.map(chat => {
-        const partnerId = (chat.partner?._id || chat.partner)?.toString();
-        if (partnerId === uid) {
-          return {
-            ...chat,
-            partner: typeof chat.partner === 'object' && chat.partner
-              ? { ...chat.partner, is_online: isOnline }
-              : chat.partner
-          };
-        }
-        return chat;
-      }));
-    };
-
-    const handleMessageDeleted = ({ messageId, deletedFor, text }) => {
-      if (deletedFor === 'everyone') {
-        setMessages(prev => prev.map(m => m._id === messageId ? { ...m, text: text || 'This message was deleted', product_reference: null, image_url: null, deleted_everyone: true } : m));
-      } else if (deletedFor === 'me') {
-        setMessages(prev => prev.filter(m => m._id !== messageId));
-      }
-    };
-
-    socketService.on('receive_message', handleNewMessage);
-    socketService.on('sent_message_echo', handleSentMessageEcho);
-    socketService.on('messages_read', handleMessagesRead);
-    socketService.on('partner_typing', onPartnerTyping);
-    socketService.on('partner_stopped_typing', onPartnerStoppedTyping);
-    socketService.on('user_presence', onUserPresence);
-    socketService.on('message_deleted', handleMessageDeleted);
-
-    return () => {
-      socketService.off('receive_message', handleNewMessage);
-      socketService.off('sent_message_echo', handleSentMessageEcho);
-      socketService.off('messages_read', handleMessagesRead);
-      socketService.off('partner_typing', onPartnerTyping);
-      socketService.off('partner_stopped_typing', onPartnerStoppedTyping);
-      socketService.off('user_presence', onUserPresence);
-      socketService.off('message_deleted', handleMessageDeleted);
-    };
-  }, [activePartnerId, user?._id]);
 
   // -- Typing Logic --
   const handleTyping = (val) => {
@@ -473,6 +348,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const handleSend = async (customText = null, imageUrl = null) => {
     const text = (customText || input).trim();
     if ((!text && !imageUrl) || !activePartnerId || sending) return;
+    const sentDraftKey = draftKey;
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     setIsTyping(false);
@@ -481,15 +357,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setSending(true);
     const optimisticMsg = {
       _id: `opt-${Date.now()}`,
+      client_id: `client-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       text,
       image_url: imageUrl,
       sender_id: user?._id,
+      receiver_id: activePartnerId,
       createdAt: new Date().toISOString(),
       status: 'sending',
     };
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    locallyUpdateInbox(optimisticMsg);
     setInput('');
+    if (sentDraftKey && typeof window !== 'undefined') localStorage.removeItem(sentDraftKey);
     scrollToBottom();
 
     try {
@@ -497,15 +376,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         receiver_id: activePartnerId,
         text,
         image_url: imageUrl,
+        client_id: optimisticMsg.client_id,
         ...(product && { product_reference: product._id }),
       });
       if (res.data.success) {
         const realMsg = res.data.data?.message || res.data.message;
-        setMessages(prev => prev.map(m => m._id === optimisticMsg._id ? { ...realMsg, status: 'sent' } : m));
-        locallyUpdateInbox(realMsg);
+        reconcileOptimisticMessage(activePartnerId, optimisticMsg._id, realMsg, optimisticMsg.client_id);
       }
     } catch (err) {
-      setMessages(prev => prev.map(m => m._id === optimisticMsg._id ? { ...m, status: 'failed' } : m));
+      markMessageFailed(activePartnerId, optimisticMsg._id);
+      if (sentDraftKey && text && typeof window !== 'undefined') localStorage.setItem(sentDraftKey, text);
     } finally {
       setSending(false);
     }
@@ -525,14 +405,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
 
   const dismissOverlay = () => {
+    setActiveConversation(null);
     onClose?.();
   };
 
   const goBackOrClose = () => {
     if (activePartnerId) {
-      setActivePartnerId(null);
-      setPartnerInfo(null);
-      setMessages([]);
+      setActiveConversation(null);
     } else {
       dismissOverlay();
     }
@@ -582,7 +461,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const pullToClose = (info) => {
     if (info.offset.y > 48 || info.velocity.y > 420) {
-      goBackOrClose();
+      dismissOverlay();
     }
   };
 
@@ -625,7 +504,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             ].join(' ')
       }
     >
-      {/* Mobile: pull handle — swipe down to close / go back */}
+      {/* Mobile: pull handle - swipe down to close / go back */}
       {mobileLayout && (
         <div className="flex shrink-0 flex-col items-center border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] md:hidden">
           <motion.div
@@ -642,7 +521,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         </div>
       )}
 
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <AnimatePresence mode="wait">
         {activePartnerId ? (
           /* Chat Header */
@@ -659,7 +538,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             <div className="flex items-center gap-1.5 px-2 py-1.5 max-md:gap-2 max-md:py-2 sm:gap-3 sm:px-3 sm:py-2.5">
               <button
                 type="button"
-                onClick={() => { setActivePartnerId(null); setPartnerInfo(null); setMessages([]); }}
+                onClick={() => setActiveConversation(null)}
                 className="flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/95 transition-colors hover:bg-white/10 active:bg-white/15 sm:size-10"
                 aria-label="Back to chats"
               >
@@ -690,13 +569,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             animate={{ y: [0,-3,0] }} transition={{ repeat: Infinity, duration: 0.8, delay: d * 0.15 }} />
                         ))}
                       </span>
-                      typing…
+                      typing...
                     </span>
                   ) : (
                     <p className={`text-[12px] max-md:text-[11px] sm:text-[13px] ${
                       partnerInfo?.is_online === true ? 'text-emerald-400' : 'text-[var(--nav-text)]/55'
                     }`}>
-                      {partnerInfo?.is_online === true ? 'online' : partnerInfo?.is_online === false ? 'offline' : 'checking status…'}
+                      {partnerInfo?.is_online === true ? 'online' : partnerInfo?.is_online === false ? 'offline' : 'checking status...'}
                     </p>
                   )}
                 </div>
@@ -711,7 +590,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 >
                   <Trash2 className="size-[18px]" />
                 </button>
-                <button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/85 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15" aria-label="Close chat">
+                <button type="button" onClick={dismissOverlay} className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/85 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15" aria-label="Close chat">
                   <X className="size-[22px] sm:size-5" />
                 </button>
               </div>
@@ -741,7 +620,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     </p>
                   )}
                 </div>
-                <button type="button" onClick={onClose} className="flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15" aria-label="Close">
+                <button type="button" onClick={dismissOverlay} className="flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15" aria-label="Close">
                   <X className="size-[22px]" />
                 </button>
               </div>
@@ -794,7 +673,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 {inboxLoading ? (
                   <div className="flex flex-col items-center gap-4 bg-white py-20">
                     <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
-                    <p className="text-[13px] font-medium text-[var(--text-secondary)]">Loading chats…</p>
+                    <p className="text-[13px] font-medium text-[var(--text-secondary)]">Loading chats...</p>
                   </div>
                 ) : filteredInbox.length === 0 ? (
                   <div className="bg-white px-6 py-16 text-center">
@@ -808,8 +687,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       key={chat._id || i}
                       type="button"
                       onClick={() => {
-                        setActivePartnerId(chat.partner?._id);
-                        setPartnerInfo(chat.partner);
+                        setActiveConversation(chat.partner?._id, chat.partner);
                         if (chat.isSystemWide) setPartnerBInfo(chat.partnerB);
                       }}
                       className={`flex w-full items-center gap-2.5 border-b border-[var(--glass-border)] px-2.5 py-2.5 text-left transition-colors active:bg-[var(--bg-secondary)] max-md:gap-3 max-md:px-3 max-md:py-2.5 sm:gap-4 sm:px-4 sm:py-3 ${
@@ -985,6 +863,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
              </div>
 
       <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
+                {trimmedInput && (
+                  <div className="border-b border-[var(--glass-border)] px-3 py-2">
+                    <div className="rounded-lg bg-[var(--bg-primary)] px-3 py-2 shadow-sm ring-1 ring-[var(--glass-border)]">
+                      <p className="truncate text-[12px] font-medium text-[var(--text-secondary)]">Preview</p>
+                      <p className="line-clamp-2 whitespace-pre-wrap text-[13px] leading-snug text-[var(--text-primary)]">{trimmedInput}</p>
+                    </div>
+                  </div>
+                )}
                 {messages.length < 5 && !input && (
                   <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3">
                     {QUICK_REPLIES.map(q => (
@@ -1030,10 +916,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
                   <motion.button
                     type="button"
-                    whileHover={sending || !input.trim() ? {} : { scale: 1.05 }}
-                    whileTap={sending || !input.trim() ? {} : { scale: 0.92 }}
+                    whileHover={sending || !trimmedInput ? {} : { scale: 1.05 }}
+                    whileTap={sending || !trimmedInput ? {} : { scale: 0.92 }}
                     onClick={() => handleSend()}
-                    disabled={sending || !input.trim()}
+                    disabled={sending || !trimmedInput}
                     className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30 transition-all hover:shadow-[var(--accent)]/45 disabled:bg-[var(--text-secondary)] disabled:opacity-90 disabled:shadow-none"
                     aria-label="Send"
                   >

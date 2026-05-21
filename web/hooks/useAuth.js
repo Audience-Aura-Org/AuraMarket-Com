@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
+import socketService from '../services/socket';
+
+const clearSessionStorage = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('aura_token');
+  sessionStorage.removeItem('onboarding_skipped');
+};
 
 /**
  * useAuthStore
@@ -38,8 +45,8 @@ export const useAuthStore = create(
 
           const { token, data } = res.data;
           const { user } = data;
-          set({ user, token, isAuthenticated: true, loading: false, rememberedEmail: user.email });
           localStorage.setItem('aura_token', token);
+          set({ user, token, isAuthenticated: true, loading: false, error: null, rememberedEmail: user.email });
           return { success: true };
         } catch (err) {
           const message = err.response?.data?.message || 'Login failed';
@@ -56,8 +63,8 @@ export const useAuthStore = create(
           const { token: jwtToken, data } = res.data;
           const { user } = data;
           
-          set({ user, token: jwtToken, isAuthenticated: true, loading: false });
           localStorage.setItem('aura_token', jwtToken);
+          set({ user, token: jwtToken, isAuthenticated: true, loading: false, error: null, rememberedEmail: user.email });
           return { success: true };
         } catch (err) {
           const message = err.response?.data?.message || '2FA Verification failed';
@@ -74,8 +81,8 @@ export const useAuthStore = create(
           const { token, data } = res.data;
           const { user } = data;
           
-          set({ user, token, isAuthenticated: true, loading: false });
           localStorage.setItem('aura_token', token);
+          set({ user, token, isAuthenticated: true, loading: false, error: null, rememberedEmail: user.email });
           return { success: true };
         } catch (err) {
           const message = err.response?.data?.message || 'Registration failed';
@@ -86,10 +93,16 @@ export const useAuthStore = create(
 
       // Logout functionality
       logout: () => {
-        set({ user: null, token: null, isAuthenticated: false });
-        localStorage.removeItem('aura_token');
-        // Clear skip flag so onboarding reappears on next login
-        sessionStorage.removeItem('onboarding_skipped');
+        socketService.disconnect();
+        clearSessionStorage();
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          followedVendorIds: [],
+          loading: false,
+          error: null,
+        });
       },
 
       // Update local user data (e.g., after wallet update)
@@ -137,6 +150,11 @@ export const useAuthStore = create(
       name: 'aura-auth-storage', // persists to localStorage automatically
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated?.(true);
+        const token = state?.token;
+        if (typeof window !== 'undefined') {
+          if (token) localStorage.setItem('aura_token', token);
+          else localStorage.removeItem('aura_token');
+        }
       },
     }
   )
