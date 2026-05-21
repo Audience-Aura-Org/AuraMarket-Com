@@ -142,7 +142,7 @@ const getUserInbox = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const sendMessage = async (req, res, next) => {
   try {
-    const { receiver_id, text, product_reference, metadata, image_url } = req.body;
+    const { receiver_id, text, product_reference, metadata, image_url, client_id } = req.body;
 
     if (!receiver_id) {
       return res.status(400).json({ success: false, message: 'Receiver ID is required.' });
@@ -165,6 +165,9 @@ const sendMessage = async (req, res, next) => {
       .populate('sender_id', 'name avatar role branding is_online last_seen')
       .populate('receiver_id', 'name avatar role branding is_online last_seen');
 
+    const messagePayload = populated.toObject ? populated.toObject() : populated;
+    if (client_id) messagePayload.client_id = client_id;
+
     // Emit socket events for real-time updates across clients
     const io = req.app.get('io');
     if (io) {
@@ -176,8 +179,8 @@ const sendMessage = async (req, res, next) => {
       
       console.log(`[API] 📤 Broadcasting via socket - receiver room: ${receiverRoom} (${receiverCount} connected), sender room: ${senderRoom} (${senderCount} connected)`);
       
-      io.to(receiverRoom).emit('receive_message', populated);
-      io.to(senderRoom).emit('sent_message_echo', populated);
+      io.to(receiverRoom).emit('receive_message', messagePayload);
+      io.to(senderRoom).emit('sent_message_echo', messagePayload);
       
       console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
 
@@ -216,7 +219,7 @@ const sendMessage = async (req, res, next) => {
       console.warn(`⚠️ [API] IO instance not available, socket events not emitted`);
     }
 
-    res.status(201).json({ success: true, data: { message: populated } });
+    res.status(201).json({ success: true, data: { message: messagePayload } });
   } catch (error) {
     next(error);
   }

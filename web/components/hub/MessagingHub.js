@@ -350,6 +350,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const handleSend = async (customText = null, imageUrl = null) => {
     const text = (customText || input).trim();
     if ((!text && !imageUrl) || !activePartnerId || sending) return;
+    const sendPartnerId = activePartnerId.toString();
     const sentDraftKey = draftKey;
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -363,12 +364,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       text,
       image_url: imageUrl,
       sender_id: user?._id,
-      receiver_id: activePartnerId,
+      receiver_id: sendPartnerId,
       createdAt: new Date().toISOString(),
       status: 'sending',
     };
 
-    locallyUpdateInbox(optimisticMsg);
+    receiveMessage(optimisticMsg, {
+      partnerId: sendPartnerId,
+      isActive: true,
+    });
     setInput('');
     if (sentDraftKey && typeof window !== 'undefined') localStorage.removeItem(sentDraftKey);
     scrollToBottom();
@@ -383,10 +387,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       });
       if (res.data.success) {
         const realMsg = res.data.data?.message || res.data.message;
-        reconcileOptimisticMessage(activePartnerId, optimisticMsg._id, realMsg, optimisticMsg.client_id);
+        reconcileOptimisticMessage(sendPartnerId, optimisticMsg._id, realMsg, optimisticMsg.client_id);
       }
     } catch (err) {
-      markMessageFailed(activePartnerId, optimisticMsg._id);
+      markMessageFailed(sendPartnerId, optimisticMsg._id);
       if (sentDraftKey && text && typeof window !== 'undefined') localStorage.setItem(sentDraftKey, text);
     } finally {
       setSending(false);
