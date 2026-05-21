@@ -42,6 +42,26 @@ export async function registerPWA() {
   try {
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
     console.log('🚀 Aura SW Registered:', registration.scope);
+
+    registration.update().catch(() => {});
+    registration.addEventListener?.('updatefound', () => {
+      const worker = registration.installing;
+      if (!worker) return;
+
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+
+    if (!window.__auraSwControllerReloadBound) {
+      window.__auraSwControllerReloadBound = true;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
+
     // Force SW to activate immediately without waiting for tabs to close
     if (registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });

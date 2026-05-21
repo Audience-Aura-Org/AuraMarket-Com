@@ -77,6 +77,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     : null;
   const draftKey = user?._id && activePartnerId ? `aura_chat_draft:${user._id}:${activePartnerId}` : null;
   const trimmedInput = input.trim();
+  const initialVendorKey = initialVendorId?.toString?.() || '';
+  const initialDataKey = toId(initialData) || '';
 
   useEffect(() => {
     activePartnerIdRef.current = activePartnerId;
@@ -151,14 +153,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   useEffect(() => {
-    const syncKey = `${initialVendorId || 'inbox'}:${toId(initialData) || 'no-data'}`;
+    const syncKey = `${initialVendorKey || 'inbox'}:${initialDataKey || 'no-data'}`;
     if (initialChatSyncRef.current === syncKey) return;
     initialChatSyncRef.current = syncKey;
 
-    setActiveConversation(initialVendorId || null, initialData || null);
+    setActiveConversation(initialVendorKey || null, initialData || null);
     setPage(1);
     setHasMore(true);
-  }, [initialVendorId, initialData, setActiveConversation]);
+  }, [initialVendorKey, initialDataKey, setActiveConversation]);
 
   // -- Data Fetching --
   useEffect(() => {

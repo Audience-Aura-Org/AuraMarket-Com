@@ -3,7 +3,7 @@
  * Robust background push handling with redundant notification suppression.
  */
 
-const CACHE_NAME = 'aura-cache-v8'; // Bumped: improved notification display
+const CACHE_NAME = 'aura-cache-v9'; // Bumped: network-first app shell updates
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -42,15 +42,22 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (
     url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/_next/') ||
     url.pathname.startsWith('/socket.io') ||
     event.request.method !== 'GET'
   ) {
     return;
   }
 
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).catch(() => caches.match('/'))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      // Return cached, but try to fetch in background if not found
       return cached || fetch(event.request).catch(() => null);
     })
   );

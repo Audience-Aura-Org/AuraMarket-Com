@@ -112,14 +112,23 @@ const dedupeMessages = (existing = [], incoming = [], prepend = false) => {
   const optimisticBySignature = new Map();
   const ordered = prepend ? [...incoming, ...existing] : [...existing, ...incoming];
 
-  for (const message of ordered) {
+  for (let message of ordered) {
     if (!message) continue;
     const key = getMessageKey(message) || `anon-${message.createdAt}-${message.text || message.image_url || ''}`;
     const clientId = message.client_id || message.clientId;
     const signature = `${toId(message.sender_id)}|${message.text || ''}|${message.image_url || ''}`;
 
     if (clientId && optimisticByClient.has(clientId)) {
-      byKey.delete(optimisticByClient.get(clientId));
+      const optimisticKey = optimisticByClient.get(clientId);
+      const optimistic = byKey.get(optimisticKey);
+      byKey.delete(optimisticKey);
+      if (optimistic) {
+        message = {
+          ...message,
+          sender_id: optimistic.sender_id ?? message.sender_id,
+          receiver_id: optimistic.receiver_id ?? message.receiver_id,
+        };
+      }
     } else if (message.status === 'sending') {
       optimisticByClient.set(clientId, key);
       optimisticBySignature.set(signature, key);
@@ -240,6 +249,7 @@ function chatReducer(state, action) {
     case 'SET_ACTIVE_CONVERSATION': {
       const partnerId = action.partnerId ? action.partnerId.toString() : null;
       if (!partnerId) {
+        if (!state.activePartnerId && !state.activeConversationId && !state.initialPartnerData) return state;
         return {
           ...state,
           activePartnerId: null,
@@ -251,6 +261,11 @@ function chatReducer(state, action) {
 
       const existing = state.conversationsById[partnerId] || {};
       const partner = mergeParticipantData(existing.partner, action.partnerData || { _id: partnerId }, state.onlineUsersMap[partnerId]);
+      const alreadyActive = state.isOpen && state.activePartnerId === partnerId && state.activeConversationId === partnerId;
+      const hasNoNewPartnerData = !action.partnerData;
+      const alreadyRead = Number(existing.unread_count || 0) === 0 && existing.read_status === true;
+
+      if (alreadyActive && hasNoNewPartnerData && alreadyRead) return state;
 
       return {
         ...state,
@@ -356,9 +371,17 @@ function chatReducer(state, action) {
       const partnerId = action.partnerId?.toString();
       if (!partnerId) return state;
       const current = state.messagesByConversation[partnerId] || [];
+      const optimistic = current.find((m) => m._id === action.tempId);
+      const confirmed = {
+        ...action.message,
+        sender_id: optimistic?.sender_id || action.message?.sender_id || state.currentUserId,
+        receiver_id: optimistic?.receiver_id || action.message?.receiver_id || partnerId,
+        status: 'sent',
+        client_id: action.clientId || action.message?.client_id,
+      };
       const messages = dedupeMessages(
         current.filter((m) => m._id !== action.tempId),
-        [{ ...action.message, status: 'sent', client_id: action.clientId || action.message?.client_id }]
+        [confirmed]
       );
       return {
         ...state,
