@@ -235,10 +235,13 @@ const markAsRead = async (req, res, next) => {
       { read_status: true }
     );
 
-    // Emit socket event so tabs sync up
+    // Emit socket event so tabs sync up AND so the sender sees blue ticks update live
     const io = req.app.get('io');
     if (io) {
+      // Notify the reader's own tabs (multi-tab sync)
       io.to(req.user._id.toString()).emit('messages_read', { sender_id: userId });
+      // ✅ Notify the original sender so their blue ticks turn green instantly
+      io.to(userId.toString()).emit('messages_read', { sender_id: userId });
     }
 
     res.status(200).json({ success: true, message: 'Messages marked as read.' });

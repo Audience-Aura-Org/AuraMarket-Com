@@ -168,10 +168,65 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   };
 
+  const locallyUpdateInbox = (msg) => {
+    if (!msg) return;
+    const currentUserId = user?._id?.toString();
+    if (!currentUserId) return;
+
+    const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
+    const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
+    
+    const isSentByMe = senderId === currentUserId;
+    const partnerId = isSentByMe ? receiverId : senderId;
+    const partnerObj = isSentByMe ? msg.receiver_id : msg.sender_id;
+    
+    if (!partnerId) return;
+
+    setInbox(prev => {
+      const existingIdx = prev.findIndex(chat => (chat.partner?._id || chat.partner)?.toString() === partnerId);
+      
+      let baseChat = {};
+      let prevUnread = 0;
+      if (existingIdx > -1) {
+        baseChat = prev[existingIdx];
+        prevUnread = baseChat.unread_count || 0;
+      }
+
+      // If active conversation is open with this partner, don't increment unread count
+      const isActiveChat = activePartnerId?.toString() === partnerId;
+      const isUnread = !isSentByMe && !isActiveChat;
+      const newUnreadCount = isUnread ? prevUnread + 1 : (isActiveChat ? 0 : prevUnread);
+
+      const snippetText = msg.text || (msg.product_reference ? '📦 Shared a product' : (msg.image_url ? '📷 Sent a photo' : 'Sent you a message'));
+
+      const updatedChat = {
+        ...baseChat,
+        partner: typeof partnerObj === 'object' && partnerObj ? { ...(baseChat.partner || {}), ...partnerObj } : (baseChat.partner || { _id: partnerId }),
+        snippet: snippetText,
+        unread_count: newUnreadCount,
+        read_status: isSentByMe || isActiveChat,
+        date: msg.createdAt || new Date().toISOString()
+      };
+
+      const remaining = [...prev];
+      if (existingIdx > -1) {
+        remaining.splice(existingIdx, 1);
+      }
+      
+      return [updatedChat, ...remaining];
+    });
+  };
+
   const markAsRead = async (pid) => {
     try {
       await api.patch(`/chat/read/${pid}`);
-      loadInbox(); // Refresh unread counts in sidebar
+      // Mark local unread as zero instantly
+      setInbox(prev => prev.map(chat => {
+        if ((chat.partner?._id || chat.partner)?.toString() === pid?.toString()) {
+          return { ...chat, unread_count: 0, read_status: true };
+        }
+        return chat;
+      }));
     } catch (err) {
       console.error('Mark read failed:', err);
     }
@@ -208,7 +263,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
       const receiverId = (msg.receiver_id?._id || msg.receiver_id)?.toString();
       
-      // Ignore messages from self (they are handled via optimistic updates in handleSend)
+      // Ignore messages from self (handled via optimistic updates in handleSend)
       if (senderId === user?._id?.toString()) return;
       
       if (activePartnerId && (senderId === activePartnerId.toString() || receiverId === activePartnerId.toString())) {
@@ -218,8 +273,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         });
         setPartnerTyping(false);
         scrollToBottom();
+        // ✅ Auto-mark as read: user is actively viewing this conversation
+        markAsRead(activePartnerId);
       }
-      loadInbox();
+      locallyUpdateInbox(msg);
     };
 
     const handleSentMessageEcho = (msg) => {
@@ -230,20 +287,45 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         setMessages(prev => {
           if (prev.some(m => m._id === msg._id)) return prev;
           
-          const tempId = prev.find(m => 
-            ((m.text && m.text === msg.text) || (m.image_url && m.image_url === msg.image_url)) && 
-            m.status === 'sending'
-          )?._id;
+          // Match any optimistic message starting with 'opt-' that shares the same content
+          const tempMsg = prev.find(m => 
+            m._id.toString().startsWith?.('opt-') && 
+            ((m.text && m.text === msg.text) || (m.image_url && m.image_url === msg.image_url))
+          );
           
-          if (tempId) {
-            return prev.map(m => m._id === tempId ? { ...msg, status: 'sent' } : m);
+          if (tempMsg) {
+            return prev.map(m => m._id === tempMsg._id ? { ...msg, status: 'sent' } : m);
           }
           
           return [...prev, msg];
         });
         scrollToBottom();
       }
-      loadInbox();
+      locallyUpdateInbox(msg);
+    };
+
+    // ✅ Real-time blue-tick update: when receiver reads our messages, update read_status instantly
+    const handleMessagesRead = ({ sender_id }) => {
+      const readSenderId = sender_id?.toString();
+      if (!readSenderId) return;
+
+      // Update messages sent by current user to this partner — mark them as read
+      setMessages(prev => prev.map(m => {
+        const msgSenderId = (m.sender_id?._id || m.sender_id)?.toString();
+        if (msgSenderId === user?._id?.toString()) {
+          return { ...m, read_status: true };
+        }
+        return m;
+      }));
+
+      // Update inbox thread: clear unread badge for this partner
+      setInbox(prev => prev.map(chat => {
+        const partnerId = (chat.partner?._id || chat.partner)?.toString();
+        if (partnerId === readSenderId) {
+          return { ...chat, unread_count: 0, read_status: true };
+        }
+        return chat;
+      }));
     };
 
     const onPartnerTyping = ({ userId }) => {
@@ -260,8 +342,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         setPartnerInfo(prev => prev ? { ...prev, is_online: isOnline } : prev);
       }
       setInbox(prev => prev.map(chat => {
-        if (chat.partner?._id?.toString() === uid) {
-          return { ...chat, partner: { ...chat.partner, is_online: isOnline } };
+        const partnerId = (chat.partner?._id || chat.partner)?.toString();
+        if (partnerId === uid) {
+          return {
+            ...chat,
+            partner: typeof chat.partner === 'object' && chat.partner
+              ? { ...chat.partner, is_online: isOnline }
+              : chat.partner
+          };
         }
         return chat;
       }));
@@ -277,6 +365,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     socketService.on('receive_message', handleNewMessage);
     socketService.on('sent_message_echo', handleSentMessageEcho);
+    socketService.on('messages_read', handleMessagesRead);
     socketService.on('partner_typing', onPartnerTyping);
     socketService.on('partner_stopped_typing', onPartnerStoppedTyping);
     socketService.on('user_presence', onUserPresence);
@@ -285,6 +374,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     return () => {
       socketService.off('receive_message', handleNewMessage);
       socketService.off('sent_message_echo', handleSentMessageEcho);
+      socketService.off('messages_read', handleMessagesRead);
       socketService.off('partner_typing', onPartnerTyping);
       socketService.off('partner_stopped_typing', onPartnerStoppedTyping);
       socketService.off('user_presence', onUserPresence);
@@ -362,6 +452,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (res.data.success) {
         const realMsg = res.data.data?.message || res.data.message;
         setMessages(prev => prev.map(m => m._id === optimisticMsg._id ? { ...realMsg, status: 'sent' } : m));
+        locallyUpdateInbox(realMsg);
       }
     } catch (err) {
       setMessages(prev => prev.map(m => m._id === optimisticMsg._id ? { ...m, status: 'failed' } : m));

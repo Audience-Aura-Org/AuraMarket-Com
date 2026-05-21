@@ -42,7 +42,7 @@ export function useNotifications() {
       const chatRes = await api.get('/chat');
       if (chatRes.data?.success) {
         const chats = chatRes.data.data?.activeChats || [];
-        setUnreadMessages(chats.filter(c => c.read_status === false).length);
+        setUnreadMessages(chats.filter(c => c.unread_count > 0).length);
       }
     } catch { /* silent */ }
   }, [user?._id]);
@@ -65,28 +65,33 @@ export function useNotifications() {
       }
     };
 
-    // ── Real-time: new chat message ──
+    // ── Real-time: new chat message received ──
     const handleMessage = () => {
-      if (!window.location.pathname.startsWith('/chat')) {
-        setUnreadMessages(prev => prev + 1);
-      }
+      fetchCounts();
     };
 
-    // ── Mark messages as read when visiting chat ──
+    // ── Real-time: message echo when we send (inbox thread needs refresh) ──
+    const handleSentEcho = () => {
+      fetchCounts();
+    };
+
+    // ── Mark messages as read (read receipts — decrement badge instantly) ──
     const handleMessagesRead = () => {
-      setUnreadMessages(0);
+      fetchCounts();
     };
 
     socketService.on('notification', handleNotification);
     socketService.on('receive_message', handleMessage);
+    socketService.on('sent_message_echo', handleSentEcho);
     socketService.on('messages_read', handleMessagesRead);
 
-    // Refresh counts every 60s as a safety net
-    const interval = setInterval(fetchCounts, 60_000);
+    // Refresh counts every 45s as a safety net
+    const interval = setInterval(fetchCounts, 45_000);
 
     return () => {
       socketService.off('notification', handleNotification);
       socketService.off('receive_message', handleMessage);
+      socketService.off('sent_message_echo', handleSentEcho);
       socketService.off('messages_read', handleMessagesRead);
       clearInterval(interval);
     };

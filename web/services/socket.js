@@ -1,30 +1,36 @@
 import { io } from 'socket.io-client';
 
 const getSocketURL = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000';
+    }
+    if (hostname === '10.0.2.2') {
+      return 'http://10.0.2.2:5000';
+    }
+    const isIP = /^[0-9.]+$/.test(hostname);
+    if (isIP) {
+      return `http://${hostname}:5000`;
+    }
+  }
+
   // 1. Priority: Explicitly defined socket URL
   if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
 
   // 2. Derive from API URL if available (most reliable for production)
   // Example: "https://aura-backend.herokuapp.com/api/v1" -> "https://aura-backend.herokuapp.com"
   if (process.env.NEXT_PUBLIC_API_URL) {
-    // Robustly strip /api/v1 or just /api from the end
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const isWindowLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1') || /^[0-9.]+$/.test(hostname);
+      if (!isWindowLocal && process.env.NEXT_PUBLIC_API_URL.includes('192.168.')) {
+        return window.location.origin;
+      }
+    }
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/api(\/v1)?\/?$/, '');
   }
 
-  // 3. Browser-side fallbacks
-  if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocal) {
-      return 'http://localhost:5000';
-    }
-    
-    // On Vercel, window.location.origin is NOT a socket server.
-    // If we've reached here on HTTPS, we're likely missing the API URL env var.
-    if (window.location.protocol === 'https:') {
-      console.warn('[Socket] NEXT_PUBLIC_API_URL is missing. Socket may fail.');
-    }
-  }
-  
   return 'http://localhost:5000';
 };
 
@@ -39,7 +45,21 @@ class SocketService {
   lastError = null;
 
   connect(userId) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null;
+    let token = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('aura-auth-storage');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          token = parsed?.state?.token;
+        }
+      } catch (e) {
+        console.error('[SocketService Connect] Failed to parse auth storage:', e);
+      }
+      if (!token) {
+        token = localStorage.getItem('aura_token');
+      }
+    }
 
     if (this.socket) {
       const currentAuth = this.socket.auth || {};
@@ -66,7 +86,7 @@ class SocketService {
     this.socket = io(SOCKET_URL, {
       auth: { 
         userId, 
-        token: (typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null) 
+        token
       },
       // Start with polling, then upgrade to websocket for maximum compatibility
       // Polling is more reliable on networks with strict firewalls or reverse proxies

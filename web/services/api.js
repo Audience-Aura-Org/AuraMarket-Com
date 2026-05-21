@@ -3,15 +3,34 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' ||
-                   window.location.hostname === '127.0.0.1' ||
-                   window.location.hostname === '10.0.2.2';
-    if (isLocal) {
-       return process.env.NEXT_PUBLIC_API_URL || `http://10.0.2.2:5000/api/v1`;
+    const hostname = window.location.hostname;
+    
+    // Overrides for localhost, loopbacks and emulators
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api/v1';
+    }
+    if (hostname === '10.0.2.2') {
+      return 'http://10.0.2.2:5000/api/v1';
+    }
+    
+    // Dynamic fallback: If accessed via local network IP (e.g. http://192.168.1.15:3000)
+    // we should use the same IP for the backend API
+    const isIP = /^[0-9.]+$/.test(hostname);
+    if (isIP) {
+      return `http://${hostname}:5000/api/v1`;
+    }
+    
+    // Production/fallback logic
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      // If we are on a remote domain but the API URL points to a local IP, use root bridge
+      const isWindowLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1') || /^[0-9.]+$/.test(hostname);
+      if (!isWindowLocal && process.env.NEXT_PUBLIC_API_URL.includes('192.168.')) {
+        return '/api/v1';
+      }
+      return process.env.NEXT_PUBLIC_API_URL;
     }
     
     // In production (Vercel), ALWAYS use the Next.js Bridge (/api/v1).
-    // This bypasses protocol blocks and ensures cross-domain handshake success.
     return '/api/v1';
   }
   
