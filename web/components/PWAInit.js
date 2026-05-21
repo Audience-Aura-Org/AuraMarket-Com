@@ -74,14 +74,16 @@ export default function PWAInit() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Check current permission state directly from the browser API
-        if (Notification.permission === 'granted' && !subscribedRef.current) {
-          console.log('[PWAInit] App resumed with granted permission — re-syncing push...');
-          attemptSubscription();
-        }
-        // If permission was just granted (was "default" before), also sync
-        if (Notification.permission === 'granted') {
-          attemptSubscription();
+        // Check current permission state directly from the browser API only if supported
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'granted' && !subscribedRef.current) {
+            console.log('[PWAInit] App resumed with granted permission — re-syncing push...');
+            attemptSubscription();
+          }
+          // If permission was just granted (was "default" before), also sync
+          if (Notification.permission === 'granted') {
+            attemptSubscription();
+          }
         }
       }
     };

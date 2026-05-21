@@ -59,7 +59,7 @@ export async function registerPWA() {
  * and ensures the backend always has the latest push endpoint.
  */
 export async function subscribeToPush() {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     return null;
   }
 
