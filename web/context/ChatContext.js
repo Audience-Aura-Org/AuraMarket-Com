@@ -511,6 +511,8 @@ export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const stateRef = useRef(state);
   const syncInFlightRef = useRef(false);
+  const lastInboxSyncAtRef = useRef(0);
+  const inboxRateLimitedUntilRef = useRef(0);
   const { user } = useAuthStore();
   const router = useRouter();
 
@@ -524,6 +526,10 @@ export function ChatProvider({ children }) {
 
   const syncInboxFromServer = useCallback(async () => {
     if (!user?._id || syncInFlightRef.current) return;
+    const now = Date.now();
+    if (now < inboxRateLimitedUntilRef.current) return;
+    if (now - lastInboxSyncAtRef.current < 8000) return;
+    lastInboxSyncAtRef.current = now;
     syncInFlightRef.current = true;
     try {
       const res = await api.get('/chat');
@@ -531,7 +537,12 @@ export function ChatProvider({ children }) {
         dispatch({ type: 'UPSERT_CONVERSATIONS', conversations: res.data.data?.activeChats || [] });
       }
     } catch (error) {
-      console.error('[ChatContext] Inbox sync failed:', error);
+      if (error?.response?.status === 429) {
+        inboxRateLimitedUntilRef.current = Date.now() + 2 * 60 * 1000;
+        console.warn('[ChatContext] Inbox sync paused after rate limit.');
+      } else {
+        console.error('[ChatContext] Inbox sync failed:', error);
+      }
     } finally {
       syncInFlightRef.current = false;
     }
@@ -548,7 +559,7 @@ export function ChatProvider({ children }) {
       if (!socketService.isConnected()) syncInboxFromServer();
     };
 
-    const interval = setInterval(tick, 3000);
+    const interval = setInterval(tick, 15000);
     const onFocus = () => syncInboxFromServer();
     const onVisible = () => {
       if (document.visibilityState === 'visible') syncInboxFromServer();

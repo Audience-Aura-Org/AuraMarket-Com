@@ -115,8 +115,8 @@ api.interceptors.request.use((config) => {
 const shouldRetry = (error) => {
   if (!error || !error.config) return false;
   const status = error.response?.status;
-  // Retry on 429 (rate limit) or network errors
-  return status === 429 || !error.response;
+  // Do not retry 429s: retrying a rate-limited request only deepens the lockout.
+  return status !== 429 && !error.response;
 };
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));

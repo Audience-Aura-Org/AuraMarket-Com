@@ -216,8 +216,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       });
     };
 
-    const warmup = setTimeout(pollIfSocketUnavailable, 1000);
-    const interval = setInterval(pollIfSocketUnavailable, 2500);
+    const warmup = setTimeout(pollIfSocketUnavailable, 1500);
+    const interval = setInterval(pollIfSocketUnavailable, 10000);
 
     return () => {
       stopped = true;
@@ -235,7 +235,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       loadInbox({ silent: true });
     };
 
-    const interval = setInterval(pollInboxIfSocketUnavailable, 5000);
+    const interval = setInterval(pollInboxIfSocketUnavailable, 20000);
     return () => {
       stopped = true;
       clearInterval(interval);
@@ -377,7 +377,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const handleDeleteMessage = async (messageId, type) => {
     try {
-      const res = await api.delete(`/chat/message/${messageId}?type=${type}`);
+      const res = await api.delete(`/chat/message/${messageId}`, { data: { type } });
       if (res.data.success) {
         deleteMessage({
           messageId,

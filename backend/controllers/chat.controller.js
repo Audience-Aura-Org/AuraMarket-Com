@@ -352,7 +352,7 @@ const getSystemWideInbox = async (req, res, next) => {
 const deleteMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
-    const type = req.body.type || req.query.type || 'me'; // 'me' or 'everyone', supports body or query param
+    const type = req.body?.type || req.query.type || 'me'; // 'me' or 'everyone', supports body or query param
 
     const message = await Message.findById(messageId);
     if (!message) {

@@ -201,11 +201,12 @@ export default function VendorDashboard() {
         <div className="fixed bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
         {/* Top Header */}
-        <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-14 lg:top-0 z-40 gap-4 md:gap-0">
-          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+        <header className="relative min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-14 lg:top-0 z-40 gap-4 md:gap-0">
+          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-center md:justify-start">
             <div className="flex items-center gap-4">
-              <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-                 <span className="material-symbols-outlined text-xl md:text-2xl">dashboard</span>
+              <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0 overflow-hidden">
+                 <img src="/icon-192.png" alt="Aura Market" className="size-7 object-contain md:hidden" />
+                 <span className="material-symbols-outlined hidden text-xl md:inline md:text-2xl">dashboard</span>
               </div>
               <div>
                 <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
@@ -217,7 +218,7 @@ export default function VendorDashboard() {
             </div>
             <button 
               onClick={handleRefresh} 
-              className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95 disabled:opacity-50"
+              className="absolute right-4 top-5 md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95 disabled:opacity-50"
               disabled={loading}
             >
                <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin' : ''}`}>refresh</span>
