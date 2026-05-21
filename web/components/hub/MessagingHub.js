@@ -547,13 +547,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   };
 
-  /** Reliable swipe-down dismiss. Horizontal swipe is avoided on iOS to prevent browser-history navigation. */
+  /** Reliable swipe-down dismiss only. Horizontal swipes are ignored to avoid browser-history navigation. */
   const handlePanelTouchStart = (e) => {
     if (!mobileLayout) return;
     const t = e.touches?.[0];
     if (!t) return;
     panelTouchRef.current = {
-      x: t.clientX,
       y: t.clientY,
       t: Date.now(),
       fromMessages: !!e.target.closest('[data-chat-messages]'),
