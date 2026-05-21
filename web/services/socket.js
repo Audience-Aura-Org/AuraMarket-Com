@@ -1,8 +1,65 @@
 import { io } from 'socket.io-client';
 
+const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
+
+const isLocalHost = (hostname = '') => (
+  hostname === 'localhost' ||
+  hostname === '127.0.0.1' ||
+  hostname === '10.0.2.2' ||
+  hostname.endsWith('.localhost') ||
+  hostname.startsWith('192.168.') ||
+  hostname.startsWith('10.') ||
+  hostname.startsWith('172.16.') ||
+  hostname.startsWith('172.17.') ||
+  hostname.startsWith('172.18.') ||
+  hostname.startsWith('172.19.') ||
+  hostname.startsWith('172.20.') ||
+  hostname.startsWith('172.21.') ||
+  hostname.startsWith('172.22.') ||
+  hostname.startsWith('172.23.') ||
+  hostname.startsWith('172.24.') ||
+  hostname.startsWith('172.25.') ||
+  hostname.startsWith('172.26.') ||
+  hostname.startsWith('172.27.') ||
+  hostname.startsWith('172.28.') ||
+  hostname.startsWith('172.29.') ||
+  hostname.startsWith('172.30.') ||
+  hostname.startsWith('172.31.')
+);
+
+const normalizeSocketURL = (candidate, source = 'socket config') => {
+  if (!candidate) return null;
+
+  const raw = stripApiPath(candidate);
+
+  if (typeof window === 'undefined') {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw, window.location.origin);
+    const pageIsSecure = window.location.protocol === 'https:';
+    const socketIsInsecure = url.protocol === 'http:' || url.protocol === 'ws:';
+
+    if (pageIsSecure && socketIsInsecure && !isLocalHost(url.hostname)) {
+      console.error(
+        `[SocketService] Refusing insecure ${source} "${raw}" from HTTPS production. ` +
+        'Set NEXT_PUBLIC_SOCKET_URL to an HTTPS/WSS Socket.IO origin, for example https://api.yourdomain.com.'
+      );
+      return null;
+    }
+
+    return url.origin;
+  } catch (error) {
+    console.error(`[SocketService] Invalid ${source}:`, candidate, error);
+    return null;
+  }
+};
+
 const getSocketURL = () => {
   // 1. Priority: Explicitly defined socket URL
-  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
+  const explicitSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_SOCKET_URL, 'NEXT_PUBLIC_SOCKET_URL');
+  if (explicitSocketURL) return explicitSocketURL;
 
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
@@ -16,7 +73,8 @@ const getSocketURL = () => {
     // Derive from process.env.NEXT_PUBLIC_API_URL (which has the developer's PC IP or production domain)
     if (isCapacitor && process.env.NEXT_PUBLIC_API_URL) {
       console.log('📱 Mobile container detected. Deriving socket server from API URL:', process.env.NEXT_PUBLIC_API_URL);
-      return process.env.NEXT_PUBLIC_API_URL.replace(/\/api(\/v1)?\/?$/, '');
+      const capacitorSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_API_URL, 'NEXT_PUBLIC_API_URL');
+      if (capacitorSocketURL) return capacitorSocketURL;
     }
 
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -26,7 +84,7 @@ const getSocketURL = () => {
       return 'http://10.0.2.2:5000';
     }
     const isIP = /^[0-9.]+$/.test(hostname);
-    if (isIP) {
+    if (isIP && window.location.protocol !== 'https:') {
       return `http://${hostname}:5000`;
     }
   }
@@ -38,10 +96,19 @@ const getSocketURL = () => {
       const hostname = window.location.hostname;
       const isWindowLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1') || /^[0-9.]+$/.test(hostname);
       if (!isWindowLocal && process.env.NEXT_PUBLIC_API_URL.includes('192.168.')) {
-        return window.location.origin;
+        return normalizeSocketURL(window.location.origin, 'window origin');
       }
     }
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api(\/v1)?\/?$/, '');
+    const apiSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_API_URL, 'NEXT_PUBLIC_API_URL');
+    if (apiSocketURL) return apiSocketURL;
+  }
+
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    console.error(
+      '[SocketService] No secure Socket.IO URL is configured for production. ' +
+      'Set NEXT_PUBLIC_SOCKET_URL to the HTTPS/WSS origin that serves /socket.io.'
+    );
+    return null;
   }
 
   return 'http://localhost:5000';
@@ -56,8 +123,18 @@ class SocketService {
   callbackCounter = 0;
   connectionAttempts = 0;
   lastError = null;
+  warnedUnavailable = false;
 
   connect(userId) {
+    if (!SOCKET_URL) {
+      this.lastError = 'Missing secure production socket URL. Set NEXT_PUBLIC_SOCKET_URL to an HTTPS/WSS Socket.IO origin.';
+      if (!this.warnedUnavailable) {
+        console.error(`[SocketService] ${this.lastError}`);
+        this.warnedUnavailable = true;
+      }
+      return;
+    }
+
     let token = null;
     if (typeof window !== 'undefined') {
       try {
@@ -135,6 +212,7 @@ class SocketService {
         }
         
         this.lastError = null;
+        this.warnedUnavailable = false;
         this.connectionAttempts = 0; // Reset on successful connect
         
         // Attach listeners that haven't been attached yet (bulletproof)
@@ -253,6 +331,7 @@ class SocketService {
     this.listeners.clear();
     this.connectionAttempts = 0;
     this.lastError = null;
+    this.warnedUnavailable = false;
   }
 
   isConnected() {
@@ -397,7 +476,10 @@ class SocketService {
   emit(event, data) {
     try {
       if (!this.socket) {
-        console.warn(`⚠️ Cannot emit "${event}" - socket not initialized`);
+        if (!this.warnedUnavailable) {
+          console.warn(`⚠️ Cannot emit "${event}" - socket not initialized`);
+          this.warnedUnavailable = true;
+        }
         return;
       }
       if (!this.socket.connected) {
