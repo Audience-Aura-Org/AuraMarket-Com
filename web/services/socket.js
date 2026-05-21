@@ -2,6 +2,14 @@ import { io } from 'socket.io-client';
 
 const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
 
+const isSocketDebugEnabled = () => process.env.NEXT_PUBLIC_SOCKET_DEBUG === 'true';
+const debugLog = (...args) => {
+  if (isSocketDebugEnabled()) console.debug(...args);
+};
+const debugWarn = (...args) => {
+  if (isSocketDebugEnabled()) console.warn(...args);
+};
+
 const isLocalHost = (hostname = '') => (
   hostname === 'localhost' ||
   hostname === '127.0.0.1' ||
@@ -72,7 +80,7 @@ const getSocketURL = () => {
     // For mobile native apps, DO NOT use localhost:5000 since the backend is on the PC/Cloud.
     // Derive from process.env.NEXT_PUBLIC_API_URL (which has the developer's PC IP or production domain)
     if (isCapacitor && process.env.NEXT_PUBLIC_API_URL) {
-      console.log('📱 Mobile container detected. Deriving socket server from API URL:', process.env.NEXT_PUBLIC_API_URL);
+      debugLog('[SocketService] Mobile container detected. Deriving socket server from API URL.');
       const capacitorSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_API_URL, 'NEXT_PUBLIC_API_URL');
       if (capacitorSocketURL) return capacitorSocketURL;
     }
@@ -155,25 +163,22 @@ class SocketService {
       const currentAuth = this.socket.auth || {};
       if (currentAuth.userId === userId && currentAuth.token === token) {
         if (this.socket.connected) {
-          console.log('⚡ Socket already connected with correct credentials, skipping reconnect');
+          debugLog('[SocketService] Already connected with current credentials, skipping reconnect.');
           return;
         }
-        console.log('⚡ Socket exists but disconnected, attempting reconnect...');
+        debugLog('[SocketService] Socket exists but disconnected, attempting reconnect.');
         this.socket.connect();
         return;
       }
 
-      console.log('⚡ Socket credentials changed, updating auth and forcing reconnect...');
+      debugLog('[SocketService] Credentials changed, updating auth and reconnecting.');
       this.socket.auth = { userId, token };
       this.socket.disconnect().connect();
       return;
     }
 
     this.connectionAttempts++;
-    console.log(`⚡ [Attempt ${this.connectionAttempts}] Connecting to WebSocket at: ${SOCKET_URL}`);
-    console.log(`   Transports: WebSocket (primary), XHR Polling (fallback)`);
-    console.log(`   Auth Token: ${(typeof window !== 'undefined' ? localStorage.getItem('aura_token') : 'N/A')?.substring(0, 20)}...`);
-    console.log(`   User ID: ${userId}`);
+    debugLog(`[SocketService] Connecting. Attempt: ${this.connectionAttempts}`);
 
     this.socket = io(SOCKET_URL, {
       auth: { 
@@ -202,13 +207,13 @@ class SocketService {
     this.socket.on('connect', () => {
       try {
         const transport = this.socket.io?.engine?.transport?.name || 'unknown';
-        console.log(`✅ Connected to Aura Socket (${this.socket.id}) | Transport: ${transport} | Attempts: ${this.connectionAttempts}`);
+        debugLog(`[SocketService] Connected. Transport: ${transport}. Attempts: ${this.connectionAttempts}`);
         
         // Log transport details for debugging
         if (transport === 'websocket') {
-          console.log(`   ✓ Using WebSocket (optimal — low latency, full duplex)`);
+          debugLog('[SocketService] Using WebSocket transport.');
         } else if (transport === 'polling') {
-          console.log(`   ⚠ Using XHR Polling (fallback — higher latency, higher overhead)`);
+          debugWarn('[SocketService] Using polling transport fallback.');
         }
         
         this.lastError = null;
@@ -271,7 +276,7 @@ class SocketService {
         });
 
         if (reattached > 0) {
-          console.log(`✅ Reattached ${reattached} listeners after reconnect`);
+          debugLog(`[SocketService] Reattached ${reattached} listeners after reconnect.`);
         }
       } catch (connectErr) {
         console.error('[SocketService] Critical error in connect handler:', connectErr);
@@ -281,21 +286,18 @@ class SocketService {
     this.socket.on('connect_error', (err) => {
       try {
         const errorMsg = err?.message || err?.toString?.() || 'Unknown error';
-        console.warn(`⚠️ Socket Connect Error (Attempt ${this.connectionAttempts}): ${errorMsg}`);
-        console.warn(`   URL: ${SOCKET_URL}`);
+        debugWarn(`[SocketService] Connect error. Attempt: ${this.connectionAttempts}. Message: ${errorMsg}`);
         
         // Provide specific guidance based on error type
         if (errorMsg.includes('xhr poll error') || errorMsg.includes('ERR_NAME_NOT_RESOLVED') || errorMsg.includes('ECONNREFUSED')) {
-          console.warn(`   → Backend socket server may not be running on ${SOCKET_URL}`);
-          console.warn(`   → Or there's a network/firewall issue preventing access`);
+          debugWarn('[SocketService] Backend socket server may be unavailable or blocked.');
         } else if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
-          console.warn(`   → CORS or auth issue — check backend cors and middleware`);
+          debugWarn('[SocketService] Possible CORS or auth middleware issue.');
         } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-          console.warn(`   → Auth token invalid or expired — re-login may help`);
+          debugWarn('[SocketService] Auth token may be invalid or expired.');
         }
         
-        console.warn(`   Retrying with exponential backoff...`);
-        console.warn(`   Full error:`, err);
+        debugWarn('[SocketService] Retrying with exponential backoff.');
         this.lastError = errorMsg;
       } catch (e) {
         console.error('[SocketService] Error in connect_error handler:', e);
@@ -315,7 +317,7 @@ class SocketService {
 
     this.socket.on('disconnect', (reason) => {
       try {
-        console.warn(`🔌 Socket disconnected | Reason: ${reason}`);
+        debugWarn(`[SocketService] Disconnected. Reason: ${reason}`);
       } catch (e) {
         console.error('[SocketService] Error in disconnect handler:', e);
       }
@@ -324,7 +326,7 @@ class SocketService {
 
   disconnect() {
     if (this.socket) {
-      console.log('🔌 Disconnecting socket');
+      debugLog('[SocketService] Disconnecting socket.');
       this.socket.disconnect();
       this.socket = null;
     }
@@ -387,13 +389,12 @@ class SocketService {
           };
           this.socket.on(event, safeCb);
           eventMap.set(callbackId, { callback, attached: true, wrapper: safeCb });
-          // console.log(`✅ Listener attached for event: "${event}"`);
         } catch (attachErr) {
           console.error(`[SocketService] Failed to attach listener for event "${event}":`, attachErr);
           eventMap.set(callbackId, { callback, attached: false });
         }
       } else {
-        console.log(`⏳ Event "${event}" queued - will attach on socket connect`);
+        debugLog(`[SocketService] Event "${event}" queued until socket connects.`);
       }
     } catch (e) {
       console.error('[SocketService] Error in on() method:', e);
@@ -439,7 +440,6 @@ class SocketService {
                 }
               }
               eventMap.delete(id);
-              // console.log(`✅ Listener removed for event: "${event}"`);
               break;
             }
           } catch (e) {
@@ -466,7 +466,6 @@ class SocketService {
           }
         }
         this.listeners.delete(event);
-        // console.log(`✅ All listeners removed for event: "${event}"`);
       }
     } catch (e) {
       console.error('[SocketService] Error in off() method:', e);

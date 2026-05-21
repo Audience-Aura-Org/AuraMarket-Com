@@ -123,14 +123,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleWishlist = async (e) => {
     e.stopPropagation();
-    if (!user) { alert('Please login to wishlist'); return; }
+    if (!user) { toast.error('Please login to wishlist'); return; }
     setWishlistLoading(true);
     try {
       await api.post(`/wishlist/toggle/${productId}`);
       setWishlisted(!wishlisted);
       if (!wishlisted) trackWishlist(product);
     } catch { 
-      alert('Failed to update wishlist');
+      toast.error('Failed to update wishlist');
     } finally { 
       setWishlistLoading(false); 
     }
@@ -140,7 +140,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleChat = (e) => {
     e.stopPropagation();
-    if (!user) { alert('Please login to chat'); return; }
+    if (!user) { toast.error('Please login to chat'); return; }
     if (vendorUserId) {
       const vName = vendor_id?.store_name || 'Verified Store';
       const vLogo = vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo;

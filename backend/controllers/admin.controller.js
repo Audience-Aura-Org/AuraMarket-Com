@@ -23,6 +23,7 @@ const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('../services/logistics.service');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const templates = require('../utils/emailTemplates');
+const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/admin/notifications/email-logs
@@ -249,9 +250,31 @@ const getSettings = async (req, res, next) => {
 
 const updateSettings = async (req, res, next) => {
   try {
-    const { commission_rate, withdrawal_fee, min_withdrawal_amount } = req.body;
+    const {
+      commission_rate,
+      commission_type,
+      commission_value,
+      escrow_fee_type,
+      escrow_fee_value,
+      withdrawal_fee,
+      min_withdrawal_amount
+    } = req.body;
     const settings = await PlatformSettings.getSettings();
-    if (commission_rate !== undefined) settings.commission_rate = commission_rate;
+
+    if (commission_type !== undefined) settings.commission_type = normalizeFeeType(commission_type);
+    if (commission_value !== undefined) {
+      settings.commission_value = toNonNegativeNumber(commission_value);
+      settings.commission_rate = settings.commission_type === 'percentage' ? settings.commission_value : 0;
+    }
+    if (commission_rate !== undefined) {
+      settings.commission_rate = toNonNegativeNumber(commission_rate);
+      if (commission_value === undefined) {
+        settings.commission_type = 'percentage';
+        settings.commission_value = settings.commission_rate;
+      }
+    }
+    if (escrow_fee_type !== undefined) settings.escrow_fee_type = normalizeFeeType(escrow_fee_type);
+    if (escrow_fee_value !== undefined) settings.escrow_fee_value = toNonNegativeNumber(escrow_fee_value);
     if (withdrawal_fee !== undefined) settings.withdrawal_fee = withdrawal_fee;
     if (min_withdrawal_amount !== undefined) settings.min_withdrawal_amount = min_withdrawal_amount;
     await settings.save();

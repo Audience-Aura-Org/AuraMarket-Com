@@ -45,19 +45,20 @@ export default function VendorsDirectoryPage() {
         const data = res.data.data || [];
         setFollowedStatuses(data);
         
-        // Aggressive background preloading for the first 15 statuses
-        data.slice(0, 15).forEach(s => {
+        // Warm only the first few stories so the row opens quickly without flooding mobile bandwidth.
+        data.slice(0, 6).forEach((s, index) => {
           if (!s.content_url) return;
           if (s.type === 'image') {
             const img = new Image();
+            img.fetchPriority = index < 2 ? 'high' : 'auto';
             img.src = s.content_url;
           } else if (s.type === 'video') {
-            // Warm the video cache by creating an invisible metadata/auto-preload element
-            const v = document.createElement('video');
-            v.preload = 'auto'; // Load more aggressively for the first few stories
-            v.muted = true;
-            v.src = s.content_url;
-            v.load();
+            const video = document.createElement('video');
+            video.preload = index < 2 ? 'auto' : 'metadata';
+            video.muted = true;
+            video.playsInline = true;
+            video.src = s.content_url;
+            video.load();
           }
         });
       }

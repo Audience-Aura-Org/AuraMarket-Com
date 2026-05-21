@@ -13,6 +13,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { toId, useChat } from '@/context/ChatContext';
 import socketService from '@/services/socket';
 import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './chat/ChatUtils';
+import { toast } from 'react-hot-toast';
 
 /**
  * MessagingHub - Premium Global Messaging Center
@@ -422,7 +423,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
     } catch (err) {
       console.error('Upload failed:', err);
-      alert('Failed to upload image');
+      toast.error('Failed to upload image');
     } finally {
       setSending(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

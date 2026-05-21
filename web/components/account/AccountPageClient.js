@@ -28,6 +28,25 @@ import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
 
+const ORDER_STATUS_STYLES = {
+  amber: {
+    rail: 'bg-amber-500',
+    badge: 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+  },
+  blue: {
+    rail: 'bg-blue-500',
+    badge: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+  },
+  emerald: {
+    rail: 'bg-emerald-500',
+    badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+  },
+  rose: {
+    rail: 'bg-rose-500',
+    badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+  }
+};
+
 export default function AccountPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -113,6 +132,12 @@ export default function AccountPageClient() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderView, setOrderView] = useState(user?.role === 'vendor' ? 'sales' : 'purchases');
 
+  useEffect(() => {
+    if (user?.role === 'vendor' && orderView !== 'sales' && viewingOrderId) {
+      setOrderView('sales');
+    }
+  }, [user?.role, orderView, viewingOrderId]);
+
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
 
@@ -124,6 +149,7 @@ export default function AccountPageClient() {
 
   const fetchOrders = useCallback(async () => {
      if (!user) return;
+     if (viewingOrderId) return;
      setOrdersLoading(true);
      try {
        const endpoint = orderView === 'sales' ? '/orders/vendor-orders' : '/orders/my-orders';
@@ -137,7 +163,7 @@ export default function AccountPageClient() {
      } finally {
        setOrdersLoading(false);
      }
-  }, [user, orderView]);
+  }, [user, orderView, viewingOrderId]);
 
   useEffect(() => {
     if (activeTab === 'orders') fetchOrders();
@@ -528,6 +554,7 @@ export default function AccountPageClient() {
                                 }
                               };
                               const sColor = getStatusColor(order.order_status);
+                              const statusStyle = ORDER_STATUS_STYLES[sColor] || ORDER_STATUS_STYLES.amber;
 
                               return (
                                 <button 
@@ -536,7 +563,7 @@ export default function AccountPageClient() {
                                   className="block w-full text-left group"
                                 >
                                   <div className="relative overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-2xl p-5 hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--accent)]/30 transition-all duration-300">
-                                    <div className={`absolute left-0 top-0 w-1 h-full bg-${sColor}-500 opacity-20 group-hover:opacity-100 transition-opacity`} />
+                                    <div className={`absolute left-0 top-0 w-1 h-full ${statusStyle.rail} opacity-20 group-hover:opacity-100 transition-opacity`} />
                                     
                                     <div className="flex items-center gap-5">
                                       <div className="size-14 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 shadow-sm">
@@ -544,7 +571,7 @@ export default function AccountPageClient() {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                          <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px]  font-semibold tracking-tight bg-${sColor}-500/10 text-${sColor}-500 border border-${sColor}-500/20 capitalize`}>
+                                          <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-tight border capitalize ${statusStyle.badge}`}>
                                             {order.shipment && ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(order.shipment.status) 
                                               ? order.shipment.status.replace('_', ' ') 
                                               : order.order_status || 'pending'}

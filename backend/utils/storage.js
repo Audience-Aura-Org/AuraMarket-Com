@@ -1,12 +1,9 @@
 /**
  * utils/storage.js
- * Multi-environment Storage Engine (S3 > Cloudinary > Local Fallback)
+ * Multi-environment Storage Engine (S3 > Local Fallback)
  * 🚀 Persistent storage for Vercel/AWS deployments
  */
 const { 
-  CLOUDINARY_CLOUD_NAME, 
-  CLOUDINARY_API_KEY, 
-  CLOUDINARY_API_SECRET,
   AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY,
   AWS_REGION,
@@ -95,33 +92,8 @@ if (useS3) {
 
   console.log('✅ [Storage] AWS S3 Persistent Node CALIBRATED (v3).');
 }
-// 2. Cloudinary Integration (Persistent)
-else if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_CLOUD_NAME !== 'your_cloud_name') {
-  const cloudinary = require('cloudinary').v2;
-  const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
-  cloudinary.config({
-    cloud_name: CLOUDINARY_CLOUD_NAME,
-    api_key: CLOUDINARY_API_KEY,
-    api_secret: CLOUDINARY_API_SECRET
-  });
-
-  engine = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: 'aura-market',
-      allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'svg'],
-      transformation: [{ width: 800, height: 800, crop: 'limit' }],
-      public_id: (req, file) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        return `upload-${uniqueSuffix}`;
-      }
-    }
-  });
-  console.log('✅ [Storage] Cloudinary Persistent Node CALIBRATED.');
-}
 else {
-  // 3. Local Storage Implementation (Ephemeral — files lost on Vercel/AWS deploy)
+  // 2. Local Storage Implementation (Ephemeral — files lost on Vercel/AWS deploy)
   const baseDir = path.join(__dirname, '..', 'uploads');
   if (!fs.existsSync(baseDir)) {
      fs.mkdirSync(baseDir, { recursive: true });
@@ -152,7 +124,7 @@ else {
       cb(null, name);
     }
   });
-  console.warn('⚠️  [Storage] Using Ephemeral Local Storage (No S3 or Cloudinary detected).');
+  console.warn('⚠️  [Storage] Using Ephemeral Local Storage (No S3 detected).');
 }
 
 // ── Master Multer Configuration ───────────────────────────────────────────

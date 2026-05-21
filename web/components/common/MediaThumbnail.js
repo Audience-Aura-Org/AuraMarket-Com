@@ -7,7 +7,7 @@ import BlurUpImage from './BlurUpImage';
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const isVideoUrl = (url) => {
   if (!url) return false;
-  return /\.(mp4|mov|webm|ogg|m4v)(\?|$)/i.test(url) || url.includes('/video/upload/');
+  return /\.(mp4|mov|webm|ogg|m4v)(\?|$)/i.test(url);
 };
 
 // ── VideoThumb ─────────────────────────────────────────────────────────────────
@@ -90,25 +90,6 @@ const MediaThumbnail = memo(({ src, alt, className = '', imgClassName = '', obje
   if (!src) return null;
 
   if (isVideoUrl(src)) {
-    // Cloudinary: generate a blurred JPEG poster via URL transform — no video element needed
-    if (src.includes('res.cloudinary.com')) {
-      try {
-        const poster = src
-          .replace('/video/upload/', '/video/upload/so_0,q_auto,f_jpg,w_300,h_400,c_fill/')
-          .replace(/\.[^/.]+$/, '.jpg');
-        return (
-          <BlurUpImage
-            src={poster}
-            alt={alt}
-            className={className}
-            imgClassName={imgClassName}
-            objectFit={objectFit}
-            priority={priority}
-          />
-        );
-      } catch {}
-    }
-    // S3 / generic: real first-frame via lazy <video>
     return <VideoThumb src={src} className={`${className} ${objectFit === 'cover' ? 'object-cover' : 'object-contain'}`} />;
   }
 

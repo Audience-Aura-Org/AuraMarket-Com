@@ -8,9 +8,29 @@ const PlatformSettingsSchema = new mongoose.Schema(
   {
     commission_rate: {
       type: Number,
-      default: 5, // 5% by default
+      default: 0,
       min: 0,
       max: 100
+    },
+    commission_type: {
+      type: String,
+      enum: ['percentage', 'amount'],
+      default: 'percentage'
+    },
+    commission_value: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    escrow_fee_type: {
+      type: String,
+      enum: ['percentage', 'amount'],
+      default: 'percentage'
+    },
+    escrow_fee_value: {
+      type: Number,
+      default: 0,
+      min: 0
     },
     withdrawal_fee: {
       type: Number,
@@ -33,10 +53,14 @@ const PlatformSettingsSchema = new mongoose.Schema(
 );
 
 // We only ever want one document in this collection
-PlatformSettingsSchema.statics.getSettings = async function () {
-  let settings = await this.findOne();
+PlatformSettingsSchema.statics.getSettings = async function (session = null) {
+  let query = this.findOne();
+  if (session) query = query.session(session);
+
+  let settings = await query;
   if (!settings) {
-    settings = await this.create({});
+    const created = session ? await this.create([{}], { session }) : await this.create([{}]);
+    settings = Array.isArray(created) ? created[0] : created;
   }
   return settings;
 };

@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
-import { 
+import {
   X, Save, Plus, Trash2, Image, List, 
   Settings, Clock, Upload, Search, 
   Check, ChevronDown, Package, ExternalLink, Store
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 export default function SectionForm({ section, onClose, onSuccess }) {
   const isEdit = !!section;
@@ -148,7 +149,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         updateDataItem(index, 'image_url', res.data.url);
       }
     } catch (err) {
-      alert('Upload failed');
+      toast.error('Upload failed');
     } finally {
       setUploadingIndex(null);
     }
@@ -193,7 +194,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
     } catch (err) {
       console.error('Save Error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Check your data fields and try again.';
-      alert(`Error saving section: ${errorMessage}`);
+      toast.error(`Error saving section: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -274,7 +275,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(product._id);
-                        alert('Product ID Copied!');
+                        toast.success('Product ID copied');
                         setShowProductLookup(false);
                       }}
                       className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-2"
@@ -392,7 +393,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                              value={item.image_url}
                              onChange={(e) => updateDataItem(i, 'image_url', e.target.value)}
                              className="flex-1 bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
-                             placeholder="Cloudinary or external URL"
+                             placeholder="Image URL"
                            />
                            <label className="cursor-pointer bg-[var(--accent)]/10 text-[var(--accent)] p-3 rounded-xl border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-all flex items-center justify-center min-w-[50px]">
                               {uploadingIndex === i ? (

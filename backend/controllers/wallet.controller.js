@@ -16,6 +16,7 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const Message = require('../models/Message.model');
 const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const { sendNotification } = require('../utils/notifier');
+const { getCommissionValue } = require('../utils/platformFees');
 
 // Helper to generate a unique transaction reference
 const generateTxRef = () => `AURA-TX-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -420,7 +421,11 @@ const getPlatformFinancialStats = async (req, res, next) => {
         total_platform_revenue: settings.platform_wallet_balance || 0,
         total_escrow_held: escrowStats[0]?.total || 0,
         total_pending_withdrawals: withdrawalStats[0]?.total || 0,
-        commission_rate: settings.commission_rate
+        commission_rate: settings.commission_rate,
+        commission_type: settings.commission_type,
+        commission_value: getCommissionValue(settings),
+        escrow_fee_type: settings.escrow_fee_type,
+        escrow_fee_value: settings.escrow_fee_value
       }
     });
   } catch (error) { next(error); }

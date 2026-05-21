@@ -49,7 +49,7 @@ export default function SingleOrderView({ orderId, onBack }) {
     const toastId = toast.loading('Generating invoice PDF...');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
       const response = await fetch(`${baseUrl}/orders/${orderId}/invoice`, {
         headers: { Authorization: token ? `Bearer ${token}` : '' }
       });
@@ -459,24 +459,28 @@ export default function SingleOrderView({ orderId, onBack }) {
           </div>
         </div>
 
-        {/* Stepper: vertical on small phones, horizontal from sm */}
-        <div className="relative mt-8 border-t border-[var(--glass-border)] pt-8 sm:mt-10 sm:pt-10">
+        {/* Stepper */}
+        <div className="relative mt-7 border-t border-[var(--glass-border)] pt-6 sm:mt-10 sm:pt-10">
           <div className="absolute left-4 right-4 top-[2.25rem] hidden h-px bg-[var(--glass-border)] sm:block" />
           <div
             className="absolute left-4 top-[2.25rem] hidden h-px bg-[var(--accent)] transition-all duration-700 sm:block"
             style={{ width: `calc(${progressPct}% - 2rem)` }}
           />
 
-          <div className="relative flex flex-col gap-0 sm:hidden">
-            {STEPS.map((s, idx) => {
-              const isActive = status.step > idx;
-              const isCurrent = status.step === idx + 1;
-              const showConnector = idx < STEPS.length - 1;
-              return (
-                <div key={s.label} className="flex gap-3">
-                  <div className="flex flex-col items-center pt-0.5">
+          <div className="relative sm:hidden">
+            <div className="absolute left-[12.5%] right-[12.5%] top-[1.125rem] h-1 rounded-full bg-[var(--glass-border)]/70" />
+            <div
+              className="absolute left-[12.5%] top-[1.125rem] h-1 rounded-full bg-[var(--accent)] transition-all duration-700"
+              style={{ width: `${progressPct * 0.75}%` }}
+            />
+            <div className="relative grid grid-cols-4 gap-1">
+              {STEPS.map((s, idx) => {
+                const isActive = status.step > idx;
+                const isCurrent = status.step === idx + 1;
+                return (
+                  <div key={s.label} className="flex min-w-0 flex-col items-center gap-2 text-center">
                     <div
-                      className={`relative z-10 flex size-11 items-center justify-center rounded-2xl border transition-all duration-300 ${
+                      className={`relative z-10 flex size-9 items-center justify-center rounded-xl border transition-all duration-300 ${
                         isActive
                           ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
                           : isCurrent
@@ -484,24 +488,19 @@ export default function SingleOrderView({ orderId, onBack }) {
                             : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60'
                       }`}
                     >
-                      <s.icon className="size-[18px]" />
+                      <s.icon className="size-4" />
                     </div>
-                    {showConnector && (
-                      <span className="my-1 min-h-[1.25rem] w-px flex-1 bg-[var(--glass-border)]" aria-hidden />
-                    )}
-                  </div>
-                  <div className={`min-w-0 flex-1 pb-6 ${idx === STEPS.length - 1 ? 'pb-0' : ''}`}>
                     <span
-                      className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                      className={`block w-full truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${
                         isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-50'
                       }`}
                     >
                       {s.label}
                     </span>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           <div className="relative hidden sm:flex sm:justify-between sm:gap-2 md:gap-4">

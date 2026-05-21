@@ -11,6 +11,24 @@ import BlurUpImage from '@/components/common/BlurUpImage';
 import MediaThumbnail from '@/components/common/MediaThumbnail';
 import { useAuthStore } from '@/hooks/useAuth';
 
+const warmStoryMedia = (story, eager = false) => {
+  if (!story?.content_url) return;
+  if (story.type === 'image') {
+    const img = new Image();
+    img.fetchPriority = eager ? 'high' : 'auto';
+    img.src = story.content_url;
+    return;
+  }
+  if (story.type === 'video') {
+    const video = document.createElement('video');
+    video.preload = eager ? 'auto' : 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.src = story.content_url;
+    video.load();
+  }
+};
+
 // â”€â”€â”€ Utils â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ago = d => {
   const s = Math.floor((Date.now() - new Date(d)) / 1000);
@@ -189,7 +207,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const activePool = activeTab === 'inner' ? clientFilteredFollowed : clientFilteredGlobal;
 
   const handleOpen = (status, pool) => {
-    pool.slice(0, 10).forEach(s => { if (s.content_url) new Image().src = s.content_url; });
+    pool.slice(0, 6).forEach(s => warmStoryMedia(s, s._id === status._id));
     onSelectStatus(pool, status._id);
   };
 

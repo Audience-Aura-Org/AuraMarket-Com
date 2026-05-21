@@ -12,6 +12,7 @@ const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
+const { calculatePlatformFees, describeFee } = require('../utils/platformFees');
 
 // @route   POST /api/disputes
 // @desc    Customer raises a dispute for an order
@@ -158,16 +159,17 @@ const resolveDispute = async (req, res, next) => {
       if (escrow && escrow.status === 'held') {
         const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
         const vendorUser = await User.findById(vendorAccount.user_id).session(session);
-        const settings = await PlatformSettings.getSettings();
-        
-        const platformFee = (escrow.amount * settings.commission_rate) / 100;
-        const vendorPayout = escrow.amount - platformFee;
+        const settings = await PlatformSettings.getSettings(session);
+        const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
+          includeEscrowFee: true
+        });
+        const feeDescription = describeFee(settings, { includeEscrowFee: true });
 
         vendorUser.wallet_balance += vendorPayout;
         await vendorUser.save({ session });
 
         // Update Platform Earnings
-        settings.platform_wallet_balance += platformFee;
+        settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
         await settings.save({ session });
 
         // Update/Create Vendor Payout Transaction
@@ -176,7 +178,7 @@ const resolveDispute = async (req, res, next) => {
           { 
             status: 'completed', 
             amount: vendorPayout, 
-            description: `Admin Dispute Release (Fee ${settings.commission_rate}% deducted).` 
+            description: `Admin Dispute Release (${feeDescription} deducted).`
           },
           { session, returnDocument: 'after', upsert: true }
         );

@@ -392,10 +392,19 @@ export default function DiscoveryHub() {
         const data = res.data.data || [];
         setFollowedStatuses(data);
         
-        data.forEach(s => {
-          if (s.type === 'image' && s.content_url) {
+        data.slice(0, 6).forEach((s, index) => {
+          if (!s.content_url) return;
+          if (s.type === 'image') {
             const img = new Image();
+            img.fetchPriority = index < 2 ? 'high' : 'auto';
             img.src = s.content_url;
+          } else if (s.type === 'video') {
+            const video = document.createElement('video');
+            video.preload = index < 2 ? 'auto' : 'metadata';
+            video.muted = true;
+            video.playsInline = true;
+            video.src = s.content_url;
+            video.load();
           }
         });
       }

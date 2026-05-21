@@ -72,7 +72,7 @@ const UserSchema = new mongoose.Schema(
     // ── Profile ──────────────────────────────────
     avatar: {
       type: String,
-      default: null, // Cloudinary URL
+      default: null,
     },
     branding: {
       logo: { type: String, default: null },

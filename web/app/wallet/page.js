@@ -27,6 +27,14 @@ const TX_ICONS = {
   payout:     { Icon: Building2,      color: 'purple' },
 };
 
+const TX_ICON_STYLES = {
+  amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+  red: 'bg-red-500/10 text-red-500 border-red-500/20'
+};
+
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
 function CompactStat({ title, value, sub, icon: Icon, color }) {
@@ -472,6 +480,7 @@ export default function WalletPage() {
                  ) : (
                     currentItems.map((tx, i) => {
                       const config = TX_ICONS[tx.type] || TX_ICONS.payment;
+                      const iconStyle = TX_ICON_STYLES[config.color] || TX_ICON_STYLES.amber;
                       const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
                       return (
                         <div key={tx._id || i} className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
@@ -479,7 +488,7 @@ export default function WalletPage() {
                             ? 'border-amber-500/30 bg-amber-500/5'
                             : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                         }`}>
-                          <div className={`size-10 rounded-xl flex items-center justify-center bg-${config.color}-500/10 text-${config.color}-500 border border-${config.color}-500/20`}>
+                          <div className={`size-10 rounded-xl flex items-center justify-center border ${iconStyle}`}>
                             <config.Icon className="size-4" />
                           </div>
                           <div className="flex-1 min-w-0">

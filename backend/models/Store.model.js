@@ -18,11 +18,11 @@ const StoreSchema = new mongoose.Schema(
     },
     banner: {
       type: String,
-      default: null, // Cloudinary URL
+      default: null,
     },
     logo: {
       type: String,
-      default: null, // Cloudinary URL
+      default: null,
     },
     followers: [
       {

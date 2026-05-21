@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import RoleSidebar from '@/components/layout/RoleSidebar';
 import { useAuthStore } from '@/hooks/useAuth';
+import { toast } from 'react-hot-toast';
 
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -52,10 +53,11 @@ export default function AdminReviewsPage() {
       const res = await api.delete(`/reviews/${reviewId}`);
       if (res.data.success) {
         setReviews(prev => prev.filter(r => r._id !== reviewId));
+        toast.success('Review deleted');
       }
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Failed to delete review.');
+      toast.error('Failed to delete review');
     } finally {
       setDeletingId(null);
     }

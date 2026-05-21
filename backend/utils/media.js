@@ -1,7 +1,7 @@
 /**
  * utils/media.js
  * Helper to normalize media URLs (avatar, branding) so clients always
- * receive absolute URLs regardless of storage backend (S3, Cloudinary, Local).
+ * receive absolute URLs regardless of storage backend (S3 or local).
  */
 const { AWS_S3_ENABLED, AWS_S3_BUCKET, AWS_REGION } = require('../config/env');
 

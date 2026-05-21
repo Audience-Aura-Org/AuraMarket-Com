@@ -10,18 +10,19 @@ const SUPPORT_EMAIL = process.env.EMAIL_USER || 'info@audienceaura.org';
 
 // Aura Market — brand aligned with app & PDF invoice (full-width email layout)
 const COLORS = {
-  bgOuter:      '#e8eaef',
+  bgOuter:      '#f4f5f7',
   bgPrimary:    '#ffffff',
-  bgSecondary:  '#f6f7f9',
-  border:       '#e2e5eb',
-  textPrimary:  '#111111',
-  textSecondary: '#5c5c5c',
-  accent:       '#e05c2a',
-  accentDark:   '#c94a1f',
-  accentSoft:   '#fff4ed',
-  gradient:     'linear-gradient(135deg, #e05c2a 0%, #b9380a 100%)',
-  footerBg:     '#0c0c0c',
-  stripe:       '#e05c2a',
+  bgSecondary:  '#f8fafc',
+  border:       '#e5e7eb',
+  textPrimary:  '#111827',
+  textSecondary: '#4b5563',
+  textMuted:    '#6b7280',
+  accent:       '#2563eb',
+  accentDark:   '#1d4ed8',
+  accentSoft:   '#eff6ff',
+  gradient:     '#2563eb',
+  footerBg:     '#f8fafc',
+  stripe:       '#2563eb',
 };
 /* ─── Premium Email Wrapper ─── */
 const wrap = (title, heading, body) => `
@@ -62,10 +63,10 @@ const wrap = (title, heading, body) => `
     .content-td p  { font-size: 15px; color: ${COLORS.textSecondary}; margin: 0 0 16px; line-height: 1.65; }
     .content-td strong { color: ${COLORS.textPrimary}; font-weight: 600; }
 
-    .card { background: ${COLORS.accentSoft}; border: 1px solid rgba(224, 92, 42, 0.18); border-radius: 14px; padding: 6px 18px; margin: 20px 0; }
+    .card { background: ${COLORS.accentSoft}; border: 1px solid #bfdbfe; border-radius: 14px; padding: 6px 18px; margin: 20px 0; }
     .card-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
-    .card-row:not(:last-child) { border-bottom: 1px solid rgba(224, 92, 42, 0.1); }
-    .card-divider { height: 1px; background: rgba(224, 92, 42, 0.12); margin: 0; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #dbeafe; }
+    .card-divider { height: 1px; background: #dbeafe; margin: 0; }
     .card-label { color: ${COLORS.textSecondary}; font-weight: 500; font-size: 13px; }
     .card-value { color: ${COLORS.textPrimary}; font-weight: 600; font-size: 13px; text-align: right; }
 
@@ -81,7 +82,7 @@ const wrap = (title, heading, body) => `
     .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
     .badge-failed    { background: #fee2e2; color: #991b1b; }
 
-    .btn { display: inline-block; background: ${COLORS.gradient}; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 14px; margin: 18px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(224, 92, 42, 0.35); font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
+    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 14px; margin: 18px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.22); font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
 
     .table-products { width: 100% !important; max-width: 100%; margin: 20px 0; border-collapse: collapse; font-size: 14px; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; }
     .table-products thead { background: #fafafa; }
@@ -91,15 +92,15 @@ const wrap = (title, heading, body) => `
     .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.accent}; }
     .table-products tbody tr:last-child td { border-bottom: none; }
 
-    .footer-td { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; }
-    .footer-td p { font-size: 13px; color: rgba(255,255,255,0.5); margin: 6px 0; font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
-    .footer-td a { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 500; }
-    .footer-brand { font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 10px !important; letter-spacing: -0.5px; }
+    .footer-td { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; border-top: 1px solid ${COLORS.border}; }
+    .footer-td p { font-size: 13px; color: ${COLORS.textMuted}; margin: 6px 0; font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
+    .footer-td a { color: ${COLORS.accent}; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 15px; font-weight: 700; color: ${COLORS.textPrimary}; margin-bottom: 10px !important; letter-spacing: -0.5px; }
 
     .highlight { background: ${COLORS.accentSoft}; border-left: 4px solid ${COLORS.accent}; padding: 14px 18px; margin: 20px 0; border-radius: 0 12px 12px 0; }
     .highlight p { margin: 0; font-size: 13px; color: ${COLORS.textPrimary}; font-weight: 500; }
 
-    .qr-container { text-align: center; margin: 20px 0; padding: 18px; border: 1.5px dashed rgba(224, 92, 42, 0.25); border-radius: 14px; background: ${COLORS.bgSecondary}; }
+    .qr-container { text-align: center; margin: 20px 0; padding: 18px; border: 1.5px dashed #bfdbfe; border-radius: 14px; background: ${COLORS.bgSecondary}; }
     .qr-image { width: 100px; height: 100px; margin: 0 auto 8px; border-radius: 8px; }
     .qr-text { font-size: 11px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
 
@@ -131,7 +132,7 @@ const wrap = (title, heading, body) => `
                         </td>
                         <td style="vertical-align:middle;padding-left:14px;">
                           <p class="header-title">Aura Market</p>
-                          <p class="header-sub">Commerce · logistics · fulfilment</p>
+                          <p class="header-sub">Commerce &bull; logistics &bull; fulfilment</p>
                         </td>
                       </tr>
                     </table>
@@ -151,7 +152,7 @@ const wrap = (title, heading, body) => `
             <td class="footer-td">
               <p class="footer-brand">Aura Market</p>
               <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
-              <p>© ${new Date().getFullYear()} Aura Market · Audience Aura Org</p>
+              <p>&copy; ${new Date().getFullYear()} Aura Market &bull; Audience Aura Org</p>
             </td>
           </tr>
         </table>

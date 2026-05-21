@@ -12,6 +12,7 @@ import socketService from '@/services/socket';
 import StatusCreator from './StatusCreator';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import MediaThumbnail from '@/components/common/MediaThumbnail';
+import { toast } from 'react-hot-toast';
 
 /**
  * StatusManager
@@ -61,9 +62,10 @@ export default function StatusManager() {
     try {
       await api.delete(`/statuses/${id}`);
       setStatuses(prev => prev.filter(s => s._id !== id));
+      toast.success('Story deleted');
     } catch (e) {
       console.error(e);
-      alert('Delete failed');
+      toast.error('Delete failed');
     } finally {
       setDeletingId(null);
     }

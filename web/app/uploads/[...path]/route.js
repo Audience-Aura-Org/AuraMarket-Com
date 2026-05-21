@@ -5,7 +5,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request, { params }) {
   const pathParts = await params;
   const path = pathParts.path.join('/');
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'http://13.51.198.119:5000');
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1\/?$/, '') || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : null);
+  if (!backendUrl) {
+    return NextResponse.json({ error: 'Backend URL is not configured.' }, { status: 500 });
+  }
   const BACKEND_URL = `${backendUrl}/uploads/${path}`;
 
   try {

@@ -24,6 +24,7 @@ const Shipment = require('../../models/Shipment.model');
 const PlatformSettings = require('../../models/PlatformSettings.model');
 const logisticsService = require('../logistics.service');
 const { sendNotification } = require('../../utils/notifier');
+const { calculatePlatformFees, describeFee } = require('../../utils/platformFees');
 const crypto = require('crypto');
 
 const genRef = (prefix = 'SETTLE') =>
@@ -74,7 +75,7 @@ const creditLogistics = async (order, session) => {
  * @param {number} [overrideAmount] - Override the base amount (e.g. already-computed vendorBase)
  */
 const handleVendorPayout = async (order, session, overrideAmount = null) => {
-  const settings = await PlatformSettings.getSettings();
+  const settings = await PlatformSettings.getSettings(session);
 
   // Vendor base = subtotal only when logistics partner handles shipping (fee goes to logistics firm)
   const vendorBaseAmount = overrideAmount ?? (
@@ -83,8 +84,11 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       : order.total_amount
   );
 
-  const platformFee = (vendorBaseAmount * settings.commission_rate) / 100;
-  const vendorPayout = vendorBaseAmount - platformFee;
+  const isEscrowPayout = !!order.escrow_enabled;
+  const { platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
+    includeEscrowFee: isEscrowPayout
+  });
+  const feeDescription = describeFee(settings, { includeEscrowFee: isEscrowPayout });
 
   if (order.escrow_enabled) {
     // ── ESCROW PATH: hold funds, create pending payout tx ────────────────
@@ -103,7 +107,7 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       amount: vendorPayout,
       reference: genRef('PAYOUT-PEND'),
       status: 'pending',
-      description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow)`,
+      description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow, ${feeDescription})`,
       order_id: order._id,
       gateway: 'escrow',
     }], { session, ordered: true });
@@ -116,7 +120,7 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
     vendorUser.wallet_balance += vendorPayout;
     await vendorUser.save({ session });
 
-    settings.platform_wallet_balance += platformFee;
+    settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
     await settings.save({ session });
 
     await Transaction.create([{

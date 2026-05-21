@@ -21,6 +21,7 @@ const {
 } = require('../services/orderSync.service');
 const Cart = require('../models/Cart.model');
 const { sendNotification } = require('../utils/notifier');
+const { calculatePlatformFees, describeFee } = require('../utils/platformFees');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 
@@ -59,6 +60,11 @@ const holdFunds = async (req, res, next) => {
     const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
       ? order.subtotal
       : order.total_amount;
+    const settings = await PlatformSettings.getSettings(session);
+    const { vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
+      includeEscrowFee: true
+    });
+    const feeDescription = describeFee(settings, { includeEscrowFee: true });
 
     await Transaction.create([{
       user_id: user._id,
@@ -72,11 +78,11 @@ const holdFunds = async (req, res, next) => {
     }, {
       user_id: vendorAccount.user_id,
       type: 'payout',
-      amount: vendorBaseAmount,
+      amount: vendorPayout,
       reference: `IN-${generateTxRef()}`,
       status: 'pending',
       gateway: 'escrow',
-      description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()})`,
+      description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()}, ${feeDescription})`,
       order_id: order._id,
     }], { session, ordered: true });
 
@@ -153,15 +159,17 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
   const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
-  const settings = await PlatformSettings.getSettings();
-  const platformFee = (escrow.amount * settings.commission_rate) / 100;
-  const vendorPayout = escrow.amount - platformFee;
+  const settings = await PlatformSettings.getSettings(session);
+  const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
+    includeEscrowFee: true
+  });
+  const feeDescription = describeFee(settings, { includeEscrowFee: true });
 
   // Transfer vendor funds
   vendorUser.wallet_balance += vendorPayout;
   await vendorUser.save({ session });
 
-  settings.platform_wallet_balance += platformFee;
+  settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
   await settings.save({ session });
 
   // Update Vendor Payout Transaction
@@ -170,7 +178,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     {
       status: 'completed',
       amount: vendorPayout,
-      description: `Escrow Released (Fee ${settings.commission_rate}% deducted).`
+      description: `Escrow Released (${feeDescription} deducted).`
     },
     { session }
   );

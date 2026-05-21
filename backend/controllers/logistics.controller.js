@@ -19,6 +19,7 @@ const { sendNotification } = require('../utils/notifier');
 const { sendEmail }        = require('../utils/emailService');
 const logisticsService     = require('../services/logistics.service');
 const templates            = require('../utils/emailTemplates');
+const { calculatePlatformFees } = require('../utils/platformFees');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -408,15 +409,14 @@ const modifyShipmentStatus = async (req, res, next) => {
           if (vendorAccount) {
             const vendorUser = await User.findById(vendorAccount.user_id).session(session);
             if (vendorUser) {
-              const settings = await PlatformSettings.findOne();
-              const commission = settings ? (order.subtotal * settings.commission_rate) / 100 : 0;
-              const vendorPayout = order.subtotal - commission;
+              const settings = await PlatformSettings.getSettings(session);
+              const { platformFee, vendorPayout } = calculatePlatformFees(order.subtotal, settings);
 
               vendorUser.wallet_balance += vendorPayout;
               await vendorUser.save({ session });
 
               if (settings) {
-                settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + commission;
+                settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
                 await settings.save({ session });
               }
 

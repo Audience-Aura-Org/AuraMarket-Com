@@ -8,10 +8,9 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
-import BlurUpImage from '@/components/common/BlurUpImage';
 
 const STORY_DURATION = 5000;
-const VIDEO_PRELOAD_AHEAD = 6;
+const VIDEO_PRELOAD_AHEAD = 3;
 const VIDEO_WAIT_TIMEOUT_MS = 6000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
@@ -61,18 +60,6 @@ function cleanupVideoPreloads(keepUrls = []) {
   }
 }
 
-// ─── Cloudinary poster helper ────────────────────────────────────────────────
-const getVideoPoster = (src) => {
-  if (!src || !src.includes('res.cloudinary.com')) return null;
-  try {
-    return src
-      .replace('/video/upload/', '/video/upload/so_0,q_auto,f_jpg,w_300,h_400,c_fill/')
-      .replace(/\.[^/.]+$/, '.jpg');
-  } catch {
-    return null;
-  }
-};
-
 // Global cache for loaded videos to prevent re-shimmering
 const loadedVideos = new Set();
 
@@ -96,7 +83,6 @@ function addCacheBust(url) {
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
   const ref = useRef(null);
   const [playbackSrc, setPlaybackSrc] = useState(src);
-  const [poster, setPoster]       = useState(() => getVideoPoster(src));
   const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
   const [isWaiting, setIsWaiting]   = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -112,18 +98,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     setIsWaiting(false);
     setHasStarted(false);
   }, [src]);
-  // Poster/preload extraction: we only keep Cloudinary's fast edge poster cache.
-  // Otherwise, we do not perform heavy canvas probing.
   useEffect(() => {
     if (loadedVideos.has(src)) {
       setVideoReady(true);
       return;
-    }
-    const instant = getVideoPoster(src);
-    if (instant) { 
-      setPoster(instant);
-    } else {
-      setPoster(null);
     }
     setVideoReady(false);
   }, [src]);
@@ -208,18 +186,9 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     <div className="absolute inset-0 bg-black">
       {/* Poster / Loading Layer */}
       <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        {poster ? (
-          <div className="relative w-full h-full">
-            <img src={poster} alt="" className="w-full h-full object-cover blur-2xl scale-110" aria-hidden="true" />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-               <Loader2 className="size-10 text-white/60 animate-spin" />
-            </div>
-          </div>
-        ) : (
-          <div className="w-full h-full bg-black flex items-center justify-center">
-            <Loader2 className="size-10 text-white/20 animate-spin" />
-          </div>
-        )}
+        <div className="w-full h-full bg-black flex items-center justify-center">
+          <Loader2 className="size-10 text-white/20 animate-spin" />
+        </div>
       </div>
 
       {/* Buffering Indicator (During playback) */}
@@ -235,9 +204,8 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         src={playbackSrc}
         playsInline
         webkit-playsinline="true"
-        muted={true}
-        preload="auto"
-        {...(playbackSrc?.includes('res.cloudinary.com') ? { crossOrigin: 'anonymous' } : {})}
+        muted={muted}
+        preload={active ? 'auto' : 'metadata'}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlay={handleReady}
         onPlaying={handleReady}
@@ -250,7 +218,9 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         onStalled={() => setIsWaiting(true)}
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
-        onLoadedMetadata={handleReady}
+        onLoadedMetadata={() => {
+          if (active) handleReady();
+        }}
         onError={handleError}
         onEnded={onEnded}
         onTimeUpdate={(e) => {

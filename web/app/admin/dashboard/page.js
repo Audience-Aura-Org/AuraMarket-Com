@@ -18,6 +18,29 @@ import StatCard from '@/components/layout/StatCard';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
+const COLOR_STYLES = {
+  accent: 'text-[var(--accent)] bg-[var(--accent)]/5',
+  amber: 'text-amber-500 bg-amber-500/5',
+  blue: 'text-blue-500 bg-blue-500/5',
+  emerald: 'text-emerald-500 bg-emerald-500/5',
+  indigo: 'text-indigo-500 bg-indigo-500/5',
+  rose: 'text-rose-500 bg-rose-500/5'
+};
+
+const COLOR_BOX_STYLES = {
+  amber: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+  blue: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+  emerald: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+  indigo: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
+  rose: 'text-rose-500 bg-rose-500/10 border-rose-500/20'
+};
+
+const LOG_RAIL_STYLES = {
+  blue: 'bg-blue-500/30 group-hover:bg-blue-500',
+  emerald: 'bg-emerald-500/30 group-hover:bg-emerald-500',
+  indigo: 'bg-indigo-500/30 group-hover:bg-indigo-500'
+};
+
 export default function AdminDashboard() {
   const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
@@ -96,7 +119,7 @@ export default function AdminDashboard() {
                   { title: 'Escrow Vault', desc: 'Platform Liquidity', count: `${fmt(stats?.escrow_vault)}`, icon: ShieldCheck, color: 'emerald', href: '/admin/escrow' },
                 ].map((item, i) => (
                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group active:scale-[0.98]">
-                    <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color === 'accent' ? '[var(--accent)]' : item.color + '-500'} bg-${item.color === 'accent' ? '[var(--accent)]' : item.color + '-500'}/5`}>
+                    <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${COLOR_STYLES[item.color] || COLOR_STYLES.accent}`}>
                       <item.icon className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -121,7 +144,7 @@ export default function AdminDashboard() {
                   ].map((item, i) => (
                     <div key={i} className="relative overflow-hidden p-5 rounded-3xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all">
                       <div className="flex items-center justify-between mb-4">
-                         <div className={`size-10 rounded-xl flex items-center justify-center text-${item.color}-500 bg-${item.color}-500/10 border border-${item.color}-500/20`}>
+                         <div className={`size-10 rounded-xl flex items-center justify-center border ${COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue}`}>
                            <item.icon className="size-4" />
                          </div>
                          <div className="text-right">
@@ -171,7 +194,7 @@ export default function AdminDashboard() {
                      { title: 'Security Scan', desc: 'No intrusive signatures found', time: '5H AGO', color: 'indigo' },
                    ].map((log, i) => (
                      <div key={i} className="flex gap-4 group">
-                        <div className={`w-1 rounded-full bg-${log.color}-500/30 group-hover:bg-${log.color}-500 transition-all`} />
+                        <div className={`w-1 rounded-full transition-all ${LOG_RAIL_STYLES[log.color] || LOG_RAIL_STYLES.blue}`} />
                         <div>
                           <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{log.title}</p>
                           <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{log.desc}</p>

@@ -31,7 +31,7 @@ router.use(protect);
 // ── Customer Routes ───────────────────────────
 router.post('/', restrictTo('customer'), createOrder);
 router.post('/cart-split', restrictTo('customer'), createOrdersFromCart);
-router.get('/my-orders', restrictTo('customer'), getCustomerOrders);
+router.get('/my-orders', restrictTo('customer', 'vendor'), getCustomerOrders);
 
 router.post('/:id/refund', restrictTo('customer'), requestRefund);
 router.post('/:id/pay-direct', restrictTo('customer'), payDirectly);

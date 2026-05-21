@@ -1,6 +1,6 @@
 /**
  * controllers/upload.controller.js
- * Handles file uploads directly to S3 with fallback to Cloudinary/Local
+ * Handles file uploads directly to S3 with local fallback
  */
 
 const fs = require('fs');
@@ -102,11 +102,11 @@ const uploadSingle = async (req, res) => {
       uploadMethod = 'S3';
       console.log(`✅ [API] S3 upload successful: ${fileUrl}`);
     }
-    // Fallback: Cloudinary or Local
+    // Fallback: external storage URL or local disk
     else if (req.file.path && req.file.path.startsWith('http')) {
       fileUrl = req.file.path;
-      uploadMethod = 'Cloudinary';
-      console.log(`✅ [API] Cloudinary upload successful: ${fileUrl}`);
+      uploadMethod = 'External';
+      console.log(`✅ [API] External upload successful: ${fileUrl}`);
     }
     // Fallback: Local disk
     else if (req.file.path) {
@@ -161,7 +161,7 @@ const uploadMultiple = async (req, res) => {
 
   try {
     const urls = [];
-    const uploadMethod = isS3Enabled() ? 'S3' : 'Local/Cloudinary';
+    const uploadMethod = isS3Enabled() ? 'S3' : 'Local';
 
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
@@ -181,9 +181,8 @@ const uploadMultiple = async (req, res) => {
       });
       console.log(`✅ [API] ${urls.length} files uploaded to S3`);
     }
-    // Fallback: Cloudinary or Local
+    // Fallback: external storage URL or local disk
     else {
-      // ... (rest of local/cloudinary logic)
       req.files.forEach(file => {
         let fileUrl = '';
         
@@ -204,7 +203,7 @@ const uploadMultiple = async (req, res) => {
         urls.push({
           url: fileUrl,
           filename: file.filename,
-          method: 'Local/Cloudinary'
+          method: file.path && file.path.startsWith('http') ? 'External' : 'Local'
         });
       });
     }

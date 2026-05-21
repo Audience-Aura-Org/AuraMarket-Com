@@ -15,6 +15,14 @@ import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { fmt, STATUS_CONFIG, TYPE_CONFIG } from '@/utils/adminFinance';
 
+const STAT_COLOR_STYLES = {
+  amber: 'text-amber-500 bg-amber-500/5',
+  blue: 'text-blue-500 bg-blue-500/5',
+  emerald: 'text-emerald-500 bg-emerald-500/5',
+  indigo: 'text-indigo-500 bg-indigo-500/5',
+  rose: 'text-rose-500 bg-rose-500/5'
+};
+
 export default function AdminTransactionsPage() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -259,7 +267,7 @@ export default function AdminTransactionsPage() {
                { title: 'REVENUE', desc: 'Gross Platform', count: stats ? `${fmt(stats.revenue)} XAF` : '...', icon: Globe, color: 'indigo' },
             ].map((item, i) => (
                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
-                  <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all text-${item.color}-500 bg-${item.color}-500/5`}>
+                  <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${STAT_COLOR_STYLES[item.color] || STAT_COLOR_STYLES.blue}`}>
                      <item.icon className="size-4" />
                   </div>
                   <div className="flex-1 min-w-0">

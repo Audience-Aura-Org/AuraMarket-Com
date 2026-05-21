@@ -11,6 +11,7 @@ const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { sendNotification } = require('../utils/notifier');
 const { syncShipmentsToOrderStatus } = require('./orderSync.service');
+const { calculatePlatformFees, describeFee } = require('../utils/platformFees');
 
 /**
  * Internal helper to release held escrow funds to a vendor.
@@ -27,16 +28,18 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
   const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
   // 1. Calculate Commission
-  const settings = await PlatformSettings.getSettings();
-  const platformFee = (escrow.amount * settings.commission_rate) / 100;
-  const vendorPayout = escrow.amount - platformFee;
+  const settings = await PlatformSettings.getSettings(session);
+  const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
+    includeEscrowFee: true
+  });
+  const feeDescription = describeFee(settings, { includeEscrowFee: true });
 
   // 2. Transfer Funds
   vendorUser.wallet_balance += vendorPayout;
   await vendorUser.save({ session });
 
   // 3. Update Platform Earnings
-  settings.platform_wallet_balance += platformFee;
+  settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
   await settings.save({ session });
 
   // 4. Update Transaction Logs
@@ -45,7 +48,7 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
     {
       status: 'completed',
       amount: vendorPayout,
-      description: `Escrow Released (Fee ${settings.commission_rate}% deducted).`
+      description: `Escrow Released (${feeDescription} deducted).`
     },
     { session }
   );

@@ -48,6 +48,17 @@ export default function Providers({ children }) {
   const isImmersiveChat =
     pathname === '/chat' ||
     pathname === '/messages';
+
+  const footerRoutes = [
+    '/onboarding/pwa',
+    '/privacy',
+    '/privacy-policy',
+    '/terms',
+    '/terms-of-service',
+    '/cookies',
+    '/rules',
+  ];
+  const showReducedFooter = footerRoutes.includes(pathname);
   
   return (
     <ThemeProvider>
@@ -93,7 +104,7 @@ export default function Providers({ children }) {
                   {children}
                 </motion.div>
               </AnimatePresence>
-              {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && <Footer />}
+              {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && showReducedFooter && <Footer />}
             </main>
             {/* Cart sidebar — only on storefront routes */}
             {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && <CartSidebar />}
