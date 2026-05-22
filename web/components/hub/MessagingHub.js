@@ -157,20 +157,25 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const root = document.documentElement;
     const setViewportVars = () => {
       const viewport = window.visualViewport;
-      if (window.innerHeight > initialHeightRef.current) {
-        initialHeightRef.current = window.innerHeight;
-      }
-      const initialHeight = initialHeightRef.current || window.innerHeight || 0;
       const layoutHeight = window.innerHeight || document.documentElement.clientHeight || viewport?.height || 0;
+      if (layoutHeight > initialHeightRef.current) {
+        initialHeightRef.current = layoutHeight;
+      }
+      const initialHeight = initialHeightRef.current || layoutHeight;
       const visualHeight = viewport?.height || layoutHeight;
       const visualTop = viewport?.offsetTop || 0;
-      const keyboardOpen = (layoutHeight - visualHeight > 80) || (initialHeight - visualHeight > 100);
-      const height = keyboardOpen ? visualHeight : layoutHeight;
+      const keyboardInset = Math.max(0, initialHeight - visualHeight - visualTop);
+      const activeElement = document.activeElement;
+      const editingText = activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
+      const keyboardOpen = editingText && (keyboardInset > 80 || layoutHeight - visualHeight > 80);
       const top = keyboardOpen ? visualTop : 0;
+      const bottom = keyboardOpen ? keyboardInset : 0;
+      const height = Math.max(0, initialHeight - top - bottom);
 
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
-      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0.375rem' : 'max(0.5rem, env(safe-area-inset-bottom))');
+      root.style.setProperty('--aura-chat-vvbottom', `${Math.round(bottom)}px`);
+      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0px' : 'max(0.5rem, env(safe-area-inset-bottom))');
 
       if (keyboardOpen && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
@@ -193,6 +198,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       window.removeEventListener('resize', setViewportVars);
       root.style.removeProperty('--aura-chat-vvh');
       root.style.removeProperty('--aura-chat-vvtop');
+      root.style.removeProperty('--aura-chat-vvbottom');
       root.style.removeProperty('--aura-chat-composer-bottom-pad');
     };
   }, []);
@@ -681,9 +687,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       : {};
   const mobileShellStyle = mobileLayout
     ? {
-        height: 'var(--aura-chat-vvh, 100dvh)',
-        maxHeight: 'var(--aura-chat-vvh, 100dvh)',
         top: 'var(--aura-chat-vvtop, 0px)',
+        bottom: 'var(--aura-chat-vvbottom, 0px)',
+        height: 'auto',
+        minHeight: 0,
+        maxHeight: 'none',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }
     : undefined;
@@ -1156,7 +1164,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           )}
 
           {/* Input row */}
-          <div className="mx-auto flex w-full max-w-4xl items-end gap-1.5 px-2 py-2 sm:gap-2 sm:px-3 sm:py-2.5">
+          <div className="mx-auto flex w-full max-w-4xl items-end gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2.5">
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
             <motion.button
