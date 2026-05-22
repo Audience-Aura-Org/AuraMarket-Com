@@ -657,8 +657,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const mobileShellStyle = mobileLayout
     ? {
-        height: 'var(--aura-chat-vvh, 100dvh)',
-        minHeight: 'var(--aura-chat-vvh, 100dvh)',
+        height: '100%',
+        minHeight: '100%',
         maxHeight: 'var(--aura-chat-vvh, 100dvh)',
         top: 'var(--aura-chat-vvtop, 0px)',
         paddingTop: 'env(safe-area-inset-top, 0px)',
