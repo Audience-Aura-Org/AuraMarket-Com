@@ -672,16 +672,30 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           },
         }
       : {};
-
   const mobileShellStyle = mobileLayout
     ? {
         height: 'var(--aura-chat-vvh, 100dvh)',
-        minHeight: 'var(--aura-chat-vvh, 100dvh)',
         maxHeight: 'var(--aura-chat-vvh, 100dvh)',
         top: 'var(--aura-chat-vvtop, 0px)',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }
     : undefined;
+
+  const outerClass = fullPage
+    ? [
+        'flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
+        'max-md:fixed max-md:inset-x-0 max-md:w-full',
+        'max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)]',
+        'md:h-full md:flex-1',
+      ].join(' ')
+    : [
+        'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
+        'max-md:inset-x-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full',
+        'max-md:rounded-none max-md:border-0 max-md:shadow-none',
+        'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
+        'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',
+        'md:rounded-2xl md:border md:border-[var(--glass-border)] md:shadow-[0_24px_72px_rgba(0,0,0,0.28)]',
+      ].join(' ');
 
   return (
     <motion.div
@@ -696,36 +710,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           }
         : {})}
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-      className={
-        fullPage
-          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:fixed max-md:inset-x-0 max-md:w-full max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)]'
-          : [
-              'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
-              'max-md:inset-x-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
-              'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
-              'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',
-              'md:rounded-2xl md:border md:border-[var(--glass-border)] md:shadow-[0_24px_72px_rgba(0,0,0,0.28)]',
-            ].join(' ')
-      }
+      className={outerClass}
     >
-      {/* Mobile: pull handle - swipe down to close / go back */}
-      {mobileLayout && (
-        <div className="flex shrink-0 flex-col items-center border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] md:hidden">
-          <motion.div
-            role="presentation"
-            aria-hidden
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.35 }}
-            onDragEnd={(_e, info) => pullToClose(info)}
-            className="flex w-full cursor-grab touch-none justify-center py-2 active:cursor-grabbing"
-          >
-            <span className="h-1 w-10 rounded-full bg-black/20" />
-          </motion.div>
-        </div>
-      )}
 
-      {/* -- Header -- */}
+      {/* ── HEADER ───────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
         {activePartnerId ? (
           /* Chat Header */
@@ -734,88 +722,96 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="sticky top-0 z-30 shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
+            transition={{ duration: 0.18 }}
+            className="shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
             data-chat-header
           >
-            <motion.div {...headerSwipeProps} className="block w-full touch-pan-y">
-            <div className="flex min-h-[58px] items-center gap-1.5 px-2 py-1.5 max-md:gap-2 max-md:py-2 sm:min-h-[64px] sm:gap-3 sm:px-3 sm:py-2.5">
-              <button
-                type="button"
-                onClick={() => setActiveConversation(null)}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/95 transition-colors hover:bg-white/10 active:bg-white/15 sm:size-10"
-                aria-label="Back to chats"
-              >
-                <ArrowLeft className="size-[22px] sm:size-5" />
-              </button>
-
-              <div className="relative shrink-0">
-                <div className="size-10 overflow-hidden rounded-full bg-white/15 ring-2 ring-white/20 sm:size-11">
-                  {partnerAvatar && typeof partnerAvatar === 'string'
-                    ? <img src={partnerAvatar} className="size-full object-cover" alt="" />
-                    : <div className="flex size-full items-center justify-center text-lg font-semibold text-[var(--nav-text)]">{partnerName[0]}</div>}
-                </div>
-                {/* Status dot removed per user preference to only show online/offline text */}
-              </div>
-
-              <div className="min-w-0 flex-1 py-0.5">
-                <h3 className="truncate text-[15px] font-semibold leading-tight tracking-tight text-[var(--nav-text)] max-md:text-[14px] sm:text-[17px] capitalize">
-                  {isSystemWide && partnerBInfo
-                    ? <span>{partnerName} <span className="text-[var(--nav-text)]/40">&</span> {partnerBInfo?.name}</span>
-                    : partnerName}
-                </h3>
-                <div className="mt-0.5 flex items-center gap-1.5">
-                  {partnerTyping ? (
-                    <span className="flex items-center gap-1.5 text-[12px] text-[var(--nav-text)]/70 max-md:text-[11px] sm:text-[13px]">
-                      <span className="flex gap-0.5">
-                        {[0,1,2].map(d => (
-                          <motion.span key={d} className="inline-block size-1 rounded-full bg-[var(--nav-text)]/45"
-                            animate={{ y: [0,-3,0] }} transition={{ repeat: Infinity, duration: 0.8, delay: d * 0.15 }} />
-                        ))}
-                      </span>
-                      typing...
-                    </span>
-                  ) : (
-                    <p className={`text-[12px] max-md:text-[11px] sm:text-[13px] ${partnerStatus.className}`}>
-                      {partnerStatus.label}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="relative flex shrink-0 items-center gap-0.5">
+            <motion.div {...headerSwipeProps} className="touch-pan-y">
+              <div className="flex min-h-[54px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[60px] sm:gap-2 sm:px-3 sm:py-2">
                 <button
                   type="button"
-                  onClick={() => setChatMenuOpen((open) => !open)}
-                  className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/80 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15"
-                  aria-label="Chat options"
-                  aria-expanded={chatMenuOpen}
+                  onClick={() => setActiveConversation(null)}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/95 transition-colors hover:bg-white/10 active:bg-white/15"
+                  aria-label="Back to chats"
                 >
-                  <MoreVertical className="size-[20px]" />
+                  <ArrowLeft className="size-5" />
                 </button>
-                {chatMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setChatMenuOpen(false)} />
-                    <div className="absolute right-0 top-11 z-50 min-w-[190px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-xl ring-1 ring-black/5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setChatMenuOpen(false);
-                          if (confirm('Delete this conversation from your inbox?')) hideConversation(activePartnerId.toString());
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20 whitespace-nowrap"
-                      >
-                        <Trash2 className="size-4" />
-                        Delete conversation
-                      </button>
-                    </div>
-                  </>
-                )}
-                <button type="button" onClick={dismissOverlay} className="flex size-10 items-center justify-center rounded-full text-[var(--nav-text)]/85 transition-colors hover:bg-white/10 hover:text-[var(--nav-text)] active:bg-white/15" aria-label="Close chat">
-                  <X className="size-[22px] sm:size-5" />
-                </button>
+
+                <div className="relative shrink-0">
+                  <div className="size-9 overflow-hidden rounded-full bg-white/15 ring-2 ring-white/20 sm:size-10">
+                    {partnerAvatar && typeof partnerAvatar === 'string'
+                      ? <img src={partnerAvatar} className="size-full object-cover" alt="" />
+                      : <div className="flex size-full items-center justify-center text-sm font-semibold text-[var(--nav-text)]">{partnerName[0]}</div>}
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-[14px] font-semibold leading-tight text-[var(--nav-text)] capitalize sm:text-[15px]">
+                    {isSystemWide && partnerBInfo
+                      ? <span>{partnerName} <span className="text-[var(--nav-text)]/40">&</span> {partnerBInfo?.name}</span>
+                      : partnerName}
+                  </h3>
+                  <div className="mt-0.5 flex items-center gap-1">
+                    {partnerTyping ? (
+                      <span className="flex items-center gap-1 text-[11px] text-[var(--nav-text)]/70">
+                        <span className="flex gap-0.5">
+                          {[0, 1, 2].map(d => (
+                            <motion.span
+                              key={d}
+                              className="inline-block size-[3px] rounded-full bg-[var(--nav-text)]/45"
+                              animate={{ y: [0, -3, 0] }}
+                              transition={{ repeat: Infinity, duration: 0.8, delay: d * 0.15 }}
+                            />
+                          ))}
+                        </span>
+                        typing...
+                      </span>
+                    ) : (
+                      <p className={`text-[11px] sm:text-[12px] ${partnerStatus.className}`}>
+                        {partnerStatus.label}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="relative flex shrink-0 items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setChatMenuOpen(open => !open)}
+                    className="flex size-9 items-center justify-center rounded-full text-[var(--nav-text)]/80 transition-colors hover:bg-white/10 active:bg-white/15"
+                    aria-label="Chat options"
+                    aria-expanded={chatMenuOpen}
+                  >
+                    <MoreVertical className="size-[18px]" />
+                  </button>
+                  {chatMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setChatMenuOpen(false)} />
+                      <div className="absolute right-0 top-10 z-50 min-w-[190px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-xl ring-1 ring-black/5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChatMenuOpen(false);
+                            if (confirm('Delete this conversation from your inbox?')) hideConversation(activePartnerId.toString());
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20 whitespace-nowrap"
+                        >
+                          <Trash2 className="size-4" />
+                          Delete conversation
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={dismissOverlay}
+                    className="flex size-9 items-center justify-center rounded-full text-[var(--nav-text)]/85 transition-colors hover:bg-white/10 active:bg-white/15"
+                    aria-label="Close chat"
+                  >
+                    <X className="size-[20px]" />
+                  </button>
+                </div>
               </div>
-            </div>
             </motion.div>
           </motion.div>
         ) : (
@@ -825,37 +821,56 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="sticky top-0 z-30 shrink-0"
+            transition={{ duration: 0.18 }}
+            className="shrink-0"
             data-chat-header
           >
-            <motion.div {...headerSwipeProps} className="bg-[var(--nav-bg)] px-3 pb-2.5 pt-2.5 max-md:pb-2 max-md:pt-2 sm:px-4 sm:pb-4 sm:pt-4 touch-pan-y">
-              <div className="flex items-center justify-between gap-2 sm:gap-3">
+            {/* Mobile drag pill */}
+            {mobileLayout && (
+              <motion.div
+                role="presentation"
+                aria-hidden
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.35 }}
+                onDragEnd={(_e, info) => pullToClose(info)}
+                className="flex w-full cursor-grab touch-none justify-center bg-[var(--nav-bg)] pb-1 pt-2 active:cursor-grabbing"
+              >
+                <span className="h-1 w-10 rounded-full bg-white/20" />
+              </motion.div>
+            )}
+            <motion.div {...headerSwipeProps} className="bg-[var(--nav-bg)] px-3 pb-2.5 pt-2 sm:px-4 sm:pb-3 sm:pt-3 touch-pan-y">
+              <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <h2 className="text-[17px] font-semibold tracking-tight text-[var(--nav-text)] max-md:text-[16px] sm:text-[20px]">Chats</h2>
+                  <h2 className="text-[16px] font-semibold tracking-tight text-[var(--nav-text)] sm:text-[18px]">Chats</h2>
                   {inbox.length > 0 && (
-                    <p className="mt-0.5 text-[12px] text-[var(--nav-text)]/70 max-md:text-[11px] sm:text-[13px]">
+                    <p className="mt-0.5 text-[11px] text-[var(--nav-text)]/70 sm:text-[12px]">
                       {inbox.filter(c => c.unread_count > 0).length > 0
                         ? `${inbox.filter(c => c.unread_count > 0).length} unread`
                         : `${inbox.length} chat${inbox.length > 1 ? 's' : ''}`}
                     </p>
                   )}
                 </div>
-                <button type="button" onClick={dismissOverlay} className="flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15" aria-label="Close">
-                  <X className="size-[22px]" />
+                <button
+                  type="button"
+                  onClick={dismissOverlay}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15"
+                  aria-label="Close"
+                >
+                  <X className="size-[20px]" />
                 </button>
               </div>
             </motion.div>
-            <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 py-1.5 max-md:py-1.5 sm:px-3 sm:py-2">
+            <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 py-1.5 sm:px-3 sm:py-2">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-[16px] -translate-y-1/2 text-[var(--text-secondary)] max-md:left-2 max-md:size-[15px] sm:left-3 sm:size-[18px]" />
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[var(--text-secondary)]" />
                 <input
                   type="search"
                   enterKeyHint="search"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search"
-                  className="w-full rounded-lg border-0 bg-[var(--bg-primary)] py-2 pl-9 pr-2.5 text-[14px] text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-[var(--glass-border)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)]/40 max-md:py-2 max-md:text-[13px] sm:py-2.5 sm:pl-10 sm:pr-3 sm:text-[15px]"
+                  className="w-full rounded-lg border-0 bg-[var(--bg-primary)] py-2 pl-8 pr-2.5 text-[13px] text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-[var(--glass-border)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)]/40 sm:py-2.5 sm:text-[14px]"
                 />
               </div>
             </div>
@@ -863,322 +878,335 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         )}
       </AnimatePresence>
 
-      {/* Product Context */}
+      {/* ── PRODUCT CONTEXT ──────────────────────────────────────── */}
       {activePartnerId && product && (
-        <div className="z-20 shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4">
-           <div className="flex items-center gap-3">
-              <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)] ring-1 ring-[var(--glass-border)] sm:size-12">
-                 <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
-              </div>
-              <div className="min-w-0 flex-1">
-                 <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Product</p>
-                 <h4 className="truncate text-[14px] font-semibold text-[var(--text-primary)]">{product.name}</h4>
-                 <p className="text-[12px] text-[var(--text-secondary)]">{(product.price || 0).toLocaleString()} XAF</p>
-              </div>
-              <button type="button" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] transition active:bg-[var(--bg-secondary)]">
-                 <Package className="size-[18px]" />
-              </button>
-           </div>
+        <div className="shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-3">
+            <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)] ring-1 ring-[var(--glass-border)] sm:size-11">
+              <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Product</p>
+              <h4 className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{product.name}</h4>
+              <p className="text-[11px] text-[var(--text-secondary)]">{(product.price || 0).toLocaleString()} XAF</p>
+            </div>
+            <button type="button" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] transition active:bg-[var(--bg-secondary)]">
+              <Package className="size-[17px]" />
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Main Body: inbox scrolls full column; chat = messages scroll + fixed composer */}
-      {!activePartnerId ? (
-      <div 
+      {/* ── SCROLLABLE BODY (inbox list OR chat messages) ────────── */}
+      <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="relative min-h-0 flex-1 basis-0 touch-pan-y overflow-y-auto bg-[var(--bg-secondary)]"
+        {...(activePartnerId ? { 'data-chat-messages': true } : {})}
+        className={[
+          'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
+          activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
+        ].join(' ')}
       >
-          <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] max-md:space-y-0 sm:p-3">
-             <div className="space-y-px overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)]">
-                {inboxLoading ? (
-                  <div className="flex flex-col items-center gap-4 bg-[var(--bg-primary)] py-20">
-                    <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
-                    <p className="text-[13px] font-medium text-[var(--text-secondary)]">Loading chats...</p>
-                  </div>
-                ) : filteredInbox.length === 0 ? (
-                  <div className="bg-[var(--bg-primary)] px-6 py-16 text-center">
-                    <MessageCircle className="mx-auto mb-4 size-14 text-[var(--text-secondary)]" />
-                    <p className="text-[16px] font-medium text-[var(--text-primary)]">No chats yet</p>
-                    <p className="mt-2 text-[14px] leading-snug text-[var(--text-secondary)]">Start a conversation from a product or store.</p>
-                  </div>
-                ) : (
-                  filteredInbox.map((chat, i) => (
-                    <button
-                      key={chat._id || i}
-                      type="button"
-                      onClick={() => {
-                        setActiveConversation(chat.partner?._id, chat.partner);
-                        if (chat.isSystemWide) setPartnerBInfo(chat.partnerB);
-                      }}
-                      className={`flex w-full items-center gap-2.5 border-b border-[var(--glass-border)] px-2.5 py-2.5 text-left transition-colors active:bg-[var(--bg-secondary)] max-md:gap-3 max-md:px-3 max-md:py-2.5 sm:gap-4 sm:px-4 sm:py-3 ${
-                        chat.unread_count > 0 ? 'bg-[var(--accent)]/[0.08]' : 'bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)]'
-                      }`}
-                    >
-                      <div className="relative size-[46px] shrink-0 overflow-hidden rounded-full bg-[var(--component-bg)] max-md:size-11 sm:size-14">
-                         {chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo 
-                           ? <img src={chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo} className="size-full object-cover" alt="" />
-                           : <div className="flex size-full items-center justify-center text-xl font-semibold text-[var(--text-secondary)]">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
-                         {/* Status dot removed per user preference to only show online/offline status */}
+        {!activePartnerId ? (
+          /* ─ Inbox list ─ */
+          <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:p-3">
+            <div className="space-y-px overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)]">
+              {inboxLoading ? (
+                <div className="flex flex-col items-center gap-4 bg-[var(--bg-primary)] py-20">
+                  <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
+                  <p className="text-[13px] font-medium text-[var(--text-secondary)]">Loading chats...</p>
+                </div>
+              ) : filteredInbox.length === 0 ? (
+                <div className="bg-[var(--bg-primary)] px-6 py-16 text-center">
+                  <MessageCircle className="mx-auto mb-4 size-14 text-[var(--text-secondary)]" />
+                  <p className="text-[15px] font-medium text-[var(--text-primary)]">No chats yet</p>
+                  <p className="mt-2 text-[13px] leading-snug text-[var(--text-secondary)]">Start a conversation from a product or store.</p>
+                </div>
+              ) : (
+                filteredInbox.map((chat, i) => (
+                  <button
+                    key={chat._id || i}
+                    type="button"
+                    onClick={() => {
+                      setActiveConversation(chat.partner?._id, chat.partner);
+                      if (chat.isSystemWide) setPartnerBInfo(chat.partnerB);
+                    }}
+                    className={`flex w-full items-center gap-3 border-b border-[var(--glass-border)] px-3 py-2.5 text-left transition-colors active:bg-[var(--bg-secondary)] sm:gap-4 sm:px-4 sm:py-3 ${
+                      chat.unread_count > 0 ? 'bg-[var(--accent)]/[0.08]' : 'bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)]'
+                    }`}
+                  >
+                    <div className="relative size-11 shrink-0 overflow-hidden rounded-full bg-[var(--component-bg)] sm:size-12">
+                      {chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo
+                        ? <img src={chat.partner?.avatar || chat.partner?.branding?.logo || chat.partner?.store?.logo} className="size-full object-cover" alt="" />
+                        : <div className="flex size-full items-center justify-center text-lg font-semibold text-[var(--text-secondary)]">{(chat.partner?.store_name || chat.partner?.name || 'U')[0]}</div>}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-0.5 flex items-start justify-between gap-2">
+                        <h4 className={`truncate text-[14px] capitalize sm:text-[15px] ${chat.unread_count > 0 ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
+                          {chat.isSystemWide
+                            ? `${chat.partner?.name} & ${chat.partnerB?.name}`
+                            : (chat.partner?.store_name || chat.partner?.name)}
+                        </h4>
+                        <span className="shrink-0 pt-0.5 text-[10px] text-[var(--text-secondary)] sm:text-[11px]">
+                          {new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                        </span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                         <div className="mb-0.5 flex items-start justify-between gap-2">
-                            <h4 className={`truncate text-[15px] capitalize max-md:text-[14px] sm:text-[16px] ${chat.unread_count > 0 ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
-                              {chat.isSystemWide ? `${chat.partner?.name} & ${chat.partnerB?.name}` : (chat.partner?.store_name || chat.partner?.name)}
-                            </h4>
-                            <span className="shrink-0 pt-0.5 text-[11px] text-[var(--text-secondary)] max-md:text-[10px] sm:text-[12px]">{new Date(chat.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span>
-                         </div>
-                         <div className="flex items-center justify-between gap-2">
-                            <p className={`min-w-0 flex-1 truncate text-[13px] leading-snug max-md:text-[12px] sm:text-[14px] ${chat.unread_count > 0 ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                              {chat.snippet || 'Tap to open'}
-                            </p>
-                            {chat.unread_count > 0 && (
-                              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[12px] font-semibold text-white">
-                                {chat.unread_count > 99 ? '99+' : chat.unread_count}
-                              </span>
-                            )}
-                         </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-             </div>
-          </div>
-      </div>
-      ) : (
-      <>
-      <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden bg-[var(--bg-secondary)]">
-      <div 
-        ref={scrollRef}
-        onScroll={handleScroll}
-        data-chat-messages
-        className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 basis-0 touch-pan-y overflow-y-auto overscroll-contain"
-      >
-          <div className="mx-auto w-full max-w-4xl space-y-0.5 p-2 pb-8 pt-1.5 max-md:space-y-px max-md:pb-4 sm:space-y-1 sm:p-4 sm:pb-8">
-                {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" /></div>}
-                
-                {loading ? (
-                   <div className="flex flex-col items-center justify-center py-24 opacity-60"><Loader2 className="size-8 animate-spin text-[var(--accent)]" /></div>
-                ) : messages.length === 0 ? (
-                  <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
-                    <MessageCircle className="mb-4 size-12 text-[var(--text-secondary)]/70" />
-                    <p className="text-[15px] font-semibold text-[var(--text-primary)]">Start the conversation</p>
-                    <p className="mt-1 max-w-[280px] text-[13px] leading-snug text-[var(--text-secondary)]">Send a message or pick a quick reply below.</p>
-                  </div>
-                ) : (
-                  messages.map((msg, i) => {
-                    const prevMsg = messages[i - 1];
-                    const nextMsg = messages[i + 1];
-                    const isOwn = (msg.sender_id?._id || msg.sender_id)?.toString() === user?._id?.toString();
-                    
-                    const showDate = !prevMsg || !sameDay(prevMsg.createdAt, msg.createdAt);
-                    const withPrev = sameGroup(prevMsg, msg);
-                    const withNext = sameGroup(msg, nextMsg);
-                    
-                    const rounding = bubbleRounding(isOwn, withPrev, withNext);
-                    const canDeleteMessage = Boolean(
-                      msg._id &&
-                      !msg._id.toString().startsWith('opt-') &&
-                      msg.status !== 'sending'
-                    );
-
-                    return (
-                      <div key={msg._id || i}>
-                        {showDate && (
-                          <div className="my-3 flex justify-center max-md:my-3.5 sm:my-6">
-                            <span className="rounded-lg bg-[var(--bg-primary)]/95 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] max-md:px-2 max-md:text-[9px] sm:px-3 sm:py-1.5 sm:text-[11px]">
-                              {fmtDate(msg.createdAt)}
-                            </span>
-                          </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`min-w-0 flex-1 truncate text-[12px] leading-snug sm:text-[13px] ${chat.unread_count > 0 ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                          {chat.snippet || 'Tap to open'}
+                        </p>
+                        {chat.unread_count > 0 && (
+                          <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[11px] font-semibold text-white">
+                            {chat.unread_count > 99 ? '99+' : chat.unread_count}
+                          </span>
                         )}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ─ Messages ─ */
+          <div className="mx-auto w-full max-w-4xl space-y-0.5 px-2 pb-4 pt-2 sm:space-y-1 sm:px-4 sm:pb-6">
+            {loadingMore && (
+              <div className="flex justify-center py-3">
+                <Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" />
+              </div>
+            )}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-24 opacity-60">
+                <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
+                <MessageCircle className="mb-4 size-12 text-[var(--text-secondary)]/70" />
+                <p className="text-[15px] font-semibold text-[var(--text-primary)]">Start the conversation</p>
+                <p className="mt-1 max-w-[280px] text-[13px] leading-snug text-[var(--text-secondary)]">Send a message or pick a quick reply below.</p>
+              </div>
+            ) : (
+              messages.map((msg, i) => {
+                const prevMsg = messages[i - 1];
+                const nextMsg = messages[i + 1];
+                const isOwn = (msg.sender_id?._id || msg.sender_id)?.toString() === user?._id?.toString();
+                const showDate = !prevMsg || !sameDay(prevMsg.createdAt, msg.createdAt);
+                const withPrev = sameGroup(prevMsg, msg);
+                const withNext = sameGroup(msg, nextMsg);
+                const rounding = bubbleRounding(isOwn, withPrev, withNext);
+                const canDeleteMessage = Boolean(
+                  msg._id &&
+                  !msg._id.toString().startsWith('opt-') &&
+                  msg.status !== 'sending'
+                );
 
-                        <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 max-md:mb-1 sm:mb-2.5'}`}>
-                          <div className={`flex max-w-[88%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
-                            
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.96, y: 8 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                              className={`
-                                group relative min-w-[76px] px-2.5 py-1.5 pr-7 text-[13px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] max-md:px-2.5 max-md:py-1.5 max-md:text-[12.5px] sm:px-3 sm:py-2 sm:pr-8 sm:text-[14.5px]
-                                hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300
-                                ${isOwn
-                                  ? 'border border-[var(--accent)]/25 bg-[var(--accent)]/12 text-[var(--text-primary)] hover:border-[var(--accent)]/35'
-                                  : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--glass-border)]/40'}
-                                ${rounding}
-                              `}
+                return (
+                  <div key={msg._id || i}>
+                    {showDate && (
+                      <div className="my-3 flex justify-center sm:my-5">
+                        <span className="rounded-lg bg-[var(--bg-primary)]/95 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] sm:text-[11px]">
+                          {fmtDate(msg.createdAt)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 sm:mb-2.5'}`}>
+                      <div className={`flex max-w-[88%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
+
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                          className={`
+                            group relative min-w-[76px] px-2.5 py-1.5 pr-7 text-[13px] leading-snug
+                            shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] transition-all duration-300
+                            hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]
+                            sm:px-3 sm:py-2 sm:pr-8 sm:text-[14.5px]
+                            ${isOwn
+                              ? 'border border-[var(--accent)]/25 bg-[var(--accent)]/12 text-[var(--text-primary)] hover:border-[var(--accent)]/35'
+                              : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)]'}
+                            ${rounding}
+                          `}
+                        >
+                          {!msg.deleted_everyone && canDeleteMessage && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id); }}
+                              className={`absolute right-1 top-1 flex size-5 items-center justify-center rounded bg-black/[0.03] text-[var(--text-secondary)] transition-opacity hover:bg-black/[0.08] ${activeMenuMsgId === msg._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}
+                              aria-label="Message options"
                             >
-                              {!msg.deleted_everyone && canDeleteMessage && (
+                              <MoreVertical className="size-3" />
+                            </button>
+                          )}
+
+                          {activeMenuMsgId === msg._id && (
+                            <>
+                              <div className="fixed inset-0 z-[45] cursor-default bg-transparent" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
+                              <div
+                                className={`absolute z-50 min-w-[130px] rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-lg ring-1 ring-black/5 ${isOwn ? 'right-1 top-6' : 'left-1 top-6'}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id); }}
-                                  className={`absolute right-1 top-1 size-5 rounded bg-black/[0.03] text-[var(--text-secondary)] transition-opacity hover:bg-black/[0.08] flex items-center justify-center ${activeMenuMsgId === msg._id ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
-                                  aria-label="Message options"
+                                  onClick={() => handleDeleteMessage(msg._id, 'me')}
+                                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                                 >
-                                  <MoreVertical className="size-3" />
+                                  <Trash2 className="size-3 text-[var(--text-secondary)]" /> Delete for me
                                 </button>
-                              )}
-
-                              {activeMenuMsgId === msg._id && (
-                                <>
-                                  <div className="fixed inset-0 z-[45] cursor-default bg-transparent" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
-                                  <div className={`absolute z-50 min-w-[130px] rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-lg ring-1 ring-black/5 animate-in fade-in duration-100 ${isOwn ? 'right-1 top-6' : 'left-1 top-6'}`} onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteMessage(msg._id, 'me')}
-                                      className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                                    >
-                                      <Trash2 className="size-3 text-[var(--text-secondary)]" /> Delete for me
-                                    </button>
-                                    {isOwn && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteMessage(msg._id, 'everyone')}
-                                        className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                      >
-                                        <Trash2 className="size-3 text-red-500" /> Delete for everyone
-                                      </button>
-                                    )}
-                                  </div>
-                                </>
-                              )}
-
-                              {msg.image_url && (
-                                <div className="-mx-0.5 mb-2 overflow-hidden rounded-md border border-black/10">
-                                  <img src={msg.image_url} className="max-h-60 w-full object-cover" alt="Shared" />
-                                </div>
-                              )}
-                              
-                              {msg.product_reference && !withPrev && (
-                                <button type="button" className="mb-2 flex w-full items-center gap-2 rounded-lg border border-black/10 bg-black/[0.03] p-2 text-left">
-                                  <img 
-                                    src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0]} 
-                                    className="size-10 rounded object-cover" 
-                                    alt="" 
-                                  />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">{msg.product_reference.name}</p>
-                                    <p className="text-[11px] text-[var(--text-secondary)]">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
-                                  </div>
-                                </button>
-                              )}
-
-                              {msg.deleted_everyone ? (
-                                <p className="italic text-[var(--text-secondary)]/60 whitespace-pre-wrap text-[13px] max-md:text-[12.5px] sm:text-[14.5px]">
-                                  This message was deleted
-                                </p>
-                              ) : msg.text ? (
-                                <p className="whitespace-pre-wrap text-[13px] max-md:text-[12.5px] sm:text-[14.5px]">{msg.text}</p>
-                              ) : null}
-                              
-                              <div className={`mt-0.5 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'} text-[10px] tabular-nums text-[var(--text-secondary)] max-md:text-[9.5px] sm:mt-1 sm:text-[11px]`}>
-                                <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 {isOwn && (
-                                  msg.status === 'failed' ? <AlertCircle className="size-3.5 text-red-600" /> :
-                                  <CheckCheck className={`size-3.5 transition-colors duration-300 ${msg.read_status ? 'text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)]' : 'text-[var(--text-secondary)]/50'}`} />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMessage(msg._id, 'everyone')}
+                                    className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                  >
+                                    <Trash2 className="size-3 text-red-500" /> Delete for everyone
+                                  </button>
                                 )}
                               </div>
-                            </motion.div>
+                            </>
+                          )}
 
-                            {msg.status === 'failed' && (
-                              <button type="button" onClick={() => handleSend(msg.text)} className="flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-600 ring-1 ring-red-200 transition-colors active:bg-red-100">
-                                <AlertCircle className="size-4 shrink-0" /> Retry send
-                              </button>
+                          {msg.image_url && (
+                            <div className="-mx-0.5 mb-2 overflow-hidden rounded-md border border-black/10">
+                              <img src={msg.image_url} className="max-h-60 w-full object-cover" alt="Shared" />
+                            </div>
+                          )}
+
+                          {msg.product_reference && !withPrev && (
+                            <button type="button" className="mb-2 flex w-full items-center gap-2 rounded-lg border border-black/10 bg-black/[0.03] p-2 text-left">
+                              <img
+                                src={msg.product_reference.images?.[0]?.url || msg.product_reference.images?.[0]}
+                                className="size-10 rounded object-cover"
+                                alt=""
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">{msg.product_reference.name}</p>
+                                <p className="text-[11px] text-[var(--text-secondary)]">{(msg.product_reference.price || 0).toLocaleString()} XAF</p>
+                              </div>
+                            </button>
+                          )}
+
+                          {msg.deleted_everyone ? (
+                            <p className="italic text-[var(--text-secondary)]/60 whitespace-pre-wrap text-[13px] sm:text-[14.5px]">
+                              This message was deleted
+                            </p>
+                          ) : msg.text ? (
+                            <p className="whitespace-pre-wrap text-[13px] sm:text-[14.5px]">{msg.text}</p>
+                          ) : null}
+
+                          <div className={`mt-0.5 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'} text-[10px] tabular-nums text-[var(--text-secondary)] sm:mt-1 sm:text-[11px]`}>
+                            <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {isOwn && (
+                              msg.status === 'failed'
+                                ? <AlertCircle className="size-3.5 text-red-600" />
+                                : <CheckCheck className={`size-3.5 transition-colors duration-300 ${msg.read_status ? 'text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)]' : 'text-[var(--text-secondary)]/50'}`} />
                             )}
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-          </div>
-             </div>
+                        </motion.div>
 
-      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 pb-[var(--aura-chat-composer-bottom-pad,max(0.5rem,env(safe-area-inset-bottom)))] pt-1 backdrop-blur">
-                {trimmedInput && (
-                  <div className="border-b border-[var(--glass-border)] px-3 py-2">
-                    <div className="rounded-lg bg-[var(--bg-primary)] px-3 py-2 shadow-sm ring-1 ring-[var(--glass-border)]">
-                      <p className="truncate text-[12px] font-medium text-[var(--text-secondary)]">Preview</p>
-                      <p className="line-clamp-2 whitespace-pre-wrap text-[13px] leading-snug text-[var(--text-primary)]">{trimmedInput}</p>
+                        {msg.status === 'failed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleSend(msg.text)}
+                            className="flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600 ring-1 ring-red-200 transition-colors active:bg-red-100"
+                          >
+                            <AlertCircle className="size-3.5 shrink-0" /> Retry send
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
-                {messages.length < 5 && !input && (
-                  <div className="no-scrollbar flex gap-2 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3">
-                    {QUICK_REPLIES.map(q => (
-                      <motion.button
-                        key={q}
-                        type="button"
-                        whileTap={{ scale: 0.97 }}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSend(q); }}
-                        className="shrink-0 whitespace-nowrap rounded-full bg-[var(--bg-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--accent)] shadow-sm ring-1 ring-[var(--glass-border)] transition-colors active:bg-[var(--bg-secondary)] max-md:px-2.5 max-md:py-1.5 max-md:text-[11px] sm:px-3 sm:py-2 sm:text-[13px]"
-                      >
-                        {q}
-                      </motion.button>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mx-auto flex w-full max-w-4xl items-end gap-1.5 px-2 pb-1.5 pt-0.5 max-md:gap-1.5 sm:gap-2 sm:px-3 sm:pb-3 sm:pt-2">
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                  <motion.button
-                    type="button"
-                    whileHover={composerBusy ? {} : { scale: 1.08, rotate: 8 }}
-                    whileTap={composerBusy ? {} : { scale: 0.92 }}
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={composerBusy}
-                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] active:bg-[var(--bg-primary)] disabled:opacity-55"
-                    aria-label="Attach image"
-                  >
-                    {uploading ? <Loader2 className="size-[21px] animate-spin" /> : <ImageIcon className="size-[22px]" />}
-                  </motion.button>
-
-                  <div className="relative flex min-h-[44px] flex-1 items-end overflow-hidden rounded-[24px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] focus-within:ring-2 focus-within:ring-[var(--accent)]/35 transition-all duration-300">
-                    <textarea
-                      ref={inputRef}
-                      value={input}
-                      onChange={e => handleTyping(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          releaseMobileKeyboard();
-                          handleSend();
-                        }
-                      }}
-                      placeholder="Message"
-                      rows={1}
-                      className="max-h-24 min-h-[40px] w-full flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] max-md:min-h-[40px] max-md:px-3 max-md:py-2 max-md:text-[13px] sm:min-h-[44px] sm:px-4 sm:py-3 sm:text-[15px]"
-                      style={{ height: 'auto' }}
-                      onFocus={() => {
-                        keepChatInView('auto');
-                        setTimeout(() => keepChatInView('auto'), 80);
-                        setTimeout(() => keepChatInView('auto'), 220);
-                        setTimeout(() => keepChatInView('auto'), 520);
-                      }}
-                      onInput={(e) => {
-                        e.target.style.height = 'auto';
-                        e.target.style.height = `${Math.min(e.target.scrollHeight, 112)}px`;
-                        keepChatInView('auto');
-                      }}
-                    />
-                  </div>
-
-                  <motion.button
-                    type="button"
-                    whileHover={composerBusy || !trimmedInput ? {} : { scale: 1.05 }}
-                    whileTap={composerBusy || !trimmedInput ? {} : { scale: 0.92 }}
-                    onClick={() => handleSend()}
-                    disabled={composerBusy || !trimmedInput}
-                    className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30 transition-all hover:shadow-[var(--accent)]/45 disabled:bg-[var(--text-secondary)] disabled:opacity-90 disabled:shadow-none"
-                    aria-label="Send"
-                  >
-                    {sending ? <Loader2 className="size-6 animate-spin" /> : <Send className="size-[22px]" />}
-                  </motion.button>
-                </div>
-             </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
       </div>
-      </>
+
+      {/* ── COMPOSER (only in an active chat) ───────────────────── */}
+      {activePartnerId && (
+        <div
+          data-chat-composer
+          className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 backdrop-blur-sm"
+          style={{ paddingBottom: 'var(--aura-chat-composer-bottom-pad, max(0.5rem, env(safe-area-inset-bottom)))' }}
+        >
+          {/* Quick replies */}
+          {messages.length < 5 && !input && (
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3">
+              {QUICK_REPLIES.map(q => (
+                <motion.button
+                  key={q}
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSend(q); }}
+                  className="shrink-0 whitespace-nowrap rounded-full bg-[var(--bg-primary)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--accent)] shadow-sm ring-1 ring-[var(--glass-border)] transition-colors active:bg-[var(--bg-secondary)] sm:px-3 sm:py-1.5 sm:text-[12px]"
+                >
+                  {q}
+                </motion.button>
+              ))}
+            </div>
+          )}
+
+          {/* Input row */}
+          <div className="mx-auto flex w-full max-w-4xl items-end gap-1.5 px-2 py-2 sm:gap-2 sm:px-3 sm:py-2.5">
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+
+            <motion.button
+              type="button"
+              whileHover={composerBusy ? {} : { scale: 1.08, rotate: 8 }}
+              whileTap={composerBusy ? {} : { scale: 0.92 }}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={composerBusy}
+              className="mb-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] active:bg-[var(--bg-primary)] disabled:opacity-50"
+              aria-label="Attach image"
+            >
+              {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImageIcon className="size-[20px]" />}
+            </motion.button>
+
+            <div className="relative flex min-h-[42px] flex-1 items-end overflow-hidden rounded-[22px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[var(--accent)]/35">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => handleTyping(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    releaseMobileKeyboard();
+                    handleSend();
+                  }
+                }}
+                placeholder="Message"
+                rows={1}
+                className="max-h-[88px] min-h-[42px] w-full flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
+                style={{ height: 'auto' }}
+                onFocus={() => {
+                  keepChatInView('auto');
+                  setTimeout(() => keepChatInView('auto'), 100);
+                  setTimeout(() => keepChatInView('auto'), 300);
+                  setTimeout(() => keepChatInView('auto'), 520);
+                }}
+                onInput={(e) => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 88)}px`;
+                  keepChatInView('auto');
+                }}
+              />
+            </div>
+
+            <motion.button
+              type="button"
+              whileHover={composerBusy || !trimmedInput ? {} : { scale: 1.05 }}
+              whileTap={composerBusy || !trimmedInput ? {} : { scale: 0.92 }}
+              onClick={() => handleSend()}
+              disabled={composerBusy || !trimmedInput}
+              className="mb-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/25 transition-all hover:shadow-[var(--accent)]/40 disabled:bg-[var(--text-secondary)] disabled:opacity-80 disabled:shadow-none"
+              aria-label="Send"
+            >
+              {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-[18px]" />}
+            </motion.button>
+          </div>
+        </div>
       )}
 
     </motion.div>
