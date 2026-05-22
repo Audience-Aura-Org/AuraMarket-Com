@@ -6,11 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
 import { ShoppingCart, Search, User as UserIcon, MessageCircle, Wallet } from 'lucide-react';
 import { trackSearch } from "@/services/tracking";
-import api from '@/services/api';
-import socketService from '@/services/socket';
 import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
 import { useChat } from '@/context/ChatContext';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
@@ -20,7 +19,7 @@ export default function TopNav() {
   const { user } = useAuthStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadMessages, refresh: refreshNotifications } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
   const [mounted, setMounted] = useState(false);
   const { openChat } = useChat();
@@ -31,21 +30,13 @@ export default function TopNav() {
 
   // ─── Fetch initial cart count ───────────────────────────────────────────────
   useEffect(() => {
-    if (!user?._id) return;
+    if (!user?._id) {
+      setCartCount(0);
+      return;
+    }
     const fetchCounts = () => {
-      // Use cartStore.refresh() instead of manual fetch to get benefits of deduplication and token checks
       cartStore.refresh();
-      
-      // Token check for chat
-      const hasToken = !!localStorage.getItem('aura_token') || !!localStorage.getItem('aura-auth-storage');
-      if (hasToken) {
-        api.get('/chat').then(res => {
-          if (res.data?.success) {
-            const count = res.data.data.activeChats.filter(c => c.read_status === false).length;
-            setUnreadCount(count);
-          }
-        }).catch(() => {});
-      }
+      refreshNotifications();
     };
 
     fetchCounts();
@@ -54,28 +45,15 @@ export default function TopNav() {
     const unsubCart = cartStore.subscribe(({ count }) => {
       setCartCount(count);
     });
-    
-    // Socket listeners for unread count
-    const handleMsg = () => {
-      if (!window.location.pathname.startsWith('/chat')) {
-        setUnreadCount(prev => prev + 1);
-      }
-    };
-    
-    socketService.on('receive_message', handleMsg);
-    socketService.on('messages_read', fetchCounts);
+    window.addEventListener('focus', fetchCounts);
+    document.addEventListener('visibilitychange', fetchCounts);
 
     return () => {
       unsubCart();
-      socketService.off('receive_message', handleMsg);
-      socketService.off('messages_read', fetchCounts);
+      window.removeEventListener('focus', fetchCounts);
+      document.removeEventListener('visibilitychange', fetchCounts);
     };
-  }, [user?._id]);
-
-  // Clear unread badge when viewing chat
-  useEffect(() => {
-    if (pathname?.startsWith('/chat')) setUnreadCount(0);
-  }, [pathname]);
+  }, [user?._id, refreshNotifications]);
 
   // Hide on auth, admin, vendor, logistics, wallet, and full-screen chat pages
   if (
@@ -141,9 +119,9 @@ export default function TopNav() {
             className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
           >
             <MessageCircle className="size-5" />
-            {unreadCount > 0 && (
+            {unreadMessages > 0 && (
               <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-lg animate-pulse lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
-                {unreadCount > 99 ? '99+' : unreadCount}
+                {unreadMessages > 99 ? '99+' : unreadMessages}
               </span>
             )}
           </button>

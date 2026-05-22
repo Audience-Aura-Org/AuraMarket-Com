@@ -18,6 +18,13 @@ import api from '@/services/api';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
+const getUnreadMessageTotal = (chats = []) => {
+  return chats.reduce((total, chat) => {
+    if (typeof chat?.unread_count === 'number') return total + chat.unread_count;
+    return total + (chat?.read_status === false ? 1 : 0);
+  }, 0);
+};
+
 export function useNotifications() {
   const { user } = useAuthStore();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -42,7 +49,7 @@ export function useNotifications() {
       const chatRes = await api.get('/chat');
       if (chatRes.data?.success) {
         const chats = chatRes.data.data?.activeChats || [];
-        setUnreadMessages(chats.filter(c => c.unread_count > 0).length);
+        setUnreadMessages(getUnreadMessageTotal(chats));
       }
     } catch { /* silent */ }
   }, [user?._id]);

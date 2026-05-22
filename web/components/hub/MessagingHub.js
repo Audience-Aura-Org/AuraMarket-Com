@@ -156,7 +156,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const setViewportVars = () => {
       const viewport = window.visualViewport;
       const height = viewport?.height || window.innerHeight;
+      const top = viewport?.offsetTop || 0;
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
+      root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
     };
 
     setViewportVars();
@@ -171,6 +173,29 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
   }, []);
 
+  useEffect(() => {
+    if (!mobileLayout || typeof document === 'undefined') return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyPosition = body.style.position;
+    const previousBodyWidth = body.style.width;
+
+    root.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.width = '100%';
+
+    return () => {
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
+      body.style.position = previousBodyPosition;
+      body.style.width = previousBodyWidth;
+    };
+  }, [mobileLayout]);
+
   const hideConversation = (partnerId) => {
     const updated = { ...deletedConvos, [partnerId]: Date.now() };
     setDeletedConvos(updated);
@@ -183,6 +208,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior });
     }, 100);
+  };
+
+  const keepChatInView = (behavior = 'auto') => {
+    if (typeof window === 'undefined') return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    scrollToBottom(behavior);
   };
 
   const releaseMobileKeyboard = () => {
@@ -625,6 +656,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         height: 'var(--aura-chat-vvh, 100dvh)',
         minHeight: 'var(--aura-chat-vvh, 100dvh)',
         maxHeight: 'var(--aura-chat-vvh, 100dvh)',
+        top: 'var(--aura-chat-vvtop, 0px)',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }
     : undefined;
@@ -644,7 +676,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={
         fullPage
-          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)]'
+          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:fixed max-md:left-0 max-md:right-0 max-md:w-full max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)]'
           : [
               'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
               'max-md:left-0 max-md:right-0 max-md:top-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
@@ -681,7 +713,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="relative z-30 shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
+            className="sticky top-0 z-30 shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
             data-chat-header
           >
             <motion.div {...headerSwipeProps} className="block w-full touch-pan-y">
@@ -772,7 +804,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="relative z-30 shrink-0"
+            className="sticky top-0 z-30 shrink-0"
             data-chat-header
           >
             <motion.div {...headerSwipeProps} className="bg-[var(--nav-bg)] px-3 pb-2.5 pt-2.5 max-md:pb-2 max-md:pt-2 sm:px-4 sm:pb-4 sm:pt-4 touch-pan-y">
@@ -899,7 +931,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         data-chat-messages
         className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain"
       >
-          <div className="space-y-0.5 p-2 pb-3 pt-1.5 max-md:space-y-px sm:space-y-1 sm:p-4">
+          <div className="space-y-0.5 p-2 pb-8 pt-1.5 max-md:space-y-px max-md:pb-10 sm:space-y-1 sm:p-4 sm:pb-8">
                 {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" /></div>}
                 
                 {loading ? (
@@ -1089,11 +1121,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       className="max-h-24 min-h-[40px] w-full flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] max-md:min-h-[40px] max-md:px-3 max-md:py-2 max-md:text-[13px] sm:min-h-[44px] sm:px-4 sm:py-3 sm:text-[15px]"
                       style={{ height: 'auto' }}
                       onFocus={() => {
-                        scrollToBottom('auto');
-                        setTimeout(() => scrollToBottom('auto'), 180);
-                        setTimeout(() => scrollToBottom('auto'), 420);
+                        keepChatInView('auto');
+                        setTimeout(() => keepChatInView('auto'), 80);
+                        setTimeout(() => keepChatInView('auto'), 220);
+                        setTimeout(() => keepChatInView('auto'), 520);
                       }}
-                      onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 112)}px`; }}
+                      onInput={(e) => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${Math.min(e.target.scrollHeight, 112)}px`;
+                        keepChatInView('auto');
+                      }}
                     />
                   </div>
 
