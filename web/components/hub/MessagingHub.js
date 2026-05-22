@@ -102,8 +102,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   useEffect(() => {
     if (!activePartnerId || loadingMore || loading) return;
-    scrollToBottom('smooth');
-  }, [activePartnerId, latestMessageKey, loading, loadingMore]);
+    scrollToBottom(mobileLayout ? 'auto' : 'smooth');
+  }, [activePartnerId, latestMessageKey, loading, loadingMore, mobileLayout]);
 
   useEffect(() => {
     if (!activePartnerId) return;
@@ -175,15 +175,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
       root.style.setProperty('--aura-chat-vvbottom', `${Math.round(bottom)}px`);
-      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0px' : 'max(0.5rem, env(safe-area-inset-bottom))');
+      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '4cm' : 'max(0.5rem, env(safe-area-inset-bottom))');
 
       if (keyboardOpen && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+          pinToLatestMessage('auto');
         });
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
-        }, 120);
+        queuePinToLatest([80, 180, 320, 520]);
       }
     };
 
@@ -236,17 +234,33 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     syncInboxFromServer?.();
   };
 
+  const pinToLatestMessage = (behavior = 'auto') => {
+    const scrollEl = scrollRef.current;
+    if (scrollEl) {
+      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior });
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+  };
+
+  const queuePinToLatest = (delays = [0, 80, 180, 320]) => {
+    delays.forEach((delay) => {
+      setTimeout(() => {
+        requestAnimationFrame(() => pinToLatestMessage('auto'));
+      }, delay);
+    });
+  };
+
   const scrollToBottom = (behavior = 'smooth') => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior });
-    }, 100);
+      requestAnimationFrame(() => pinToLatestMessage(behavior));
+    }, behavior === 'smooth' ? 100 : 0);
   };
 
   const keepChatInView = (behavior = 'auto') => {
     if (typeof window === 'undefined') return;
     requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      scrollToBottom(behavior);
+      if (window.scrollY !== 0) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      pinToLatestMessage(behavior);
     });
   };
 
@@ -520,7 +534,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const handleSend = async (customText = null, imageUrl = null) => {
     const text = (customText || input).trim();
     if ((!text && !imageUrl) || !activePartnerId || sending || (uploading && !imageUrl)) return;
-    releaseMobileKeyboard();
     const sendPartnerId = activePartnerId.toString();
     const sentDraftKey = draftKey;
 
@@ -546,7 +559,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     });
     setInput('');
     if (sentDraftKey && typeof window !== 'undefined') localStorage.removeItem(sentDraftKey);
-    scrollToBottom();
+    queuePinToLatest([0, 60, 140, 260, 420]);
 
     try {
       const res = await api.post('/chat', {
@@ -1187,7 +1200,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    releaseMobileKeyboard();
                     handleSend();
                   }
                 }}
@@ -1211,6 +1223,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
             <motion.button
               type="button"
+              onPointerDown={(e) => e.preventDefault()}
               whileHover={composerBusy || !trimmedInput ? {} : { scale: 1.05 }}
               whileTap={composerBusy || !trimmedInput ? {} : { scale: 0.92 }}
               onClick={() => handleSend()}
