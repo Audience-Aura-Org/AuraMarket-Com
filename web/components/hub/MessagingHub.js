@@ -175,7 +175,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
       root.style.setProperty('--aura-chat-vvbottom', `${Math.round(bottom)}px`);
-      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '4cm' : 'max(0.5rem, env(safe-area-inset-bottom))');
+      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '2.5cm' : 'max(0.5rem, env(safe-area-inset-bottom))');
 
       if (keyboardOpen && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
