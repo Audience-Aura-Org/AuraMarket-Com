@@ -155,10 +155,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const root = document.documentElement;
     const setViewportVars = () => {
       const viewport = window.visualViewport;
-      const height = viewport?.height || window.innerHeight;
-      const top = viewport?.offsetTop || 0;
+      const layoutHeight = window.innerHeight || viewport?.height || 0;
+      const visualHeight = viewport?.height || layoutHeight;
+      const keyboardOpen = layoutHeight - visualHeight > 120;
+      const height = keyboardOpen ? visualHeight : layoutHeight;
+      const top = keyboardOpen ? (viewport?.offsetTop || 0) : 0;
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
+      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0.5rem' : 'max(0.5rem, env(safe-area-inset-bottom))');
     };
 
     setViewportVars();
@@ -925,6 +929,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       </div>
       ) : (
       <>
+      <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden bg-[var(--bg-secondary)]">
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
@@ -1066,7 +1071,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
              </div>
 
-      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
+      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)] pb-[var(--aura-chat-composer-bottom-pad,max(0.5rem,env(safe-area-inset-bottom)))] pt-1">
                 {trimmedInput && (
                   <div className="border-b border-[var(--glass-border)] px-3 py-2">
                     <div className="rounded-lg bg-[var(--bg-primary)] px-3 py-2 shadow-sm ring-1 ring-[var(--glass-border)]">
@@ -1147,6 +1152,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   </motion.button>
                 </div>
              </div>
+      </div>
       </>
       )}
 
