@@ -62,6 +62,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const activePartnerIdRef = useRef(activePartnerId);
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
+  const initialHeightRef = useRef(0);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -156,16 +157,20 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const root = document.documentElement;
     const setViewportVars = () => {
       const viewport = window.visualViewport;
+      if (window.innerHeight > initialHeightRef.current) {
+        initialHeightRef.current = window.innerHeight;
+      }
+      const initialHeight = initialHeightRef.current || window.innerHeight || 0;
       const layoutHeight = window.innerHeight || document.documentElement.clientHeight || viewport?.height || 0;
       const visualHeight = viewport?.height || layoutHeight;
       const visualTop = viewport?.offsetTop || 0;
-      const keyboardOpen = layoutHeight - visualHeight > 80;
+      const keyboardOpen = (layoutHeight - visualHeight > 80) || (initialHeight - visualHeight > 100);
       const height = keyboardOpen ? visualHeight : layoutHeight;
       const top = keyboardOpen ? visualTop : 0;
 
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
-      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0.5rem' : 'max(0.5rem, env(safe-area-inset-bottom))');
+      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0.375rem' : 'max(0.5rem, env(safe-area-inset-bottom))');
 
       if (keyboardOpen && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
@@ -206,12 +211,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     body.style.overflow = 'hidden';
     root.style.overscrollBehavior = 'none';
     body.style.overscrollBehavior = 'none';
+    root.classList.add('chat-open');
 
     return () => {
       root.style.overflow = previousRootOverflow;
       body.style.overflow = previousBodyOverflow;
       root.style.overscrollBehavior = previousRootOverscroll;
       body.style.overscrollBehavior = previousBodyOverscroll;
+      root.classList.remove('chat-open');
     };
   }, [mobileLayout]);
 
@@ -684,13 +691,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const outerClass = fullPage
     ? [
         'flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
-        'max-md:fixed max-md:inset-x-0 max-md:w-full',
+        'max-md:fixed max-md:inset-0 max-md:w-full',
         'max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)]',
         'md:h-full md:flex-1',
       ].join(' ')
     : [
         'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
-        'max-md:inset-x-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full',
+        'max-md:inset-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full',
         'max-md:rounded-none max-md:border-0 max-md:shadow-none',
         'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
         'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',

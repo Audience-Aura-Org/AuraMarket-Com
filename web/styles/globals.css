@@ -123,6 +123,15 @@ html.ios-keyboard-recovering body {
   overscroll-behavior: none;
 }
 
+html.chat-open,
+html.chat-open body {
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
 h1,h2,h3,h4,h5,h6 {
   font-family: var(--font-poppins);
   text-wrap: balance;
