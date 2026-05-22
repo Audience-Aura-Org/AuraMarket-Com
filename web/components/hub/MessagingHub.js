@@ -163,6 +163,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
       root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0.5rem' : 'max(0.5rem, env(safe-area-inset-bottom))');
+
+      if (keyboardOpen && activePartnerIdRef.current) {
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        });
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        }, 120);
+      }
     };
 
     setViewportVars();
