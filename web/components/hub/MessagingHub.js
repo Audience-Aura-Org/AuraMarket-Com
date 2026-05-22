@@ -44,6 +44,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [loading, setLoading] = useState(false);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [partnerBInfo, setPartnerBInfo] = useState(null);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
@@ -479,11 +480,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const file = e.target.files?.[0];
     if (!file || !activePartnerId) return;
 
-    setSending(true);
+    setUploading(true);
     try {
       const res = await uploadService.uploadSingle(file, 'general');
       if (res.success) {
-        handleSend('', res.data.url);
+        await handleSend('', res.data.url);
       } else {
         throw new Error(res.message || 'Upload failed');
       }
@@ -491,14 +492,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       console.error('Upload failed:', err);
       toast.error('Failed to upload image');
     } finally {
-      setSending(false);
+      setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const handleSend = async (customText = null, imageUrl = null) => {
     const text = (customText || input).trim();
-    if ((!text && !imageUrl) || !activePartnerId || sending) return;
+    if ((!text && !imageUrl) || !activePartnerId || sending || (uploading && !imageUrl)) return;
     releaseMobileKeyboard();
     const sendPartnerId = activePartnerId.toString();
     const sentDraftKey = draftKey;
@@ -598,6 +599,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
     return { label: formatLastSeen(partnerInfo?.last_seen || partnerInfo?.lastSeen), className: 'text-[var(--nav-text)]/55' };
   })();
+  const composerBusy = sending || uploading;
 
   const dismissOverlay = () => {
     setChatMenuOpen(false);
@@ -694,8 +696,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
               'max-md:inset-x-0 max-md:bottom-0 max-md:top-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
               'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
-              'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
-              'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_20px_64px_rgba(0,0,0,0.28)]',
+              'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',
+              'md:rounded-2xl md:border md:border-[var(--glass-border)] md:shadow-[0_24px_72px_rgba(0,0,0,0.28)]',
             ].join(' ')
       }
     >
@@ -730,7 +732,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             data-chat-header
           >
             <motion.div {...headerSwipeProps} className="block w-full touch-pan-y">
-            <div className="flex items-center gap-1.5 px-2 py-1.5 max-md:gap-2 max-md:py-2 sm:gap-3 sm:px-3 sm:py-2.5">
+            <div className="flex min-h-[58px] items-center gap-1.5 px-2 py-1.5 max-md:gap-2 max-md:py-2 sm:min-h-[64px] sm:gap-3 sm:px-3 sm:py-2.5">
               <button
                 type="button"
                 onClick={() => setActiveConversation(null)}
@@ -787,7 +789,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 {chatMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setChatMenuOpen(false)} />
-                    <div className="absolute right-10 top-10 z-50 min-w-[180px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-xl ring-1 ring-black/5">
+                    <div className="absolute right-0 top-11 z-50 min-w-[190px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-xl ring-1 ring-black/5">
                       <button
                         type="button"
                         onClick={() => {
@@ -881,14 +883,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         className="relative min-h-0 flex-1 basis-0 touch-pan-y overflow-y-auto bg-[var(--bg-secondary)]"
       >
           <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] max-md:space-y-0 sm:p-3">
-             <div className="space-y-px overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
+             <div className="space-y-px overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)]">
                 {inboxLoading ? (
-                  <div className="flex flex-col items-center gap-4 bg-white py-20">
+                  <div className="flex flex-col items-center gap-4 bg-[var(--bg-primary)] py-20">
                     <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
                     <p className="text-[13px] font-medium text-[var(--text-secondary)]">Loading chats...</p>
                   </div>
                 ) : filteredInbox.length === 0 ? (
-                  <div className="bg-white px-6 py-16 text-center">
+                  <div className="bg-[var(--bg-primary)] px-6 py-16 text-center">
                     <MessageCircle className="mx-auto mb-4 size-14 text-[var(--text-secondary)]" />
                     <p className="text-[16px] font-medium text-[var(--text-primary)]">No chats yet</p>
                     <p className="mt-2 text-[14px] leading-snug text-[var(--text-secondary)]">Start a conversation from a product or store.</p>
@@ -945,11 +947,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         data-chat-messages
         className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 basis-0 touch-pan-y overflow-y-auto overscroll-contain"
       >
-          <div className="space-y-0.5 p-2 pb-8 pt-1.5 max-md:space-y-px max-md:pb-10 sm:space-y-1 sm:p-4 sm:pb-8">
+          <div className="mx-auto w-full max-w-4xl space-y-0.5 p-2 pb-8 pt-1.5 max-md:space-y-px max-md:pb-10 sm:space-y-1 sm:p-4 sm:pb-8">
                 {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" /></div>}
                 
                 {loading ? (
                    <div className="flex flex-col items-center justify-center py-24 opacity-60"><Loader2 className="size-8 animate-spin text-[var(--accent)]" /></div>
+                ) : messages.length === 0 ? (
+                  <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
+                    <MessageCircle className="mb-4 size-12 text-[var(--text-secondary)]/70" />
+                    <p className="text-[15px] font-semibold text-[var(--text-primary)]">Start the conversation</p>
+                    <p className="mt-1 max-w-[280px] text-[13px] leading-snug text-[var(--text-secondary)]">Send a message or pick a quick reply below.</p>
+                  </div>
                 ) : (
                   messages.map((msg, i) => {
                     const prevMsg = messages[i - 1];
@@ -978,14 +986,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                         )}
 
                         <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 max-md:mb-1 sm:mb-2.5'}`}>
-                          <div className={`flex max-w-[92%] flex-col gap-0.5 sm:max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                          <div className={`flex max-w-[88%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
                             
                             <motion.div
                               initial={{ opacity: 0, scale: 0.96, y: 8 }}
                               animate={{ opacity: 1, scale: 1, y: 0 }}
                               transition={{ type: "spring", stiffness: 350, damping: 28 }}
                               className={`
-                                group relative px-2.5 py-1.5 pr-6 text-[13px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] max-md:px-2.5 max-md:py-1.5 max-md:text-[12.5px] sm:px-3 sm:py-2 sm:text-[14.5px]
+                                group relative min-w-[76px] px-2.5 py-1.5 pr-7 text-[13px] leading-snug shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] max-md:px-2.5 max-md:py-1.5 max-md:text-[12.5px] sm:px-3 sm:py-2 sm:pr-8 sm:text-[14.5px]
                                 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-300
                                 ${isOwn
                                   ? 'border border-[var(--accent)]/25 bg-[var(--accent)]/12 text-[var(--text-primary)] hover:border-[var(--accent)]/35'
@@ -1006,7 +1014,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
                               {activeMenuMsgId === msg._id && (
                                 <>
-                                  <div className="fixed inset-0 z-45 cursor-default bg-transparent" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
+                                  <div className="fixed inset-0 z-[45] cursor-default bg-transparent" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
                                   <div className={`absolute z-50 min-w-[130px] rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-lg ring-1 ring-black/5 animate-in fade-in duration-100 ${isOwn ? 'right-1 top-6' : 'left-1 top-6'}`} onClick={(e) => e.stopPropagation()}>
                                     <button
                                       type="button"
@@ -1080,7 +1088,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
              </div>
 
-      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)] pb-[var(--aura-chat-composer-bottom-pad,max(0.5rem,env(safe-area-inset-bottom)))] pt-1">
+      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 pb-[var(--aura-chat-composer-bottom-pad,max(0.5rem,env(safe-area-inset-bottom)))] pt-1 backdrop-blur">
                 {trimmedInput && (
                   <div className="border-b border-[var(--glass-border)] px-3 py-2">
                     <div className="rounded-lg bg-[var(--bg-primary)] px-3 py-2 shadow-sm ring-1 ring-[var(--glass-border)]">
@@ -1105,17 +1113,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   </div>
                 )}
 
-                <div className="flex items-end gap-1.5 px-2 pb-1.5 pt-0.5 max-md:gap-1.5 sm:gap-2 sm:px-3 sm:pb-3 sm:pt-2">
+                <div className="mx-auto flex w-full max-w-4xl items-end gap-1.5 px-2 pb-1.5 pt-0.5 max-md:gap-1.5 sm:gap-2 sm:px-3 sm:pb-3 sm:pt-2">
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
                   <motion.button
                     type="button"
-                    whileHover={{ scale: 1.1, rotate: 8 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={composerBusy ? {} : { scale: 1.08, rotate: 8 }}
+                    whileTap={composerBusy ? {} : { scale: 0.92 }}
                     onClick={() => fileInputRef.current?.click()}
-                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] active:bg-[var(--bg-primary)]"
+                    disabled={composerBusy}
+                    className="mb-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] active:bg-[var(--bg-primary)] disabled:opacity-55"
                     aria-label="Attach image"
                   >
-                    <ImageIcon className="size-[22px]" />
+                    {uploading ? <Loader2 className="size-[21px] animate-spin" /> : <ImageIcon className="size-[22px]" />}
                   </motion.button>
 
                   <div className="relative flex min-h-[44px] flex-1 items-end overflow-hidden rounded-[24px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] focus-within:ring-2 focus-within:ring-[var(--accent)]/35 transition-all duration-300">
@@ -1150,10 +1159,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
                   <motion.button
                     type="button"
-                    whileHover={sending || !trimmedInput ? {} : { scale: 1.05 }}
-                    whileTap={sending || !trimmedInput ? {} : { scale: 0.92 }}
+                    whileHover={composerBusy || !trimmedInput ? {} : { scale: 1.05 }}
+                    whileTap={composerBusy || !trimmedInput ? {} : { scale: 0.92 }}
                     onClick={() => handleSend()}
-                    disabled={sending || !trimmedInput}
+                    disabled={composerBusy || !trimmedInput}
                     className="mb-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30 transition-all hover:shadow-[var(--accent)]/45 disabled:bg-[var(--text-secondary)] disabled:opacity-90 disabled:shadow-none"
                     aria-label="Send"
                   >
