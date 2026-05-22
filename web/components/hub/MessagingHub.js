@@ -676,10 +676,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={
         fullPage
-          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:fixed max-md:left-0 max-md:right-0 max-md:w-full max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)]'
+          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:w-full max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)]'
           : [
               'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
-              'max-md:left-0 max-md:right-0 max-md:top-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
+              'max-md:inset-x-0 max-md:bottom-0 max-md:top-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
               'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
               'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
               'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_20px_64px_rgba(0,0,0,0.28)]',

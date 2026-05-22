@@ -202,7 +202,7 @@ export default function VendorDashboard() {
 
         {/* Top Header */}
         <header className="relative min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-14 lg:top-0 z-40 gap-4 md:gap-0">
-          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-center md:justify-start">
+          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-start pr-12 md:pr-0">
             <div className="flex items-center gap-4">
               <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0 overflow-hidden">
                  <img src="/icon-192.png" alt="Aura Market" className="size-7 md:size-8 object-contain" />

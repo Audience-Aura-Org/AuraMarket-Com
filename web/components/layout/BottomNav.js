@@ -7,11 +7,13 @@ import {
   Compass, ShoppingBag, User, House, Store, Activity, LayoutDashboard
 } from "lucide-react";
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
 import { motion } from "framer-motion";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const { isOpen: chatOpen } = useChat();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function BottomNav() {
     );
   }
 
-  if (isChatPage || isAuthPage) return null;
+  if (chatOpen || isChatPage || isAuthPage) return null;
   // If discovery hub uses its own exact replica, we can hide this one to prevent double rendering.
   if (isDiscoveryPage) return null;
 
