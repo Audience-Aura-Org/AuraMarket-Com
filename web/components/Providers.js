@@ -83,12 +83,8 @@ export default function Providers({ children }) {
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
 
-          {/* Top navigation — always visible on mobile; dashboard roles keep desktop chrome untouched. */}
-          {!isImmersiveChat && (
-            isDashboardRoute
-              ? <div className="md:hidden"><TopNav /></div>
-              : <TopNav />
-          )}
+          {/* Dashboard routes render their own sidebar-aware mobile header. */}
+          {!isImmersiveChat && !isDashboardRoute && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
             <main className="flex-1 flex flex-col min-w-0">

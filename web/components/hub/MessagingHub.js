@@ -149,6 +149,28 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     return () => mq.removeEventListener('change', apply);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const root = document.documentElement;
+    const setViewportVars = () => {
+      const viewport = window.visualViewport;
+      const height = viewport?.height || window.innerHeight;
+      root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
+    };
+
+    setViewportVars();
+    window.visualViewport?.addEventListener('resize', setViewportVars);
+    window.visualViewport?.addEventListener('scroll', setViewportVars);
+    window.addEventListener('resize', setViewportVars);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', setViewportVars);
+      window.visualViewport?.removeEventListener('scroll', setViewportVars);
+      window.removeEventListener('resize', setViewportVars);
+    };
+  }, []);
+
   const hideConversation = (partnerId) => {
     const updated = { ...deletedConvos, [partnerId]: Date.now() };
     setDeletedConvos(updated);
@@ -598,8 +620,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         }
       : {};
 
+  const mobileShellStyle = mobileLayout
+    ? {
+        height: 'var(--aura-chat-vvh, 100dvh)',
+        minHeight: 'var(--aura-chat-vvh, 100dvh)',
+        maxHeight: 'var(--aura-chat-vvh, 100dvh)',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+      }
+    : undefined;
+
   return (
     <motion.div
+      style={mobileShellStyle}
       onTouchStart={handlePanelTouchStart}
       onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
@@ -612,10 +644,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={
         fullPage
-          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:h-[100dvh] max-md:min-h-[100dvh]'
+          ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)]'
           : [
               'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
-              'max-md:inset-0 max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:min-h-[100dvh] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
+              'max-md:left-0 max-md:right-0 max-md:top-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:min-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full max-md:rounded-none max-md:border-0 max-md:shadow-none',
               'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
               'md:h-[min(82dvh,700px)] md:max-h-[85dvh] md:w-[min(420px,calc(100vw-2.5rem))]',
               'md:rounded-2xl md:border md:border-black/10 md:shadow-[0_20px_64px_rgba(0,0,0,0.28)]',
@@ -1056,6 +1088,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       rows={1}
                       className="max-h-24 min-h-[40px] w-full flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] max-md:min-h-[40px] max-md:px-3 max-md:py-2 max-md:text-[13px] sm:min-h-[44px] sm:px-4 sm:py-3 sm:text-[15px]"
                       style={{ height: 'auto' }}
+                      onFocus={() => {
+                        scrollToBottom('auto');
+                        setTimeout(() => scrollToBottom('auto'), 180);
+                        setTimeout(() => scrollToBottom('auto'), 420);
+                      }}
                       onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 112)}px`; }}
                     />
                   </div>
