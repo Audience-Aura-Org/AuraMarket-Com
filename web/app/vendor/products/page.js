@@ -175,7 +175,7 @@ export default function VendorProductsPage() {
                       viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6 md:p-10">
                            {currentProducts.map(product => (
-                              <ManagementCard key={product._id} product={product} onDelete={handleDelete} />
+                              <ManagementCard key={product._id} product={product} onDelete={handleDeleteProduct} />
                            ))}
                         </div>
                       ) : (
@@ -193,7 +193,7 @@ export default function VendorProductsPage() {
                             </thead>
                             <tbody className="divide-y divide-[var(--glass-border)]">
                               {currentProducts.map(product => (
-                                <TabularRow key={product._id} product={product} onDelete={handleDelete} />
+                                <TabularRow key={product._id} product={product} onDelete={handleDeleteProduct} />
                               ))}
                             </tbody>
                           </table>
@@ -342,4 +342,3 @@ function TabularRow({ product, onDelete }) {
     </tr>
   );
 }
-

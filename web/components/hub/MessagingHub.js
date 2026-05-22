@@ -865,7 +865,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto bg-[var(--bg-secondary)]"
+        className="relative min-h-0 flex-1 basis-0 touch-pan-y overflow-y-auto bg-[var(--bg-secondary)]"
       >
           <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] max-md:space-y-0 sm:p-3">
              <div className="space-y-px overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
@@ -929,7 +929,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         data-chat-messages
-        className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain"
+        className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 basis-0 touch-pan-y overflow-y-auto overscroll-contain"
       >
           <div className="space-y-0.5 p-2 pb-8 pt-1.5 max-md:space-y-px max-md:pb-10 sm:space-y-1 sm:p-4 sm:pb-8">
                 {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" /></div>}

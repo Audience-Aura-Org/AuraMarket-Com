@@ -38,7 +38,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   }, [user?._id]);
 
   return (
-    <header className="sticky top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-colors duration-300 dark:shadow-[0_10px_36px_-12px_rgba(0,0,0,0.12)] lg:hidden">
+    <header className="fixed inset-x-0 top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-colors duration-300 dark:shadow-[0_10px_36px_-12px_rgba(0,0,0,0.12)] lg:hidden">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div className="w-full shrink-0" style={{ height: "env(safe-area-inset-top)" }} aria-hidden="true" />
       <div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-4">

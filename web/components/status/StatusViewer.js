@@ -83,37 +83,44 @@ function addCacheBust(url) {
 const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
   const ref = useRef(null);
   const [playbackSrc, setPlaybackSrc] = useState(src);
-  const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
+  const [videoReady, setVideoReady] = useState(false);
   const [isWaiting, setIsWaiting]   = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [didRetryUrl, setDidRetryUrl] = useState(false);
   const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const waitTimeoutRef = useRef(null);
 
   useEffect(() => {
     setPlaybackSrc(src);
     setDidRetryUrl(false);
     setDidRetryCacheBust(false);
-    setVideoReady(loadedVideos.has(src));
+    setReloadToken(0);
+    setVideoReady(false);
     setIsWaiting(false);
     setHasStarted(false);
   }, [src]);
-  useEffect(() => {
-    if (loadedVideos.has(src)) {
-      setVideoReady(true);
-      return;
+
+  const attemptPlay = useCallback(() => {
+    const v = ref.current;
+    if (!v || !active || paused) return;
+    const play = v.play();
+    if (play?.catch) {
+      play.catch(err => {
+        console.warn('[Video] Playback blocked or failed:', err.message);
+        setIsWaiting(true);
+      });
     }
-    setVideoReady(false);
-  }, [src]);
+  }, [active, paused]);
 
   // Play / pause
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
     if (active && !paused) {
-      v.play().catch(err => {
-        console.warn('[Video] Playback blocked or failed:', err.message);
-      });
+      setIsWaiting(true);
+      if (v.currentSrc !== playbackSrc || v.readyState < 2) v.load();
+      attemptPlay();
     } else {
       v.pause();
       if (!active) {
@@ -121,7 +128,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         setHasStarted(false);
       }
     }
-  }, [active, paused]);
+  }, [active, paused, playbackSrc, reloadToken, attemptPlay]);
 
   useEffect(() => {
     if (!active || paused || !isWaiting) {
@@ -132,8 +139,15 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       return;
     }
     waitTimeoutRef.current = setTimeout(() => {
-      console.warn('[Video] Wait timeout reached, skipping story:', src);
-      onEnded();
+      console.warn('[Video] Wait timeout reached, reloading story video:', src);
+      const v = ref.current;
+      if (!didRetryCacheBust) {
+        setDidRetryCacheBust(true);
+        setPlaybackSrc(addCacheBust(playbackSrc || src));
+      } else {
+        v?.load();
+        setReloadToken(t => t + 1);
+      }
     }, VIDEO_WAIT_TIMEOUT_MS);
     return () => {
       if (waitTimeoutRef.current) {
@@ -141,7 +155,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         waitTimeoutRef.current = null;
       }
     };
-  }, [active, paused, isWaiting, src, onEnded]);
+  }, [active, paused, isWaiting, src, playbackSrc, didRetryCacheBust]);
 
   // Mute
   useEffect(() => {
@@ -154,7 +168,8 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     if (playbackSrc) loadedVideos.add(playbackSrc);
     setVideoReady(true);
     setIsWaiting(false);
-  }, [src, playbackSrc]);
+    attemptPlay();
+  }, [src, playbackSrc, attemptPlay]);
 
   const handleError = useCallback((e) => {
     const mediaErrorCode = e?.currentTarget?.error?.code;
@@ -205,6 +220,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         playsInline
         webkit-playsinline="true"
         muted={muted}
+        autoPlay={active && !paused}
         preload={active ? 'auto' : 'metadata'}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlay={handleReady}
@@ -219,7 +235,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
         onLoadedMetadata={() => {
-          if (active) handleReady();
+          if (active) {
+            handleReady();
+            attemptPlay();
+          }
         }}
         onError={handleError}
         onEnded={onEnded}
@@ -637,16 +656,17 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                       left: s.sticker_x !== undefined ? `${s.sticker_x}%` : '30%',
                       top: s.sticker_y !== undefined ? `${s.sticker_y}%` : '50%',
                     }}
-                    className="absolute z-30 pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur border border-white/20 text-white text-[12px] font-bold shadow-2xl hover:scale-105 active:scale-95 transition-transform"
+                    aria-label="View linked product"
+                    className="absolute z-30 pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 size-14 rounded-full bg-black/55 p-1.5 backdrop-blur border border-white/25 text-white shadow-2xl hover:scale-105 active:scale-95 transition-transform"
                   >
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]"></span>
+                    <span className="absolute -right-0.5 -top-0.5 flex size-4">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--accent)] opacity-75" />
+                      <span className="relative inline-flex size-4 rounded-full border border-white/30 bg-[var(--accent)]" />
                     </span>
-                    <ShoppingBag className="size-3.5 text-[var(--accent)]" />
-                    <span className="max-w-[120px] truncate">
-                      {(s.linked_product && typeof s.linked_product === 'object' && s.linked_product.name) || 'Shop Now'}
-                    </span>
+                    {vendorLogo
+                      ? <img src={vendorLogo} alt="" className="size-full rounded-full object-cover ring-1 ring-white/20" />
+                      : <img src="/icon-512.png" alt="" className="size-full rounded-full object-cover ring-1 ring-white/20" />
+                    }
                   </motion.button>
                 )}
               </div>
