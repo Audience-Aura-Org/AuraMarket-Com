@@ -156,18 +156,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const root = document.documentElement;
     const setViewportVars = () => {
       const viewport = window.visualViewport;
-      const docHeight = document.documentElement.clientHeight || 0;
-      const layoutHeight = Math.max(window.innerHeight || 0, docHeight, viewport?.height || 0);
+      const layoutHeight = window.innerHeight || document.documentElement.clientHeight || viewport?.height || 0;
       const visualHeight = viewport?.height || layoutHeight;
       const visualTop = viewport?.offsetTop || 0;
-      const keyboardInset = Math.max(0, layoutHeight - visualHeight - visualTop);
-      const keyboardOpen = keyboardInset > 80;
-      const height = keyboardOpen ? Math.max(visualHeight, layoutHeight - visualTop) : layoutHeight;
+      const keyboardOpen = layoutHeight - visualHeight > 80;
+      const height = keyboardOpen ? visualHeight : layoutHeight;
       const top = keyboardOpen ? visualTop : 0;
 
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
-      root.style.setProperty('--aura-chat-keyboard-inset', `${Math.round(keyboardInset)}px`);
       root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '0.5rem' : 'max(0.5rem, env(safe-area-inset-bottom))');
 
       if (keyboardOpen && activePartnerIdRef.current) {
@@ -191,7 +188,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       window.removeEventListener('resize', setViewportVars);
       root.style.removeProperty('--aura-chat-vvh');
       root.style.removeProperty('--aura-chat-vvtop');
-      root.style.removeProperty('--aura-chat-keyboard-inset');
       root.style.removeProperty('--aura-chat-composer-bottom-pad');
     };
   }, []);
@@ -958,7 +954,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         data-chat-messages
         className="chat-bg-pattern chat-scrollbar relative min-h-0 flex-1 basis-0 touch-pan-y overflow-y-auto overscroll-contain"
       >
-          <div className="mx-auto w-full max-w-4xl space-y-0.5 p-2 pb-8 pt-1.5 max-md:space-y-px max-md:pb-[calc(5.5rem+var(--aura-chat-keyboard-inset,0px))] sm:space-y-1 sm:p-4 sm:pb-8">
+          <div className="mx-auto w-full max-w-4xl space-y-0.5 p-2 pb-8 pt-1.5 max-md:space-y-px max-md:pb-4 sm:space-y-1 sm:p-4 sm:pb-8">
                 {loadingMore && <div className="flex justify-center py-4"><Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" /></div>}
                 
                 {loading ? (
@@ -1099,7 +1095,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
              </div>
 
-      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 pb-[var(--aura-chat-composer-bottom-pad,max(0.5rem,env(safe-area-inset-bottom)))] pt-1 backdrop-blur max-md:translate-y-[calc(var(--aura-chat-keyboard-inset,0px)*-1)]">
+      <div data-chat-composer className="z-20 shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 pb-[var(--aura-chat-composer-bottom-pad,max(0.5rem,env(safe-area-inset-bottom)))] pt-1 backdrop-blur">
                 {trimmedInput && (
                   <div className="border-b border-[var(--glass-border)] px-3 py-2">
                     <div className="rounded-lg bg-[var(--bg-primary)] px-3 py-2 shadow-sm ring-1 ring-[var(--glass-border)]">
