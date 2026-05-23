@@ -11,10 +11,10 @@ const { sendEmail: dispatchEmail } = require('./emailService');
 const VAPID_PUB  = VAPID_PUBLIC_KEY  || 'BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ';
 const VAPID_PRIV = VAPID_PRIVATE_KEY || 'aQU1zExyXuDZTuBlsHmI6iQwrVCvShRCGLR7GOYOSeY';
 
-webPush.setVapidDetails('mailto:info@audienceaura.org', VAPID_PUB, VAPID_PRIV);
+webPush.setVapidDetails('mailto:hello@auradime.com', VAPID_PUB, VAPID_PRIV);
 
 // ── Signal Constants ─────────────────────────────────────────────────────────
-const LOGO_URL = 'https://aura-market-com.vercel.app/logo-white.png';
+const LOGO_URL = 'https://auradime.com/logo-white.png';
 
 // App brand colors for notifier fallback
 const COLORS = {
@@ -179,7 +179,7 @@ const sendNotification = async (app, recipientId, data) => {
               await EmailLog.create({
                 recipient_email: targetEmail,
                 recipient_user_id: recipientId,
-                subject: title || 'Aura Signal',
+                subject: title || 'Auradime Signal',
                 message_preview: message ? message.substring(0, 100) : '',
                 role: role || 'user',
                 status: 'sent'
@@ -195,7 +195,7 @@ const sendNotification = async (app, recipientId, data) => {
 
     return notification;
   } catch (err) {
-    console.error('❌ Aura Dispatch Fail:', err);
+    console.error('❌ Auradime Dispatch Fail:', err);
   }
 };
 

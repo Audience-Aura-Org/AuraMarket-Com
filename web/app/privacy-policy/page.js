@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
             <section className="space-y-6">
               <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">3. Data Security Exellence</h2>
               <p className="text-[var(--text-secondary)] leading-relaxed">
-                Aura Market implements state-of-the-art cryptographic standards, including TLS 1.3 encryption across all network transfers, role-based access control, and stringent vendor KYC (Know Your Customer) processes.
+                Auradime implements state-of-the-art cryptographic standards, including TLS 1.3 encryption across all network transfers, role-based access control, and stringent vendor KYC (Know Your Customer) processes.
               </p>
             </section>
 
@@ -56,12 +56,12 @@ export default function PrivacyPolicy() {
             <section className="space-y-6">
               <h2 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tight">5. User Rights & Data Deletion</h2>
               <p className="text-[var(--text-secondary)] leading-relaxed">
-                As a user, you possess full sovereignty over your profile footprint. You may request an immutable snapshot of your data or trigger an account wipe protocol by contacting our data protection officer at <span className="text-[var(--accent)]  font-bold">privacy@aura.market</span>.
+                As a user, you possess full sovereignty over your profile footprint. You may request an immutable snapshot of your data or trigger an account wipe protocol by contacting our data protection officer at <span className="text-[var(--accent)]  font-bold">support@auradime.com</span>.
               </p>
             </section>
             
             <div className="pt-10 mt-10 border-t border-[var(--glass-border)] text-sm text-[var(--text-secondary)]/50  font-bold tracking-tight text-center">
-              Aura Market Corporate Network ©
+              Auradime Corporate Network ©
             </div>
           </div>
         </div>

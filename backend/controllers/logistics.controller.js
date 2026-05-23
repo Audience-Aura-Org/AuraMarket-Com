@@ -481,9 +481,11 @@ const modifyShipmentStatus = async (req, res, next) => {
       await sendNotification(req.app, order.customer_id, {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       statusTpl.text,
-        type:          'order_update',
+        type:          'order_status',
         metadata:      { shipment_id: shipment._id, order_id: order._id },
+        sendEmail:     true,
         emailTemplate: statusTpl,
+        role:          'customer'
       });
     }
 
@@ -498,9 +500,11 @@ const modifyShipmentStatus = async (req, res, next) => {
       await sendNotification(req.app, vendor.user_id._id, {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       vendorStatusTpl.text,
-        type:          'order_update',
+        type:          'order_status',
         metadata:      { shipment_id: shipment._id, order_id: order._id },
+        sendEmail:     true,
         emailTemplate: vendorStatusTpl,
+        role:          'vendor'
       });
     }
 
@@ -510,9 +514,11 @@ const modifyShipmentStatus = async (req, res, next) => {
       await sendNotification(req.app, vendor.user_id._id, {
         title:         'Order Completed — Payment Released',
         message:       `Payment for Order #${order._id.toString().slice(-6).toUpperCase()} has been released to your wallet.`,
-        type:          'payment',
+        type:          'payment_received',
         metadata:      { order_id: order._id },
+        sendEmail:     true,
         emailTemplate: completedTpl,
+        role:          'vendor'
       });
     }
 

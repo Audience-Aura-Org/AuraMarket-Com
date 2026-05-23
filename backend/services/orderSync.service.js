@@ -129,7 +129,7 @@ function notifyOrderStatusChange(app, order, orderStatus, extra = {}) {
     sendNotification(app, order.customer_id, {
       title: extra.title || `Order #${shortId} — ${label}`,
       message: extra.message || `Your order status is now ${label}.`,
-      type: 'order_update',
+      type: 'order_status',
       metadata: meta,
       orderDetails: order.toObject?.() || order,
       role: 'customer',
@@ -144,7 +144,7 @@ function notifyOrderStatusChange(app, order, orderStatus, extra = {}) {
         sendNotification(app, vendor.user_id, {
           title: extra.vendorTitle || `Order #${shortId} — ${label}`,
           message: extra.vendorMessage || `Order status updated to ${label}.`,
-          type: 'order_update',
+          type: 'order_status',
           metadata: { ...meta, link: '/vendor/orders' },
           role: 'vendor',
         });

@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
   port:   EMAIL_PORT   || 587,
   secure: EMAIL_SECURE || false,          // false → STARTTLS; true → TLS/465
   auth: {
-    user: EMAIL_USER || 'info@audienceaura.org',
+    user: EMAIL_USER || 'hello@auradime.com',
     pass: EMAIL_PASS,
   },
   tls: {
@@ -61,7 +61,7 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
 
   try {
     const info = await transporter.sendMail({
-      from:    `"${EMAIL_FROM_NAME || 'Aura Market'}" <${EMAIL_USER}>`,
+      from:    `"${EMAIL_FROM_NAME || 'Auradime'}" <${EMAIL_USER}>`,
       to:      Array.isArray(to) ? to.join(', ') : to,
       subject,
       html,

@@ -4,7 +4,7 @@ const PushSubscription = require('../models/PushSubscription.model');
 // Set VAPID keys (should be in .env)
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidEmail = process.env.EMAIL_USER || 'mailto:support@aura.market';
+const vapidEmail = process.env.EMAIL_USER || 'mailto:hello@auradime.com';
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);

@@ -585,7 +585,7 @@ const updateOrderStatus = async (req, res, next) => {
     sendNotification(req.app, order.customer_id, {
       title: customerEmailTemplate.subject,
       message: `Your Order #${order._id.toString().slice(-6).toUpperCase()} status is now ${order_status || 'updated'}.`,
-      type: 'order_update',
+      type: 'order_status',
       metadata: { order_id: order._id, link: `/orders/${order._id}` },
       sendEmail: true,
       emailTemplate: customerEmailTemplate,

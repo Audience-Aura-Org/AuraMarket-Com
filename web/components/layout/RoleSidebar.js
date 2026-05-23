@@ -138,12 +138,12 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             <div className="h-6 w-auto flex items-center justify-center shrink-0">
                <img 
                  src="/icon-512.png" 
-                 alt="Aura Market" 
+                 alt="Auradime" 
                  className="h-4 w-auto object-contain"
                />
             </div>
             <div className="flex flex-col min-w-0">
-               <h1 className="text-[12px]  font-semibold tracking-tighter text-[var(--text-primary)] leading-none">Aura <span className="text-[var(--accent)]">Market</span></h1>
+               <h1 className="text-[12px]  font-semibold tracking-tighter text-[var(--text-primary)] leading-none">Aura<span className="text-[var(--accent)]">dime</span></h1>
                <p className="text-[10px] lg:text-[12px] font-medium tracking-tight opacity-80 mt-1" style={{ color: config.accent }}>{config.label}</p>
             </div>
           </div>

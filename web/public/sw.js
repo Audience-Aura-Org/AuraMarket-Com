@@ -1,9 +1,9 @@
 /**
- * Aura Market — PWA Service Worker v6
+ * Auradime — PWA Service Worker v6
  * Robust background push handling with redundant notification suppression.
  */
 
-const CACHE_NAME = 'aura-cache-v9'; // Bumped: network-first app shell updates
+const CACHE_NAME = 'aura-cache-v9';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -11,7 +11,7 @@ const STATIC_ASSETS = [
   '/icon-512.png'
 ];
 
-// ── Install: Cache static shell assets ─────────────────────────────────────────
+// ── Install: Cache static shell assets ──────────────────────────────────────
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -19,14 +19,14 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// ── Message: Handle SKIP_WAITING ──────────────────────────────────────────────
+// ── Message: Handle SKIP_WAITING ────────────────────────────────────────────
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// ── Activate: Cleanup ────────────────────────────────────────────────────────
+// ── Activate: Cleanup old caches ────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -37,7 +37,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ── Fetch: Strategy ─────────────────────────────────────────────────────────
+// ── Fetch: Network-first for nav, cache-first for assets ────────────────────
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (
@@ -49,7 +49,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+  if (
+    event.request.mode === 'navigate' ||
+    event.request.headers.get('accept')?.includes('text/html')
+  ) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' }).catch(() => caches.match('/'))
     );
@@ -71,20 +74,22 @@ self.addEventListener('push', function (event) {
   try {
     data = event.data.json();
   } catch (e) {
-    data = { title: 'Aura Market', body: event.data.text() };
+    data = { title: 'Auradime', body: event.data.text() };
   }
 
   const baseUrl = self.location.origin;
 
-  // Icon: use sender avatar if provided (chat), else app logo
+  // Icon: sender avatar for chat, app logo for everything else
   const iconRaw = data.icon || '/logo-white.png';
   const icon = iconRaw.startsWith('http') ? iconRaw : baseUrl + iconRaw;
   const badge = baseUrl + '/logo-white.png';
 
-  // Large image preview (e.g. sender avatar or product photo)
-  const image = data.image ? (data.image.startsWith('http') ? data.image : baseUrl + data.image) : undefined;
+  // Large image preview (sender avatar or product photo)
+  const image = data.image
+    ? (data.image.startsWith('http') ? data.image : baseUrl + data.image)
+    : undefined;
 
-  const isChat = data.tag && data.tag.startsWith('msg-');
+  const isChat = !!(data.tag && data.tag.startsWith('msg-'));
 
   const options = {
     body: data.body || data.message || '',
@@ -92,70 +97,67 @@ self.addEventListener('push', function (event) {
     badge,
     image,
     vibrate: isChat ? [100, 50, 100] : [200, 100, 200],
-    tag: data.tag || 'aura-notification',
+    tag: data.tag || 'auradime-notification',
     renotify: true,
-    requireInteraction: !isChat,   // chat: auto-dismiss; alerts: stay until tapped
+    requireInteraction: !isChat, // chat: auto-dismiss; alerts: stay until tapped
     silent: false,
-    // Store the full payload so notificationclick can forward rich data to the client
     data: {
       url: data.data?.url || data.url || '/',
       payload: data
     },
     actions: isChat
       ? [
-          { action: 'open',  title: 'Reply' },
+          { action: 'open',  title: 'Reply'   },
           { action: 'close', title: 'Dismiss' }
         ]
       : [
-          { action: 'open',  title: 'View' },
+          { action: 'open',  title: 'View'    },
           { action: 'close', title: 'Dismiss' }
         ]
   };
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      const isFocused = clientList.some(client => client.focused);
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // If the app is already focused, suppress the OS banner — the in-app toast handles it
+      const isFocused = clientList.some((client) => client.focused);
       if (isFocused) {
-        console.log('[SW] App focused — suppressing OS push for in-app toast.');
+        console.log('[SW] App focused — suppressing OS push, in-app toast active.');
         return null;
       }
-      return self.registration.showNotification(data.title || 'Aura Market', options);
+      return self.registration.showNotification(data.title || 'Auradime', options);
     })
   );
 });
 
-// ── Notification Click ────────────────────────────────────────────────────────
+// ── Notification Click ───────────────────────────────────────────────────────
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   if (event.action === 'close') return;
 
   let urlToOpen = event.notification.data?.url || '/';
-  
-  // Ensure we have an absolute URL for reliable cross-device opening
+
+  // Ensure absolute URL for reliable cross-device opening
   if (!urlToOpen.startsWith('http')) {
     urlToOpen = self.location.origin + (urlToOpen.startsWith('/') ? '' : '/') + urlToOpen;
   }
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {
-      // Look for an existing open window/tab of this origin
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Focus an existing tab of this origin if one is open
+      for (const client of windowClients) {
         if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
-          // Send message to client with the notification payload so the page can handle opening chat smoothly
           try {
-            client.postMessage({ 
-              type: 'notification-click', 
-              payload: event.notification.data?.payload || {} 
+            client.postMessage({
+              type: 'notification-click',
+              payload: event.notification.data?.payload || {}
             });
           } catch (e) {
-            console.error('[SW] Failed to postMessage:', e);
+            console.error('[SW] postMessage failed:', e);
           }
-          // Focus the window client (brings app to foreground)
           return client.focus();
         }
       }
-      // If the app isn't open, load it in a fresh window/tab
+      // No open tab — open a new one
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }

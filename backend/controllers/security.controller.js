@@ -34,7 +34,7 @@ const generate2FA = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Generate otpauth URL for Google Authenticator/Authy
-    const otpauth = authenticator.keyuri(user.email, 'Aura Market', secret);
+    const otpauth = authenticator.keyuri(user.email, 'Auradime', secret);
     
     // Convert to QR code image (Data URL)
     const qrCodeImage = await qrcode.toDataURL(otpauth);

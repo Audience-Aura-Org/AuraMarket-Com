@@ -41,11 +41,11 @@ export default function Footer() {
               className="flex w-fit items-center gap-3 text-left"
             >
               <div className="size-9 rounded-xl bg-black p-2 ring-1 ring-white/10">
-                <img src="/icon-512.png" alt="Aura" className="h-full w-full object-contain" />
+                <img src="/icon-512.png" alt="Auradime" className="h-full w-full object-contain" />
               </div>
               <div className="leading-none">
                 <span className="block text-base font-bold tracking-tight text-[var(--text-primary)]">
-                  Aura<span className="text-[var(--accent)]">Market</span>
+                  Aura<span className="text-[var(--accent)]">dime</span>
                 </span>
                 <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-secondary)] opacity-45">
                   Install and legal
@@ -54,7 +54,7 @@ export default function Footer() {
             </button>
 
             <p className="max-w-xl text-[12px] leading-relaxed text-[var(--text-secondary)] md:text-[13px]">
-              Install Aura Market for faster access, then review the legal pages that govern the marketplace.
+              Install Auradime for faster access, then review the legal pages that govern the marketplace.
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -93,12 +93,12 @@ export default function Footer() {
               className="group rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4 text-left transition-colors hover:border-[var(--accent)]/40"
             >
               <div className="mb-3 size-10 rounded-xl bg-black p-2 ring-1 ring-white/10">
-                <img src="/icon-512.png" alt="Aura" className="h-full w-full object-contain" />
+                <img src="/icon-512.png" alt="Auradime" className="h-full w-full object-contain" />
               </div>
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
                 Install App
               </p>
-              <h5 className="text-sm font-bold text-[var(--text-primary)]">Aura on your homescreen</h5>
+              <h5 className="text-sm font-bold text-[var(--text-primary)]">Auradime on your homescreen</h5>
               <p className="mt-1 text-[11px] leading-snug text-[var(--text-secondary)] opacity-60">
                 Fast access, native feel, ready when you are.
               </p>
@@ -111,7 +111,7 @@ export default function Footer() {
 
         <div className="mt-6 flex flex-col gap-3 border-t border-[var(--glass-border)] pt-5 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-45">
-            &copy; {currentYear} Aura Global. All rights reserved.
+            &copy; {currentYear} Auradime Global. All rights reserved.
           </p>
           <div className="flex flex-wrap justify-center gap-3 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 sm:justify-end">
             <Link href="/privacy" className="hover:opacity-100">Privacy</Link>

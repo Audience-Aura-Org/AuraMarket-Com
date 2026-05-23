@@ -54,7 +54,7 @@ export default function SubscribePage() {
                  <input 
                    type="email"
                    required
-                   placeholder="secured-inbox-address@aura.io"
+                   placeholder="secured-inbox-address@auradime.com"
                    className="w-full h-16 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] pl-14 pr-6 text-sm  font-bold text-white focus:border-[var(--accent)] transition-all outline-none"
                    value={email}
                    onChange={(e) => setEmail(e.target.value)}

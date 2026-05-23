@@ -4,9 +4,9 @@
  * Professional design with logo, clean aesthetic, minimal colors
  */
 
-const WEB_URL = process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app/';
-const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/icon-512.png';
-const SUPPORT_EMAIL = process.env.EMAIL_USER || 'info@audienceaura.org';
+const WEB_URL = process.env.WEB_CLIENT_URL || 'https://auradime.com/';
+const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://auradime.com/icon-512.png';
+const SUPPORT_EMAIL = process.env.EMAIL_USER || 'support@auradime.com';
 
 // Aura Market — brand aligned with app & PDF invoice (full-width email layout)
 const COLORS = {
@@ -128,10 +128,10 @@ const wrap = (title, heading, body) => `
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;">
                       <tr>
                         <td style="width:52px;vertical-align:middle;">
-                          <img src="${LOGO_URL}" alt="Aura Market" class="logo-img" width="40" height="40" />
+                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="40" height="40" />
                         </td>
                         <td style="vertical-align:middle;padding-left:14px;">
-                          <p class="header-title">Aura Market</p>
+                          <p class="header-title">Auradime</p>
                           <p class="header-sub">Commerce &bull; logistics &bull; fulfilment</p>
                         </td>
                       </tr>
@@ -150,9 +150,9 @@ const wrap = (title, heading, body) => `
           </tr>
           <tr>
             <td class="footer-td">
-              <p class="footer-brand">Aura Market</p>
+              <p class="footer-brand">Auradime</p>
               <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
-              <p>&copy; ${new Date().getFullYear()} Aura Market &bull; Audience Aura Org</p>
+              <p>&copy; ${new Date().getFullYear()} Auradime &bull; Audience Aura Org</p>
             </td>
           </tr>
         </table>
@@ -165,10 +165,10 @@ const wrap = (title, heading, body) => `
 /* ─── Welcome / Sign Up (new template) ─── */
 const welcomeEmail = ({ user, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const subject = '🎉 Welcome to Aura Market';
+  const subject = '🎉 Welcome to Auradime';
   const body = `
     <p>Hi <strong>${user.name || 'there'}</strong>,</p>
-    <p>Welcome to Aura Market! Your account is active and ready for use.</p>
+    <p>Welcome to Auradime! Your account is active and ready for use.</p>
     
     <div class="card">
       <div class="card-row">
@@ -183,8 +183,8 @@ const welcomeEmail = ({ user, webUrl }) => {
     
     ${user.role === 'vendor' ? `<a href="${baseUrl}/vendor/dashboard" class="btn">Go to Dashboard</a>` : `<a href="${baseUrl}/discovery" class="btn">Start Shopping</a>`}
   `;
-  const html = wrap(subject, 'Welcome to Aura', body);
-  return { subject, html, text: `Welcome to Aura Market, ${user.name}!` };
+  const html = wrap(subject, 'Welcome to Auradime', body);
+  return { subject, html, text: `Welcome to Auradime, ${user.name}!` };
 };
 
 /* ─── Password Reset ─── */

@@ -42,7 +42,7 @@ module.exports = {
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
   EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
-  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Aura Market',
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Auradime',
   EVERSEND_CLIENT_ID: process.env.EVERSEND_CLIENT_ID,
   EVERSEND_CLIENT_SECRET: process.env.EVERSEND_CLIENT_SECRET,
   EVERSEND_WEBHOOK_SECRET: process.env.EVERSEND_WEBHOOK_SECRET,

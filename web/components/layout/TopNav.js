@@ -84,7 +84,7 @@ export default function TopNav() {
           <Link href={user ? "/discovery?tab=discover" : "/"} className="flex items-center gap-2 md:gap-3 group">
             <img
               src="/icon-512.png"
-              alt="Aura Market"
+              alt="Auradime"
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
           </Link>
