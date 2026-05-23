@@ -59,7 +59,7 @@ export default function SocketProvider({ children }) {
         return;
       }
 
-      const senderName = msg.sender_id?.name || 'Aura User';
+      const senderName = msg.sender_id?.name || 'Auradime User';
       const senderAvatar = msg.sender_id?.avatar || msg.sender_id?.branding?.logo || null;
       const text = msg.text || (msg.product_reference ? '📦 Shared a product' : 'Sent you a message');
       
@@ -135,7 +135,7 @@ export default function SocketProvider({ children }) {
 
       const partnerData = payload.sender || payload.senderData || payload.data?.senderData || payload.data?.sender || {
         _id: partnerId,
-        name: payload.title || payload.name || 'Aura User',
+        name: payload.title || payload.name || 'Auradime User',
         avatar: payload.icon || null,
         store_name: payload.store_name || payload.storeName
       };
@@ -251,7 +251,7 @@ export default function SocketProvider({ children }) {
                   <Icon className="size-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-white/70 mb-0.5 leading-none">Aura Market</p>
+                  <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-white/70 mb-0.5 leading-none">Auradime</p>
                   <p className="text-sm font-bold truncate leading-tight">{notifToast.title}</p>
                   <p className="text-xs text-white/80 line-clamp-2 mt-0.5 leading-snug">{notifToast.message}</p>
                 </div>
