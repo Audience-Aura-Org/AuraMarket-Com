@@ -17,12 +17,12 @@ const COLORS = {
   textPrimary:  '#111827',
   textSecondary: '#4b5563',
   textMuted:    '#6b7280',
-  accent:       '#2563eb',
-  accentDark:   '#1d4ed8',
-  accentSoft:   '#eff6ff',
-  gradient:     '#2563eb',
+  accent:       '#5B21B6', // dark purple primary accent
+  accentDark:   '#4C1D95', // deeper purple
+  accentSoft:   '#F3E8FF', // light purple background
+  gradient:     '#5B21B6', // use primary accent for gradient
   footerBg:     '#f8fafc',
-  stripe:       '#2563eb',
+  stripe:       '#5B21B6',
 };
 /* ─── Premium Email Wrapper ─── */
 const wrap = (title, heading, body) => `
@@ -44,9 +44,9 @@ const wrap = (title, heading, body) => `
     a { color: ${COLORS.accent}; }
 
     .header-band { background: ${COLORS.gradient}; padding: 0; }
-    .header-inner { padding: 28px 24px 32px; }
+    .header-inner { padding: 20px 16px 24px; }
     @media only screen and (min-width: 600px) {
-      .header-inner { padding: 36px 48px 40px !important; }
+      .header-inner { padding: 28px 32px 32px !important; }
     }
     .logo-img { height: 40px; width: 40px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
     .header-title { color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.6px; margin: 0; line-height: 1.15; }
