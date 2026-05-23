@@ -63,10 +63,10 @@ const wrap = (title, heading, body) => `
     .content-td p  { font-size: 15px; color: ${COLORS.textSecondary}; margin: 0 0 16px; line-height: 1.65; }
     .content-td strong { color: ${COLORS.textPrimary}; font-weight: 600; }
 
-    .card { background: ${COLORS.accentSoft}; border: 1px solid #bfdbfe; border-radius: 14px; padding: 6px 18px; margin: 20px 0; }
+    .card { background: ${COLORS.accentSoft}; border: 1px solid #e9d5ff; border-radius: 14px; padding: 6px 18px; margin: 20px 0; }
     .card-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
-    .card-row:not(:last-child) { border-bottom: 1px solid #dbeafe; }
-    .card-divider { height: 1px; background: #dbeafe; margin: 0; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #f3e8ff; }
+    .card-divider { height: 1px; background: #f3e8ff; margin: 0; }
     .card-label { color: ${COLORS.textSecondary}; font-weight: 500; font-size: 13px; }
     .card-value { color: ${COLORS.textPrimary}; font-weight: 600; font-size: 13px; text-align: right; }
 
@@ -82,7 +82,7 @@ const wrap = (title, heading, body) => `
     .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
     .badge-failed    { background: #fee2e2; color: #991b1b; }
 
-    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 14px; margin: 18px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.22); font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
+    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 14px; margin: 18px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
 
     .table-products { width: 100% !important; max-width: 100%; margin: 20px 0; border-collapse: collapse; font-size: 14px; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; }
     .table-products thead { background: #fafafa; }
@@ -100,7 +100,7 @@ const wrap = (title, heading, body) => `
     .highlight { background: ${COLORS.accentSoft}; border-left: 4px solid ${COLORS.accent}; padding: 14px 18px; margin: 20px 0; border-radius: 0 12px 12px 0; }
     .highlight p { margin: 0; font-size: 13px; color: ${COLORS.textPrimary}; font-weight: 500; }
 
-    .qr-container { text-align: center; margin: 20px 0; padding: 18px; border: 1.5px dashed #bfdbfe; border-radius: 14px; background: ${COLORS.bgSecondary}; }
+    .qr-container { text-align: center; margin: 20px 0; padding: 18px; border: 1.5px dashed #e9d5ff; border-radius: 14px; background: ${COLORS.bgSecondary}; }
     .qr-image { width: 100px; height: 100px; margin: 0 auto 8px; border-radius: 8px; }
     .qr-text { font-size: 11px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
 
