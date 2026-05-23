@@ -33,7 +33,7 @@ async function verify() {
   };
 
   try {
-    const trackingLink = `${process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app'}/orders/${mockOrder._id}`;
+    const trackingLink = `${process.env.WEB_CLIENT_URL || 'https://auradime.com'}/orders/${mockOrder._id}`;
     const qrCodeDataUrl = await qrcode.toDataURL(trackingLink);
 
     console.log('🛠️ Generating Order Placed template...');

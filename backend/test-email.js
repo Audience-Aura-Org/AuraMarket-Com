@@ -13,7 +13,7 @@ const run = async () => {
   // Use the welcomeEmail template as the test payload
   const tpl = templates.welcomeEmail({
     user: { name: 'Aura Admin', email: recipient, role: 'admin' },
-    webUrl: process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app'
+    webUrl: process.env.WEB_CLIENT_URL || 'https://auradime.com'
   });
 
   console.log(`📧 Sending test email to: ${recipient}`);

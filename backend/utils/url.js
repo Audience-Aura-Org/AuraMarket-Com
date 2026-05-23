@@ -14,7 +14,7 @@ const getWebUrl = (req) => {
       return origin.replace(/\/$/, '');
     }
   }
-  return (process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app').replace(/\/$/, '');
+  return (process.env.WEB_CLIENT_URL || 'https://auradime.com').replace(/\/$/, '');
 };
 
 module.exports = { getWebUrl };
