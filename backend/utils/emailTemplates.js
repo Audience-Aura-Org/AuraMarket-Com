@@ -44,15 +44,15 @@ const wrap = (title, heading, body) => `
     a { color: ${COLORS.accent}; }
 
     .header-band { background: ${COLORS.gradient}; padding: 0; }
-    .header-inner { padding: 20px 16px 24px; }
+    .header-inner { padding: 10px 16px 12px; }
     @media only screen and (min-width: 600px) {
-      .header-inner { padding: 28px 32px 32px !important; }
+      .header-inner { padding: 14px 24px 16px !important; }
     }
-    .logo-img { height: 40px; width: 40px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
-    .header-title { color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.6px; margin: 0; line-height: 1.15; }
-    .header-sub { color: rgba(255,255,255,0.88); font-size: 13px; margin: 8px 0 0; font-weight: 500; }
+    .logo-img { height: 32px; width: 32px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.35); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+    .header-title { color: #ffffff; font-size: 17px; font-weight: 700; letter-spacing: -0.4px; margin: 0; line-height: 1.15; }
+    .header-sub { color: rgba(255,255,255,0.88); font-size: 11px; margin: 4px 0 0; font-weight: 500; }
 
-    .accent-stripe { height: 4px; background: ${COLORS.stripe}; font-size: 0; line-height: 0; }
+    .accent-stripe { height: 3px; background: ${COLORS.stripe}; font-size: 0; line-height: 0; }
 
     .content-shell { width: 100% !important; max-width: 100% !important; background: ${COLORS.bgPrimary}; }
     .content-td { padding: 28px 20px 20px; background: ${COLORS.bgPrimary}; }
@@ -127,8 +127,8 @@ const wrap = (title, heading, body) => `
                   <td class="header-inner">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;">
                       <tr>
-                        <td style="width:52px;vertical-align:middle;">
-                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="40" height="40" />
+                        <td style="width:44px;vertical-align:middle;">
+                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="32" height="32" />
                         </td>
                         <td style="vertical-align:middle;padding-left:14px;">
                           <p class="header-title">Auradime</p>
@@ -139,7 +139,7 @@ const wrap = (title, heading, body) => `
                   </td>
                 </tr>
               </table>
-              <div class="accent-stripe" style="height:4px;background:${COLORS.stripe};font-size:0;line-height:0;">&nbsp;</div>
+              <div class="accent-stripe" style="height:3px;background:${COLORS.stripe};font-size:0;line-height:0;">&nbsp;</div>
             </td>
           </tr>
           <tr>
