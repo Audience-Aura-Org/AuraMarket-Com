@@ -46,10 +46,110 @@ const getAccessToken = async (force = false) => {
 
     return _tokenCache.token;
   } catch (err) {
+    const errMsg = err.response?.data?.message || err.message || '';
+    if (process.env.NODE_ENV === 'development' && (errMsg.toLowerCase().includes('origin') || errMsg.toLowerCase().includes('whitelist'))) {
+      console.warn('⚠️ [Eversend Mock] Whitelist/Origin error in auth token generation. Returning mock token.');
+      _tokenCache = {
+        token: 'mock-access-token-' + now,
+        expiresAt: now + 86100 * 1000,
+      };
+      return _tokenCache.token;
+    }
     console.error('Eversend Auth Token Error:', err.response?.status, err.response?.data || err.message);
     throw err;
   }
 };
+
+/**
+ * Helper to generate simulated mock responses for local testing
+ */
+function mockResponseForUrl(url, method, requestData) {
+  let parsedData = {};
+  if (requestData) {
+    try {
+      parsedData = typeof requestData === 'string' ? JSON.parse(requestData) : requestData;
+    } catch (e) {}
+  }
+  const cleanUrl = url.split('?')[0];
+  let mockData = {};
+
+  if (cleanUrl.includes('/auth/token')) {
+    mockData = {
+      token: 'mock_token_' + Date.now(),
+      expiresIn: 86400
+    };
+  } else if (cleanUrl.includes('/wallets')) {
+    mockData = {
+      success: true,
+      data: cleanUrl.endsWith('/wallets') 
+        ? [
+            { id: 'mock-wallet-xaf', currency: 'XAF', balance: 500000 },
+            { id: 'mock-wallet-usd', currency: 'USD', balance: 1000 }
+          ]
+        : { id: 'mock-wallet', currency: 'XAF', balance: 500000 }
+    };
+  } else if (cleanUrl.includes('/collections')) {
+    mockData = {
+      success: true,
+      status: 'SUCCESSFUL',
+      transactionId: 'mock-col-' + crypto.randomBytes(4).toString('hex'),
+      data: {
+        status: 'SUCCESSFUL',
+        transactionId: 'mock-col-' + crypto.randomBytes(4).toString('hex')
+      }
+    };
+  } else if (cleanUrl.includes('/transactions')) {
+    mockData = {
+      success: true,
+      status: 'SUCCESSFUL',
+      data: {
+        status: 'SUCCESSFUL',
+        transactionId: cleanUrl.split('/').pop() || 'mock-tx-id'
+      }
+    };
+  } else if (cleanUrl.includes('/payouts/quotation')) {
+    mockData = {
+      success: true,
+      token: 'mock-quote-token-' + crypto.randomBytes(4).toString('hex'),
+      data: {
+        token: 'mock-quote-token-' + crypto.randomBytes(4).toString('hex'),
+        quotation: {
+          sourceCurrencyBalanceAfter: 9999999,
+          fee: 100,
+          exchangeRate: 1
+        }
+      }
+    };
+  } else if (cleanUrl.includes('/payouts')) {
+    mockData = {
+      success: true,
+      transactionId: 'mock-pay-' + crypto.randomBytes(4).toString('hex'),
+      status: 'SUCCESSFUL',
+      data: {
+        transactionId: 'mock-pay-' + crypto.randomBytes(4).toString('hex'),
+        status: 'SUCCESSFUL'
+      }
+    };
+  } else if (cleanUrl.includes('/beneficiaries')) {
+    mockData = {
+      success: true,
+      data: cleanUrl.endsWith('/beneficiaries') ? [] : { id: 'mock-ben' }
+    };
+  } else {
+    mockData = {
+      success: true,
+      message: 'Mocked successful response.'
+    };
+  }
+
+  return {
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: {},
+    data: mockData
+  };
+}
 
 /**
  * Build an authenticated Axios instance.
@@ -57,13 +157,29 @@ const getAccessToken = async (force = false) => {
  */
 const eversendClient = async (force = false) => {
   const token = await getAccessToken(force);
-  return axios.create({
+  const instance = axios.create({
     baseURL: EVERSEND_BASE_URL,
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   });
+
+  if (process.env.NODE_ENV === 'development') {
+    instance.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const errMsg = error.response?.data?.message || error.message || '';
+        if (errMsg.toLowerCase().includes('origin') || errMsg.toLowerCase().includes('whitelist')) {
+          console.warn(`⚠️ [Eversend Mock] Whitelist/Origin error in development. Mocking response for: ${error.config.method?.toUpperCase()} ${error.config.url}`);
+          return Promise.resolve(mockResponseForUrl(error.config.url, error.config.method, error.config.data));
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  return instance;
 };
 
 /**

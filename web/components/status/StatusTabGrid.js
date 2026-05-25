@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { 
   Heart, Flame, Play, Search, X, Eye, 
   Clock, ShoppingBag, 
-  Plus, Users, Globe, Sparkles, ChevronRight
+  Plus, Users, Globe, Sparkles, ChevronRight,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
@@ -40,7 +41,7 @@ const ago = d => {
 const hoursLeft = exp => Math.max(0, (new Date(exp) - Date.now()) / 3600000);
 
 // â”€â”€â”€ Story Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 'auto', onClick, className = '' }) {
+const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, rank, isNew, priority = 'auto', onClick, className = '' }) {
   const v       = status.vendor_id;
   const logo    = v?.user_id?.branding?.logo || v?.user_id?.avatar;
   const name    = v?.store_name || 'Store';
@@ -53,12 +54,24 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
     <motion.button
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-[1.5rem] shadow-xl cursor-pointer transition-all duration-300 ${
+      className={`group relative overflow-visible cursor-pointer transition-all duration-300 ${className}`}
+    >
+      {/* 3D Overlapping Card Deck Effect for Grouped Statuses */}
+      {statusesCount > 1 && (
+        <>
+          {/* Deepest stack layer */}
+          <div className="absolute inset-0 translate-x-2.5 translate-y-2.5 scale-[0.93] rounded-[1.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] opacity-30 shadow-md -z-20 transition-transform duration-300 group-hover:translate-x-3.5 group-hover:translate-y-3.5" />
+          {/* Middle stack layer */}
+          <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 scale-[0.96] rounded-[1.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] opacity-60 shadow-lg -z-10 transition-transform duration-300 group-hover:translate-x-2 group-hover:translate-y-2" />
+        </>
+      )}
+
+      {/* Main Card Container */}
+      <div className={`relative w-full h-full overflow-hidden rounded-[1.5rem] shadow-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 transition-all duration-300 ${
         isNew 
           ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-secondary)]' 
           : 'opacity-75 hover:opacity-100'
-      } ${className}`}
-    >
+      }`}>
       {/* Media */}
       <div className="absolute inset-0">
         {!isText ? (
@@ -99,8 +112,13 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
                 </div>
               )}
             </div>
-            <p className="text-[11px] lg:text-[12px]  font-semibold text-white truncate flex-1">{name}</p>
-            {isNew && (
+              <p className="text-[11px] lg:text-[12px]  font-semibold text-white truncate flex-1">{name}</p>
+              {statusesCount > 1 && (
+                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-white/20 backdrop-blur border border-white/10 text-white text-[9px] font-bold shrink-0 shadow-sm" title="Grouped Updates">
+                  <Layers className="size-2.5 text-[var(--accent)]" /> {statusesCount}
+                </div>
+              )}
+              {isNew && (
               <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] lg:text-[12px]  font-semibold shrink-0">
                 <Sparkles className="size-2" /> New
               </div>
@@ -146,6 +164,7 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
           </div>
         </div>
       )}
+      </div>
     </motion.button>
   );
 });
@@ -205,6 +224,35 @@ export default function StatusTabGrid({ onSelectStatus }) {
   }, [globalStatuses, followedStatuses, search, user, selectedCategory]);
 
   const activePool = activeTab === 'inner' ? clientFilteredFollowed : clientFilteredGlobal;
+
+  const groupedPool = useMemo(() => {
+    const groups = [];
+    const map = {};
+    for (const s of activePool) {
+      const vId = s.vendor_id?._id || (typeof s.vendor_id === 'object' ? s.vendor_id : null)?._id;
+      if (!vId) continue;
+      const vIdStr = vId.toString();
+      if (!map[vIdStr]) {
+        map[vIdStr] = {
+          vendor_id: s.vendor_id,
+          statuses: [],
+        };
+        groups.push(map[vIdStr]);
+      }
+      map[vIdStr].statuses.push(s);
+    }
+    
+    return groups.map(g => {
+      const unviewed = g.statuses.find(s => !s.isViewed);
+      const representative = unviewed || g.statuses[0];
+      return {
+        ...representative,
+        statusesCount: g.statuses.length,
+        isNew: g.statuses.some(s => !s.isViewed),
+        vendorStatuses: g.statuses
+      };
+    });
+  }, [activePool]);
 
   const handleOpen = (status, pool) => {
     pool.slice(0, 6).forEach(s => warmStoryMedia(s, s._id === status._id));
@@ -298,7 +346,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
         </div>
       </div>
 
-      {/* â”€â”€ Grid â”€â”€ */}
+      {/* ─── Grid ─── */}
       <div className="w-full px-3 pt-4">
         <AnimatePresence mode="wait">
           <motion.div
@@ -308,15 +356,16 @@ export default function StatusTabGrid({ onSelectStatus }) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            {activePool.length > 0 ? (
+            {groupedPool.length > 0 ? (
               activeTab === 'inner' ? (
-                /* Inner circle â€” regular 2-col grid */
+                /* Inner circle — regular 2-col grid */
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 md:gap-3">
-                  {activePool.map((s, i) => (
+                  {groupedPool.map((s, i) => (
                     <PremiumCard
-                      key={s._id}
+                      key={s.vendor_id?._id || s._id}
                       status={s}
-                      isNew={!s.isViewed}
+                      statusesCount={s.statusesCount}
+                      isNew={s.isNew}
                       priority={i < 4 ? 'high' : 'auto'}
                       className="aspect-[3/4]"
                       onClick={() => handleOpen(s, activePool)}
@@ -324,14 +373,15 @@ export default function StatusTabGrid({ onSelectStatus }) {
                   ))}
                 </div>
               ) : (
-                /* Global pulse â€” masonry columns */
+                /* Global pulse — masonry columns */
                 <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-2.5 md:gap-3 space-y-2.5 md:space-y-3">
-                  {activePool.map((s, i) => (
+                  {groupedPool.map((s, i) => (
                     <PremiumCard
-                      key={s._id}
+                      key={s.vendor_id?._id || s._id}
                       status={s}
+                      statusesCount={s.statusesCount}
                       rank={i < 10 ? i + 1 : null}
-                      isNew={!s.isViewed}
+                      isNew={s.isNew}
                       priority={i < 6 ? 'high' : 'auto'}
                       className={`w-full break-inside-avoid ${i % 3 === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
                       onClick={() => handleOpen(s, activePool)}
