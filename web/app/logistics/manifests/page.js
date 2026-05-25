@@ -239,7 +239,7 @@ export default function LogisticsManifestsPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={handleSearchKey}
-                className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] pl-9 pr-3 text-[11px] font-semibold outline-none ring-[var(--accent)]/20 focus:ring-4"
+                className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] pl-9 pr-3 text-[11px] font-semibold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:ring-offset-1"
               />
             </div>
             <button
@@ -355,26 +355,26 @@ export default function LogisticsManifestsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-[var(--accent)]/40 sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
                 >
-                  <option value="order_placed">Recent orders first</option>
-                  <option value="assignment">Recent assignments first</option>
+                  <option value="order_placed">📅 Recent orders</option>
+                  <option value="assignment">🚚 Recent assignments</option>
                 </select>
                 <select
                   value={statusFilter}
                   onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-[var(--accent)]/40 sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
                 >
-                  <option value="all">All statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="active">In transit (active)</option>
-                  <option value="assigned">Assigned</option>
-                  <option value="picked_up">Picked up</option>
-                  <option value="in_transit">In transit</option>
-                  <option value="out_for_delivery">Out for delivery</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="failed">Failed</option>
-                  <option value="cancelled">Cancelled / vendor</option>
+                  <option value="all">📦 All statuses</option>
+                  <option value="pending">⏳ Pending</option>
+                  <option value="active">🔄 In transit (active)</option>
+                  <option value="assigned">✓ Assigned</option>
+                  <option value="picked_up">📤 Picked up</option>
+                  <option value="in_transit">🚗 In transit</option>
+                  <option value="out_for_delivery">🏃 Out for delivery</option>
+                  <option value="delivered">✅ Delivered</option>
+                  <option value="failed">❌ Failed</option>
+                  <option value="cancelled">🛑 Cancelled / vendor</option>
                 </select>
               </div>
             </div>
@@ -477,48 +477,88 @@ export default function LogisticsManifestsPage() {
                     const dest  = destinationLine(s);
                     const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
                     const vendorName = typeof vendor === "object" ? vendor.store_name || vendor.name : "—";
-                    const receiverName = customer?.name || s.proof_of_delivery?.receiver_name || "—";
+                    const customerName = typeof customer === "object" ? customer.name : "—";
+                    const receiverName = s.proof_of_delivery?.receiver_name || customerName || "—";
+                    const placedDate = order?.createdAt
+                      ? new Date(order.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                      : "—";
                     return (
                       <div
                         key={s._id}
-                        className="space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4"
+                        onClick={() => openShipmentDetail(s)}
+                        className="cursor-pointer space-y-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-sm transition active:scale-95 active:opacity-75"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-mono text-[11px] font-semibold">{s.tracking_code}</p>
-                            <p className="text-[10px] opacity-45">#{s._id?.slice(-8).toUpperCase()}</p>
+                        {/* Top bar: Tracking + Status + Open Button */}
+                        <div className="flex items-center justify-between gap-2 border-b border-[var(--glass-border)] px-4 py-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-[12px] font-semibold tracking-tight">{s.tracking_code || "—"}</p>
+                            <p className="text-[9px] opacity-40">ID: {s._id?.slice(-6).toUpperCase()}</p>
                           </div>
+                          <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[9px] font-semibold tracking-tight whitespace-nowrap ${badgeCls}`}>
+                            {s.status === "cancelled" ? "Vendor" : s.status?.replace(/_/g, " ")}
+                          </span>
+                        </div>
+
+                        {/* Main content grid */}
+                        <div className="space-y-3 px-4 py-3">
+                          {/* Row 1: Vendor & Receiver */}
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Vendor</p>
+                              <p className="mt-1 truncate text-[12px] font-semibold text-[var(--text-primary)]">{vendorName}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Receiver</p>
+                              <p className="mt-1 truncate text-[12px] font-semibold text-[var(--text-primary)]">{receiverName}</p>
+                            </div>
+                          </div>
+
+                          {/* Row 2: Items Summary */}
+                          <div>
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Items</p>
+                            <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-[var(--text-primary)]">
+                              {summarizeLineItems(order)}
+                            </p>
+                          </div>
+
+                          {/* Row 3: Route */}
+                          <div>
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Route</p>
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <span className="truncate text-[12px] font-semibold">{s.pickup_address?.quartier || "Pickup"}</span>
+                              <ArrowRight className="size-3 shrink-0 text-[var(--accent)] opacity-50" />
+                              <span className="truncate text-[12px] font-semibold">{dest.main}</span>
+                            </div>
+                            {dest.sub && <p className="mt-0.5 truncate text-[10px] opacity-50">{dest.sub}</p>}
+                          </div>
+
+                          {/* Row 4: Meta — Date & Fee */}
+                          <div className="grid grid-cols-2 gap-3 border-t border-[var(--glass-border)] pt-3">
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Date</p>
+                              <p className="mt-1 text-[11px] font-semibold">{placedDate}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Fee</p>
+                              <p className="mt-1 font-mono text-[11px] font-semibold">
+                                {typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer: Open button */}
+                        <div className="border-t border-[var(--glass-border)] px-4 py-2">
                           <button
                             type="button"
-                            onClick={() => openShipmentDetail(s)}
-                            className="min-h-11 shrink-0 touch-manipulation rounded-xl border border-[var(--glass-border)] px-3 py-2 text-[11px] font-semibold"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openShipmentDetail(s);
+                            }}
+                            className="w-full min-h-11 touch-manipulation rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 py-2.5 text-[12px] font-semibold text-[var(--accent)] transition active:scale-95"
                           >
-                            Open
+                            View Full Details
                           </button>
-                        </div>
-                        <div className="border-t border-[var(--glass-border)] pt-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Vendor & Receiver</p>
-                          <p className="mt-1 text-[11px] font-semibold text-[var(--text-primary)]">{vendorName}</p>
-                          <p className="text-[11px] text-[var(--text-primary)] opacity-75">{receiverName}</p>
-                        </div>
-                        <div className="border-t border-[var(--glass-border)] pt-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Items</p>
-                          <p className="mt-1 text-[12px] font-medium leading-snug">{summarizeLineItems(order)}</p>
-                        </div>
-                        <div className="flex items-start gap-2 border-t border-[var(--glass-border)] pt-3">
-                          <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-semibold">{dest.main}</p>
-                            {dest.sub ? <p className="text-[10px] opacity-55">{dest.sub}</p> : null}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--glass-border)] pt-3 text-[11px]">
-                          <span className="font-mono font-semibold">
-                            {typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—"}
-                          </span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeCls}`}>
-                            {s.status === "cancelled" ? "Vendor managed" : s.status?.replace(/_/g, " ")}
-                          </span>
                         </div>
                       </div>
                     );
@@ -536,27 +576,29 @@ export default function LogisticsManifestsPage() {
 
                 {/* Pagination */}
                 {total > 0 ? (
-                  <div className="mt-6 flex flex-col items-center justify-between gap-3 border-t border-[var(--glass-border)] pt-6 sm:flex-row">
-                    <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-70">
-                      Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)} of {total}
+                  <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-[var(--glass-border)] pt-6 sm:flex-row">
+                    <p className="text-center text-[10px] font-medium text-[var(--text-secondary)] opacity-70 sm:text-left">
+                      Showing <span className="font-bold text-[var(--text-primary)]">{(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)}</span> of <span className="font-bold text-[var(--text-primary)]">{total}</span> tickets
                     </p>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         disabled={currentPage <= 1 || loading}
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-[var(--glass-border)] px-3 py-2 text-[11px] font-semibold transition enabled:hover:bg-[var(--bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-[var(--glass-border)] px-2 py-2 text-[10px] font-semibold transition enabled:hover:bg-[var(--bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
                       >
-                        <ChevronLeft className="size-4" /> Previous
+                        <ChevronLeft className="size-4" /> <span className="hidden sm:inline">Previous</span>
                       </button>
-                      <span className="min-w-[4rem] text-center font-mono text-[11px] font-semibold opacity-70">
-                        {currentPage} / {pages}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="min-w-[3rem] text-center font-mono text-[11px] font-semibold opacity-70">
+                          {currentPage} <span className="opacity-50">/</span> {pages}
+                        </span>
+                      </div>
                       <button
                         type="button"
                         disabled={currentPage >= pages || loading}
                         onClick={() => setCurrentPage((p) => (p < pages ? p + 1 : p))}
-                        className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-[var(--glass-border)] px-3 py-2 text-[11px] font-semibold transition enabled:hover:bg-[var(--bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-[var(--glass-border)] px-2 py-2 text-[10px] font-semibold transition enabled:hover:bg-[var(--bg-secondary)] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
                       >
                         Next <ChevronRight className="size-4" />
                       </button>
