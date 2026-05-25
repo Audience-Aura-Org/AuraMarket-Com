@@ -415,7 +415,8 @@ export default function LogisticsManifestsPage() {
                         const fee = typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—";
                         const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
                         const vendorName = typeof vendor === "object" ? vendor.store_name || vendor.name : "—";
-                        const receiverName = customer?.name || s.proof_of_delivery?.receiver_name || "—";
+                        const customerName = typeof customer === "object" ? customer.name : "—";
+                        const receiverName = s.proof_of_delivery?.receiver_name || customerName || "—";
                         return (
                           <tr key={s._id} className="group hover:bg-white/[0.02]">
                             <td className="py-3 pr-3 align-top">

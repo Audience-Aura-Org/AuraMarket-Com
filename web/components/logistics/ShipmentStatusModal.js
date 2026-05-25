@@ -63,6 +63,7 @@ export default function ShipmentStatusModal({
 
   const order = shipment.order_id;
   const vendor = shipment.vendor_id;
+  const customer = typeof order?.customer_id === "object" ? order.customer_id : null;
   const pickup = formatAddress(shipment.pickup_address);
   const drop = formatAddress(shipment.delivery_address);
   const noteBlock =
@@ -72,7 +73,7 @@ export default function ShipmentStatusModal({
 
   const shipAddr = order?.shipping_address;
   const recipientLabel =
-    shipAddr?.full_name || shipAddr?.name || "Recipient (order)";
+    shipAddr?.full_name || shipAddr?.name || customer?.name || "Recipient (order)";
   const recipientLines = shipAddr
     ? [
         shipAddr.street,
@@ -280,10 +281,20 @@ export default function ShipmentStatusModal({
                   <User className="size-3.5" />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Recipient</span>
                 </div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">{recipientLabel}</p>
-                <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70">
-                  {recipientLines.join(", ")}
+                <div>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{recipientLabel}</p>
+                  {customer?.name && customer.name !== recipientLabel && (
+                    <p className="text-[11px] text-[var(--text-secondary)] opacity-60 mt-1">({customer.name})</p>
+                  )}
+                  {customer?.phone && (
+                    <p className="text-[11px] text-[var(--text-secondary)] opacity-60 mt-1">📱 {customer.phone}</p>
+                  )}
                 </div>
+                {recipientLines.length > 0 && (
+                  <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-[var(--glass-border)]">
+                    {recipientLines.join(", ")}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-[var(--accent)]/10 bg-[var(--accent)]/[0.03] p-5 space-y-3">
