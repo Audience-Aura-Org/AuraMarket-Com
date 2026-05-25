@@ -15,6 +15,7 @@ import socketService from '@/services/socket';
 import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './chat/ChatUtils';
 import { toast } from 'react-hot-toast';
 
+
 /**
  * MessagingHub - Premium Global Messaging Center
  * Features: Infinite scroll, typing indicators, grouped bubbles, and search.
@@ -28,6 +29,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     activeConversation,
     conversations,
     typingIndicators,
+    onlineUsersMap,
     setActiveConversation,
     upsertConversations,
     upsertMessages,
@@ -38,7 +40,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     deleteMessage,
     syncInboxFromServer,
   } = useChat();
-  
   // -- State --
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -623,12 +624,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (diff < 24 * 60 * 60 * 1000) return `last seen ${Math.floor(diff / 3600000)}h ago`;
     return `last seen ${new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
   };
+  const partnerIdStr = activePartnerId?.toString();
+  const liveOnline = partnerIdStr ? onlineUsersMap[partnerIdStr] : undefined;
+  const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (partnerInfo?.is_online === true);
+
   const partnerStatus = (() => {
-    if (partnerTyping || partnerInfo?.is_online === true || partnerRecentlyActive) {
+    if (partnerTyping || isOnline || partnerRecentlyActive) {
       return { label: 'online', className: 'text-emerald-400' };
-    }
-    if (partnerInfo?.is_online === false && socketConnected) {
-      return { label: formatLastSeen(partnerInfo?.last_seen || partnerInfo?.lastSeen), className: 'text-[var(--nav-text)]/55' };
     }
     return { label: formatLastSeen(partnerInfo?.last_seen || partnerInfo?.lastSeen), className: 'text-[var(--nav-text)]/55' };
   })();

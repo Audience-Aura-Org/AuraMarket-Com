@@ -681,12 +681,15 @@ function EmptyPlaceholder({ icon: Icon, text }) {
 }
 
 function ChatLink({ chat }) {
-  const { openChat } = useChat();
+  const { openChat, onlineUsersMap } = useChat();
   const partner = chat.partner;
   const partnerId = partner?._id || partner;
   const partnerName = partner?.name || partner?.store_name || 'Unknown';
   const avatar = partner?.avatar || partner?.branding?.logo || partner?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerName)}&backgroundColor=ece5dd`;
   const unreadCount = typeof chat.unread_count === 'number' ? chat.unread_count : (!chat.read_status && chat.snippet ? 1 : 0);
+
+  const liveOnline = partnerId ? onlineUsersMap[partnerId.toString()] : undefined;
+  const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (partner?.is_online ?? false);
 
   const handleClick = () => {
     if (partnerId) openChat(partnerId, null, partner, false);
@@ -704,7 +707,7 @@ function ChatLink({ chat }) {
         <div className="size-[52px] overflow-hidden rounded-full bg-[#dfe5e7] ring-1 ring-black/[0.06] sm:size-14">
           <img src={avatar} className="size-full object-cover" alt="" />
         </div>
-        {partner?.is_online && (
+        {isOnline && (
           <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-white bg-[#25d366]" />
         )}
         {chat.isFollowed && (
