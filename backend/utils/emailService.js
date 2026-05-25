@@ -1,6 +1,6 @@
 /**
  * utils/emailService.js
- * Aura Market — Dedicated Email Service (Titan SMTP)
+ * Auradime — Dedicated Email Service (Titan SMTP)
  *
  * Wraps nodemailer with Titan SMTP credentials.
  * All email-sending across the system should go through sendEmail().

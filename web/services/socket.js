@@ -198,7 +198,7 @@ class SocketService {
       transportOptions: {
         polling: {
           extraHeaders: {
-            'X-Client': 'AuraMarket-Web'
+            'X-Client': 'Auradime-Web'
           }
         }
       }

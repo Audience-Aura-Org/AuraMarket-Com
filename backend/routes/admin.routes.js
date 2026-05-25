@@ -1,6 +1,6 @@
 /**
  * routes/admin.routes.js
- * Aura Market — Dedicated Admin Maps
+ * Auradime — Dedicated Admin Maps
  *
  * Public access strictly for pulling layouts. Secure access mapped exclusively
  * to the Platform Administrators managing UI Banners and verification states explicitly.

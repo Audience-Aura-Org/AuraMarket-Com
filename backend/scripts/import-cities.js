@@ -1,6 +1,6 @@
 /**
  * scripts/import-cities.js
- * Aura Market — Geographic Data Seeder
+ * Auradime — Geographic Data Seeder
  *
  * Scans cities.php and populates the LogisticZone model.
  */

@@ -1,6 +1,6 @@
 {
-  "appId": "com.auramarket.app",
-  "appName": "AuraMarket",
+  "appId": "com.auradime.app",
+  "appName": "Auradime",
   "webDir": "mobile-shell",
   "server": {
     "url": "http://10.0.2.2:3000",

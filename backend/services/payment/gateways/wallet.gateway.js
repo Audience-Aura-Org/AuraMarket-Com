@@ -1,6 +1,6 @@
 /**
  * services/payment/gateways/wallet.gateway.js
- * Aura Market — Wallet-as-Payment Gateway
+ * Auradime — Wallet-as-Payment Gateway
  *
  * Allows users to pay directly from their Aura wallet balance.
  * No external redirect — instant settlement.

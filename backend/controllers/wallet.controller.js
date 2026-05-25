@@ -1,6 +1,6 @@
 /**
  * controllers/wallet.controller.js
- * Aura Market — Wallet & Transaction Management
+ * Auradime — Wallet & Transaction Management
  */
 
 const User = require('../models/User.model');

@@ -1,6 +1,6 @@
 /**
  * controllers/auth.controller.js
- * Aura Market — Authentication Controller
+ * Auradime — Authentication Controller
  *
  * register() → create a new user account
  * login()    → authenticate and return JWT

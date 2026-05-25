@@ -1,6 +1,6 @@
 /**
  * scripts/seed-homepage.js
- * Seed initial modular homepage sections for Aura Market
+ * Seed initial modular homepage sections for Auradime
  */
 
 require('dotenv').config({ path: '../.env' }); 

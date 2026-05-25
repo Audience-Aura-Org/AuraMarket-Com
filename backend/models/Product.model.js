@@ -1,6 +1,6 @@
 /**
  * models/Product.model.js
- * Aura Market — Product Schema
+ * Auradime — Product Schema
  *
  * Defines the structure for products sold by vendors. Includes details like
  * pricing, stock levels, categories, images, and a featured flag for admin control.

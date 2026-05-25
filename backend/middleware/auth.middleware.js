@@ -1,6 +1,6 @@
 /**
  * middleware/auth.middleware.js
- * Aura Market — JWT Authentication & Role-Based Access Control
+ * Auradime — JWT Authentication & Role-Based Access Control
  *
  * protect()         → verifies JWT; adds req.user to request
  * restrictTo(...roles) → limits access to specific roles

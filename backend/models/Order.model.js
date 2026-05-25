@@ -1,6 +1,6 @@
 /**
  * models/Order.model.js
- * Aura Market — Order Schema
+ * Auradime — Order Schema
  *
  * Tracks the transaction between a Customer and a Vendor.
  * Includes items purchased, pricing breakdown, shipping state, and payment method mapping.

@@ -80,7 +80,7 @@ export default function LandingPage() {
                   Experience <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)]">Liquid</span> Shopping.
                 </h1>
                 <p className="text-lg text-[var(--text-secondary)] max-w-lg leading-relaxed">
-                  Aura Market introduces a premium multi-vendor ecosystem wrapped in a stunning liquid-glass interface.
+                  Auradime introduces a premium multi-vendor ecosystem wrapped in a stunning liquid-glass interface.
                 </p>
                 <div className="flex flex-wrap gap-4 pt-4">
                   <button

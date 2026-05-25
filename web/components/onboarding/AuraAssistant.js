@@ -106,7 +106,7 @@ export default function AuraAssistant({ user, onDismiss }) {
                 </div>
                 <div className="bg-[var(--bg-secondary)] rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[220px]">
                   <p className="text-xs  font-semibold text-[var(--text-primary)] leading-relaxed">
-                    👋 Welcome to <span className="text-[var(--accent)]  font-bold">AuraMarket</span>
+                    👋 Welcome to <span className="text-[var(--accent)]  font-bold">Auradime</span>
                   </p>
                 </div>
               </motion.div>

@@ -43,7 +43,7 @@ export default function CookiePolicyPage() {
                     <h3 className="text-xl  font-bold tracking-tight">Essential Items</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
-                    These cookies are strictly necessary for the core functionality of Aura Market. They handle session authentication, secure wallet encryption, and regional storefront calibration. Disabling these will result in system-level instability.
+                    These cookies are strictly necessary for the core functionality of Auradime. They handle session authentication, secure wallet encryption, and regional storefront calibration. Disabling these will result in system-level instability.
                  </p>
               </section>
 
@@ -106,7 +106,7 @@ export default function CookiePolicyPage() {
 
         <div className="mt-16 text-center">
            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
-              Aura Market Global Cookie Governance v1.0
+              Auradime Global Cookie Governance v1.0
            </p>
         </div>
 

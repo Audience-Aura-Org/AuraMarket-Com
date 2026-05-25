@@ -1,6 +1,6 @@
 /**
  * controllers/dispute.controller.js
- * Aura Market — Dispute Resolution Controller
+ * Auradime — Dispute Resolution Controller
  */
 
 const Dispute = require('../models/Dispute.model');

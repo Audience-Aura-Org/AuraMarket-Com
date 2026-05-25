@@ -198,7 +198,7 @@ export default function UnifiedAuth() {
               </form>
 
               <div className="pt-4 border-t border-[var(--glass-border)] text-center">
-                <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mb-3">New to Aura Market?</p>
+                <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mb-3">New to Auradime?</p>
                 <button
                   onClick={() => {
                     setIsNewUser(true);
@@ -322,7 +322,7 @@ export default function UnifiedAuth() {
                     onClick={() => setIsNewUser(!isNewUser)}
                     className="text-[11px] lg:text-[12px] font-medium text-[var(--accent)] hover:opacity-70 transition-all"
                   >
-                    {isNewUser ? 'I already have an account' : 'I\'m new to Aura Market'}
+                    {isNewUser ? 'I already have an account' : 'I\'m new to Auradime'}
                   </button>
                 </div>
 

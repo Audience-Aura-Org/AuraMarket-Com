@@ -1,5 +1,5 @@
 /**
- * test-email.js — Aura Market Email Width Test
+ * test-email.js — Auradime Email Width Test
  * Run from backend/: node test-email.js
  */
 
@@ -21,7 +21,7 @@ const run = async () => {
     to: recipient,
     subject: `[TEST] Aura Email Width Fix — ${new Date().toLocaleTimeString()}`,
     html: tpl.html,
-    text: 'This is a test email from Aura Market to verify the full-width email layout fix.'
+    text: 'This is a test email from Auradime to verify the full-width email layout fix.'
   });
 
   if (ok) {

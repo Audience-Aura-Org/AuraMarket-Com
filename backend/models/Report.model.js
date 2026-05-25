@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/Report.model.js
- * Aura Market — Fraud & Abuse Reporting
+ * Auradime — Fraud & Abuse Reporting
  */
 const ReportSchema = new mongoose.Schema(
   {

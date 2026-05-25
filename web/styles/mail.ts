@@ -12,7 +12,7 @@ export const sendEmail = async ({ to, subject, html }: { to: string; subject: st
     });
 
     const info = await transporter.sendMail({
-        from: `"AuraMarket Notifications" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        from: `"Auradime Notifications" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject,
         html,

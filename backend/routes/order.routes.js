@@ -1,6 +1,6 @@
 /**
  * routes/order.routes.js
- * Aura Market — Order Routes
+ * Auradime — Order Routes
  *
  * All routes are strictly protected by JWT.
  * Route splitting maps explicit vendor vs. customer operational scope.

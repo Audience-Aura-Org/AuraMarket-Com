@@ -1,6 +1,6 @@
 /**
  * models/Transaction.model.js
- * Aura Market — Transaction Schema for Wallet System
+ * Auradime — Transaction Schema for Wallet System
  *
  * Tracks all financial movements within the platform affecting user wallets.
  * Types: deposit, withdrawal, payment (order), refund, escrow_release

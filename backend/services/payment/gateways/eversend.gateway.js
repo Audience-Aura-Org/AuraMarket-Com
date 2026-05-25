@@ -1,6 +1,6 @@
 /**
  * services/payment/gateways/eversend.gateway.js
- * Aura Market — Eversend Mobile Money Gateway
+ * Auradime — Eversend Mobile Money Gateway
  *
  * Wraps the existing eversend.service to conform to the GatewayInterface.
  * Supports XAF (MTN/Orange), NGN, UGX, KES, GHS, etc.

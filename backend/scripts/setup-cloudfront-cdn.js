@@ -36,13 +36,13 @@ const s3Client = new S3Client(config);
 
 async function setupCloudFront() {
   try {
-    console.log(`\n🚀 Starting Aura Market CDN Setup for: ${AWS_S3_BUCKET}`);
+    console.log(`\n🚀 Starting Auradime CDN Setup for: ${AWS_S3_BUCKET}`);
 
     // 1. Create Origin Access Control (OAC)
     console.log('🛡️  Creating Origin Access Control (OAC)...');
     const oacResponse = await cfClient.send(new CreateOriginAccessControlCommand({
       OriginAccessControlConfig: {
-        Name: `AuraMarket-OAC-${Date.now()}`,
+        Name: `Auradime-OAC-${Date.now()}`,
         OriginAccessControlOriginType: 's3',
         SigningBehavior: 'always',
         SigningProtocol: 'sigv4',
@@ -56,7 +56,7 @@ async function setupCloudFront() {
     const distResponse = await cfClient.send(new CreateDistributionCommand({
       DistributionConfig: {
         CallerReference: `aura-market-${Date.now()}`,
-        Comment: 'Aura Market - Media CDN',
+        Comment: 'Auradime - Media CDN',
         Enabled: true,
         HttpVersion: 'http2and3',
         Origins: {

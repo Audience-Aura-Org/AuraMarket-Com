@@ -1,6 +1,6 @@
 /**
  * controllers/vendor.controller.js
- * Aura Market — Vendor & Store Management Controller
+ * Auradime — Vendor & Store Management Controller
  *
  * Provides endpoints for users with 'vendor' roles to manage their profile
  * and their specialized shop representation (Store).

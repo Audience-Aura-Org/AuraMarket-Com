@@ -2,7 +2,7 @@ const winston = require('winston');
 
 /**
  * utils/logger.js
- * Centralized logging system for Aura Market.
+ * Centralized logging system for Auradime.
  */
 
 const logger = winston.createLogger({

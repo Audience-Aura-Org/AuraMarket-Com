@@ -1,6 +1,6 @@
 /**
  * models/WithdrawalRequest.model.js
- * Aura Market — Withdrawal Request Schema
+ * Auradime — Withdrawal Request Schema
  *
  * Tracks all withdrawal requests from users and vendors.
  * Status flow: pending → approved (Eversend called) → failed | completed

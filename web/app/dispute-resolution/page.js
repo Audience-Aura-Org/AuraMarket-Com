@@ -17,7 +17,7 @@ export default function DisputeResolution() {
     {
       title: "Aura Escrow Intervention",
       icon: <RefreshCcw className="size-6 text-[var(--text-primary)]" />,
-      text: "If no agreement is reached after 48 hours, Aura Market's Dispute Arbitration team steps in. Funds remain locked in the buyer's Escrow state until the investigation concludes, ensuring maximum safety.",
+      text: "If no agreement is reached after 48 hours, Auradime's Dispute Arbitration team steps in. Funds remain locked in the buyer's Escrow state until the investigation concludes, ensuring maximum safety.",
       color: "from-purple-500 to-pink-500"
     },
     {
@@ -39,7 +39,7 @@ export default function DisputeResolution() {
             Dispute <span className="text-[var(--accent)]">Resolution</span>
           </h1>
           <p className="text-[var(--text-secondary)] font-medium max-w-2xl mx-auto leading-relaxed">
-            Aura Market operates on a strict escrow system. Funds are securely locked until the buyer confirms the successful delivery and quality of goods. Here's our transparent process handling any exceptions.
+            Auradime operates on a strict escrow system. Funds are securely locked until the buyer confirms the successful delivery and quality of goods. Here's our transparent process handling any exceptions.
           </p>
         </div>
 

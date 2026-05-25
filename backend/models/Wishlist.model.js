@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/Wishlist.model.js
- * Aura Market — User Wishlists
+ * Auradime — User Wishlists
  */
 const WishlistSchema = new mongoose.Schema(
   {

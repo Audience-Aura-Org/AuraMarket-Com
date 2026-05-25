@@ -1,6 +1,6 @@
 /**
  * services/payment.service.js
- * Aura Market — Payment & Fund Release Service
+ * Auradime — Payment & Fund Release Service
  */
 
 const Escrow = require('../models/Escrow.model');

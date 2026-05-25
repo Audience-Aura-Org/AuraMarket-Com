@@ -1,6 +1,6 @@
 /**
  * models/Message.model.js
- * Aura Market — Chat Message Schema
+ * Auradime — Chat Message Schema
  *
  * Stores private messages between users (Customers & Vendors/Logistics).
  * Supports standard text and optional Product Card references to enhance the

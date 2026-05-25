@@ -48,7 +48,7 @@ function generateAllPreviews() {
         </style>
       </head>
       <body>
-        <h1>Aura Market — All Email Templates</h1>
+        <h1>Auradime — All Email Templates</h1>
         <p>Because the local network is blocking outbound SMTP traffic, all templates have been rendered below for instant preview.</p>
   `;
 

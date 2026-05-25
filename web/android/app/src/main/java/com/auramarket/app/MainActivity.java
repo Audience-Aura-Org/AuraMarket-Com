@@ -1,4 +1,4 @@
-package com.auramarket.app;
+package com.auradime.app;
 
 import com.getcapacitor.BridgeActivity;
 

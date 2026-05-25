@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/StockWatch.model.js
- * Aura Market — Restock Alerts
+ * Auradime — Restock Alerts
  */
 const StockWatchSchema = new mongoose.Schema(
   {

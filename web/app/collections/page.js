@@ -74,7 +74,7 @@ export default function CollectionsPage() {
         {/* Global Registry Footer */}
         <div className="pt-12 text-center opacity-30">
            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)] ">
-              Aura Market Operational Sectors // Unified Hub v4.2
+              Auradime Operational Sectors // Unified Hub v4.2
            </p>
         </div>
 

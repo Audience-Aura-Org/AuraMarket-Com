@@ -1,6 +1,6 @@
 /**
  * models/HomepageSection.model.js
- * Aura Market — Modular Homepage Sections
+ * Auradime — Modular Homepage Sections
  */
 
 const mongoose = require('mongoose');

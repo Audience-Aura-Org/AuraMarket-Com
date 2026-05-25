@@ -1,6 +1,6 @@
 /**
  * services/mesomb.service.js
- * Aura Market — MeSomb Payment Service
+ * Auradime — MeSomb Payment Service
  *
  * Wraps @hachther/mesomb for MTN MoMo & Orange Money collections.
  * Coverage: Cameroon (XAF), and other CEMAC countries.
@@ -77,7 +77,7 @@ const makeCollect = async ({
   currency = 'XAF',
   country = 'CM',
   trxID = null,
-  message = 'Aura Market Payment',
+  message = 'Auradime Payment',
 }) => {
   if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
     throw new Error('MeSomb credentials not configured. Set MESOMB_APPLICATION_KEY, MESOMB_ACCESS_KEY, and MESOMB_SECRET_KEY.');

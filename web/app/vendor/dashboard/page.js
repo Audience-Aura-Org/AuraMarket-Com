@@ -205,7 +205,7 @@ export default function VendorDashboard() {
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-start pr-12 md:pr-0">
             <div className="flex items-center gap-4">
               <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0 overflow-hidden">
-                 <img src="/icon-192.png" alt="Aura Market" className="size-7 md:size-8 object-contain" />
+                 <img src="/icon-192.png" alt="Auradime" className="size-7 md:size-8 object-contain" />
               </div>
               <div>
                 <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>

@@ -18,7 +18,7 @@ export default function LoginPage() {
         <Link href="/" className="flex items-center gap-3 group">
           <img
             src="/icon-512.png"
-            alt="Aura Market"
+            alt="Auradime"
             className="h-10 w-auto object-contain group-hover:scale-110 transition-transform"
           />
           <h1 className="text-xl  font-bold tracking-tighter text-[var(--text-primary)]">

@@ -25,7 +25,7 @@ const faqs = [
     icon: Store,
     questions: [
       { q: "How do I become a verified artisan?", a: "Navigate to the 'Become a Vendor' page to submit your application. Our team reviews all applications within 48 hours." },
-      { q: "What are the marketplace fees?", a: "Aura Market charges a flat 5% commission on all successful sales, with zero listing fees." }
+      { q: "What are the marketplace fees?", a: "Auradime charges a flat 5% commission on all successful sales, with zero listing fees." }
     ]
   },
   {

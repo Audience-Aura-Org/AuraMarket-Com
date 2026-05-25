@@ -1,6 +1,6 @@
 /**
  * controllers/address.controller.js
- * Aura Market — User Address Management
+ * Auradime — User Address Management
  */
 
 const User = require('../models/User.model');

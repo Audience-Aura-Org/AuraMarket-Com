@@ -1,6 +1,6 @@
 /**
  * routes/logistics.routes.js
- * Aura Market — Logistics Router Maps
+ * Auradime — Logistics Router Maps
  */
 
 const express = require('express');

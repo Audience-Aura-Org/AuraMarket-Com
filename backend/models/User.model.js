@@ -1,6 +1,6 @@
 /**
  * models/User.model.js
- * Aura Market — User Schema
+ * Auradime — User Schema
  *
  * Supports all platform roles:
  *   - customer    → buys products

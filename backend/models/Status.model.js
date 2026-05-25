@@ -1,6 +1,6 @@
 /**
  * models/Status.model.js
- * Aura Market — Vendor Stories (Status)
+ * Auradime — Vendor Stories (Status)
  * 
  * Temporary updates (24h) posted by vendors to drive engagement.
  */

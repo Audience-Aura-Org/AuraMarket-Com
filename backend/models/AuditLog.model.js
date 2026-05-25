@@ -1,6 +1,6 @@
 /**
  * models/AuditLog.model.js
- * Aura Market — System Audit Log
+ * Auradime — System Audit Log
  * 
  * Tracks mutations by admins and vendors for accountability.
  */

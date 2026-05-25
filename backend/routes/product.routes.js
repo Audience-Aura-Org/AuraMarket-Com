@@ -1,6 +1,6 @@
 /**
  * routes/product.routes.js
- * Aura Market — Product Routes
+ * Auradime — Product Routes
  *
  * Public:
  *   GET    /api/products

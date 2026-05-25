@@ -18,11 +18,11 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
-  title: 'Aura Market | Premium Multi-Vendor Platform',
-  description: "Aura Market — the world's leading marketplace for premium digital and physical assets wrapped in a stunning liquid-glass interface.",
+  title: 'Auradime | Premium Multi-Vendor Platform',
+  description: "Auradime — the world's leading marketplace for premium digital and physical assets wrapped in a stunning liquid-glass interface.",
   manifest: '/manifest.json',
   appleWebApp: {
-    title: 'Aura Market',
+    title: 'Auradime',
     statusBarStyle: 'black-translucent',
     capable: true,
   },

@@ -1,6 +1,6 @@
 /**
  * utils/emailTemplates.js
- * Aura Market — Premium Email Templates
+ * Auradime — Premium Email Templates
  * Professional design with logo, clean aesthetic, minimal colors
  */
 
@@ -8,7 +8,7 @@ const WEB_URL = process.env.WEB_CLIENT_URL || 'https://auradime.com/';
 const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://auradime.com/icon-512.png';
 const SUPPORT_EMAIL = process.env.EMAIL_USER || 'support@auradime.com';
 
-// Aura Market — brand aligned with app & PDF invoice (full-width email layout)
+// Auradime — brand aligned with app & PDF invoice (full-width email layout)
 const COLORS = {
   bgOuter:      '#f4f5f7',
   bgPrimary:    '#ffffff',

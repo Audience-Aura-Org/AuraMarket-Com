@@ -1,6 +1,6 @@
 /**
  * controllers/chat.controller.js
- * Aura Market — Chat History Retrieval Controller
+ * Auradime — Chat History Retrieval Controller
  *
  * APIs to fetch historical messages when a user boots up their app
  * (Before Socket.io dynamically pushes real-time events over the active pipe).

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/PlatformSettings.model.js
- * Aura Market — Global Platform Configurations
+ * Auradime — Global Platform Configurations
  */
 const PlatformSettingsSchema = new mongoose.Schema(
   {

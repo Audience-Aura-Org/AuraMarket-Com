@@ -140,7 +140,7 @@ export default function LogisticsMessagesHubPage() {
             Open messaging
           </h2>
           <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-85 md:text-[12px]">
-            Use the same chat overlay as the rest of Aura Market. Your session
+            Use the same chat overlay as the rest of Auradime. Your session
             stays inside the logistics workspace so you can jump back to
             manifests or tracking anytime.
           </p>

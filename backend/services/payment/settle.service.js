@@ -1,6 +1,6 @@
 /**
  * services/payment/settle.service.js
- * Aura Market — Order Settlement Engine
+ * Auradime — Order Settlement Engine
  *
  * Single source of truth for all vendor payout/escrow/platform-fee accounting.
  * Replaces duplicate logic previously in:

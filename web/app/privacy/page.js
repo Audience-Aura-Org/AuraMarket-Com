@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
                 Privacy <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Protocol</span>
              </h1>
              <p className="text-[var(--text-secondary)] max-w-xl opacity-60">
-                Aura Market is committed to the definitive protection of your digital identity. Our privacy protocol ensures total encryption and user autonomy.
+                Auradime is committed to the definitive protection of your digital identity. Our privacy protocol ensures total encryption and user autonomy.
              </p>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function PrivacyPolicy() {
 
         <div className="mt-16 text-center">
            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
-              Aura Market Global Privacy Standard v1.0
+              Auradime Global Privacy Standard v1.0
            </p>
         </div>
 

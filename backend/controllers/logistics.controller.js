@@ -1,6 +1,6 @@
 /**
  * controllers/logistics.controller.js
- * Aura Market — Logistics Module Controller
+ * Auradime — Logistics Module Controller
  * Full email notification on shipment creation and every status change.
  */
 

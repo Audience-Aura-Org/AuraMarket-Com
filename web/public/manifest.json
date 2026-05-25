@@ -1,5 +1,5 @@
 {
-  "name": "Aura Market",
+  "name": "Auradime",
   "short_name": "Aura",
   "description": "Premium Multi-Vendor Platform with Liquid-Glass Aesthetics.",
   "start_url": "/",
@@ -27,14 +27,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Aura Market — Premium Shopping"
+      "label": "Auradime — Premium Shopping"
     },
     {
       "src": "/icon-512.png?v=8",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Aura Market — Mobile Experience"
+      "label": "Auradime — Mobile Experience"
     }
   ],
   "orientation": "portrait"

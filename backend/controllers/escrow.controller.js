@@ -1,6 +1,6 @@
 /**
  * controllers/escrow.controller.js
- * Aura Market — Escrow Service & Management Controller
+ * Auradime — Escrow Service & Management Controller
  *
  * Customer pays → funds HELD → Vendor ships → Delivery confirmed → funds RELEASED.
  */

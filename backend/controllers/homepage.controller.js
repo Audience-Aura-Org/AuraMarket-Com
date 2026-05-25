@@ -1,6 +1,6 @@
 /**
  * controllers/homepage.controller.js
- * Aura Market — Storefront & Homepage Management
+ * Auradime — Storefront & Homepage Management
  */
 
 const HomepageSection = require('../models/HomepageSection.model');

@@ -1,6 +1,6 @@
 /**
  * models/Escrow.model.js
- * Aura Market — Escrow Tracking Schema
+ * Auradime — Escrow Tracking Schema
  *
  * Provides a secure holding pen for transaction funds.
  * Funds sit securely in Escrow until the 'delivered' condition is explicitly met.

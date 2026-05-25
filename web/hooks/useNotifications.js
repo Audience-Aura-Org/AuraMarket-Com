@@ -2,7 +2,7 @@
 
 /**
  * hooks/useNotifications.js
- * Aura Market — Global Notification Badge Hook
+ * Auradime — Global Notification Badge Hook
  *
  * Returns:
  *  - unreadCount : total unread in-app notifications (orders, logistics, system...)

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Discovery Hub | Aura Market Pulse',
+  title: 'Discovery Hub | Auradime Pulse',
   description: 'Explore the latest trending products and curated collections from our top vendors.',
 };
 

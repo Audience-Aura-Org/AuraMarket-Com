@@ -1,6 +1,6 @@
 /**
  * services/cartStore.js
- * Aura Market — Centralized Cart State Manager
+ * Auradime — Centralized Cart State Manager
  *
  * A lightweight, event-driven cart store that acts as the single source
  * of truth for cart data across all components (TopNav, CartSidebar,

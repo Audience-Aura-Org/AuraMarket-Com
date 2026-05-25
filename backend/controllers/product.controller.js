@@ -1,6 +1,6 @@
 /**
  * controllers/product.controller.js
- * Aura Market — Product Management Controller
+ * Auradime — Product Management Controller
  *
  * Handles CRUD operations for products + public discovery/search endpoints.
  */

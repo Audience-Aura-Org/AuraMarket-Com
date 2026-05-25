@@ -1,6 +1,6 @@
 /**
  * models/Shipment.model.js
- * Aura Market — Shipment Tracking Schema
+ * Auradime — Shipment Tracking Schema
  *
  * Uniquely bridges a Vendor's `Order` with a `LogisticsCompany`.
  */

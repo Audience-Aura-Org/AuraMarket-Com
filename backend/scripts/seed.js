@@ -20,26 +20,26 @@ const seedDatabase = async () => {
     
     // Admins
     await User.create([
-      { name: 'Admin One', email: 'admin1@auramarket.com', password: 'password123', role: 'admin', is_active: true },
-      { name: 'Admin Two', email: 'admin2@auramarket.com', password: 'password123', role: 'admin', is_active: true }
+      { name: 'Admin One', email: 'admin1@auradime.com', password: 'password123', role: 'admin', is_active: true },
+      { name: 'Admin Two', email: 'admin2@auradime.com', password: 'password123', role: 'admin', is_active: true }
     ]);
 
     // Customers
     await User.create([
-      { name: 'Jane Customer', email: 'customer1@auramarket.com', password: 'password123', role: 'customer' },
-      { name: 'John Buyer', email: 'customer2@auramarket.com', password: 'password123', role: 'customer' }
+      { name: 'Jane Customer', email: 'customer1@auradime.com', password: 'password123', role: 'customer' },
+      { name: 'John Buyer', email: 'customer2@auradime.com', password: 'password123', role: 'customer' }
     ]);
 
     // Logistics
     await User.create([
-      { name: 'Logistics Alpha', email: 'logistics1@auramarket.com', password: 'password123', role: 'logistics', is_active: true },
-      { name: 'Logistics Beta', email: 'logistics2@auramarket.com', password: 'password123', role: 'logistics', is_active: true }
+      { name: 'Logistics Alpha', email: 'logistics1@auradime.com', password: 'password123', role: 'logistics', is_active: true },
+      { name: 'Logistics Beta', email: 'logistics2@auradime.com', password: 'password123', role: 'logistics', is_active: true }
     ]);
 
     // Vendors
     const vendorUsers = await User.create([
-      { name: 'Tech Store Owner', email: 'vendor1@auramarket.com', password: 'password123', role: 'vendor' },
-      { name: 'Fashion Boutique', email: 'vendor2@auramarket.com', password: 'password123', role: 'vendor' }
+      { name: 'Tech Store Owner', email: 'vendor1@auradime.com', password: 'password123', role: 'vendor' },
+      { name: 'Fashion Boutique', email: 'vendor2@auradime.com', password: 'password123', role: 'vendor' }
     ]);
     
     const vendorProfiles = await Vendor.create([

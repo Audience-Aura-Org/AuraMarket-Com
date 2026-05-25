@@ -1,6 +1,6 @@
 /**
  * routes/dispute.routes.js
- * Aura Market — Dispute Routes
+ * Auradime — Dispute Routes
  */
 
 const express = require('express');

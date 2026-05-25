@@ -1,6 +1,6 @@
 /**
  * controllers/order.controller.js
- * Aura Market — Order Controller
+ * Auradime — Order Controller
  *
  * Handling the creation of orders, reducing product stock natively, 
  * and routing payment status updates.

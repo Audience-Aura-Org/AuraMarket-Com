@@ -1,6 +1,6 @@
 /**
  * models/LogisticZone.model.js
- * Aura Market — Geographic Zone/Quartier Schema
+ * Auradime — Geographic Zone/Quartier Schema
  */
 
 const mongoose = require('mongoose');

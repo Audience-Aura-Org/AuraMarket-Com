@@ -55,7 +55,7 @@ export default function NetworkStatusPage() {
                     Network <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Status</span>
                  </h1>
                  <p className="text-[var(--text-secondary)] font-medium text-lg opacity-60 leading-relaxed max-w-lg">
-                    Real-time monitoring of the Aura Market global infrastructure. Visualizing live node connectivity and transactional health.
+                    Real-time monitoring of the Auradime global infrastructure. Visualizing live node connectivity and transactional health.
                  </p>
               </div>
 
@@ -139,7 +139,7 @@ export default function NetworkStatusPage() {
 
         <div className="text-center pb-20">
            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
-              Aura Market Global Infrastructure Node Status Protocol v4.2.0
+              Auradime Global Infrastructure Node Status Protocol v4.2.0
            </p>
         </div>
 

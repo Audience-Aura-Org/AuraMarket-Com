@@ -1,6 +1,6 @@
 /**
  * controllers/withdrawal.controller.js
- * Aura Market — Withdrawal Request System (Eversend Payout)
+ * Auradime — Withdrawal Request System (Eversend Payout)
  *
  * Flow:
  *   1. User/Vendor submits → status: "pending" (Immediate balance deduction & Pending Transaction)

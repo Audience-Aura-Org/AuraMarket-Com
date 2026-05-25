@@ -1,6 +1,6 @@
 /**
  * services/payment/gateway.registry.js
- * Aura Market — Payment Gateway Registry
+ * Auradime — Payment Gateway Registry
  *
  * Active gateways: Wallet, Eversend, MeSomb
  *

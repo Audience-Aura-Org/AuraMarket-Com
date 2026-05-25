@@ -97,7 +97,7 @@ export default function MarketRulesPage() {
               </p>
               <div className="pt-6">
                  <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
-                    Aura Market Governance Protocol v1.4.0
+                    Auradime Governance Protocol v1.4.0
                  </p>
               </div>
            </div>

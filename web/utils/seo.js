@@ -4,11 +4,11 @@
  */
 
 export const siteConfig = {
-  name: 'Aura Market',
+  name: 'Auradime',
   description: 'The premium digital marketplace for secondary goods and services.',
-  url: 'https://auramarket.com', // Update with production URL
+  url: 'https://auradime.com', // Update with production URL
   ogImage: '/og-image.png',
-  twitterHandle: '@AuraMarket',
+  twitterHandle: '@Auradime',
 };
 
 export function generateSEO({

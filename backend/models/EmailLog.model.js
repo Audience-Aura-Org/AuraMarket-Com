@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * EmailLog.model.js
- * Aura Market — Diagnostic Email Tracking
+ * Auradime — Diagnostic Email Tracking
  * 
  * Stores all outgoing SMTP transmissions for administrative audit and debugging.
  */

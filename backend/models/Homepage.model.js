@@ -1,6 +1,6 @@
 /**
  * models/Homepage.model.js
- * Aura Market — Homepage Configurations
+ * Auradime — Homepage Configurations
  *
  * Stores dynamic layouts directly controllable by Administrators.
  * e.g., Top hero banners, explicit ordering of "Featured Products".

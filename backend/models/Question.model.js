@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/Question.model.js
- * Aura Market — Product Q&A
+ * Auradime — Product Q&A
  */
 const QuestionSchema = new mongoose.Schema(
   {

@@ -1,6 +1,6 @@
 /**
  * services/logistics.service.js
- * Aura Market — Logistics Module Service
+ * Auradime — Logistics Module Service
  *
  * Handles tracking generation, firm filtering, and automated shipment splitting.
  */

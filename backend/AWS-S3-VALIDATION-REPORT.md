@@ -240,7 +240,7 @@ All files are:
 
 ### Branched Deployment
 - **Branch:** `aura-import-main`
-- **Remote:** GitHub (Audience-Aura-Org/AuraMarket-Com)
+- **Remote:** GitHub (Audience-Aura-Org/Auradime-Com)
 - **Status:** ✅ All commits successfully pushed
 
 ---

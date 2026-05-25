@@ -25,7 +25,7 @@ const drawFullBleedHeader = (doc, { invoiceNum, orderDate, paymentStatus }) => {
   doc.fillColor('#ffffff')
     .fontSize(26)
     .font('Helvetica-Bold')
-    .text('AuraMarket', MARGIN, 30, { width: 280 });
+    .text('Auradime', MARGIN, 30, { width: 280 });
 
   doc.fillColor(ACCENT)
     .fontSize(7.5)
@@ -35,7 +35,7 @@ const drawFullBleedHeader = (doc, { invoiceNum, orderDate, paymentStatus }) => {
   doc.fillColor('#9a9a9a')
     .fontSize(7)
     .font('Helvetica')
-    .text('auramarket.com  ·  Yaoundé, Cameroon', MARGIN, 76, { width: 280 });
+    .text('auradime.com  ·  Yaoundé, Cameroon', MARGIN, 76, { width: 280 });
 
   const rightX = PAGE_W - MARGIN - 200;
   doc.fillColor('#ffffff')
@@ -56,7 +56,7 @@ const drawContinuationHeader = (doc, invoiceNum) => {
   doc.fillColor('#ffffff')
     .fontSize(9)
     .font('Helvetica-Bold')
-    .text(`AuraMarket  ·  ${invoiceNum}  ·  continued`, MARGIN, 12, { width: CONTENT_W });
+    .text(`Auradime  ·  ${invoiceNum}  ·  continued`, MARGIN, 12, { width: CONTENT_W });
 };
 
 const drawFooter = (doc) => {
@@ -66,7 +66,7 @@ const drawFooter = (doc) => {
     .fontSize(7)
     .font('Helvetica')
     .text(
-      'Thank you for shopping with AuraMarket. This document is your official invoice — retain for your records.',
+      'Thank you for shopping with Auradime. This document is your official invoice — retain for your records.',
       MARGIN,
       y0 + 18,
       { width: CONTENT_W, align: 'center' }

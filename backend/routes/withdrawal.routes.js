@@ -1,6 +1,6 @@
 /**
  * routes/withdrawal.routes.js
- * Aura Market — Withdrawal Request Routes
+ * Auradime — Withdrawal Request Routes
  *
  * User/Vendor:
  *   POST  /api/withdrawals           → Submit withdrawal request

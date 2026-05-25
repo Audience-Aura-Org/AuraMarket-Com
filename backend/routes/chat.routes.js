@@ -1,6 +1,6 @@
 /**
  * routes/chat.routes.js
- * Aura Market — Chat HTTP Routes
+ * Auradime — Chat HTTP Routes
  */
 
 const express = require('express');

@@ -1,6 +1,6 @@
 /**
  * server.js
- * Aura Market — Main Express Server Entry Point
+ * Auradime — Main Express Server Entry Point
  *
  * Responsibilities:
  *  - Load and validate environment variables
@@ -128,7 +128,7 @@ app.use(setLocale);
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: '🚀 Aura Market API is running',
+    message: '🚀 Auradime API is running',
     environment: NODE_ENV,
     timestamp: new Date().toISOString(),
   });
@@ -136,7 +136,7 @@ app.get('/api/health', (req, res) => {
 
 // Root Welcome Route
 app.get('/', (req, res) => {
-  res.send('<h1>Welcome to the Aura Market API!</h1><p>Visit <a href="/api/health">/api/health</a> to check system status.</p>');
+  res.send('<h1>Welcome to the Auradime API!</h1><p>Visit <a href="/api/health">/api/health</a> to check system status.</p>');
 });
 
 // Serve static uploads
@@ -172,7 +172,7 @@ server.listen(PORT, '0.0.0.0', () => {
     }
   }
   
-  console.log(`\n🚀 Aura Market server running in ${NODE_ENV} mode on port ${PORT}`);
+  console.log(`\n🚀 Auradime server running in ${NODE_ENV} mode on port ${PORT}`);
   console.log(`   Access locally: http://localhost:${PORT}/api/health`);
   console.log(`   Access from other devices: http://${ipAddress}:${PORT}/api/health`);
   console.log(`   All interfaces: http://0.0.0.0:${PORT}/api/health\n`);

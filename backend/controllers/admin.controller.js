@@ -1,6 +1,6 @@
 /**
  * controllers/admin.controller.js
- * Aura Market — Supreme Administrative Commands
+ * Auradime — Supreme Administrative Commands
  * Exclusively executes tasks reserved for native platform managers.
  * Includes layout mapping, user bans, and broad dispute settlements natively.
  */

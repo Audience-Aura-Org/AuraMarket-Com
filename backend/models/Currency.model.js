@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/Currency.model.js
- * Aura Market — Currency Exchange Rates
+ * Auradime — Currency Exchange Rates
  */
 const CurrencySchema = new mongoose.Schema(
   {

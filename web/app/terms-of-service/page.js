@@ -22,7 +22,7 @@ export default function TermsOfService() {
               Agreement to Terms
             </h2>
             <p className="text-[var(--text-secondary)] leading-relaxed pl-11">
-              By accessing or utilizing the Aura Market platform, network, or associated mobile applications ("Service"), you agree to be bound unconditionally by these Terms of Service. If you disagree with any part of these terms, you must immediately terminate use of the platform and delete your account data.
+              By accessing or utilizing the Auradime platform, network, or associated mobile applications ("Service"), you agree to be bound unconditionally by these Terms of Service. If you disagree with any part of these terms, you must immediately terminate use of the platform and delete your account data.
             </p>
           </div>
 
@@ -32,7 +32,7 @@ export default function TermsOfService() {
               User Accounts
             </h2>
             <p className="text-[var(--text-secondary)] leading-relaxed pl-11">
-              You are responsible for safeguarding the password and cryptographic keys (if applicable) that you use to access Aura Market. You agree not to disclose your password to any third party. You must notify us immediately upon becoming aware of any breach of security or unauthorized use of your account.
+              You are responsible for safeguarding the password and cryptographic keys (if applicable) that you use to access Auradime. You agree not to disclose your password to any third party. You must notify us immediately upon becoming aware of any breach of security or unauthorized use of your account.
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export default function TermsOfService() {
               Marketplace Operations & Vendor Obligations
             </h2>
             <p className="text-[var(--text-secondary)] leading-relaxed pl-11">
-              Aura Market acts as an intermediary facilitating transactions between Buyers and Verified Artisans (Vendors). Vendors are solely responsible for the authenticity, legality, and accurate description of listed products. The platform holds a flat 5% commission on finalized sales, deducted upon order confirmation.
+              Auradime acts as an intermediary facilitating transactions between Buyers and Verified Artisans (Vendors). Vendors are solely responsible for the authenticity, legality, and accurate description of listed products. The platform holds a flat 5% commission on finalized sales, deducted upon order confirmation.
             </p>
           </div>
 
@@ -73,7 +73,7 @@ export default function TermsOfService() {
             </h2>
             <div className="pl-11 border-l-2 border-[var(--glass-border)] py-2 ml-4">
               <p className="text-[var(--text-secondary)] leading-relaxed bg-[var(--bg-secondary)]/50 p-4 rounded-xl border border-[var(--glass-border)]  text-[11px] lg:text-[12px]  font-semibold tracking-tight">
-                In no event shall Aura Market, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
+                In no event shall Auradime, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
               </p>
             </div>
           </div>

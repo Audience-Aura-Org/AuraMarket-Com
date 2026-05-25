@@ -50,7 +50,7 @@ function ReceiptModal({ tx, onClose }) {
           <div className="size-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
              <Wallet className="size-8" />
           </div>
-          <h3 className="text-xl  font-bold tracking-tight">Aura Market</h3>
+          <h3 className="text-xl  font-bold tracking-tight">Auradime</h3>
           <p className="text-[11px] lg:text-[12px]  font-semibold text-slate-400 tracking-tight">Official Transaction Receipt</p>
         </div>
 

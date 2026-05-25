@@ -1,6 +1,6 @@
 /**
  * sockets/chat.socket.js
- * Aura Market — Real-time WebSockets Manager (Socket.IO)
+ * Auradime — Real-time WebSockets Manager (Socket.IO)
  */
 
 const socketIo = require('socket.io');

@@ -1,6 +1,6 @@
 /**
  * models/Store.model.js
- * Aura Market — Store Details
+ * Auradime — Store Details
  *
  * Linked to the Vendor model. Defines the visual representation
  * of the vendor's enterprise (banner, logo, categories, followers).

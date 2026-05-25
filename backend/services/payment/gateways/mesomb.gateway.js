@@ -1,6 +1,6 @@
 /**
  * services/payment/gateways/mesomb.gateway.js
- * Aura Market — MeSomb Mobile Money Gateway
+ * Auradime — MeSomb Mobile Money Gateway
  *
  * Supports MTN MoMo & Orange Money in Cameroon (XAF).
  * Direct collection — no checkout redirect URL needed.
@@ -74,7 +74,7 @@ const mesombGateway = {
         service: detectedService,
         currency,
         trxID,
-        message: `Aura Market — ${orderIds.length > 0 ? `Order Payment (${orderIds.length} item${orderIds.length > 1 ? 's' : ''})` : 'Wallet Top-up'}`,
+        message: `Auradime — ${orderIds.length > 0 ? `Order Payment (${orderIds.length} item${orderIds.length > 1 ? 's' : ''})` : 'Wallet Top-up'}`,
       });
     } catch (err) {
       console.error('[mesomb.gateway] Collection error:', err.message);

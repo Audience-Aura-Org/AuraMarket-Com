@@ -1,7 +1,7 @@
 "use client";
 /**
  * components/wallet/WithdrawModal.js
- * Aura Market — Universal Withdrawal Request Modal
+ * Auradime — Universal Withdrawal Request Modal
  *
  * Used by both /wallet (users) and /vendor/wallet (vendors).
  * Submits to POST /api/withdrawals (new WithdrawalRequest system).

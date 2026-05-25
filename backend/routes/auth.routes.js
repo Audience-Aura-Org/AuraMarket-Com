@@ -1,6 +1,6 @@
 /**
  * routes/auth.routes.js
- * Aura Market — Authentication Routes
+ * Auradime — Authentication Routes
  *
  * Public:
  *   POST   /api/auth/register

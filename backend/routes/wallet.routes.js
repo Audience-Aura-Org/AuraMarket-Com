@@ -1,6 +1,6 @@
 /**
  * routes/wallet.routes.js
- * Aura Market — Wallet APIs
+ * Auradime — Wallet APIs
  *
  * User Routes (Private):
  *   GET    /api/wallet

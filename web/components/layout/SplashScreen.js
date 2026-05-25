@@ -31,7 +31,7 @@ export default function SplashScreen() {
           
           <img 
             src="/icon-512.png" 
-            alt="Aura Market" 
+            alt="Auradime" 
             className="size-full object-contain relative z-10"
           />
         </motion.div>

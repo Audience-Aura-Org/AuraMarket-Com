@@ -1,6 +1,6 @@
 /**
  * models/Vendor.model.js
- * Aura Market — Vendor Profile
+ * Auradime — Vendor Profile
  *
  * Links directly to the User model. Holds vendor-specific metrics
  * like verification status, overall rating, and subscription details.

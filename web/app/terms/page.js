@@ -53,7 +53,7 @@ export default function TermsAndConditions() {
                     <h3 className="text-lg  font-bold tracking-tight">Global Compliance</h3>
                  </div>
                  <p className="text-[var(--text-secondary)] leading-relaxed text-sm opacity-70">
-                    All vendors must adhere to local and international trade regulations. Aura Market provides the infrastructure for commerce but is never the merchant of record for third-party products.
+                    All vendors must adhere to local and international trade regulations. Auradime provides the infrastructure for commerce but is never the merchant of record for third-party products.
                  </p>
               </section>
 
@@ -76,7 +76,7 @@ export default function TermsAndConditions() {
 
         <div className="mt-16 text-center">
            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
-              Aura Market Global Terms of Service v1.0
+              Auradime Global Terms of Service v1.0
            </p>
         </div>
 

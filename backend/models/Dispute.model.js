@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/Dispute.model.js
- * Aura Market — Dispute Resolution System
+ * Auradime — Dispute Resolution System
  * 
  * Formal flow for buyers or vendors to contest an order held in escrow.
  */

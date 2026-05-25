@@ -1,6 +1,6 @@
 /**
  * routes/vendor.routes.js
- * Aura Market — Vendor Routes
+ * Auradime — Vendor Routes
  *
  * Public:
  *   GET    /api/vendors

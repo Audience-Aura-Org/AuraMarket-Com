@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/RecentlyViewed.model.js
- * Aura Market — Tracking user browsing history for recommendations
+ * Auradime — Tracking user browsing history for recommendations
  */
 const RecentlyViewedSchema = new mongoose.Schema(
   {

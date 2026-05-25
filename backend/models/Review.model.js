@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/Review.model.js
- * Aura Market — Product Reviews & Ratings
+ * Auradime — Product Reviews & Ratings
  */
 const ReviewSchema = new mongoose.Schema(
   {
