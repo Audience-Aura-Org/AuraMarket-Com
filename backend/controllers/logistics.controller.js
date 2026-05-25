@@ -118,11 +118,17 @@ const getFirmShipments = async (req, res, next) => {
 
     const populateOrder = {
       path: 'order_id',
-      select: 'total_amount products tracking_number createdAt order_status shipping_fee subtotal shipping_method delivery_description shipping_address payment_status payment_method',
-      populate: {
-        path: 'products.product_id',
-        select: 'name images',
-      },
+      select: 'total_amount products tracking_number createdAt order_status shipping_fee subtotal shipping_method delivery_description shipping_address payment_status payment_method customer_id',
+      populate: [
+        {
+          path: 'products.product_id',
+          select: 'name images',
+        },
+        {
+          path: 'customer_id',
+          select: 'name email phone',
+        },
+      ],
     };
 
     let shipments;

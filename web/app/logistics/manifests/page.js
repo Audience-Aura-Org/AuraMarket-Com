@@ -393,6 +393,8 @@ export default function LogisticsManifestsPage() {
                     <thead>
                       <tr className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-45 md:text-[11px]">
                         <th className="pb-3 pr-3">Tracking</th>
+                        <th className="pb-3 pr-3">Vendor</th>
+                        <th className="pb-3 pr-3">Receiver</th>
                         <th className="pb-3 pr-3">Items</th>
                         <th className="pb-3 pr-3">Route</th>
                         <th className="pb-3 pr-3">Date</th>
@@ -404,17 +406,27 @@ export default function LogisticsManifestsPage() {
                     <tbody className="divide-y divide-[var(--glass-border)]">
                       {shipments.map((s) => {
                         const order = s.order_id;
+                        const vendor = s.vendor_id;
+                        const customer = order?.customer_id;
                         const dest  = destinationLine(s);
                         const placed = order?.createdAt
                           ? new Date(order.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
                           : "—";
                         const fee = typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—";
                         const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
+                        const vendorName = typeof vendor === "object" ? vendor.store_name || vendor.name : "—";
+                        const receiverName = customer?.name || s.proof_of_delivery?.receiver_name || "—";
                         return (
                           <tr key={s._id} className="group hover:bg-white/[0.02]">
                             <td className="py-3 pr-3 align-top">
                               <p className="font-mono text-[11px] font-semibold tracking-tight">{s.tracking_code || "—"}</p>
                               <p className="text-[10px] font-medium opacity-40">#{s._id?.slice(-8).toUpperCase()}</p>
+                            </td>
+                            <td className="py-3 pr-3 align-top">
+                              <p className="truncate text-[11px] font-semibold text-[var(--text-primary)]">{vendorName}</p>
+                            </td>
+                            <td className="py-3 pr-3 align-top">
+                              <p className="truncate text-[11px] text-[var(--text-primary)]">{receiverName}</p>
                             </td>
                             <td className="max-w-[220px] py-3 pr-3 align-top">
                               <p className="line-clamp-2 text-[11px] leading-snug text-[var(--text-primary)]">{summarizeLineItems(order)}</p>
@@ -459,8 +471,12 @@ export default function LogisticsManifestsPage() {
                 <div className="space-y-3 md:hidden">
                   {shipments.map((s) => {
                     const order = s.order_id;
+                    const vendor = s.vendor_id;
+                    const customer = order?.customer_id;
                     const dest  = destinationLine(s);
                     const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
+                    const vendorName = typeof vendor === "object" ? vendor.store_name || vendor.name : "—";
+                    const receiverName = customer?.name || s.proof_of_delivery?.receiver_name || "—";
                     return (
                       <div
                         key={s._id}
@@ -478,6 +494,11 @@ export default function LogisticsManifestsPage() {
                           >
                             Open
                           </button>
+                        </div>
+                        <div className="border-t border-[var(--glass-border)] pt-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Vendor & Receiver</p>
+                          <p className="mt-1 text-[11px] font-semibold text-[var(--text-primary)]">{vendorName}</p>
+                          <p className="text-[11px] text-[var(--text-primary)] opacity-75">{receiverName}</p>
                         </div>
                         <div className="border-t border-[var(--glass-border)] pt-3">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Items</p>
