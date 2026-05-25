@@ -119,16 +119,16 @@ const getFirmShipments = async (req, res, next) => {
     const populateOrder = {
       path: 'order_id',
       select: 'total_amount products tracking_number createdAt order_status shipping_fee subtotal shipping_method delivery_description shipping_address payment_status payment_method customer_id',
-      populate: [
-        {
-          path: 'products.product_id',
-          select: 'name images',
-        },
-        {
-          path: 'customer_id',
-          select: 'name email phone',
-        },
-      ],
+    };
+
+    const populateOrderProducts = {
+      path: 'order_id.products.product_id',
+      select: 'name images',
+    };
+
+    const populateOrderCustomer = {
+      path: 'order_id.customer_id',
+      select: 'name email phone',
     };
 
     let shipments;
@@ -157,6 +157,8 @@ const getFirmShipments = async (req, res, next) => {
       } else {
         const unordered = await Shipment.find({ _id: { $in: ids } })
           .populate(populateOrder)
+          .populate(populateOrderProducts)
+          .populate(populateOrderCustomer)
           .populate('vendor_id', 'store_name phone branding.logo');
         const map = new Map(unordered.map((s) => [s._id.toString(), s]));
         shipments = ids.map((id) => map.get(id.toString())).filter(Boolean);
@@ -164,6 +166,8 @@ const getFirmShipments = async (req, res, next) => {
     } else {
       shipments = await Shipment.find(query)
         .populate(populateOrder)
+        .populate(populateOrderProducts)
+        .populate(populateOrderCustomer)
         .populate('vendor_id', 'store_name phone branding.logo')
         .sort('-createdAt')
         .skip(skip)
@@ -197,6 +201,7 @@ const getFirmShipments = async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.error('❌ getFirmShipments error:', error.message, error.stack);
     next(error);
   }
 };
