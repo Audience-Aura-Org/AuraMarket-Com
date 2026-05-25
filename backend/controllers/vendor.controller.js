@@ -281,7 +281,7 @@ const getPublicStores = async (req, res, next) => {
     const stores = await Vendor.find(query)
       .select('store_name rating verified description user_id follower_count createdAt')
       .populate('store', 'logo banner categories') // only fetch visible assets
-      .populate('user_id', 'branding avatar') // fetch user-level branding for fallbacks
+      .populate('user_id', 'branding avatar is_online last_seen') // fetch user-level branding for fallbacks
       .skip(startIndex)
       .limit(limit)
       .sort(sort)
@@ -309,7 +309,7 @@ const getStore = async (req, res, next) => {
       .populate({
         path: 'vendor_id',
         select: 'store_name description rating verified user_id follower_count',
-        populate: { path: 'user_id', select: 'branding avatar' }
+        populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
       });
 
     if (!store) {
@@ -487,7 +487,7 @@ const getFollowing = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified user_id average_response_time',
         populate: [
-          { path: 'user_id', select: 'name avatar role branding' }
+          { path: 'user_id', select: 'name avatar role branding is_online last_seen' }
         ]
       })
       .sort('-createdAt');

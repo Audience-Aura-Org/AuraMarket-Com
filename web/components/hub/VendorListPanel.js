@@ -158,10 +158,36 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
   );
 }
 
+function formatLastSeen(lastSeenVal) {
+  if (!lastSeenVal) return 'recently';
+  const date = new Date(lastSeenVal);
+  if (isNaN(date.getTime())) return 'recently';
+  
+  const now = new Date();
+  const diffMs = now - date;
+  
+  if (diffMs < 0) return 'just now';
+  
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
 function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus }) {
+  const { onlineUsersMap } = useChat();
   const logoUrl = vendor.user_id?.branding?.logo || vendor.user_id?.avatar || vendor.logo?.url;
-  const isOnline = vendor.isOnline || Math.random() > 0.3; // Simulated or real
-  const lastSeen = vendor.lastActive ? new Date(vendor.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2m ago';
+  
+  const liveOnline = vendor.user_id?._id ? onlineUsersMap[vendor.user_id._id] : undefined;
+  const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (vendor.user_id?.is_online ?? false);
+  const lastSeen = formatLastSeen(vendor.user_id?.last_seen);
   const snippet = vendor.latest_product?.name || vendor.description || "Browse our latest catalog";
 
   return (
