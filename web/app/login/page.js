@@ -22,7 +22,7 @@ export default function LoginPage() {
             className="h-10 w-auto object-contain group-hover:scale-110 transition-transform"
           />
           <h1 className="text-xl  font-bold tracking-tighter text-[var(--text-primary)]">
-            Aura<span className="text-[var(--accent)]">Market</span>
+            Aura<span className="text-[var(--accent)]">dime</span>
           </h1>
         </Link>
       </header>

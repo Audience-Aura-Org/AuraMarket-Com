@@ -588,7 +588,7 @@ export default function ProductDetailsPage() {
               <div className="flex flex-col gap-4 pt-2">
                 {[
                   { label: 'Category', value: product.category || 'General' },
-                  { label: 'Brand', value: product.brand || vendor?.store_name || 'Auradime' },
+                  { label: 'Brand', value: product.brand || vendor?.store_name || 'Aura Dime' },
                   { label: 'Condition', value: product.condition || 'Brand new' },
                   { label: 'In stock', value: inStock ? `${product.stock} units available` : 'Out of stock' },
                   { label: 'SKU', value: product._id?.slice(-10).toUpperCase() },

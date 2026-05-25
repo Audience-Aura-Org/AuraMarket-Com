@@ -25,7 +25,7 @@ const drawFullBleedHeader = (doc, { invoiceNum, orderDate, paymentStatus }) => {
   doc.fillColor('#ffffff')
     .fontSize(26)
     .font('Helvetica-Bold')
-    .text('Auradime', MARGIN, 30, { width: 280 });
+    .text('Aura Dime', MARGIN, 30, { width: 280 });
 
   doc.fillColor(ACCENT)
     .fontSize(7.5)

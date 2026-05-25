@@ -61,7 +61,7 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
 
   try {
     const info = await transporter.sendMail({
-      from:    `"${EMAIL_FROM_NAME || 'Auradime'}" <${EMAIL_USER}>`,
+      from:    `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>`,
       to:      Array.isArray(to) ? to.join(', ') : to,
       subject,
       html,

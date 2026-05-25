@@ -54,7 +54,7 @@ export default function GeneralContactPage() {
             <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.4em]">Global Communications</span>
           </div>
           <h1 className="text-6xl lg:text-8xl  font-bold text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
-            Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Auradime</span>
+            Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Aura Dime</span>
           </h1>
           <p className="text-[var(--text-secondary)] max-w-2xl mx-auto font-medium text-lg lg:text-xl opacity-60 leading-relaxed">
             Synchronize with our support team for definitive resolution of platform inquiries or support requests.

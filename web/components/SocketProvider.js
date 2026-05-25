@@ -251,7 +251,7 @@ export default function SocketProvider({ children }) {
                   <Icon className="size-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-white/70 mb-0.5 leading-none">Auradime</p>
+                  <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-white/70 mb-0.5 leading-none">Aura Dime</p>
                   <p className="text-sm font-bold truncate leading-tight">{notifToast.title}</p>
                   <p className="text-xs text-white/80 line-clamp-2 mt-0.5 leading-snug">{notifToast.message}</p>
                 </div>

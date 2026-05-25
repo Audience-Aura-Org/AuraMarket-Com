@@ -46,12 +46,12 @@ export default function Footer() {
               <div className="size-7 rounded-lg bg-black p-1.5 ring-1 ring-white/10">
                 <img
                   src="/icon-512.png"
-                  alt="Auradime"
+                  alt="Aura Dime"
                   className="h-full w-full object-contain"
                 />
               </div>
               <span className="text-[13px] font-bold tracking-tight text-[var(--text-primary)]">
-                Aura<span className="text-[var(--accent)]">dime</span>
+                Aura<span className="text-[var(--accent)]">Dime</span>
               </span>
             </button>
 

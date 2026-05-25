@@ -1,6 +1,6 @@
 /**
  * routes/wallet.routes.js
- * Auradime — Wallet APIs
+ * Aura Dime — Wallet APIs
  *
  * User Routes (Private):
  *   GET    /api/wallet

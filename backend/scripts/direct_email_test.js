@@ -64,7 +64,7 @@ async function testEmail() {
     console.log(`   Subject: ${emailData.subject}`);
     
     const info = await transporter.sendMail({
-      from: `"${EMAIL_FROM_NAME || 'Auradime'}" <${EMAIL_USER}>`,
+      from: `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>`,
       to: TEST_EMAIL,
       subject: emailData.subject,
       text: emailData.text,

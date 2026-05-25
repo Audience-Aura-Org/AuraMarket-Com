@@ -136,7 +136,7 @@ app.get('/api/health', (req, res) => {
 
 // Root Welcome Route
 app.get('/', (req, res) => {
-  res.send('<h1>Welcome to the Auradime API!</h1><p>Visit <a href="/api/health">/api/health</a> to check system status.</p>');
+  res.send('<h1>Welcome to the Aura Dime API!</h1><p>Visit <a href="/api/health">/api/health</a> to check system status.</p>');
 });
 
 // Serve static uploads

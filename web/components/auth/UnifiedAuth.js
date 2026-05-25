@@ -198,7 +198,7 @@ export default function UnifiedAuth() {
               </form>
 
               <div className="pt-4 border-t border-[var(--glass-border)] text-center">
-                <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mb-3">New to Auradime?</p>
+                <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mb-3">New to Aura Dime?</p>
                 <button
                   onClick={() => {
                     setIsNewUser(true);

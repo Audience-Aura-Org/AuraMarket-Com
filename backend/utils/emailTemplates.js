@@ -131,7 +131,7 @@ const wrap = (title, heading, body) => `
                           <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="32" height="32" />
                         </td>
                         <td style="vertical-align:middle;padding-left:14px;">
-                          <p class="header-title">Auradime</p>
+                          <p class="header-title">Aura Dime</p>
                           <p class="header-sub">Commerce &bull; logistics &bull; fulfilment</p>
                         </td>
                       </tr>
@@ -150,7 +150,7 @@ const wrap = (title, heading, body) => `
           </tr>
           <tr>
             <td class="footer-td">
-              <p class="footer-brand">Auradime</p>
+              <p class="footer-brand">Aura Dime</p>
               <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
               <p>&copy; ${new Date().getFullYear()} Auradime &bull; Audience Aura Org</p>
             </td>

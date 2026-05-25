@@ -112,7 +112,7 @@ export default function PWAInstallBanner() {
         {/* Text */}
         <div className="flex-1 min-w-0">
           <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-tight leading-none mb-0.5">
-            Install Auradime
+            Install Aura Dime
           </p>
           <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-50 leading-none">
             {isIOS ? 'Add to Home Screen for native experience' : 'Fast. Offline. Native app experience.'}
