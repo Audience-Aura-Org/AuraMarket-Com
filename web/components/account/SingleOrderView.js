@@ -254,6 +254,17 @@ export default function SingleOrderView({ orderId, onBack }) {
   const logisticsGraceActive = isLogisticsOrder && hoursSinceAssignment < 6 && !carrierLaunched;
   const isProtectedByGracePeriod = logisticsGraceActive && order.order_status === 'processing';
   const customer = order.customer_id;
+  const escrowStatus = escrow?.status || null;
+  const isEscrowOrder = !!(
+    escrow ||
+    order.escrow_enabled ||
+    order.payment_method === 'escrow'
+  );
+  const escrowCanRelease = isEscrowOrder && (!escrowStatus || escrowStatus === 'held' || escrowStatus === 'pending_release');
+  const autoReleaseAt = escrow?.auto_release_at ? new Date(escrow.auto_release_at) : null;
+  const autoReleaseLabel = autoReleaseAt && Number.isFinite(autoReleaseAt.getTime())
+    ? autoReleaseAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
 
   const STEPS = [
     { label: 'Ordered', icon: ShoppingBag },
@@ -427,19 +438,30 @@ export default function SingleOrderView({ orderId, onBack }) {
                 <Truck className="size-4" /> {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
               </button>
             )}
-            {/* CUSTOMER ACTION: Confirm Receipt (Escrow Release) */}
-            {!isVendor && order.order_status !== 'completed' && (order.order_status === 'shipped' || order.order_status === 'delivered') && (
+            {/* CUSTOMER / ADMIN ACTION: release held escrow, even for older orders already marked finalized. */}
+            {!isVendor && escrowCanRelease && (
               <button
                 type="button"
                 onClick={handleConfirmDelivery}
                 className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-emerald-500/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
               >
-                <CheckCircle2 className="size-4" /> Confirm receipt
+                <CheckCircle2 className="size-4" /> Release escrow
+              </button>
+            )}
+
+            {/* VENDOR ACTION: confirm delivery/request customer escrow release, regardless of finalized order status. */}
+            {isVendor && escrowCanRelease && (
+              <button
+                type="button"
+                onClick={handleVendorConfirmDelivery}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-emerald-500/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+              >
+                <ShieldCheck className="size-4" /> Request escrow release
               </button>
             )}
 
             {/* VENDOR ACTION: Mark Delivered (For self-managed/non-logistics shipments) */}
-            {isVendor && order.order_status === 'shipped' && !isLogisticsOrder && (
+            {isVendor && !escrowCanRelease && order.order_status === 'shipped' && !isLogisticsOrder && (
               <button
                 type="button"
                 onClick={handleVendorConfirmDelivery}
@@ -720,8 +742,14 @@ export default function SingleOrderView({ orderId, onBack }) {
             <div className="mt-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                 <ShieldCheck className="size-3.5" />
-                Escrow tracked
+                {escrowStatus === 'released' ? 'Escrow released' : 'Escrow tracked'}
               </div>
+              {escrowCanRelease && (
+                <p className="mt-2 text-[10px] font-medium leading-relaxed text-[var(--text-secondary)] opacity-70">
+                  Auto-release runs 6 hours after delivery if no dispute is opened
+                  {autoReleaseLabel ? `: ${autoReleaseLabel}` : '.'}
+                </p>
+              )}
               <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-secondary)]">
                 <div className="h-full w-full rounded-full bg-emerald-500" />
               </div>
@@ -774,7 +802,7 @@ export default function SingleOrderView({ orderId, onBack }) {
 
       <AnimatePresence>
         {disputeModal && (
-          <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4 md:p-6">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -783,11 +811,11 @@ export default function SingleOrderView({ orderId, onBack }) {
               className="absolute inset-0 bg-black/70 backdrop-blur-md"
             />
             <motion.div
-              initial={{ y: 24, opacity: 0 }}
+              initial={{ y: 14, scale: 0.98, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 24, opacity: 0 }}
+              exit={{ y: 14, scale: 0.98, opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-[var(--glass-border)] border-b-0 bg-[var(--bg-primary)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl sm:border-b sm:p-8"
+              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-8"
             >
               <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Open dispute</h2>
               <p className="mt-1 text-[12px] text-[var(--text-secondary)]">Describe the issue so our team can review.</p>
@@ -800,8 +828,8 @@ export default function SingleOrderView({ orderId, onBack }) {
                     className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] font-medium outline-none focus:border-[var(--accent)]"
                   >
                     <option value="item_not_received">Asset not manifested</option>
-                    <option value="different_from_description">Registry mismatch</option>
-                    <option value="quality_issues">Structural defects</option>
+                    <option value="item_not_as_described">Registry mismatch</option>
+                    <option value="faulty_item">Structural defects</option>
                     <option value="other">Protocol violation</option>
                   </select>
                 </div>

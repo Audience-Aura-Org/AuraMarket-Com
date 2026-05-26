@@ -60,6 +60,9 @@ const mapChatSockets = require('./sockets/chat.socket');
 const io = mapChatSockets(server);
 app.set('io', io);
 
+const { startEscrowAutoReleaseWorker } = require('./services/escrowAutoRelease.service');
+startEscrowAutoReleaseWorker(app);
+
 // ─────────────────────────────────────────────
 // 7. Express Middleware
 // ─────────────────────────────────────────────
@@ -192,4 +195,3 @@ process.on('unhandledRejection', (err) => {
 });
 
 module.exports = app;
- 

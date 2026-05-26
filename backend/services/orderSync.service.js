@@ -102,7 +102,7 @@ async function getOrderFulfillmentSnapshot(orderId, session = null) {
   let orderQ = Order.findById(orderId);
   let shipQ = Shipment.find({ order_id: orderId }).populate('logistics_id', 'company_name contact_phone');
   let escrowQ = Escrow.findOne({ order_id: orderId }).select(
-    'status vendor_confirmed customer_confirmed logistics_settled release_date'
+    'status vendor_confirmed customer_confirmed logistics_settled delivered_at auto_release_at release_date'
   );
   if (session) {
     orderQ = orderQ.session(session);

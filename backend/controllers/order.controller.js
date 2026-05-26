@@ -32,6 +32,7 @@ const {
   notifyOrderStatusChange,
 } = require('../services/orderSync.service');
 const templates               = require('../utils/emailTemplates');
+const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -469,7 +470,7 @@ const getOrderById = async (req, res, next) => {
         }
       });
 
-    const escrow = await Escrow.findOne({ order_id: order._id }).select('status vendor_confirmed customer_confirmed');
+    const escrow = await Escrow.findOne({ order_id: order._id }).select('status vendor_confirmed customer_confirmed delivered_at auto_release_at release_date');
 
     res.status(200).json({ success: true, data: { order, shipments, escrow } });
   } catch (error) { next(error); }
@@ -553,6 +554,16 @@ const updateOrderStatus = async (req, res, next) => {
 
     if (order_status) order.order_status = order_status;
     if (tracking_number) order.tracking_number = tracking_number;
+
+    if (order_status === 'delivered') {
+      const escrow = await Escrow.findOne({ order_id: order._id, status: { $in: ['held', 'pending_release'] } }).session(session);
+      if (escrow) {
+        escrow.vendor_confirmed = true;
+        markEscrowDelivered(escrow);
+        await escrow.save({ session });
+      }
+    }
+
     await order.save({ session });
 
     // ── SYNC: Align shipment tickets with order status everywhere ──

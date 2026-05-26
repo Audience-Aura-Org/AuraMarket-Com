@@ -20,6 +20,7 @@ const { sendEmail }        = require('../utils/emailService');
 const logisticsService     = require('../services/logistics.service');
 const templates            = require('../utils/emailTemplates');
 const { calculatePlatformFees } = require('../utils/platformFees');
+const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -365,6 +366,7 @@ const modifyShipmentStatus = async (req, res, next) => {
           // ── ESCROW + LOGISTICS: Logistics fee settled above. Vendor funds remain held.
           // Order stays 'delivered'. Customer must confirm to release vendor escrow.
           escrow.vendor_confirmed = true; // logistics delivery acts as vendor confirmation
+          markEscrowDelivered(escrow, shipment.proof_of_delivery?.timestamp || new Date());
           await escrow.save({ session });
 
           console.log(`🔒 Escrow order #${order._id} delivered by logistics. Vendor funds held. Awaiting customer confirmation.`);
