@@ -8,7 +8,7 @@ import {
   DollarSign, ArrowUpRight, ArrowDownLeft, RefreshCw,
   Search, Filter, Database, Loader2, Zap, CreditCard,
   AlertCircle, Clock, XCircle, CheckCircle2,
-  Globe
+  Globe, Percent, Save, Settings2
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -25,6 +25,13 @@ const STAT_COLOR_STYLES = {
   rose: 'text-rose-500 bg-rose-500/5'
 };
 
+const DEFAULT_SETTINGS = {
+  commission_type: 'percentage',
+  commission_value: 0,
+  escrow_fee_type: 'percentage',
+  escrow_fee_value: 0
+};
+
 export default function AdminEscrow() {
   const [mounted, setMounted] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -32,6 +39,8 @@ export default function AdminEscrow() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,9 +54,10 @@ export default function AdminEscrow() {
   const fetchEscrow = async () => {
     setLoading(true);
     try {
-      const [escrowRes, analyticsRes] = await Promise.all([
+      const [escrowRes, analyticsRes, settingsRes] = await Promise.all([
         api.get('/admin/escrow/logs'),
-        api.get('/admin/analytics')
+        api.get('/admin/analytics'),
+        api.get('/admin/settings')
       ]);
 
       if (escrowRes.data?.success) {
@@ -57,11 +67,58 @@ export default function AdminEscrow() {
       if (analyticsRes.data?.success) {
         setAnalytics(analyticsRes.data.data.stats || null);
       }
+      if (settingsRes.data?.success) {
+        const nextSettings = settingsRes.data.data.settings || {};
+        setSettings({
+          ...DEFAULT_SETTINGS,
+          commission_type: nextSettings.commission_type || 'percentage',
+          commission_value: nextSettings.commission_value ?? nextSettings.commission_rate ?? 0,
+          escrow_fee_type: nextSettings.escrow_fee_type || 'percentage',
+          escrow_fee_value: nextSettings.escrow_fee_value ?? 0
+        });
+      }
     } catch (err) {
       console.error('Failed to sync vault data:', err);
       toast.error('Failed to sync with secure vault');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const formatFee = (type, value) => {
+    const amount = Number(value || 0);
+    return type === 'amount' ? `${amount.toLocaleString()} XAF` : `${amount}%`;
+  };
+
+  const handleSettingsChange = (field, value) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const payload = {
+        commission_type: settings.commission_type,
+        commission_value: Number(settings.commission_value || 0),
+        escrow_fee_type: settings.escrow_fee_type,
+        escrow_fee_value: Number(settings.escrow_fee_value || 0)
+      };
+      const res = await api.patch('/admin/settings', payload);
+      if (res.data?.success) {
+        toast.success('Commission settings updated');
+        const updated = res.data.data.settings || {};
+        setSettings({
+          ...DEFAULT_SETTINGS,
+          commission_type: updated.commission_type || payload.commission_type,
+          commission_value: updated.commission_value ?? updated.commission_rate ?? payload.commission_value,
+          escrow_fee_type: updated.escrow_fee_type || payload.escrow_fee_type,
+          escrow_fee_value: updated.escrow_fee_value ?? payload.escrow_fee_value
+        });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update commission settings');
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -190,6 +247,124 @@ export default function AdminEscrow() {
             ))}
          </div>
 
+         <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-5 md:gap-6">
+            <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">
+               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                     <div className="size-11 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20">
+                        <Settings2 className="size-5" />
+                     </div>
+                     <div>
+                        <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Commission Controls</h3>
+                        <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Admin fee policy</p>
+                     </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <span className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)]">
+                        Admin {formatFee(settings.commission_type, settings.commission_value)}
+                     </span>
+                     <span className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)]">
+                        Escrow {formatFee(settings.escrow_fee_type, settings.escrow_fee_value)}
+                     </span>
+                  </div>
+               </div>
+
+               <div className="grid md:grid-cols-2 gap-4">
+                  {[
+                    {
+                      title: 'Admin Commission',
+                      desc: 'Deducted from vendor payout on every completed sale.',
+                      typeField: 'commission_type',
+                      valueField: 'commission_value',
+                      icon: Percent
+                    },
+                    {
+                      title: 'Escrow Commission',
+                      desc: 'Additional fee applied only when escrow protection is used.',
+                      typeField: 'escrow_fee_type',
+                      valueField: 'escrow_fee_value',
+                      icon: Lock
+                    }
+                  ].map(item => (
+                    <div key={item.valueField} className="rounded-2xl bg-[var(--bg-primary)]/45 border border-[var(--glass-border)] p-4 space-y-4">
+                       <div className="flex items-start gap-3">
+                          <div className="size-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
+                             <item.icon className="size-4" />
+                          </div>
+                          <div>
+                             <p className="text-xs font-bold text-[var(--text-primary)]">{item.title}</p>
+                             <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed">{item.desc}</p>
+                          </div>
+                       </div>
+                       <div className="grid grid-cols-[1fr_120px] gap-3">
+                          <select
+                            value={settings[item.typeField]}
+                            onChange={e => handleSettingsChange(item.typeField, e.target.value)}
+                            className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                          >
+                             <option value="percentage">Percentage</option>
+                             <option value="amount">Fixed XAF</option>
+                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={settings[item.valueField]}
+                            onChange={e => handleSettingsChange(item.valueField, e.target.value)}
+                            className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                          />
+                       </div>
+                    </div>
+                  ))}
+               </div>
+
+               <div className="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed max-w-2xl">
+                    Fees are calculated against the vendor base amount. When a logistics partner handles delivery, shipping is excluded from the vendor base and paid to logistics after delivery.
+                  </p>
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={savingSettings}
+                    className="h-12 px-5 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 disabled:opacity-50 active:scale-95 transition-all"
+                  >
+                    {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                    Save Fees
+                  </button>
+               </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">
+               <div className="flex items-center gap-3 mb-6">
+                  <div className="size-11 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
+                     <ShieldCheck className="size-5" />
+                  </div>
+                  <div>
+                     <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">How Escrow Works</h3>
+                     <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Settlement lifecycle</p>
+                  </div>
+               </div>
+               <div className="space-y-3">
+                  {[
+                    ['1', 'Buyer pays', 'The full order total is collected and the vendor base amount is locked in escrow.'],
+                    ['2', 'Vendor fulfills', 'The vendor ships the order, or logistics confirms delivery for logistics-managed orders.'],
+                    ['3', 'Buyer confirms', 'The buyer releases escrow after delivery, or an admin can override from this vault.'],
+                    ['4', 'Fees settle', 'Admin commission plus escrow commission are deducted, then the vendor payout is credited.'],
+                    ['5', 'Disputes pause release', 'A denied release opens a dispute so admins can refund or force release after review.']
+                  ].map(([step, title, desc]) => (
+                    <div key={step} className="flex gap-3 p-3 rounded-2xl bg-[var(--bg-primary)]/35 border border-[var(--glass-border)]">
+                       <div className="size-7 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-[10px] font-bold shrink-0">
+                         {step}
+                       </div>
+                       <div>
+                         <p className="text-[11px] font-bold text-[var(--text-primary)]">{title}</p>
+                         <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed">{desc}</p>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+            </div>
+         </div>
+
          {/* Escrow Ledger */}
          <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
             <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
@@ -244,7 +419,7 @@ export default function AdminEscrow() {
                                  <div className="flex items-center gap-4">
                                     <div className="flex-1 min-w-0">
                                        <p className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate">
-                                          {l.buyer_id?.name || 'Customer Node'} → {l.vendor_id?.store_name || 'Vendor Hub'}
+                                          {l.buyer_id?.name || 'Customer Node'} {'->'} {l.vendor_id?.store_name || 'Vendor Hub'}
                                        </p>
                                        <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest mt-0.5">Network Transaction Protocol</p>
                                     </div>

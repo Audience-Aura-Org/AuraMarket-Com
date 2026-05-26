@@ -32,7 +32,7 @@ const ADMIN_NAV = [
   { icon: 'forum',          label: 'System Comms',     href: '/admin/messages' },
   { icon: 'how_to_reg',     label: 'Vendor KYC',       href: '/admin/approvals' },
   { icon: 'gavel',          label: 'Disputes',         href: '/admin/disputes' },
-  { icon: 'security',       label: 'Escrow Vault',     href: '/admin/escrow' },
+  { icon: 'security',       label: 'Escrow & Fees',    href: '/admin/escrow' },
   { icon: 'account_balance_wallet',label: 'Withdrawals',    href: '/admin/withdrawals' },
   { icon: 'receipt_long',   label: 'Transactions',    href: '/admin/transactions' },
   { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
