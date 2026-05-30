@@ -6,7 +6,7 @@
  *
  * Returns:
  *  - unreadCount : total unread in-app notifications (orders, logistics, system...)
- *  - unreadMessages : unread chat messages count
+ *  - unreadMessages : count of chat threads that contain unread messages
  *  - markAllRead : function to clear badge
  *  - refresh : manually re-fetch counts
  *
@@ -18,12 +18,13 @@ import api from '@/services/api';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
-const getUnreadMessageTotal = (chats = []) => {
-  return chats.reduce((total, chat) => {
-    if (typeof chat?.unread_count === 'number') return total + chat.unread_count;
-    return total + (chat?.read_status === false ? 1 : 0);
+const getUnreadChatThreadTotal = (chats = []) =>
+  chats.reduce((total, chat) => {
+    const hasUnreadMessages =
+      Number(chat?.unread_count || 0) > 0 ||
+      (chat?.read_status === false && Boolean(chat?.snippet));
+    return total + (hasUnreadMessages ? 1 : 0);
   }, 0);
-};
 
 export function useNotifications() {
   const { user } = useAuthStore();
@@ -49,7 +50,7 @@ export function useNotifications() {
       const chatRes = await api.get('/chat');
       if (chatRes.data?.success) {
         const chats = chatRes.data.data?.activeChats || [];
-        setUnreadMessages(getUnreadMessageTotal(chats));
+        setUnreadMessages(getUnreadChatThreadTotal(chats));
       }
     } catch { /* silent */ }
   }, [user?._id]);
