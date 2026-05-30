@@ -104,7 +104,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     if (!activePartnerId || loadingMore || loading) return;
     scrollToBottom(mobileLayout ? 'auto' : 'smooth');
-  }, [activePartnerId, latestMessageKey, loading, loadingMore, mobileLayout]);
+  }, [activePartnerId, latestMessageKey, partnerTyping, loading, loadingMore, mobileLayout]);
 
   useEffect(() => {
     if (!activePartnerId) return;
@@ -610,29 +610,34 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
     return null;
   }, [activePartnerId, messages]);
-  const partnerRecentlyActive = lastPartnerMessageAt
-    ? Date.now() - new Date(lastPartnerMessageAt).getTime() < 2 * 60 * 1000
-    : false;
   const socketConnected = socketService.isConnected();
   const formatLastSeen = (value) => {
     if (!value) return 'offline';
-    const last = new Date(value).getTime();
-    if (!Number.isFinite(last)) return 'offline';
-    const diff = Date.now() - last;
-    if (diff < 60 * 1000) return 'last seen just now';
-    if (diff < 60 * 60 * 1000) return `last seen ${Math.max(1, Math.floor(diff / 60000))}m ago`;
-    if (diff < 24 * 60 * 60 * 1000) return `last seen ${Math.floor(diff / 3600000)}h ago`;
-    return `last seen ${new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return 'offline';
+    return `last seen ${date.toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
   };
   const partnerIdStr = activePartnerId?.toString();
   const liveOnline = partnerIdStr ? onlineUsersMap[partnerIdStr] : undefined;
   const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (partnerInfo?.is_online === true);
 
   const partnerStatus = (() => {
-    if (partnerTyping || isOnline || partnerRecentlyActive) {
+    if (partnerTyping) {
+      return { label: 'typing...', className: 'text-emerald-400' };
+    }
+    if (isOnline) {
       return { label: 'online', className: 'text-emerald-400' };
     }
-    return { label: formatLastSeen(partnerInfo?.last_seen || partnerInfo?.lastSeen), className: 'text-[var(--nav-text)]/55' };
+    return {
+      label: formatLastSeen(partnerInfo?.last_seen || partnerInfo?.lastSeen || lastPartnerMessageAt),
+      className: 'text-[var(--nav-text)]/55',
+    };
   })();
   const composerBusy = sending || uploading;
 
@@ -1016,7 +1021,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 <p className="mt-1 max-w-[280px] text-[13px] leading-snug text-[var(--text-secondary)]">Send a message or pick a quick reply below.</p>
               </div>
             ) : (
-              messages.map((msg, i) => {
+              <>
+              {messages.map((msg, i) => {
                 const prevMsg = messages[i - 1];
                 const nextMsg = messages[i + 1];
                 const isOwn = (msg.sender_id?._id || msg.sender_id)?.toString() === user?._id?.toString();
@@ -1147,7 +1153,31 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     </div>
                   </div>
                 );
-              })
+              })}
+              {partnerTyping && (
+                <div className="mt-1 flex w-full justify-start">
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2 text-[12px] text-[var(--text-secondary)] shadow-sm"
+                    aria-live="polite"
+                  >
+                    <span className="flex gap-1">
+                      {[0, 1, 2].map((dot) => (
+                        <motion.span
+                          key={dot}
+                          className="size-1.5 rounded-full bg-[var(--accent)]/70"
+                          animate={{ y: [0, -4, 0], opacity: [0.55, 1, 0.55] }}
+                          transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.14 }}
+                        />
+                      ))}
+                    </span>
+                    <span>{partnerName} is typing</span>
+                  </motion.div>
+                </div>
+              )}
+              </>
             )}
             <div ref={messagesEndRef} />
           </div>

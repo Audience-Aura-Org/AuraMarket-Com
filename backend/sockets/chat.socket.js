@@ -5,6 +5,7 @@
 
 const socketIo = require('socket.io');
 const Message = require('../models/Message.model');
+const User = require('../models/User.model');
 const { createCorsOptions } = require('../middleware/security.middleware');
 
 const mapChatSockets = (server) => {
@@ -45,9 +46,10 @@ const mapChatSockets = (server) => {
 
     if (isFirstSocket) {
       // Mark as online in DB
-      require('../models/User.model').findByIdAndUpdate(socket.userId, { is_online: true, last_seen: Date.now() }).catch(e => console.error(e));
+      const lastSeen = new Date();
+      User.findByIdAndUpdate(socket.userId, { is_online: true, last_seen: lastSeen }).catch(e => console.error(e));
       // Broadcast online status to others
-      io.emit('user_presence', { userId: socket.userId, isOnline: true, lastSeen: Date.now() });
+      io.emit('user_presence', { userId: socket.userId, isOnline: true, lastSeen: lastSeen.toISOString() });
     }
 
     const userRoom = socket.userId.toString();
@@ -76,19 +78,37 @@ const mapChatSockets = (server) => {
     });
 
     socket.on('typing_start', ({ receiver_id }) => {
-      if (receiver_id) io.to(receiver_id.toString()).emit('partner_typing', { userId: socket.userId });
+      if (receiver_id) {
+        io.to(receiver_id.toString()).emit('partner_typing', {
+          userId: socket.userId,
+          receiverId: receiver_id.toString(),
+          at: new Date().toISOString(),
+        });
+      }
     });
 
     socket.on('typing_stop', ({ receiver_id }) => {
-      if (receiver_id) io.to(receiver_id.toString()).emit('partner_stopped_typing', { userId: socket.userId });
+      if (receiver_id) {
+        io.to(receiver_id.toString()).emit('partner_stopped_typing', {
+          userId: socket.userId,
+          receiverId: receiver_id.toString(),
+          at: new Date().toISOString(),
+        });
+      }
     });
 
     // Allow client to query if a specific user is currently online
-    socket.on('check_online_status', (data, callback) => {
+    socket.on('check_online_status', async (data, callback) => {
       const targetId = (data?.userId || '').toString();
       if (!targetId) return;
       const isOnline = userSockets.has(targetId) && userSockets.get(targetId).size > 0;
-      const response = { userId: targetId, isOnline };
+      const user = await User.findById(targetId).select('last_seen is_online').lean().catch(() => null);
+      const lastSeen = user?.last_seen || null;
+      const response = {
+        userId: targetId,
+        isOnline,
+        lastSeen: lastSeen ? new Date(lastSeen).toISOString() : null,
+      };
       // Support both callback and emit patterns
       if (typeof callback === 'function') {
         callback(response);
@@ -112,9 +132,10 @@ const mapChatSockets = (server) => {
             
             userSockets.delete(socket.userId);
             // Mark as offline in DB
-            await require('../models/User.model').findByIdAndUpdate(socket.userId, { is_online: false, last_seen: Date.now() }).catch(e => console.error(e));
+            const lastSeen = new Date();
+            await User.findByIdAndUpdate(socket.userId, { is_online: false, last_seen: lastSeen }).catch(e => console.error(e));
             // Broadcast offline status
-            io.emit('user_presence', { userId: socket.userId, isOnline: false, lastSeen: Date.now() });
+            io.emit('user_presence', { userId: socket.userId, isOnline: false, lastSeen: lastSeen.toISOString() });
             console.log(`🔌 User marked offline: ${socket.userId}`);
           }, 3000);
           disconnectTimers.set(socket.userId, timer);

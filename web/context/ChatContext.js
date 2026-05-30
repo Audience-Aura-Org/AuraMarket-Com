@@ -56,7 +56,12 @@ export const mergeParticipantData = (existing, incoming, livePresence) => {
   const existingObj = isRecord(existing) ? existing : {};
   const incomingObj = isRecord(incoming) ? incoming : {};
   const id = toId(incoming) || toId(existing);
-  const { is_online: incomingOnline, online: _incomingOnlineAlias, ...incomingWithoutPresence } = incomingObj;
+  const {
+    is_online: incomingOnline,
+    online: _incomingOnlineAlias,
+    lastSeen: incomingLastSeenAlias,
+    ...incomingWithoutPresence
+  } = incomingObj;
 
   const merged = {
     ...existingObj,
@@ -75,6 +80,12 @@ export const mergeParticipantData = (existing, incoming, livePresence) => {
 
   if (typeof live === 'boolean') merged.is_online = live;
   else delete merged.is_online;
+
+  const lastSeen = incomingLastSeenAlias || incomingWithoutPresence.last_seen || existingObj.last_seen || existingObj.lastSeen;
+  if (lastSeen) {
+    merged.last_seen = lastSeen;
+    merged.lastSeen = lastSeen;
+  }
 
   return merged;
 };
@@ -451,6 +462,7 @@ function chatReducer(state, action) {
       const userId = action.userId?.toString();
       if (!userId) return state;
       const onlineUsersMap = { ...state.onlineUsersMap, [userId]: Boolean(action.isOnline) };
+      const lastSeen = action.lastSeen || action.last_seen;
       const conversation = state.conversationsById[userId];
       return {
         ...state,
@@ -460,7 +472,11 @@ function chatReducer(state, action) {
               ...state.conversationsById,
               [userId]: {
                 ...conversation,
-                partner: mergeParticipantData(conversation.partner, { _id: userId }, Boolean(action.isOnline)),
+                partner: mergeParticipantData(
+                  conversation.partner,
+                  { _id: userId, last_seen: lastSeen, lastSeen },
+                  Boolean(action.isOnline)
+                ),
               },
             }
           : state.conversationsById,
@@ -604,8 +620,8 @@ export function ChatProvider({ children }) {
 
     const onTyping = ({ userId }) => dispatch({ type: 'TYPING_UPDATE', userId, isTyping: true });
     const onStoppedTyping = ({ userId }) => dispatch({ type: 'TYPING_UPDATE', userId, isTyping: false });
-    const onPresence = ({ userId, isOnline, online }) =>
-      dispatch({ type: 'PRESENCE_UPDATE', userId, isOnline: isOnline ?? online });
+    const onPresence = ({ userId, isOnline, online, lastSeen, last_seen }) =>
+      dispatch({ type: 'PRESENCE_UPDATE', userId, isOnline: isOnline ?? online, lastSeen: lastSeen || last_seen });
     const onDeleted = (payload) => dispatch({ type: 'DELETE_MESSAGE', ...payload });
 
     const eventMap = {
@@ -684,8 +700,8 @@ export function ChatProvider({ children }) {
     dispatch({ type: 'MARK_READ', partnerId });
   }, []);
 
-  const updatePresence = useCallback((userId, isOnline) => {
-    dispatch({ type: 'PRESENCE_UPDATE', userId, isOnline });
+  const updatePresence = useCallback((userId, isOnline, lastSeen = null) => {
+    dispatch({ type: 'PRESENCE_UPDATE', userId, isOnline, lastSeen });
   }, []);
 
   const deleteMessage = useCallback((payload) => {
