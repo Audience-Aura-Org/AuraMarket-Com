@@ -6,8 +6,8 @@
  *
  * Usage:
  *   node setup-env.js
- *   node setup-env.js 13.63.100.47
- *   AURA_API_HOST=13.63.100.47 node setup-env.js
+ *   node setup-env.js 13.61.104.192
+ *   AURA_API_HOST=13.61.104.192 node setup-env.js
  */
 
 import fs from 'fs';

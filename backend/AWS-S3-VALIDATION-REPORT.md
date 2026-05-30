@@ -26,7 +26,7 @@ All file upload infrastructure components have been successfully configured, tes
 ```
 Frontend (Vercel)
     ↓
-Backend Express API (AWS EC2: 13.63.100.47:5000)
+Backend Express API (AWS EC2: 13.61.104.192:5000)
     ↓
 Multer Memory Storage (in-memory buffer)
     ↓
@@ -275,7 +275,7 @@ The Next.js frontend on Vercel can now:
 
 ### Backend API Endpoints (AWS EC2)
 ```
-Base URL: http://13.63.100.47:5000
+Base URL: http://13.61.104.192:5000
 Upload Single: POST /api/upload/single
 Upload Multiple: POST /api/upload/multiple
 ```
