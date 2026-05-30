@@ -29,9 +29,13 @@ export default function Footer() {
     pathname?.startsWith('/messages') ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/admin/messages');
+  const isDashboardRoute =
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/vendor') ||
+    pathname?.startsWith('/logistics');
   const isNativeApp = Capacitor.isNativePlatform();
 
-  if (isChatPage) return null;
+  if (isChatPage || isDashboardRoute) return null;
 
   return (
     <footer className="w-full border-t border-[var(--glass-border)] bg-[var(--bg-primary)] transition-colors duration-500">

@@ -1,20 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Capacitor } from '@capacitor/core';
 import { Download, X } from 'lucide-react';
 
 export default function PWAInstallBanner() {
   const router = useRouter();
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const isNativeApp = Capacitor.isNativePlatform();
+  const isDashboardRoute =
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/vendor') ||
+    pathname?.startsWith('/logistics');
 
   useEffect(() => {
-    if (isNativeApp) return;
+    if (isNativeApp || isDashboardRoute) return;
 
     let timerId;
 
@@ -66,7 +71,7 @@ export default function PWAInstallBanner() {
       window.removeEventListener('appinstalled', handleAppInstalled);
       if (timerId) clearTimeout(timerId);
     };
-  }, [isNativeApp]);
+  }, [isNativeApp, isDashboardRoute]);
 
   const handleInstall = (e) => {
     e.stopPropagation();
@@ -93,7 +98,7 @@ export default function PWAInstallBanner() {
     localStorage.setItem('pwa_banner_dismissed', 'true');
   };
 
-  if (isNativeApp || !isVisible) return null;
+  if (isNativeApp || isDashboardRoute || !isVisible) return null;
 
   return (
     <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-6 duration-700 ${

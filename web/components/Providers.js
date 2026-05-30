@@ -88,7 +88,7 @@ export default function Providers({ children }) {
           {/* PWA initializers — fully deferred */}
           <PWAInit />
           <MobileKeyboardRecovery />
-          {!isAuthRoute && <PWAInstallBanner />}
+          {!isAuthRoute && !isDashboardRoute && <PWAInstallBanner />}
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
