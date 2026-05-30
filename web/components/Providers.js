@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Heavy sidebar & overlay — deferred until after hydration
 const CartSidebar = dynamic(() => import('@/components/CartSidebar'), { ssr: false });
 const GlobalChatOverlay = dynamic(() => import('@/components/layout/GlobalChatOverlay'), { ssr: false });
-const PWAInstallBanner = dynamic(() => import('@/components/layout/PWAInstallBanner'), { ssr: false });
 const PWAInit = dynamic(() => import('@/components/PWAInit'), { ssr: false });
 const MobileKeyboardRecovery = dynamic(() => import('@/components/MobileKeyboardRecovery'), { ssr: false });
 
@@ -60,7 +59,6 @@ export default function Providers({ children }) {
     normalizedPath === '/messages';
 
   const footerRoutes = [
-    '/onboarding/pwa',
     '/privacy',
     '/privacy-policy',
     '/terms',
@@ -88,7 +86,6 @@ export default function Providers({ children }) {
           {/* PWA initializers — fully deferred */}
           <PWAInit />
           <MobileKeyboardRecovery />
-          {!isAuthRoute && !isDashboardRoute && <PWAInstallBanner />}
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
