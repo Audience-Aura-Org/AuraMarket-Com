@@ -15,7 +15,7 @@ import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function AdminApprovals() {
-  const [activeTab, setActiveTab] = useState('Vendors');
+  const [activeTab, setActiveTab] = useState('Verifications');
   const [mounted, setMounted] = useState(false);
   const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
@@ -33,8 +33,8 @@ export default function AdminApprovals() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'Vendors') {
-        const res = await api.get('/admin/vendors/pending');
+      if (activeTab === 'Verifications') {
+        const res = await api.get('/admin/kyc/pending');
         if (res.data?.success) setVendors(res.data.data.submissions || []);
       } else {
         const res = await api.get('/admin/products/pending');
@@ -81,7 +81,7 @@ export default function AdminApprovals() {
     }
   };
 
-  const currentData = activeTab === 'Vendors' ? vendors : products;
+  const currentData = activeTab === 'Verifications' ? vendors : products;
   const totalPages = Math.ceil(currentData.length / itemsPerPage);
   const pagedData = currentData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -106,7 +106,7 @@ export default function AdminApprovals() {
 
         <div className="flex items-center gap-4">
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
-              {['Vendors', 'Products'].map(tab => (
+              {['Verifications', 'Products'].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -127,7 +127,7 @@ export default function AdminApprovals() {
          {/* Live Stats */}
          <div className="grid grid-cols-4 gap-6">
             {[
-               { label: 'Pending Vendors', value: vendors.length, icon: Building2, color: 'var(--accent)', sub: 'KYC_QUEUE' },
+               { label: 'Pending Verifications', value: vendors.length, icon: Building2, color: 'var(--accent)', sub: 'KYC_QUEUE' },
                { label: 'Pending Assets', value: products.length, icon: Package, color: '#6366f1', sub: 'PRODUCT_GATE' },
                { label: 'Wait Latency', value: '4.2h', icon: Clock, color: '#10b981', sub: 'SYNC_SPEED' },
                { label: 'Risk Profile', value: 'Minimal', icon: AlertCircle, color: '#fbbf24', sub: 'SAFETY_INDEX' }
@@ -180,7 +180,7 @@ export default function AdminApprovals() {
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-[var(--glass-border)]/50">
-                          {activeTab === 'Vendors' ? pagedData.map(v => (
+                          {activeTab === 'Verifications' ? pagedData.map(v => (
                              <tr key={v._id} className="group hover:bg-[var(--accent)]/5 transition-all">
                                 <td className="px-10 py-6">
                                    <div className="flex items-center gap-4">

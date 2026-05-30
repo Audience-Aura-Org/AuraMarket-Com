@@ -37,6 +37,21 @@ const isTokenVersionValid = (decoded, user) => {
   return Number(decoded.tokenVersion) === Number(user.token_version || 0);
 };
 
+const isVerificationWriteAllowed = (req) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
+
+  const path = req.originalUrl || req.url || '';
+  return [
+    '/api/v1/users/kyc',
+    '/api/v1/upload',
+    '/api/v1/auth/delete-account',
+  ].some((allowedPath) => path.startsWith(allowedPath));
+};
+
+const shouldRestrictForVerification = (user) => (
+  user.role !== 'admin' && ['held', 'pending', 'rejected'].includes(user.verification_status)
+);
+
 // ─────────────────────────────────────────────
 // protect — Verify JWT and attach user to req
 // ─────────────────────────────────────────────
@@ -78,6 +93,15 @@ const protect = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'This session is no longer valid.',
+      });
+    }
+
+    if (shouldRestrictForVerification(user) && !isVerificationWriteAllowed(req)) {
+      return res.status(423).json({
+        success: false,
+        code: 'VERIFICATION_REQUIRED',
+        message: 'Verification is required before this action can be completed.',
+        redirect: '/profile?tab=kyc',
       });
     }
 

@@ -228,7 +228,7 @@ export default function VendorDashboard() {
               />
             </div>
             
-            <div className="hidden md:flex items-center gap-3 pl-6 border-l border-[var(--glass-border)]/30">
+            <Link href="/profile?tab=store" className="hidden md:flex items-center gap-3 pl-6 border-l border-[var(--glass-border)]/30 rounded-2xl transition-all hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30">
                <div className="text-right">
                  <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
                  <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-tight opacity-50">Store Info</p>
@@ -244,7 +244,7 @@ export default function VendorDashboard() {
                    )}
                  </div>
                </div>
-            </div>
+            </Link>
           </div>
         </header>
 

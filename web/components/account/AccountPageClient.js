@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
-import StatusManager from '@/components/status/StatusManager';
 import SingleOrderView from '@/components/account/SingleOrderView';
 import dynamic from 'next/dynamic';
 
@@ -667,13 +666,6 @@ export default function AccountPageClient() {
                         </div>
                       </div>
 
-                      <DeleteAccountPanel
-                        deleteConfirm={deleteConfirm}
-                        setDeleteConfirm={setDeleteConfirm}
-                        deleteStatus={deleteStatus}
-                        deleteLoading={deleteLoading}
-                        onDelete={handleDeleteAccount}
-                      />
                     </div>
                   </div>
                 </div>
@@ -728,6 +720,26 @@ export default function AccountPageClient() {
                         placeholder="Describe your store..."
                         textarea={true}
                       />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <BrandingUploadCard
+                          title="Store Logo"
+                          description="Shown on products, chats, vendor cards, and your storefront profile."
+                          image={profileBranding.logo || storeData.logo}
+                          field="logo"
+                          uploading={brandingUploading === 'logo'}
+                          onUpload={handleBrandingFileUpload}
+                        />
+                        <BrandingUploadCard
+                          title="Store Banner"
+                          description="Shown as the wide storefront header and marketplace cover image."
+                          image={profileBranding.banner || storeData.banner}
+                          field="banner"
+                          uploading={brandingUploading === 'banner'}
+                          onUpload={handleBrandingFileUpload}
+                          wide
+                        />
+                      </div>
 
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
@@ -1055,16 +1067,6 @@ export default function AccountPageClient() {
                 </div>
               )}
 
-              {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Story Management</h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
-                  </div>
-                  <StatusManager />
-                </div>
-              )}
-
               {activeTab === 'notifications' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
@@ -1168,6 +1170,34 @@ function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, del
           <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
         ) : 'Close account permanently'}
       </button>
+    </div>
+  );
+}
+
+function BrandingUploadCard({ title, description, image, field, uploading, onUpload, wide = false }) {
+  return (
+    <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-5 space-y-4">
+      <div className={`${wide ? 'aspect-[2.4/1]' : 'aspect-square max-w-44'} w-full rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-primary)]/70 overflow-hidden flex items-center justify-center shadow-inner`}>
+        {image ? (
+          <img src={image} className="size-full object-cover" alt="" />
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-[var(--text-secondary)] opacity-35">
+            <Camera className="size-8" />
+            <span className="text-[11px] font-bold tracking-tight">No {field}</span>
+          </div>
+        )}
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">{title}</p>
+        <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-60">{description}</p>
+      </div>
+      <label className="block">
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => onUpload(field, e.target.files?.[0])} />
+        <div className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[11px] font-bold tracking-tight text-[var(--text-primary)] transition-all hover:border-[var(--accent)]/50 hover:text-[var(--accent)]">
+          {uploading ? <RefreshCw className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
+          {uploading ? 'Uploading...' : `Upload ${title}`}
+        </div>
+      </label>
     </div>
   );
 }

@@ -187,7 +187,10 @@ const getPlatformAnalytics = async (req, res, next) => {
 
 const getPendingKYC = async (req, res, next) => {
   try {
-    const submissions = await KYC.find({ status: 'pending' }).populate('user_id', 'name email').populate('vendor_id', 'store_name');
+    const submissions = await KYC.find({ status: 'pending' })
+      .populate('user_id', 'name email avatar role verification_status')
+      .populate('vendor_id', 'store_name')
+      .sort('-createdAt');
     res.status(200).json({ success: true, count: submissions.length, data: { submissions } });
   } catch (error) {
     next(error);
@@ -729,10 +732,20 @@ const updateUserAdmin = async (req, res, next) => {
 
     if (name) user.name = name;
     if (role) user.role = role;
+    const previousVerificationStatus = user.verification_status;
     if (verification_status) user.verification_status = verification_status;
     if (typeof phone !== 'undefined') user.phone = phone;
 
     await user.save();
+
+    if (verification_status === 'held' && previousVerificationStatus !== 'held') {
+      await sendNotification(req.app, user._id, {
+        title: 'Verification Required',
+        message: 'An administrator has requested account verification. You can view your account, but actions are paused until verification is approved.',
+        type: 'security',
+        metadata: { link: '/profile?tab=kyc' },
+      }).catch(() => {});
+    }
 
     // Cascading business profile synchronization
     if (user.role === 'logistics') {

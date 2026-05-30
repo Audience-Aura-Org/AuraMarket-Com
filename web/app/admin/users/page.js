@@ -139,6 +139,24 @@ export default function AdminUsersPage() {
     } catch (err) { toast.error('Recalibration failed'); } finally { setSubmitting(false); }
   };
 
+  const handleRequestVerification = async () => {
+    if (!editingUser) return;
+    setSubmitting(true);
+    try {
+      const payload = { ...editForm, verification_status: 'held' };
+      const res = await api.patch(`/admin/users/${editingUser._id}`, payload);
+      if (res.data.success) {
+        toast.success('Verification requested. Account actions are paused.');
+        setUsers(users.map(u => u._id === editingUser._id ? { ...u, ...res.data.data.user } : u));
+        setEditForm(payload);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Verification request failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
       
@@ -472,6 +490,8 @@ export default function AdminUsersPage() {
                     <p className="text-[10px] font-bold tracking-widest opacity-40 uppercase ml-1">Node Status</p>
                     <select value={editForm.verification_status} onChange={e=>setEditForm(f=>({...f,verification_status:e.target.value}))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 text-[11px] font-bold tracking-tight outline-none appearance-none cursor-pointer focus:border-[var(--accent)] shadow-inner">
                       <option value="unverified">Unverified</option>
+                      <option value="held">Verification Required</option>
+                      <option value="pending">Pending Review</option>
                       <option value="verified">Verified</option>
                       <option value="rejected">Rejected</option>
                     </select>
@@ -491,6 +511,16 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div className="pt-4">
+                  {editForm.role !== 'admin' && (
+                    <button
+                      type="button"
+                      onClick={handleRequestVerification}
+                      disabled={submitting || editForm.verification_status === 'held'}
+                      className="mb-3 w-full h-12 rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-500 font-bold text-[11px] uppercase tracking-[0.16em] transition-all hover:bg-amber-500 hover:text-white disabled:opacity-50"
+                    >
+                      Request User Verification
+                    </button>
+                  )}
                   <button type="submit" disabled={submitting} className="w-full h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
                     {submitting ? (
                       <div className="flex items-center justify-center gap-2">
