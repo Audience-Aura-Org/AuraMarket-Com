@@ -16,6 +16,7 @@ const LogisticZone      = require('../models/LogisticZone.model');
 const mongoose          = require('mongoose');
 
 const { sendNotification } = require('../utils/notifier');
+const { escapeRegExp } = require('../middleware/security.middleware');
 const { sendEmail }        = require('../utils/emailService');
 const logisticsService     = require('../services/logistics.service');
 const templates            = require('../utils/emailTemplates');
@@ -112,7 +113,7 @@ const getFirmShipments = async (req, res, next) => {
     }
 
     if (search) {
-      query.tracking_code = { $regex: search, $options: 'i' };
+      query.tracking_code = { $regex: escapeRegExp(search), $options: 'i' };
     }
 
     const total = await Shipment.countDocuments(query);

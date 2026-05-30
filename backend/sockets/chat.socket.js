@@ -5,49 +5,12 @@
 
 const socketIo = require('socket.io');
 const Message = require('../models/Message.model');
+const { createCorsOptions } = require('../middleware/security.middleware');
 
 const mapChatSockets = (server) => {
-  const os = require('os');
-  const getLocalIPs = () => {
-    const interfaces = os.networkInterfaces();
-    const ips = [];
-    for (const [, addrs] of Object.entries(interfaces)) {
-      for (const addr of addrs) {
-        if (addr.family === 'IPv4' && !addr.internal) {
-          ips.push(addr.address);
-        }
-      }
-    }
-    return ips;
-  };
-
-  const localIPs = getLocalIPs();
-  const allowedOrigins = [
-    'https://space.audienceaura.org',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://10.0.2.2:3000',      // Android Emulator Loopback
-    'capacitor://localhost',
-    'http://localhost',
-    process.env.WEB_CLIENT_URL,
-  ].filter(Boolean);
-
-  for (const ip of localIPs) {
-    allowedOrigins.push(`http://${ip}:3000`);
-    allowedOrigins.push(`http://${ip}:5000`);
-  }
-
   const io = socketIo(server, {
-    cors: {
-      origin: (origin, callback) => {
-        // Dynamically allow the exact requesting origin (Reflect origin).
-        // This prevents Socket CORS errors regardless of where the frontend is hosted.
-        callback(null, origin || true);
-      },
-      methods: ['GET', 'POST'],
-      credentials: true,
-      allowEIO3: true,
-    },
+    cors: createCorsOptions(),
+    allowEIO3: true,
     transports: ['websocket', 'polling'],
   });
 

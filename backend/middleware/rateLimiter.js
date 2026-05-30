@@ -21,7 +21,7 @@ const apiLimiter = rateLimit({
  */
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // Reduced to 15 minutes for development flexibility
-  max: 300, // Significantly increased from 10 to 300 for developer node testing
+  max: 120,
   message: {
     success: false,
     message: 'Security Alert: Temporary rate limit reached. Please wait a few moments.'

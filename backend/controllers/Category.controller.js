@@ -1,6 +1,8 @@
 const Category = require('../models/Category.model');
 const Product = require('../models/Product.model');
 
+const CATEGORY_UPDATE_FIELDS = ['name', 'parent_id', 'slug', 'icon', 'description', 'is_active'];
+
 // @desc    Get all categories with popularity metrics
 exports.getAllCategories = async (req, res) => {
   try {
@@ -164,7 +166,14 @@ exports.createCategory = async (req, res) => {
 // @desc    Update category (Admin only)
 exports.updateCategory = async (req, res) => {
   try {
-    const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
+    const updates = {};
+    for (const field of CATEGORY_UPDATE_FIELDS) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    const category = await Category.findByIdAndUpdate(req.params.id, updates, {
       returnDocument: 'after',
       runValidators: true
     });

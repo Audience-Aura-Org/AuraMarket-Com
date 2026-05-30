@@ -69,7 +69,9 @@ router.use('/push', pushRoutes);
 router.use('/statuses', statusRoutes);
 router.use('/status', statusRoutes);
 router.use('/withdrawals', withdrawalRoutes);
-// Dev/debug routes (safe to mount locally)
-router.use('/debug', debugRoutes);
+
+if (process.env.ENABLE_DEBUG_ROUTES === 'true') {
+  router.use('/debug', debugRoutes);
+}
 
 module.exports = router;

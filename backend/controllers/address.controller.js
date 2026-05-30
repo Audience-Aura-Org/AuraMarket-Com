@@ -67,6 +67,7 @@ const updateAddress = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     const address = user.addresses.id(req.params.id);
+    const allowedFields = ['label', 'street', 'city', 'region', 'isDefault'];
 
     if (!address) {
       return res.status(404).json({ success: false, message: 'Address not found' });
@@ -77,7 +78,11 @@ const updateAddress = async (req, res, next) => {
       user.addresses.forEach(addr => addr.isDefault = false);
     }
 
-    Object.assign(address, req.body);
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        address[field] = req.body[field];
+      }
+    }
     await user.save();
 
     res.status(200).json({

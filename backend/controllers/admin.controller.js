@@ -23,6 +23,7 @@ const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('../services/logistics.service');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const templates = require('../utils/emailTemplates');
+const { escapeRegExp } = require('../middleware/security.middleware');
 const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
 
 // ─────────────────────────────────────────────
@@ -36,9 +37,10 @@ const getEmailLogs = async (req, res, next) => {
     const query = {};
     if (status && status !== 'all') query.status = status;
     if (search) {
+      const safeSearch = escapeRegExp(search);
       query.$or = [
-        { recipient_email: new RegExp(search, 'i') },
-        { subject: new RegExp(search, 'i') }
+        { recipient_email: new RegExp(safeSearch, 'i') },
+        { subject: new RegExp(safeSearch, 'i') }
       ];
     }
 
@@ -409,7 +411,10 @@ const getAllUsers = async (req, res, next) => {
     const { role, search, status } = req.query;
     const query = {};
     if (role) query.role = role;
-    if (search) query.$or = [{ name: new RegExp(search, 'i') }, { email: new RegExp(search, 'i') }];
+    if (search) {
+      const safeSearch = escapeRegExp(search);
+      query.$or = [{ name: new RegExp(safeSearch, 'i') }, { email: new RegExp(safeSearch, 'i') }];
+    }
     if (status) query.verification_status = status;
     const users = await User.find(query).select('-password').sort('-createdAt');
     res.status(200).json({ success: true, count: users.length, data: { users } });
@@ -437,7 +442,7 @@ const getAllProducts = async (req, res, next) => {
     const query = {};
     if (status) query.status = status;
     if (vendor) query.vendor_id = vendor;
-    if (search) query.name = new RegExp(search, 'i');
+    if (search) query.name = new RegExp(escapeRegExp(search), 'i');
     const products = await Product.find(query).populate('vendor_id', 'store_name').sort('-createdAt');
     res.status(200).json({ success: true, count: products.length, data: { products } });
   } catch (error) {
@@ -854,10 +859,11 @@ const getAllTransactions = async (req, res, next) => {
     if (gateway && gateway !== 'all') query.gateway = gateway;
     
     if (search) {
+      const safeSearch = escapeRegExp(search);
       query.$or = [
-        { reference: new RegExp(search, 'i') },
-        { gateway_transaction_id: new RegExp(search, 'i') },
-        { description: new RegExp(search, 'i') }
+        { reference: new RegExp(safeSearch, 'i') },
+        { gateway_transaction_id: new RegExp(safeSearch, 'i') },
+        { description: new RegExp(safeSearch, 'i') }
       ];
     }
 

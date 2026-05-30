@@ -38,6 +38,7 @@ const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter, strictLimiter } = require('./middleware/rateLimiter');
 const setLocale = require('./middleware/locale.middleware');
+const { createCorsOptions, sanitizeInput, securityHeaders } = require('./middleware/security.middleware');
 
 // ─────────────────────────────────────────────
 // 5. Connect to MongoDB
@@ -67,48 +68,8 @@ startEscrowAutoReleaseWorker(app);
 // ─────────────────────────────────────────────
 // 7. Express Middleware
 // ─────────────────────────────────────────────
-const os = require('os');
-
-// Get all local network IPs for development
-const getLocalIPs = () => {
-  const interfaces = os.networkInterfaces();
-  const ips = [];
-  for (const [, addrs] of Object.entries(interfaces)) {
-    for (const addr of addrs) {
-      if (addr.family === 'IPv4' && !addr.internal) {
-        ips.push(addr.address);
-      }
-    }
-  }
-  return ips;
-};
-
-const localIPs = getLocalIPs();
-const allowedOrigins = [
-  'https://space.audienceaura.org',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://10.0.2.2:3000',      // Android Emulator Loopback
-  'capacitor://localhost',
-  'http://localhost',
-  process.env.WEB_CLIENT_URL,
-].filter(Boolean);
-
-// Add all local network IPs to CORS for development
-for (const ip of localIPs) {
-  allowedOrigins.push(`http://${ip}:3000`);
-  allowedOrigins.push(`http://${ip}:5000`);
-}
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Dynamically allow the exact requesting origin (Reflect origin).
-    // This completely prevents CORS errors regardless of where the frontend is hosted.
-    callback(null, origin || true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-}));
+app.use(securityHeaders);
+app.use(cors(createCorsOptions()));
 
 app.use(compression()); // Gzip all API responses
 // ── Eversend Webhook (Raw Body Requirement) ───────────────────────────
@@ -119,6 +80,13 @@ app.post('/api/payments/eversend/webhook', express.raw({ type: 'application/json
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
+app.use((req, res, next) => {
+  if (/^\/api(\/v1)?\/payments\/.*webhook/.test(req.path)) {
+    return next();
+  }
+
+  return sanitizeInput(req, res, next);
+});
 
 // Apply general rate limit to all requests
 app.use('/api', apiLimiter);

@@ -14,6 +14,7 @@ const Order = require('../models/Order.model');
 const Product = require('../models/Product.model');
 const mongoose = require('mongoose');
 const Follow = require('../models/Follow.model');
+const { escapeRegExp } = require('../middleware/security.middleware');
 
 // ─────────────────────────────────────────────
 // @route   POST /api/vendors/onboard
@@ -269,7 +270,7 @@ const getPublicStores = async (req, res, next) => {
     let query = { is_onboarded: true };
 
     if (search) {
-      query.store_name = { $regex: search, $options: 'i' };
+      query.store_name = { $regex: escapeRegExp(search), $options: 'i' };
     }
 
     const sort = req.query.sort || '-createdAt';
