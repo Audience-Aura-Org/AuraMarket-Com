@@ -44,15 +44,15 @@ const wrap = (title, heading, body) => `
     a { color: ${COLORS.accent}; }
 
     .header-band { background: ${COLORS.gradient}; padding: 0; }
-    .header-inner { padding: 10px 16px 12px; }
+    .header-inner { padding: 5px 14px 6px; }
     @media only screen and (min-width: 600px) {
-      .header-inner { padding: 14px 24px 16px !important; }
+      .header-inner { padding: 7px 20px 8px !important; }
     }
-    .logo-img { height: 32px; width: 32px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.35); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
-    .header-title { color: #ffffff; font-size: 17px; font-weight: 700; letter-spacing: -0.4px; margin: 0; line-height: 1.15; }
-    .header-sub { color: rgba(255,255,255,0.88); font-size: 11px; margin: 4px 0 0; font-weight: 500; }
+    .logo-img { height: 22px; width: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 2px 5px rgba(0,0,0,0.10); }
+    .header-title { color: #ffffff; font-size: 13px; font-weight: 700; letter-spacing: 0; margin: 0; line-height: 1.05; }
+    .header-sub { color: rgba(255,255,255,0.88); font-size: 9px; margin: 2px 0 0; font-weight: 500; }
 
-    .accent-stripe { height: 3px; background: ${COLORS.stripe}; font-size: 0; line-height: 0; }
+    .accent-stripe { height: 2px; background: ${COLORS.stripe}; font-size: 0; line-height: 0; }
 
     .content-shell { width: 100% !important; max-width: 100% !important; background: ${COLORS.bgPrimary}; }
     .content-td { padding: 28px 20px 20px; background: ${COLORS.bgPrimary}; }
@@ -106,7 +106,7 @@ const wrap = (title, heading, body) => `
 
     @media only screen and (max-width: 600px) {
       .content-td { padding: 22px 16px 16px !important; }
-      .header-inner { padding: 22px 16px 26px !important; }
+      .header-inner { padding: 7px 14px 8px !important; }
       .footer-td  { padding: 22px 16px !important; }
       .card-row   { flex-direction: column; align-items: flex-start; gap: 4px; }
       .card-value { text-align: left !important; }
@@ -127,10 +127,10 @@ const wrap = (title, heading, body) => `
                   <td class="header-inner">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;">
                       <tr>
-                        <td style="width:44px;vertical-align:middle;">
-                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="32" height="32" />
+                        <td style="width:30px;vertical-align:middle;">
+                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="22" height="22" />
                         </td>
-                        <td style="vertical-align:middle;padding-left:14px;">
+                        <td style="vertical-align:middle;padding-left:10px;">
                           <p class="header-title">Aura Dime</p>
                           <p class="header-sub">Commerce &bull; logistics &bull; fulfilment</p>
                         </td>
@@ -139,7 +139,7 @@ const wrap = (title, heading, body) => `
                   </td>
                 </tr>
               </table>
-              <div class="accent-stripe" style="height:3px;background:${COLORS.stripe};font-size:0;line-height:0;">&nbsp;</div>
+              <div class="accent-stripe" style="height:2px;background:${COLORS.stripe};font-size:0;line-height:0;">&nbsp;</div>
             </td>
           </tr>
           <tr>
