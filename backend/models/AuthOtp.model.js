@@ -23,7 +23,6 @@ const AuthOtpSchema = new mongoose.Schema(
     expires_at: {
       type: Date,
       required: true,
-      index: true,
     },
     cooldown_until: {
       type: Date,
