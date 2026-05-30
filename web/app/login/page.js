@@ -16,8 +16,8 @@ export default function LoginPage() {
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="flex w-full flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="size-16 rounded-2xl bg-black p-3 shadow-2xl ring-1 ring-white/10">
-              <img src="/icon-512.png" alt="Aura Dime" className="h-full w-full object-contain" />
+            <div className="size-16 rounded-full bg-black p-2 shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <img src="/icon-512.png" alt="Aura Dime" className="h-full w-full rounded-full object-cover" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
