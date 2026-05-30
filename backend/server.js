@@ -54,6 +54,7 @@ verifyConnection();
 const app = express();
 app.set('trust proxy', 1); // 🔥 ESSENTIAL: Render/Proxy identity mapping
 const server = http.createServer(app);
+const serverPort = Number(PORT);
 
 // Initialize Socket.io Chat Events
 const mapChatSockets = require('./sockets/chat.socket');
@@ -161,7 +162,19 @@ app.use(errorHandler);
 // ─────────────────────────────────────────────
 // 11. Start Server
 // ─────────────────────────────────────────────
-server.listen(PORT, '0.0.0.0', () => {
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\nPort ${serverPort} is already in use.`);
+    console.error('Stop the existing backend process or start this app with a different PORT value.');
+    console.error('Linux/macOS: lsof -i :5000 && kill <PID>');
+    console.error('Windows: netstat -ano | findstr :5000 then Stop-Process -Id <PID>\n');
+    process.exit(1);
+  }
+
+  throw err;
+});
+
+server.listen(serverPort, '0.0.0.0', () => {
   const os = require('os');
   const interfaces = os.networkInterfaces();
   let ipAddress = 'localhost';
@@ -175,10 +188,10 @@ server.listen(PORT, '0.0.0.0', () => {
     }
   }
   
-  console.log(`\n🚀 Auradime server running in ${NODE_ENV} mode on port ${PORT}`);
-  console.log(`   Access locally: http://localhost:${PORT}/api/health`);
-  console.log(`   Access from other devices: http://${ipAddress}:${PORT}/api/health`);
-  console.log(`   All interfaces: http://0.0.0.0:${PORT}/api/health\n`);
+  console.log(`\n🚀 Auradime server running in ${NODE_ENV} mode on port ${serverPort}`);
+  console.log(`   Access locally: http://localhost:${serverPort}/api/health`);
+  console.log(`   Access from other devices: http://${ipAddress}:${serverPort}/api/health`);
+  console.log(`   All interfaces: http://0.0.0.0:${serverPort}/api/health\n`);
 });
 
 // Increase server timeouts for large file uploads (100MB videos)

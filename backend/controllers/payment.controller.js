@@ -546,7 +546,7 @@ const eversendRecheck = async (req, res) => {
         if (errStatus === 401 || errStatus === 403) {
           const ipBlocked = (apiErr.response?.data?.message || '').toLowerCase().includes('origin');
           if (ipBlocked) {
-            console.error('[Eversend Recheck] IP not whitelisted — must call from production server (13.51.198.119)');
+            console.error('[Eversend Recheck] IP not whitelisted — must call from production server (13.63.100.47)');
             return res.status(503).json({ success: false, message: 'Payment gateway is only accessible from the production server. Please check from the live site.' });
           }
           return res.status(500).json({ success: false, message: 'Payment gateway authentication failed. Please contact support.' });
