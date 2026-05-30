@@ -34,10 +34,10 @@ const wrap = (title, heading, body) => `
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="x-apple-disable-message-reformatting" />
   <title>${title}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, #bodyTable { margin: 0 !important; padding: 0 !important; width: 100% !important; background: ${COLORS.bgOuter}; font-family: 'DM Sans', 'Poppins', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: ${COLORS.textPrimary}; -webkit-font-smoothing: antialiased; }
+    body, #bodyTable { margin: 0 !important; padding: 0 !important; width: 100% !important; background: ${COLORS.bgOuter}; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: ${COLORS.textPrimary}; -webkit-font-smoothing: antialiased; }
     img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; display: block; }
     table { border-collapse: collapse !important; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     td { padding: 0; }
@@ -48,7 +48,7 @@ const wrap = (title, heading, body) => `
     @media only screen and (min-width: 600px) {
       .header-inner { padding: 7px 20px 8px !important; }
     }
-    .logo-img { height: 22px; width: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 2px 5px rgba(0,0,0,0.10); }
+    .logo-img { height: 36px; width: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
     .header-title { color: #ffffff; font-size: 13px; font-weight: 700; letter-spacing: 0; margin: 0; line-height: 1.05; }
     .header-sub { color: rgba(255,255,255,0.88); font-size: 9px; margin: 2px 0 0; font-weight: 500; }
 
@@ -82,7 +82,7 @@ const wrap = (title, heading, body) => `
     .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
     .badge-failed    { background: #fee2e2; color: #991b1b; }
 
-    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 14px; margin: 18px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
+    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 14px; margin: 18px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'Poppins', Arial, sans-serif; }
 
     .table-products { width: 100% !important; max-width: 100%; margin: 20px 0; border-collapse: collapse; font-size: 14px; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; }
     .table-products thead { background: #fafafa; }
@@ -93,7 +93,7 @@ const wrap = (title, heading, body) => `
     .table-products tbody tr:last-child td { border-bottom: none; }
 
     .footer-td { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; border-top: 1px solid ${COLORS.border}; }
-    .footer-td p { font-size: 13px; color: ${COLORS.textMuted}; margin: 6px 0; font-family: 'DM Sans', 'Poppins', Arial, sans-serif; }
+    .footer-td p { font-size: 13px; color: ${COLORS.textMuted}; margin: 6px 0; font-family: 'Poppins', Arial, sans-serif; }
     .footer-td a { color: ${COLORS.accent}; text-decoration: none; font-weight: 600; }
     .footer-brand { font-size: 15px; font-weight: 700; color: ${COLORS.textPrimary}; margin-bottom: 10px !important; letter-spacing: -0.5px; }
 
@@ -115,7 +115,7 @@ const wrap = (title, heading, body) => `
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:${COLORS.bgOuter};">
+<body style="margin:0;padding:0;background:${COLORS.bgOuter};font-family:'Poppins',Arial,sans-serif;">
   <table id="bodyTable" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0;padding:0;width:100%;background:${COLORS.bgOuter};">
     <tr>
       <td align="center" valign="top" style="padding:0;">
@@ -127,8 +127,8 @@ const wrap = (title, heading, body) => `
                   <td class="header-inner">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;">
                       <tr>
-                        <td style="width:30px;vertical-align:middle;">
-                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="22" height="22" />
+                        <td style="width:44px;vertical-align:middle;">
+                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="36" height="36" style="height:36px;width:36px;border-radius:10px;border:1px solid rgba(255,255,255,0.35);box-shadow:0 3px 8px rgba(0,0,0,0.12);" />
                         </td>
                         <td style="vertical-align:middle;padding-left:10px;">
                           <p class="header-title">Aura Dime</p>
