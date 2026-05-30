@@ -37,7 +37,7 @@ export const useAuthStore = create(
         }
       },
 
-      verifyOtp: async ({ email, otp, signupToken, name, phone, role, referral_code }) => {
+      verifyOtp: async ({ email, otp, signupToken, name, phone, role, referral_code, onboarding }) => {
         set({ loading: true, error: null });
         try {
           const res = await api.post('/auth/verify-otp', {
@@ -48,6 +48,7 @@ export const useAuthStore = create(
             phone,
             role,
             referral_code,
+            onboarding,
           });
 
           if (res.data.signup_required) {

@@ -9,6 +9,10 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
+const Follow = require('../models/Follow.model');
+const LogisticsCompany = require('../models/LogisticsCompany.model');
+const Store = require('../models/Store.model');
+const Vendor = require('../models/Vendor.model');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
 const { normalizeUserMedia } = require('../utils/media');
 const AuthOtp = require('../models/AuthOtp.model');
@@ -66,6 +70,21 @@ const buildSafeUser = (user) => {
   return userObj;
 };
 
+const cleanText = (value, max = 120) => String(value || '').trim().slice(0, max);
+
+const cleanPhone = (value) => String(value || '').replace(/[\s()-]/g, '').trim().slice(0, 20);
+
+const cleanStringArray = (value, maxItems = 12) => {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => cleanText(item, 80)).filter(Boolean))].slice(0, maxItems);
+};
+
+const cleanLocation = (location = {}) => ({
+  city: cleanText(location.city, 80),
+  quartier: cleanText(location.quartier, 80),
+  address_description: cleanText(location.address_description, 220),
+});
+
 const sendOtp = async (req, res, next) => {
   try {
     const result = await sendOtpToEmail(req.body.email);
@@ -84,26 +103,115 @@ const sendOtp = async (req, res, next) => {
   }
 };
 
-const createUserFromSignup = async ({ email, name, role, phone, referral_code }) => {
+const createUserFromSignup = async ({ email, name, role, phone, referral_code, onboarding = {} }) => {
   const allowedRoles = ['customer', 'vendor', 'logistics'];
   const userRole = allowedRoles.includes(role) ? role : 'customer';
+  const location = cleanLocation(onboarding.location);
+  const categoryIds = cleanStringArray(onboarding.category_ids, 30);
+  const normalizedPhone = cleanPhone(phone || onboarding.phone);
 
   let referredByUser = null;
   if (referral_code) {
     referredByUser = await User.findOne({ referral_code });
   }
 
-  const user = await User.create({
-    name,
+  if (!normalizedPhone) {
+    const error = new Error('Phone number is required to complete onboarding.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const baseUserPayload = {
+    name: cleanText(name, 80),
     email,
-    phone,
+    phone: normalizedPhone,
     role: userRole,
     auth_provider: 'email_otp',
     referred_by: referredByUser ? referredByUser._id : null,
-  });
+  };
+
+  if (userRole === 'customer') {
+    if (!location.city || !location.quartier || categoryIds.length < 2) {
+      const error = new Error('Choose at least 2 interests and your city/zone to complete onboarding.');
+      error.statusCode = 400;
+      throw error;
+    }
+    baseUserPayload.liked_categories = categoryIds;
+    baseUserPayload.onboarding_location = location;
+    baseUserPayload.onboarded = true;
+  }
+
+  if (userRole === 'vendor') {
+    const storeName = cleanText(onboarding.store_name, 100);
+    const description = cleanText(onboarding.description, 500);
+    if (!storeName || !description || !location.city || !location.quartier || categoryIds.length < 2) {
+      const error = new Error('Store name, description, 2 categories, phone, city and zone are required for vendor onboarding.');
+      error.statusCode = 400;
+      throw error;
+    }
+    baseUserPayload.onboarding_location = location;
+    baseUserPayload.onboarded = true;
+  }
+
+  if (userRole === 'logistics') {
+    const companyName = cleanText(onboarding.company_name, 120);
+    const serviceRegions = cleanStringArray(onboarding.service_regions, 20);
+    const vehicleTypes = cleanStringArray(onboarding.vehicle_types, 4)
+      .filter((type) => ['motorcycle', 'car', 'van', 'truck'].includes(type));
+    if (!companyName || serviceRegions.length === 0 || vehicleTypes.length === 0) {
+      const error = new Error('Company name, service regions and vehicle types are required for logistics onboarding.');
+      error.statusCode = 400;
+      throw error;
+    }
+    baseUserPayload.onboarded = true;
+  }
+
+  const user = await User.create(baseUserPayload);
 
   user.referral_code = user.generateReferralCode();
   await user.save({ validateBeforeSave: false });
+
+  if (userRole === 'vendor') {
+    const vendor = await Vendor.create({
+      user_id: user._id,
+      store_name: cleanText(onboarding.store_name, 100),
+      description: cleanText(onboarding.description, 500),
+      phone: normalizedPhone,
+      pickup_address: {
+        city: location.city,
+        quartier: location.quartier,
+        street: location.address_description,
+      },
+      is_onboarded: true,
+      onboarding_step: 'complete',
+    });
+
+    await Store.create({
+      vendor_id: vendor._id,
+      categories: categoryIds,
+    });
+  }
+
+  if (userRole === 'logistics') {
+    await LogisticsCompany.create({
+      user_id: user._id,
+      company_name: cleanText(onboarding.company_name, 120),
+      contact_email: user.email,
+      contact_phone: normalizedPhone,
+      service_regions: cleanStringArray(onboarding.service_regions, 20),
+      supported_pickup_regions: cleanStringArray(onboarding.service_regions, 20),
+      vehicle_types: cleanStringArray(onboarding.vehicle_types, 4)
+        .filter((type) => ['motorcycle', 'car', 'van', 'truck'].includes(type)),
+    });
+  }
+
+  if (userRole === 'customer' && Array.isArray(onboarding.followed_vendor_ids)) {
+    const follows = cleanStringArray(onboarding.followed_vendor_ids, 20).map((vendorId) => ({
+      user_id: user._id,
+      vendor_id: vendorId,
+    }));
+    if (follows.length > 0) await Follow.insertMany(follows, { ordered: false }).catch(() => {});
+  }
 
   if (referredByUser) {
     referredByUser.loyalty_points += 100;
@@ -115,7 +223,7 @@ const createUserFromSignup = async ({ email, name, role, phone, referral_code })
 
 const verifyOtp = async (req, res, next) => {
   try {
-    const { email, otp, signupToken, name, role, phone, referral_code } = req.body;
+    const { email, otp, signupToken, name, role, phone, referral_code, onboarding } = req.body;
     let verifiedEmail;
 
     if (signupToken) {
@@ -147,6 +255,7 @@ const verifyOtp = async (req, res, next) => {
         role,
         phone,
         referral_code,
+        onboarding,
       });
     }
 
