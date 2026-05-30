@@ -7,7 +7,12 @@ import { useAuthStore } from '@/hooks/useAuth';
 export default function OnboardingWatcher() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, hasHydrated, fetchFollowedVendors, followedVendorIds } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated, fetchMe, fetchFollowedVendors, followedVendorIds } = useAuthStore();
+
+  useEffect(() => {
+    if (!hasHydrated || user) return;
+    fetchMe();
+  }, [hasHydrated, user, fetchMe]);
  
   // Pre-fetch followed list as soon as authenticated to avoid flicker
   useEffect(() => {

@@ -12,9 +12,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "mobile:sync:android": "npx cap sync android",
+    "mobile:build:web": "node scripts/build-capacitor.mjs",
+    "mobile:sync:android": "npm run mobile:build:web && npx cap sync android",
     "mobile:open:android": "npx cap open android",
-    "mobile:build:android:debug": "cd android && gradlew.bat assembleDebug"
+    "mobile:build:android:debug": "npm run mobile:sync:android && cd android && gradlew.bat assembleDebug",
+    "mobile:build:android:release": "npm run mobile:sync:android && cd android && gradlew.bat bundleRelease",
+    "mobile:add:ios": "npm install @capacitor/ios && npx cap add ios",
+    "mobile:sync:ios": "npm run mobile:build:web && npx cap sync ios",
+    "mobile:open:ios": "npx cap open ios"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +29,7 @@
     "@capacitor/android": "^8.3.4",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
+    "@capacitor/preferences": "^8.0.1",
     "@tailwindcss/postcss": "^4.2.2",
     "autoprefixer": "^10.4.27",
     "axios": "^1.13.6",
@@ -42,7 +48,8 @@
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
-    "playwright": "^1.58.2"
+    "playwright": "^1.58.2",
+    "typescript": "^6.0.3"
   },
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",

@@ -1,12 +1,10 @@
 "use client";
 
-import { ArrowLeft, Power } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/hooks/useAuth';
 
 export default function AccountHeader({ title = "Account Settings" }) {
   const router = useRouter();
-  const { logout } = useAuthStore();
 
   return (
     <div className="sticky top-0 lg:top-0 max-lg:top-14 z-50 border-b border-[var(--glass-border)] backdrop-blur-2xl bg-[var(--bg-primary)]/80">
@@ -17,9 +15,7 @@ export default function AccountHeader({ title = "Account Settings" }) {
           </button>
           <h1 className="text-lg  font-bold tracking-tight">{title}</h1>
         </div>
-        <button onClick={() => { logout(); router.push('/login'); }} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-[1.5rem] transition-colors">
-          <Power className="w-5 h-5" />
-        </button>
+        <div className="w-9" />
       </div>
     </div>
   );

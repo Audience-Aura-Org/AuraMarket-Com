@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
-import PasswordInput from '@/components/common/PasswordInput';
 import StatusManager from '@/components/status/StatusManager';
 import SingleOrderView from '@/components/account/SingleOrderView';
 import dynamic from 'next/dynamic';
@@ -50,7 +49,7 @@ const ORDER_STATUS_STYLES = {
 export default function AccountPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, logout, updateUser } = useAuthStore();
+  const { user, deleteAccount, updateUser } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('general');
   const [viewingOrderId, setViewingOrderId] = useState(null);
@@ -124,9 +123,9 @@ export default function AccountPageClient() {
   const [kycLoading, setKycLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
 
-  const [passphraseData, setPassphraseData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [passphraseStatus, setPassphraseStatus] = useState('');
-  const [passphraseLoading, setPassphraseLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleteStatus, setDeleteStatus] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -257,32 +256,16 @@ export default function AccountPageClient() {
     }
   };
 
-  const handleChangePassphrase = async () => {
-    if (passphraseData.newPassword !== passphraseData.confirmPassword) {
-      setPassphraseStatus('New passwords do not match.');
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    setDeleteStatus('');
+    const result = await deleteAccount(deleteConfirm);
+    if (result.success) {
+      router.replace('/login');
       return;
     }
-    if (passphraseData.newPassword.length < 6) {
-      setPassphraseStatus('Password must be at least 6 characters.');
-      return;
-    }
-    setPassphraseLoading(true);
-    setPassphraseStatus('Updating passphrase...');
-    try {
-      const res = await api.patch('/auth/change-password', {
-        currentPassword: passphraseData.currentPassword,
-        newPassword: passphraseData.newPassword
-      });
-      if (res.data?.success) {
-        setPassphraseStatus('Passphrase updated successfully.');
-        setPassphraseData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      }
-    } catch (err) {
-      setPassphraseStatus(err.response?.data?.error || 'Failed to update passphrase.');
-    } finally {
-      setPassphraseLoading(false);
-      setTimeout(() => setPassphraseStatus(''), 3000);
-    }
+    setDeleteStatus(result.message || 'Account deletion failed.');
+    setDeleteLoading(false);
   };
 
   const handleUpdateStore = async () => {
@@ -615,14 +598,15 @@ export default function AccountPageClient() {
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
-                      <div className="w-full p-5 md:p-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group space-y-6">
+                      {false && (
+                      <div className="hidden">
                         <div className="flex items-center gap-4 border-b border-[var(--glass-border)] pb-4">
                           <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
                             <Lock className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
                             <p className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Change Passphrase</p>
-                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
+                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Legacy password controls are disabled.</p>
                           </div>
                         </div>
 
@@ -669,19 +653,54 @@ export default function AccountPageClient() {
                           ) : 'Update passphrase'}
                         </button>
                       </div>
+                      )}
 
-                      <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
+                      <div className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
                         <div className="flex items-center gap-4">
                           <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
-                            <RefreshCw className="size-5 text-[var(--accent)]" />
+                            <ShieldCheck className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
-                            <p className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Active Device Sessions</p>
-                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
+                            <p className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Passwordless Session</p>
+                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Your account uses email OTP verification. New devices verify again; this device stays trusted.</p>
                           </div>
                         </div>
-                        <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
-                      </button>
+                      </div>
+
+                      <div className="w-full p-5 md:p-6 bg-rose-500/5 border border-rose-500/20 rounded-[2rem] transition-all space-y-5">
+                        <div className="flex items-center gap-4">
+                          <div className="size-10 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+                            <ShieldAlert className="size-5 text-rose-500" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-bold tracking-tight text-rose-500">Delete Account</p>
+                            <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-70">Deletes your profile, tokens, carts, messages, listings, follows, notifications, and account-linked records. This cannot be undone.</p>
+                          </div>
+                        </div>
+
+                        <input
+                          value={deleteConfirm}
+                          onChange={(e) => setDeleteConfirm(e.target.value)}
+                          placeholder="Type DELETE to confirm"
+                          className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
+                        />
+
+                        {deleteStatus && (
+                          <div className="text-[11px] font-semibold text-center px-4 py-2 rounded-lg bg-rose-500/10 text-rose-500">
+                            {deleteStatus}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={handleDeleteAccount}
+                          disabled={deleteLoading || deleteConfirm !== 'DELETE'}
+                          className="w-full py-3 md:py-4 rounded-full font-bold text-xs tracking-tight bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20"
+                        >
+                          {deleteLoading ? (
+                            <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                          ) : 'Delete account permanently'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1129,15 +1148,6 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           disabled={disabled}
           rows={4}
           className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
-        />
-      ) : type === 'password' ? (
-        <PasswordInput
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          autoComplete="current-password"
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 pr-12 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       ) : (
         <input

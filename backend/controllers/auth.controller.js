@@ -11,6 +11,17 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
 const { normalizeUserMedia } = require('../utils/media');
+const AuthOtp = require('../models/AuthOtp.model');
+const {
+  clearAuthCookie,
+  createAuthToken,
+  createSignupToken,
+  normalizeEmail,
+  sendOtpToEmail,
+  setAuthCookie,
+  verifyOtpForEmail,
+  verifySignupToken,
+} = require('../services/authOtp.service');
 
 let otplibAuthenticator;
 const getAuthenticator = async () => {
@@ -25,14 +36,15 @@ const getAuthenticator = async () => {
 // Helper: Sign a JWT for a given user ID
 // ─────────────────────────────────────────────
 const signToken = (id) => {
-  return jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign({ id, type: 'auth' }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 
 // ─────────────────────────────────────────────
 // Helper: Send token response
 // ─────────────────────────────────────────────
 const sendTokenResponse = (user, statusCode, res) => {
-  const token = signToken(user._id);
+  const token = createAuthToken(user);
+  setAuthCookie(res, token);
 
   // Remove password from output (extra safety)
   const userObj = (user && typeof user.toObject === 'function') ? user.toObject() : { ...user };
@@ -44,6 +56,188 @@ const sendTokenResponse = (user, statusCode, res) => {
     token,
     data: { user: userObj },
   });
+};
+
+const buildSafeUser = (user) => {
+  const userObj = (user && typeof user.toObject === 'function') ? user.toObject() : { ...user };
+  delete userObj.password;
+  delete userObj.token_version;
+  normalizeUserMedia(userObj);
+  return userObj;
+};
+
+const sendOtp = async (req, res, next) => {
+  try {
+    const result = await sendOtpToEmail(req.body.email);
+    res.status(200).json({
+      success: true,
+      message: 'Verification code sent.',
+      data: result,
+    });
+  } catch (error) {
+    if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Unable to send verification code.',
+      retryAfter: error.retryAfter,
+    });
+  }
+};
+
+const createUserFromSignup = async ({ email, name, role, phone, referral_code }) => {
+  const allowedRoles = ['customer', 'vendor', 'logistics'];
+  const userRole = allowedRoles.includes(role) ? role : 'customer';
+
+  let referredByUser = null;
+  if (referral_code) {
+    referredByUser = await User.findOne({ referral_code });
+  }
+
+  const user = await User.create({
+    name,
+    email,
+    phone,
+    role: userRole,
+    auth_provider: 'email_otp',
+    referred_by: referredByUser ? referredByUser._id : null,
+  });
+
+  user.referral_code = user.generateReferralCode();
+  await user.save({ validateBeforeSave: false });
+
+  if (referredByUser) {
+    referredByUser.loyalty_points += 100;
+    await referredByUser.save({ validateBeforeSave: false });
+  }
+
+  return user;
+};
+
+const verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp, signupToken, name, role, phone, referral_code } = req.body;
+    let verifiedEmail;
+
+    if (signupToken) {
+      verifiedEmail = verifySignupToken(signupToken);
+      const existing = await User.findOne({ email: verifiedEmail });
+      if (existing) {
+        return sendTokenResponse(existing, 200, res);
+      }
+    } else {
+      verifiedEmail = await verifyOtpForEmail(email, otp);
+    }
+
+    let user = await User.findOne({ email: verifiedEmail });
+
+    if (!user) {
+      if (!name || String(name).trim().length < 2) {
+        return res.status(200).json({
+          success: true,
+          signup_required: true,
+          signupToken: createSignupToken(verifiedEmail),
+          message: 'Email verified. Complete your profile to enter Auradime.',
+          data: { email: verifiedEmail },
+        });
+      }
+
+      user = await createUserFromSignup({
+        email: verifiedEmail,
+        name: String(name).trim(),
+        role,
+        phone,
+        referral_code,
+      });
+    }
+
+    await AuthOtp.deleteOne({ email: verifiedEmail });
+    return sendTokenResponse(user, user.createdAt && Date.now() - user.createdAt.getTime() < 30000 ? 201 : 200, res);
+  } catch (error) {
+    if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
+    res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || 'Unable to verify code.',
+      retryAfter: error.retryAfter,
+    });
+  }
+};
+
+const deleteAccount = async (req, res, next) => {
+  try {
+    const { confirmText } = req.body;
+    if (confirmText !== 'DELETE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Type DELETE to permanently delete your account.',
+      });
+    }
+
+    const user = await User.findById(req.user._id).select('+token_version');
+    if (!user) {
+      clearAuthCookie(res);
+      return res.status(200).json({ success: true, message: 'Account already deleted.' });
+    }
+
+    user.token_version = Number(user.token_version || 0) + 1;
+    user.is_active = false;
+    await user.save({ validateBeforeSave: false });
+
+    const userId = user._id;
+    const Vendor = require('../models/Vendor.model');
+    const Product = require('../models/Product.model');
+    const Store = require('../models/Store.model');
+    const LogisticsCompany = require('../models/LogisticsCompany.model');
+
+    const vendor = await Vendor.findOne({ user_id: userId });
+    const vendorId = vendor?._id;
+
+    const deletions = [
+      AuthOtp.deleteMany({ email: user.email }),
+      require('../models/Cart.model').deleteMany({ user_id: userId }),
+      require('../models/Wishlist.model').deleteMany({ user_id: userId }),
+      require('../models/Notification.model').deleteMany({ recipient: userId }),
+      require('../models/PushSubscription.model').deleteMany({ user_id: userId }),
+      require('../models/Message.model').deleteMany({ $or: [{ sender_id: userId }, { receiver_id: userId }] }),
+      require('../models/Follow.model').deleteMany({ user_id: userId }),
+      require('../models/RecentlyViewed.model').deleteMany({ user_id: userId }),
+      require('../models/StockWatch.model').deleteMany({ user_id: userId }),
+      require('../models/KYC.model').deleteMany({ user_id: userId }),
+      require('../models/UserActivity.model').deleteMany({ user_id: userId }),
+      require('../models/Question.model').deleteMany({ user_id: userId }),
+      require('../models/Review.model').deleteMany({ user_id: userId }),
+      require('../models/Transaction.model').deleteMany({ user_id: userId }),
+      require('../models/WithdrawalRequest.model').deleteMany({ requestedBy: userId }),
+      require('../models/Order.model').deleteMany({ customer_id: userId }),
+      require('../models/RefundRequest.model').deleteMany({ customer_id: userId }),
+    ];
+
+    if (vendorId) {
+      deletions.push(
+        Product.deleteMany({ vendor_id: vendorId }),
+        Store.deleteMany({ vendor_id: vendorId }),
+        require('../models/Follow.model').deleteMany({ vendor_id: vendorId }),
+        require('../models/KYC.model').deleteMany({ vendor_id: vendorId }),
+        require('../models/Order.model').deleteMany({ vendor_id: vendorId }),
+        require('../models/RefundRequest.model').deleteMany({ vendor_id: vendorId }),
+        Vendor.findByIdAndDelete(vendorId)
+      );
+    }
+
+    if (user.role === 'logistics') {
+      deletions.push(LogisticsCompany.deleteMany({ user_id: userId }));
+    }
+
+    await Promise.all(deletions);
+    await User.findByIdAndDelete(userId);
+    clearAuthCookie(res);
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted permanently.',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // ─────────────────────────────────────────────
@@ -357,4 +551,16 @@ const getAdminInfo = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, verify2FALogin, getMe, getUser, updateProfile, changePassword, getAdminInfo };
+module.exports = {
+  register,
+  login,
+  verify2FALogin,
+  sendOtp,
+  verifyOtp,
+  deleteAccount,
+  getMe,
+  getUser,
+  updateProfile,
+  changePassword,
+  getAdminInfo,
+};

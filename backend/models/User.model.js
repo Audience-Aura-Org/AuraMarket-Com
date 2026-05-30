@@ -31,7 +31,6 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // Never return password in queries by default
     },
@@ -67,6 +66,17 @@ const UserSchema = new mongoose.Schema(
     is_active: {
       type: Boolean,
       default: true,
+    },
+    auth_provider: {
+      type: String,
+      enum: ['email_otp', 'password'],
+      default: 'email_otp',
+    },
+    token_version: {
+      type: Number,
+      default: 0,
+      min: 0,
+      select: false,
     },
 
     // ── Profile ──────────────────────────────────
@@ -166,7 +176,7 @@ const UserSchema = new mongoose.Schema(
 // ─────────────────────────────────────────────
 UserSchema.pre('save', async function () {
   // Only hash if password field was modified
-  if (!this.isModified('password')) return;
+  if (!this.isModified('password') || !this.password) return;
 
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
@@ -176,6 +186,7 @@ UserSchema.pre('save', async function () {
 // Instance Method: Compare entered password with hashed
 // ─────────────────────────────────────────────
 UserSchema.methods.comparePassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

@@ -2,24 +2,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
 import socketService from '../services/socket';
+import { clearStoredAuthToken, setStoredAuthToken } from '../services/authStorage';
 
-const clearSessionStorage = () => {
+const clearClientOnlyState = async () => {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem('aura_token');
+  await clearStoredAuthToken();
   sessionStorage.removeItem('onboarding_skipped');
 };
 
-/**
- * useAuthStore
- * Manages the global authentication state, user profile, and session tokens.
- */
 export const useAuthStore = create(
   persist(
     (set, get) => ({
       user: null,
       token: null,
-      rememberedEmail: '', // New field to keep track of the last logged-in email
-      followedVendorIds: [], // Global list for instant checks
+      rememberedEmail: '',
+      followedVendorIds: [],
       isAuthenticated: false,
       hasHydrated: false,
       loading: false,
@@ -27,74 +24,108 @@ export const useAuthStore = create(
       setHasHydrated: (value) => set({ hasHydrated: value }),
       setRememberedEmail: (email) => set({ rememberedEmail: email }),
 
-      // Login functionality
-      login: async (credentials) => {
+      sendOtp: async (email) => {
+        set({ loading: true, error: null, rememberedEmail: email });
+        try {
+          const res = await api.post('/auth/send-otp', { email });
+          set({ loading: false, error: null });
+          return { success: true, data: res.data.data };
+        } catch (err) {
+          const message = err.response?.data?.message || 'Unable to send verification code';
+          set({ error: message, loading: false });
+          return { success: false, message, retryAfter: err.response?.data?.retryAfter };
+        }
+      },
+
+      verifyOtp: async ({ email, otp, signupToken, name, phone, role, referral_code }) => {
         set({ loading: true, error: null });
         try {
-          const res = await api.post('/auth/login', credentials);
-          
-          // Handle 2FA required
-          if (res.data.two_factor_required) {
-            set({ loading: false });
-            return { 
-              success: true, 
-              twoFactorRequired: true, 
-              userId: res.data.data.userId 
+          const res = await api.post('/auth/verify-otp', {
+            email,
+            otp,
+            signupToken,
+            name,
+            phone,
+            role,
+            referral_code,
+          });
+
+          if (res.data.signup_required) {
+            set({ loading: false, error: null, rememberedEmail: email });
+            return {
+              success: true,
+              signupRequired: true,
+              signupToken: res.data.signupToken,
+              email: res.data.data?.email || email,
             };
           }
 
           const { token, data } = res.data;
           const { user } = data;
-          localStorage.setItem('aura_token', token);
-          set({ user, token, isAuthenticated: true, loading: false, error: null, rememberedEmail: user.email });
-          return { success: true };
+          await setStoredAuthToken(token);
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            loading: false,
+            error: null,
+            rememberedEmail: user.email,
+          });
+          return { success: true, user };
         } catch (err) {
-          const message = err.response?.data?.message || 'Login failed';
+          const message = err.response?.data?.message || 'Verification failed';
           set({ error: message, loading: false });
-          return { success: false, message };
+          return { success: false, message, retryAfter: err.response?.data?.retryAfter };
         }
       },
 
-      // Complete login with 2FA
-      verify2FA: async (userId, token) => {
+      fetchMe: async () => {
+        if (get().loading) return { success: false };
+        set({ loading: true });
+        try {
+          const res = await api.get('/auth/me');
+          const user = res.data.data?.user;
+          if (!user) throw new Error('No user returned');
+          set({
+            user,
+            isAuthenticated: true,
+            loading: false,
+            error: null,
+            rememberedEmail: user.email,
+          });
+          return { success: true, user };
+        } catch (err) {
+          set({ user: null, token: null, isAuthenticated: false, loading: false });
+          return { success: false };
+        }
+      },
+
+      deleteAccount: async (confirmText) => {
         set({ loading: true, error: null });
         try {
-          const res = await api.post('/auth/verify-2fa', { userId, token });
-          const { token: jwtToken, data } = res.data;
-          const { user } = data;
-          
-          localStorage.setItem('aura_token', jwtToken);
-          set({ user, token: jwtToken, isAuthenticated: true, loading: false, error: null, rememberedEmail: user.email });
+          await api.post('/auth/delete-account', { confirmText });
+          socketService.disconnect();
+          await clearClientOnlyState();
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            followedVendorIds: [],
+            loading: false,
+            error: null,
+          });
           return { success: true };
         } catch (err) {
-          const message = err.response?.data?.message || '2FA Verification failed';
+          const message = err.response?.data?.message || 'Account deletion failed';
           set({ error: message, loading: false });
           return { success: false, message };
         }
       },
 
-      // Register functionality
-      register: async (userData) => {
-        set({ loading: true, error: null });
-        try {
-          const res = await api.post('/auth/register', userData);
-          const { token, data } = res.data;
-          const { user } = data;
-          
-          localStorage.setItem('aura_token', token);
-          set({ user, token, isAuthenticated: true, loading: false, error: null, rememberedEmail: user.email });
-          return { success: true };
-        } catch (err) {
-          const message = err.response?.data?.message || 'Registration failed';
-          set({ error: message, loading: false });
-          return { success: false, message };
-        }
-      },
-
-      // Logout functionality
-      logout: () => {
+      // Kept only as an internal compatibility escape hatch while old components are removed.
+      logout: async () => {
         socketService.disconnect();
-        clearSessionStorage();
+        await clearClientOnlyState();
         set({
           user: null,
           token: null,
@@ -105,23 +136,21 @@ export const useAuthStore = create(
         });
       },
 
-      // Update local user data (e.g., after wallet update)
       updateUser: (data) => {
         set((state) => ({
-          user: { ...state.user, ...data }
+          user: { ...state.user, ...data },
         }));
       },
 
-      // Fetch followed list for instant status across site
       fetchFollowedVendors: async () => {
         if (!get().isAuthenticated) return;
         try {
           const res = await api.get('/users/followed-vendors');
           if (res.data.success) {
             const ids = (res.data.data.follows || [])
-              .map(f => f.vendor_id?._id || f.vendor_id)
-              .filter(id => id != null)
-              .map(id => id.toString());
+              .map((f) => f.vendor_id?._id || f.vendor_id)
+              .filter((id) => id != null)
+              .map((id) => id.toString());
             set({ followedVendorIds: ids });
           }
         } catch (err) {
@@ -129,32 +158,32 @@ export const useAuthStore = create(
         }
       },
 
-      // Optimistic updates for zero-flicker UI
       addFollowedVendor: (vendorId) => {
         const id = vendorId.toString();
         set((state) => ({
-          followedVendorIds: state.followedVendorIds.includes(id) 
-            ? state.followedVendorIds 
-            : [...state.followedVendorIds, id]
+          followedVendorIds: state.followedVendorIds.includes(id)
+            ? state.followedVendorIds
+            : [...state.followedVendorIds, id],
         }));
       },
 
       removeFollowedVendor: (vendorId) => {
         const id = vendorId.toString();
         set((state) => ({
-          followedVendorIds: state.followedVendorIds.filter(vId => vId !== id)
+          followedVendorIds: state.followedVendorIds.filter((vId) => vId !== id),
         }));
-      }
+      },
     }),
     {
-      name: 'aura-auth-storage', // persists to localStorage automatically
+      name: 'aura-auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        rememberedEmail: state.rememberedEmail,
+        followedVendorIds: state.followedVendorIds,
+        isAuthenticated: state.isAuthenticated,
+      }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated?.(true);
-        const token = state?.token;
-        if (typeof window !== 'undefined') {
-          if (token) localStorage.setItem('aura_token', token);
-          else localStorage.removeItem('aura_token');
-        }
       },
     }
   )

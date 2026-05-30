@@ -1,6 +1,6 @@
 /**
  * utils/emailService.js
- * Auradime — Dedicated Email Service (Titan SMTP)
+ * Auradime — Dedicated Email Service (Resend first, SMTP fallback)
  *
  * Wraps nodemailer with Titan SMTP credentials.
  * All email-sending across the system should go through sendEmail().
@@ -14,6 +14,8 @@ const {
   EMAIL_USER,
   EMAIL_PASS,
   EMAIL_FROM_NAME,
+  EMAIL_FROM,
+  RESEND_API_KEY,
 } = require('../config/env');
 
 /* ── Build the reusable transporter once ── */
@@ -34,6 +36,11 @@ const transporter = nodemailer.createTransport({
  * Verify SMTP connection on startup (logs, never throws)
  */
 const verifyConnection = async () => {
+  if (RESEND_API_KEY) {
+    console.log('✅ Resend email provider configured — emails ready.');
+    return;
+  }
+
   try {
     await transporter.verify();
     console.log('✅ Titan SMTP connection verified — emails ready.');
@@ -54,6 +61,37 @@ const verifyConnection = async () => {
  * @returns {Promise<boolean>}           - true on success, false on failure
  */
 const sendEmail = async ({ to, subject, html, text, replyTo }) => {
+  if (RESEND_API_KEY) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: EMAIL_FROM || `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER || 'hello@auradime.com'}>`,
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          html,
+          text: text || subject,
+          reply_to: replyTo || EMAIL_USER || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`Resend ${response.status}: ${body}`);
+      }
+
+      console.log(`📧 Email sent via Resend → ${to} | Subject: "${subject}"`);
+      return true;
+    } catch (err) {
+      console.error(`❌ Resend email failed → ${to} | ${err.message}`);
+      return false;
+    }
+  }
+
   if (!EMAIL_PASS) {
     console.warn('⚠️  EMAIL_PASS not set — skipping email send.');
     return false;

@@ -15,7 +15,6 @@ import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import PasswordInput from '@/components/common/PasswordInput';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
@@ -28,7 +27,7 @@ export default function AdminUsersPage() {
   const itemsPerPage = 12;
 
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: '', verification_status: '', password: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: '', verification_status: '' });
   const [submitting, setSubmitting] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -87,8 +86,7 @@ export default function AdminUsersPage() {
       email: user.email || '',
       phone: user.phone || '',
       role: user.role || 'customer',
-      verification_status: user.verification_status || 'unverified',
-      password: ''
+      verification_status: user.verification_status || 'unverified'
     });
   };
 
@@ -96,9 +94,7 @@ export default function AdminUsersPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = { ...editForm };
-      if (!payload.password) delete payload.password;
-      const res = await api.patch(`/admin/users/${editingUser._id}`, payload);
+      const res = await api.patch(`/admin/users/${editingUser._id}`, editForm);
       if (res.data.success) {
         toast.success('Identity Recalibrated');
         setUsers(users.map(u => u._id === editingUser._id ? { ...u, ...res.data.data.user } : u));
@@ -277,6 +273,7 @@ export default function AdminUsersPage() {
                       <option value="rejected">Rejected</option>
                     </select>
                   </div>
+                  {false && (
                   <div className="space-y-2">
                     <p className="text-[10px] font-bold tracking-widest opacity-40 uppercase ml-1">Cipher Override</p>
                     <PasswordInput
@@ -287,6 +284,7 @@ export default function AdminUsersPage() {
                       className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 pr-12 text-xs font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner"
                     />
                   </div>
+                  )}
                 </div>
 
                 <div className="pt-4">

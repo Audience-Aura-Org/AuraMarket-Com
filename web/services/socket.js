@@ -1,4 +1,6 @@
 import { io } from 'socket.io-client';
+import { Capacitor } from '@capacitor/core';
+import { getStoredAuthToken } from './authStorage';
 
 const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
 
@@ -74,7 +76,8 @@ const getSocketURL = () => {
     const origin = window.location.origin || '';
     
     // Detect Capacitor or mobile webview environment where hostname is 'localhost'
-    const isCapacitor = origin.startsWith('capacitor://') || 
+    const isCapacitor = Capacitor.isNativePlatform() ||
+                       origin.startsWith('capacitor://') || 
                        (hostname === 'localhost' && (window.Capacitor || window.cordova || /Android|iPhone|iPad/i.test(navigator.userAgent)));
 
     // For mobile native apps, DO NOT use localhost:5000 since the backend is on the PC/Cloud.
@@ -133,7 +136,7 @@ class SocketService {
   lastError = null;
   warnedUnavailable = false;
 
-  connect(userId) {
+  async connect(userId) {
     if (!SOCKET_URL) {
       this.lastError = 'Missing secure production socket URL. Set NEXT_PUBLIC_SOCKET_URL to an HTTPS/WSS Socket.IO origin.';
       if (!this.warnedUnavailable) {
@@ -143,21 +146,7 @@ class SocketService {
       return;
     }
 
-    let token = null;
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('aura-auth-storage');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          token = parsed?.state?.token;
-        }
-      } catch (e) {
-        console.error('[SocketService Connect] Failed to parse auth storage:', e);
-      }
-      if (!token) {
-        token = localStorage.getItem('aura_token');
-      }
-    }
+    const token = await getStoredAuthToken();
 
     if (this.socket) {
       const currentAuth = this.socket.auth || {};

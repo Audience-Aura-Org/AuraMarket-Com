@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
@@ -105,18 +104,12 @@ const ROLE_CONFIG = {
 
 export default function RoleSidebar({ role, isOpen, onClose }) {
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { theme } = useTheme();
-  const router = useRouter();
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
 
   const { unreadCount, unreadMessages } = useNotifications();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
-
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
 
   const getBadge = (item) => {
     if (item.badge === 'messages') return unreadMessages;
@@ -260,15 +253,6 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             );
           })}
 
-          <div className="pt-6 pb-2" />
-          
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 transition-all group w-full border-l-[3px] border-transparent text-left"
-          >
-            <span className="material-symbols-outlined text-[var(--text-secondary)] group-hover:text-red-500">logout</span>
-            <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] group-hover:text-red-500">Sign Out</span>
-          </button>
         </nav>
 
         <div className="p-6">

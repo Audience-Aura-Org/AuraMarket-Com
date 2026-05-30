@@ -7,11 +7,11 @@ import api from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import StatCard from '@/components/layout/StatCard';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Sparkles, LogOut, ArrowRight, RefreshCw, Search, Dashboard as DashboardIcon } from 'lucide-react';
+import { ShieldAlert, Sparkles, ArrowRight, RefreshCw, Search, Dashboard as DashboardIcon } from 'lucide-react';
 
 export default function VendorDashboard() {
   const router = useRouter();
-  const { user, token, logout, updateUser } = useAuthStore();
+  const { user, token, updateUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -296,12 +296,6 @@ export default function VendorDashboard() {
                      Re-Authenticate
                    </Link>
                  )}
-                 <button 
-                   onClick={() => logout()} 
-                   className="flex-1 md:flex-none px-6 py-3 border border-white/10 text-[var(--text-secondary)] hover:text-rose-500 rounded-xl text-xs font-bold tracking-tight hover:bg-rose-500/5 transition-all flex items-center justify-center gap-2"
-                 >
-                   <LogOut className="size-4" /> Sign Out
-                 </button>
               </div>
             </div>
           )}

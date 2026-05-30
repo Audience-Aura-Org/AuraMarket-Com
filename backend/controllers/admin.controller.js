@@ -716,7 +716,7 @@ const getAdvancedAnalytics = async (req, res, next) => {
 const updateUserAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, email, role, verification_status, password, phone } = req.body;
+    const { name, email, role, verification_status, phone } = req.body;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
@@ -730,7 +730,6 @@ const updateUserAdmin = async (req, res, next) => {
     if (name) user.name = name;
     if (role) user.role = role;
     if (verification_status) user.verification_status = verification_status;
-    if (password) user.password = password; // Hashing middleware attached to `User.save()`
     if (typeof phone !== 'undefined') user.phone = phone;
 
     await user.save();

@@ -10,6 +10,33 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
 const { JWT_SECRET } = require('../config/env');
 
+const parseCookieToken = (req) => {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').reduce((acc, part) => {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (!rawKey) return acc;
+    acc[rawKey] = decodeURIComponent(rawValue.join('=') || '');
+    return acc;
+  }, {});
+
+  return cookies.aura_token || null;
+};
+
+const getRequestToken = (req) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    return req.headers.authorization.split(' ')[1];
+  }
+
+  return parseCookieToken(req);
+};
+
+const isTokenVersionValid = (decoded, user) => {
+  if (decoded.tokenVersion === undefined) return true;
+  return Number(decoded.tokenVersion) === Number(user.token_version || 0);
+};
+
 // ─────────────────────────────────────────────
 // protect — Verify JWT and attach user to req
 // ─────────────────────────────────────────────
@@ -17,13 +44,8 @@ const protect = async (req, res, next) => {
   try {
     let token;
 
-    // 1. Extract token from Authorization header
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+    // 1. Extract token from Authorization header or httpOnly cookie
+    token = getRequestToken(req);
 
     if (!token) {
       return res.status(401).json({
@@ -36,7 +58,7 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
 
     // 3. Find user by ID from token payload
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('-password +token_version');
 
     if (!user) {
       return res.status(401).json({
@@ -49,6 +71,13 @@ const protect = async (req, res, next) => {
       return res.status(403).json({
         success: false,
         message: 'Your account has been deactivated. Contact support.',
+      });
+    }
+
+    if (!isTokenVersionValid(decoded, user)) {
+      return res.status(401).json({
+        success: false,
+        message: 'This session is no longer valid.',
       });
     }
 
@@ -82,15 +111,13 @@ const restrictTo = (...roles) => {
 const protectOptional = async (req, res, next) => {
   try {
     let token;
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+    token = getRequestToken(req);
 
     if (!token) return next();
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
-    if (user && user.is_active) {
+    const user = await User.findById(decoded.id).select('-password +token_version');
+    if (user && user.is_active && isTokenVersionValid(decoded, user)) {
       req.user = user;
     }
     next();

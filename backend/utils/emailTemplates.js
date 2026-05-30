@@ -203,6 +203,22 @@ const passwordReset = ({ user, resetLink, webUrl }) => {
   return { subject, html, text: `Reset your password: ${resetLink}` };
 };
 
+const otpEmail = ({ otp, email, expiresMinutes = 10 }) => {
+  const subject = 'Your Auradime verification code';
+  const body = `
+    <p>Use this code to verify <strong>${email}</strong> and continue into Auradime.</p>
+
+    <div style="background:${COLORS.accentSoft};border:1px solid #e9d5ff;border-radius:14px;margin:20px 0;padding:22px;text-align:center;">
+      <div style="font-size:34px;font-weight:800;letter-spacing:8px;color:${COLORS.accentDark};font-family:'DM Sans','Poppins',Arial,sans-serif;">${otp}</div>
+      <p style="font-size:13px;color:${COLORS.textMuted};margin:10px 0 0;">Expires in ${expiresMinutes} minutes</p>
+    </div>
+
+    <p>If you did not request this code, you can safely ignore this email.</p>
+  `;
+  const html = wrap(subject, 'Verify your email', body);
+  return { subject, html, text: `Your Auradime verification code is ${otp}. It expires in ${expiresMinutes} minutes.` };
+};
+
 /* ─── Product Helper ─── */
 const formatProducts = (products = []) => {
   if (!products.length) return '';
@@ -476,6 +492,7 @@ const orderStatusUpdated = ({ order, customer, qrCode, webUrl }) => {
 
 module.exports = {
   welcomeEmail,
+  otpEmail,
   passwordReset,
   orderPlaced,
   paymentConfirmed,

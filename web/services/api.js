@@ -1,8 +1,27 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
+import { getStoredAuthToken } from './authStorage';
 
+const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
+
+const getConfiguredApiURL = () => {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (!configured) return null;
+  return configured.endsWith('/api/v1') ? configured : `${stripApiPath(configured)}/api/v1`;
+};
 
 const getBaseURL = () => {
   if (typeof window !== 'undefined') {
+    const configuredApiURL = getConfiguredApiURL();
+    if (Capacitor.isNativePlatform()) {
+      if (!configuredApiURL) {
+        console.error('[API] Native build requires NEXT_PUBLIC_API_URL to point at the AWS backend.');
+      }
+      return configuredApiURL || 'http://localhost:5000/api/v1';
+    }
+
+    if (configuredApiURL) return configuredApiURL;
+
     const hostname = window.location.hostname;
     
     // Overrides for localhost, loopbacks and emulators (Direct connection)
@@ -27,12 +46,13 @@ const getBaseURL = () => {
   }
   
   // Server-side default
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+  return getConfiguredApiURL() || 'http://localhost:5000/api/v1';
 };
 
 const api = axios.create({
   baseURL: getBaseURL(),
   timeout: 300000, // Increased to 5 minutes for large file uploads (100MB)
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -41,6 +61,10 @@ const api = axios.create({
 // Correctly derive origin for asset normalization
 const getApiOrigin = () => {
   if (typeof window !== 'undefined') {
+    if (Capacitor.isNativePlatform()) {
+      return stripApiPath(getBaseURL());
+    }
+
     const isLocal = window.location.hostname === 'localhost' ||
                    window.location.hostname === '127.0.0.1' ||
                    window.location.hostname === '10.0.2.2';
@@ -77,30 +101,14 @@ const normalizeAssetUrls = (value) => {
 };
 
 // Interceptor to attach JWT token and normalize URLs
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   // Normalize URL to ensure it doesn't conflict with baseURL
   if (config.url?.startsWith('/')) {
     config.url = config.url.substring(1);
   }
 
   if (typeof window !== 'undefined') {
-    let token = null;
-
-    // 1. Try to get token from localStorage directly to avoid circular dependency with the store
-    try {
-      const stored = localStorage.getItem('aura-auth-storage');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        token = parsed?.state?.token;
-      }
-    } catch (e) {
-      console.error('[API Interceptor] Failed to parse auth storage:', e);
-    }
-
-    // 2. Fallback to legacy key
-    if (!token) {
-      token = localStorage.getItem('aura_token');
-    }
+    const token = await getStoredAuthToken();
     
     if (token && token !== 'undefined' && token !== 'null' && token !== '') {
       config.headers.Authorization = `Bearer ${token}`;
