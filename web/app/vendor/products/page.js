@@ -24,7 +24,7 @@ export default function VendorProductsPage() {
   const [mounted, setMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('table');
   const itemsPerPage = viewMode === 'grid' ? 12 : 20;
 
   const fetchProducts = async () => {

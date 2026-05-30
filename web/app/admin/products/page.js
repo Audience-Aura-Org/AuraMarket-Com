@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Package, Search, Loader2, Ban, Eye, Building2, MoreVertical, Star, CheckCircle, Trash2, RefreshCw } from 'lucide-react';
+import { Package, Search, Loader2, Eye, Building2, Star, CheckCircle, Trash2, RefreshCw } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -148,81 +148,90 @@ export default function AdminProductsPage() {
             </div>
           ) : (
             <div className="space-y-12">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 min-h-[600px]">
-                {currentProducts.map(p => {
-                  const statusClass = p.status === 'active' ? 'bg-emerald-500/80 text-white border-emerald-400' : p.status === 'pending' ? 'bg-amber-500/80 text-white border-amber-400' : 'bg-rose-500/80 text-white border-rose-400';
-                  const isSelected = selectedIds.includes(p._id);
-                  
-                  return (
-                    <div key={p._id} className={`p-6 lg:p-8 glass-panel border rounded-[32px] lg:rounded-[48px] group transition-all flex flex-col h-fit relative overflow-hidden shadow-sm hover:shadow-xl shrink-0 ${isSelected ? 'bg-[var(--accent)]/5 border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/50 hover:border-[var(--accent)]/40'}`}>
-                      <button 
-                        onClick={() => toggleSelect(p._id)}
-                        className={`absolute top-6 left-6 z-20 size-8 rounded-2xl border flex items-center justify-center transition-all ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-white/10 backdrop-blur-md border-white/20 text-transparent opacity-0 group-hover:opacity-100'}`}
-                      >
-                         <CheckCircle className="size-4 text-white" />
-                      </button>
+              <div className="glass-panel overflow-x-auto rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/45 shadow-2xl">
+                <table className="w-full min-w-[980px] text-left">
+                  <thead className="bg-[var(--bg-secondary)]/60">
+                    <tr className="border-b border-[var(--glass-border)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/60">
+                      <th className="px-5 py-4">Select</th>
+                      <th className="px-5 py-4">Product</th>
+                      <th className="px-5 py-4">Vendor</th>
+                      <th className="px-5 py-4 text-right">Price</th>
+                      <th className="px-5 py-4 text-center">Rating</th>
+                      <th className="px-5 py-4 text-center">Status</th>
+                      <th className="px-5 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--glass-border)]">
+                    {currentProducts.map(p => {
+                      const statusClass = p.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : p.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+                      const isSelected = selectedIds.includes(p._id);
 
-                      <div className="aspect-[1.5] lg:aspect-[1.6] rounded-[24px] lg:rounded-[32px] overflow-hidden border border-[var(--glass-border)] mb-6 lg:mb-8 bg-[var(--bg-secondary)]/50 relative shadow-inner shrink-0 text-white">
-                        <img src={p.images?.[0]?.url || '/placeholder.png'} className="size-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
-                        <div className="absolute top-3 right-3 lg:top-4 lg:right-4 flex gap-2">
-                          <span className={'px-3 lg:px-4 py-1 lg:py-1.5 rounded-full text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold tracking-tight border backdrop-blur-md shadow-2xl ' + statusClass}>
-                            {p.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 flex flex-col">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-base lg:text-xl  font-bold tracking-tight  group-hover:text-[var(--accent)] transition-colors truncate">{p.name}</h4>
-                          <Link href={'/p/' + p._id} className="size-9 lg:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all shrink-0">
-                            <Eye className="size-4 lg:size-5" />
-                          </Link>
-                        </div>
-
-                        <p className="text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)] mb-4 lg:mb-6 flex items-center gap-2 opacity-70">
-                          <Building2 className="size-3 lg:size-3.5" /> {p.vendor_id?.store_name}
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-3 lg:gap-4 mb-6 lg:mb-8">
-                          <div className="p-3 lg:p-4 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-center shadow-inner">
-                            <p className="text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1 opacity-40 ">Price Node</p>
-                            <p className="text-xs lg:text-sm  font-bold text-[var(--text-primary)]">{p.price?.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-40">XAF</span></p>
-                          </div>
-                          <div className="p-3 lg:p-4 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] text-center shadow-inner">
-                            <p className="text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1 opacity-40 ">Rating Node</p>
-                            <div className="flex items-center justify-center gap-1">
-                              <Star className="size-2.5 lg:size-3 text-amber-500 fill-amber-500" />
-                              <span className="text-[10px] lg:text-[12px] lg:text-[11px] lg:text-[12px]  font-semibold">{p.rating || '0.0'}</span>
+                      return (
+                        <tr key={p._id} className={`transition-colors hover:bg-[var(--bg-secondary)]/35 ${isSelected ? 'bg-[var(--accent)]/5' : ''}`}>
+                          <td className="px-5 py-4">
+                            <button
+                              onClick={() => toggleSelect(p._id)}
+                              className={`size-6 rounded-lg border flex items-center justify-center transition-all ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-transparent'}`}
+                            >
+                              <CheckCircle className="size-3.5" />
+                            </button>
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-12 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+                                <img src={p.images?.[0]?.url || '/placeholder.png'} className="size-full object-cover" alt="" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="max-w-[260px] truncate text-sm font-bold text-[var(--text-primary)]">{p.name}</p>
+                                <p className="text-[10px] font-semibold text-[var(--text-secondary)]/45">{p.category || 'Uncategorized'}</p>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 lg:gap-4 pt-4 lg:pt-6 border-t border-[var(--glass-border)]/50">
-                        {p.status !== 'active' ? (
-                          <button
-                            onClick={() => handleStatusUpdate(p._id, 'active')}
-                            className="flex-1 h-12 lg:h-14 rounded-xl lg:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500  font-semibold text-[10px] lg:text-[12px] lg:text-[10px] lg:text-[12px] tracking-tight  hover:bg-emerald-500 hover:text-white transition-all shadow-xl shadow-emerald-500/5 flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle className="size-4" />
-                            Authorize Asset
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleStatusUpdate(p._id, 'rejected')}
-                            className="flex-1 h-12 lg:h-14 rounded-xl lg:rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500  font-semibold text-[10px] lg:text-[12px] lg:text-[10px] lg:text-[12px] tracking-tight  hover:bg-rose-500 hover:text-white transition-all shadow-xl shadow-rose-500/5 flex items-center justify-center gap-2"
-                          >
-                            <Ban className="size-4" />
-                            Suspend Asset
-                          </button>
-                        )}
-                        <button className="size-12 lg:size-14 rounded-xl lg:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all shadow-sm">
-                          <MoreVertical className="size-5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-secondary)]">
+                              <Building2 className="size-3.5 text-[var(--accent)]" />
+                              {p.vendor_id?.store_name || 'Unknown vendor'}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-right text-sm font-bold">{p.price?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]/45">XAF</span></td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-center gap-1 text-xs font-semibold">
+                              <Star className="size-3 text-amber-500 fill-amber-500" />
+                              {p.rating || '0.0'}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-center">
+                            <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${statusClass}`}>
+                              {p.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link href={'/products/' + p._id} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all">
+                                <Eye className="size-4" />
+                              </Link>
+                              {p.status !== 'active' ? (
+                                <button
+                                  onClick={() => handleStatusUpdate(p._id, 'active')}
+                                  className="h-9 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
+                                >
+                                  Authorize
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleStatusUpdate(p._id, 'rejected')}
+                                  className="h-9 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 text-[10px] font-bold text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
+                                >
+                                  Suspend
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
 
               <Pagination

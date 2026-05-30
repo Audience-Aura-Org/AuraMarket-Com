@@ -373,21 +373,21 @@ export default function OnboardingFlow() {
       </header>
 
       {/* Step Title */}
-      <div className="shrink-0 pt-6 pb-4 px-4 md:pt-8 md:pb-6 md:px-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className={`size-12 md:size-14 rounded-xl md:rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
-              {currentStepMeta && <currentStepMeta.icon className={`size-6 ${colors.text}`} />}
+      <div className="shrink-0 pt-6 pb-5 px-4 md:pt-10 md:pb-8 md:px-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className={`size-12 md:size-16 rounded-xl md:rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
+              {currentStepMeta && <currentStepMeta.icon className={`size-6 md:size-7 ${colors.text}`} />}
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl  font-bold tracking-tight">{currentStepMeta?.title}</h1>
-              <p className={`text-[10px] lg:text-[12px] md:text-xs  font-semibold ${colors.text} opacity-80`}>{currentStepMeta?.subtitle}</p>
+            <div className="space-y-1.5 md:space-y-2">
+              <h1 className="text-xl md:text-3xl font-bold tracking-tight leading-tight">{currentStepMeta?.title}</h1>
+              <p className={`text-[11px] md:text-sm font-semibold ${colors.text} opacity-80 leading-relaxed`}>{currentStepMeta?.subtitle}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-6 md:px-6 md:py-4 md:space-y-8 pb-32">
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-6 md:px-6 md:py-5 md:space-y-8 pb-32">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4">
@@ -410,7 +410,7 @@ export default function OnboardingFlow() {
               </div>
 
               {/* High-Density Rectangular Category Blocks */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                 {categoriesToShow.map(cat => {
                   const sel = selectedCategories.includes(cat._id);
                   return (
