@@ -7,7 +7,7 @@ import {
   Users, Heart, MapPin, CheckCircle2, 
   ArrowRight, ArrowLeft, Loader2, Store, 
   LayoutGrid, Check, Search, SkipForward, Globe,
-  Phone, Sparkles, Zap, Star, ChevronRight, ShieldCheck, Plus
+  Phone, Sparkles, Zap, Star, ChevronRight, ShieldCheck, Plus, Truck
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -29,6 +29,14 @@ const VENDOR_STEPS = [
   { id: 'location', title: 'Pickup Base', subtitle: 'City & zone for logistics', icon: MapPin, color: 'emerald' },
   { id: 'done', title: 'Go Live!', subtitle: 'Launch your store', icon: Sparkles, color: 'accent' },
 ];
+
+const LOGISTICS_STEPS = [
+  { id: 'profile', title: 'Carrier Profile', subtitle: 'Company, phone & fleet', icon: Truck, color: 'amber' },
+  { id: 'regions', title: 'Service Regions', subtitle: 'Pick your operating cities', icon: MapPin, color: 'emerald' },
+  { id: 'done', title: 'Ready to Deliver', subtitle: 'Enter logistics dashboard', icon: Sparkles, color: 'accent' },
+];
+
+const VEHICLE_TYPES = ['motorcycle', 'car', 'van', 'truck'];
 
 const COLOR_MAP = {
   blue: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', glow: 'shadow-blue-500/20' },
@@ -62,9 +70,15 @@ export default function OnboardingFlow() {
   const [phone, setPhone] = useState('');
   const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(30);
   const [vendorProfile, setVendorProfile] = useState({ store_name: '', description: '' });
+  const [logisticsProfile, setLogisticsProfile] = useState({
+    company_name: '',
+    service_regions: [],
+    vehicle_types: ['motorcycle'],
+  });
 
   const isVendor = user?.role === 'vendor';
-  const STEPS_ACTIVE = isVendor ? VENDOR_STEPS : STEPS;
+  const isLogistics = user?.role === 'logistics';
+  const STEPS_ACTIVE = isLogistics ? LOGISTICS_STEPS : isVendor ? VENDOR_STEPS : STEPS;
   const currentStepMeta = STEPS_ACTIVE[step];
   const colors = COLOR_MAP[currentStepMeta?.color || 'accent'];
 
@@ -80,13 +94,22 @@ export default function OnboardingFlow() {
   useEffect(() => {
     if (!user) return;
 
-    // Eject non-customer roles immediately (Admins and Logistics)
+    // Eject admins immediately. Logistics now completes setup here.
     // Vendors only get ejected if they have already onboarded AND are not forcing onboarding
     const role = user.role?.toLowerCase();
-    if (role === 'admin' || role === 'logistics') {
+    if (role === 'admin') {
       console.warn('[Onboarding] Professional role detected, ejecting to dashboard:', role);
-      const dashboard = role === 'admin' ? '/admin/dashboard' : '/logistics/dashboard';
-      router.replace(dashboard);
+      router.replace('/admin/dashboard');
+      return;
+    }
+
+    if (role === 'logistics' && user.onboarded) {
+      router.replace('/logistics/dashboard');
+      return;
+    }
+
+    if (role === 'logistics') {
+      setFetching(false);
       return;
     }
 
@@ -135,7 +158,7 @@ export default function OnboardingFlow() {
         const hasCategories = (user.liked_categories?.length || 0) >= 2;
         const hasLocation = !!user.onboarding_location?.city;
         const hasPhone = !!user.phone;
-        if (!isVendor && hasFollows && hasCategories && hasLocation && hasPhone) {
+        if (!isVendor && !isLogistics && hasFollows && hasCategories && hasLocation && hasPhone) {
           router.replace('/discovery');
         }
       } catch (err) {
@@ -146,11 +169,11 @@ export default function OnboardingFlow() {
     };
 
     fetchInitData();
-  }, [user, isVendor, router]);
+  }, [user, isVendor, isLogistics, router]);
 
-  // Defer zones fetch until relevant step (Location is now step 1 for customers, step 2 for vendors)
+  // Defer zones fetch until relevant step
   useEffect(() => {
-    const locationStep = isVendor ? 2 : 1;
+    const locationStep = isLogistics ? 1 : isVendor ? 2 : 1;
     if (step === locationStep && zones.length === 0 && !zonesLoading) {
       setZonesLoading(true);
       api.get('/logistics/zones')
@@ -158,7 +181,7 @@ export default function OnboardingFlow() {
         .catch(() => toast.error('Failed to load zones.'))
         .finally(() => setZonesLoading(false));
     }
-  }, [step, zones.length, zonesLoading, isVendor]);
+  }, [step, zones.length, zonesLoading, isVendor, isLogistics]);
 
   const handleToggleFollow = useCallback(async (vId) => {
     const isFollowing = followedVendors.includes(vId);
@@ -204,6 +227,11 @@ export default function OnboardingFlow() {
         return toast.error('Select at least 2 categories.');
       if (step === 2 && (!location.city || !location.quartier)) 
         return toast.error('City and zone are required.');
+    } else if (isLogistics) {
+      if (step === 0 && (!logisticsProfile.company_name || !phone || logisticsProfile.vehicle_types.length === 0))
+        return toast.error('Company name, phone and fleet type are required.');
+      if (step === 1 && logisticsProfile.service_regions.length < 1)
+        return toast.error('Select at least 1 service region.');
     } else {
       // Customer steps: Categories (0) -> Location (1) -> Vendors (2)
       if (step === 0 && selectedCategories.length < 2) 
@@ -235,6 +263,19 @@ export default function OnboardingFlow() {
         if (res.data.success) {
           if (res.data.data?.user) updateUser(res.data.data.user);
           router.push('/vendor/dashboard');
+        }
+      } else if (isLogistics) {
+        const res = await api.post('/logistics/onboard', {
+          company_name: logisticsProfile.company_name,
+          contact_email: user.email,
+          contact_phone: phone,
+          service_regions: logisticsProfile.service_regions,
+          vehicle_types: logisticsProfile.vehicle_types,
+        });
+        if (res.data.success) {
+          const me = await api.get('/auth/me').catch(() => null);
+          if (me?.data?.data?.user) updateUser(me.data.data.user);
+          router.push('/logistics/dashboard');
         }
       } else {
         const res = await api.patch('/users/onboarding', {
@@ -316,7 +357,7 @@ export default function OnboardingFlow() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!isLastStep && step < 3 && (
+            {!isLastStep && !isVendor && !isLogistics && (
               <button 
                 onClick={skip} 
                 className="px-3 py-1.5 rounded-lg text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)] hover:opacity-70 transition-all flex items-center gap-1.5"
@@ -348,7 +389,7 @@ export default function OnboardingFlow() {
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-6 md:px-6 md:py-4 md:space-y-8 pb-32">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
-          {((!isVendor && step === 0) || (isVendor && step === 1)) && (
+          {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
@@ -412,7 +453,7 @@ export default function OnboardingFlow() {
           )}
 
           {/* ── Step: Location (Customers: Step 1, Vendors: Step 2) ── */}
-          {((!isVendor && step === 1) || (isVendor && step === 2)) && (
+          {((!isVendor && !isLogistics && step === 1) || (isVendor && step === 2)) && (
             <div className="space-y-4 max-w-md mx-auto w-full">
               {!isVendor && (
                 <div className="group relative">
@@ -504,7 +545,7 @@ export default function OnboardingFlow() {
           )}
 
           {/* ── Step: Vendors (Customers Step 2) ── */}
-          {!isVendor && step === 2 && (
+          {!isVendor && !isLogistics && step === 2 && (
              <div className="space-y-4">
                {/* Search Vendors */}
                <div className="relative">
@@ -622,7 +663,114 @@ export default function OnboardingFlow() {
 
 
           {/* ── Step 3: Classy / All Set ── */}
-          {step === 3 && (
+          {isLogistics && step === 0 && (
+            <div className="space-y-5 max-w-md mx-auto">
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-3 block">Company Name</label>
+                  <div className="relative flex items-center">
+                    <Truck className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Auradime Express"
+                      value={logisticsProfile.company_name}
+                      onChange={e => setLogisticsProfile(p => ({ ...p, company_name: e.target.value }))}
+                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Dispatch Phone</label>
+                  <div className="relative flex items-center">
+                    <Phone className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                    <input
+                      type="tel"
+                      placeholder="+237 6XX XXX XXX"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60 px-1">Fleet Type</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {VEHICLE_TYPES.map(type => {
+                    const selected = logisticsProfile.vehicle_types.includes(type);
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setLogisticsProfile(p => ({
+                          ...p,
+                          vehicle_types: selected
+                            ? p.vehicle_types.filter(item => item !== type)
+                            : [...p.vehicle_types, type],
+                        }))}
+                        className={`p-4 rounded-2xl border text-left transition-all ${selected ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-[var(--bg-primary)]/40 border-white/10 text-[var(--text-secondary)] hover:border-amber-500/30'}`}
+                      >
+                        <span className="block text-sm font-bold capitalize">{type}</span>
+                        <span className="block text-[10px] opacity-50 mt-1">Available for delivery</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isLogistics && step === 1 && (
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
+                <input
+                  type="text"
+                  placeholder="Filter service regions..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(search ? cities.filter(z => z.name?.toLowerCase().includes(search.toLowerCase())) : cities).map(region => {
+                  const selected = logisticsProfile.service_regions.includes(region.name);
+                  return (
+                    <button
+                      key={region._id}
+                      type="button"
+                      onClick={() => setLogisticsProfile(p => ({
+                        ...p,
+                        service_regions: selected
+                          ? p.service_regions.filter(item => item !== region.name)
+                          : [...p.service_regions, region.name],
+                      }))}
+                      className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${selected ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-[var(--bg-primary)]/40 border-white/10 text-[var(--text-primary)] hover:border-emerald-500/30'}`}
+                    >
+                      <span className="text-sm font-bold">{region.name}</span>
+                      {selected ? <Check className="size-4" /> : <MapPin className="size-4 opacity-30" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {zonesLoading && (
+                <div className="flex items-center justify-center gap-3 py-8 text-xs font-bold opacity-50">
+                  <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
+                  Loading service regions...
+                </div>
+              )}
+            </div>
+          )}
+
+          {isLastStep && (
             <div className="space-y-12 max-w-md mx-auto text-center py-10">
               {/* Refined Header */}
               <div className="space-y-4">
@@ -641,11 +789,11 @@ export default function OnboardingFlow() {
                 <div className="group flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-white/5 backdrop-blur-xl transition-all hover:border-[var(--accent)]/20">
                    <div className="flex items-center gap-4">
                       <div className="size-10 rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)]">
-                         {isVendor ? <Store className="size-5" /> : <Users className="size-5" />}
+                         {isLogistics ? <Truck className="size-5" /> : isVendor ? <Store className="size-5" /> : <Users className="size-5" />}
                       </div>
                       <div className="text-left">
                          <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-normal opacity-40">Primary Identity</p>
-                         <p className="text-sm font-medium">{isVendor ? vendorProfile.store_name : `${followedVendors.length} vendors followed`}</p>
+                         <p className="text-sm font-medium">{isLogistics ? logisticsProfile.company_name : isVendor ? vendorProfile.store_name : `${followedVendors.length} vendors followed`}</p>
                       </div>
                    </div>
                    <Check className="size-4 text-[var(--accent)] opacity-40" />
@@ -654,11 +802,11 @@ export default function OnboardingFlow() {
                 <div className="group flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-white/5 backdrop-blur-xl transition-all hover:border-[var(--accent)]/20">
                    <div className="flex items-center gap-4">
                       <div className="size-10 rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)]">
-                         <Heart className="size-5" />
+                         {isLogistics ? <Truck className="size-5" /> : <Heart className="size-5" />}
                       </div>
                       <div className="text-left">
-                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-normal opacity-40">Discovery Filters</p>
-                         <p className="text-sm font-medium">{selectedCategories.length} categories selected</p>
+                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-normal opacity-40">{isLogistics ? 'Fleet Types' : 'Discovery Filters'}</p>
+                         <p className="text-sm font-medium">{isLogistics ? logisticsProfile.vehicle_types.join(', ') : `${selectedCategories.length} categories selected`}</p>
                       </div>
                    </div>
                    <Check className="size-4 text-[var(--accent)] opacity-40" />
@@ -671,7 +819,7 @@ export default function OnboardingFlow() {
                       </div>
                       <div className="text-left">
                          <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-normal opacity-40">Service Zone</p>
-                         <p className="text-sm font-medium">{location.city || 'Global'}{location.quartier ? `, ${location.quartier}` : ''}</p>
+                         <p className="text-sm font-medium">{isLogistics ? `${logisticsProfile.service_regions.length} regions selected` : `${location.city || 'Global'}${location.quartier ? `, ${location.quartier}` : ''}`}</p>
                       </div>
                    </div>
                    <Check className="size-4 text-[var(--accent)] opacity-40" />
@@ -686,7 +834,7 @@ export default function OnboardingFlow() {
                   className="w-full py-4 rounded-xl font-bold text-sm tracking-tight shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-white"
                   style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)' }}
                 >
-                  {loading ? <Loader2 className="size-3.5 animate-spin" /> : 'Enter the Marketplace'}
+                  {loading ? <Loader2 className="size-3.5 animate-spin" /> : 'Enter Auradime'}
                   {!loading && <ArrowRight className="size-4" />}
                 </button>
               </div>
@@ -695,7 +843,7 @@ export default function OnboardingFlow() {
         </div>
 
       {/* High-Density Navigation Footer  */}
-      {step < 3 && (
+      {!isLastStep && (
         <div className="fixed bottom-0 left-0 right-0 z-40 p-6 sm:p-8 pointer-events-none">
           <div className="max-w-md mx-auto flex items-center gap-4 pointer-events-auto">
             {/* Primary Action Button */}
@@ -704,7 +852,7 @@ export default function OnboardingFlow() {
               className="w-full py-3.5 rounded-xl font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
               style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
             >
-              {step === 2 ? 'Final Review' : 'Continue'}
+              {step === STEPS_ACTIVE.length - 2 ? 'Final Review' : 'Continue'}
               <ArrowRight className="size-3.5" />
             </button>
           </div>

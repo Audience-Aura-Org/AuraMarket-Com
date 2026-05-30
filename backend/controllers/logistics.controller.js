@@ -35,7 +35,24 @@ const onboardLogistics = async (req, res, next) => {
 
     const existingFirm = await LogisticsCompany.findOne({ user_id: req.user._id });
     if (existingFirm) {
-      return res.status(400).json({ success: false, message: 'Logistics profile already exists.' });
+      existingFirm.company_name = company_name;
+      existingFirm.contact_email = contact_email;
+      existingFirm.contact_phone = contact_phone;
+      existingFirm.service_regions = service_regions;
+      existingFirm.vehicle_types = vehicle_types;
+      await existingFirm.save();
+
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { onboarded: true },
+        { returnDocument: 'after' }
+      ).select('-password -password_hash -deletedAt -tokenVersion');
+
+      return res.status(200).json({
+        success: true,
+        message: 'Logistics profile updated.',
+        data: { company: existingFirm, user },
+      });
     }
 
     const company = await LogisticsCompany.create({
@@ -47,7 +64,13 @@ const onboardLogistics = async (req, res, next) => {
       vehicle_types,
     });
 
-    res.status(201).json({ success: true, message: 'Awaiting Admin verification.', data: { company } });
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { onboarded: true },
+      { returnDocument: 'after' }
+    ).select('-password -password_hash -deletedAt -tokenVersion');
+
+    res.status(201).json({ success: true, message: 'Awaiting Admin verification.', data: { company, user } });
   } catch (error) {
     next(error);
   }
