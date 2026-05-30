@@ -14,7 +14,22 @@ export default function LoginPage() {
 
       {/* Unified Auth Hub */}
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
-        <UnifiedAuth />
+        <div className="flex w-full flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="size-16 rounded-2xl bg-black p-3 shadow-2xl ring-1 ring-white/10">
+              <img src="/icon-512.png" alt="Aura Dime" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+                Aura<span className="text-[var(--accent)]">Dime</span>
+              </h1>
+              <p className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-60">
+                Secure email verification
+              </p>
+            </div>
+          </div>
+          <UnifiedAuth />
+        </div>
       </main>
     </div>
   );

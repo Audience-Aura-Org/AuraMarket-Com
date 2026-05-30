@@ -71,6 +71,41 @@ export default function AdminUsersPage() {
     } catch (err) { toast.error('Purge failed.'); }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (currentUsers.length === 0) return;
+    const currentIds = currentUsers.map(u => u._id);
+    const allSelected = currentIds.every(id => selectedIds.includes(id));
+    setSelectedIds(prev => allSelected
+      ? prev.filter(id => !currentIds.includes(id))
+      : [...new Set([...prev, ...currentIds])]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.includes(user?._id)) {
+      toast.error('You cannot purge your own active admin session.');
+      return;
+    }
+    if (!window.confirm(`PURGE ${selectedIds.length} identity nodes? This is IRREVERSIBLE.`)) return;
+    setBulkDeleting(true);
+    try {
+      const res = await api.post('/admin/users/bulk-delete', { ids: selectedIds });
+      if (res.data.success) {
+        toast.success(res.data.message || 'Identity nodes purged.');
+        setUsers(prev => prev.filter(u => !selectedIds.includes(u._id)));
+        setSelectedIds([]);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk purge failed.');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(search.toLowerCase()) || 
     u.email?.toLowerCase().includes(search.toLowerCase())
@@ -110,9 +145,19 @@ export default function AdminUsersPage() {
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
         <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-4">
-            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-               <Users className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
+            <button
+              onClick={toggleSelectAll}
+              title="Select visible users"
+              className={`size-10 md:size-12 rounded-2xl border flex items-center justify-center shadow-inner transition-all shrink-0 ${
+                currentUsers.length > 0 && currentUsers.every(u => selectedIds.includes(u._id))
+                  ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg'
+                  : 'bg-[var(--accent)]/10 border-[var(--accent)]/20 text-[var(--accent)]'
+              }`}
+            >
+              {currentUsers.length > 0 && currentUsers.every(u => selectedIds.includes(u._id))
+                ? <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
+                : <Users className="w-5 h-5 md:w-6 md:h-6" />}
+            </button>
             <div>
               <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Identity <span className="text-[var(--accent)]">Matrix</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
@@ -161,8 +206,23 @@ export default function AdminUsersPage() {
         ) : (
            <div className="space-y-3 min-h-[600px]">
               {currentUsers.map(u => (
-                <div key={u._id} className="group relative rounded-[2rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col p-4 md:p-6">
+                <div key={u._id} className={`group relative rounded-[2rem] border shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col p-4 md:p-6 ${
+                  selectedIds.includes(u._id)
+                    ? 'bg-[var(--accent)]/5 border-[var(--accent)]/60'
+                    : 'bg-[var(--bg-primary)]/40 border-[var(--glass-border)]'
+                }`}>
                   <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0">
+                    <button
+                      onClick={() => toggleSelect(u._id)}
+                      className={`size-8 rounded-xl border flex items-center justify-center transition-all shrink-0 ${
+                        selectedIds.includes(u._id)
+                          ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg'
+                          : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-transparent hover:text-[var(--text-secondary)]'
+                      }`}
+                      aria-label={`Select ${u.name || u.email}`}
+                    >
+                      <CheckCircle className="size-4" />
+                    </button>
                     <div className="size-12 md:size-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-500">
                       {u.avatar ? <img src={u.avatar} className="size-full object-cover" /> : <User className="size-6 md:size-7 opacity-20" />}
                     </div>
@@ -221,6 +281,37 @@ export default function AdminUsersPage() {
 
       {/* Edit Modal - Surgical Alignment */}
       <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-10 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-4 rounded-full border border-[var(--accent)]/30 bg-[var(--bg-primary)]/85 px-5 py-4 shadow-[0_25px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl md:px-8"
+          >
+            <div className="flex flex-col">
+              <span className="text-[11px] font-semibold tracking-tight text-[var(--accent)]">Batch Selection</span>
+              <span className="text-sm font-bold">{selectedIds.length} Identity Nodes</span>
+            </div>
+
+            <div className="flex items-center gap-2 md:gap-4">
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-4 py-2 rounded-xl text-[11px] font-semibold tracking-tight hover:bg-[var(--bg-secondary)] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="px-5 md:px-7 py-3 rounded-full bg-rose-500 text-white text-[11px] font-semibold tracking-tight hover:bg-rose-600 transition-all flex items-center gap-2 shadow-lg shadow-rose-500/30 disabled:opacity-50"
+              >
+                {bulkDeleting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                Purge
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {editingUser && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setEditingUser(null)} />
