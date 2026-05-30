@@ -1,16 +1,14 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Eye, Heart,
-  RefreshCw, Activity, Calendar, Clock, Zap, Flame, Shield, RotateCcw,
-  ShoppingBag
+  RefreshCw, Activity, Calendar, Clock, RotateCcw,
+  ShoppingBag, ImagePlus, BarChart3, TimerReset, Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/services/api';
 import socketService from '@/services/socket';
 import StatusCreator from './StatusCreator';
-import BlurUpImage from '@/components/common/BlurUpImage';
 import MediaThumbnail from '@/components/common/MediaThumbnail';
 import { toast } from 'react-hot-toast';
 
@@ -25,6 +23,11 @@ export default function StatusManager() {
   const [showCreator, setShowCreator] = useState(false);
   const [reshareTarget, setReshareTarget] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const now = new Date();
+  const activeStatuses = statuses.filter(s => new Date(s.expires_at) > now);
+  const archivedStatuses = statuses.filter(s => new Date(s.expires_at) <= now);
+  const totalViews = statuses.reduce((sum, status) => sum + Number(status.views_count || 0), 0);
+  const totalLikes = statuses.reduce((sum, status) => sum + Number(status.likes_count || 0), 0);
 
   const fetchMyStatuses = async () => {
     try {
@@ -72,51 +75,142 @@ export default function StatusManager() {
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700">
-      {/* Header Section */}
-      <section className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-0">
-        <div className="space-y-3">
-          <p className="text-[10px] md:text-[11px] font-bold tracking-[0.3em] text-[var(--accent)] uppercase opacity-80">Operational Management</p>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tighter text-[var(--text-primary)] leading-none">
-            Active <span className="opacity-40">Statuses</span>
-          </h2>
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto flex-wrap md:flex-nowrap">
-          <Link 
-            href="/vendor/products/add"
-            className="flex-1 md:flex-none border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-primary)] px-8 md:px-10 py-4 rounded-2xl font-bold text-[11px] md:text-xs tracking-tight hover:border-[var(--accent)]/40 hover:bg-[var(--bg-secondary)] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-sm"
-          >
-            <ShoppingBag className="size-4 text-[var(--accent)]" />
-            Add Product
-          </Link>
-          <button 
+    <div className="space-y-8 animate-in fade-in duration-700 pb-10">
+      <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 p-5 shadow-sm md:p-8">
+        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
+          <div className="flex flex-col justify-between gap-8">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--accent)]">
+                <Sparkles className="size-3.5" />
+                Aura Stories
+              </div>
+              <div className="space-y-3">
+                <h2 className="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-[var(--text-primary)] md:text-5xl">
+                  Share quick updates shoppers can tap through.
+                </h2>
+                <p className="max-w-2xl text-sm font-medium leading-6 text-[var(--text-secondary)] md:text-base">
+                  Post product drops, behind-the-scenes moments, restocks, and short promos. Stories stay live for 24 hours, then move into your archive.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4">
+                <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                  <Activity className="size-4" />
+                </div>
+                <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">{activeStatuses.length}</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">Live</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4">
+                <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <Eye className="size-4" />
+                </div>
+                <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">{totalViews}</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">Views</p>
+              </div>
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4">
+                <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+                  <Heart className="size-4 fill-current" />
+                </div>
+                <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">{totalLikes}</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">Likes</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
             onClick={() => { setReshareTarget(null); setShowCreator(true); }}
-            className="flex-1 md:flex-none bg-[var(--accent)] text-white px-8 md:px-10 py-4 rounded-2xl font-bold text-[11px] md:text-xs tracking-tight hover:opacity-90 transition-all flex items-center justify-center gap-3 shadow-xl shadow-[var(--accent)]/20 active:scale-95"
+            className="group flex min-h-[320px] flex-col justify-between overflow-hidden rounded-[2rem] border border-[var(--accent)]/25 bg-[var(--accent)] text-left text-white shadow-xl shadow-[var(--accent)]/20 transition-all hover:-translate-y-1 hover:shadow-2xl active:scale-[0.99]"
           >
-            <Plus className="size-4" />
-            Deploy New Story
+            <div className="flex items-start justify-between gap-4 p-6">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
+                <ImagePlus className="size-7" />
+              </div>
+              <span className="rounded-full bg-white/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] ring-1 ring-white/20">New</span>
+            </div>
+            <div className="space-y-4 p-6 pt-0">
+              <div>
+                <p className="text-3xl font-bold leading-tight tracking-tight md:text-4xl">Create a story</p>
+                <p className="mt-3 max-w-sm text-sm font-medium leading-6 text-white/75">
+                  Add a photo, video, or text update and link it to a product when it helps shoppers act faster.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-[var(--accent)] shadow-lg transition-transform group-hover:translate-x-1">
+                <Plus className="size-4" />
+                Start posting
+              </div>
+            </div>
           </button>
         </div>
       </section>
 
-      {/* Bento Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 px-4 md:px-0">
-        {/* Create Story Card */}
-        <div 
-          onClick={() => { setReshareTarget(null); setShowCreator(true); }}
-          className="group cursor-pointer aspect-[4/5] bg-[var(--bg-secondary)]/50 border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-6 rounded-[2.5rem] hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all duration-500 shadow-sm"
-        >
-          <div className="size-16 rounded-full border border-[var(--glass-border)] flex items-center justify-center group-hover:scale-110 group-hover:border-[var(--accent)] transition-all duration-500 bg-[var(--bg-primary)]/50">
-            <Plus className="size-8 text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" />
+      <section className="flex flex-col gap-3 rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 p-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+            <TimerReset className="size-5" />
           </div>
-          <span className="text-[10px] md:text-[11px] font-bold tracking-[0.25em] text-[var(--text-primary)] opacity-40 group-hover:opacity-100 transition-opacity uppercase">Initialize Story</span>
+          <div>
+            <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Story checklist</p>
+            <p className="text-xs font-medium text-[var(--text-secondary)]">Use clear media, short captions, and link products for faster checkout.</p>
+          </div>
+        </div>
+        <Link 
+          href="/vendor/products/add"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 px-5 py-3 text-xs font-bold text-[var(--text-primary)] transition-all hover:border-[var(--accent)]/40 active:scale-95"
+        >
+          <ShoppingBag className="size-4 text-[var(--accent)]" />
+          Add Product
+        </Link>
+      </section>
+
+      <section className="space-y-5">
+        <div className="flex items-end justify-between gap-4 px-1">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">Live now</p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight text-[var(--text-primary)]">Active stories</h3>
+          </div>
+          <button 
+            onClick={fetchMyStatuses}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] transition-all hover:text-[var(--accent)] active:scale-95"
+          >
+            <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
+        {loading ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(item => (
+              <div key={item} className="aspect-[4/5] animate-pulse rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]" />
+            ))}
+          </div>
+        ) : activeStatuses.length === 0 ? (
+          <div className="rounded-[2rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-primary)]/60 p-10 text-center">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+              <ImagePlus className="size-6" />
+            </div>
+            <p className="text-lg font-bold text-[var(--text-primary)]">No live stories yet</p>
+            <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-[var(--text-secondary)]">
+              Start with a product highlight, a customer favorite, or a quick update from your store.
+            </p>
+            <button
+              onClick={() => { setReshareTarget(null); setShowCreator(true); }}
+              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-3 text-xs font-bold text-white shadow-lg shadow-[var(--accent)]/20 active:scale-95"
+            >
+              <Plus className="size-4" />
+              Create Story
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
         {/* Active Status Cards */}
-        {statuses.filter(s => new Date(s.expires_at) > new Date()).map(status => {
+        {activeStatuses.map(status => {
           const timeLeft = Math.max(0, Math.floor((new Date(status.expires_at) - new Date()) / (1000 * 60 * 60)));
           return (
-            <div key={status._id} className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] transition-all hover:shadow-2xl">
+            <div key={status._id} className="group relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
               {/* Media Content */}
               {status.type === 'image' || status.type === 'video' ? (
                 <MediaThumbnail 
@@ -166,23 +260,31 @@ export default function StatusManager() {
             </div>
           );
         })}
+          </div>
+        )}
       </section>
 
       {/* Archive History */}
-      <section className="space-y-8 pt-12 px-4 md:px-0">
-        <div className="flex items-center gap-6">
-          <h3 className="text-xl md:text-2xl font-bold tracking-tighter text-[var(--text-primary)]">Archive <span className="opacity-30">History</span></h3>
-          <div className="h-px flex-grow bg-[var(--glass-border)] opacity-30" />
+      <section className="space-y-5 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/45 p-4 md:p-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">Past posts</p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight text-[var(--text-primary)]">Archive history</h3>
+          </div>
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+            <BarChart3 className="size-3.5 text-[var(--accent)]" />
+            {archivedStatuses.length} saved
+          </div>
         </div>
 
         <div className="space-y-4">
-          {statuses.filter(s => new Date(s.expires_at) <= new Date()).length === 0 ? (
-            <div className="py-12 text-center bg-[var(--bg-secondary)]/30 rounded-[2rem] border border-dashed border-[var(--glass-border)]">
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">No archival data</p>
+          {archivedStatuses.length === 0 ? (
+            <div className="rounded-[1.5rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 py-12 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-50">No archived stories yet</p>
             </div>
           ) : (
-            statuses.filter(s => new Date(s.expires_at) <= new Date()).map(status => (
-              <div key={status._id} className="bg-[var(--bg-primary)] p-4 rounded-3xl border border-[var(--glass-border)] flex flex-col md:flex-row md:items-center justify-between shadow-sm hover:shadow-xl transition-all duration-500 group gap-4 md:gap-0">
+            archivedStatuses.map(status => (
+              <div key={status._id} className="group flex flex-col justify-between gap-4 rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm transition-all duration-300 hover:shadow-lg md:flex-row md:items-center md:gap-0">
                 <div className="flex items-center gap-4">
                   <div className="size-16 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] shrink-0 shadow-inner border border-[var(--glass-border)]">
                     {status.content_url ? (

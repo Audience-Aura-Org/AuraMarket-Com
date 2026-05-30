@@ -31,6 +31,13 @@ const restoreIfExists = (from, to) => {
 };
 
 const moved = [];
+const assertNoAdminExport = () => {
+  const adminOut = join(root, 'out', 'admin');
+  if (existsSync(adminOut)) {
+    throw new Error('Capacitor build blocked: /admin routes were exported into the mobile bundle.');
+  }
+};
+
 const readLocalEnv = () => {
   const envPath = join(root, '.env.local');
   if (!existsSync(envPath)) return {};
@@ -80,6 +87,7 @@ try {
     console.error(result.error);
   }
   if (result.status !== 0) process.exitCode = result.status || 1;
+  if (result.status === 0) assertNoAdminExport();
 } finally {
   for (const [source, target] of moved.reverse()) {
     restoreIfExists(source, target);
