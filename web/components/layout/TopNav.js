@@ -15,6 +15,7 @@ const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: fal
 
 export default function TopNav() {
   const pathname = usePathname();
+  const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const router = useRouter();
   const { user } = useAuthStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -57,10 +58,13 @@ export default function TopNav() {
 
   // Hide on auth, admin, vendor, logistics, wallet, and full-screen chat pages
   if (
-    pathname?.startsWith('/chat') ||
-    pathname?.startsWith('/messages') ||
-    pathname === '/login' ||
-    pathname === '/register'
+    normalizedPath === '/' ||
+    normalizedPath.startsWith('/auth') ||
+    normalizedPath.startsWith('/chat') ||
+    normalizedPath.startsWith('/messages') ||
+    normalizedPath === '/login' ||
+    normalizedPath === '/register' ||
+    normalizedPath === '/onboarding'
   ) return null;
 
   const handleSearch = (e) => {
@@ -71,7 +75,7 @@ export default function TopNav() {
     }
   };
 
-  const hideSearchIcon = pathname === '/shop' || pathname === '/discovery' || pathname === '/stores';
+  const hideSearchIcon = normalizedPath === '/shop' || normalizedPath === '/discovery' || normalizedPath === '/stores';
 
   return (
     <header className="sticky top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-all duration-300 dark:shadow-[0_10px_36px_-12px_rgba(0,0,0,0.12)]">

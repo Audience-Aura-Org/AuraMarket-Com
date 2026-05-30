@@ -3,6 +3,13 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.auradime.app"
     compileSdk = rootProject.ext.compileSdkVersion
+
+    def releaseStoreFilePath = System.getenv("AURA_RELEASE_STORE_FILE")
+    def releaseStorePassword = System.getenv("AURA_RELEASE_STORE_PASSWORD")
+    def releaseKeyAlias = System.getenv("AURA_RELEASE_KEY_ALIAS")
+    def releaseKeyPassword = System.getenv("AURA_RELEASE_KEY_PASSWORD")
+    def hasReleaseSigning = releaseStoreFilePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
     defaultConfig {
         applicationId "com.auradime.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -16,10 +23,35 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    buildTypes {
+    signingConfigs {
         release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFilePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            debuggable false
             minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    gradle.taskGraph.whenReady { graph ->
+        def releaseTasks = ['bundleRelease', 'assembleRelease', 'packageRelease']
+        def isReleaseBuild = graph.allTasks.any { task -> releaseTasks.contains(task.name) }
+        if (isReleaseBuild && !hasReleaseSigning) {
+            throw new GradleException('Release signing is required. Set AURA_RELEASE_STORE_FILE, AURA_RELEASE_STORE_PASSWORD, AURA_RELEASE_KEY_ALIAS, and AURA_RELEASE_KEY_PASSWORD before building for Play Store.')
         }
     }
 }

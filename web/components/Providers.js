@@ -27,10 +27,10 @@ const Footer = dynamic(() => import('@/components/layout/Footer'), { ssr: false 
 
 export default function Providers({ children }) {
   const pathname = usePathname();
+  const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // Show splash for at least 2s to ensure brand impact
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 2000);
@@ -38,16 +38,21 @@ export default function Providers({ children }) {
     return () => clearTimeout(timer);
   }, []);
   
-  const isDashboardRoute = pathname?.startsWith('/admin') || 
-                          pathname?.startsWith('/vendor') ||
-                          pathname?.startsWith('/logistics');
+  const isDashboardRoute = normalizedPath.startsWith('/admin') ||
+                          normalizedPath.startsWith('/vendor') ||
+                          normalizedPath.startsWith('/logistics');
 
-  const isAuthRoute = pathname?.startsWith('/auth') || pathname === '/onboarding';
+  const isAuthRoute =
+    normalizedPath === '/' ||
+    normalizedPath.startsWith('/auth') ||
+    normalizedPath === '/login' ||
+    normalizedPath === '/register' ||
+    normalizedPath === '/onboarding';
 
   /** Full-screen chat (WhatsApp-style) — hide storefront chrome so it doesn’t frame MessagingHub */
   const isImmersiveChat =
-    pathname === '/chat' ||
-    pathname === '/messages';
+    normalizedPath === '/chat' ||
+    normalizedPath === '/messages';
 
   const footerRoutes = [
     '/onboarding/pwa',
@@ -58,7 +63,7 @@ export default function Providers({ children }) {
     '/cookies',
     '/rules',
   ];
-  const showReducedFooter = footerRoutes.includes(pathname);
+  const showReducedFooter = footerRoutes.includes(normalizedPath);
   
   return (
     <ThemeProvider>
@@ -84,7 +89,7 @@ export default function Providers({ children }) {
           <OnboardingWatcher />
 
           {/* Dashboard routes render their own sidebar-aware mobile header. */}
-          {!isImmersiveChat && !isDashboardRoute && <TopNav />}
+          {!isImmersiveChat && !isDashboardRoute && !isAuthRoute && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
             <main className="flex-1 flex flex-col min-w-0">
