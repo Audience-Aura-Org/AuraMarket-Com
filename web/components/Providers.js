@@ -28,19 +28,24 @@ const Footer = dynamic(() => import('@/components/layout/Footer'), { ssr: false 
 export default function Providers({ children }) {
   const pathname = usePathname();
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
-  const [showSplash, setShowSplash] = useState(true);
+  const isDashboardRoute = normalizedPath.startsWith('/admin') ||
+                          normalizedPath.startsWith('/vendor') ||
+                          normalizedPath.startsWith('/logistics');
+  const [showSplash, setShowSplash] = useState(!isDashboardRoute);
 
   useEffect(() => {
+    if (isDashboardRoute) {
+      setShowSplash(false);
+      return undefined;
+    }
+
+    setShowSplash(true);
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
-  
-  const isDashboardRoute = normalizedPath.startsWith('/admin') ||
-                          normalizedPath.startsWith('/vendor') ||
-                          normalizedPath.startsWith('/logistics');
+  }, [isDashboardRoute, normalizedPath]);
 
   const isAuthRoute =
     normalizedPath === '/' ||

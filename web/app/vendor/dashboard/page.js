@@ -4,10 +4,22 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import api from '@/services/api';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import StatCard from '@/components/layout/StatCard';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Sparkles, ArrowRight, RefreshCw, Search, Dashboard as DashboardIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  BarChart3,
+  Boxes,
+  CreditCard,
+  Eye,
+  Inbox,
+  PlusSquare,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  ShoppingBag,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
 
 export default function VendorDashboard() {
   const router = useRouter();
@@ -154,24 +166,6 @@ export default function VendorDashboard() {
   const totalSales = paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
   const recentPaid = paidOrders.slice(0, 5).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
 
-  const stats = [
-    { label: 'Total Sales', value: `${totalSales.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedOrders.length} done`, sub: `+${recentPaid.toLocaleString()} recent` },
-    { label: 'Open Orders', value: String(openOrders.length || 0), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.order_status === 'processing').length} processing` },
-    { label: 'Inventory', value: String(products.length || 0), icon: 'category', color: 'blue', pct: `${products.filter((p) => Number(p.stock || 0) > 0).length} in stock`, sub: `${products.filter(p => Number(p.stock || 0) === 0).length} out of stock` },
-    { label: 'Wallet Balance', value: `${walletBalance.toLocaleString()} XAF`, icon: 'account_balance_wallet', color: 'purple', pct: null, sub: `${pendingEscrow.toLocaleString()} in escrow` },
-  ];
-
-  const colorMap = {
-    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', bar: 'bg-emerald-500', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-600', glow: '#10b981', w: '70%' },
-    primary: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: 'bg-[var(--accent)]', badgeBg: 'bg-[var(--accent)]/10', badgeText: 'text-[var(--accent)]', glow: 'var(--accent)', w: '55%' },
-    blue: { bg: 'bg-indigo-600/10', text: 'text-indigo-600', bar: 'bg-indigo-600', badgeBg: 'bg-indigo-600/10', badgeText: 'text-indigo-600', glow: '#4f46e5', w: '85%' },
-    purple: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: '', badgeBg: '', badgeText: '', glow: 'var(--accent)', w: '60%' },
-  };
-
-  if (loading) {
-    return <LoadingSpinner fullScreen />;
-  }
-
   if (!mounted) return null;
 
     // Calculate monthly sales data for the chart
@@ -218,15 +212,15 @@ export default function VendorDashboard() {
             <button 
               onClick={handleRefresh} 
               className="absolute right-4 top-5 md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95 disabled:opacity-50"
-              disabled={loading}
+               disabled={loading}
             >
-               <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin' : ''}`}>refresh</span>
+               <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
 
           <div className="flex items-center gap-4 w-full md:w-auto">
             <div className="relative flex-1 group md:w-80">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-lg opacity-20">search</span>
+              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-20" />
               <input 
                 className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all" 
                 placeholder="Find anything..." 
@@ -307,7 +301,7 @@ export default function VendorDashboard() {
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
               <div className="flex items-center justify-between">
                 <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
-                  <span className="material-symbols-outlined text-xl">payments</span>
+                  <CreditCard className="size-5" />
                 </div>
                 <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Revenue</span>
               </div>
@@ -326,7 +320,7 @@ export default function VendorDashboard() {
               <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
               <div className="flex items-center justify-between">
                 <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
-                  <span className="material-symbols-outlined text-xl">shopping_bag</span>
+                  <ShoppingBag className="size-5" />
                 </div>
                 <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
               </div>
@@ -345,7 +339,7 @@ export default function VendorDashboard() {
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
               <div className="flex items-center justify-between">
                 <div className="size-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 border border-indigo-600/20 shrink-0">
-                  <span className="material-symbols-outlined text-xl">category</span>
+                  <Boxes className="size-5" />
                 </div>
                 {products.filter(p => Number(p.stock || 0) <= 5).length > 0 && (
                   <span className="text-[10px] font-medium tracking-wide text-rose-500/90">
@@ -368,7 +362,7 @@ export default function VendorDashboard() {
               <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
               <div className="flex items-center justify-between">
                 <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
-                  <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
+                  <Wallet className="size-5" />
                 </div>
                 <Link href="/vendor/wallet" className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70 transition-colors hover:text-[var(--accent)] hover:opacity-100">
                   Withdraw
@@ -390,7 +384,7 @@ export default function VendorDashboard() {
             {/* Icon + Text — centered on mobile, left on desktop */}
             <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-3 md:gap-4 w-full md:w-auto">
               <div className="size-14 md:size-12 rounded-2xl bg-[var(--accent)]/15 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/25 shadow-lg shadow-[var(--accent)]/10 shrink-0">
-                <span className="material-symbols-outlined text-2xl">auto_awesome</span>
+                <Sparkles className="size-6" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Aura Stories Manager</h3>
@@ -400,11 +394,11 @@ export default function VendorDashboard() {
             {/* Buttons — full-width centered on mobile, auto on desktop */}
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
               <Link href="/vendor/products/add" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-full text-[12px] font-semibold tracking-tight hover:border-[var(--accent)]/50 transition-all">
-                <span className="material-symbols-outlined text-lg">add_box</span>
+                <PlusSquare className="size-4" />
                 Add Product
               </Link>
               <Link href="/vendor/stories" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[12px] font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/25 hover:scale-105 active:scale-95 transition-all">
-                <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                <Sparkles className="size-4" />
                 Launch Story Hub
               </Link>
             </div>
@@ -474,7 +468,7 @@ export default function VendorDashboard() {
                 ))}
                 {orders.length === 0 && (
                   <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-30 py-10 text-center">
-                    <span className="material-symbols-outlined text-4xl mb-2">inbox</span>
+                    <Inbox className="mb-2 size-10" />
                     <p className="text-[11px] font-bold tracking-[0.2em] uppercase">No Activity</p>
                   </div>
                 )}
@@ -537,7 +531,7 @@ export default function VendorDashboard() {
                         <td className="px-6 py-4 text-sm font-bold text-[var(--text-primary)] tabular-nums">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</td>
                         <td className="px-6 py-4 text-right">
                           <Link href={`/vendor/orders?orderId=${order._id}`} className="size-8 rounded-lg bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                             <span className="material-symbols-outlined text-sm">visibility</span>
+                             <Eye className="size-4" />
                           </Link>
                         </td>
                       </tr>
@@ -547,7 +541,7 @@ export default function VendorDashboard() {
               </table>
               {orders.length === 0 && (
                 <div className="px-6 py-20 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-20 text-center">
-                  <span className="material-symbols-outlined text-6xl mb-4">analytics</span>
+                  <BarChart3 className="mb-4 size-14" />
                   <p className="text-[11px] font-bold tracking-[0.4em] uppercase">No orders yet</p>
                 </div>
               )}
@@ -592,7 +586,7 @@ export default function VendorDashboard() {
               })}
               {orders.length === 0 && (
                 <div className="p-20 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-20 text-center">
-                  <span className="material-symbols-outlined text-5xl mb-4">analytics</span>
+                  <BarChart3 className="mb-4 size-12" />
                   <p className="text-[11px] font-bold tracking-[0.3em] uppercase">No orders yet</p>
                 </div>
               )}
