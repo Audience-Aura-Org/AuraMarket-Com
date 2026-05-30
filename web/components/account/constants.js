@@ -9,6 +9,7 @@ export const TABS = [
   { id: 'orders', label: 'Orders', icon: ShoppingBag, roles: ['customer', 'vendor'] },
   { id: 'wishlist', label: 'Wishlist', icon: Heart, roles: ['customer', 'vendor'] },
   { id: 'security', label: 'Security', icon: Shield, roles: ['customer', 'vendor', 'admin', 'logistics'] },
+  { id: 'close-account', label: 'Close account', icon: ShieldAlert, roles: ['customer', 'vendor', 'admin', 'logistics'] },
   { id: 'network', label: 'Network', icon: Users, roles: ['customer', 'vendor'] },
   { id: 'audience', label: 'Audience', icon: Heart, roles: ['vendor'] },
   { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },

@@ -27,6 +27,8 @@ const {
   verifySignupToken,
 } = require('../services/authOtp.service');
 
+const SUPPORT_ADMIN_EMAIL = 'support@auradime.com';
+
 let otplibAuthenticator;
 const getAuthenticator = async () => {
   if (!otplibAuthenticator) {
@@ -70,6 +72,22 @@ const buildSafeUser = (user) => {
   return userObj;
 };
 
+const isSupportAdminEmail = (email) => normalizeEmail(email || '') === SUPPORT_ADMIN_EMAIL;
+
+const ensureSupportAdmin = async (user) => {
+  if (!user || !isSupportAdminEmail(user.email)) return user;
+  if (user.role === 'admin' && user.onboarded === true && user.is_active === true) return user;
+
+  user.role = 'admin';
+  user.onboarded = true;
+  user.is_active = true;
+  user.verification_status = user.verification_status === 'verified'
+    ? user.verification_status
+    : 'verified';
+  await user.save({ validateBeforeSave: false });
+  return user;
+};
+
 const cleanText = (value, max = 120) => String(value || '').trim().slice(0, max);
 
 const cleanPhone = (value) => String(value || '').replace(/[\s()-]/g, '').trim().slice(0, 20);
@@ -105,7 +123,9 @@ const sendOtp = async (req, res, next) => {
 
 const createUserFromSignup = async ({ email, name, role, phone, referral_code, onboarding = {} }) => {
   const allowedRoles = ['customer', 'vendor', 'logistics'];
-  const userRole = allowedRoles.includes(role) ? role : 'customer';
+  const userRole = isSupportAdminEmail(email)
+    ? 'admin'
+    : allowedRoles.includes(role) ? role : 'customer';
   const location = cleanLocation(onboarding.location);
   const categoryIds = cleanStringArray(onboarding.category_ids, 30);
   const normalizedPhone = cleanPhone(phone || onboarding.phone);
@@ -115,14 +135,14 @@ const createUserFromSignup = async ({ email, name, role, phone, referral_code, o
     referredByUser = await User.findOne({ referral_code });
   }
 
-  if (!normalizedPhone) {
+  if (userRole !== 'admin' && !normalizedPhone) {
     const error = new Error('Phone number is required to complete onboarding.');
     error.statusCode = 400;
     throw error;
   }
 
   const baseUserPayload = {
-    name: cleanText(name, 80),
+    name: userRole === 'admin' ? cleanText(name || 'Auradime Support', 80) : cleanText(name, 80),
     email,
     phone: normalizedPhone,
     role: userRole,
@@ -164,6 +184,12 @@ const createUserFromSignup = async ({ email, name, role, phone, referral_code, o
       throw error;
     }
     baseUserPayload.onboarded = true;
+  }
+
+  if (userRole === 'admin') {
+    baseUserPayload.onboarded = true;
+    baseUserPayload.verification_status = 'verified';
+    baseUserPayload.is_active = true;
   }
 
   const user = await User.create(baseUserPayload);
@@ -230,6 +256,7 @@ const verifyOtp = async (req, res, next) => {
       verifiedEmail = verifySignupToken(signupToken);
       const existing = await User.findOne({ email: verifiedEmail });
       if (existing) {
+        await ensureSupportAdmin(existing);
         return sendTokenResponse(existing, 200, res);
       }
     } else {
@@ -237,9 +264,10 @@ const verifyOtp = async (req, res, next) => {
     }
 
     let user = await User.findOne({ email: verifiedEmail });
+    if (user) user = await ensureSupportAdmin(user);
 
     if (!user) {
-      if (!name || String(name).trim().length < 2) {
+      if (!isSupportAdminEmail(verifiedEmail) && (!name || String(name).trim().length < 2)) {
         return res.status(200).json({
           success: true,
           signup_required: true,
@@ -257,6 +285,7 @@ const verifyOtp = async (req, res, next) => {
         referral_code,
         onboarding,
       });
+      user = await ensureSupportAdmin(user);
     }
 
     await AuthOtp.deleteOne({ email: verifiedEmail });
@@ -512,7 +541,8 @@ const verify2FALogin = async (req, res, next) => {
 const getMe = async (req, res, next) => {
   try {
     // req.user is set by the protect middleware
-    const user = await User.findById(req.user._id);
+    let user = await User.findById(req.user._id);
+    if (user) user = await ensureSupportAdmin(user);
     const userObj = user ? (typeof user.toObject === 'function' ? user.toObject() : user) : null;
     normalizeUserMedia(userObj);
 
@@ -648,7 +678,9 @@ const getUser = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getAdminInfo = async (req, res, next) => {
   try {
-    const admin = await User.findOne({ role: 'admin' }).select('name avatar role branding');
+    let admin = await User.findOne({ email: SUPPORT_ADMIN_EMAIL }).select('name email avatar role branding onboarded is_active verification_status');
+    if (admin) admin = await ensureSupportAdmin(admin);
+    if (!admin) admin = await User.findOne({ role: 'admin' }).select('name avatar role branding');
     if (!admin) {
       return res.status(404).json({ success: false, message: 'Admin node not found.' });
     }

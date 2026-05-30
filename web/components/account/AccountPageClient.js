@@ -667,40 +667,35 @@ export default function AccountPageClient() {
                         </div>
                       </div>
 
-                      <div className="w-full p-5 md:p-6 bg-rose-500/5 border border-rose-500/20 rounded-[2rem] transition-all space-y-5">
-                        <div className="flex items-center gap-4">
-                          <div className="size-10 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
-                            <ShieldAlert className="size-5 text-rose-500" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-bold tracking-tight text-rose-500">Delete Account</p>
-                            <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-70">Deletes your profile, tokens, carts, messages, listings, follows, notifications, and account-linked records. This cannot be undone.</p>
-                          </div>
-                        </div>
+                      <DeleteAccountPanel
+                        deleteConfirm={deleteConfirm}
+                        setDeleteConfirm={setDeleteConfirm}
+                        deleteStatus={deleteStatus}
+                        deleteLoading={deleteLoading}
+                        onDelete={handleDeleteAccount}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                        <input
-                          value={deleteConfirm}
-                          onChange={(e) => setDeleteConfirm(e.target.value)}
-                          placeholder="Type DELETE to confirm"
-                          className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
-                        />
+              {activeTab === 'close-account' && (
+                <div className="space-y-6 md:space-y-8">
+                  <div className="flex items-center gap-6 px-4 md:px-6">
+                    <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-semibold tracking-tighter text-rose-500 shadow-sm">Close Account</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-rose-500/20 to-transparent" />
+                  </div>
 
-                        {deleteStatus && (
-                          <div className="text-[11px] font-semibold text-center px-4 py-2 rounded-lg bg-rose-500/10 text-rose-500">
-                            {deleteStatus}
-                          </div>
-                        )}
-
-                        <button
-                          onClick={handleDeleteAccount}
-                          disabled={deleteLoading || deleteConfirm !== 'DELETE'}
-                          className="w-full py-3 md:py-4 rounded-full font-bold text-xs tracking-tight bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20"
-                        >
-                          {deleteLoading ? (
-                            <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                          ) : 'Delete account permanently'}
-                        </button>
-                      </div>
+                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-rose-500/20 bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="relative z-10">
+                      <DeleteAccountPanel
+                        deleteConfirm={deleteConfirm}
+                        setDeleteConfirm={setDeleteConfirm}
+                        deleteStatus={deleteStatus}
+                        deleteLoading={deleteLoading}
+                        onDelete={handleDeleteAccount}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1132,6 +1127,47 @@ export default function AccountPageClient() {
           </AnimatePresence>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, deleteLoading, onDelete }) {
+  return (
+    <div className="w-full p-5 md:p-6 bg-rose-500/5 border border-rose-500/20 rounded-[2rem] transition-all space-y-5">
+      <div className="flex items-center gap-4">
+        <div className="size-10 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+          <ShieldAlert className="size-5 text-rose-500" />
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-bold tracking-tight text-rose-500">Close Account</p>
+          <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-70">
+            Deletes your profile, tokens, carts, messages, listings, follows, notifications, and account-linked records. This cannot be undone.
+          </p>
+        </div>
+      </div>
+
+      <input
+        value={deleteConfirm}
+        onChange={(e) => setDeleteConfirm(e.target.value)}
+        placeholder="Type DELETE to confirm"
+        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
+      />
+
+      {deleteStatus && (
+        <div className="text-[11px] font-semibold text-center px-4 py-2 rounded-lg bg-rose-500/10 text-rose-500">
+          {deleteStatus}
+        </div>
+      )}
+
+      <button
+        onClick={onDelete}
+        disabled={deleteLoading || deleteConfirm !== 'DELETE'}
+        className="w-full py-3 md:py-4 rounded-full font-bold text-xs tracking-tight bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20"
+      >
+        {deleteLoading ? (
+          <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+        ) : 'Close account permanently'}
+      </button>
     </div>
   );
 }
