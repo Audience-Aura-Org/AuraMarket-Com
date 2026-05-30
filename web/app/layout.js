@@ -9,7 +9,7 @@ const poppins = Poppins({
   variable: '--font-poppins',
 });
 
-/** Dense order / manifest views — high legibility, modern retail UI */
+/** Dense order / manifest views - high legibility, modern retail UI */
 const plusJakarta = Plus_Jakarta_Sans({
   weight: ['400', '500', '600', '700'],
   subsets: ['latin'],
@@ -18,9 +18,33 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
-  title: 'Auradime | Premium Multi-Vendor Platform',
-  description: "Auradime — the world's leading marketplace for premium digital and physical assets wrapped in a stunning liquid-glass interface.",
+  metadataBase: new URL('https://auradime.com'),
+  title: {
+    default: 'Auradime | Shop Premium Products from Trusted Sellers',
+    template: '%s | Auradime',
+  },
+  description: 'Auradime is a premium marketplace for buying and selling quality digital and physical products, built for trusted commerce in Cameroon and Africa.',
   manifest: '/manifest.json',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Auradime | Shop Premium Products from Trusted Sellers',
+    description: 'A premium marketplace for trusted buying, selling, logistics, and fulfilment in Cameroon and Africa.',
+    url: 'https://auradime.com',
+    siteName: 'Auradime',
+    images: [
+      { url: '/icon-512.png?v=8', width: 512, height: 512, alt: 'Auradime logo' },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Auradime | Shop Premium Products from Trusted Sellers',
+    description: 'A premium marketplace for trusted buying, selling, logistics, and fulfilment in Cameroon and Africa.',
+    images: ['/icon-512.png?v=8'],
+  },
   appleWebApp: {
     title: 'Auradime',
     statusBarStyle: 'black-translucent',
@@ -35,9 +59,7 @@ export const metadata = {
       { url: '/apple-touch-icon.png?v=8', sizes: '512x512', type: 'image/png' },
     ],
   },
-
 };
-
 
 export default function RootLayout({ children }) {
   return (
@@ -54,7 +76,7 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/icon-512.png?v=8" media="(prefers-color-scheme: dark)" />
         {/* Fallback for browsers that don't support media queries on icons */}
         <link rel="shortcut icon" href="/icon-512.png?v=8" />
-        
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

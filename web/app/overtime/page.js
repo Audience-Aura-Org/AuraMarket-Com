@@ -77,10 +77,10 @@ export default function LandingPage() {
                   <span className="text-[var(--accent)] text-xs  font-bold tracking-tight">The Future of Commerce</span>
                 </div>
                 <h1 className="text-6xl md:text-7xl  font-extrabold leading-[1.1] tracking-tight text-[var(--text-primary)]">
-                  Experience <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-[var(--accent-light)]">Liquid</span> Shopping.
+                  Shop premium products from trusted sellers.
                 </h1>
                 <p className="text-lg text-[var(--text-secondary)] max-w-lg leading-relaxed">
-                  Auradime introduces a premium multi-vendor ecosystem wrapped in a stunning liquid-glass interface.
+                  Auradime connects shoppers, vendors, and logistics partners for confident commerce across Cameroon and Africa.
                 </p>
                 <div className="flex flex-wrap gap-4 pt-4">
                   <button

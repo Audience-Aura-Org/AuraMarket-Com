@@ -1,142 +1,70 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/hooks/useAuth';
-import api from '@/services/api';
-import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import UnifiedAuth from '@/components/auth/UnifiedAuth';
+import { useAuthStore } from '@/hooks/useAuth';
 
-import StatusRow from '@/components/status/StatusRow';
-import VendorListPanel from '@/components/hub/VendorListPanel';
-
-const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
-const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'), { ssr: false });
-
-export default function VendorsDirectoryPage() {
+export default function HomePage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
-  
-  // Status States
-  const [followedStatuses, setFollowedStatuses] = useState([]);
-  const [viewingStatuses, setViewingStatuses] = useState(null);
-  const [selectedStoryId, setSelectedStoryId] = useState(null);
-  const [showCreator, setShowCreator] = useState(false);
-
-  // Authentication & Dynamic Landing Logic
-  useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated) {
-        router.replace('/login');
-      } else {
-        router.replace('/discovery?tab=discover');
-      }
-    }
-  }, [isAuthenticated, authLoading, router]);
-
-  const fetchFollowedStatuses = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const res = await api.get('/statuses', { 
-        params: { mode: user ? 'followed' : 'global', limit: 20 } 
-      });
-      if (res.data.success) {
-        const data = res.data.data || [];
-        setFollowedStatuses(data);
-        
-        // Warm only the first few stories so the row opens quickly without flooding mobile bandwidth.
-        data.slice(0, 6).forEach((s, index) => {
-          if (!s.content_url) return;
-          if (s.type === 'image') {
-            const img = new Image();
-            img.fetchPriority = index < 2 ? 'high' : 'auto';
-            img.src = s.content_url;
-          } else if (s.type === 'video') {
-            const video = document.createElement('video');
-            video.preload = index < 2 ? 'auto' : 'metadata';
-            video.muted = true;
-            video.playsInline = true;
-            video.src = s.content_url;
-            video.load();
-          }
-        });
-      }
-    } catch (e) { 
-      console.error('[Home] Failed to fetch statuses:', e); 
-      setFollowedStatuses([]);
-    }
-  }, [user, isAuthenticated]);
+  const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
 
   useEffect(() => {
-    fetchFollowedStatuses();
-  }, [fetchFollowedStatuses]);
+    if (authLoading || !isAuthenticated) return;
 
-  if (authLoading || !isAuthenticated) {
+    if (user?.role === 'admin') {
+      router.replace('/admin/dashboard');
+      return;
+    }
+
+    if (user?.role === 'vendor') {
+      router.replace('/vendor/dashboard');
+      return;
+    }
+
+    if (user?.role === 'logistics') {
+      router.replace('/logistics/dashboard');
+      return;
+    }
+
+    router.replace('/discovery?tab=discover');
+  }, [authLoading, isAuthenticated, router, user]);
+
+  if (authLoading || isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[var(--accent)]" size={32} />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-secondary)]">
+        <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex flex-col pt-[env(safe-area-inset-top)] pb-24">
-      <div className="flex flex-col relative flex-1">
-        
-        {/* Status Row (Story Circles) */}
-        {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
-          <div className="sticky top-0 z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden">
-            <StatusRow 
-              statuses={followedStatuses} 
-              onSelect={(items, storyId) => {
-                setViewingStatuses(items);
-                setSelectedStoryId(storyId);
-              }}
-              onAdd={() => setShowCreator(true)}
-              isVendor={user?.role === 'vendor'}
-            />
-          </div>
-        )}
-        
-        {/* Vendor List (WhatsApp Style) */}
-        <div className="flex flex-col">
-          <VendorListPanel 
-            followedStatuses={followedStatuses} 
-            onOpenStatus={(vendorId) => {
-              const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
-              if (items.length > 0) {
-                setViewingStatuses(followedStatuses);
-                setSelectedStoryId(items[0]._id);
-              }
-            }}
-          />
-        </div>
-
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[var(--bg-secondary)] opacity-10">
+        <div className="absolute left-0 top-0 h-full w-full bg-gradient-to-br from-[var(--accent)]/10 via-transparent to-[var(--accent-light)]/10" />
       </div>
+      <div className="pointer-events-none fixed left-[-10%] top-[-10%] -z-10 h-[40%] w-[40%] animate-pulse rounded-full bg-[var(--accent)]/10 blur-[120px]" />
+      <div className="animation-delay-2000 pointer-events-none fixed bottom-[-10%] right-[-10%] -z-10 h-[40%] w-[40%] rounded-full bg-[var(--accent)]/10 blur-[120px]" />
 
-      {/* Status Overlays */}
-      <AnimatePresence>
-        {viewingStatuses && (
-          <StatusViewer 
-            initialStatuses={viewingStatuses}
-            initialStoryId={selectedStoryId}
-            onClose={() => {
-              setViewingStatuses(null);
-              setSelectedStoryId(null);
-            }} 
-          />
-        )}
-        {showCreator && (
-          <StatusCreator 
-            onClose={() => setShowCreator(false)}
-            onStatusCreated={(newStatus) => {
-              fetchFollowedStatuses();
-              setShowCreator(false);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      <main className="relative z-10 flex flex-1 items-center justify-center p-6">
+        <div className="flex w-full flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="size-16 overflow-hidden rounded-full bg-black p-2 shadow-2xl ring-1 ring-white/10">
+              <img src="/icon-512.png" alt="Aura Dime" className="h-full w-full rounded-full object-cover" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+                Aura<span className="text-[var(--accent)]">Dime</span>
+              </h1>
+              <p className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-60">
+                Shop with confidence
+              </p>
+            </div>
+          </div>
+          <UnifiedAuth />
+        </div>
+      </main>
     </div>
   );
 }
