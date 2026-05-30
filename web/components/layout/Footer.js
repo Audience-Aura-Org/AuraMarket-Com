@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { Capacitor } from '@capacitor/core';
 import { ArrowUpRight } from 'lucide-react';
 
 const LEGAL_LINKS = [
@@ -28,6 +29,7 @@ export default function Footer() {
     pathname?.startsWith('/messages') ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/admin/messages');
+  const isNativeApp = Capacitor.isNativePlatform();
 
   if (isChatPage) return null;
 
@@ -70,16 +72,17 @@ export default function Footer() {
             </nav>
           </div>
 
-          {/* Install CTA */}
-          <button
-            type="button"
-            onClick={() => router.push('/onboarding/pwa')}
-            className="group inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 px-3.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:border-[var(--accent)]/50 hover:bg-[var(--bg-secondary)]"
-          >
-            <span className="size-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]" />
-            Install App
-            <ArrowUpRight className="size-3 text-[var(--accent)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </button>
+          {!isNativeApp && (
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding/pwa')}
+              className="group inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 px-3.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:border-[var(--accent)]/50 hover:bg-[var(--bg-secondary)]"
+            >
+              <span className="size-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]" />
+              Install App
+              <ArrowUpRight className="size-3 text-[var(--accent)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </button>
+          )}
         </div>
 
         {/* Bottom row */}

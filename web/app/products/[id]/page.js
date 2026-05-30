@@ -1,7 +1,5 @@
 import ProductDetailsPageClient from './ProductDetailsPageClient';
 
-export const dynamicParams = false;
-
 export function generateStaticParams() {
   return [{ id: '__placeholder__' }];
 }

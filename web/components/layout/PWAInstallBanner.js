@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Capacitor } from '@capacitor/core';
 import { Download, X } from 'lucide-react';
 
 export default function PWAInstallBanner() {
@@ -10,8 +11,11 @@ export default function PWAInstallBanner() {
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const isNativeApp = Capacitor.isNativePlatform();
 
   useEffect(() => {
+    if (isNativeApp) return;
+
     let timerId;
 
     // Check if already running as installed PWA (standalone mode or previously installed flag)
@@ -62,7 +66,7 @@ export default function PWAInstallBanner() {
       window.removeEventListener('appinstalled', handleAppInstalled);
       if (timerId) clearTimeout(timerId);
     };
-  }, []);
+  }, [isNativeApp]);
 
   const handleInstall = (e) => {
     e.stopPropagation();
@@ -89,7 +93,7 @@ export default function PWAInstallBanner() {
     localStorage.setItem('pwa_banner_dismissed', 'true');
   };
 
-  if (!isVisible) return null;
+  if (isNativeApp || !isVisible) return null;
 
   return (
     <div className={`fixed z-[250] animate-in fade-in slide-in-from-bottom-6 duration-700 ${
