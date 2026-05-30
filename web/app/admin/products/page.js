@@ -248,7 +248,7 @@ export default function AdminProductsPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 px-10 py-5 bg-[var(--bg-primary)]/80 backdrop-blur-2xl border border-[var(--accent)]/30 rounded-full shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[360px] justify-between"
+            className="fixed bottom-36 md:bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 px-10 py-5 bg-[var(--bg-primary)]/80 backdrop-blur-2xl border border-[var(--accent)]/30 rounded-full shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[360px] justify-between"
           >
             <div className="flex flex-col">
               <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)]">Batch Selection</span>

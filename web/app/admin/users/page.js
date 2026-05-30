@@ -7,7 +7,7 @@ import {
   User, Shield, ShieldAlert, Mail, Search, 
   Filter, Loader2, Ban, CheckCircle, MoreVertical, 
   X, Phone, Trash2, Users, ArrowUpRight, 
-  ChevronRight, Activity, RefreshCw 
+  ChevronRight, Activity, RefreshCw, LayoutGrid, List
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -24,6 +24,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('cards');
   const itemsPerPage = 12;
 
   const [editingUser, setEditingUser] = useState(null);
@@ -189,23 +190,58 @@ export default function AdminUsersPage() {
       </header>
 
       <div className="p-4 md:p-8 space-y-4 max-w-[1600px] mx-auto pb-32">
-        {/* Search Bar Mobile */}
-        <div className="md:hidden relative group">
-           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
-           <input 
-             type="text"
-             placeholder="Search Identity..."
-             className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
-             value={search}
-             onChange={e => setSearch(e.target.value)}
-           />
+        <div className="flex flex-col gap-3 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 p-3 shadow-sm backdrop-blur-xl md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-1 items-center gap-2">
+            <div className="relative group flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
+              <input
+                type="text"
+                placeholder="Search identity..."
+                className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') setCurrentPage(1); }}
+              />
+            </div>
+            <button
+              onClick={() => setCurrentPage(1)}
+              className="h-12 rounded-2xl bg-[var(--accent)] px-4 text-[11px] font-bold tracking-tight text-white shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all"
+            >
+              Search
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={toggleSelectAll}
+              className="h-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[10px] font-bold tracking-tight text-[var(--text-secondary)] transition-all hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]"
+            >
+              {currentUsers.length > 0 && currentUsers.every(u => selectedIds.includes(u._id)) ? 'Clear page' : 'Select page'}
+            </button>
+            <div className="flex rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-1">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`flex h-8 items-center gap-1.5 rounded-lg px-3 text-[10px] font-bold tracking-tight transition-all ${viewMode === 'cards' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
+              >
+                <LayoutGrid className="size-3" />
+                Cards
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex h-8 items-center gap-1.5 rounded-lg px-3 text-[10px] font-bold tracking-tight transition-all ${viewMode === 'table' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
+              >
+                <List className="size-3" />
+                Table
+              </button>
+            </div>
+          </div>
         </div>
 
         {loading ? (
            <LoadingSpinner />
         ) : (
            <div className="space-y-3 min-h-[600px]">
-              {currentUsers.map(u => (
+              {viewMode === 'cards' ? currentUsers.map(u => (
                 <div key={u._id} className={`group relative rounded-[2rem] border shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col p-4 md:p-6 ${
                   selectedIds.includes(u._id)
                     ? 'bg-[var(--accent)]/5 border-[var(--accent)]/60'
@@ -263,7 +299,83 @@ export default function AdminUsersPage() {
                      </div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 shadow-sm backdrop-blur-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[860px] text-left">
+                      <thead className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/50">
+                        <tr>
+                          <th className="w-14 px-5 py-4">
+                            <button
+                              onClick={toggleSelectAll}
+                              className={`size-6 rounded-lg border flex items-center justify-center transition-all ${
+                                currentUsers.length > 0 && currentUsers.every(u => selectedIds.includes(u._id))
+                                  ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                                  : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-transparent'
+                              }`}
+                            >
+                              <CheckCircle className="size-3.5" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-50">User</th>
+                          <th className="px-4 py-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Email</th>
+                          <th className="px-4 py-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Role</th>
+                          <th className="px-4 py-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Status</th>
+                          <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-50">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--glass-border)]/60">
+                        {currentUsers.map(u => (
+                          <tr key={u._id} className={`${selectedIds.includes(u._id) ? 'bg-[var(--accent)]/5' : 'hover:bg-[var(--bg-secondary)]/30'} transition-colors`}>
+                            <td className="px-5 py-4">
+                              <button
+                                onClick={() => toggleSelect(u._id)}
+                                className={`size-6 rounded-lg border flex items-center justify-center transition-all ${
+                                  selectedIds.includes(u._id)
+                                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-transparent hover:text-[var(--text-secondary)]'
+                                }`}
+                              >
+                                <CheckCircle className="size-3.5" />
+                              </button>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0">
+                                  {u.avatar ? <img src={u.avatar} className="size-full object-cover" /> : <User className="size-5 opacity-20" />}
+                                </div>
+                                <span className="max-w-[220px] truncate text-sm font-bold tracking-tight">{u.name || 'Unnamed user'}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-[11px] font-semibold text-[var(--text-secondary)]">{u.email}</td>
+                            <td className="px-4 py-4">
+                              <span className={`px-2 py-1 rounded-full text-[9px] font-bold tracking-widest border uppercase ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                                <span className={`size-1.5 rounded-full ${u.verification_status === 'verified' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                {u.verification_status || 'Pending'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex justify-end gap-2">
+                                <button onClick={() => handleEditClick(u)} className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all">
+                                  <Activity className="size-4" />
+                                </button>
+                                <button onClick={() => handleDeleteUser(u._id, u.name)} className="size-9 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-12 flex justify-center">
                 <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
@@ -286,7 +398,7 @@ export default function AdminUsersPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-4 rounded-full border border-[var(--accent)]/30 bg-[var(--bg-primary)]/85 px-5 py-4 shadow-[0_25px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl md:px-8"
+            className="fixed bottom-36 md:bottom-28 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-4 rounded-full border border-[var(--accent)]/30 bg-[var(--bg-primary)]/85 px-5 py-4 shadow-[0_25px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl md:px-8"
           >
             <div className="flex flex-col">
               <span className="text-[11px] font-semibold tracking-tight text-[var(--accent)]">Batch Selection</span>
