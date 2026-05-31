@@ -59,15 +59,90 @@ const api = axios.create({
 });
 
 const isNativeApp = () => typeof window !== 'undefined' && Capacitor.isNativePlatform();
+const OFFLINE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const OFFLINE_CACHE_PREFIX = 'aura_api_cache:';
+const OFFLINE_CACHEABLE_ROUTES = [
+  /^homepage(?:\/|$)/,
+  /^products(?:\/|$)/,
+  /^categories(?:\/|$)/,
+  /^vendors(?:\/|$)/,
+  /^statuses(?:\/|$)/,
+  /^reviews\/product(?:\/|$)/,
+];
+
+const getOfflineStorage = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const storage = window.localStorage;
+    const probe = `${OFFLINE_CACHE_PREFIX}probe`;
+    storage.setItem(probe, '1');
+    storage.removeItem(probe);
+    return storage;
+  } catch {
+    try {
+      return window.sessionStorage;
+    } catch {
+      return null;
+    }
+  }
+};
+
+const normalizeCacheUrl = (url = '') =>
+  String(url)
+    .replace(/^\/+/, '')
+    .replace(/^api\/v1\//, '')
+    .replace(/^api\//, '');
+
+const isOfflineCacheableRoute = (url = '') => {
+  const normalized = normalizeCacheUrl(url);
+  if (
+    normalized.startsWith('auth/') ||
+    normalized.startsWith('admin/') ||
+    normalized.startsWith('wallet') ||
+    normalized.startsWith('payments/') ||
+    normalized.startsWith('orders') ||
+    normalized.startsWith('cart') ||
+    normalized.startsWith('checkout') ||
+    normalized.startsWith('notifications') ||
+    normalized.startsWith('users/') ||
+    normalized.startsWith('chat') ||
+    normalized.startsWith('security/')
+  ) {
+    return false;
+  }
+  return OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized));
+};
+
 const getCacheKey = (config) => {
   const url = config?.url || '';
   const params = config?.params ? JSON.stringify(config.params) : '';
-  return `aura_api_cache:${url}:${params}`;
+  return `${OFFLINE_CACHE_PREFIX}${normalizeCacheUrl(url)}:${params}`;
 };
 const canUseOfflineCache = (config) =>
   isNativeApp() &&
   (config?.method || 'get').toLowerCase() === 'get' &&
-  !String(config?.url || '').startsWith('auth/');
+  isOfflineCacheableRoute(config?.url || '');
+
+const saveOfflineCache = (config, data) => {
+  const storage = getOfflineStorage();
+  if (!storage) return;
+  storage.setItem(getCacheKey(config), JSON.stringify({
+    cachedAt: Date.now(),
+    data,
+  }));
+};
+
+const readOfflineCache = (config) => {
+  const storage = getOfflineStorage();
+  if (!storage) return null;
+  const cached = JSON.parse(storage.getItem(getCacheKey(config)) || 'null');
+  if (!cached?.data) return null;
+  if (Date.now() - Number(cached.cachedAt || 0) > OFFLINE_CACHE_TTL_MS) {
+    storage.removeItem(getCacheKey(config));
+    return null;
+  }
+  return cached;
+};
 
 // Correctly derive origin for asset normalization
 const getApiOrigin = () => {
@@ -147,10 +222,7 @@ api.interceptors.response.use(
     }
     if (canUseOfflineCache(res.config)) {
       try {
-        sessionStorage.setItem(getCacheKey(res.config), JSON.stringify({
-          cachedAt: Date.now(),
-          data: res.data,
-        }));
+        saveOfflineCache(res.config, res.data);
       } catch {}
     }
     return res;
@@ -165,8 +237,8 @@ api.interceptors.response.use(
     if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
       if (!error.response && canUseOfflineCache(config)) {
         try {
-          const cached = JSON.parse(sessionStorage.getItem(getCacheKey(config)) || 'null');
-          if (cached?.data && Date.now() - Number(cached.cachedAt || 0) < 30 * 60 * 1000) {
+          const cached = readOfflineCache(config);
+          if (cached?.data) {
             return {
               data: cached.data,
               status: 200,
