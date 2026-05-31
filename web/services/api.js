@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
-import { getStoredAuthToken } from './authStorage';
+import { clearStoredAuthToken, getStoredAuthToken } from './authStorage';
 
 const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
 
@@ -215,6 +215,27 @@ const shouldRetry = (error) => {
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
+const isInvalidStoredSession = (status, message = '') => {
+  if (status !== 401) return false;
+  const normalized = String(message).toLowerCase();
+  return normalized.includes('user belonging to this token no longer exists') ||
+    normalized.includes('session is no longer valid') ||
+    normalized.includes('jwt expired') ||
+    normalized.includes('invalid token');
+};
+
+const notifyInvalidStoredSession = async (message) => {
+  if (typeof window === 'undefined') return;
+  try {
+    await clearStoredAuthToken();
+    window.localStorage.removeItem('aura-auth-storage');
+    window.sessionStorage.removeItem('onboarding_skipped');
+  } catch {}
+  window.dispatchEvent(new CustomEvent('aura:session-invalidated', {
+    detail: { message },
+  }));
+};
+
 api.interceptors.response.use(
   (res) => {
     if (res?.data) {
@@ -254,6 +275,9 @@ api.interceptors.response.use(
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'Check network tab';
+        if (isInvalidStoredSession(status, message)) {
+          await notifyInvalidStoredSession(message);
+        }
         
         // Silence 401s for guests (it's expected on some routes like /cart)
         if (status !== 401) {

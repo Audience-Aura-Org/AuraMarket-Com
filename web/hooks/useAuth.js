@@ -7,7 +7,19 @@ import { clearStoredAuthToken, setStoredAuthToken } from '../services/authStorag
 const clearClientOnlyState = async () => {
   if (typeof window === 'undefined') return;
   await clearStoredAuthToken();
+  localStorage.removeItem('aura-auth-storage');
   sessionStorage.removeItem('onboarding_skipped');
+};
+
+const isDeletedOrInvalidSession = (err) => {
+  const status = err?.response?.status;
+  const message = String(err?.response?.data?.message || err?.message || '').toLowerCase();
+  return status === 401 && (
+    message.includes('user belonging to this token no longer exists') ||
+    message.includes('session is no longer valid') ||
+    message.includes('jwt expired') ||
+    message.includes('invalid token')
+  );
 };
 
 export const useAuthStore = create(
@@ -96,6 +108,7 @@ export const useAuthStore = create(
           });
           return { success: true, user };
         } catch (err) {
+          await clearClientOnlyState();
           set({ user: null, token: null, isAuthenticated: false, loading: false });
           return { success: false };
         }
@@ -118,6 +131,19 @@ export const useAuthStore = create(
           return { success: true };
         } catch (err) {
           const message = err.response?.data?.message || 'Account deletion failed';
+          if (isDeletedOrInvalidSession(err)) {
+            socketService.disconnect();
+            await clearClientOnlyState();
+            set({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              followedVendorIds: [],
+              loading: false,
+              error: null,
+            });
+            return { success: true, alreadyDeleted: true };
+          }
           set({ error: message, loading: false });
           return { success: false, message };
         }

@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/ThemeContext';
 import SocketProvider from '@/components/SocketProvider';
@@ -9,6 +9,7 @@ import TopNav from '@/components/layout/TopNav';
 import { ChatProvider } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
+import { useAuthStore } from '@/hooks/useAuth';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -26,6 +27,8 @@ const Footer = dynamic(() => import('@/components/layout/Footer'), { ssr: false 
 
 export default function Providers({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const isDashboardRoute = normalizedPath.startsWith('/admin') ||
                           normalizedPath.startsWith('/vendor') ||
@@ -45,6 +48,16 @@ export default function Providers({ children }) {
 
     return () => clearTimeout(timer);
   }, [isDashboardRoute, normalizedPath]);
+
+  useEffect(() => {
+    const handleInvalidSession = async () => {
+      await logout();
+      router.replace('/login');
+    };
+
+    window.addEventListener('aura:session-invalidated', handleInvalidSession);
+    return () => window.removeEventListener('aura:session-invalidated', handleInvalidSession);
+  }, [logout, router]);
 
   const isAuthRoute =
     normalizedPath === '/' ||
