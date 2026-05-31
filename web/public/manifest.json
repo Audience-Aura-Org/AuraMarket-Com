@@ -2,6 +2,7 @@
   "name": "Auradime",
   "short_name": "Aura",
   "description": "Shop quality digital and physical products from trusted sellers in Cameroon and Africa.",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a050a",

@@ -791,6 +791,8 @@ const deleteUser = async (req, res, next) => {
       await LogisticsCompany.findOneAndDelete({ user_id: user._id });
     }
 
+    req.app.get('io')?.to(user._id.toString()).emit('account_deleted', { reason: 'admin_deleted' });
+
     // Finally delete the user
     await User.findByIdAndDelete(id);
 
@@ -829,6 +831,13 @@ const bulkDeleteUsers = async (req, res, next) => {
       } else if (user.role === 'logistics') {
         await LogisticsCompany.findOneAndDelete({ user_id: user._id });
       }
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      filteredIds.forEach((userId) => {
+        io.to(userId.toString()).emit('account_deleted', { reason: 'admin_deleted' });
+      });
     }
 
     await User.deleteMany({ _id: { $in: filteredIds } });

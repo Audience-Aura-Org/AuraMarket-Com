@@ -37,6 +37,10 @@ const MessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // Updated to true when recipient opens the chat tab natively
     },
+    delivered_status: {
+      type: Boolean,
+      default: false, // Updated when the recipient has an active socket/device session
+    },
     image_url: {
       type: String,
       default: null,

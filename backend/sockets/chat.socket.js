@@ -55,14 +55,32 @@ const mapChatSockets = (server) => {
     const userRoom = socket.userId.toString();
     socket.join(userRoom);
 
+    Message.find({ receiver_id: socket.userId, delivered_status: false })
+      .select('sender_id')
+      .lean()
+      .then(async (messages) => {
+        if (!messages.length) return;
+        await Message.updateMany(
+          { receiver_id: socket.userId, delivered_status: false },
+          { delivered_status: true }
+        );
+        const senderIds = [...new Set(messages.map((msg) => msg.sender_id?.toString()).filter(Boolean))];
+        senderIds.forEach((senderId) => {
+          io.to(senderId).emit('messages_delivered', { partnerId: socket.userId.toString() });
+        });
+      })
+      .catch((error) => console.error('Failed to mark delivered messages:', error));
+
     socket.on('send_message', async (data) => {
       try {
         const { receiver_id, text, product_reference } = data;
+        const receiverOnline = userSockets.has(receiver_id.toString()) && userSockets.get(receiver_id.toString())?.size > 0;
         const message = await Message.create({
           sender_id: socket.userId,
           receiver_id,
           text,
           product_reference: product_reference || null,
+          delivered_status: receiverOnline,
         });
 
         const populatedMessage = await Message.findById(message._id)
@@ -72,6 +90,9 @@ const mapChatSockets = (server) => {
 
         io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
         io.to(socket.userId.toString()).emit('sent_message_echo', populatedMessage);
+        if (receiverOnline) {
+          io.to(socket.userId.toString()).emit('messages_delivered', { partnerId: receiver_id.toString() });
+        }
       } catch (error) {
         console.error('Socket (send_message) Error:', error);
       }

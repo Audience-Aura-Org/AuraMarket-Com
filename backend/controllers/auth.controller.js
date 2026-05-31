@@ -272,6 +272,7 @@ const deleteAccount = async (req, res, next) => {
     }
 
     await Promise.all(deletions);
+    req.app.get('io')?.to(userId.toString()).emit('account_deleted', { reason: 'self_deleted' });
     await User.findByIdAndDelete(userId);
     clearAuthCookie(res);
 

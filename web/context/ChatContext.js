@@ -458,6 +458,20 @@ function chatReducer(state, action) {
       };
     }
 
+    case 'MESSAGES_DELIVERED': {
+      const partnerId = action.partnerId?.toString();
+      if (!partnerId) return state;
+      return {
+        ...state,
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [partnerId]: (state.messagesByConversation[partnerId] || []).map((m) =>
+            toId(m.sender_id) === state.currentUserId ? { ...m, delivered_status: true } : m
+          ),
+        },
+      };
+    }
+
     case 'PRESENCE_UPDATE': {
       const userId = action.userId?.toString();
       if (!userId) return state;
@@ -617,6 +631,9 @@ export function ChatProvider({ children }) {
     const onMessagesRead = ({ sender_id, userId, partnerId }) => {
       dispatch({ type: 'MESSAGES_READ', partnerId: sender_id || userId || partnerId });
     };
+    const onMessagesDelivered = ({ sender_id, userId, partnerId }) => {
+      dispatch({ type: 'MESSAGES_DELIVERED', partnerId: sender_id || userId || partnerId });
+    };
 
     const onTyping = ({ userId }) => dispatch({ type: 'TYPING_UPDATE', userId, isTyping: true });
     const onStoppedTyping = ({ userId }) => dispatch({ type: 'TYPING_UPDATE', userId, isTyping: false });
@@ -628,6 +645,7 @@ export function ChatProvider({ children }) {
       receive_message: onReceiveMessage,
       sent_message_echo: onSentEcho,
       messages_read: onMessagesRead,
+      messages_delivered: onMessagesDelivered,
       partner_typing: onTyping,
       partner_stopped_typing: onStoppedTyping,
       user_presence: onPresence,

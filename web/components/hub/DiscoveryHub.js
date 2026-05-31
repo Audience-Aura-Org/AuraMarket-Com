@@ -354,7 +354,7 @@ export default function DiscoveryHub() {
   ] : [
     { id: 'dashboard', label: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
     { id: 'discover', label: "Shop", icon: Compass },
-    { id: 'status', label: "Aura Story", icon: Activity },
+    { id: 'status', label: "Story", icon: Activity },
     { id: 'overtime', label: "Overtime", href: "/overtime", icon: House },
     { id: 'profile', label: "Profile", icon: User }
   ];

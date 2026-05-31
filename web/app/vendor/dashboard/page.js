@@ -399,7 +399,7 @@ export default function VendorDashboard() {
               </Link>
               <Link href="/vendor/stories" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[12px] font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/25 hover:scale-105 active:scale-95 transition-all">
                 <Sparkles className="size-4" />
-                Launch Story Hub
+                Launch Story
               </Link>
             </div>
           </div>

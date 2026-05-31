@@ -19,7 +19,7 @@ const NOTIF_CONFIG = {
 };
 
 export default function SocketProvider({ children }) {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const router = useRouter();
   const { isOpen, activePartnerId, openChat } = useChat();
 
@@ -106,15 +106,22 @@ export default function SocketProvider({ children }) {
       notifToastTimer.current = setTimeout(() => setNotifToast(null), 7000);
     };
 
+    const handleAccountDeleted = async () => {
+      await logout();
+      router.replace('/login');
+    };
+
     socketService.on('receive_message', handleNewMessage);
     socketService.on('notification',    handleNotification);
+    socketService.on('account_deleted', handleAccountDeleted);
 
     return () => {
       socketService.off('receive_message', handleNewMessage);
       socketService.off('notification',    handleNotification);
+      socketService.off('account_deleted', handleAccountDeleted);
     };
   // Only re-register when the USER changes. isOpen/activePartnerId are read via refs.
-  }, [user?._id]);
+  }, [user?._id, logout, router]);
 
   // Listen for messages from the Service Worker (e.g., notification click payload)
   useEffect(() => {

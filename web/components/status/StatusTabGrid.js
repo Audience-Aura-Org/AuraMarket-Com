@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { 
-  Heart, Flame, Play, Search, X, Eye, 
-  Clock, ShoppingBag, 
+import {
+  Flame, Play, Search, X,
+  Clock, ShoppingBag,
   Plus, Users, Globe, Sparkles, ChevronRight,
   Layers
 } from 'lucide-react';
@@ -82,10 +82,10 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, rank,
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
           </>
         ) : (
-          <div className="size-full flex items-center justify-center p-4 text-center overflow-hidden"
+          <div className="size-full flex items-center justify-center p-5 text-center overflow-hidden"
             style={{ background: 'linear-gradient(160deg, #090909 0%, #1a1a1a 100%)' }}>
             <div className="absolute -top-10 -left-10 size-24 bg-[var(--accent)] blur-[50px] opacity-20 rounded-full animate-pulse" />
-            <p className="relative z-10 text-[11px] lg:text-[12px]  font-semibold text-white/90 leading-relaxed line-clamp-5">
+            <p className="relative z-10 text-[12px] lg:text-sm font-semibold text-white/90 leading-relaxed line-clamp-5">
               {status.text_content}
             </p>
           </div>
@@ -100,49 +100,42 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, rank,
       )}
 
       {/* Info overlay â€” always visible (not hover-only) */}
-      <div className="absolute inset-x-0 bottom-0 p-2.5 z-20">
-        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-2 space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <div className="size-5 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
+      <div className="absolute inset-x-0 bottom-0 p-3 z-20">
+        <div className="bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 space-y-2 shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
               {logo ? (
                 <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
               ) : (
-                <div className="size-full flex items-center justify-center text-[10px] lg:text-[12px]  font-semibold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
+                <div className="size-full flex items-center justify-center text-xs font-semibold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
                   {name[0]}
                 </div>
               )}
             </div>
-              <p className="text-[11px] lg:text-[12px]  font-semibold text-white truncate flex-1">{name}</p>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-xs lg:text-sm font-semibold text-white truncate">{name}</p>
+              <p className="text-[10px] lg:text-[11px] font-semibold text-white/45">{ago(status.createdAt)}</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
               {statusesCount > 1 && (
-                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-white/20 backdrop-blur border border-white/10 text-white text-[9px] font-bold shrink-0 shadow-sm" title="Grouped Updates">
-                  <Layers className="size-2.5 text-[var(--accent)]" /> {statusesCount}
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur border border-white/10 text-white text-[10px] font-bold shadow-sm" title="Grouped updates">
+                  <Layers className="size-3 text-[var(--accent)]" /> {statusesCount}
                 </div>
               )}
               {isNew && (
-              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] lg:text-[12px]  font-semibold shrink-0">
-                <Sparkles className="size-2" /> New
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[11px] lg:text-[12px]  font-semibold text-white/60">
-                <Heart className="size-2 text-red-400 fill-red-400/20" />
-                <span>{status.likes_count || 0}</span>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] lg:text-[12px]  font-semibold text-white/60">
-                <Eye className="size-2 text-blue-400" />
-                <span>{status.views_count || 0}</span>
-              </div>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold">
+                  <Sparkles className="size-3" /> New
+                </div>
+              )}
             </div>
-            <span className="text-[10px] lg:text-[12px]  font-semibold text-white/30">{ago(status.createdAt)}</span>
           </div>
 
           {status.linked_product && (
-            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/20 text-[10px] lg:text-[12px]  font-semibold text-[var(--accent)]">
-              <ShoppingBag className="size-2.5 shrink-0" />
-              <span className="truncate">{status.linked_product.name}</span>
+            <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2">
+              <div className="flex items-center gap-1.5 min-w-0 text-[10px] lg:text-[11px] font-semibold text-white/70">
+                <ShoppingBag className="size-3 shrink-0 text-[var(--accent)]" />
+                <span className="truncate">{status.linked_product.name}</span>
+              </div>
             </div>
           )}
         </div>
@@ -271,7 +264,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <h2 className="text-2xl  font-bold tracking-tighter text-[var(--text-primary)] leading-none">
-                Aura Story
+                Story
               </h2>
               {/* Active Now badge */}
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -359,7 +352,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
             {groupedPool.length > 0 ? (
               activeTab === 'inner' ? (
                 /* Inner circle — regular 2-col grid */
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 md:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
                   {groupedPool.map((s, i) => (
                     <PremiumCard
                       key={s.vendor_id?._id || s._id}
@@ -367,14 +360,14 @@ export default function StatusTabGrid({ onSelectStatus }) {
                       statusesCount={s.statusesCount}
                       isNew={s.isNew}
                       priority={i < 4 ? 'high' : 'auto'}
-                      className="aspect-[3/4]"
+                      className="aspect-[4/5]"
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}
                 </div>
               ) : (
                 /* Global pulse — masonry columns */
-                <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-2.5 md:gap-3 space-y-2.5 md:space-y-3">
+                <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-3 md:gap-4 space-y-3 md:space-y-4">
                   {groupedPool.map((s, i) => (
                     <PremiumCard
                       key={s.vendor_id?._id || s._id}
@@ -383,7 +376,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                       rank={i < 10 ? i + 1 : null}
                       isNew={s.isNew}
                       priority={i < 6 ? 'high' : 'auto'}
-                      className={`w-full break-inside-avoid ${i % 3 === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
+                      className={`w-full break-inside-avoid ${i % 3 === 0 ? 'aspect-[4/5]' : 'aspect-[5/6]'}`}
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, X, ArrowLeft, Package,
-  MessageCircle, CheckCheck, Loader2, 
+  MessageCircle, Check, CheckCheck, Loader2, 
   Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical
 } from 'lucide-react';
 import api from '@/services/api';
@@ -1135,7 +1135,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             {isOwn && (
                               msg.status === 'failed'
                                 ? <AlertCircle className="size-3.5 text-red-600" />
-                                : <CheckCheck className={`size-3.5 transition-colors duration-300 ${msg.read_status ? 'text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)]' : 'text-[var(--text-secondary)]/50'}`} />
+                                : msg.read_status
+                                  ? <CheckCheck className="size-3.5 text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)] transition-colors duration-300" />
+                                  : msg.delivered_status
+                                    ? <CheckCheck className="size-3.5 text-[var(--text-secondary)]/60 transition-colors duration-300" />
+                                    : <Check className="size-3.5 text-[var(--text-secondary)]/60 transition-colors duration-300" />
                             )}
                           </div>
                         </motion.div>

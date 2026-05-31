@@ -10,6 +10,7 @@ import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
 import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import api from '@/services/api';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
@@ -22,6 +23,7 @@ export default function TopNav() {
   const [search, setSearch] = useState("");
   const { unreadMessages, refresh: refreshNotifications } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
+  const [walletBalance, setWalletBalance] = useState(null);
   const [mounted, setMounted] = useState(false);
   const { openChat } = useChat();
 
@@ -33,11 +35,17 @@ export default function TopNav() {
   useEffect(() => {
     if (!user?._id) {
       setCartCount(0);
+      setWalletBalance(null);
       return;
     }
     const fetchCounts = () => {
       cartStore.refresh();
       refreshNotifications();
+      api.get('/wallet')
+        .then((res) => {
+          if (res.data?.success) setWalletBalance(res.data.data?.balance ?? 0);
+        })
+        .catch(() => {});
     };
 
     fetchCounts();
@@ -92,6 +100,17 @@ export default function TopNav() {
               className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
             />
           </Link>
+          {user && (
+            <Link
+              href="/wallet"
+              className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 sm:inline-flex dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)]"
+              title="Wallet balance"
+            >
+              <Wallet className="size-3.5 text-[var(--accent)]" />
+              <span className="tabular-nums">{walletBalance === null ? '...' : walletBalance.toLocaleString()}</span>
+              <span className="text-[9px] opacity-55">XAF</span>
+            </Link>
+          )}
         </div>
         
         {/* Global Search Interface - Icon Only */}

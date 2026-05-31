@@ -58,6 +58,17 @@ const api = axios.create({
   },
 });
 
+const isNativeApp = () => typeof window !== 'undefined' && Capacitor.isNativePlatform();
+const getCacheKey = (config) => {
+  const url = config?.url || '';
+  const params = config?.params ? JSON.stringify(config.params) : '';
+  return `aura_api_cache:${url}:${params}`;
+};
+const canUseOfflineCache = (config) =>
+  isNativeApp() &&
+  (config?.method || 'get').toLowerCase() === 'get' &&
+  !String(config?.url || '').startsWith('auth/');
+
 // Correctly derive origin for asset normalization
 const getApiOrigin = () => {
   if (typeof window !== 'undefined') {
@@ -134,6 +145,14 @@ api.interceptors.response.use(
     if (res?.data) {
       res.data = normalizeAssetUrls(res.data);
     }
+    if (canUseOfflineCache(res.config)) {
+      try {
+        sessionStorage.setItem(getCacheKey(res.config), JSON.stringify({
+          cachedAt: Date.now(),
+          data: res.data,
+        }));
+      } catch {}
+    }
     return res;
   },
   async (error) => {
@@ -144,6 +163,22 @@ api.interceptors.response.use(
     const MAX_RETRIES = 2; // Reduced from 4 — fail fast, don't hang
 
     if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
+      if (!error.response && canUseOfflineCache(config)) {
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(getCacheKey(config)) || 'null');
+          if (cached?.data && Date.now() - Number(cached.cachedAt || 0) < 30 * 60 * 1000) {
+            return {
+              data: cached.data,
+              status: 200,
+              statusText: 'OK (offline cache)',
+              headers: {},
+              config,
+              request: error.request,
+              offlineCache: true,
+            };
+          }
+        } catch {}
+      }
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'Check network tab';

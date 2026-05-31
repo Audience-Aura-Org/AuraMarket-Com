@@ -150,6 +150,10 @@ const sendMessage = async (req, res, next) => {
 
     console.log(`[API] 📨 sendMessage: ${req.user._id} -> ${receiver_id}`);
 
+    const io = req.app.get('io');
+    const receiverRoom = receiver_id.toString();
+    const receiverOnline = Boolean(io?.sockets?.adapter?.rooms?.get(receiverRoom)?.size);
+
     const message = await Message.create({
       sender_id: req.user._id,
       receiver_id,
@@ -157,6 +161,7 @@ const sendMessage = async (req, res, next) => {
       product_reference: product_reference || null,
       metadata: metadata || null,
       image_url: image_url || null,
+      delivered_status: receiverOnline,
     });
 
     // Populate for immediate UI consumption if needed
@@ -169,9 +174,7 @@ const sendMessage = async (req, res, next) => {
     if (client_id) messagePayload.client_id = client_id;
 
     // Emit socket events for real-time updates across clients
-    const io = req.app.get('io');
     if (io) {
-      const receiverRoom = receiver_id.toString();
       const senderRoom = req.user._id.toString();
       
       const receiverCount = io.sockets.adapter.rooms.get(receiverRoom)?.size || 0;
@@ -181,6 +184,9 @@ const sendMessage = async (req, res, next) => {
       
       io.to(receiverRoom).emit('receive_message', messagePayload);
       io.to(senderRoom).emit('sent_message_echo', messagePayload);
+      if (receiverOnline) {
+        io.to(senderRoom).emit('messages_delivered', { partnerId: receiverRoom });
+      }
       
       console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
 
@@ -235,16 +241,16 @@ const markAsRead = async (req, res, next) => {
     const { userId } = req.params;
     await Message.updateMany(
       { sender_id: userId, receiver_id: req.user._id, read_status: false },
-      { read_status: true }
+      { read_status: true, delivered_status: true }
     );
 
     // Emit socket event so tabs sync up AND so the sender sees blue ticks update live
     const io = req.app.get('io');
     if (io) {
       // Notify the reader's own tabs (multi-tab sync)
-      io.to(req.user._id.toString()).emit('messages_read', { sender_id: userId });
+      io.to(req.user._id.toString()).emit('messages_read', { partnerId: userId });
       // ✅ Notify the original sender so their blue ticks turn green instantly
-      io.to(userId.toString()).emit('messages_read', { sender_id: userId });
+      io.to(userId.toString()).emit('messages_read', { partnerId: req.user._id.toString() });
     }
 
     res.status(200).json({ success: true, message: 'Messages marked as read.' });
