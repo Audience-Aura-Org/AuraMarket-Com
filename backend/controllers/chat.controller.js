@@ -124,7 +124,7 @@ const getUserInbox = async (req, res, next) => {
           partnerAvatar: partner.avatar || partner.branding?.logo,
           snippet: msg.text || (msg.product_reference ? '[Product Shared]' : ''),
           unread_count: unreadCount,
-          read_status: msg.read_status,
+          read_status: unreadCount === 0,
           date: msg.createdAt,
         };
       }));

@@ -19,12 +19,7 @@ import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
 const getUnreadChatThreadTotal = (chats = []) =>
-  chats.reduce((total, chat) => {
-    const hasUnreadMessages =
-      Number(chat?.unread_count || 0) > 0 ||
-      (chat?.read_status === false && Boolean(chat?.snippet));
-    return total + (hasUnreadMessages ? 1 : 0);
-  }, 0);
+  chats.reduce((total, chat) => total + (Number(chat?.unread_count || 0) > 0 ? 1 : 0), 0);
 
 export function useNotifications() {
   const { user } = useAuthStore();

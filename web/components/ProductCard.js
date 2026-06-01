@@ -197,7 +197,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                </div>
 
               <Link href={`/products/${productId}`} className="block">
-                <h3 className="truncate whitespace-nowrap text-xs md:text-sm font-bold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" title={name}>{name}</h3>
+                <h3 className="line-clamp-2 text-xs md:text-sm font-bold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" title={name}>{name}</h3>
               </Link>
               <div className="flex items-center gap-4">
                 <p className="text-[14px] md:text-[18px]  font-bold text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
@@ -290,7 +290,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         <div className="p-2 sm:p-2.5 md:p-3.5 flex flex-col flex-1 gap-2 md:gap-3">
           <div className="space-y-0.5 md:space-y-1">
             <Link href={`/products/${productId}`} className="block">
-              <h3 className="truncate whitespace-nowrap text-[11px] sm:text-[12px] md:text-[14px] lg:text-[12px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight" title={name}>{name}</h3>
+              <h3 className="line-clamp-2 text-[11px] sm:text-[12px] md:text-[14px] lg:text-[12px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight" title={name}>{name}</h3>
             </Link>
             <div className="flex items-center justify-between">
               <span className="text-[12px] sm:text-[14px] md:text-[16px]  font-semibold text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
