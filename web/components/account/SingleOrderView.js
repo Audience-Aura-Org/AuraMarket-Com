@@ -316,6 +316,34 @@ export default function SingleOrderView({ orderId, onBack }) {
   );
 
   const cardBase = 'rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-sm shadow-sm';
+  const paymentMeta = (() => {
+    if (order.payment_method === 'pay_on_delivery') {
+      return {
+        label: 'Pay on delivery',
+        detail: 'Payment will be collected at delivery.',
+        classes: 'border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-400',
+      };
+    }
+    if (order.payment_status === 'paid') {
+      return {
+        label: 'Paid',
+        detail: 'Gateway payment confirmed.',
+        classes: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      };
+    }
+    if (order.payment_status === 'failed') {
+      return {
+        label: 'Payment failed',
+        detail: 'The payment attempt did not complete.',
+        classes: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+      };
+    }
+    return {
+      label: 'Payment pending',
+      detail: 'Awaiting gateway confirmation.',
+      classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    };
+  })();
 
   return (
     <div className="font-order-detail flex w-full min-w-0 flex-1 flex-col gap-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0 sm:gap-8 sm:pb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -344,6 +372,10 @@ export default function SingleOrderView({ orderId, onBack }) {
               <Clock className="size-3.5 shrink-0 opacity-60" />
               <span className="break-all">{new Date(order.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
             </p>
+            <div className={`mt-3 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${paymentMeta.classes}`}>
+              <CreditCard className="size-3.5 shrink-0" />
+              <span className="truncate">{paymentMeta.label}</span>
+            </div>
           </div>
         </div>
 
@@ -388,6 +420,10 @@ export default function SingleOrderView({ orderId, onBack }) {
               <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90 sm:text-[12px]">
                 Track fulfillment, carrier updates, and settlement from this workspace.
               </p>
+              <div className={`mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold tracking-tight ${paymentMeta.classes}`}>
+                <CreditCard className="size-4 shrink-0" />
+                <span className="truncate">{paymentMeta.detail}</span>
+              </div>
             </div>
           </div>
 

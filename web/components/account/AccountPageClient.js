@@ -559,6 +559,18 @@ export default function AccountPageClient() {
                               };
                               const sColor = getStatusColor(order.order_status);
                               const statusStyle = ORDER_STATUS_STYLES[sColor] || ORDER_STATUS_STYLES.amber;
+                              const paymentTone = order.payment_status === 'paid'
+                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : order.payment_status === 'failed'
+                                  ? 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                  : 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400';
+                              const paymentLabel = order.payment_method === 'pay_on_delivery'
+                                ? 'Pay on delivery'
+                                : order.payment_status === 'paid'
+                                  ? 'Paid'
+                                  : order.payment_status === 'failed'
+                                    ? 'Payment failed'
+                                    : 'Payment pending';
 
                               return (
                                 <button 
@@ -579,6 +591,9 @@ export default function AccountPageClient() {
                                             {order.shipment && ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(order.shipment.status) 
                                               ? order.shipment.status.replace('_', ' ') 
                                               : order.order_status || 'pending'}
+                                          </span>
+                                          <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-tight border ${paymentTone}`}>
+                                            {paymentLabel}
                                           </span>
                                           <span className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40">#{order._id.slice(-8).toUpperCase()}</span>
                                         </div>

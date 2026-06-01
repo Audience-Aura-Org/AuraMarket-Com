@@ -101,6 +101,48 @@ const sanitizePhone = (phone, country = 'CM') => {
   return cleaned;
 };
 
+const normalizeOrderIds = (orderIds = []) => {
+  if (!Array.isArray(orderIds)) return [];
+  return orderIds
+    .map((id) => id?.toString?.() || String(id || ''))
+    .filter((id) => mongoose.Types.ObjectId.isValid(id));
+};
+
+const getAuthoritativeCheckoutAmount = async (userId, orderIds = []) => {
+  const ids = normalizeOrderIds(orderIds);
+  if (ids.length === 0) return null;
+
+  const orders = await Order.find({
+    _id: { $in: ids },
+    customer_id: userId,
+  }).select('_id total_amount payment_status');
+
+  if (orders.length !== ids.length) {
+    throw new Error('One or more checkout orders could not be verified.');
+  }
+
+  const nonPayable = orders.find((order) => order.payment_status !== 'pending');
+  if (nonPayable) {
+    throw new Error(`Order #${nonPayable._id.toString().slice(-6).toUpperCase()} is already ${nonPayable.payment_status}.`);
+  }
+
+  return Math.round(orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0));
+};
+
+const markCheckoutOrdersFailed = async (userId, orderIds = []) => {
+  const ids = normalizeOrderIds(orderIds);
+  if (ids.length === 0) return;
+
+  await Order.updateMany(
+    {
+      _id: { $in: ids },
+      customer_id: userId,
+      payment_status: 'pending',
+    },
+    { $set: { payment_status: 'failed' } }
+  );
+};
+
 /**
  * @desc    GET /api/payments/gateways
  *          Return all enabled payment gateways for the frontend checkout UI.
@@ -152,8 +194,10 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
 const mesombInitialize = async (req, res) => {
   try {
     const { amount, phone, service, order_ids = [] } = req.body;
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const payableAmount = checkoutAmount ?? Math.round(Number(amount || 0));
 
-    if (!amount || amount <= 0) {
+    if (!payableAmount || payableAmount <= 0) {
       return res.status(400).json({ success: false, message: 'Invalid amount.' });
     }
     if (!phone) {
@@ -164,14 +208,14 @@ const mesombInitialize = async (req, res) => {
 
     const result = await mesombGateway.initialize({
       user: req.user,
-      amount: Math.round(amount),
+      amount: payableAmount,
       currency: 'XAF',
       orderIds: order_ids,
       fields: { phone, service },
       req,
     });
 
-    return res.status(200).json({ success: true, data: result });
+    return res.status(200).json({ success: true, data: { ...result, amount: payableAmount } });
   } catch (err) {
     console.error('[mesombInitialize]', err.message);
     return res.status(400).json({ success: false, message: err.message });
@@ -216,6 +260,8 @@ const eversendInitialize = async (req, res) => {
     let { amount, currency, phone, country, order_ids, redirect_url: customRedirect } = req.body;
 
     phone = sanitizePhone(phone, country);
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    amount = checkoutAmount ?? Number(amount || 0);
 
     if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount.' });
     if (!currency || !phone || !country) return res.status(400).json({ success: false, message: 'currency, phone, and country are required.' });
@@ -1002,6 +1048,7 @@ const mesombWebhook = async (req, res) => {
 
       const user = await User.findById(transaction.user_id);
       if (user) {
+        await markCheckoutOrdersFailed(user._id, transaction.order_ids);
         setImmediate(() => {
           sendNotification(req.app, user._id, {
             title: 'Payment Failed',
@@ -1071,6 +1118,14 @@ const mesombVerify = async (req, res) => {
             });
           }
         }
+      }
+    } else if (result.status === 'FAILED') {
+      const transaction = await Transaction.findOne({ reference, gateway: 'mesomb' });
+      if (transaction && transaction.status !== 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = result.gateway_response || transaction.gateway_response;
+        await transaction.save();
+        await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
       }
     }
 

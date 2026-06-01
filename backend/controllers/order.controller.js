@@ -395,6 +395,8 @@ const getCustomerOrders = async (req, res, next) => {
       customer_id: req.user._id,
       $or: [
         { payment_status: 'paid' },
+        { payment_status: 'pending' },
+        { payment_status: 'failed' },
         { payment_method: 'pay_on_delivery' }
       ]
     })
@@ -418,6 +420,7 @@ const getVendorOrders = async (req, res, next) => {
       vendor_id: req.vendor._id,
       $or: [
         { payment_status: 'paid' },
+        { payment_status: 'failed' },
         { payment_method: 'pay_on_delivery' }
       ]
     })
