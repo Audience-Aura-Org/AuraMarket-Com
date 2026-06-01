@@ -3,10 +3,10 @@
  * Auradime — Withdrawal Request Schema
  *
  * Tracks all withdrawal requests from users and vendors.
- * Status flow: pending → approved (Eversend called) → failed | completed
- *              pending → rejected (no Eversend call)
+ * Status flow: pending → approved (gateway called) → failed | completed
+ *              pending → rejected (no gateway call)
  *
- * Balance is NEVER deducted until Eversend confirms success.
+ * Balance is reserved when a request is submitted and restored if rejected/failed.
  */
 
 const mongoose = require('mongoose');
@@ -57,7 +57,7 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     // ── Method ──────────────────────────────────
     withdrawalMethod: {
       type: String,
-      enum: ['momo', 'bank', 'eversend'],
+      enum: ['momo', 'bank', 'eversend', 'mesomb'],
       required: true,
     },
     recipientDetails: {
@@ -73,10 +73,13 @@ const WithdrawalRequestSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Eversend Linkage ─────────────────────────
+    // ── Payout Gateway Linkage ───────────────────
+    payoutGateway: { type: String, enum: ['eversend', 'mesomb', 'manual'], default: null },
     eversendTransactionId: { type: String, default: null },
     eversendQuotationToken: { type: String, default: null, select: false },
     eversendStatus: { type: String, default: null },
+    mesombTransactionId: { type: String, default: null },
+    mesombStatus: { type: String, default: null },
     balanceDeducted: { type: Boolean, default: false },
 
     // ── Admin Review ─────────────────────────────

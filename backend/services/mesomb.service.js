@@ -115,6 +115,52 @@ const makeCollect = async ({
 };
 
 /**
+ * Send money from the Auradime MeSomb application balance to a receiver.
+ * MeSomb calls this operation a deposit/disbursement.
+ */
+const makeDeposit = async ({
+  amount,
+  phone,
+  service = null,
+  currency = 'XAF',
+  country = 'CM',
+  trxID = null,
+  message = 'Auradime Withdrawal',
+  customer = {},
+}) => {
+  if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
+    throw new Error('MeSomb credentials not configured. Set MESOMB_APPLICATION_KEY, MESOMB_ACCESS_KEY, and MESOMB_SECRET_KEY.');
+  }
+
+  const normalizedPhone = normalizePhone(phone);
+  const operator = service || detectOperator(normalizedPhone);
+
+  if (!operator) {
+    throw new Error(`Could not determine mobile operator for number: ${phone}. Please specify MTN or ORANGE.`);
+  }
+
+  const client = new PaymentOperation({
+    applicationKey: APPLICATION_KEY,
+    accessKey: ACCESS_KEY,
+    secretKey: SECRET_KEY,
+  });
+
+  const nonce = RandomGenerator.nonce();
+
+  return client.makeDeposit({
+    amount: Math.round(amount),
+    service: operator,
+    receiver: normalizedPhone,
+    nonce,
+    trxID: trxID || nonce,
+    currency,
+    country,
+    message,
+    customer,
+  });
+};
+
+/**
  * Get the status of a MeSomb transaction.
  * @param {string} transactionId - MeSomb transaction ID or our trxID reference
  * @returns {Object} transaction data
@@ -149,6 +195,7 @@ const mapStatus = (response) => {
 
 module.exports = {
   makeCollect,
+  makeDeposit,
   getTransactionStatus,
   detectOperator,
   normalizePhone,

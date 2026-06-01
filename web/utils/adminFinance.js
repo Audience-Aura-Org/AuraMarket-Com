@@ -47,6 +47,7 @@ export const METHOD_ICON = {
   momo:     Phone,
   bank:     Building2,
   eversend: Tag,
+  mesomb:   Phone,
 };
 
 export const getMethodIcon = (method) => METHOD_ICON[method] || Wallet;

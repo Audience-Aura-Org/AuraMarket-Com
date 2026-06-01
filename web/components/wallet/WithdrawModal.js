@@ -5,7 +5,7 @@
  *
  * Used by both /wallet (users) and /vendor/wallet (vendors).
  * Submits to POST /api/withdrawals (new WithdrawalRequest system).
- * NO balance is deducted until admin approves + Eversend confirms.
+ * Balance is reserved while admin approves and sends payout via MeSomb or Eversend.
  */
 
 import { useState } from 'react';
@@ -20,6 +20,7 @@ const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
 const METHODS = [
   { id: 'momo',     label: 'Mobile Money',     sub: 'MTN, Orange, M-Pesa etc.',   icon: Phone,     color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
+  { id: 'mesomb',   label: 'MeSomb',           sub: 'Cameroon MTN / Orange payout', icon: Phone,    color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
   { id: 'bank',     label: 'Bank Transfer',    sub: 'Direct to bank account',      icon: Building2, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
   { id: 'eversend', label: 'Eversend Wallet',  sub: 'Wallet-to-wallet transfer',   icon: Tag,       color: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20' },
 ];
@@ -104,7 +105,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           firstName: form.firstName,
           lastName:  form.lastName,
           country:   form.country,
-          phoneNumber:   method.id === 'momo'     ? form.phoneNumber   : null,
+          phoneNumber:   ['momo', 'mesomb'].includes(method.id) ? form.phoneNumber : null,
           bankCode:      method.id === 'bank'     ? form.bankCode      : null,
           accountNumber: method.id === 'bank'     ? form.accountNumber : null,
           eversendTag:   method.id === 'eversend' ? form.eversendTag   : null,
@@ -306,7 +307,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
             </div>
-            {method.id === 'momo'     && field('phoneNumber',   'PHONE NUMBER',    '+237...',    'tel')}
+            {['momo', 'mesomb'].includes(method.id) && field('phoneNumber',   method.id === 'mesomb' ? 'MESOMB MOBILE MONEY NUMBER' : 'PHONE NUMBER',    '+237...',    'tel')}
             {method.id === 'bank'     && field('bankCode',      'BANK CODE',       'e.g. GTB')}
             {method.id === 'bank'     && field('accountNumber', 'ACCOUNT NUMBER',  '0123456789')}
             {method.id === 'eversend' && !selectedBeneficiary && field('eversendTag',   'EVERSEND TAG',    '@username')}
@@ -324,7 +325,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
               const missing =
                 !form.firstName || !form.lastName ||
                 (!selectedBeneficiary && (
-                  (method.id === 'momo' && !form.phoneNumber) ||
+                  (['momo', 'mesomb'].includes(method.id) && !form.phoneNumber) ||
                   (method.id === 'bank' && (!form.bankCode || !form.accountNumber)) ||
                   (method.id === 'eversend' && !form.eversendTag)
                 ));
@@ -357,7 +358,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
               ))}
             </div>
             <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-600 font-semibold leading-relaxed">
-              ⚠️ This request requires admin approval before funds are sent. Your balance will only be deducted after Eversend confirms the payout.
+              This request requires admin approval before funds are sent. Admin can approve the payout through MeSomb or Eversend depending on the destination.
             </div>
             {error && <p className="text-xs text-red-500 font-semibold flex items-center gap-2"><AlertCircle className="size-3.5" />{error}</p>}
             <button onClick={submit} disabled={loading}

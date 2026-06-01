@@ -46,6 +46,7 @@ export default function AdminWithdrawalsPage() {
   const [search, setSearch]     = useState('');
   const [processing, setProc]   = useState(null);
   const [selected, setSelected] = useState(null);
+  const [approveGateway, setApproveGateway] = useState('mesomb');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
@@ -82,11 +83,16 @@ export default function AdminWithdrawalsPage() {
     setCurrentPage(1);
   }, [filter, roleFilter, search]);
 
+  useEffect(() => {
+    if (!selected) return;
+    setApproveGateway(selected.payoutGateway || (selected.withdrawalMethod === 'mesomb' ? 'mesomb' : 'eversend'));
+  }, [selected]);
+
   const handleApprove = async (id) => {
     setProc('approve');
     try {
-      const res = await api.post(`/withdrawals/admin/${id}/approve`);
-      toast.success(res.data.message || 'Approved. Payout sent to Eversend.');
+      const res = await api.post(`/withdrawals/admin/${id}/approve`, { payoutGateway: approveGateway });
+      toast.success(res.data.message || `Approved. Payout sent to ${approveGateway}.`);
       setSelected(null);
       load();
     } catch (e) {
@@ -244,6 +250,15 @@ export default function AdminWithdrawalsPage() {
                           </div>
                        </div>
                     )}
+                    {selected.mesombTransactionId && (
+                       <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-3">
+                          <Zap className="size-4 text-emerald-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                             <p className="text-[9px] font-bold text-emerald-500/60 uppercase tracking-widest">MeSomb Uplink ID</p>
+                             <p className="text-xs font-mono font-bold truncate tracking-tighter">{selected.mesombTransactionId}</p>
+                          </div>
+                       </div>
+                    )}
 
                     {/* Failure/Reject Intelligence */}
                     {(selected.rejectionReason || selected.failureReason) && (
@@ -261,10 +276,28 @@ export default function AdminWithdrawalsPage() {
               <div className="pt-6 border-t border-[var(--glass-border)] mt-6 shrink-0">
                  {selected.status === 'pending' && (
                     <div className="flex flex-col gap-3">
+                       <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+                          <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-40">Payout gateway</p>
+                          <div className="grid grid-cols-2 gap-2">
+                             {[
+                               { id: 'mesomb', label: 'MeSomb', sub: 'MTN / Orange' },
+                               { id: 'eversend', label: 'Eversend', sub: 'Wallet / bank / momo' },
+                             ].map(g => (
+                               <button
+                                 key={g.id}
+                                 onClick={() => setApproveGateway(g.id)}
+                                 className={`rounded-xl border p-3 text-left transition-all ${approveGateway === g.id ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                               >
+                                 <span className="block text-[11px] font-bold tracking-tight">{g.label}</span>
+                                 <span className="block text-[9px] font-semibold opacity-60">{g.sub}</span>
+                               </button>
+                             ))}
+                          </div>
+                       </div>
                        <button onClick={() => handleApprove(selected._id)} disabled={!!processing}
                          className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center gap-3"
                        >
-                         {processing === 'approve' ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Authorize Payout
+                         {processing === 'approve' ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Authorize via {approveGateway}
                        </button>
                        <button onClick={() => handleReject(selected._id, prompt('Rejection Reason (required):') || '')} disabled={!!processing}
                          className="w-full h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-2xl font-bold text-[10px] tracking-[0.2em] uppercase hover:bg-rose-500/20 transition-all"
