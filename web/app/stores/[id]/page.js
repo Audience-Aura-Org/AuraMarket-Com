@@ -1,7 +1,5 @@
 import StorePageClient from './StorePageClient';
 
-export const dynamicParams = false;
-
 export function generateStaticParams() {
   return [{ id: '__placeholder__' }];
 }
