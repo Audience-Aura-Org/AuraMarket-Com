@@ -7,10 +7,12 @@ const {
   reactToStatus,
   viewStatus,
   getMyStatuses,
+  getStatusById,
   deleteStatus
 } = require('../controllers/status.controller');
 
 router.get('/', protectOptional, getActiveStatuses);
+router.get('/story/:id', protectOptional, getStatusById);
 router.post('/:id/view', protectOptional, viewStatus);
 
 router.use(protect); // Protect all write/private status routes

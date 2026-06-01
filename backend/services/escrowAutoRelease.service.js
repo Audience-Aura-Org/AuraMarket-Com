@@ -102,6 +102,54 @@ const autoReleaseEscrow = async ({ escrow, order, shipment = null, app }) => {
   }
 };
 
+const getAutoReleaseCandidates = async (now, cutoff) => {
+  const statusFilter = { status: { $in: ['held', 'pending_release'] } };
+  const readyEscrows = await Escrow.find({
+    ...statusFilter,
+    $or: [
+      { auto_release_at: { $lte: now } },
+      { delivered_at: { $lte: cutoff } },
+    ],
+  })
+    .sort('auto_release_at delivered_at createdAt')
+    .limit(BATCH_SIZE);
+
+  if (readyEscrows.length >= BATCH_SIZE) return readyEscrows;
+
+  const remaining = BATCH_SIZE - readyEscrows.length;
+  const seenIds = readyEscrows.map(escrow => escrow._id);
+
+  const [deliveredOrders, deliveredShipments] = await Promise.all([
+    Order.find({
+      order_status: { $in: ['delivered', 'completed'] },
+      updatedAt: { $lte: cutoff },
+    }).select('_id').sort('updatedAt').limit(BATCH_SIZE * 2).lean(),
+    Shipment.find({
+      status: 'delivered',
+      updatedAt: { $lte: cutoff },
+    }).select('order_id').sort('updatedAt').limit(BATCH_SIZE * 2).lean(),
+  ]);
+
+  const legacyOrderIds = [
+    ...new Set([
+      ...deliveredOrders.map(order => order._id.toString()),
+      ...deliveredShipments.map(shipment => shipment.order_id?.toString()).filter(Boolean),
+    ]),
+  ];
+
+  if (!legacyOrderIds.length) return readyEscrows;
+
+  const legacyEscrows = await Escrow.find({
+    ...statusFilter,
+    _id: { $nin: seenIds },
+    order_id: { $in: legacyOrderIds },
+  })
+    .sort('createdAt')
+    .limit(remaining);
+
+  return [...readyEscrows, ...legacyEscrows];
+};
+
 const processEscrowAutoReleases = async (app) => {
   if (running) return { processed: 0, skipped: true };
   running = true;
@@ -110,17 +158,7 @@ const processEscrowAutoReleases = async (app) => {
   try {
     const now = new Date();
     const cutoff = new Date(now.getTime() - AUTO_RELEASE_WINDOW_MS);
-    const candidates = await Escrow.find({
-      status: { $in: ['held', 'pending_release'] },
-      $or: [
-        { auto_release_at: { $lte: now } },
-        { delivered_at: { $lte: cutoff } },
-        { delivered_at: null },
-        { delivered_at: { $exists: false } },
-      ],
-    })
-      .sort('delivered_at createdAt')
-      .limit(BATCH_SIZE);
+    const candidates = await getAutoReleaseCandidates(now, cutoff);
 
     for (const escrow of candidates) {
       const order = await Order.findById(escrow.order_id).select('order_status updatedAt createdAt');

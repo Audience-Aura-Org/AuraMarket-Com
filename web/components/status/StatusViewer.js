@@ -528,7 +528,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     if (!story) return;
 
     const vendorName = story.vendor_id?.store_name || 'Auradime';
-    const storyUrl = story.content_url || (typeof window !== 'undefined' ? window.location.href : '');
+    const storyUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/discovery?tab=status&story=${encodeURIComponent(story._id)}`
+      : '';
     const shareText = story.caption || story.text_content || `View ${vendorName}'s story on Auradime`;
 
     try {

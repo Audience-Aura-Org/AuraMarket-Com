@@ -406,6 +406,7 @@ export default function DiscoveryHub() {
   const [viewingStatuses, setViewingStatuses] = useState(null);
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
+  const sharedStoryIdRef = useRef(null);
 
   // 1. Force blur on mount to dismiss any keyboards from previous screens
   useEffect(() => {
@@ -450,6 +451,40 @@ export default function DiscoveryHub() {
   useEffect(() => {
     fetchFollowedStatuses();
   }, [fetchFollowedStatuses]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const storyId = params.get('story');
+    if (!storyId || sharedStoryIdRef.current === storyId) return;
+
+    sharedStoryIdRef.current = storyId;
+    setActiveTab('status');
+
+    let isMounted = true;
+    api.get(`/statuses/story/${storyId}`)
+      .then((res) => {
+        const story = res.data?.data;
+        if (!isMounted || !story?._id) return;
+
+        setFollowedStatuses((current) => {
+          if (current.some((item) => item._id === story._id)) return current;
+          const next = [story, ...current].slice(0, 20);
+          writeTopStatusCache(next);
+          return next;
+        });
+        setViewingStatuses([story]);
+        setSelectedStoryId(story._id);
+      })
+      .catch((error) => {
+        console.error('[Hub] Failed to open shared story:', error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     window.addEventListener('online', fetchFollowedStatuses);

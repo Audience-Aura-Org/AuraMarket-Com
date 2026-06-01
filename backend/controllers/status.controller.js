@@ -98,6 +98,40 @@ exports.getActiveStatuses = async (req, res) => {
   }
 };
 
+// @desc    Get one active status for shared story links
+// @route   GET /api/statuses/story/:id
+// @access  Public/Optional auth
+exports.getStatusById = async (req, res) => {
+  try {
+    const status = await Status.findOne({
+      _id: req.params.id,
+      expires_at: { $gt: new Date() },
+    })
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name logo_url user_id rating average_rating total_reviews',
+        populate: { path: 'user_id', select: 'name avatar' },
+      })
+      .populate({
+        path: 'linked_product',
+        select: 'name price images',
+      })
+      .lean();
+
+    if (!status) {
+      return res.status(404).json({ success: false, message: 'Story not found or expired' });
+    }
+
+    const userId = req.user?._id || req.user?.id;
+    const viewerIds = status.viewer_ids || [];
+    const isViewed = userId ? viewerIds.some(id => id.toString() === userId.toString()) : false;
+
+    res.status(200).json({ success: true, data: { ...status, isViewed } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    React (Like) a status
 // @route   POST /api/statuses/:id/react
 // @access  Private

@@ -33,6 +33,15 @@ const resolveFont = (filename) => {
   return candidates.find((candidate) => fs.existsSync(candidate));
 };
 
+const resolveLogo = () => {
+  const candidates = [
+    path.join(__dirname, '..', '..', 'web', 'public', 'icon-512.png'),
+    path.join(__dirname, '..', 'public', 'icon-512.png'),
+    path.join(__dirname, '..', 'assets', 'icon-512.png'),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate));
+};
+
 const registerFonts = (doc) => {
   const regular = resolveFont('Poppins-Regular.ttf');
   const medium = resolveFont('Poppins-Medium.ttf');
@@ -68,9 +77,17 @@ const drawHeader = (doc, fonts, invoice) => {
   doc.rect(0, 0, PAGE_W, 138).fill(COLORS.black);
   doc.rect(0, 132, PAGE_W, 6).fill(COLORS.accent);
 
-  doc.circle(MARGIN + 23, 50, 23).fill(COLORS.accent);
-  setFont(doc, fonts, 'bold', 18, '#ffffff');
-  doc.text('AD', MARGIN + 9, 39, { width: 32, align: 'center' });
+  const logoPath = resolveLogo();
+  doc.circle(MARGIN + 23, 50, 23).fill('#ffffff');
+  if (logoPath) {
+    doc.save();
+    doc.circle(MARGIN + 23, 50, 21).clip();
+    doc.image(logoPath, MARGIN + 2, 29, { width: 42, height: 42 });
+    doc.restore();
+  } else {
+    setFont(doc, fonts, 'bold', 18, COLORS.accent);
+    doc.text('AD', MARGIN + 9, 39, { width: 32, align: 'center' });
+  }
 
   setFont(doc, fonts, 'bold', 24, '#ffffff');
   doc.text('Aura Dime', MARGIN + 58, 30, { width: 260 });

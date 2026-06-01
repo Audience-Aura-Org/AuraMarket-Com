@@ -75,17 +75,17 @@ export default function StatusManager() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-10">
-      <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 p-5 shadow-sm md:p-8">
-        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
-          <div className="flex flex-col justify-between gap-8">
-            <div className="space-y-5">
+    <div className="space-y-6 animate-in fade-in duration-700 pb-28 sm:space-y-8 sm:pb-10">
+      <section className="overflow-hidden rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 p-4 shadow-sm md:rounded-[2rem] md:p-8">
+        <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
+          <div className="flex flex-col justify-between gap-5 sm:gap-8">
+            <div className="space-y-4 sm:space-y-5">
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--accent)]">
                 <Sparkles className="size-3.5" />
                 Aura Stories
               </div>
               <div className="space-y-3">
-                <h2 className="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-[var(--text-primary)] md:text-5xl">
+                <h2 className="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl md:text-5xl">
                   Share quick updates shoppers can tap through.
                 </h2>
                 <p className="max-w-2xl text-sm font-medium leading-6 text-[var(--text-secondary)] md:text-base">
@@ -94,26 +94,26 @@ export default function StatusManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4">
-                <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="rounded-[1.25rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-3 sm:p-4">
+                <div className="mb-2 flex size-8 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] sm:mb-3 sm:size-9">
                   <Activity className="size-4" />
                 </div>
-                <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">{activeStatuses.length}</p>
+                <p className="text-xl font-bold tabular-nums tracking-tight text-[var(--text-primary)] sm:text-2xl">{activeStatuses.length}</p>
                 <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">Live</p>
               </div>
-              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4">
-                <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+              <div className="rounded-[1.25rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-3 sm:p-4">
+                <div className="mb-2 flex size-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 sm:mb-3 sm:size-9">
                   <Eye className="size-4" />
                 </div>
-                <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">{totalViews}</p>
+                <p className="text-xl font-bold tabular-nums tracking-tight text-[var(--text-primary)] sm:text-2xl">{totalViews}</p>
                 <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">Views</p>
               </div>
-              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4">
-                <div className="mb-3 flex size-9 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+              <div className="rounded-[1.25rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-3 sm:p-4">
+                <div className="mb-2 flex size-8 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 sm:mb-3 sm:size-9">
                   <Heart className="size-4 fill-current" />
                 </div>
-                <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">{totalLikes}</p>
+                <p className="text-xl font-bold tabular-nums tracking-tight text-[var(--text-primary)] sm:text-2xl">{totalLikes}</p>
                 <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">Likes</p>
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function StatusManager() {
           <button
             type="button"
             onClick={() => { setReshareTarget(null); setShowCreator(true); }}
-            className="group flex min-h-[320px] flex-col justify-between overflow-hidden rounded-[2rem] border border-[var(--accent)]/25 bg-[var(--accent)] text-left text-white shadow-xl shadow-[var(--accent)]/20 transition-all hover:-translate-y-1 hover:shadow-2xl active:scale-[0.99]"
+            className="group flex min-h-[220px] flex-col justify-between overflow-hidden rounded-[1.75rem] border border-[var(--accent)]/25 bg-[var(--accent)] text-left text-white shadow-xl shadow-[var(--accent)]/20 transition-all hover:-translate-y-1 hover:shadow-2xl active:scale-[0.99] sm:min-h-[280px] md:rounded-[2rem]"
           >
             <div className="flex items-start justify-between gap-4 p-6">
               <div className="flex size-14 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
@@ -132,7 +132,7 @@ export default function StatusManager() {
             </div>
             <div className="space-y-4 p-6 pt-0">
               <div>
-                <p className="text-3xl font-bold leading-tight tracking-tight md:text-4xl">Create a story</p>
+                <p className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">Create a story</p>
                 <p className="mt-3 max-w-sm text-sm font-medium leading-6 text-white/75">
                   Add a photo, video, or text update and link it to a product when it helps shoppers act faster.
                 </p>
@@ -181,9 +181,9 @@ export default function StatusManager() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {[0, 1, 2, 3].map(item => (
-              <div key={item} className="aspect-[4/5] animate-pulse rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]" />
+              <div key={item} className="aspect-[3/4] animate-pulse rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] sm:aspect-[4/5] sm:rounded-[2rem]" />
             ))}
           </div>
         ) : activeStatuses.length === 0 ? (
@@ -204,13 +204,13 @@ export default function StatusManager() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
 
         {/* Active Status Cards */}
         {activeStatuses.map(status => {
           const timeLeft = Math.max(0, Math.floor((new Date(status.expires_at) - new Date()) / (1000 * 60 * 60)));
           return (
-            <div key={status._id} className="group relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
+            <div key={status._id} className="group relative aspect-[3/4] overflow-hidden rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl sm:aspect-[4/5] sm:rounded-[2rem]">
               {/* Media Content */}
               {status.type === 'image' || status.type === 'video' ? (
                 <MediaThumbnail 
@@ -228,30 +228,30 @@ export default function StatusManager() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-80" />
 
               {/* Status Info */}
-              <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end text-white z-10">
+              <div className="absolute bottom-3 left-3 right-3 z-10 flex items-end justify-between gap-2 text-white sm:bottom-6 sm:left-6 sm:right-6">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold tracking-tight opacity-40 uppercase">Engagement</p>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Eye className="size-4 text-[var(--accent)]" />
-                      <span className="text-xl md:text-2xl font-bold tabular-nums tracking-tighter">{status.views_count || 0}</span>
+                  <p className="hidden text-[10px] font-bold uppercase tracking-tight opacity-40 sm:block">Engagement</p>
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Eye className="size-3.5 text-[var(--accent)] sm:size-4" />
+                      <span className="text-base font-bold tabular-nums tracking-tighter sm:text-xl md:text-2xl">{status.views_count || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Heart className="size-4 text-rose-500 fill-rose-500" />
-                      <span className="text-xl md:text-2xl font-bold tabular-nums tracking-tighter">{status.likes_count || 0}</span>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Heart className="size-3.5 fill-rose-500 text-rose-500 sm:size-4" />
+                      <span className="text-base font-bold tabular-nums tracking-tighter sm:text-xl md:text-2xl">{status.likes_count || 0}</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex flex-col items-end gap-2">
-                   <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[10px] font-bold tracking-tight flex items-center gap-2 shadow-xl uppercase">
+                   <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-tight shadow-xl backdrop-blur-xl sm:gap-2 sm:px-3">
                       <Clock className={`size-3 ${timeLeft < 5 ? 'text-rose-400 animate-pulse' : 'text-[var(--accent)]'}`} />
                       {timeLeft < 24 ? `${timeLeft}h` : `${Math.ceil(timeLeft / 24)}d`}
                    </div>
                    <button 
                      onClick={(e) => { e.stopPropagation(); handleDelete(status._id); }}
                      disabled={deletingId === status._id}
-                     className="size-9 rounded-full bg-rose-500/20 border border-red-500/30 flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all active:scale-90"
+                     className="flex size-8 items-center justify-center rounded-full border border-red-500/30 bg-rose-500/20 text-rose-500 transition-all hover:bg-rose-500 hover:text-white active:scale-90 sm:size-9"
                    >
                      {deletingId === status._id ? <RefreshCw className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
                    </button>

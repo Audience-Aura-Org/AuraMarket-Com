@@ -102,17 +102,6 @@ export default function TopNav() {
               className="h-6 w-auto object-contain transition-transform group-hover:scale-105 md:h-7"
             />
           </Link>
-          {user && (
-            <Link
-              href="/wallet"
-              className="inline-flex max-w-[104px] items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5 text-[10px] font-semibold text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)]"
-              title="Wallet balance"
-            >
-              <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
-              <span className="min-w-0 truncate tabular-nums">{walletBalance === null ? '...' : walletBalance.toLocaleString()}</span>
-              <span className="text-[9px] opacity-55">XAF</span>
-            </Link>
-          )}
         </div>
         
         {/* Global Search Interface - Icon Only */}
@@ -139,17 +128,17 @@ export default function TopNav() {
             </button>
           )}
 
-          <button 
-            onClick={() => openChat(null)}
-            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
-          >
-            <MessageCircle className="size-5" />
-            {unreadMessages > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-lg animate-pulse lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
-                {unreadMessages > 99 ? '99+' : unreadMessages}
-              </span>
-            )}
-          </button>
+          {user && (
+            <Link
+              href="/wallet"
+              className="inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-[10px] font-semibold text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)]"
+              title="Wallet balance"
+            >
+              <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
+              <span className="min-w-0 truncate tabular-nums">{walletBalance === null ? '...' : walletBalance.toLocaleString()}</span>
+              <span className="text-[9px] opacity-55">XAF</span>
+            </Link>
+          )}
 
           <div className="relative group/cart">
             <Link href="/cart" className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]">
@@ -165,6 +154,18 @@ export default function TopNav() {
               <CartPreview />
             </div>
           </div>
+
+          <button 
+            onClick={() => openChat(null)}
+            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+          >
+            <MessageCircle className="size-5" />
+            {unreadMessages > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-lg animate-pulse lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
+                {unreadMessages > 99 ? '99+' : unreadMessages}
+              </span>
+            )}
+          </button>
           
           {user ? (
             <Link 
