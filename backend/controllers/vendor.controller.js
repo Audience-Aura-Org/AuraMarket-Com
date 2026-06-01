@@ -325,12 +325,21 @@ const getStore = async (req, res, next) => {
     }
 
     let vendorId = req.params.id;
-    let store = await Store.findOne({ vendor_id: vendorId })
+    let store = await Store.findById(req.params.id)
       .populate({
         path: 'vendor_id',
         select: 'store_name description rating verified user_id follower_count',
         populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
       });
+
+    if (!store) {
+      store = await Store.findOne({ vendor_id: vendorId })
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name description rating verified user_id follower_count',
+        populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
+      });
+    }
 
     if (!store) {
       const vendor = await Vendor.findOne({

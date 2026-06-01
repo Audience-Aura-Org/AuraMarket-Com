@@ -77,8 +77,10 @@ export default function TopNav() {
 
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
-      trackSearch(search);
-      router.push(`/shop?q=${search}`);
+      const q = search.trim();
+      if (!q) return;
+      trackSearch(q);
+      router.push(`/shop?q=${encodeURIComponent(q)}`);
       setIsSearchOpen(false);
     }
   };
@@ -190,21 +192,39 @@ export default function TopNav() {
 
       {/* Standardized Search Overlay */}
       {isSearchOpen && !hideSearchIcon && (
-        <div className="animate-in slide-in-from-top-4 duration-500 absolute left-0 top-full w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] p-4 text-[var(--nav-text)] shadow-[0_16px_48px_-10px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.14)]">
-          <div className="relative w-full max-w-2xl mx-auto">
+        <div className="absolute left-0 top-full w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)]/95 px-4 py-2.5 font-poppins text-[var(--nav-text)] shadow-[0_14px_36px_-18px_rgba(0,0,0,0.42)] backdrop-blur-2xl animate-in slide-in-from-top-2 duration-300 dark:shadow-[0_12px_28px_-18px_rgba(0,0,0,0.18)]">
+          <div className="relative mx-auto w-full max-w-lg">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--nav-text)] opacity-45 dark:text-[var(--text-secondary)]" />
             <input 
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
-              placeholder="Search products, vendors, and management..."
-              className="w-full rounded-full border border-white/15 bg-white/10 py-3.5 pl-6 pr-14 text-sm font-bold text-[var(--nav-text)] shadow-inner outline-none transition-all placeholder:text-white/40 focus:ring-1 focus:ring-[var(--accent)] dark:border-[var(--glass-border)] dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)] dark:placeholder:text-[var(--text-secondary)] dark:placeholder:opacity-60"
+              placeholder="Search products and stores"
+              className="h-11 w-full rounded-2xl border border-white/15 bg-white/10 pl-10 pr-24 text-[12px] font-semibold tracking-tight text-[var(--nav-text)] outline-none transition-all placeholder:text-[var(--nav-text)]/45 focus:border-[color-mix(in_srgb,var(--accent)_42%,white)] focus:bg-white/15 focus:ring-2 focus:ring-[var(--accent)]/10 dark:border-[var(--glass-border)] dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)] dark:placeholder:text-[var(--text-secondary)]"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-12 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--nav-text)]/55 transition hover:bg-white/10 hover:text-[var(--nav-text)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--bg-primary)]"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
             <button 
-              onClick={() => { trackSearch(search); router.push(`/shop?q=${search}`); setIsSearchOpen(false); }} 
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 size-10 bg-[var(--accent)] text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all"
+              onClick={() => {
+                const q = search.trim();
+                if (!q) return;
+                trackSearch(q);
+                router.push(`/shop?q=${encodeURIComponent(q)}`);
+                setIsSearchOpen(false);
+              }}
+              className="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-xl bg-[var(--accent)] text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
+              aria-label="Search"
             >
-              <Search className="size-5" />
+              <Search className="size-4" />
             </button>
           </div>
         </div>
