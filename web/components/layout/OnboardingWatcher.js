@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
 
 export default function OnboardingWatcher() {
   const router = useRouter();
@@ -20,6 +21,13 @@ export default function OnboardingWatcher() {
       fetchFollowedVendors();
     }
   }, [isAuthenticated, hasHydrated, followedVendorIds.length, fetchFollowedVendors]);
+
+  const verificationStatus = user?.verification_status;
+  const showVerificationBanner = isAuthenticated &&
+    user?.role !== 'admin' &&
+    ['held', 'pending', 'rejected'].includes(verificationStatus) &&
+    !pathname?.startsWith('/login') &&
+    !pathname?.startsWith('/onboarding');
 
   useEffect(() => {
     // Wait for persisted auth state to hydrate before redirecting.
@@ -85,5 +93,34 @@ export default function OnboardingWatcher() {
     }
   }, [user, isAuthenticated, hasHydrated, pathname, router]);
 
-  return null;
+  if (!showVerificationBanner) return null;
+
+  const bannerCopy = verificationStatus === 'pending'
+    ? 'Your verification is under review. You can browse Auradime, but account actions are paused until approval.'
+    : verificationStatus === 'rejected'
+      ? 'Your verification needs attention. Please resubmit your details so your account can be restored.'
+      : 'Verification is required. You can view your account, but useful actions are paused until you complete KYC.';
+
+  return (
+    <div className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[900] md:left-auto md:right-5 md:top-20 md:w-[420px]">
+      <div className="rounded-3xl border border-amber-500/25 bg-[var(--bg-primary)]/95 p-4 shadow-2xl shadow-amber-500/10 backdrop-blur-2xl">
+        <div className="flex gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-500">
+            {verificationStatus === 'pending' ? <ShieldCheck className="size-5" /> : <AlertTriangle className="size-5" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Verification required</p>
+            <p className="mt-1 text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-70">{bannerCopy}</p>
+            <button
+              type="button"
+              onClick={() => router.push('/profile?tab=kyc')}
+              className="mt-3 rounded-2xl bg-[var(--accent)] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-all active:scale-95"
+            >
+              Open verification
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

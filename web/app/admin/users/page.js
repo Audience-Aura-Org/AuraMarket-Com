@@ -34,12 +34,20 @@ export default function AdminUsersPage() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const { user } = useAuthStore();
+  const [verificationFilter, setVerificationFilter] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setVerificationFilter(params.get('verification') || '');
+    const querySearch = params.get('search') || '';
+    if (querySearch) setSearch(querySearch);
+  }, []);
 
   useEffect(() => {
     fetchUsers();
     setCurrentPage(1);
     setSelectedIds([]);
-  }, [roleFilter]);
+  }, [roleFilter, verificationFilter]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -107,9 +115,12 @@ export default function AdminUsersPage() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(search.toLowerCase()) || 
-    u.email?.toLowerCase().includes(search.toLowerCase())
+  const filteredUsers = users.filter(u =>
+    (
+      u.name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase())
+    ) &&
+    (!verificationFilter || u.verification_status === verificationFilter)
   );
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);

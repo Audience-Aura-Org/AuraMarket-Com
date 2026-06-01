@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto">
+      <div className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto font-sans">
         
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -133,34 +133,38 @@ export default function AdminDashboard() {
                 ))}
              </div>
 
-             {/* Telemetry Matrix Refined */}
              <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="mb-4 flex items-end justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold tracking-tight text-[var(--text-primary)]">Control Snapshot</h3>
+                    <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-55">Live health signals admins can scan quickly.</p>
+                  </div>
+                  <span className="hidden rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-500 sm:inline-flex">Operational</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
                   {[
-                    { title: 'Vector Alpha', desc: 'Total Platform Volume', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue', signal: 'Primary' },
-                    { title: 'Risk Log', desc: 'Auth Failure Signals', count: '9', icon: ShieldAlert, color: 'rose', signal: 'Warning' },
-                    { title: 'Secured Nodes', desc: 'Active Escrow Flow', count: '18,000 XAF', icon: ShieldCheck, color: 'emerald', signal: 'Secure' },
-                    { title: 'Core Stable', desc: 'Platform Uptime', count: '99.98%', icon: Zap, color: 'amber', signal: 'Nominal' },
+                    { title: 'Platform Volume', desc: 'Total marketplace flow', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue', signal: 'Primary', href: '/admin/analytics' },
+                    { title: 'Verification Watch', desc: 'Users awaiting review', count: fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Action', href: '/admin/approvals' },
+                    { title: 'Escrow Flow', desc: 'Funds currently protected', count: `${fmt(stats?.escrow_vault || stats?.escrow_held)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Secure', href: '/admin/escrow' },
+                    { title: 'Core Stability', desc: 'API and app availability', count: '99.98%', icon: Zap, color: 'amber', signal: 'Nominal', href: '/admin/logs' },
                   ].map((item, i) => (
-                    <div key={i} className="relative overflow-hidden p-5 rounded-3xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all">
+                    <Link key={i} href={item.href} className="relative overflow-hidden p-4 md:p-5 rounded-3xl bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] group hover:-translate-y-0.5 hover:border-[var(--accent)]/30 hover:shadow-xl transition-all">
                       <div className="flex items-center justify-between mb-4">
                          <div className={`size-10 rounded-xl flex items-center justify-center border ${COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue}`}>
                            <item.icon className="size-4" />
                          </div>
-                         <div className="text-right">
-                           <p className="text-[9px] font-bold tracking-widest opacity-30 uppercase">{item.signal}</p>
-                           <p className="text-[10px] font-bold text-[var(--text-primary)]">{item.title}</p>
-                         </div>
+                         <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)] opacity-70">{item.signal}</span>
                       </div>
                       
                       <div className="space-y-1">
-                        <p className="text-xl font-bold font-mono tracking-tighter text-[var(--text-primary)]">{item.count}</p>
-                        <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
+                        <p className="text-2xl md:text-[1.7rem] font-bold tracking-tight text-[var(--text-primary)] tabular-nums">{item.count}</p>
+                        <p className="text-[12px] font-bold tracking-tight text-[var(--text-primary)]">{item.title}</p>
+                        <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-55">{item.desc}</p>
                       </div>
 
                       {/* Micro-sparkline effect */}
                       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent opacity-20" />
-                    </div>
+                    </Link>
                   ))}
                 </div>
              </div>
@@ -168,14 +172,19 @@ export default function AdminDashboard() {
 
           {/* System Security & Logs */}
           <section className="lg:col-span-1 space-y-6">
-             <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
-                <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40 mb-8">Security Terminal</h3>
+             <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 shadow-sm">
+                <h3 className="text-[11px] lg:text-[12px] font-semibold tracking-[0.3em] opacity-40 mb-6 md:mb-8">Security Terminal</h3>
                 <div className="space-y-4">
-                   <div className="p-5 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all">
-                      <Terminal className="size-5 mb-4 text-[var(--text-secondary)] opacity-20" />
-                      <h4 className="text-sm  font-bold  mb-1">Authorization Layer</h4>
-                      <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-50  leading-relaxed mb-6">Control system security and user permission protocols.</p>
-                      <Link href="/admin/security" className="inline-flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight hover:gap-4 transition-all">
+                   <div className="p-5 rounded-3xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] group hover:border-[var(--accent)]/30 transition-all">
+                      <div className="mb-4 flex items-center justify-between gap-4">
+                        <div className="size-11 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
+                          <Terminal className="size-5" />
+                        </div>
+                        <span className="rounded-full bg-amber-500/10 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-amber-500">KYC Gate</span>
+                      </div>
+                      <h4 className="text-base font-bold tracking-tight mb-1">Authorization Layer</h4>
+                      <p className="text-[12px] font-semibold text-[var(--text-secondary)] opacity-60 leading-relaxed mb-5">Request user verification, review pending KYC, and restore access after approval.</p>
+                      <Link href="/admin/users?verification=held" className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-all hover:brightness-110 active:scale-[0.98] sm:w-auto">
                         Access Firewall <ChevronRight className="size-3" />
                       </Link>
                    </div>

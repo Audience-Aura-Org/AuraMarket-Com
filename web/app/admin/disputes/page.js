@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -192,7 +193,15 @@ export default function AdminDisputes() {
                     </div>
                  </div>
 
-                 <div className="flex items-center gap-3 w-full md:w-auto">
+                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                    {selectedCase.initiator_id?._id && selectedCase.initiator_id?.verification_status !== 'verified' && (
+                      <Link
+                        href={`/admin/users?verification=held&search=${encodeURIComponent(selectedCase.initiator_id.email || '')}`}
+                        className="h-14 px-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 text-amber-500 font-bold text-[10px] tracking-[0.16em] uppercase transition-all hover:bg-amber-500 hover:text-white active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        Request KYC
+                      </Link>
+                    )}
                     {selectedCase.status === 'resolved' ? (
                       <div className="w-full md:w-auto px-8 py-4 rounded-2xl bg-emerald-500 text-white font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-emerald-500/20 text-center">
                          {selectedCase.resolution_type?.replace('_', ' ')} Executed

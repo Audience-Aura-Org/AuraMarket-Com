@@ -306,7 +306,15 @@ const getPublicStores = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getStore = async (req, res, next) => {
   try {
-    const store = await Store.findOne({ vendor_id: req.params.id })
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Store not found.',
+      });
+    }
+
+    let vendorId = req.params.id;
+    let store = await Store.findOne({ vendor_id: vendorId })
       .populate({
         path: 'vendor_id',
         select: 'store_name description rating verified user_id follower_count',
@@ -314,9 +322,26 @@ const getStore = async (req, res, next) => {
       });
 
     if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: 'Store not found.',
+      const vendor = await Vendor.findOne({
+        $or: [{ _id: req.params.id }, { user_id: req.params.id }],
+      });
+
+      if (!vendor) {
+        return res.status(404).json({
+          success: false,
+          message: 'Store not found.',
+        });
+      }
+
+      vendorId = vendor._id;
+      store = await Store.findOneAndUpdate(
+        { vendor_id: vendorId },
+        { $setOnInsert: { vendor_id: vendorId, categories: [] } },
+        { new: true, upsert: true, runValidators: true }
+      ).populate({
+        path: 'vendor_id',
+        select: 'store_name description rating verified user_id follower_count',
+        populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
       });
     }
 

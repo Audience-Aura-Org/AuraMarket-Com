@@ -80,7 +80,7 @@ const getAdminDisputes = async (req, res, next) => {
   try {
     const disputes = await Dispute.find()
       .populate('order_id')
-      .populate('initiator_id', 'name email avatar')
+      .populate('initiator_id', 'name email avatar verification_status')
       .sort('-createdAt');
 
     res.status(200).json({ success: true, data: { disputes } });
@@ -262,7 +262,7 @@ const getVendorDisputes = async (req, res, next) => {
     // Then find any disputes tied to those orders
     const disputes = await Dispute.find({ order_id: { $in: orderIds } })
       .populate('order_id')
-      .populate('initiator_id', 'name email avatar')
+      .populate('initiator_id', 'name email avatar verification_status')
       .sort('-createdAt');
 
     res.status(200).json({ success: true, count: disputes.length, data: { disputes } });
