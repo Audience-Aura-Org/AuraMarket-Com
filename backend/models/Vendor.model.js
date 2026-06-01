@@ -65,6 +65,7 @@ const VendorSchema = new mongoose.Schema(
     },
     pickup_address: {
       street: String,
+      address_description: String,
       city: String,
       region: String,
       quartier: String, // Neighborhood for routing

@@ -225,8 +225,8 @@ export default function OnboardingFlow() {
         return toast.error('Store name, description and phone are required.');
       if (step === 1 && selectedCategories.length < 2) 
         return toast.error('Select at least 2 categories.');
-      if (step === 2 && (!location.city || !location.quartier)) 
-        return toast.error('City and zone are required.');
+      if (step === 2 && (!location.city || !location.quartier || !location.address_description))
+        return toast.error('City, zone and store pickup address details are required.');
     } else if (isLogistics) {
       if (step === 0 && (!logisticsProfile.company_name || !phone || logisticsProfile.vehicle_types.length === 0))
         return toast.error('Company name, phone and fleet type are required.');
@@ -529,7 +529,9 @@ export default function OnboardingFlow() {
                   <div className="group relative">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                     <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">Address Details / Notes</label>
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">
+                        {isVendor ? 'Store Pickup Address Details / Notes' : 'Address Details / Notes'}
+                      </label>
                       <textarea
                         placeholder={isVendor ? "e.g. Opposite Total Station, gate #4..." : "e.g. Door #5, blue building..."}
                         value={location.address_description}

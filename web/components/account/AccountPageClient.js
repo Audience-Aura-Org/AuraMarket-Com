@@ -45,6 +45,17 @@ const ORDER_STATUS_STYLES = {
   }
 };
 
+const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
+  city: pickup.city || fallback.city || '',
+  quartier: pickup.quartier || fallback.quartier || '',
+  address_description:
+    pickup.address_description ||
+    pickup.street ||
+    fallback.address_description ||
+    fallback.street ||
+    '',
+});
+
 export default function AccountPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -225,13 +236,19 @@ export default function AccountPageClient() {
       api.get('/vendors/me').then(res => {
         if (res.data.success) {
           const v = res.data.data.vendor;
+          const s = v.store || {};
+          const pickupAddress = normalizePickupAddress(v.pickup_address, user.onboarding_location);
           setStoreData({
             store_name: v.store_name || '',
             description: v.description || '',
-            logo: v.logo || '',
-            banner: v.banner || '',
-            pickup_address: v.pickup_address || { city: '', quartier: '', address_description: '' }
+            logo: s.logo || v.logo || user.branding?.logo || '',
+            banner: s.banner || v.banner || user.branding?.banner || '',
+            pickup_address: pickupAddress
           });
+          setProfileBranding((p) => ({
+            logo: s.logo || v.logo || p.logo,
+            banner: s.banner || v.banner || p.banner,
+          }));
         }
       }).catch(() => {});
     }
@@ -270,11 +287,13 @@ export default function AccountPageClient() {
   const handleUpdateStore = async () => {
     setLoading(true);
     try {
+      const pickupAddress = normalizePickupAddress(storeData.pickup_address);
       await api.patch('/vendors/profile', {
         store_name: storeData.store_name,
         description: storeData.description,
-        pickup_address: storeData.pickup_address
+        pickup_address: pickupAddress
       });
+      setStoreData((p) => ({ ...p, pickup_address: pickupAddress }));
       setSaveStatus('Store updated successfully.');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (err) {
@@ -288,8 +307,9 @@ export default function AccountPageClient() {
   const handleUpdateBranding = async (overrides = {}) => {
     setBrandingStatus('Updating branding...');
     try {
-      const logo = overrides.logo || profileBranding.logo;
-      const banner = overrides.banner || profileBranding.banner;
+      const nextBranding = { ...profileBranding, ...overrides };
+      const logo = nextBranding.logo || storeData.logo || '';
+      const banner = nextBranding.banner || storeData.banner || '';
 
       const brandingPayload = canUseBanner ? { logo, banner } : { logo };
       
@@ -297,12 +317,14 @@ export default function AccountPageClient() {
 
       if (user?.role === 'vendor') {
         await api.patch('/vendors/store', { logo, banner });
+        setStoreData((p) => ({ ...p, logo, banner }));
       }
       if (user?.role === 'logistics') {
         await api.patch('/logistics/profile', { logo, banner });
       }
 
       if (res.data?.success && res.data?.data?.user) updateUser(res.data.data.user);
+      setProfileBranding({ logo, banner });
       setBrandingStatus('Branding updated successfully.');
       setTimeout(() => setBrandingStatus(''), 2500);
     } catch (err) {
@@ -744,7 +766,7 @@ export default function AccountPageClient() {
                       <div className="space-y-6">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
-                          <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Pickup Address Configuration</h4>
+                          <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Store Pickup Address Configuration</h4>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -768,11 +790,11 @@ export default function AccountPageClient() {
                         </div>
 
                         <FormField
-                          label="Pickup Address Description"
+                          label="Store Pickup Address Description"
                           value={storeData.pickup_address.address_description}
                           onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })}
                           icon={MapPin}
-                          placeholder="Specific address details..."
+                          placeholder="Describe the exact store pickup point, landmark, building, floor, or gate..."
                           textarea={true}
                         />
                       </div>

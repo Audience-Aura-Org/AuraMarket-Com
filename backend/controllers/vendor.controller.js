@@ -16,6 +16,23 @@ const mongoose = require('mongoose');
 const Follow = require('../models/Follow.model');
 const { escapeRegExp } = require('../middleware/security.middleware');
 
+const normalizePickupAddress = (incoming = {}, previous = {}) => {
+  const description =
+    incoming.address_description ??
+    incoming.street ??
+    previous.address_description ??
+    previous.street ??
+    '';
+
+  return {
+    city: incoming.city ?? previous.city ?? '',
+    quartier: incoming.quartier ?? previous.quartier ?? '',
+    street: description,
+    address_description: description,
+    region: incoming.region ?? previous.region ?? '',
+  };
+};
+
 // ─────────────────────────────────────────────
 // @route   POST /api/vendors/onboard
 // @desc    Register a logged-in User as a Vendor (Creates both Vendor & Store)
@@ -42,12 +59,7 @@ const onboardVendor = async (req, res, next) => {
       vendor.phone = phone || req.user.phone || vendor.phone || '000000000';
       
       if (location) {
-        vendor.pickup_address = {
-          city: location.city || vendor.pickup_address?.city,
-          quartier: location.quartier || vendor.pickup_address?.quartier,
-          street: location.address_description || vendor.pickup_address?.street,
-          region: vendor.pickup_address?.region
-        };
+        vendor.pickup_address = normalizePickupAddress(location, vendor.pickup_address);
       }
       
       vendor.is_onboarded = true;
@@ -75,11 +87,7 @@ const onboardVendor = async (req, res, next) => {
             store_name,
             description,
             phone: phone || req.user.phone || '000000000',
-            pickup_address: location ? {
-              city: location.city,
-              quartier: location.quartier,
-              street: location.address_description
-            } : {},
+            pickup_address: location ? normalizePickupAddress(location) : {},
             is_onboarded: true,
             onboarding_step: 'complete'
           },
@@ -194,13 +202,14 @@ const updateStore = async (req, res, next) => {
 
     const store = await Store.findOneAndUpdate(
       { vendor_id: vendor._id },
-      updateData,
-      { returnDocument: 'after', runValidators: true }
+      { $set: updateData, $setOnInsert: { vendor_id: vendor._id } },
+      {
+        returnDocument: 'after',
+        runValidators: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
     );
-
-    if (!store) {
-      return res.status(404).json({ success: false, message: 'Store not found.' });
-    }
 
     // 🚀 SYNC: Mirror branding assets to the core User model for Chat/Notifications consistency
     const User = require('../models/User.model');
@@ -233,7 +242,9 @@ const updateVendorProfile = async (req, res, next) => {
     const updates = {};
     if (store_name !== undefined) updates.store_name = store_name;
     if (description !== undefined) updates.description = description;
-    if (pickup_address !== undefined) updates.pickup_address = pickup_address;
+    if (pickup_address !== undefined) {
+      updates.pickup_address = normalizePickupAddress(pickup_address, req.vendor.pickup_address);
+    }
 
     const vendor = await Vendor.findByIdAndUpdate(
       req.vendor._id,
