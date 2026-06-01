@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import {
   Flame, Play, Search, X,
   Clock, ShoppingBag,
-  Plus, Users, Globe, Sparkles, ChevronRight,
+  Users, Globe,
   Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +41,7 @@ const ago = d => {
 const hoursLeft = exp => Math.max(0, (new Date(exp) - Date.now()) / 3600000);
 
 // â”€â”€â”€ Story Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, rank, isNew, priority = 'auto', onClick, className = '' }) {
+const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unviewedCount = 0, rank, isNew, priority = 'auto', onClick, className = '' }) {
   const v       = status.vendor_id;
   const logo    = v?.user_id?.branding?.logo || v?.user_id?.avatar;
   const name    = v?.store_name || 'Store';
@@ -72,6 +72,16 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, rank,
           ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-secondary)]' 
           : 'opacity-75 hover:opacity-100'
       }`}>
+      {statusesCount > 1 && (
+        <div className="absolute inset-x-3 top-3 z-30 flex gap-1">
+          {Array.from({ length: statusesCount }).map((_, i) => (
+            <span
+              key={i}
+              className={`h-1 flex-1 rounded-full shadow-sm ${i < unviewedCount ? 'bg-[var(--accent)]' : 'bg-white/35'}`}
+            />
+          ))}
+        </div>
+      )}
       {/* Media */}
       <div className="absolute inset-0">
         {!isText ? (
@@ -123,8 +133,13 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, rank,
                 </div>
               )}
               {isNew && (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold">
-                  <Sparkles className="size-3" /> New
+                <div className="px-2 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold">
+                  {unviewedCount > 1 ? `${unviewedCount} new` : 'New'}
+                </div>
+              )}
+              {!isNew && (
+                <div className="px-2 py-1 rounded-full bg-white/15 border border-white/10 text-white/70 text-[10px] font-semibold">
+                  Viewed
                 </div>
               )}
             </div>
@@ -241,6 +256,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
       return {
         ...representative,
         statusesCount: g.statuses.length,
+        unviewedCount: g.statuses.filter(s => !s.isViewed).length,
         isNew: g.statuses.some(s => !s.isViewed),
         vendorStatuses: g.statuses
       };
@@ -249,6 +265,13 @@ export default function StatusTabGrid({ onSelectStatus }) {
 
   const handleOpen = (status, pool) => {
     pool.slice(0, 6).forEach(s => warmStoryMedia(s, s._id === status._id));
+    const vendorId = (status.vendor_id?._id || status.vendor_id)?.toString();
+    const markViewed = (items) => items.map((s) => {
+      const currentVendorId = (s.vendor_id?._id || s.vendor_id)?.toString();
+      return currentVendorId === vendorId ? { ...s, isViewed: true } : s;
+    });
+    setFollowedStatuses(markViewed);
+    setGlobalStatuses(markViewed);
     onSelectStatus(pool, status._id);
   };
 
@@ -358,6 +381,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                       key={s.vendor_id?._id || s._id}
                       status={s}
                       statusesCount={s.statusesCount}
+                      unviewedCount={s.unviewedCount}
                       isNew={s.isNew}
                       priority={i < 4 ? 'high' : 'auto'}
                       className="aspect-[4/5]"
@@ -373,6 +397,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                       key={s.vendor_id?._id || s._id}
                       status={s}
                       statusesCount={s.statusesCount}
+                      unviewedCount={s.unviewedCount}
                       rank={i < 10 ? i + 1 : null}
                       isNew={s.isNew}
                       priority={i < 6 ? 'high' : 'auto'}
