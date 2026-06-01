@@ -905,7 +905,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search"
-                  className="w-full rounded-lg border-0 bg-[var(--bg-primary)] py-2 pl-8 pr-2.5 text-[13px] text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-[var(--glass-border)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)]/40 sm:py-2.5 sm:text-[14px]"
+                  className="w-full rounded-lg border-0 bg-[var(--bg-primary)] py-2 pl-8 pr-2.5 !text-base placeholder:!text-base text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-[var(--glass-border)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)]/40 sm:py-2.5"
                 />
               </div>
             </div>

@@ -201,7 +201,7 @@ export default function TopNav() {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
               placeholder="Search products and stores"
-              className="h-11 w-full rounded-2xl border border-white/15 bg-white/10 pl-10 pr-24 text-[12px] font-semibold tracking-tight text-[var(--nav-text)] outline-none transition-all placeholder:text-[var(--nav-text)]/45 focus:border-[color-mix(in_srgb,var(--accent)_42%,white)] focus:bg-white/15 focus:ring-2 focus:ring-[var(--accent)]/10 dark:border-[var(--glass-border)] dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)] dark:placeholder:text-[var(--text-secondary)]"
+              className="h-11 w-full rounded-2xl border border-white/15 bg-white/10 pl-10 pr-24 !text-base placeholder:!text-base font-semibold tracking-tight text-[var(--nav-text)] outline-none transition-all placeholder:text-[var(--nav-text)]/45 focus:border-[color-mix(in_srgb,var(--accent)_42%,white)] focus:bg-white/15 focus:ring-2 focus:ring-[var(--accent)]/10 dark:border-[var(--glass-border)] dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)] dark:placeholder:text-[var(--text-secondary)]"
             />
             {search && (
               <button

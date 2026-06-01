@@ -406,7 +406,7 @@ export default function AdminWithdrawalsPage() {
                   value={search} 
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search identity or transaction hash..."
-                  className="w-full h-14 pl-12 pr-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[1.25rem] text-sm font-bold placeholder:text-[var(--text-secondary)] placeholder:opacity-30 outline-none focus:border-[var(--accent)] focus:bg-[var(--bg-secondary)]/50 transition-all" 
+                  className="w-full h-14 pl-12 pr-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[1.25rem] !text-base placeholder:!text-base font-bold placeholder:text-[var(--text-secondary)] placeholder:opacity-30 outline-none focus:border-[var(--accent)] focus:bg-[var(--bg-secondary)]/50 transition-all" 
                />
             </div>
             <div className="flex items-center gap-3 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[1.25rem] px-5 h-14 group hover:border-[var(--accent)]/30 transition-all">

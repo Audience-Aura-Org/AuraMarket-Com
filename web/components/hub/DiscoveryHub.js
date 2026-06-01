@@ -168,7 +168,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                 placeholder="Search the global market..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[10px] lg:text-[12px] md:text-sm outline-none transition-all font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 !text-base placeholder:!text-base outline-none transition-all font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
               <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 flex items-center justify-center  font-bold">
                 <Search className="size-4" />

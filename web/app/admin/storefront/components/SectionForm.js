@@ -244,7 +244,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 <input 
                   autoFocus
                   placeholder="Search by name, brand, or category..."
-                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl  font-bold focus:border-[var(--accent)] outline-none"
+                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl !text-base placeholder:!text-base font-bold focus:border-[var(--accent)] outline-none"
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProducts()}
@@ -458,7 +458,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setProductSearch('');
                                    setItemProductResults([]);
                                  }}
-                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm pr-10"
+                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl !text-base placeholder:!text-base pr-10"
                                  placeholder="Search products by name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />
@@ -526,7 +526,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                       <input 
                                         autoFocus
                                         placeholder="Filter categories..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs outline-none focus:border-[var(--accent)] text-white  font-bold"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)] text-white font-bold"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -585,7 +585,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                       <input 
                                         autoFocus
                                         placeholder="Search category to link..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs outline-none focus:border-[var(--accent)] text-white  font-bold"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)] text-white font-bold"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -635,7 +635,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setVendorSearch('');
                                    setItemVendorResults([]);
                                  }}
-                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm pr-10"
+                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl !text-base placeholder:!text-base pr-10"
                                  placeholder="Search vendors by store name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />

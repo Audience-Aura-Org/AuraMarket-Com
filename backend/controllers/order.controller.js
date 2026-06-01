@@ -844,8 +844,9 @@ const createOrdersFromCart = async (req, res, next) => {
       }
     }
 
-    // Only clear the cart if we processed the cart, and it's Pay on Delivery (no separate payment step)
-    if (!req.body.items && payment_method === 'pay_on_delivery') {
+    // Once cart items become order records, clear the server cart for every checkout method.
+    // External payments keep retry state on the created orders, not by resubmitting stale cart lines.
+    if (!req.body.items) {
        const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
        if (cart) {
           cart.items = [];

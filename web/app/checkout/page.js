@@ -20,6 +20,30 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 
+const cartLineKey = (item) => {
+  const productId = item.product_id || item.product?._id || item.product;
+  const variant = item.variant ? JSON.stringify(item.variant) : '';
+  return `${productId || ''}:${variant}`;
+};
+
+const mergeCheckoutItems = (items = []) => {
+  const merged = new Map();
+
+  items.forEach((item) => {
+    const key = cartLineKey(item);
+    if (!key || key === ':') return;
+    const existing = merged.get(key);
+
+    if (existing) {
+      existing.quantity += Number(item.quantity || 1);
+    } else {
+      merged.set(key, { ...item, quantity: Number(item.quantity || 1) });
+    }
+  });
+
+  return Array.from(merged.values());
+};
+
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -246,7 +270,7 @@ function CheckoutContent() {
                 image: i.product?.images?.[0]?.url || i.product?.images?.[0]
              }));
 
-             setCartItems(items);
+             setCartItems(mergeCheckoutItems(items));
              
              // Auto-redirect if cart is empty and not viewing a specific order
              if (items.length === 0 && !orderId && !productId) {
@@ -344,9 +368,12 @@ function CheckoutContent() {
 
          const splitRes = await api.post('/orders/cart-split', orderPayload);
 
-         if (splitRes.data.success) {
+        if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;
             setCreatedOrderIds(finalOrderIds); // Cache orders for transaction persistence
+            if (!productId) {
+              cartStore.clearCart();
+            }
          } else {
             throw new Error("Failed to split cart into vendor nodes.");
          }
@@ -1180,7 +1207,7 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                placeholder="Search Quartier..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 !text-base placeholder:!text-base font-semibold tracking-tight outline-none"
             />
          </div>
       </div>
@@ -1230,7 +1257,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                placeholder="Search Logistics Node..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 !text-base placeholder:!text-base font-semibold tracking-tight outline-none"
             />
          </div>
       </div>

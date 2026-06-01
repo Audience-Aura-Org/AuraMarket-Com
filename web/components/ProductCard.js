@@ -58,7 +58,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     setAddingToCart(true);
     cartStore.addItem(product, 1);
     api.post('/cart', { product_id: productId, quantity: 1 })
-      .then(() => {
+      .then((res) => {
+        if (res.data?.success) cartStore.setCart(res.data.data.cart);
         toast.success(`${name} added to cart`, {
           icon: '🛒',
           style: {
@@ -103,11 +104,12 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       setAddingToCart(true);
       cartStore.addItem(enriched, 1);
       try {
-        await api.post('/cart', { 
+        const res = await api.post('/cart', { 
           product_id: productId, 
           quantity: 1, 
           variant: variantOrProduct.combination 
         });
+        if (res.data?.success) cartStore.setCart(res.data.data.cart);
         toast.success(`${name} added to cart`, {
           icon: '🛒',
           style: {

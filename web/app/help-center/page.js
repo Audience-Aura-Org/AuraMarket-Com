@@ -70,7 +70,7 @@ export default function HelpCenter() {
                 placeholder="Search articles, topics, or keywords..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-[var(--text-primary)] font-medium"
+                className="flex-1 bg-transparent border-none outline-none px-4 py-3 !text-base placeholder:!text-base text-[var(--text-primary)] font-medium"
               />
               <button className="bg-[var(--accent)] text-white px-6 py-3 rounded-xl  font-bold hover:shadow-lg shadow-[var(--accent)]/20 transition-all tracking-normal text-xs">
                 Search

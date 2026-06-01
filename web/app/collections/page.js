@@ -34,7 +34,7 @@ export default function CollectionsPage() {
                  <input 
                    type="text" 
                    placeholder="Search sectors..." 
-                   className="w-full h-10 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
+                   className="w-full h-10 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 !text-base placeholder:!text-base focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
                  />
               </div>
            </div>

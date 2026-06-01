@@ -2,6 +2,34 @@ const Cart = require('../models/Cart.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
 
+const variantKey = (variant) => JSON.stringify(variant || null);
+
+const normalizeCartItems = async (cart) => {
+  if (!cart?.items?.length) return cart;
+
+  const byProductVariant = new Map();
+  let changed = false;
+
+  for (const item of cart.items) {
+    const key = `${item.product?.toString()}::${variantKey(item.variant)}`;
+    const existing = byProductVariant.get(key);
+
+    if (existing) {
+      existing.quantity = Math.max(1, Number(existing.quantity || 0) + Number(item.quantity || 1));
+      changed = true;
+    } else {
+      byProductVariant.set(key, item);
+    }
+  }
+
+  if (changed) {
+    cart.items = Array.from(byProductVariant.values());
+    await cart.save();
+  }
+
+  return cart;
+};
+
 // POST /api/cart -> add/update item
 const addToCart = async (req, res, next) => {
   try {
@@ -74,8 +102,10 @@ const addToCart = async (req, res, next) => {
       await cart.save();
     }
     
+    await normalizeCartItems(cart);
+
     // Populate only essential fields for speed
-    const updatedCart = await Cart.findById(cart._id).populate('items.product', 'name price images stock');
+    const updatedCart = await Cart.findById(cart._id).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
 
     console.log(`[Cart API] Added product ${product_id} to cart for user ${userId}`);
     res.status(200).json({ 
@@ -91,8 +121,10 @@ const addToCart = async (req, res, next) => {
 // GET /api/cart -> get current user's cart
 const getCart = async (req, res, next) => {
   try {
-    const cart = await Cart.findOne({ user_id: req.user._id }).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
+    let cart = await Cart.findOne({ user_id: req.user._id });
     if (!cart) return res.status(200).json({ success: true, data: { cart: { items: [] } } });
+    await normalizeCartItems(cart);
+    cart = await Cart.findById(cart._id).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
     res.status(200).json({ success: true, data: { cart } });
   } catch (error) {
     next(error);

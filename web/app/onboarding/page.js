@@ -557,7 +557,7 @@ export default function OnboardingFlow() {
                    placeholder="Search vendors..."
                    value={search}
                    onChange={e => setSearch(e.target.value)}
-                   className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
+                   className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
                  />
                </div>
 
@@ -737,7 +737,7 @@ export default function OnboardingFlow() {
                   placeholder="Filter service regions..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
                 />
               </div>
 

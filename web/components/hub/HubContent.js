@@ -290,7 +290,7 @@ export default function HubContent() {
                              value={searchTerm}
                              onChange={e => setSearchTerm(e.target.value)}
                              placeholder="Search"
-                             className="w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-3 text-[15px] text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
+                             className="w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-3 !text-base placeholder:!text-base text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
                            />
                          </div>
                        </div>
@@ -428,7 +428,7 @@ export default function HubContent() {
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="Search hub..."
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-14 text-xs focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-14 !text-base placeholder:!text-base focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
               />
               <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center  font-bold">
                 <Search className="size-4" />
@@ -536,7 +536,7 @@ export default function HubContent() {
                           value={searchTerm}
                           onChange={e => setSearchTerm(e.target.value)}
                           placeholder="Search"
-                          className="w-full rounded-lg border-0 bg-white py-3 pl-10 pr-4 text-[15px] text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
+                          className="w-full rounded-lg border-0 bg-white py-3 pl-10 pr-4 !text-base placeholder:!text-base text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
                         />
                      </div>
                   </div>

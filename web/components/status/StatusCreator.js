@@ -393,7 +393,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         placeholder="Search your products..."
-                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-sm font-medium focus:border-[var(--accent)] outline-none transition-all"
+                        className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 !text-base placeholder:!text-base font-medium focus:border-[var(--accent)] outline-none transition-all"
                       />
                       {searchTerm && (
                         <div className="absolute top-full left-0 right-0 mt-2 max-h-52 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl z-50 p-1.5 space-y-0.5">
