@@ -1129,7 +1129,7 @@ const mesombVerify = async (req, res) => {
       }
     }
 
-    return res.status(200).json({ success: true, data: result });
+    return res.status(200).json({ success: true, status: result.status, data: result });
   } catch (err) {
     console.error('[mesombVerify]', err.message);
     return res.status(500).json({ success: false, message: err.message });

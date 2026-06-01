@@ -761,7 +761,8 @@ const createOrdersFromCart = async (req, res, next) => {
       payment_method, 
       logistics_company_id, 
       delivery_quartier, 
-      delivery_description 
+      delivery_description,
+      escrow_enabled
     } = req.body;
 
     // MANDATORY LOGISTICS: Block purchase without logistics partner
@@ -832,7 +833,8 @@ const createOrdersFromCart = async (req, res, next) => {
         shipping_address: { ...shipping_address, email: req.user.email, phone: req.user.phone },
         delivery_description,
         payment_status: 'pending',
-        order_status: 'placed'
+        order_status: 'placed',
+        escrow_enabled: escrow_enabled !== undefined ? escrow_enabled : true,
       }], { session, ordered: true });
 
       createdOrderIds.push(newOrder._id);

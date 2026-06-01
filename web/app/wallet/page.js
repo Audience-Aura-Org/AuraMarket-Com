@@ -95,8 +95,10 @@ export default function WalletPage() {
   
   // Deposit Workflow State
   const [depositStep, setDepositStep] = useState('amount'); // 'amount' | 'phone' | 'processing' | 'result'
+  const [depositGateway, setDepositGateway] = useState('mesomb');
   const [depositPhone, setDepositPhone] = useState(user?.phone || '');
   const [depositNetwork, setDepositNetwork] = useState('CM');
+  const [depositService, setDepositService] = useState('');
   const [depositRef, setDepositRef] = useState(null);
   const [depositStatus, setDepositStatus] = useState('pending');
   const [depositMessage, setDepositMessage] = useState('');
@@ -130,7 +132,7 @@ export default function WalletPage() {
         // Runs in background — does not block UI rendering.
         const pending = txList.filter(
           tx => tx.status === 'pending'
-            && tx.gateway === 'eversend'
+            && ['eversend', 'mesomb'].includes(tx.gateway)
             && tx.type === 'deposit'
             && !tx.gateway_transaction_id?.startsWith('SBX-') // skip sandbox test transactions
             && (Date.now() - new Date(tx.createdAt).getTime()) < 30 * 60 * 1000
@@ -140,7 +142,10 @@ export default function WalletPage() {
             let anyChanged = false;
             for (const tx of pending) {
               try {
-                const r = await api.get(`/payments/eversend/recheck/${tx.reference}`);
+                const endpoint = tx.gateway === 'mesomb'
+                  ? `/payments/mesomb/verify/${tx.reference}`
+                  : `/payments/eversend/recheck/${tx.reference}`;
+                const r = await api.get(endpoint);
                 if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') {
                   anyChanged = true;
                 }
@@ -213,12 +218,14 @@ export default function WalletPage() {
   if (!mounted || !user) return null;
 
   const startDeposit = async () => {
-    if (!amount || Number(amount) < 100) return showToast('Minimum deposit is 100 XAF.', 'error');
+    const min = depositGateway === 'eversend' ? 500 : 50;
+    if (!amount || Number(amount) < min) return showToast(`Minimum deposit is ${min} XAF.`, 'error');
     setDepositStep('phone');
   };
 
   const handleDepositInit = async () => {
-    if (!amount || Number(amount) < 500) return showToast('Minimum deposit is 500 XAF.', 'error');
+    const min = depositGateway === 'eversend' ? 500 : 50;
+    if (!amount || Number(amount) < min) return showToast(`Minimum deposit is ${min} XAF.`, 'error');
     if (!depositPhone) return showToast('Phone number is required.', 'error');
 
     // ── Immediate UI feedback — switch to processing BEFORE the API call ──
@@ -227,14 +234,20 @@ export default function WalletPage() {
     setSubmitting(true);
 
     try {
-      const payload = {
-        amount: Number(amount),
-        currency: 'XAF',
-        phone: depositPhone,
-        country: depositNetwork,
-      };
+      const payload = depositGateway === 'mesomb'
+        ? {
+            amount: Number(amount),
+            phone: depositPhone,
+            service: depositService || undefined,
+          }
+        : {
+            amount: Number(amount),
+            currency: 'XAF',
+            phone: depositPhone,
+            country: depositNetwork,
+          };
       
-      const res = await initiateCollection('eversend', payload);
+      const res = await initiateCollection(depositGateway, payload);
 
       if (res.success) {
         const ref = res.data.reference;
@@ -243,7 +256,7 @@ export default function WalletPage() {
 
         // Poll for up to 110s with 3s intervals (faster fallback; socket push handles the instant case)
         pollTransactionStatus(
-          'eversend',
+          depositGateway,
           ref,
           {
             onPending: (data) => setDepositMessage(data.message || 'Awaiting mobile money confirmation...'),
@@ -264,9 +277,12 @@ export default function WalletPage() {
               setDepositMessage('Verification window ended. Checking payment status one more time...');
               // Auto-recheck once — the gateway may have confirmed after the polling window
               try {
-                const ref = depositRef;
-                if (ref) {
-                  const r = await api.get(`/payments/eversend/recheck/${ref}`);
+                const pendingRef = ref;
+                if (pendingRef) {
+                  const endpoint = depositGateway === 'mesomb'
+                    ? `/payments/mesomb/verify/${pendingRef}`
+                    : `/payments/eversend/recheck/${pendingRef}`;
+                  const r = await api.get(endpoint);
                   if (r.data?.status === 'SUCCESSFUL') {
                     setDepositStatus('success');
                     setDepositMessage('Payment confirmed! Your wallet has been credited.');
@@ -321,7 +337,10 @@ export default function WalletPage() {
     if (!depositRef) return;
     setRecheckingDeposit(true);
     try {
-      const res = await api.get(`/payments/eversend/recheck/${depositRef}`);
+      const endpoint = depositGateway === 'mesomb'
+        ? `/payments/mesomb/verify/${depositRef}`
+        : `/payments/eversend/recheck/${depositRef}`;
+      const res = await api.get(endpoint);
       const { status, data, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
         setDepositStatus('success');
@@ -346,6 +365,7 @@ export default function WalletPage() {
       // Reset ONLY if we're not mid-transaction
       if (!['processing'].includes(depositStep)) {
         setDepositStep('amount');
+        setDepositGateway('mesomb');
         setDepositStatus('pending');
         setDepositReason('');
         setDepositRef(null);
@@ -360,7 +380,10 @@ export default function WalletPage() {
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
     try {
-      const res = await api.get(`/payments/eversend/recheck/${tx.reference}`);
+      const endpoint = tx.gateway === 'mesomb'
+        ? `/payments/mesomb/verify/${tx.reference}`
+        : `/payments/eversend/recheck/${tx.reference}`;
+      const res = await api.get(endpoint);
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
         showToast('Payment confirmed! Your wallet has been credited.', 'success');
@@ -484,7 +507,7 @@ export default function WalletPage() {
                       const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
                       return (
                         <div key={tx._id || i} className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
-                          tx.status === 'pending' && tx.gateway === 'eversend' && tx.type === 'deposit'
+                          tx.status === 'pending' && ['eversend', 'mesomb'].includes(tx.gateway) && tx.type === 'deposit'
                             ? 'border-amber-500/30 bg-amber-500/5'
                             : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                         }`}>
@@ -495,7 +518,7 @@ export default function WalletPage() {
                             <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                             <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
                             {/* Inline recheck for stuck pending eversend deposits */}
-                            {['pending', 'failed'].includes(tx.status) && tx.gateway === 'eversend' && tx.type === 'deposit' && (
+                            {['pending', 'failed'].includes(tx.status) && ['eversend', 'mesomb'].includes(tx.gateway) && tx.type === 'deposit' && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
                                 disabled={recheckingTxId === tx._id}
@@ -561,14 +584,33 @@ export default function WalletPage() {
                         <button onClick={() => setModal(null)} className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"><X className="size-4" /></button>
                       </div>
                       
-                      <div className="space-y-6">
+                        <div className="space-y-6">
+                        <div className="space-y-2">
+                           <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
+                           <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { id: 'mesomb', label: 'MeSomb', sub: 'MTN / Orange', min: 'Min 50' },
+                                { id: 'eversend', label: 'Eversend', sub: 'Multi-country', min: 'Min 500' },
+                              ].map(node => (
+                                <button
+                                  key={node.id}
+                                  onClick={() => setDepositGateway(node.id)}
+                                  className={`rounded-xl border p-3 text-left transition-all ${depositGateway === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-55 hover:opacity-100'}`}
+                                >
+                                  <span className="block text-[11px] font-bold tracking-tight">{node.label}</span>
+                                  <span className="block text-[9px] font-semibold opacity-70">{node.sub} · {node.min}</span>
+                                </button>
+                              ))}
+                           </div>
+                        </div>
+
                         <div className="space-y-2">
                            <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Deposit amount (XAF)</label>
                            <input 
                               type="number" 
                               value={amount} 
                               onChange={e => setAmount(e.target.value)} 
-                              placeholder="Min 500" 
+                              placeholder={depositGateway === 'eversend' ? 'Min 500' : 'Min 50'}
                               className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-2xl  font-bold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
                            />
                         </div>
@@ -587,23 +629,45 @@ export default function WalletPage() {
                            </div>
                         </div>
 
-                        <div className="space-y-2">
-                           <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Country</label>
-                           <div className="grid grid-cols-2 gap-2">
-                              {[
-                                 { id: 'CM', label: 'Cameroon' },
-                                 { id: 'CI', label: 'Ivory Coast' },
-                              ].map(node => (
-                                <button 
-                                  key={node.id} 
-                                  onClick={() => setDepositNetwork(node.id)}
-                                  className={`h-12 rounded-xl border  font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all ${depositNetwork === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
-                                >
-                                  {node.label}
-                                </button>
-                              ))}
-                           </div>
-                        </div>
+                        {depositGateway === 'eversend' ? (
+                          <div className="space-y-2">
+                             <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Country</label>
+                             <div className="grid grid-cols-2 gap-2">
+                                {[
+                                   { id: 'CM', label: 'Cameroon' },
+                                   { id: 'CI', label: 'Ivory Coast' },
+                                ].map(node => (
+                                  <button 
+                                    key={node.id} 
+                                    onClick={() => setDepositNetwork(node.id)}
+                                    className={`h-12 rounded-xl border  font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all ${depositNetwork === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                                  >
+                                    {node.label}
+                                  </button>
+                                ))}
+                             </div>
+                             <p className="text-[10px] font-semibold text-amber-500/80">Eversend deposits require at least 500 XAF.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                             <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Network</label>
+                             <div className="grid grid-cols-3 gap-2">
+                                {[
+                                   { id: '', label: 'Auto' },
+                                   { id: 'MTN', label: 'MTN' },
+                                   { id: 'ORANGE', label: 'Orange' },
+                                ].map(node => (
+                                  <button 
+                                    key={node.id || 'auto'} 
+                                    onClick={() => setDepositService(node.id)}
+                                    className={`h-12 rounded-xl border  font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all ${depositService === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                                  >
+                                    {node.label}
+                                  </button>
+                                ))}
+                             </div>
+                          </div>
+                        )}
 
                         <button onClick={handleDepositInit} disabled={submitting} className="w-full h-16 bg-emerald-500 text-white rounded-2xl  font-semibold text-[11px] lg:text-[12px] tracking-tight shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-4">
                            {submitting ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}

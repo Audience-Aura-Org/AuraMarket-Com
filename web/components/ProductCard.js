@@ -242,17 +242,17 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         }}
         className={`group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer font-poppins ${!inStock ? 'grayscale-[0.5]' : ''}`}
       >
-        <div className="p-2 sm:p-2.5 md:p-3 flex items-center justify-between gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md">
-           <Link href={`/stores/${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
+        <div className="p-2 sm:p-2.5 md:p-3 flex flex-nowrap items-center justify-between gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md overflow-hidden">
+           <Link href={`/stores/${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-[1_1_auto] overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
               <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
                 <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
               </div>
-               <h4 className="min-w-0 flex-1 truncate whitespace-nowrap text-[10px] sm:text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)] leading-none">{vendor_id?.store_name || 'Verified node'}</h4>
+               <h4 className="block min-w-0 max-w-full flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[10px] sm:text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)] leading-none">{vendor_id?.store_name || 'Verified node'}</h4>
               {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
            </Link>
            
            {user?._id !== vendorUserId && (
-              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`shrink-0 whitespace-nowrap px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight transition-all active:scale-95 shadow-sm border ${isFollowing ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'}`}>
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`shrink-0 max-w-[72px] overflow-hidden text-ellipsis whitespace-nowrap px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-[11px] font-semibold tracking-tight transition-all active:scale-95 shadow-sm border ${isFollowing ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'}`}>
                  {isFollowing ? 'Following' : '+ Follow'}
               </button>
            )}
