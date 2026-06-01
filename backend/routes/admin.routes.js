@@ -26,6 +26,7 @@ const {
   getPendingVendors,
   getPendingProducts,
   reviewProduct,
+  updateProductAdmin,
   getAllUsers,
   updateUserStatus,
   updateUserAdmin,
@@ -140,6 +141,7 @@ router.delete('/users/:id', deleteUser);
 router.get('/vendors', getAllVendors);
 router.patch('/vendors/:id/status', updateVendorStatus);
 router.get('/products', getAllProducts);
+router.patch('/products/:id', updateProductAdmin);
 router.post('/users/bulk-delete', bulkDeleteUsers);
 router.post('/products/bulk-delete', bulkDeleteProducts);
 

@@ -24,6 +24,7 @@ const logisticsService = require('../services/logistics.service');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const templates = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../middleware/security.middleware');
+const cache = require('../utils/cache');
 const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
 
 // ─────────────────────────────────────────────
@@ -399,11 +400,61 @@ const getPendingProducts = async (req, res, next) => {
 const reviewProduct = async (req, res, next) => {
   try {
     const { status } = req.body;
+    const allowedStatuses = ['active', 'pending', 'archived', 'suspended', 'draft'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid product status.' });
+    }
+
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
-    product.status = status === 'active' ? 'active' : 'archived';
+    product.status = status;
     await product.save();
-    res.status(200).json({ success: true, message: `Product outcome synced.`, data: { product } });
+    cache.clear();
+    const populated = await Product.findById(product._id).populate('vendor_id', 'store_name');
+    res.status(200).json({ success: true, message: `Product status updated to ${status}.`, data: { product: populated } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateProductAdmin = async (req, res, next) => {
+  try {
+    const allowedUpdates = [
+      'name',
+      'description',
+      'price',
+      'stock',
+      'category',
+      'status',
+      'featured',
+      'specifications',
+      'long_description',
+    ];
+    const updateData = {};
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field];
+    });
+
+    if (updateData.status) {
+      const allowedStatuses = ['active', 'pending', 'archived', 'suspended', 'draft'];
+      if (!allowedStatuses.includes(updateData.status)) {
+        return res.status(400).json({ success: false, message: 'Invalid product status.' });
+      }
+    }
+    if (updateData.price !== undefined) updateData.price = Number(updateData.price);
+    if (updateData.stock !== undefined) updateData.stock = Number(updateData.stock);
+    if (updateData.featured !== undefined) updateData.featured = Boolean(updateData.featured);
+
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { returnDocument: 'after', runValidators: true }
+    ).populate('vendor_id', 'store_name');
+
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+
+    cache.clear();
+    res.status(200).json({ success: true, message: 'Product updated.', data: { product } });
   } catch (error) {
     next(error);
   }
@@ -1119,6 +1170,7 @@ module.exports = {
   getPendingVendors,
   getPendingProducts,
   reviewProduct,
+  updateProductAdmin,
   getAllUsers,
   getAllVendors,
   getAllProducts,

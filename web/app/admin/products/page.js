@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Package, Search, Loader2, Eye, Building2, Star, CheckCircle, Trash2, RefreshCw } from 'lucide-react';
+import { Package, Search, Loader2, Eye, Building2, Star, CheckCircle, Trash2, RefreshCw, Pencil, Ban, Archive } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -20,6 +20,9 @@ export default function AdminProductsPage() {
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -73,10 +76,44 @@ export default function AdminProductsPage() {
       const res = await api.patch(`/admin/products/${productId}/review`, { status });
       if (res.data.success) {
         toast.success(`Asset status shift complete.`);
-        setProducts(prev => prev.map(p => p._id === productId ? { ...p, status: status === 'active' ? 'active' : 'archived' } : p));
+        const updated = res.data.data?.product;
+        setProducts(prev => prev.map(p => p._id === productId ? { ...p, ...(updated || {}), status } : p));
       }
     } catch (err) {
       toast.error('Asset status change failed');
+    }
+  };
+
+  const openEdit = (product) => {
+    setEditingProduct(product);
+    setEditForm({
+      name: product.name || '',
+      description: product.description || '',
+      price: product.price ?? '',
+      stock: product.stock ?? '',
+      category: product.category || '',
+      status: product.status || 'active',
+      featured: !!product.featured,
+      specifications: product.specifications || '',
+      long_description: product.long_description || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingProduct?._id) return;
+    setSavingEdit(true);
+    try {
+      const res = await api.patch(`/admin/products/${editingProduct._id}`, editForm);
+      if (res.data.success) {
+        const updated = res.data.data.product;
+        setProducts(prev => prev.map(p => p._id === updated._id ? updated : p));
+        setEditingProduct(null);
+        toast.success('Product updated.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Product update failed.');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -112,7 +149,7 @@ export default function AdminProductsPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start">
-              {['all', 'active', 'pending', 'archived'].map((s) => (
+              {['all', 'active', 'pending', 'archived', 'suspended'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
@@ -163,7 +200,13 @@ export default function AdminProductsPage() {
                   </thead>
                   <tbody className="divide-y divide-[var(--glass-border)]">
                     {currentProducts.map(p => {
-                      const statusClass = p.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : p.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+                      const statusClass = p.status === 'active'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : p.status === 'pending'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          : p.status === 'suspended'
+                            ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
                       const isSelected = selectedIds.includes(p._id);
 
                       return (
@@ -210,19 +253,22 @@ export default function AdminProductsPage() {
                               <Link href={'/products/' + p._id} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all">
                                 <Eye className="size-4" />
                               </Link>
-                              {p.status !== 'active' ? (
-                                <button
-                                  onClick={() => handleStatusUpdate(p._id, 'active')}
-                                  className="h-9 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
-                                >
-                                  Authorize
+                              <button onClick={() => openEdit(p)} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all" title="Edit product">
+                                <Pencil className="size-4" />
+                              </button>
+                              {p.status !== 'active' && (
+                                <button onClick={() => handleStatusUpdate(p._id, 'active')} className="h-9 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">
+                                  Approve
                                 </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleStatusUpdate(p._id, 'rejected')}
-                                  className="h-9 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 text-[10px] font-bold text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
-                                >
-                                  Suspend
+                              )}
+                              {p.status !== 'archived' && (
+                                <button onClick={() => handleStatusUpdate(p._id, 'archived')} className="size-9 rounded-xl border border-amber-500/20 bg-amber-500/10 flex items-center justify-center text-amber-400 hover:bg-amber-500 hover:text-white transition-all" title="Disapprove">
+                                  <Archive className="size-4" />
+                                </button>
+                              )}
+                              {p.status !== 'suspended' && (
+                                <button onClick={() => handleStatusUpdate(p._id, 'suspended')} className="size-9 rounded-xl border border-red-500/20 bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Suspend">
+                                  <Ban className="size-4" />
                                 </button>
                               )}
                             </div>
@@ -250,6 +296,84 @@ export default function AdminProductsPage() {
           )}
         </div>
       </div>
+      <AnimatePresence>
+        {editingProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 12 }}
+              className="w-full max-w-3xl overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--glass-border)] px-6 py-5">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Admin Product Edit</p>
+                  <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">Update product record</h3>
+                </div>
+                <button onClick={() => setEditingProduct(null)} className="rounded-xl px-3 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
+                  Close
+                </button>
+              </div>
+
+              <div className="max-h-[72vh] overflow-y-auto p-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <AdminInput label="Product name" value={editForm.name} onChange={(v) => setEditForm(f => ({ ...f, name: v }))} />
+                  <AdminInput label="Category" value={editForm.category} onChange={(v) => setEditForm(f => ({ ...f, category: v }))} />
+                  <AdminInput label="Price" type="number" value={editForm.price} onChange={(v) => setEditForm(f => ({ ...f, price: v }))} />
+                  <AdminInput label="Stock" type="number" value={editForm.stock} onChange={(v) => setEditForm(f => ({ ...f, stock: v }))} />
+                  <label className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">Status</span>
+                    <select
+                      value={editForm.status}
+                      onChange={(e) => setEditForm(f => ({ ...f, status: e.target.value }))}
+                      className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-sm font-semibold outline-none"
+                    >
+                      <option value="active">Approved / Active</option>
+                      <option value="pending">Pending</option>
+                      <option value="archived">Disapproved / Archived</option>
+                      <option value="suspended">Suspended</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </label>
+                  <label className="flex h-12 items-center justify-between self-end rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4">
+                    <span className="text-sm font-bold text-[var(--text-primary)]">Featured</span>
+                    <input
+                      type="checkbox"
+                      checked={!!editForm.featured}
+                      onChange={(e) => setEditForm(f => ({ ...f, featured: e.target.checked }))}
+                      className="size-5 accent-[var(--accent)]"
+                    />
+                  </label>
+                  <AdminTextarea label="Description" value={editForm.description} onChange={(v) => setEditForm(f => ({ ...f, description: v }))} />
+                  <AdminTextarea label="Long description" value={editForm.long_description} onChange={(v) => setEditForm(f => ({ ...f, long_description: v }))} />
+                  <div className="md:col-span-2">
+                    <AdminTextarea label="Specifications" value={editForm.specifications} onChange={(v) => setEditForm(f => ({ ...f, specifications: v }))} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-[var(--glass-border)] px-6 py-5">
+                <button onClick={() => setEditingProduct(null)} className="rounded-2xl px-5 py-3 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit}
+                  className="flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3 text-xs font-bold text-white shadow-lg disabled:opacity-50"
+                >
+                  {savingEdit && <Loader2 className="size-3 animate-spin" />}
+                  Save Product
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* BULK ACTION BAR */}
       <AnimatePresence>
         {selectedIds.length > 0 && (
@@ -284,5 +408,33 @@ export default function AdminProductsPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function AdminInput({ label, value, onChange, type = 'text' }) {
+  return (
+    <label className="space-y-2">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">{label}</span>
+      <input
+        type={type}
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
+      />
+    </label>
+  );
+}
+
+function AdminTextarea({ label, value, onChange }) {
+  return (
+    <label className="space-y-2 md:col-span-2">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">{label}</span>
+      <textarea
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        rows={4}
+        className="w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
+      />
+    </label>
   );
 }
