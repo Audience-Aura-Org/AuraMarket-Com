@@ -981,7 +981,7 @@ export default function AccountPageClient() {
                           {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(vendor => (
                             <Link 
                               key={vendor._id} 
-                              href={`/stores/${vendor.vendor_id?._id || ''}`} 
+                              href={`/stores?id=${encodeURIComponent(vendor.vendor_id?._id || '')}`} 
                               className="group relative rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[var(--accent)]/10 hover:-translate-y-2 glass-panel"
                             >
                               <div className="absolute top-0 left-0 w-full h-24 overflow-hidden">
@@ -1011,7 +1011,8 @@ export default function AccountPageClient() {
                                   </div>
                                   
                                   <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight w-fit mx-auto ">
-                                    <Star className="size-2.5 fill-current" /> {Number(vendor.vendor_id?.rating || 0) > 0 ? Number(vendor.vendor_id.rating).toFixed(1) : 'New'}
+                                    <Star className="size-2.5 fill-current" />
+                                    {Number(vendor.vendor_id?.rating || 0) > 0 && Number(vendor.vendor_id.rating).toFixed(1)}
                                   </div>
 
                                   <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60  tracking-tighter">

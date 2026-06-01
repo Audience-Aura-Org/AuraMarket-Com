@@ -547,7 +547,7 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 pt-2">
-                  <Link href={`/stores/${vendor._id}`}
+                  <Link href={`/stores?id=${encodeURIComponent(vendor._id)}`}
                     className="h-10 flex items-center justify-center gap-2 bg-[var(--bg-secondary)] rounded-full text-xs  font-bold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/80 transition-all">
                     <Store className="size-3.5" /> Visit store
                   </Link>

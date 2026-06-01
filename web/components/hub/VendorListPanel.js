@@ -18,6 +18,7 @@ const getVendorId = (vendor) => (vendor?.vendor_id?._id || vendor?.vendor_id || 
 const getVendorUserId = (vendor) => (vendor?.user_id?._id || vendor?.user_id || vendor?.vendor_id?.user_id?._id || vendor?.vendor_id?.user_id)?.toString();
 const getVendorName = (vendor) => vendor?.store_name || vendor?.vendor_id?.store_name || 'Store';
 const getVendorDescription = (vendor) => vendor?.description || vendor?.vendor_id?.description || '';
+const getStoreHref = (vendorId) => `/stores?id=${encodeURIComponent(vendorId)}`;
 
 /**
  * VendorListPanel
@@ -145,7 +146,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
                   hasStatus={followedStatuses.some(s => (s.vendor_id?._id || s.vendor_id)?.toString() === vendorId)}
                   onOpenStatus={() => onOpenStatus(vendorId)}
                   onOpenChat={(vData) => openChat(userId, null, vData)}
-                  onClick={() => router.push(`/stores/${vendorId}`)}
+                  onClick={() => router.push(getStoreHref(vendorId))}
                 />
               );
             })}

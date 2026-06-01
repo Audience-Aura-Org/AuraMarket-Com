@@ -2,15 +2,19 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Store, Star, ArrowRight, ShieldCheck, Users, Search, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/services/api';
 import { vendorService } from '@/services/vendor';
 import Pagination from '@/components/common/Pagination';
+import StorePageClient from './[id]/StorePageClient';
+import { useSearchParams } from 'next/navigation';
 
-export default function StoresDirectoryPage() {
+function StoresDirectoryContent() {
+  const searchParams = useSearchParams();
+  const storeId = searchParams?.get('id');
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -48,6 +52,7 @@ export default function StoresDirectoryPage() {
   };
 
   if (!mounted) return null;
+  if (storeId) return <StorePageClient storeId={storeId} />;
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 relative overflow-x-hidden pb-40 transition-colors duration-500">
@@ -121,7 +126,7 @@ export default function StoresDirectoryPage() {
                 whileHover={{ y: -8 }}
               >
                 <Link 
-                  href={`/stores/${s._id}`}
+                  href={`/stores?id=${encodeURIComponent(s._id)}`}
                   className="group relative rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-[var(--accent)]/15 glass-panel h-full flex flex-col"
                 >
                   {/* Banner Background */}
@@ -156,7 +161,8 @@ export default function StoresDirectoryPage() {
                       </div>
                       
                       <div className="flex items-center justify-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] text-xs  font-bold w-fit mx-auto">
-                        <Star className="size-3 fill-current" /> <span>{Number(s.rating || 0) > 0 ? Number(s.rating).toFixed(1) : 'New'}</span>
+                        <Star className="size-3 fill-current" />
+                        {Number(s.rating || 0) > 0 && <span>{Number(s.rating).toFixed(1)}</span>}
                       </div>
 
                       <p className="text-[var(--text-secondary)] text-xs font-medium line-clamp-2 leading-relaxed h-8 flex-1">
@@ -196,5 +202,13 @@ export default function StoresDirectoryPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function StoresDirectoryPage() {
+  return (
+    <Suspense fallback={null}>
+      <StoresDirectoryContent />
+    </Suspense>
   );
 }

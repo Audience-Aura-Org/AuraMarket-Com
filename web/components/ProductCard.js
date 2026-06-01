@@ -41,7 +41,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   const rawImage = images && images.length > 0 ? images[0] : null;
   const mainImage = typeof rawImage === 'string' ? rawImage : (rawImage?.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80');
   const numericRating = Number(rating || 0);
-  const displayRating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : 'New';
+  const displayRating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : '';
+  const storeHref = vendorId ? `/stores?id=${encodeURIComponent(vendorId)}` : '/stores';
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -178,7 +179,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
             <div className="space-y-2">
                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                  <Link href={`/shop?vendorId=${vendorId}`} className="flex min-w-0 items-center gap-2 overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <Link href={storeHref} className="flex min-w-0 items-center gap-2 overflow-hidden" onClick={e => e.stopPropagation()}>
                     <div className="size-5 shrink-0 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                       <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
                     </div>
@@ -250,7 +251,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         className={`group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer font-poppins ${!inStock ? 'grayscale-[0.5]' : ''}`}
       >
         <div className="grid h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-2 backdrop-blur-md sm:p-2.5 md:p-3 overflow-hidden">
-           <Link href={`/stores/${vendorId}`} className="flex min-w-0 items-center gap-1.5 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
+           <Link href={storeHref} className="flex min-w-0 items-center gap-1.5 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
               <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
                 <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
               </div>
@@ -282,8 +283,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>
             <Heart className={`size-3.5 ${wishlisted ? 'fill-current' : ''}`} />
           </button>
-          <Link href={`/shop?vendorId=${vendorId}`} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
-            <Compass className="size-3" /> Discovery
+          <Link href={storeHref} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
+            <Compass className="size-3" /> Store
           </Link>
         </div>
 
@@ -296,7 +297,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <span className="text-[12px] sm:text-[14px] md:text-[16px]  font-semibold text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
               <div className="flex items-center gap-1 opacity-70">
                  <Star className="size-2.5 fill-[var(--accent)] text-[var(--accent)]" />
-                 <span className="text-[10px] lg:text-[12px] sm:text-[11px] lg:text-[12px] md:text-[12px] font-semibold text-[var(--text-secondary)]">{displayRating}</span>
+                 {displayRating && <span className="text-[10px] lg:text-[12px] sm:text-[11px] lg:text-[12px] md:text-[12px] font-semibold text-[var(--text-secondary)]">{displayRating}</span>}
               </div>
             </div>
           </div>

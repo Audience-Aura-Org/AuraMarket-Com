@@ -16,8 +16,9 @@ const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'),
 import { useAuthStore } from '@/hooks/useAuth';
 import VendorFollowButton from '@/components/VendorFollowButton';
 
-export default function StorePage() {
-  const { id } = useParams();
+export default function StorePage({ storeId: explicitStoreId = null }) {
+  const params = useParams();
+  const id = explicitStoreId || params?.id;
   const { openChat } = useChat();
   const productsAnchor = useRef(null);
   const { user, followedVendorIds, addFollowedVendor, removeFollowedVendor, isAuthenticated, fetchFollowedVendors } = useAuthStore();
@@ -162,10 +163,11 @@ export default function StorePage() {
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
                     <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)]">
-                      {Number(vendor?.rating || 0) > 0 ? Number(vendor.rating).toFixed(1) : 'New'}
-                    </span>
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">Rating</span>
+                    {Number(vendor?.rating || 0) > 0 && (
+                      <span className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)]">
+                        {Number(vendor.rating).toFixed(1)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">

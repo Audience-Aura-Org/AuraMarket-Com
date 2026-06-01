@@ -514,7 +514,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const handleVendorClick = useCallback((e, vendorId) => {
     e.stopPropagation();
     handleClose();
-    router.push(`/stores/${vendorId}`);
+    router.push(`/stores?id=${encodeURIComponent(vendorId)}`);
   }, [handleClose, router]);
 
   const toggleLike = useCallback(() => {
