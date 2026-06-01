@@ -92,22 +92,22 @@ export default function TopNav() {
       <div className="mx-auto flex max-w-[1920px] items-center justify-between gap-3 px-4 py-2.5 md:gap-4 md:px-6 md:py-4">
         
         {/* Logo Section */}
-        <div className="flex items-center gap-4 lg:gap-12 shrink-0">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 lg:gap-12">
           <Link href={user ? "/discovery?tab=discover" : "/"} className="flex items-center gap-2 md:gap-3 group">
             <img
               src="/icon-512.png"
               alt="Auradime"
-              className="h-6 md:h-7 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-6 w-auto object-contain transition-transform group-hover:scale-105 md:h-7"
             />
           </Link>
           {user && (
             <Link
               href="/wallet"
-              className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 sm:inline-flex dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)]"
+              className="inline-flex max-w-[104px] items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5 text-[10px] font-semibold text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)]"
               title="Wallet balance"
             >
-              <Wallet className="size-3.5 text-[var(--accent)]" />
-              <span className="tabular-nums">{walletBalance === null ? '...' : walletBalance.toLocaleString()}</span>
+              <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
+              <span className="min-w-0 truncate tabular-nums">{walletBalance === null ? '...' : walletBalance.toLocaleString()}</span>
               <span className="text-[9px] opacity-55">XAF</span>
             </Link>
           )}
@@ -148,16 +148,6 @@ export default function TopNav() {
               </span>
             )}
           </button>
-
-          {user && (
-            <Link 
-              href="/wallet" 
-              className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
-              title="Wallet"
-            >
-              <Wallet className="size-5" />
-            </Link>
-          )}
 
           <div className="relative group/cart">
             <Link href="/cart" className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]">
