@@ -133,33 +133,33 @@ export default function AdminDashboard() {
                 ))}
              </div>
 
-             <div className="mt-8 pt-8 border-t border-[var(--glass-border)]">
-                <div className="mb-4 flex items-end justify-between gap-4">
+             <div className="mt-6 pt-6 border-t border-[var(--glass-border)]">
+                <div className="mb-3 flex items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-sm md:text-base font-bold tracking-tight text-[var(--text-primary)]">Control Snapshot</h3>
-                    <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-55">Live health signals admins can scan quickly.</p>
+                    <h3 className="text-xs md:text-sm font-bold tracking-tight text-[var(--text-primary)]">Ops Signals</h3>
+                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-55">Compact treasury and risk readout.</p>
                   </div>
                   <span className="hidden rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-500 sm:inline-flex">Operational</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 md:gap-3">
                   {[
-                    { title: 'Platform Volume', desc: 'Total marketplace flow', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue', signal: 'Primary', href: '/admin/analytics' },
-                    { title: 'Verification Watch', desc: 'Users awaiting review', count: fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Action', href: '/admin/approvals' },
-                    { title: 'Escrow Flow', desc: 'Funds currently protected', count: `${fmt(stats?.escrow_vault || stats?.escrow_held)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Secure', href: '/admin/escrow' },
-                    { title: 'Core Stability', desc: 'API and app availability', count: '99.98%', icon: Zap, color: 'amber', signal: 'Nominal', href: '/admin/logs' },
+                    { title: 'Volume', desc: 'Marketplace flow', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue', signal: 'Flow', href: '/admin/analytics' },
+                    { title: 'KYC Queue', desc: 'Awaiting review', count: fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Review', href: '/admin/approvals' },
+                    { title: 'Escrow', desc: 'Protected funds', count: `${fmt(stats?.escrow_vault || stats?.escrow_held)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Vault', href: '/admin/escrow' },
+                    { title: 'Uptime', desc: 'API health', count: '99.98%', icon: Zap, color: 'amber', signal: 'Stable', href: '/admin/logs' },
                   ].map((item, i) => (
-                    <Link key={i} href={item.href} className="relative overflow-hidden p-4 md:p-5 rounded-3xl bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] group hover:-translate-y-0.5 hover:border-[var(--accent)]/30 hover:shadow-xl transition-all">
-                      <div className="flex items-center justify-between mb-4">
-                         <div className={`size-10 rounded-xl flex items-center justify-center border ${COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue}`}>
-                           <item.icon className="size-4" />
+                    <Link key={i} href={item.href} className="relative overflow-hidden p-3 rounded-2xl bg-[var(--bg-primary)]/65 border border-[var(--glass-border)] group hover:-translate-y-0.5 hover:border-[var(--accent)]/30 hover:shadow-lg transition-all">
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                         <div className={`size-8 rounded-xl flex items-center justify-center border ${COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue}`}>
+                           <item.icon className="size-3.5" />
                          </div>
-                         <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)] opacity-70">{item.signal}</span>
+                         <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-70">{item.signal}</span>
                       </div>
                       
-                      <div className="space-y-1">
-                        <p className="text-2xl md:text-[1.7rem] font-bold tracking-tight text-[var(--text-primary)] tabular-nums">{item.count}</p>
-                        <p className="text-[12px] font-bold tracking-tight text-[var(--text-primary)]">{item.title}</p>
-                        <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-55">{item.desc}</p>
+                      <div className="space-y-0.5">
+                        <p className="text-sm md:text-base font-bold tracking-tight text-[var(--text-primary)] tabular-nums truncate">{item.count}</p>
+                        <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]">{item.title}</p>
+                        <p className="text-[10px] font-semibold leading-snug text-[var(--text-secondary)] opacity-55">{item.desc}</p>
                       </div>
 
                       {/* Micro-sparkline effect */}

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wallet, XCircle, Loader2,
-  RefreshCw, Search, User, Users, ChevronRight, ShieldCheck,
+  RefreshCw, Search, Users, ChevronRight, ShieldCheck,
   Zap, RotateCcw, Copy, Globe, Clock, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -34,6 +34,17 @@ function KPI({ title, value, icon: Icon, color, sub }) {
 }
 
 const TABS = ['pending', 'approved', 'completed', 'rejected', 'failed', 'all'];
+
+function getRequesterProfile(withdrawal) {
+  const person = withdrawal?.requestedBy || {};
+  const branding = person.branding || {};
+  const name = branding.store_name || branding.storeName || person.store_name || person.storeName || person.name || person.email || `${withdrawal?.role || 'User'} account`;
+  const logo = branding.logo || branding.logo_url || branding.logoUrl || person.avatar || null;
+  const contact = person.email || person.phone || 'No contact on file';
+  const initial = String(name || 'A').trim().charAt(0).toUpperCase();
+
+  return { name, logo, contact, initial };
+}
 
 export default function AdminWithdrawalsPage() {
   const { user } = useAuthStore();
@@ -129,11 +140,13 @@ export default function AdminWithdrawalsPage() {
   const displayed = withdrawals.filter(w => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return (w.requestedBy?.name || '').toLowerCase().includes(q) ||
-           (w.requestedBy?.email || '').toLowerCase().includes(q) ||
+    const requester = getRequesterProfile(w);
+    return requester.name.toLowerCase().includes(q) ||
+           requester.contact.toLowerCase().includes(q) ||
            (w._id || '').toLowerCase().includes(q);
   });
 
+  const selectedRequester = selected ? getRequesterProfile(selected) : null;
 
   if (!user || user.role !== 'admin') return null;
 
@@ -166,11 +179,15 @@ export default function AdminWithdrawalsPage() {
                     {/* Requester Profile */}
                     <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] backdrop-blur-xl">
                        <div className="size-12 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
-                          {selected.requestedBy?.avatar ? <img src={selected.requestedBy.avatar} className="size-full object-cover" /> : <User className="size-6 opacity-20" />}
+                          {selectedRequester?.logo ? (
+                            <img src={selectedRequester.logo} alt="" className="size-full object-cover" />
+                          ) : (
+                            <span className="text-sm font-bold text-[var(--accent)] opacity-70">{selectedRequester?.initial || 'A'}</span>
+                          )}
                        </div>
                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{selected.requestedBy?.name || 'Unknown Node'}</p>
-                          <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-tighter truncate">{selected.requestedBy?.email}</p>
+                          <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{selectedRequester?.name}</p>
+                          <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-tighter truncate">{selectedRequester?.contact}</p>
                           <div className="flex items-center gap-2 mt-1.5">
                              <span className="text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full bg-[var(--accent)] text-white uppercase">{selected.role}</span>
                              {selected.isInternal && <span className="text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full bg-indigo-500 text-white uppercase">Internal</span>}
@@ -441,6 +458,7 @@ export default function AdminWithdrawalsPage() {
                       const S = STATUS[w.status] || STATUS.pending;
                       const SIcon = S.icon;
                       const MIcon = getMethodIcon(w.withdrawalMethod) || Wallet;
+                      const requester = getRequesterProfile(w);
                       return (
                          <div 
                            key={w._id} 
@@ -465,10 +483,14 @@ export default function AdminWithdrawalsPage() {
                                </div>
                                <div className="flex items-center gap-4">
                                   <div className="size-8 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] overflow-hidden shrink-0">
-                                     {w.requestedBy?.avatar ? <img src={w.requestedBy.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
+                                     {requester.logo ? (
+                                       <img src={requester.logo} alt="" className="size-full object-cover" />
+                                     ) : (
+                                       <span className="flex size-full items-center justify-center text-[11px] font-bold text-[var(--accent)] opacity-70">{requester.initial}</span>
+                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                     <p className="text-[13px] font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{w.requestedBy?.name || 'Unknown'}</p>
+                                     <p className="text-[13px] font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{requester.name}</p>
                                      <div className="flex items-center gap-3 mt-1">
                                         <div className="flex items-center gap-1.5 text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase">
                                            <MIcon className="size-3" />

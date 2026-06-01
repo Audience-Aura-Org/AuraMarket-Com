@@ -251,7 +251,7 @@ const adminGetAllWithdrawals = async (req, res) => {
     const total = await WithdrawalRequest.countDocuments(query);
     const pendingCount = await WithdrawalRequest.countDocuments({ status: 'pending' });
     const withdrawals = await WithdrawalRequest.find(query)
-      .populate('requestedBy', 'name email phone avatar role')
+      .populate('requestedBy', 'name email phone avatar role branding store_name storeName')
       .populate('reviewedBy', 'name email')
       .sort('-createdAt')
       .skip((page - 1) * limit)
