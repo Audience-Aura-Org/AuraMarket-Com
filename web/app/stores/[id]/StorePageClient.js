@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
@@ -18,6 +18,7 @@ import VendorFollowButton from '@/components/VendorFollowButton';
 
 export default function StorePage({ storeId: explicitStoreId = null }) {
   const params = useParams();
+  const router = useRouter();
   const id = explicitStoreId || params?.id;
   const { openChat } = useChat();
   const productsAnchor = useRef(null);
@@ -84,6 +85,12 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
     };
 
     if (id) fetchStoreData();
+
+    const refreshWhenOnline = () => {
+      if (id) fetchStoreData();
+    };
+    window.addEventListener('online', refreshWhenOnline);
+    return () => window.removeEventListener('online', refreshWhenOnline);
   }, [id, page, activeTab]);
 
   // Listen for global follow updates to sync local follower count
@@ -259,7 +266,11 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 pb-20">
                 {products.map((product) => (
-                  <ProductCard key={product._id} product={product} />
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                    onClick={(item) => router.push(`/products/${item._id || item.id}`)}
+                  />
                 ))}
               </div>
 

@@ -211,6 +211,11 @@ export default function StatusTabGrid({ onSelectStatus }) {
   useEffect(() => { fetch(); }, [fetch]);
 
   useEffect(() => {
+    window.addEventListener('online', fetch);
+    return () => window.removeEventListener('online', fetch);
+  }, [fetch]);
+
+  useEffect(() => {
     if (showSearch) setTimeout(() => searchRef.current?.focus(), 100);
   }, [showSearch]);
 

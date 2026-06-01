@@ -57,6 +57,11 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
   }, [fetchVendors]);
 
   useEffect(() => {
+    window.addEventListener('online', fetchVendors);
+    return () => window.removeEventListener('online', fetchVendors);
+  }, [fetchVendors]);
+
+  useEffect(() => {
     setCurrentPage(1);
   }, [search]);
 

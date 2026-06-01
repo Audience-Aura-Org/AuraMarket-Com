@@ -67,6 +67,7 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^categories(?:\/|$)/,
   /^vendors(?:\/|$)/,
   /^statuses(?:\/|$)/,
+  /^chat(?:\/|$)/,
   /^reviews\/product(?:\/|$)/,
 ];
 
@@ -105,11 +106,11 @@ const isOfflineCacheableRoute = (url = '') => {
     normalized.startsWith('checkout') ||
     normalized.startsWith('notifications') ||
     normalized.startsWith('users/') ||
-    normalized.startsWith('chat') ||
     normalized.startsWith('security/')
   ) {
     return false;
   }
+  if (normalized.startsWith('chat/admin')) return false;
   return OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized));
 };
 

@@ -117,7 +117,7 @@ function ShopContent() {
       const cached = productCacheRef.current.get(queryKey);
       
       // Only use cache for non-search queries to avoid stale results
-      if (cached && !search) {
+      if (cached && !search && !isImmediate) {
         setProducts(cached.products);
         setTotalPages(cached.totalPages);
         setLoading(false);
@@ -165,6 +165,12 @@ function ShopContent() {
       fetchProducts(1, false); // debounced
     }
   }, [search]);
+
+  useEffect(() => {
+    const refreshWhenOnline = () => fetchProducts(page, true);
+    window.addEventListener('online', refreshWhenOnline);
+    return () => window.removeEventListener('online', refreshWhenOnline);
+  }, [fetchProducts, page]);
 
   // Reset page when filters change
   useEffect(() => {

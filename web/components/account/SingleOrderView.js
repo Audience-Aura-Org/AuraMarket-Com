@@ -48,24 +48,48 @@ export default function SingleOrderView({ orderId, onBack }) {
   const handleDownloadInvoice = async () => {
     const toastId = toast.loading('Generating invoice PDF...');
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-      const response = await fetch(`${baseUrl}/orders/${orderId}/invoice`, {
-        headers: { Authorization: token ? `Bearer ${token}` : '' }
-      });
-      if (!response.ok) throw new Error('Invoice generation failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const response = await api.get(`/orders/${orderId}/invoice`, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `invoice-${orderId}.pdf`;
+      a.target = '_blank';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1500);
       toast.success('Invoice downloaded!', { id: toastId });
     } catch (err) {
       toast.error('Failed to download invoice.', { id: toastId });
+    }
+  };
+
+  const handleShareInvoice = async () => {
+    const toastId = toast.loading('Preparing invoice...');
+    try {
+      const response = await api.get(`/orders/${orderId}/invoice`, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const file = new File([blob], `invoice-${orderId}.pdf`, { type: 'application/pdf' });
+
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        await navigator.share({
+          title: `Auradime invoice #${orderId.slice(-8).toUpperCase()}`,
+          text: 'Auradime order invoice',
+          files: [file],
+        });
+        toast.success('Invoice ready to share.', { id: toastId });
+        return;
+      }
+
+      await navigator.clipboard?.writeText(window.location.href);
+      toast.success('Order link copied.', { id: toastId });
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        toast.dismiss(toastId);
+        return;
+      }
+      toast.error('Failed to share invoice.', { id: toastId });
     }
   };
 
@@ -390,6 +414,7 @@ export default function SingleOrderView({ orderId, onBack }) {
           </button>
           <button
             type="button"
+            onClick={handleShareInvoice}
             className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[11px] font-semibold text-[var(--text-primary)] transition active:bg-[var(--accent)]/15 sm:min-h-10 sm:flex-initial sm:px-3.5 sm:hover:border-[var(--accent)]/35 sm:hover:bg-[var(--accent)]/10"
           >
             <Share2 className="size-3.5 opacity-70" />

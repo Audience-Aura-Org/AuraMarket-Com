@@ -43,6 +43,32 @@ const SORT_OPTIONS = [
   { value: '-rating', label: 'Highest Rated' }
 ];
 
+const TOP_STATUS_CACHE_KEY = 'aura_top_statuses_cache_v1';
+const TOP_STATUS_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
+const readTopStatusCache = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(TOP_STATUS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!parsed?.data || Date.now() - Number(parsed.ts || 0) > TOP_STATUS_CACHE_TTL_MS) {
+      window.localStorage.removeItem(TOP_STATUS_CACHE_KEY);
+      return [];
+    }
+    return parsed.data;
+  } catch {
+    return [];
+  }
+};
+
+const writeTopStatusCache = (data) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(TOP_STATUS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+  } catch {}
+};
+
 // ── DISCOVER TAB (Synced with Shop + Followed Only) ──────────────────
 const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) => {
   const [products, setProducts] = useState([]);
@@ -109,6 +135,12 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
   useEffect(() => {
     fetchProducts(page);
   }, [page, fetchProducts]);
+
+  useEffect(() => {
+    const refreshWhenOnline = () => fetchProducts(page, true);
+    window.addEventListener('online', refreshWhenOnline);
+    return () => window.removeEventListener('online', refreshWhenOnline);
+  }, [fetchProducts, page]);
 
   const handleCategoryClick = (cat) => {
     setBreadcrumb(prev => [...prev, cat]);
@@ -370,7 +402,7 @@ export default function DiscoveryHub() {
   }, []);
   
   // Status States
-  const [followedStatuses, setFollowedStatuses] = useState([]);
+  const [followedStatuses, setFollowedStatuses] = useState(() => readTopStatusCache());
   const [viewingStatuses, setViewingStatuses] = useState(null);
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
@@ -391,6 +423,7 @@ export default function DiscoveryHub() {
       if (res.data.success) {
         const data = res.data.data || [];
         setFollowedStatuses(data);
+        writeTopStatusCache(data);
         
         data.slice(0, 6).forEach((s, index) => {
           if (!s.content_url) return;
@@ -410,12 +443,17 @@ export default function DiscoveryHub() {
       }
     } catch (e) { 
       console.error('[Hub] Failed to fetch statuses:', e); 
-      setFollowedStatuses([]);
+      setFollowedStatuses((current) => current.length ? current : readTopStatusCache());
     }
   }, [user]);
 
   useEffect(() => {
     fetchFollowedStatuses();
+  }, [fetchFollowedStatuses]);
+
+  useEffect(() => {
+    window.addEventListener('online', fetchFollowedStatuses);
+    return () => window.removeEventListener('online', fetchFollowedStatuses);
   }, [fetchFollowedStatuses]);
 
   const handleTabChange = (id) => {

@@ -15,6 +15,8 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 
 const ChatContext = createContext(null);
+const CHAT_CACHE_PREFIX = 'aura_chat_cache:';
+const CHAT_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
 export const toId = (value) => {
   if (!value) return null;
@@ -156,6 +158,45 @@ const dedupeMessages = (existing = [], incoming = [], prepend = false) => {
   );
 };
 
+const getChatCacheKey = (userId) => `${CHAT_CACHE_PREFIX}${userId}`;
+
+const readChatCache = (userId) => {
+  if (!userId || typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(getChatCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.state || Date.now() - Number(parsed.savedAt || 0) > CHAT_CACHE_TTL_MS) {
+      window.localStorage.removeItem(getChatCacheKey(userId));
+      return null;
+    }
+    return parsed.state;
+  } catch {
+    return null;
+  }
+};
+
+const writeChatCache = (userId, state) => {
+  if (!userId || typeof window === 'undefined') return;
+  try {
+    const hasChats = state.conversationOrder.length > 0 || Object.keys(state.messagesByConversation || {}).length > 0;
+    if (!hasChats) return;
+    window.localStorage.setItem(
+      getChatCacheKey(userId),
+      JSON.stringify({
+        savedAt: Date.now(),
+        state: {
+          conversationsById: state.conversationsById,
+          conversationOrder: state.conversationOrder,
+          messagesByConversation: state.messagesByConversation,
+        },
+      })
+    );
+  } catch {
+    // Storage can be full or unavailable; live chat still works without the offline snapshot.
+  }
+};
+
 const normalizeConversation = (conversation, state) => {
   const currentUserId = state.currentUserId;
   const partnerId =
@@ -205,6 +246,37 @@ const initialState = {
 
 function chatReducer(state, action) {
   switch (action.type) {
+    case 'HYDRATE_CACHE': {
+      const cached = action.payload || {};
+      const cachedConversations = cached.conversationsById || {};
+      const cachedMessages = cached.messagesByConversation || {};
+      const conversationsById = { ...cachedConversations, ...state.conversationsById };
+      const messagesByConversation = {};
+      const messagePartnerIds = new Set([
+        ...Object.keys(cachedMessages),
+        ...Object.keys(state.messagesByConversation),
+      ]);
+
+      messagePartnerIds.forEach((partnerId) => {
+        messagesByConversation[partnerId] = dedupeMessages(
+          cachedMessages[partnerId] || [],
+          state.messagesByConversation[partnerId] || []
+        );
+      });
+
+      const conversationOrder = sortByLatest(
+        Array.from(new Set([...(cached.conversationOrder || []), ...state.conversationOrder])),
+        conversationsById
+      );
+
+      return {
+        ...state,
+        conversationsById,
+        conversationOrder,
+        messagesByConversation,
+      };
+    }
+
     case 'SET_CURRENT_USER':
       if (!action.userId) return { ...initialState };
       return { ...state, currentUserId: action.userId };
@@ -554,11 +626,28 @@ export function ChatProvider({ children }) {
     dispatch({ type: 'SET_CURRENT_USER', userId: user?._id?.toString?.() || null });
   }, [user?._id]);
 
-  const syncInboxFromServer = useCallback(async () => {
+  useEffect(() => {
+    const userId = user?._id?.toString?.();
+    if (!userId) return;
+    const cached = readChatCache(userId);
+    if (cached) {
+      dispatch({ type: 'HYDRATE_CACHE', payload: cached });
+    }
+  }, [user?._id]);
+
+  useEffect(() => {
+    const userId = user?._id?.toString?.();
+    if (!userId) return;
+    const timer = setTimeout(() => writeChatCache(userId, state), 300);
+    return () => clearTimeout(timer);
+  }, [user?._id, state.conversationsById, state.conversationOrder, state.messagesByConversation]);
+
+  const syncInboxFromServer = useCallback(async (options = {}) => {
     if (!user?._id || syncInFlightRef.current) return;
     const now = Date.now();
-    if (now < inboxRateLimitedUntilRef.current) return;
-    if (now - lastInboxSyncAtRef.current < 8000) return;
+    const force = Boolean(options.force);
+    if (!force && now < inboxRateLimitedUntilRef.current) return;
+    if (!force && now - lastInboxSyncAtRef.current < 8000) return;
     lastInboxSyncAtRef.current = now;
     syncInFlightRef.current = true;
     try {
@@ -591,16 +680,19 @@ export function ChatProvider({ children }) {
 
     const interval = setInterval(tick, 15000);
     const onFocus = () => syncInboxFromServer();
+    const onOnline = () => syncInboxFromServer({ force: true });
     const onVisible = () => {
       if (document.visibilityState === 'visible') syncInboxFromServer();
     };
 
+    window.addEventListener('online', onOnline);
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       stopped = true;
       clearInterval(interval);
+      window.removeEventListener('online', onOnline);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisible);
     };

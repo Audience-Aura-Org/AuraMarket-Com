@@ -1,5 +1,7 @@
 import api from './api';
 
+const PUBLIC_STORE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
 /**
  * vendorService
  * Logic for vendor onboarding, store management, and KYC.
@@ -40,8 +42,7 @@ export const vendorService = {
         if (raw) {
           const parsed = JSON.parse(raw);
           const age = Date.now() - (parsed.ts || 0);
-          const FIVE_MIN = 5 * 60 * 1000;
-          if (age < FIVE_MIN && parsed.data) {
+          if (age < PUBLIC_STORE_CACHE_TTL_MS && parsed.data) {
             // Background refresh
             vendorService._refreshPublicStores(page, cacheKey).catch(() => {});
             return parsed.data;
@@ -79,7 +80,29 @@ export const vendorService = {
 
   // Get specific store
   getStore: async (id) => {
+    const cacheKey = `vendor_store_cache_${id}_v1`;
+    if (typeof window !== 'undefined' && id) {
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const age = Date.now() - (parsed.ts || 0);
+          if (age < PUBLIC_STORE_CACHE_TTL_MS && parsed.data) {
+            api.get(`/vendors/stores/${id}`).then((res) => {
+              if (res?.data) localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: res.data }));
+            }).catch(() => {});
+            return parsed.data;
+          }
+        }
+      } catch (e) {}
+    }
+
     const res = await api.get(`/vendors/stores/${id}`);
+    if (res?.data && typeof window !== 'undefined' && id) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: res.data }));
+      } catch (e) {}
+    }
     return res.data;
   }
 };

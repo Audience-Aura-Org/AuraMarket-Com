@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, Star, Plus, ShieldCheck, 
   MessageSquare, Zap, Eye, Heart, 
@@ -22,6 +23,7 @@ import VariantSelectorModal from '@/components/common/VariantSelectorModal';
  * Standardized premium card used across Hub and Shop.
  */
 export default function ProductCard({ product, layout = 'grid', onOpenChat = null, onClick = null }) {
+  const router = useRouter();
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
@@ -86,7 +88,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     }
 
     // Direct Buy Now logic
-    window.location.href = `/checkout?productId=${productId}&quantity=1`;
+    router.push(`/checkout?productId=${productId}&quantity=1`);
   };
 
   const handleVariantConfirm = async (variantOrProduct) => {
@@ -99,7 +101,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     };
 
     if (modalActionType === 'buy') {
-      window.location.href = `/checkout?productId=${productId}&quantity=1&variant=${encodeURIComponent(JSON.stringify(variantOrProduct.combination))}`;
+      router.push(`/checkout?productId=${productId}&quantity=1&variant=${encodeURIComponent(JSON.stringify(variantOrProduct.combination))}`);
     } else {
       setAddingToCart(true);
       cartStore.addItem(enriched, 1);
