@@ -177,12 +177,17 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
           <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
             <div className="space-y-2">
-               <div className="flex min-w-0 items-center justify-between gap-3">
-                  <Link href={`/shop?vendorId=${vendorId}`} className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden" onClick={e => e.stopPropagation()}>
+               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                  <Link href={`/shop?vendorId=${vendorId}`} className="flex min-w-0 items-center gap-2 overflow-hidden" onClick={e => e.stopPropagation()}>
                     <div className="size-5 shrink-0 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                       <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
                     </div>
-                    <span className="block min-w-0 flex-1 truncate whitespace-nowrap text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-normal">{vendor_id?.store_name || 'Verified vendor'}</span>
+                    <span
+                      className="block min-w-0 truncate text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-normal"
+                      title={vendor_id?.store_name || 'Verified vendor'}
+                    >
+                      {vendor_id?.store_name || 'Verified vendor'}
+                    </span>
                   </Link>
                   {user?._id !== vendorUserId && (
                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`shrink-0 whitespace-nowrap text-[11px] lg:text-[12px] font-semibold tracking-tight ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
@@ -192,7 +197,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                </div>
 
               <Link href={`/products/${productId}`} className="block">
-                <h3 className="line-clamp-2 text-xs md:text-sm font-bold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">{name}</h3>
+                <h3 className="truncate whitespace-nowrap text-xs md:text-sm font-bold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" title={name}>{name}</h3>
               </Link>
               <div className="flex items-center gap-4">
                 <p className="text-[14px] md:text-[18px]  font-bold text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
@@ -244,12 +249,17 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         }}
         className={`group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full cursor-pointer font-poppins ${!inStock ? 'grayscale-[0.5]' : ''}`}
       >
-        <div className="p-2 sm:p-2.5 md:p-3 flex flex-nowrap items-center justify-between gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-md overflow-hidden">
-           <Link href={`/stores/${vendorId}`} className="flex items-center gap-1.5 min-w-0 flex-[1_1_auto] overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
+        <div className="grid h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-2 backdrop-blur-md sm:p-2.5 md:p-3 overflow-hidden">
+           <Link href={`/stores/${vendorId}`} className="flex min-w-0 items-center gap-1.5 overflow-hidden group/vendor" onClick={e => e.stopPropagation()}>
               <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm transition-transform group-hover/vendor:scale-105">
                 <img src={vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${vendor_id?.store_name || 'A'}`} className="size-full object-cover" alt="" />
               </div>
-               <h4 className="block min-w-0 max-w-full flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[10px] sm:text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)] leading-none">{vendor_id?.store_name || 'Verified node'}</h4>
+               <span
+                 className="block min-w-0 truncate text-[10px] sm:text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)] leading-none"
+                 title={vendor_id?.store_name || 'Verified node'}
+               >
+                 {vendor_id?.store_name || 'Verified node'}
+               </span>
               {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
            </Link>
            
@@ -280,7 +290,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         <div className="p-2 sm:p-2.5 md:p-3.5 flex flex-col flex-1 gap-2 md:gap-3">
           <div className="space-y-0.5 md:space-y-1">
             <Link href={`/products/${productId}`} className="block">
-              <h3 className="line-clamp-2 text-[11px] sm:text-[12px] md:text-[14px] lg:text-[12px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight">{name}</h3>
+              <h3 className="truncate whitespace-nowrap text-[11px] sm:text-[12px] md:text-[14px] lg:text-[12px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight" title={name}>{name}</h3>
             </Link>
             <div className="flex items-center justify-between">
               <span className="text-[12px] sm:text-[14px] md:text-[16px]  font-semibold text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
