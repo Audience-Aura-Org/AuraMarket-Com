@@ -718,9 +718,21 @@ const approveRefund = async (req, res, next) => {
 
 const getInvoice = async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.id).populate('customer_id', 'name email');
+    const order = await Order.findById(req.params.id)
+      .populate('customer_id', 'name email phone')
+      .populate('vendor_id', 'store_name');
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
     generateInvoice(order, (pdfBuffer) => {
-      res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=invoice-${order._id}.pdf` });
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename=invoice-${order._id}.pdf`,
+        'Content-Length': pdfBuffer.length,
+        'Cache-Control': 'private, no-store',
+      });
       res.send(pdfBuffer);
     });
   } catch (error) { next(error); }

@@ -523,6 +523,34 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     api.post(`/statuses/${story._id}/react`).catch(() => {});
   }, [story?._id]);
 
+  const handleShareStory = useCallback(async (e) => {
+    e.stopPropagation();
+    if (!story) return;
+
+    const vendorName = story.vendor_id?.store_name || 'Auradime';
+    const storyUrl = story.content_url || (typeof window !== 'undefined' ? window.location.href : '');
+    const shareText = story.caption || story.text_content || `View ${vendorName}'s story on Auradime`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${vendorName} story`,
+          text: shareText,
+          url: storyUrl,
+        });
+        return;
+      }
+
+      await navigator.clipboard?.writeText(storyUrl || shareText);
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        try {
+          await navigator.clipboard?.writeText(storyUrl || shareText);
+        } catch {}
+      }
+    }
+  }, [story]);
+
   const toggleMuted = useCallback((e) => {
     e.stopPropagation();
     setMuted(m => {
@@ -841,7 +869,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               </button>
 
               <button
-                onClick={e => e.stopPropagation()}
+                onClick={handleShareStory}
                 className="size-12 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl flex items-center justify-center text-white shadow-lg"
               >
                 <Share2 className="size-5" />

@@ -36,14 +36,35 @@ function KPI({ title, value, icon: Icon, color, sub }) {
 const TABS = ['pending', 'approved', 'completed', 'rejected', 'failed', 'all'];
 
 function getRequesterProfile(withdrawal) {
+  const profile = withdrawal?.requesterProfile || {};
   const person = withdrawal?.requestedBy || {};
   const branding = person.branding || {};
-  const name = branding.store_name || branding.storeName || person.store_name || person.storeName || person.name || person.email || `${withdrawal?.role || 'User'} account`;
-  const logo = branding.logo || branding.logo_url || branding.logoUrl || person.avatar || null;
-  const contact = person.email || person.phone || 'No contact on file';
+  const recipient = withdrawal?.recipientDetails || {};
+  const recipientName = [recipient.firstName, recipient.lastName].filter(Boolean).join(' ');
+  const name =
+    profile.name ||
+    profile.storeName ||
+    branding.store_name ||
+    branding.storeName ||
+    person.store_name ||
+    person.storeName ||
+    person.name ||
+    recipientName ||
+    person.email ||
+    `${withdrawal?.role || 'User'} account`;
+  const logo = profile.logo || branding.logo || branding.logo_url || branding.logoUrl || person.avatar || null;
+  const contact = profile.email || profile.phone || person.email || person.phone || recipient.phoneNumber || 'No contact on file';
   const initial = String(name || 'A').trim().charAt(0).toUpperCase();
 
-  return { name, logo, contact, initial };
+  return {
+    name,
+    logo,
+    contact,
+    initial,
+    accountName: profile.accountName || person.name || recipientName || name,
+    storeName: profile.storeName || null,
+    role: profile.role || person.role || withdrawal?.role,
+  };
 }
 
 export default function AdminWithdrawalsPage() {
@@ -188,8 +209,13 @@ export default function AdminWithdrawalsPage() {
                        <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{selectedRequester?.name}</p>
                           <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-tighter truncate">{selectedRequester?.contact}</p>
+                          {selectedRequester?.storeName && selectedRequester.storeName !== selectedRequester.name && (
+                            <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 truncate mt-0.5">
+                              Account: {selectedRequester.accountName}
+                            </p>
+                          )}
                           <div className="flex items-center gap-2 mt-1.5">
-                             <span className="text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full bg-[var(--accent)] text-white uppercase">{selected.role}</span>
+                             <span className="text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full bg-[var(--accent)] text-white uppercase">{selectedRequester?.role || selected.role}</span>
                              {selected.isInternal && <span className="text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full bg-indigo-500 text-white uppercase">Internal</span>}
                           </div>
                        </div>

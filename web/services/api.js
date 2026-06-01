@@ -239,7 +239,14 @@ const notifyInvalidStoredSession = async (message) => {
 
 api.interceptors.response.use(
   (res) => {
-    if (res?.data) {
+    const responseType = res?.config?.responseType;
+    const isBinaryResponse =
+      responseType === 'blob' ||
+      responseType === 'arraybuffer' ||
+      (typeof Blob !== 'undefined' && res?.data instanceof Blob) ||
+      (typeof ArrayBuffer !== 'undefined' && res?.data instanceof ArrayBuffer);
+
+    if (res?.data && !isBinaryResponse) {
       res.data = normalizeAssetUrls(res.data);
     }
     if (canUseOfflineCache(res.config)) {

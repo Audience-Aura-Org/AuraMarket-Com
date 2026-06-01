@@ -12,6 +12,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+require('../models/Store.model');
 const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const Transaction = require('../models/Transaction.model');
 const eversend = require('../services/eversend.service');
@@ -29,6 +30,67 @@ const getWithdrawalDestination = (wr) => {
 };
 
 const getMesombTxId = (response) => response?.transaction?.pk || response?.pk || response?.id || response?.transactionId || null;
+
+const buildRequesterProfiles = async (withdrawals) => {
+  const userIds = withdrawals
+    .map((wr) => wr.requestedBy?._id || wr.requestedBy)
+    .filter(Boolean)
+    .map((id) => id.toString());
+
+  const vendors = await Vendor.find({ user_id: { $in: userIds } })
+    .populate('store')
+    .lean({ virtuals: true });
+
+  const vendorByUserId = new Map(vendors.map((vendor) => [vendor.user_id?.toString(), vendor]));
+
+  return withdrawals.map((wrDoc) => {
+    const wr = wrDoc.toObject ? wrDoc.toObject({ virtuals: true }) : wrDoc;
+    const person = wr.requestedBy || {};
+    const vendor = vendorByUserId.get((person._id || wr.requestedBy || '').toString()) || null;
+    const store = vendor?.store || null;
+    const branding = person.branding || {};
+
+    const recipientName = wr.recipientDetails?.firstName && wr.recipientDetails?.lastName
+      ? `${wr.recipientDetails.firstName} ${wr.recipientDetails.lastName}`
+      : null;
+
+    const displayName =
+      store?.store_name ||
+      vendor?.store_name ||
+      branding.store_name ||
+      branding.storeName ||
+      person.store_name ||
+      person.storeName ||
+      person.name ||
+      recipientName ||
+      person.email ||
+      `${wr.role || person.role || 'User'} account`;
+
+    const logo =
+      store?.logo ||
+      branding.logo ||
+      branding.logo_url ||
+      branding.logoUrl ||
+      person.avatar ||
+      null;
+
+    return {
+      ...wr,
+      requesterProfile: {
+        name: displayName,
+        accountName: person.name || displayName,
+        storeName: vendor?.store_name || null,
+        logo,
+        banner: store?.banner || branding.banner || null,
+        email: person.email || null,
+        phone: person.phone || vendor?.phone || wr.recipientDetails?.phoneNumber || null,
+        role: person.role || wr.role,
+        vendorId: vendor?._id || null,
+        userId: person._id || wr.requestedBy || null,
+      },
+    };
+  });
+};
 
 // ── 1. SUBMIT WITHDRAWAL REQUEST ─────────────────────────────────────────────
 // @route  POST /api/withdrawals
@@ -250,12 +312,13 @@ const adminGetAllWithdrawals = async (req, res) => {
 
     const total = await WithdrawalRequest.countDocuments(query);
     const pendingCount = await WithdrawalRequest.countDocuments({ status: 'pending' });
-    const withdrawals = await WithdrawalRequest.find(query)
+    const withdrawalDocs = await WithdrawalRequest.find(query)
       .populate('requestedBy', 'name email phone avatar role branding store_name storeName')
       .populate('reviewedBy', 'name email')
       .sort('-createdAt')
       .skip((page - 1) * limit)
       .limit(Number(limit));
+    const withdrawals = await buildRequesterProfiles(withdrawalDocs);
 
     return res.status(200).json({
       success: true,
