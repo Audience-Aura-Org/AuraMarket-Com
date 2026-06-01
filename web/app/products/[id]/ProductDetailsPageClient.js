@@ -181,6 +181,7 @@ export default function ProductDetailsPage() {
   const inStock = Boolean(displayStock > 0);
   
   const rating = Number(product?.rating || 0);
+  const displayRating = Number.isFinite(rating) && rating > 0 ? rating.toFixed(1) : 'New';
   const discount = product?.oldPrice
     ? Math.round(100 - (displayPrice / product.oldPrice) * 100)
     : null;
@@ -541,7 +542,7 @@ export default function ProductDetailsPage() {
                     </div>
                     <div className="flex items-center gap-1 mt-1">
                       <Star className="size-3 text-[var(--text-primary)] fill-current" />
-                      <span className="text-xs text-[var(--text-secondary)]  font-semibold">4.8 · 98% Positive</span>
+                      <span className="text-xs text-[var(--text-secondary)]  font-semibold">{displayRating} Rating</span>
                     </div>
                   </div>
                 </div>

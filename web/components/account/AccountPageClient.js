@@ -1011,7 +1011,7 @@ export default function AccountPageClient() {
                                   </div>
                                   
                                   <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight w-fit mx-auto ">
-                                    <Star className="size-2.5 fill-current" /> {vendor.vendor_id?.rating || '4.9'}
+                                    <Star className="size-2.5 fill-current" /> {Number(vendor.vendor_id?.rating || 0) > 0 ? Number(vendor.vendor_id.rating).toFixed(1) : 'New'}
                                   </div>
 
                                   <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60  tracking-tighter">

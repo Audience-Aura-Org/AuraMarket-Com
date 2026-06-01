@@ -117,7 +117,16 @@ export default function AdminVendorsPage() {
          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="Total Merchants" value={vendors.length} icon="storefront" color="fuchsia" sub="REGISTRY" />
             <StatCard label="Verified Items" value={vendors.filter(v => v.verified).length} icon="verified_user" color="emerald" sub="TRUST" />
-            <StatCard label="Avg Rating" value="4.85" icon="star" color="amber" sub="SCORE" />
+            <StatCard
+              label="Avg Rating"
+              value={(() => {
+                const rated = vendors.map(v => Number(v.rating || 0)).filter(v => v > 0);
+                return rated.length ? (rated.reduce((sum, v) => sum + v, 0) / rated.length).toFixed(2) : 'New';
+              })()}
+              icon="star"
+              color="amber"
+              sub="SCORE"
+            />
             <StatCard label="Network Yield" value="High" icon="trending_up" color="indigo" sub="SCALE" />
          </div>
 

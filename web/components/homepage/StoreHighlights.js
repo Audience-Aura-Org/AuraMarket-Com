@@ -79,7 +79,7 @@ export default function StoreHighlights({ title, data }) {
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
                          <StarIcon />
-                         <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
+                         <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{Number(vendor.rating || 0) > 0 ? Number(vendor.rating).toFixed(1) : 'New'} Rating</span>
                       </div>
                     </div>
                     <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shrink-0">

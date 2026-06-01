@@ -156,7 +156,7 @@ export default function StoresDirectoryPage() {
                       </div>
                       
                       <div className="flex items-center justify-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] text-xs  font-bold w-fit mx-auto">
-                        <Star className="size-3 fill-current" /> <span>{s.rating || '4.9'}</span>
+                        <Star className="size-3 fill-current" /> <span>{Number(s.rating || 0) > 0 ? Number(s.rating).toFixed(1) : 'New'}</span>
                       </div>
 
                       <p className="text-[var(--text-secondary)] text-xs font-medium line-clamp-2 leading-relaxed h-8 flex-1">

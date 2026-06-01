@@ -163,7 +163,7 @@ export default function StorePage() {
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
                     <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
                     <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)]">
-                      {vendor?.rating ? vendor.rating.toFixed(1) : '5.0'}
+                      {Number(vendor?.rating || 0) > 0 ? Number(vendor.rating).toFixed(1) : 'New'}
                     </span>
                     <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">Rating</span>
                   </div>

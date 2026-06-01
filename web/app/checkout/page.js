@@ -831,15 +831,17 @@ function CheckoutContent() {
                                {/* ── MeSomb ───────────────────────────────── */}
                                <button 
                                 onClick={() => setFormData({...formData, paymentMethod: 'mesomb', mesomb: { ...formData.mesomb, phone: formData.mesomb.phone || formData.phone }})}
-                                className={`order-1 p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'mesomb' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                                className={`order-1 p-5 sm:p-6 rounded-[28px] border text-left transition-all group overflow-hidden ${formData.paymentMethod === 'mesomb' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
                                >
-                                  <span className="absolute right-4 top-4 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">Primary</span>
-                                  <div className="flex items-center justify-between mb-4">
-                                     <div className="flex items-center gap-2">
-                                        <Smartphone className={`size-5 ${formData.paymentMethod === 'mesomb' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">MTN / Orange Money</span>
+                                  <div className="flex items-start justify-between gap-3 mb-4">
+                                     <div className="min-w-0 space-y-1.5">
+                                        <div className="flex min-w-0 items-center gap-2">
+                                          <Smartphone className={`size-5 shrink-0 ${formData.paymentMethod === 'mesomb' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                          <span className="truncate text-[11px] lg:text-[12px] font-semibold tracking-tight">MTN / Orange Money</span>
+                                        </div>
+                                        <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">Primary</span>
                                      </div>
-                                     {formData.paymentMethod === 'mesomb' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                                     {formData.paymentMethod === 'mesomb' && <CheckCircle2 className="size-4 shrink-0 text-[var(--accent)]" />}
                                   </div>
                                   <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct USSD prompt — MTN MoMo &amp; Orange Money (XAF).</p>
                                </button>

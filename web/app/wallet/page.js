@@ -571,20 +571,20 @@ export default function WalletPage() {
           {modal === 'deposit' && (
             <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => depositStep !== 'processing' && setModal(null)} />
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-2xl overflow-hidden font-poppins">
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-md bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] p-5 sm:p-6 shadow-2xl overflow-hidden font-poppins">
                 
                 <AnimatePresence mode="wait">
                   {(depositStep === 'amount' || depositStep === 'phone') && (
                     <motion.div key="init" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                      <div className="flex items-center justify-between mb-8">
+                      <div className="flex items-center justify-between mb-5">
                         <div>
-                           <h3 className="text-xl  font-bold tracking-tight">Deposit Money</h3>
-                           <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight mt-1">Mobile money deposit</p>
+                           <h3 className="text-lg font-semibold tracking-tight">Deposit Money</h3>
+                           <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-50 tracking-tight mt-1">Mobile money deposit</p>
                         </div>
                         <button onClick={() => setModal(null)} className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"><X className="size-4" /></button>
                       </div>
                       
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                         <div className="space-y-2">
                            <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
                            <div className="grid grid-cols-2 gap-2">
@@ -595,10 +595,10 @@ export default function WalletPage() {
                                 <button
                                   key={node.id}
                                   onClick={() => setDepositGateway(node.id)}
-                                  className={`rounded-xl border p-3 text-left transition-all ${depositGateway === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-55 hover:opacity-100'}`}
+                                  className={`rounded-xl border p-2.5 text-left transition-all ${depositGateway === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-55 hover:opacity-100'}`}
                                 >
-                                  <span className="block text-[11px] font-bold tracking-tight">{node.label}</span>
-                                  <span className="block text-[9px] font-semibold opacity-70">{node.sub} · {node.min}</span>
+                                  <span className="block text-[11px] font-semibold tracking-tight">{node.label}</span>
+                                  <span className="block text-[9px] font-medium opacity-70">{node.sub} - {node.min}</span>
                                 </button>
                               ))}
                            </div>
@@ -611,7 +611,7 @@ export default function WalletPage() {
                               value={amount} 
                               onChange={e => setAmount(e.target.value)} 
                               placeholder={depositGateway === 'eversend' ? 'Min 500' : 'Min 50'}
-                              className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-2xl  font-bold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
+                              className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-xl font-semibold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
                            />
                         </div>
 
@@ -624,7 +624,7 @@ export default function WalletPage() {
                                  value={depositPhone} 
                                  onChange={e => setDepositPhone(e.target.value)} 
                                  placeholder="6XX XXX XXX" 
-                                 className="w-full h-12 pl-12 pr-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-sm  font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner" 
+                                 className="w-full h-11 pl-12 pr-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-sm font-medium outline-none focus:border-[var(--accent)] transition-all shadow-inner" 
                               />
                            </div>
                         </div>
@@ -640,7 +640,7 @@ export default function WalletPage() {
                                   <button 
                                     key={node.id} 
                                     onClick={() => setDepositNetwork(node.id)}
-                                    className={`h-12 rounded-xl border  font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all ${depositNetwork === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                                    className={`h-10 rounded-xl border font-semibold text-[10px] lg:text-[12px] tracking-tight transition-all ${depositNetwork === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
                                   >
                                     {node.label}
                                   </button>
@@ -660,7 +660,7 @@ export default function WalletPage() {
                                   <button 
                                     key={node.id || 'auto'} 
                                     onClick={() => setDepositService(node.id)}
-                                    className={`h-12 rounded-xl border  font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all ${depositService === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
+                                    className={`h-10 rounded-xl border font-semibold text-[10px] lg:text-[12px] tracking-tight transition-all ${depositService === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
                                   >
                                     {node.label}
                                   </button>
@@ -669,7 +669,7 @@ export default function WalletPage() {
                           </div>
                         )}
 
-                        <button onClick={handleDepositInit} disabled={submitting} className="w-full h-16 bg-emerald-500 text-white rounded-2xl  font-semibold text-[11px] lg:text-[12px] tracking-tight shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-4">
+                        <button onClick={handleDepositInit} disabled={submitting} className="w-full h-12 bg-emerald-500 text-white rounded-xl font-semibold text-[11px] lg:text-[12px] tracking-tight shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-2">
                            {submitting ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
                            Deposit funds
                         </button>

@@ -143,6 +143,43 @@ const markCheckoutOrdersFailed = async (userId, orderIds = []) => {
   );
 };
 
+const setTransactionMetadata = (transaction, patch = {}) => {
+  transaction.metadata = { ...(transaction.metadata || {}), ...patch };
+  transaction.markModified('metadata');
+};
+
+const emitWalletCredit = (app, transaction) => {
+  const io = app?.get?.('io');
+  if (!io || !transaction?.user_id) return;
+
+  const payload = {
+    amount: transaction.amount,
+    reference: transaction.reference,
+    gateway: transaction.gateway,
+    type: 'deposit',
+  };
+  const userRoom = transaction.user_id.toString();
+  io.to(userRoom).emit('wallet:credited', payload);
+  io.to(`user:${userRoom}`).emit('wallet:credited', payload);
+};
+
+const creditMeSombWalletDepositOnce = async (transaction, user, app, gatewayResponse = null) => {
+  if (transaction.metadata?.wallet_credited_at) return false;
+
+  user.wallet_balance = Number(user.wallet_balance || 0) + Number(transaction.amount || 0);
+  await user.save();
+
+  transaction.status = 'completed';
+  transaction.gateway_response = gatewayResponse || transaction.gateway_response;
+  setTransactionMetadata(transaction, {
+    wallet_credited_at: new Date(),
+    wallet_credit_amount: Number(transaction.amount || 0),
+  });
+  await transaction.save();
+  emitWalletCredit(app, transaction);
+  return true;
+};
+
 /**
  * @desc    GET /api/payments/gateways
  *          Return all enabled payment gateways for the frontend checkout UI.
@@ -1002,25 +1039,25 @@ const mesombWebhook = async (req, res) => {
       return res.status(200).json({ received: true, note: 'Transaction not found — possibly already processed' });
     }
 
-    if (transaction.status === 'completed') {
-      return res.status(200).json({ received: true, note: 'Already settled' });
-    }
-
     if (status === 'SUCCESS' || status === 'SUCCESSFUL') {
-      transaction.status = 'completed';
       transaction.gateway_response = data;
-      await transaction.save();
 
       // Credit user wallet (for top-up) or settle orders (for checkout)
       const user = await User.findById(transaction.user_id);
       if (!user) return res.status(200).json({ received: true, note: 'User not found' });
 
       if (transaction.order_ids?.length > 0) {
+        if (transaction.metadata?.orders_settled_at) {
+          return res.status(200).json({ received: true, note: 'Already settled' });
+        }
         // Checkout settlement — mark orders as paid
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
           await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
+          transaction.status = 'completed';
+          setTransactionMetadata(transaction, { orders_settled_at: new Date() });
+          await transaction.save({ session });
           await session.commitTransaction();
         } catch (e) {
           await session.abortTransaction();
@@ -1030,16 +1067,17 @@ const mesombWebhook = async (req, res) => {
         }
       } else {
         // Wallet top-up
-        user.wallet_balance += transaction.amount;
-        await user.save();
-        setImmediate(() => {
-          sendNotification(req.app, user._id, {
-            title: '💰 Wallet Topped Up',
-            message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
-            type: 'wallet_update',
-            sendEmail: true,
-          }).catch(console.error);
-        });
+        const credited = await creditMeSombWalletDepositOnce(transaction, user, req.app, data);
+        if (credited) {
+          setImmediate(() => {
+            sendNotification(req.app, user._id, {
+              title: 'Wallet Topped Up',
+              message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
+              type: 'wallet_update',
+              sendEmail: true,
+            }).catch(console.error);
+          });
+        }
       }
     } else if (status === 'FAILED' || status === 'REJECTED') {
       transaction.status = 'failed';
@@ -1054,6 +1092,7 @@ const mesombWebhook = async (req, res) => {
             title: 'Payment Failed',
             message: 'Your mobile money payment was not approved. Please try again.',
             type: 'wallet_update',
+            sendEmail: true,
           }).catch(console.error);
         });
       }
@@ -1079,43 +1118,48 @@ const mesombVerify = async (req, res) => {
 
     if (result.status === 'SUCCESSFUL') {
       const transaction = await Transaction.findOne({ reference, gateway: 'mesomb' });
-      if (transaction && transaction.status !== 'completed') {
+      if (transaction) {
         const user = await User.findById(transaction.user_id);
         if (user) {
           if (transaction.order_ids?.length > 0) {
-            // Checkout settlement
-            const session = await mongoose.startSession();
-            session.startTransaction();
-            try {
-              await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
-              transaction.status = 'completed';
-              transaction.gateway_response = result.gateway_response || transaction.gateway_response;
-              await transaction.save({ session });
-              await session.commitTransaction();
-            } catch (e) {
-              await session.abortTransaction();
-              console.error('[mesombVerify] Settlement error:', e.message);
-            } finally {
-              session.endSession();
+            if (!transaction.metadata?.orders_settled_at) {
+              // Checkout settlement
+              const session = await mongoose.startSession();
+              session.startTransaction();
+              try {
+                await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
+                transaction.status = 'completed';
+                transaction.gateway_response = result.gateway_response || transaction.gateway_response;
+                setTransactionMetadata(transaction, { orders_settled_at: new Date() });
+                await transaction.save({ session });
+                await session.commitTransaction();
+              } catch (e) {
+                await session.abortTransaction();
+                console.error('[mesombVerify] Settlement error:', e.message);
+              } finally {
+                session.endSession();
+              }
             }
           } else {
             // Pure wallet top-up (Deposit)
-            user.wallet_balance += transaction.amount;
-            await user.save();
-            
-            transaction.status = 'completed';
-            transaction.gateway_response = result.gateway_response || transaction.gateway_response;
-            await transaction.save();
+            const credited = await creditMeSombWalletDepositOnce(
+              transaction,
+              user,
+              req.app,
+              result.gateway_response || transaction.gateway_response
+            );
 
             // Background notification
-            setImmediate(() => {
-              sendNotification(req.app, user._id, {
-                title: '💰 Wallet Topped Up',
-                message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
-                type: 'wallet_update',
-                sendEmail: true,
-              }).catch(console.error);
-            });
+            if (credited) {
+              setImmediate(() => {
+                sendNotification(req.app, user._id, {
+                  title: 'Wallet Topped Up',
+                  message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
+                  type: 'wallet_update',
+                  sendEmail: true,
+                }).catch(console.error);
+              });
+            }
           }
         }
       }
@@ -1126,6 +1170,17 @@ const mesombVerify = async (req, res) => {
         transaction.gateway_response = result.gateway_response || transaction.gateway_response;
         await transaction.save();
         await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+        const user = await User.findById(transaction.user_id);
+        if (user) {
+          setImmediate(() => {
+            sendNotification(req.app, user._id, {
+              title: 'Payment Failed',
+              message: 'Your mobile money payment was not approved. Please try again.',
+              type: 'wallet_update',
+              sendEmail: true,
+            }).catch(console.error);
+          });
+        }
       }
     }
 

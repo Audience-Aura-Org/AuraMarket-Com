@@ -40,6 +40,8 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   // Handle both string and object image formats
   const rawImage = images && images.length > 0 ? images[0] : null;
   const mainImage = typeof rawImage === 'string' ? rawImage : (rawImage?.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80');
+  const numericRating = Number(rating || 0);
+  const displayRating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : 'New';
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -284,7 +286,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <span className="text-[12px] sm:text-[14px] md:text-[16px]  font-semibold text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
               <div className="flex items-center gap-1 opacity-70">
                  <Star className="size-2.5 fill-[var(--accent)] text-[var(--accent)]" />
-                 <span className="text-[10px] lg:text-[12px] sm:text-[11px] lg:text-[12px] md:text-[12px]  font-semibold text-[var(--text-secondary)]">{rating || '4.8'}</span>
+                 <span className="text-[10px] lg:text-[12px] sm:text-[11px] lg:text-[12px] md:text-[12px] font-semibold text-[var(--text-secondary)]">{displayRating}</span>
               </div>
             </div>
           </div>
