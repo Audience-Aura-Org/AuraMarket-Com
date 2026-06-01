@@ -441,20 +441,43 @@ const updateProductAdmin = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Invalid product status.' });
       }
     }
-    if (updateData.price !== undefined) updateData.price = Number(updateData.price);
-    if (updateData.stock !== undefined) updateData.stock = Number(updateData.stock);
+    if (updateData.price !== undefined) {
+      updateData.price = Number(updateData.price);
+      if (!Number.isFinite(updateData.price) || updateData.price < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid product price.' });
+      }
+    }
+    if (updateData.stock !== undefined) {
+      updateData.stock = Number(updateData.stock);
+      if (!Number.isFinite(updateData.stock) || updateData.stock < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid product stock.' });
+      }
+    }
     if (updateData.featured !== undefined) updateData.featured = Boolean(updateData.featured);
 
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateData },
-      { returnDocument: 'after', runValidators: true }
-    ).populate('vendor_id', 'store_name');
-
+    const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
 
+    Object.assign(product, updateData);
+
+    if (
+      updateData.price !== undefined &&
+      product.has_variants &&
+      Array.isArray(product.sku_variants) &&
+      product.sku_variants.length > 0 &&
+      req.body.sku_variants === undefined
+    ) {
+      product.sku_variants.forEach((variant) => {
+        variant.price = updateData.price;
+      });
+      product.markModified('sku_variants');
+    }
+
+    await product.save();
+    const populated = await Product.findById(product._id).populate('vendor_id', 'store_name');
+
     cache.clear();
-    res.status(200).json({ success: true, message: 'Product updated.', data: { product } });
+    res.status(200).json({ success: true, message: 'Product updated.', data: { product: populated } });
   } catch (error) {
     next(error);
   }
