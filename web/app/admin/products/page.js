@@ -250,7 +250,7 @@ export default function AdminProductsPage() {
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-end gap-2">
-                              <Link href={'/products/' + p._id} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all">
+                              <Link href={`/products?id=${encodeURIComponent(p._id)}`} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all">
                                 <Eye className="size-4" />
                               </Link>
                               <button onClick={() => openEdit(p)} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all" title="Edit product">

@@ -269,7 +269,7 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                   <ProductCard
                     key={product._id}
                     product={product}
-                    onClick={(item) => router.push(`/products/${item._id || item.id}`)}
+                    onClick={(item) => router.push(`/products?id=${encodeURIComponent(item._id || item.id)}`)}
                   />
                 ))}
               </div>

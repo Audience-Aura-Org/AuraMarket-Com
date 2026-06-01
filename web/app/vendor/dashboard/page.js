@@ -512,7 +512,7 @@ export default function VendorDashboard() {
                       <tr 
                         key={order._id || i} 
                         className="hover:bg-[var(--accent)]/5 transition-colors cursor-pointer"
-                        onClick={() => window.location.href = `/vendor/orders?orderId=${order._id}`}
+                        onClick={() => router.push(`/vendor/orders?orderId=${order._id}`)}
                       >
                         <td className="px-6 py-4 flex items-center gap-3">
                           <div className="size-8 rounded bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] font-bold text-xs uppercase">
@@ -560,7 +560,7 @@ export default function VendorDashboard() {
                   <div 
                     key={order._id || i} 
                     className="p-5 flex flex-col gap-4 active:bg-[var(--accent)]/5 transition-colors"
-                    onClick={() => window.location.href = `/vendor/orders?orderId=${order._id}`}
+                    onClick={() => router.push(`/vendor/orders?orderId=${order._id}`)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">

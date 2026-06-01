@@ -506,9 +506,10 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   };
 
   const handleViewProduct = useCallback(() => {
-    if (!story?.linked_product?._id) return;
+    const productId = story?.linked_product?._id || story?.linked_product;
+    if (!productId) return;
     handleClose();
-    router.push(`/products/${story.linked_product._id}`);
+    router.push(`/products?id=${encodeURIComponent(productId)}`);
   }, [story, handleClose, router]);
 
   const handleVendorClick = useCallback((e, vendorId) => {

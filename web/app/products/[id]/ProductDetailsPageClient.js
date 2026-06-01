@@ -19,8 +19,9 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import { useChat } from '@/context/ChatContext';
 
-export default function ProductDetailsPage() {
-  const { id } = useParams();
+export default function ProductDetailsPage({ productId: explicitProductId = null }) {
+  const params = useParams();
+  const id = explicitProductId || params?.id;
   const router = useRouter();
   const { user } = useAuthStore();
   const { openChat } = useChat();
