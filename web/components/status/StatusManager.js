@@ -50,8 +50,8 @@ const getTimeLeft = (expiresAt) => {
 
 const storyLabel = (status) => {
   if (status.text_content) return status.text_content;
-  if (status.type === 'video') return 'Video story';
-  if (status.type === 'image') return 'Photo story';
+  if (status.type === 'video') return 'Motion preview';
+  if (status.type === 'image') return 'Product spotlight';
   return `Story ${status._id?.slice(-6) || ''}`;
 };
 
@@ -126,9 +126,9 @@ export default function StatusManager() {
   };
 
   const launchOptions = [
-    { label: 'Photo', icon: ImagePlus },
-    { label: 'Video', icon: Film },
-    { label: 'Text', icon: Type },
+    { label: 'Drop', icon: ImagePlus },
+    { label: 'Clip', icon: Film },
+    { label: 'Note', icon: Type },
   ];
 
   return (
@@ -140,26 +140,26 @@ export default function StatusManager() {
             <div className="relative z-10 space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-white/75 backdrop-blur">
                 <Megaphone className="size-3.5 text-[var(--accent)]" />
-                Vendor Story Control
+                Story Launchpad
               </div>
               <div className="max-w-3xl space-y-4">
                 <h1 className="max-w-2xl text-4xl font-black leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
-                  Launch stories that move shoppers.
+                  Make your next drop impossible to miss.
                 </h1>
                 <p className="max-w-xl text-sm font-medium leading-6 text-white/68 sm:text-base">
-                  Create fast store updates, attach products, monitor attention, and recycle your best moments from one workspace.
+                  Publish a sharp update, connect it to a product, and watch the response without digging through the dashboard.
                 </p>
               </div>
             </div>
 
             <div className="relative z-10 grid gap-3 sm:grid-cols-3">
               {[
-                { label: 'Live stories', value: activeStatuses.length, icon: Activity },
-                { label: 'Total views', value: totalViews, icon: Eye },
-                { label: 'Total likes', value: totalLikes, icon: Heart },
+                { label: 'Live', value: activeStatuses.length, icon: Activity },
+                { label: 'Views', value: totalViews, icon: Eye },
+                { label: 'Likes', value: totalLikes, icon: Heart },
               ].map(({ label, value, icon: Icon }) => (
                 <div key={label} className="rounded-3xl border border-white/10 bg-white/8 p-4 backdrop-blur">
-                  <Icon className={`mb-5 size-5 ${label === 'Total likes' ? 'fill-rose-400 text-rose-400' : 'text-[var(--accent)]'}`} />
+                  <Icon className={`mb-5 size-5 ${label === 'Likes' ? 'fill-rose-400 text-rose-400' : 'text-[var(--accent)]'}`} />
                   <p className="text-3xl font-black leading-none tracking-tight">{value}</p>
                   <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48">{label}</p>
                 </div>
