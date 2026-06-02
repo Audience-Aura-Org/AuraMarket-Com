@@ -129,21 +129,21 @@ export default function StatusManager() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-5 pb-28 font-[Poppins] text-[var(--text-primary)] sm:space-y-6 sm:pb-10">
-      <section className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-zinc-950 text-white shadow-xl shadow-black/10">
+    <main className="w-full space-y-5 pb-28 font-[Poppins] text-[var(--text-primary)] sm:space-y-6 sm:pb-10">
+      <section className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
         <div className="relative p-4 sm:p-6 lg:p-7">
-          <div className="absolute inset-0 opacity-70 [background:radial-gradient(circle_at_12%_15%,rgba(242,13,242,0.24),transparent_30%),radial-gradient(circle_at_88%_10%,rgba(20,184,166,0.16),transparent_24%)]" />
+          <div className="absolute inset-0 bg-[var(--bg-secondary)]/35" />
           <div className="relative z-10 space-y-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-white/75 backdrop-blur">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-[var(--text-secondary)]">
                   <Megaphone className="size-3.5 text-[var(--accent)]" />
                   Status
                 </div>
                 <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
                   Share a quick update.
                 </h1>
-                <p className="max-w-xl text-sm font-medium leading-6 text-white/68">
+                <p className="max-w-xl text-sm font-medium leading-6 text-[var(--text-secondary)]">
                   Photos, clips, and notes stay live for 24 hours.
                 </p>
               </div>
@@ -151,7 +151,7 @@ export default function StatusManager() {
               <button
                 type="button"
                 onClick={() => openCreator()}
-                className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-black text-zinc-950 shadow-lg shadow-black/20 transition-transform active:scale-95"
+                className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-3 text-xs font-black text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95"
               >
                 <Plus className="size-4" />
                 Create Story
@@ -165,27 +165,27 @@ export default function StatusManager() {
                 { label: 'Views', value: totalViews, icon: Eye },
                 { label: 'Likes', value: totalLikes, icon: Heart },
               ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/8">
+                <div key={label} className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bg-secondary)]">
                     <Icon className={`size-4 ${label === 'Likes' ? 'fill-rose-400 text-rose-400' : 'text-[var(--accent)]'}`} />
                   </div>
                   <div>
                     <p className="text-2xl font-black leading-none tracking-tight">{value}</p>
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/48">{label}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">{label}</p>
                   </div>
                 </div>
               ))}
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/48">New status</p>
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">New status</p>
                 <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
                   {launchOptions.map(({ label, icon: Icon }) => (
                     <button
                       key={label}
                       type="button"
                       onClick={() => openCreator()}
-                      className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/8 px-3 py-2.5 text-[11px] font-black text-white/82 transition-all hover:bg-white/14 active:scale-95 md:justify-start"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 px-3 py-2.5 text-[11px] font-black text-[var(--text-primary)] transition-all hover:border-[var(--accent)]/35 active:scale-95 md:justify-start"
                     >
                       <Icon className="size-4 text-[var(--accent)]" />
                       {label}
