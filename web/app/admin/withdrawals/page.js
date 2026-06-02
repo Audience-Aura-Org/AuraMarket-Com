@@ -280,7 +280,12 @@ export default function AdminWithdrawalsPage() {
               }
               footer={
                 !loading && displayed.length > 0 ? (
-                  <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                  <Pagination
+                    compact
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
                 ) : null
               }
               filterSlot={
@@ -330,58 +335,66 @@ export default function AdminWithdrawalsPage() {
                     key={w._id}
                     type="button"
                     onClick={() => setSelected(w)}
-                    className={`group flex w-full flex-col gap-3 rounded-2xl border p-3 text-left transition sm:flex-row sm:items-center sm:gap-4 sm:p-3.5 ${
+                    className={`group flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition active:scale-[0.99] sm:gap-4 sm:rounded-2xl sm:p-3.5 ${
                       isPending
                         ? 'border-emerald-500/25 bg-emerald-500/[0.06] hover:border-emerald-500/40'
                         : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 hover:border-emerald-500/20 hover:bg-[var(--bg-secondary)]/35'
                     }`}
                   >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <PartyAvatar
-                        src={requester.logo}
-                        initial={requester.initial}
-                        alt={requester.name}
-                        size="lg"
-                        badge={
-                          <GatewayBrand
-                            gateway={payoutGateway}
-                            method={w.withdrawalMethod}
-                            size="sm"
-                            className="ring-2 ring-[var(--bg-primary)]"
-                          />
-                        }
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="truncate text-[13px] font-semibold group-hover:text-emerald-600">
-                            {requester.name}
+                    <PartyAvatar
+                      src={requester.logo}
+                      initial={requester.initial}
+                      alt={requester.name}
+                      size="lg"
+                      badge={
+                        <GatewayBrand
+                          gateway={payoutGateway}
+                          method={w.withdrawalMethod}
+                          size="sm"
+                          className="ring-2 ring-[var(--bg-primary)]"
+                        />
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <p className="truncate text-[12px] font-semibold group-hover:text-emerald-600 sm:text-[13px]">
+                              {requester.name}
+                            </p>
+                            <span
+                              className={`shrink-0 rounded-md px-1.5 py-0.5 text-[8px] font-semibold uppercase sm:text-[9px] ${S.cls}`}
+                            >
+                              {w.status}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[9px] text-[var(--text-secondary)] sm:gap-1.5 sm:text-[10px]">
+                            <span className="capitalize">{w.role}</span>
+                            <span className="hidden opacity-40 sm:inline">·</span>
+                            <span className="hidden capitalize sm:inline">{w.withdrawalMethod}</span>
+                            <span className="font-mono">#{w._id.slice(-6).toUpperCase()}</span>
                           </p>
-                          <span
-                            className={`rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${S.cls}`}
-                          >
-                            {w.status}
-                          </span>
                         </div>
-                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
-                          <span className="capitalize">{w.role}</span>
-                          <span className="opacity-40">·</span>
-                          <span className="inline-flex items-center gap-1 capitalize">
-                            <GatewayBrand gateway={payoutGateway} method={w.withdrawalMethod} />
-                            {w.withdrawalMethod}
-                          </span>
-                          <span className="opacity-40">·</span>
-                          <span className="font-mono text-[9px]">#{w._id.slice(-6).toUpperCase()}</span>
-                        </p>
+                        <div className="flex shrink-0 items-center gap-1 sm:hidden">
+                          <AmountDateColumn
+                            compact
+                            amount={w.amount}
+                            currency={w.currency}
+                            createdAt={w.createdAt}
+                            amountClassName="text-emerald-700 dark:text-emerald-400"
+                          />
+                          <ChevronRight className="size-4 text-[var(--text-secondary)]" />
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3 border-t border-[var(--glass-border)]/60 pt-2 sm:shrink-0 sm:border-t-0 sm:pt-0">
+                    <div className="hidden shrink-0 items-center gap-2 sm:flex">
                       <AmountDateColumn
                         amount={w.amount}
                         currency={w.currency}
                         createdAt={w.createdAt}
                         amountClassName="text-emerald-700 dark:text-emerald-400"
                       />
-                      <ChevronRight className="size-4 shrink-0 text-[var(--text-secondary)] group-hover:translate-x-0.5 group-hover:text-emerald-600" />
+                      <ChevronRight className="size-4 text-[var(--text-secondary)] group-hover:translate-x-0.5 group-hover:text-emerald-600" />
                     </div>
                   </button>
                 );
@@ -405,10 +418,11 @@ export default function AdminWithdrawalsPage() {
               initial={{ y: 24, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 24, opacity: 0 }}
-              className="relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-emerald-500/20 bg-[var(--bg-primary)] shadow-2xl sm:rounded-2xl"
+              className="relative flex max-h-[min(92dvh,100%)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-emerald-500/20 bg-[var(--bg-primary)] shadow-2xl sm:max-h-[92dvh] sm:rounded-2xl"
             >
+              <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--glass-border)] sm:hidden" />
               <div className="h-1 shrink-0 bg-gradient-to-r from-emerald-500/80 via-emerald-400/50 to-transparent" />
-              <div className="flex shrink-0 items-start justify-between border-b border-[var(--glass-border)] p-4">
+              <div className="flex shrink-0 items-start justify-between border-b border-[var(--glass-border)] p-3 sm:p-4">
                 <div>
                   <h2 className="text-base font-semibold">Review payout</h2>
                   <p className="text-[11px] text-[var(--text-secondary)]">
@@ -424,8 +438,8 @@ export default function AdminWithdrawalsPage() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-3">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-3 sm:p-4 sm:space-y-4">
+                <div className="flex flex-col gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-3 sm:flex-row sm:items-center">
                   <div className="size-11 shrink-0 overflow-hidden rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]">
                     {selectedRequester?.logo && !brokenRequesterImages[selected._id] ? (
                       <img
@@ -451,12 +465,11 @@ export default function AdminWithdrawalsPage() {
                       {selectedRequester?.role || selected.role}
                     </span>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-lg font-semibold tabular-nums">
                       {Number(selected.amount || 0).toLocaleString('fr-CM')}{' '}
                       <span className="text-[11px] font-medium text-[var(--text-secondary)]">{selected.currency}</span>
                     </p>
-                    <p className="text-[10px] text-[var(--text-secondary)]">{selected.currency}</p>
                   </div>
                 </div>
 
@@ -523,7 +536,7 @@ export default function AdminWithdrawalsPage() {
                 )}
               </div>
 
-              <div className="shrink-0 border-t border-[var(--glass-border)] p-4 space-y-2">
+              <div className="shrink-0 space-y-2 border-t border-[var(--glass-border)] p-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-4">
                 {selected.status === 'pending' && (
                   <>
                     <p className="text-[10px] font-medium text-[var(--text-secondary)]">Payout gateway</p>

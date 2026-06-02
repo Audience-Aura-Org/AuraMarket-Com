@@ -33,10 +33,10 @@ function useTheme(theme) {
 }
 
 export const adminSelectClass =
-  'h-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 px-3 text-[12px] outline-none sm:min-w-[130px]';
+  'h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 px-3 text-[16px] outline-none sm:h-10 sm:min-w-[130px] sm:text-[12px]';
 
 export const adminInputClass =
-  'h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 pl-9 pr-3 text-[12px] outline-none';
+  'h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 pl-9 pr-3 text-[16px] outline-none sm:h-10 sm:text-[12px]';
 
 export function AdminFinancePage({ theme = 'transactions', children }) {
   const t = useTheme(theme);
@@ -63,7 +63,7 @@ export function AdminFinanceHeader({
     <header
       className={`sticky top-0 z-40 border-b bg-[var(--bg-primary)]/90 backdrop-blur-md ${t.headerAccent}`}
     >
-      <div className="w-full space-y-3 px-3 py-3 sm:px-5 sm:py-4">
+      <div className="w-full space-y-2.5 px-3 py-2.5 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:space-y-3 sm:px-5 sm:py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             {Icon && (
@@ -120,30 +120,47 @@ export function AdminFinanceHeader({
 
 export function AdminFinanceBody({ children, className = '' }) {
   return (
-    <div className={`w-full space-y-4 px-3 py-4 pb-28 sm:px-5 sm:py-5 ${className}`}>
+    <div
+      className={`w-full space-y-3 px-3 py-3 pb-[max(6.5rem,env(safe-area-inset-bottom,0px))] sm:space-y-4 sm:px-5 sm:py-5 sm:pb-28 ${className}`}
+    >
       {children}
     </div>
   );
 }
 
-/** Compact single-row strip */
+/** Compact metrics — 2×2 grid on mobile, single strip on desktop */
 export function AdminMetricStrip({ metrics = [], theme = 'transactions' }) {
   const t = useTheme(theme);
   if (!metrics.length) return null;
   return (
-    <div
-      className={`flex w-full items-stretch divide-x divide-[var(--glass-border)] overflow-hidden rounded-2xl border bg-[var(--bg-primary)]/95 ${t.panel}`}
-    >
-      {metrics.map(({ label, value }) => (
-        <div
-          key={label}
-          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-3 text-center sm:flex-row sm:gap-1.5"
-        >
-          <span className="text-[10px] font-medium text-[var(--text-secondary)]">{label}</span>
-          <span className="text-[11px] font-semibold tabular-nums sm:text-[12px]">{value}</span>
-        </div>
-      ))}
-    </div>
+    <>
+      <div
+        className={`grid grid-cols-2 gap-2 sm:hidden ${metrics.length === 3 ? 'grid-cols-3' : ''}`}
+      >
+        {metrics.map(({ label, value }) => (
+          <div
+            key={`m-${label}`}
+            className={`rounded-xl border px-2.5 py-2 ${t.metricCard} bg-[var(--bg-primary)]/95`}
+          >
+            <p className="text-[9px] font-medium text-[var(--text-secondary)]">{label}</p>
+            <p className="mt-0.5 text-[12px] font-semibold tabular-nums">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div
+        className={`hidden w-full items-stretch divide-x divide-[var(--glass-border)] overflow-hidden rounded-2xl border bg-[var(--bg-primary)]/95 sm:flex ${t.panel}`}
+      >
+        {metrics.map(({ label, value }) => (
+          <div
+            key={label}
+            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-3 text-center sm:flex-row sm:gap-1.5"
+          >
+            <span className="text-[10px] font-medium text-[var(--text-secondary)]">{label}</span>
+            <span className="text-[11px] font-semibold tabular-nums sm:text-[12px]">{value}</span>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -158,15 +175,15 @@ export function AdminMetricGrid({ metrics = [], theme = 'transactions', columns 
         ? 'grid-cols-3'
         : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5';
   return (
-    <div className={`grid gap-2 ${colClass}`}>
+    <div className={`grid gap-1.5 sm:gap-2 ${colClass}`}>
       {metrics.map(({ label, value, hint }) => (
         <div
           key={label}
-          className={`rounded-2xl border px-3 py-2.5 ${t.metricCard} bg-[var(--bg-primary)]/95`}
+          className={`rounded-xl border px-2.5 py-2 sm:rounded-2xl sm:px-3 sm:py-2.5 ${t.metricCard} bg-[var(--bg-primary)]/95`}
         >
-          <p className="text-[10px] font-medium text-[var(--text-secondary)]">{label}</p>
-          <p className="mt-0.5 truncate text-[12px] font-semibold tabular-nums">{value}</p>
-          {hint && <p className="mt-0.5 text-[9px] text-[var(--text-secondary)]/80">{hint}</p>}
+          <p className="text-[9px] font-medium text-[var(--text-secondary)] sm:text-[10px]">{label}</p>
+          <p className="mt-0.5 truncate text-[11px] font-semibold tabular-nums sm:text-[12px]">{value}</p>
+          {hint && <p className="mt-0.5 text-[8px] text-[var(--text-secondary)]/80 sm:text-[9px]">{hint}</p>}
         </div>
       ))}
     </div>
@@ -196,9 +213,18 @@ export function AdminAlertBanner({ theme = 'withdrawals', children, onAction, ac
 
 export function AdminFilterToolbar({ children, className = '' }) {
   return (
-    <div className={`flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center ${className}`}>
+    <div
+      className={`grid grid-cols-1 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:items-center ${className}`}
+    >
       {children}
     </div>
+  );
+}
+
+/** Wrap paired selects side-by-side on small phones */
+export function AdminFilterRow({ children, className = '' }) {
+  return (
+    <div className={`grid grid-cols-2 gap-2 sm:contents ${className}`}>{children}</div>
   );
 }
 
@@ -254,7 +280,7 @@ export function AdminFilterPills({
       className={`flex gap-1.5 ${
         isVertical
           ? 'flex-col'
-          : 'overflow-x-auto no-scrollbar pb-0.5'
+          : '-mx-1 snap-x snap-mandatory overflow-x-auto px-1 no-scrollbar pb-1'
       } ${className}`}
       role="tablist"
     >
@@ -279,7 +305,7 @@ export function AdminFilterPills({
                 ? `rounded-xl px-3 py-2 text-[11px] font-medium ${
                     active ? t.pillActive : pillInactive
                   }`
-                : `shrink-0 rounded-full px-3 py-1.5 text-[10px] font-medium ${
+                : `min-h-[40px] shrink-0 snap-start rounded-full px-3.5 py-2 text-[11px] font-medium ${
                     active ? t.pillActive : pillInactive
                   }`
             }`}
@@ -311,7 +337,7 @@ export function AdminFilterButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-[11px] font-semibold transition ${variants[variant]} ${className}`}
+      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl px-3 text-[11px] font-semibold transition sm:h-10 sm:w-auto ${variants[variant]} ${className}`}
     >
       {children}
     </button>
@@ -339,23 +365,23 @@ export function AdminListPanel({
     variant === 'ledger'
       ? 'divide-y divide-[var(--glass-border)]'
       : variant === 'queue'
-        ? 'space-y-2'
-        : 'space-y-2 p-3 sm:p-4';
+        ? 'space-y-1.5 p-2 sm:space-y-2 sm:p-4'
+        : 'space-y-2 p-2 sm:p-4';
 
   return (
     <section
       className={`overflow-hidden rounded-2xl border bg-[var(--bg-primary)]/95 ${t.panel}`}
     >
       {filterSlot && (
-        <div className="space-y-3 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 sm:p-4">
+        <div className="space-y-2.5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-2.5 sm:space-y-3 sm:p-4">
           {filterSlot}
         </div>
       )}
 
-      <div className="flex items-center justify-between border-b border-[var(--glass-border)] px-3 py-2.5 sm:px-4">
-        <p className="text-[12px] font-semibold">{title}</p>
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--glass-border)] px-2.5 py-2 sm:px-4 sm:py-2.5">
+        <p className="text-[11px] font-semibold sm:text-[12px]">{title}</p>
         {countLabel != null && (
-          <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+          <span className="max-w-[55%] truncate rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-secondary)] sm:max-w-none sm:px-2.5 sm:py-1 sm:text-[10px]">
             {countLabel}
           </span>
         )}
@@ -374,7 +400,7 @@ export function AdminListPanel({
       )}
 
       {footer && !loading && (
-        <div className="border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/15 px-3 py-3 sm:px-4">
+        <div className="border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/15 px-2 py-2 sm:px-4 sm:py-3">
           {footer}
         </div>
       )}

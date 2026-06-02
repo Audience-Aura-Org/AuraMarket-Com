@@ -26,6 +26,7 @@ import {
   AdminFilterSelect,
   AdminFilterPills,
   AdminFilterButton,
+  AdminFilterRow,
   AdminListPanel,
   AdminLedgerTableHeader,
 } from '@/components/admin/AdminFinanceLayout';
@@ -213,7 +214,12 @@ export default function AdminTransactionsPage() {
         icon={CreditCard}
         title="Payment ledger"
         description="Escrow, deposits, and platform revenue"
-        badge={`${transactions.length} on page`}
+        badge={
+          <>
+            <span className="sm:hidden">{transactions.length}</span>
+            <span className="hidden sm:inline">{transactions.length} on page</span>
+          </>
+        }
         onRefresh={fetchTransactions}
         loading={loading}
       />
@@ -234,7 +240,12 @@ export default function AdminTransactionsPage() {
           theme="transactions"
           variant="ledger"
           title="Ledger entries"
-          countLabel={`Page ${currentPage} · 50 per page`}
+          countLabel={
+            <>
+              <span className="sm:hidden">Pg {currentPage}</span>
+              <span className="hidden sm:inline">Page {currentPage} · 50 per page</span>
+            </>
+          }
           loading={loading}
           loadingMessage="Loading ledger…"
           isEmpty={!loading && transactions.length === 0}
@@ -246,6 +257,7 @@ export default function AdminTransactionsPage() {
           footer={
             !loading && transactions.length > 0 ? (
               <Pagination
+                compact
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
@@ -262,36 +274,38 @@ export default function AdminTransactionsPage() {
                   onSubmit={handleSearchSubmit}
                   placeholder="Reference or gateway ID"
                 />
-                <AdminFilterSelect
-                  theme="transactions"
-                  value={typeFilter}
-                  onChange={(e) => {
-                    setTypeFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="all">All types</option>
-                  {Object.entries(TYPE_CONFIG).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v.label}
-                    </option>
-                  ))}
-                </AdminFilterSelect>
-                <AdminFilterSelect
-                  theme="transactions"
-                  value={gatewayFilter}
-                  onChange={(e) => {
-                    setGatewayFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="all">All gateways</option>
-                  {GATEWAYS.map((g) => (
-                    <option key={g} value={g}>
-                      {g.charAt(0).toUpperCase() + g.slice(1)}
-                    </option>
-                  ))}
-                </AdminFilterSelect>
+                <AdminFilterRow>
+                  <AdminFilterSelect
+                    theme="transactions"
+                    value={typeFilter}
+                    onChange={(e) => {
+                      setTypeFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="all">All types</option>
+                    {Object.entries(TYPE_CONFIG).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </AdminFilterSelect>
+                  <AdminFilterSelect
+                    theme="transactions"
+                    value={gatewayFilter}
+                    onChange={(e) => {
+                      setGatewayFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="all">All gateways</option>
+                    {GATEWAYS.map((g) => (
+                      <option key={g} value={g}>
+                        {g.charAt(0).toUpperCase() + g.slice(1)}
+                      </option>
+                    ))}
+                  </AdminFilterSelect>
+                </AdminFilterRow>
                 <AdminFilterButton
                   theme="transactions"
                   onClick={handleGatewaySync}
@@ -330,10 +344,54 @@ export default function AdminTransactionsPage() {
               >
                 <button
                   type="button"
-                  className="w-full text-left"
+                  className="w-full text-left active:bg-[var(--bg-secondary)]/30"
                   onClick={() => setExpandedId(isExpanded ? null : tx._id)}
                 >
-                  <div className="flex flex-col gap-3 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_120px_110px_36px] sm:items-center sm:gap-3 sm:px-4 sm:py-2.5">
+                  {/* Mobile: compact single-row card */}
+                  <div className="flex items-center gap-2.5 px-2.5 py-2.5 sm:hidden">
+                    <PartyAvatar
+                      src={party.logo}
+                      initial={party.initial}
+                      alt={party.name}
+                      badge={
+                        <GatewayBrand
+                          gateway={tx.gateway}
+                          className="ring-2 ring-[var(--bg-primary)]"
+                        />
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[11px] font-semibold capitalize">
+                          {tx.type?.replace(/_/g, ' ')}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[8px] font-semibold uppercase ${status.bg} ${status.color}`}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate font-mono text-[9px] text-indigo-600 dark:text-indigo-400">
+                        #{tx.reference?.slice(-8).toUpperCase()}
+                      </p>
+                      <p className="mt-0.5 truncate text-[9px] text-[var(--text-secondary)]">{party.name}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <AmountDateColumn
+                        compact
+                        amount={tx.amount}
+                        currency={tx.currency || 'XAF'}
+                        createdAt={tx.createdAt}
+                        amountClassName="text-indigo-900 dark:text-indigo-200"
+                      />
+                      <ChevronDown
+                        className={`size-4 text-[var(--text-secondary)] transition ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Desktop: ledger grid */}
+                  <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_120px_110px_36px] sm:items-center sm:gap-3 sm:px-4 sm:py-2.5">
                     <div className="flex min-w-0 items-start gap-2.5">
                       <PartyAvatar
                         src={party.logo}
@@ -371,14 +429,14 @@ export default function AdminTransactionsPage() {
                       amount={tx.amount}
                       currency={tx.currency || 'XAF'}
                       createdAt={tx.createdAt}
-                      amountClassName="text-indigo-900 dark:text-indigo-200 sm:text-[13px]"
+                      amountClassName="text-indigo-900 dark:text-indigo-200"
                     />
 
-                    <div className="flex items-center justify-end sm:justify-center">
+                    <div className="flex items-center justify-center">
                       <GatewayBrand gateway={tx.gateway} size="md" />
                     </div>
 
-                    <div className="hidden items-center justify-center sm:flex">
+                    <div className="flex items-center justify-center">
                       <ChevronDown
                         className={`size-4 text-[var(--text-secondary)] transition ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
                       />
@@ -394,7 +452,7 @@ export default function AdminTransactionsPage() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden border-t border-indigo-500/15 bg-[var(--bg-primary)]/50"
                     >
-                      <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4">
+                      <div className="grid gap-2.5 p-2.5 sm:grid-cols-2 sm:gap-3 sm:p-4">
                         <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-2">
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
                             <Database className="size-3.5" /> Transaction data

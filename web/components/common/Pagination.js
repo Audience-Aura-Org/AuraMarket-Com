@@ -2,12 +2,14 @@
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
-export default function Pagination({ currentPage, totalPages, onPageChange }) {
+export default function Pagination({ currentPage, totalPages, onPageChange, compact = false }) {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-center gap-2 py-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl p-1 gap-1 shadow-sm">
+    <div
+      className={`flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500 ${compact ? 'py-3' : 'py-10'}`}
+    >
+      <div className="flex gap-0.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-0.5 shadow-sm sm:gap-1 sm:p-1">
         <PaginationButton 
           icon={ChevronsLeft} 
           onClick={() => onPageChange(1)} 
@@ -19,9 +21,13 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
           disabled={currentPage === 1} 
         />
         
-        <div className="flex items-center px-6 gap-2">
-           <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] font-mono">{currentPage}</span>
-           <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-20 tracking-tight whitespace-nowrap">Of {totalPages} NODES</span>
+        <div className="flex items-center gap-1.5 px-3 sm:gap-2 sm:px-6">
+          <span className="font-mono text-[11px] font-semibold text-[var(--text-primary)] sm:text-[12px]">
+            {currentPage}
+          </span>
+          <span className="whitespace-nowrap text-[10px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40 sm:text-[11px]">
+            / {totalPages}
+          </span>
         </div>
 
         <PaginationButton 
@@ -44,7 +50,7 @@ function PaginationButton({ icon: Icon, onClick, disabled }) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`size-10 rounded-xl flex items-center justify-center transition-all ${disabled ? 'text-[var(--text-secondary)] opacity-10 cursor-not-allowed' : 'text-[var(--text-primary)] hover:bg-[var(--accent)] hover:text-white active:scale-90 shadow-sm border border-transparent hover:border-[var(--accent)]/30'}`}
+      className={`flex size-9 items-center justify-center rounded-xl transition-all sm:size-10 ${disabled ? 'cursor-not-allowed text-[var(--text-secondary)] opacity-10' : 'border border-transparent text-[var(--text-primary)] shadow-sm hover:border-[var(--accent)]/30 hover:bg-[var(--accent)] hover:text-white active:scale-90'}`}
     >
       <Icon className="size-4" />
     </button>
