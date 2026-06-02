@@ -38,6 +38,11 @@ export const adminSelectClass =
 export const adminInputClass =
   'h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 pl-9 pr-3 text-[16px] outline-none sm:h-10 sm:text-[12px]';
 
+const normalizeMetricCards = (items = []) => {
+  const capped = items.slice(0, 4);
+  return capped.length > 1 && capped.length % 2 !== 0 ? capped.slice(0, capped.length - 1) : capped;
+};
+
 export function AdminFinancePage({ theme = 'transactions', children }) {
   const t = useTheme(theme);
   return (
@@ -131,13 +136,12 @@ export function AdminFinanceBody({ children, className = '' }) {
 /** Compact metrics — 2×2 grid on mobile, single strip on desktop */
 export function AdminMetricStrip({ metrics = [], theme = 'transactions' }) {
   const t = useTheme(theme);
-  if (!metrics.length) return null;
+  const visibleMetrics = normalizeMetricCards(metrics);
+  if (!visibleMetrics.length) return null;
   return (
     <>
-      <div
-        className={`grid grid-cols-2 gap-2 sm:hidden ${metrics.length === 3 ? 'grid-cols-3' : ''}`}
-      >
-        {metrics.map(({ label, value }) => (
+      <div className="grid grid-cols-2 gap-2 sm:hidden">
+        {visibleMetrics.map(({ label, value }) => (
           <div
             key={`m-${label}`}
             className={`rounded-xl border px-2.5 py-2 ${t.metricCard} bg-[var(--bg-primary)]/95`}
@@ -150,7 +154,7 @@ export function AdminMetricStrip({ metrics = [], theme = 'transactions' }) {
       <div
         className={`hidden w-full items-stretch divide-x divide-[var(--glass-border)] overflow-hidden rounded-2xl border bg-[var(--bg-primary)]/95 sm:flex ${t.panel}`}
       >
-        {metrics.map(({ label, value }) => (
+        {visibleMetrics.map(({ label, value }) => (
           <div
             key={label}
             className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-3 text-center sm:flex-row sm:gap-1.5"
@@ -165,18 +169,16 @@ export function AdminMetricStrip({ metrics = [], theme = 'transactions' }) {
 }
 
 /** Individual metric cards — better for many KPIs */
-export function AdminMetricGrid({ metrics = [], theme = 'transactions', columns = 5 }) {
+export function AdminMetricGrid({ metrics = [], theme = 'transactions', columns = 4 }) {
   const t = useTheme(theme);
-  if (!metrics.length) return null;
-  const colClass =
-    columns === 4
-      ? 'grid-cols-2 sm:grid-cols-4'
-      : columns === 3
-        ? 'grid-cols-3'
-        : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5';
+  const visibleMetrics = normalizeMetricCards(metrics);
+  if (!visibleMetrics.length) return null;
+  const colClass = columns === 2 || visibleMetrics.length <= 2
+    ? 'grid-cols-2'
+    : 'grid-cols-2 sm:grid-cols-4';
   return (
     <div className={`grid gap-1.5 sm:gap-2 ${colClass}`}>
-      {metrics.map(({ label, value, hint }) => (
+      {visibleMetrics.map(({ label, value, hint }) => (
         <div
           key={label}
           className={`rounded-xl border px-2.5 py-2 sm:rounded-2xl sm:px-3 sm:py-2.5 ${t.metricCard} bg-[var(--bg-primary)]/95`}

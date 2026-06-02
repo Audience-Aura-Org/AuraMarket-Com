@@ -99,12 +99,11 @@ export default function AdminAnalyticsPage() {
       <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto pb-32">
         
         {/* Metric Grid - High Density */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Global Flow" value={`XAF ${fmt(payout_intel?.total_revenue)}`} sub="Total Processed" icon="payments" color="emerald" />
           <StatCard label="Escrow Pool" value={`XAF ${fmt(payout_intel?.total_escrow)}`} sub="Held Liquidity" icon="lock_clock" color="amber" />
           <StatCard label="Entity count" value={fmt(platform_summary?.total_users)} sub="Registered Items" icon="groups" color="blue" />
           <StatCard label="Merchant Base" value={fmt(platform_summary?.total_vendors)} sub="Active Stores" icon="store" color="purple" />
-          <StatCard label="Shipment Flow" value={fmt(platform_summary?.live_shipments)} sub="In-Transit Items" icon="local_shipping" color="rose" />
         </div>
 
         {/* Intelligence Matrix */}

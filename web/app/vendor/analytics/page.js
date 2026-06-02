@@ -86,13 +86,12 @@ export default function VendorAnalyticsPage() {
       </header>
 
         {/* Micro-Stat Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 px-4 md:px-0">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
           {[
             { label: 'Revenue', value: `${fmt(stats?.total_revenue)}`, icon: 'payments', color: 'emerald' },
             { label: 'Escrow', value: `${fmt(stats?.pending_escrow)}`, icon: 'account_balance_wallet', color: 'amber' },
             { label: 'Orders', value: String(stats?.total_sales || 0), icon: 'shopping_bag', color: 'blue' },
             { label: 'Inventory', value: String(stats?.total_products || 0), icon: 'category', color: 'indigo' },
-            { label: 'Views', value: fmt(stats?.total_views), icon: 'visibility', color: 'rose' }
           ].map((s, i) => (
             <StatCard
               key={i}

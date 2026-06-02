@@ -276,12 +276,11 @@ export default function AdminEscrow() {
          </div>
 
          {/* Live Intelligence Stats */}
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {[
                { title: 'LOCKED', desc: 'Custody Total', count: `${heldTotal.toLocaleString()} XAF`, icon: Database, color: 'blue' },
                { title: 'RELEASED', desc: 'Settled Capital', count: `${releasedTotal.toLocaleString()} XAF`, icon: CheckCircle2, color: 'emerald' },
                { title: 'DISPUTE', desc: 'Contested', count: `${disputedTotal.toLocaleString()} XAF`, icon: AlertCircle, color: 'rose' },
-               { title: 'TRUST', desc: 'System Health', count: 'High', icon: Zap, color: 'amber' },
                { title: 'REVENUE', desc: 'Gross Platform', count: analytics ? `${analytics.revenue.toLocaleString()} XAF` : '...', icon: Globe, color: 'indigo' },
             ].map((item, i) => (
                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">

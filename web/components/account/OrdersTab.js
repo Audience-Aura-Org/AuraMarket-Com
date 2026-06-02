@@ -165,6 +165,9 @@ export default function OrdersTab({ user, onViewOrder }) {
   const completedCount = orders.filter((o) =>
     ['completed', 'delivered'].includes(o.order_status)
   ).length;
+  const issueCount = orders.filter((o) =>
+    o.payment_status === 'failed' || ['cancelled', 'refunded'].includes(o.order_status)
+  ).length;
 
   return (
     <div className="space-y-4 font-[Poppins]">
@@ -218,6 +221,7 @@ export default function OrdersTab({ user, onViewOrder }) {
         <MetricItem label="Total" value={orders.length} />
         <MetricItem label="Active" value={activeCount} />
         <MetricItem label="Completed" value={completedCount} />
+        <MetricItem label="Issues" value={issueCount} />
       </div>
 
       <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">

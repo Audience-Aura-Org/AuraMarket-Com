@@ -98,11 +98,12 @@ export default function VendorDisputesPage() {
         <div className="px-4 md:px-8 py-8">
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             {[
               { label: 'Active', value: activeCount, sub: 'Attention', icon: 'warning', color: 'rose' },
               { label: 'Resolved', value: (disputes.length - activeCount), sub: 'Closed', icon: 'verified_user', color: 'emerald' },
-              { label: 'Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Yield', icon: 'security', color: 'indigo' }
+              { label: 'Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Yield', icon: 'security', color: 'indigo' },
+              { label: 'Total', value: disputes.length, sub: 'Cases', icon: 'database', color: 'blue' }
             ].map((stat, i) => (
               <StatCard
                 key={i}

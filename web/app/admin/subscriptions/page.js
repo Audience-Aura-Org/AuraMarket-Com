@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { 
-  CreditCard, TrendingUp, TrendingDown, Clock, Users,
+  CreditCard, TrendingUp, TrendingDown, Clock, Users, Activity,
   MoreVertical, Plus, Filter, ChevronLeft, ChevronRight,
   RefreshCw, Search
 } from 'lucide-react';
@@ -102,10 +102,11 @@ export default function AdminSubscriptionsPage() {
             </div>
 
             {/* Stats matrix */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               <StatCard label="Active" value="1,284" sub="vs. 1,141 last month" pct="+12.5%" icon={Users} color="fuchsia" />
               <StatCard label="MRR" value="$45,200" sub="vs. $41,750 last month" pct="+8.2%" icon={CreditCard} color="blue" />
               <StatCard label="Churn Risk" value="48" sub="Next 7 days" pct="Due" icon={Clock} color="amber" />
+              <StatCard label="Health" value="Stable" sub="Billing nodes" pct="Live" icon={Activity} color="emerald" />
             </div>
 
             {/* Table */}

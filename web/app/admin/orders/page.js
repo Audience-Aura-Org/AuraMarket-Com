@@ -191,13 +191,11 @@ export default function AdminOrdersPage() {
 
       <div className="p-4 md:p-10 space-y-8 pb-40">
          {/* Live Stats Matrix */}
-         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <StatCard label="Active" value={stats ? stats.active_orders : '...'} icon="local_shipping" color="fuchsia" sub="IN_PROGRESS" />
             <StatCard label="Attention" value={orders.filter(o => o.order_status === 'refund_pending' || o.payment_status === 'failed').length} icon="warning" color="rose" sub="ACTION_REQUIRED" />
             <StatCard label="Resolved" value={stats ? stats.delivered_orders || '0' : '...'} icon="check_circle" color="emerald" sub="CYCLE_COMPLETE" />
             <StatCard label="Closed" value={stats ? stats.orders : '...'} icon="inventory_2" color="slate" sub="ARCHIVE_TOTAL" />
-            <StatCard label="Rate" value="98.4%" icon="verified_user" color="amber" sub="FLOW_STABLE" />
-            <StatCard label="Yield" value={stats ? `${(stats.revenue / 1000).toFixed(1)}k` : '...'} icon="bolt" color="indigo" sub="NET_OUTPUT" />
          </div>
 
          {/* Order Ledger */}
