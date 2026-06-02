@@ -138,13 +138,13 @@ export default function StatusManager() {
               <div className="max-w-2xl space-y-3">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-white/75 backdrop-blur">
                   <Megaphone className="size-3.5 text-[var(--accent)]" />
-                  Story Launchpad
+                  Status
                 </div>
                 <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-                  Make your next drop impossible to miss.
+                  Share a quick update.
                 </h1>
                 <p className="max-w-xl text-sm font-medium leading-6 text-white/68">
-                  Publish a sharp update, connect it to a product, and watch the response without digging through the dashboard.
+                  Photos, clips, and notes stay live for 24 hours.
                 </p>
               </div>
 
@@ -178,7 +178,7 @@ export default function StatusManager() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/48">Publish format</p>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/48">New status</p>
                 <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
                   {launchOptions.map(({ label, icon: Icon }) => (
                     <button
@@ -206,8 +206,8 @@ export default function StatusManager() {
                 <Wand2 className="size-5" />
               </div>
               <div>
-                <p className="text-base font-black">Creator dock</p>
-                <p className="text-xs font-semibold text-[var(--text-secondary)]">Pick a format and publish.</p>
+                <p className="text-base font-black">Create</p>
+                <p className="text-xs font-semibold text-[var(--text-secondary)]">Choose a status type.</p>
               </div>
             </div>
             <div className="mt-5 grid gap-2">
@@ -220,7 +220,7 @@ export default function StatusManager() {
                 >
                   <span className="inline-flex items-center gap-3">
                     <Icon className="size-4 text-[var(--accent)]" />
-                    {label} update
+                    {label}
                   </span>
                   <Plus className="size-4 text-[var(--text-secondary)]" />
                 </button>
@@ -231,18 +231,18 @@ export default function StatusManager() {
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--text-primary)] px-4 py-3 text-xs font-black text-[var(--bg-primary)] transition-transform active:scale-95"
             >
               <ShoppingBag className="size-4" />
-              Add product link
+              Link product
             </Link>
           </div>
 
           <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-black">Pulse</p>
+              <p className="text-sm font-black">Summary</p>
               <BarChart3 className="size-4 text-[var(--accent)]" />
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl bg-[var(--bg-secondary)]/55 px-4 py-3">
-                <span className="text-xs font-bold text-[var(--text-secondary)]">Live shelf</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">Live</span>
                 <span className="text-sm font-black">{activeStatuses.length}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl bg-[var(--bg-secondary)]/55 px-4 py-3">
@@ -250,7 +250,7 @@ export default function StatusManager() {
                 <span className="text-sm font-black">{archivedStatuses.length}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl bg-[var(--bg-secondary)]/55 px-4 py-3">
-                <span className="text-xs font-bold text-[var(--text-secondary)]">Engagement</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">Activity</span>
                 <span className="text-sm font-black">{totalViews + totalLikes}</span>
               </div>
             </div>
@@ -261,8 +261,8 @@ export default function StatusManager() {
           <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">Live shelf</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight">Stories shoppers can open now</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">My status</p>
+                <h2 className="mt-1 text-2xl font-black tracking-tight">Live now</h2>
               </div>
               <button
                 onClick={fetchMyStatuses}
@@ -284,16 +284,16 @@ export default function StatusManager() {
                 <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
                   <ImagePlus className="size-6" />
                 </div>
-                <p className="text-lg font-black">Nothing live yet</p>
+                <p className="text-lg font-black">No status yet</p>
                 <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-[var(--text-secondary)]">
-                  Launch a quick product moment and it will appear in this shelf.
+                  Add a photo, clip, or note.
                 </p>
                 <button
                   onClick={() => openCreator()}
                   className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-3 text-xs font-black text-white shadow-lg shadow-[var(--accent)]/20 active:scale-95"
                 >
                   <Plus className="size-4" />
-                  Launch Story
+                  Add Status
                 </button>
               </div>
             ) : (
@@ -349,8 +349,8 @@ export default function StatusManager() {
           <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">Replay archive</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight">Expired and reusable stories</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">Archive</p>
+                <h2 className="mt-1 text-2xl font-black tracking-tight">Past status</h2>
               </div>
               <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--bg-secondary)]/65 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-secondary)]">
                 <Calendar className="size-3.5 text-[var(--accent)]" />
@@ -360,7 +360,7 @@ export default function StatusManager() {
 
             {archivedStatuses.length === 0 ? (
               <div className="mt-5 rounded-[1.75rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 py-10 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-70">Archive will build after stories expire</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-70">No archive yet</p>
               </div>
             ) : (
               <div className="mt-5 space-y-3">
