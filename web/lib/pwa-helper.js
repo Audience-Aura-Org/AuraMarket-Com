@@ -6,7 +6,7 @@
  */
 import api from '@/services/api';
 
-const VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
+const FALLBACK_VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
 
 function isPushServiceUnavailable(err) {
   if (!err) return false;
@@ -29,6 +29,17 @@ function urlBase64ToUint8Array(base64String) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+async function getActiveVapidPublicKey() {
+  try {
+    const res = await api.get('/push/vapid-public-key');
+    const key = res.data?.data?.publicKey || res.data?.publicKey;
+    return key || FALLBACK_VAPID_PUBLIC_KEY;
+  } catch (err) {
+    console.warn('[PWA] Could not fetch backend VAPID key; using fallback.', err?.message || err);
+    return FALLBACK_VAPID_PUBLIC_KEY;
+  }
 }
 
 /**
@@ -109,6 +120,7 @@ export async function subscribeToPush() {
     }
 
     const registration = await navigator.serviceWorker.ready;
+    const vapidPublicKey = await getActiveVapidPublicKey();
 
     // Always get or create subscription
     let subscription = await registration.pushManager.getSubscription();
@@ -118,7 +130,7 @@ export async function subscribeToPush() {
       try {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
         });
       } catch (subscribeErr) {
         if (isPushServiceUnavailable(subscribeErr)) {
@@ -159,9 +171,10 @@ export async function subscribeToPush() {
 
         // 3. Re-subscribe with correct VAPID key (one retry only)
         const reg2 = await navigator.serviceWorker.ready;
+        const retryVapidPublicKey = await getActiveVapidPublicKey();
         const newSub = await reg2.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          applicationServerKey: urlBase64ToUint8Array(retryVapidPublicKey)
         });
         await api.post('/push/subscribe', {
           subscription: newSub.toJSON(),

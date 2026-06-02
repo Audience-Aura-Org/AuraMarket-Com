@@ -1,4 +1,21 @@
 const PushSubscription = require('../models/PushSubscription.model');
+const { VAPID_PUBLIC_KEY } = require('../config/env');
+
+const DEFAULT_VAPID_PUBLIC_KEY = 'BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ';
+
+/**
+ * @route   GET /api/push/vapid-public-key
+ * @desc    Return the active backend VAPID public key used for Web Push
+ * @access  Public
+ */
+const getVapidPublicKey = async (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      publicKey: VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY,
+    },
+  });
+};
 
 /**
  * @route   POST /api/push/subscribe
@@ -24,6 +41,7 @@ const subscribe = async (req, res, next) => {
       { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
+    console.log(`[PWA] Push subscription saved for ${req.user._id} (${device_type || 'mobile'}) endpoint=${subscription.endpoint.slice(-24)}`);
     res.status(200).json({ success: true, message: 'Subscription stabilized in the Matrix.' });
   } catch (error) {
     next(error);
@@ -65,6 +83,7 @@ const purgeAll = async (req, res, next) => {
 };
 
 module.exports = {
+  getVapidPublicKey,
   subscribe,
   unsubscribe,
   purgeAll

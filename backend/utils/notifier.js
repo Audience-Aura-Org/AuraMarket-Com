@@ -15,6 +15,10 @@ webPush.setVapidDetails('mailto:hello@auradime.com', VAPID_PUB, VAPID_PRIV);
 
 // ── Signal Constants ─────────────────────────────────────────────────────────
 const LOGO_URL = 'https://auradime.com/logo-white.png';
+const WEB_PUSH_OPTIONS = {
+  TTL: 60 * 60 * 24,
+  urgency: 'high',
+};
 
 // App brand colors for notifier fallback
 const COLORS = {
@@ -130,22 +134,31 @@ const sendNotification = async (app, recipientId, data) => {
             data: { 
               url: notificationUrl,
               sender_id: senderId,
-              senderId: senderId
+              senderId: senderId,
+              notification_id: notification._id.toString(),
+              type
             },
             sender_id: senderId,
-            senderId: senderId
+            senderId: senderId,
+            notification_id: notification._id.toString(),
+            type
           });
 
-          await Promise.allSettled(subs.map(sub => 
-            webPush.sendNotification(sub.subscription, payload)
+          const results = await Promise.allSettled(subs.map(sub => 
+            webPush.sendNotification(sub.subscription, payload, WEB_PUSH_OPTIONS)
               .catch(async (e) => {
                 if (e.statusCode === 410 || e.statusCode === 404 || e.statusCode === 401) {
                   await PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
                   console.log(`🗑️  Purged invalid sub ${sub._id} (HTTP ${e.statusCode})`);
                 }
+                throw e;
               })
           ));
-          console.log(`📱 PWA Push Signal Broadcasted to ${subs.length} connections for ${recipientId}`);
+          const delivered = results.filter(result => result.status === 'fulfilled').length;
+          const failed = results.length - delivered;
+          console.log(`📱 PWA Push Signal Broadcasted to ${delivered}/${subs.length} connections for ${recipientId}${failed ? ` (${failed} failed)` : ''}`);
+        } else {
+          console.log(`[PWA] No saved push subscriptions for ${recipientId}; notification stored only (${type}).`);
         }
       } catch (err) {
         console.error('❌ PWA Push Signal Error:', err.message);
