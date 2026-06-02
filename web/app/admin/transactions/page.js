@@ -11,6 +11,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
 import { fmt, STATUS_CONFIG, TYPE_CONFIG } from '@/utils/adminFinance';
 import {
+  AmountDateColumn,
+  GatewayBrand,
+  PartyAvatar,
+  getTransactionParty,
+} from '@/components/admin/FinanceRowDisplay';
+import {
   AdminFinancePage,
   AdminFinanceHeader,
   AdminFinanceBody,
@@ -93,13 +99,18 @@ export default function AdminTransactionsPage() {
   const handleGatewaySync = async () => {
     setGatewaySyncing(true);
     try {
-      const res = await api.post('/admin/transactions/sync-eversend');
+      const res = await api.post('/admin/transactions/sync-gateways');
       if (res.data.success) {
-        toast.success(res.data.message);
+        const { eversendImported = 0, mesombUpdated = 0, eversendUpdated = 0 } = res.data;
+        toast.success(
+          res.data.message ||
+            `Sync done — Eversend: ${eversendImported} imported, ${eversendUpdated} updated; MeSomb: ${mesombUpdated} updated.`
+        );
         fetchTransactions();
+        fetchStats();
       }
-    } catch {
-      toast.error('Gateway sync failed');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gateway sync failed');
     } finally {
       setGatewaySyncing(false);
     }
@@ -230,7 +241,7 @@ export default function AdminTransactionsPage() {
           emptyIcon={CreditCard}
           emptyMessage="No transactions match your filters."
           listHeader={
-            <AdminLedgerTableHeader columns={['Transaction', 'Amount', 'Status', '']} />
+            <AdminLedgerTableHeader columns={['Transaction', 'Amount & date', 'Gateway', '']} />
           }
           footer={
             !loading && transactions.length > 0 ? (
@@ -288,7 +299,7 @@ export default function AdminTransactionsPage() {
                   variant="primary"
                 >
                   {gatewaySyncing ? <Loader2 className="size-3.5 animate-spin" /> : <Globe className="size-3.5" />}
-                  Sync Eversend
+                  Sync gateways
                 </AdminFilterButton>
               </AdminFilterToolbar>
               <AdminFilterPills
@@ -308,6 +319,7 @@ export default function AdminTransactionsPage() {
             const type = TYPE_CONFIG[tx.type] || TYPE_CONFIG.payment;
             const isExpanded = expandedId === tx._id;
             const TypeIcon = type.icon;
+            const party = getTransactionParty(tx);
 
             return (
               <div
@@ -321,59 +333,49 @@ export default function AdminTransactionsPage() {
                   className="w-full text-left"
                   onClick={() => setExpandedId(isExpanded ? null : tx._id)}
                 >
-                  <div className="flex flex-col gap-2 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_100px_120px_40px] sm:items-center sm:gap-3 sm:px-4 sm:py-2.5">
+                  <div className="flex flex-col gap-3 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_120px_110px_36px] sm:items-center sm:gap-3 sm:px-4 sm:py-2.5">
                     <div className="flex min-w-0 items-start gap-2.5">
-                      <div
-                        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${status.bg} ${status.color}`}
-                      >
-                        <TypeIcon className="size-4" />
-                      </div>
+                      <PartyAvatar
+                        src={party.logo}
+                        initial={party.initial}
+                        alt={party.name}
+                        badge={
+                          <GatewayBrand
+                            gateway={tx.gateway}
+                            className="ring-2 ring-[var(--bg-primary)]"
+                          />
+                        }
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="text-[12px] font-semibold capitalize">
                             {tx.type?.replace(/_/g, ' ')}
                           </span>
-                          <span className="rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
-                            {tx.gateway || 'internal'}
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase ${status.bg} ${status.color}`}
+                          >
+                            <TypeIcon className="size-3" />
+                            {status.label}
                           </span>
                         </div>
                         <p className="mt-0.5 font-mono text-[10px] text-indigo-600 dark:text-indigo-400">
                           #{tx.reference?.slice(-10).toUpperCase()}
                         </p>
                         <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--text-secondary)]">
-                          {tx.user_id?.name || 'User'} · {tx.description || '—'}
-                        </p>
-                        <p className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)] sm:hidden">
-                          <Clock className="size-3" />
-                          {new Date(tx.createdAt).toLocaleString('en-GB', {
-                            day: 'numeric',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {party.name} · {tx.description || '—'}
                         </p>
                       </div>
                     </div>
 
-                    <p className="text-right text-[13px] font-semibold tabular-nums sm:text-[12px]">
-                      {fmt(tx.amount)}
-                      <span className="ml-1 text-[10px] font-medium text-[var(--text-secondary)]">
-                        {tx.currency || 'XAF'}
-                      </span>
-                    </p>
+                    <AmountDateColumn
+                      amount={tx.amount}
+                      currency={tx.currency || 'XAF'}
+                      createdAt={tx.createdAt}
+                      amountClassName="text-indigo-900 dark:text-indigo-200 sm:text-[13px]"
+                    />
 
-                    <div className="flex items-center justify-between gap-2 sm:justify-end">
-                      <span
-                        className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize ${status.bg} ${status.color} ${status.border}`}
-                      >
-                        {status.label}
-                      </span>
-                      <span className="text-[10px] text-[var(--text-secondary)] sm:hidden">
-                        {new Date(tx.createdAt).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </span>
+                    <div className="flex items-center justify-end sm:justify-center">
+                      <GatewayBrand gateway={tx.gateway} size="md" />
                     </div>
 
                     <div className="hidden items-center justify-center sm:flex">

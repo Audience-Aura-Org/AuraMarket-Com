@@ -10,7 +10,8 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
-import { fmt, STATUS_CONFIG, getMethodIcon } from '@/utils/adminFinance';
+import { STATUS_CONFIG } from '@/utils/adminFinance';
+import { AmountDateColumn, GatewayBrand, PartyAvatar } from '@/components/admin/FinanceRowDisplay';
 import Pagination from '@/components/common/Pagination';
 import {
   AdminFinancePage,
@@ -320,38 +321,36 @@ export default function AdminWithdrawalsPage() {
             >
               {pageItems.map((w) => {
                 const S = STATUS[w.status] || STATUS.pending;
-                const MIcon = getMethodIcon(w.withdrawalMethod) || Wallet;
                 const requester = getRequesterProfile(w);
                 const isPending = w.status === 'pending';
+                const payoutGateway = w.payoutGateway || w.withdrawalMethod;
 
                 return (
                   <button
                     key={w._id}
                     type="button"
                     onClick={() => setSelected(w)}
-                    className={`group flex w-full flex-col gap-2 rounded-2xl border p-3 text-left transition sm:flex-row sm:items-center sm:gap-4 sm:p-3.5 ${
+                    className={`group flex w-full flex-col gap-3 rounded-2xl border p-3 text-left transition sm:flex-row sm:items-center sm:gap-4 sm:p-3.5 ${
                       isPending
                         ? 'border-emerald-500/25 bg-emerald-500/[0.06] hover:border-emerald-500/40'
                         : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 hover:border-emerald-500/20 hover:bg-[var(--bg-secondary)]/35'
                     }`}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <div className="relative shrink-0">
-                        <div className="size-11 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
-                          {requester.logo ? (
-                            <img src={requester.logo} alt="" className="size-full object-cover" />
-                          ) : (
-                            <span className="flex size-full items-center justify-center bg-emerald-500/10 text-sm font-semibold text-emerald-600">
-                              {requester.initial}
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[var(--bg-primary)] ${
-                            isPending ? 'bg-amber-400' : 'bg-[var(--text-secondary)]/40'
-                          }`}
-                        />
-                      </div>
+                      <PartyAvatar
+                        src={requester.logo}
+                        initial={requester.initial}
+                        alt={requester.name}
+                        size="lg"
+                        badge={
+                          <GatewayBrand
+                            gateway={payoutGateway}
+                            method={w.withdrawalMethod}
+                            size="sm"
+                            className="ring-2 ring-[var(--bg-primary)]"
+                          />
+                        }
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <p className="truncate text-[13px] font-semibold group-hover:text-emerald-600">
@@ -363,32 +362,26 @@ export default function AdminWithdrawalsPage() {
                             {w.status}
                           </span>
                         </div>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] text-[var(--text-secondary)]">
+                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
                           <span className="capitalize">{w.role}</span>
-                          <span>·</span>
-                          <span className="inline-flex items-center gap-0.5 capitalize">
-                            <MIcon className="size-3" />
+                          <span className="opacity-40">·</span>
+                          <span className="inline-flex items-center gap-1 capitalize">
+                            <GatewayBrand gateway={payoutGateway} method={w.withdrawalMethod} />
                             {w.withdrawalMethod}
                           </span>
-                          <span>·</span>
-                          <span className="font-mono">#{w._id.slice(-6).toUpperCase()}</span>
+                          <span className="opacity-40">·</span>
+                          <span className="font-mono text-[9px]">#{w._id.slice(-6).toUpperCase()}</span>
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3 sm:shrink-0 sm:flex-col sm:items-end sm:justify-center">
-                      <div className="rounded-xl bg-[var(--bg-primary)] px-3 py-1.5 text-right shadow-sm">
-                        <p className="text-[14px] font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
-                          {fmt(w.amount)}
-                        </p>
-                        <p className="text-[10px] text-[var(--text-secondary)]">
-                          {w.currency} ·{' '}
-                          {new Date(w.createdAt).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </p>
-                      </div>
-                      <ChevronRight className="size-4 text-[var(--text-secondary)] group-hover:translate-x-0.5 group-hover:text-emerald-600" />
+                    <div className="flex items-center justify-between gap-3 border-t border-[var(--glass-border)]/60 pt-2 sm:shrink-0 sm:border-t-0 sm:pt-0">
+                      <AmountDateColumn
+                        amount={w.amount}
+                        currency={w.currency}
+                        createdAt={w.createdAt}
+                        amountClassName="text-emerald-700 dark:text-emerald-400"
+                      />
+                      <ChevronRight className="size-4 shrink-0 text-[var(--text-secondary)] group-hover:translate-x-0.5 group-hover:text-emerald-600" />
                     </div>
                   </button>
                 );
@@ -459,7 +452,10 @@ export default function AdminWithdrawalsPage() {
                     </span>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold tabular-nums">{fmt(selected.amount)}</p>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {Number(selected.amount || 0).toLocaleString('fr-CM')}{' '}
+                      <span className="text-[11px] font-medium text-[var(--text-secondary)]">{selected.currency}</span>
+                    </p>
                     <p className="text-[10px] text-[var(--text-secondary)]">{selected.currency}</p>
                   </div>
                 </div>

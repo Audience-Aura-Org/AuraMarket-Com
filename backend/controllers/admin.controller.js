@@ -1021,49 +1021,196 @@ const fulfillOrderFromTransaction = async (req, res, next) => {
   }
 };
 
+const importEversendTransactions = async (req) => {
+  const eversend = require('../services/eversend.service');
+  const result = await eversend.getTransactions({ limit: 20 });
+  const remoteTxs = result?.data?.transactions || [];
+  let importedCount = 0;
+
+  for (const rt of remoteTxs) {
+    const isPlatformTx = rt.transactionRef && (rt.transactionRef.startsWith('AURA') || rt.transactionRef.startsWith('TEST'));
+    if (!isPlatformTx) continue;
+
+    const exists = await Transaction.findOne({
+      $or: [{ gateway_transaction_id: rt.transactionId }, { reference: rt.transactionRef }],
+    });
+
+    if (!exists && rt.transactionId) {
+      await Transaction.create({
+        user_id: req.user?._id,
+        type: rt.type === 'collection' ? 'deposit' : 'withdrawal',
+        amount: parseFloat(rt.amount),
+        currency: rt.currency,
+        reference: rt.transactionRef || `IMP-${rt.transactionId}`,
+        gateway_transaction_id: rt.transactionId,
+        status: rt.status === 'successful' ? 'completed' : rt.status === 'failed' ? 'failed' : 'pending',
+        gateway: 'eversend',
+        description: `Imported via Gateway Sync: ${rt.type} (${rt.status})`,
+        gateway_response: rt,
+      });
+      importedCount++;
+    }
+  }
+
+  return importedCount;
+};
+
+const reconcileMesombTransactions = async (app) => {
+  const mongoose = require('mongoose');
+  const mesombGateway = require('../services/payment/gateways/mesomb.gateway');
+  const { creditMeSombWalletDepositOnce, settleOrdersInSession } = require('./payment.controller');
+
+  const pending = await Transaction.find({
+    gateway: 'mesomb',
+    status: { $in: ['pending', 'processing'] },
+  })
+    .limit(40)
+    .sort('-createdAt');
+
+  let updated = 0;
+  for (const transaction of pending) {
+    try {
+      const result = await mesombGateway.verify(transaction.reference);
+      if (result.status === 'SUCCESSFUL' && transaction.status !== 'completed') {
+        const user = await User.findById(transaction.user_id);
+        if (!user) continue;
+
+        if (transaction.order_ids?.length > 0 && !transaction.metadata?.orders_settled_at) {
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            await settleOrdersInSession(
+              user._id,
+              transaction.order_ids,
+              app,
+              session,
+              true,
+              process.env.WEB_CLIENT_URL || '',
+              'mesomb'
+            );
+            transaction.status = 'completed';
+            transaction.gateway_response = result.gateway_response || transaction.gateway_response;
+            if (!transaction.metadata) transaction.metadata = {};
+            transaction.metadata.orders_settled_at = new Date();
+            await transaction.save({ session });
+            await session.commitTransaction();
+            updated++;
+          } catch (e) {
+            await session.abortTransaction();
+            console.error('[syncGateways] MeSomb settlement error:', e.message);
+          } finally {
+            session.endSession();
+          }
+        } else if (!transaction.order_ids?.length) {
+          await creditMeSombWalletDepositOnce(
+            transaction,
+            user,
+            app,
+            result.gateway_response || transaction.gateway_response
+          );
+          updated++;
+        }
+      } else if (result.status === 'FAILED' && transaction.status !== 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = result.gateway_response || transaction.gateway_response;
+        await transaction.save();
+        updated++;
+      }
+    } catch (err) {
+      console.error('[syncGateways] MeSomb verify error:', transaction.reference, err.message);
+    }
+  }
+
+  return updated;
+};
+
+const reconcileEversendTransactions = async (app) => {
+  const mongoose = require('mongoose');
+  const eversend = require('../services/eversend.service');
+  const { settleOrdersInSession } = require('./payment.controller');
+
+  const pending = await Transaction.find({
+    gateway: 'eversend',
+    status: { $in: ['pending', 'processing'] },
+  })
+    .limit(40)
+    .sort('-createdAt');
+
+  let updated = 0;
+  for (const transaction of pending) {
+    const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
+    if (ageSeconds < 40) continue;
+
+    try {
+      const lookupFn = transaction.gateway_transaction_id
+        ? () => eversend.getTransactionStatus(transaction.gateway_transaction_id)
+        : () => eversend.getCollectionByRef(transaction.reference);
+
+      const raw = await lookupFn();
+      const data = raw?.data || raw;
+      const status = (data?.status || '').toUpperCase();
+
+      if (status === 'SUCCESSFUL' || status === 'COMPLETED') {
+        if (transaction.status === 'completed') continue;
+        const user = await User.findById(transaction.user_id);
+        if (!user) continue;
+
+        const sess = await mongoose.startSession();
+        sess.startTransaction();
+        try {
+          transaction.status = 'completed';
+          transaction.gateway_response = data;
+          if (data?.transactionId && !transaction.gateway_transaction_id) {
+            transaction.gateway_transaction_id = data.transactionId;
+          }
+          await transaction.save({ session: sess });
+
+          if (transaction.order_ids?.length > 0) {
+            await settleOrdersInSession(
+              transaction.user_id,
+              transaction.order_ids,
+              app,
+              sess,
+              true,
+              process.env.WEB_CLIENT_URL || '',
+              'eversend'
+            );
+          } else {
+            await User.findByIdAndUpdate(
+              transaction.user_id,
+              { $inc: { wallet_balance: transaction.amount } },
+              { session: sess }
+            );
+          }
+          await sess.commitTransaction();
+          updated++;
+        } catch (e) {
+          await sess.abortTransaction();
+          console.error('[syncGateways] Eversend settlement error:', e.message);
+        } finally {
+          sess.endSession();
+        }
+      } else if (status === 'FAILED' && transaction.status !== 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = data;
+        await transaction.save();
+        updated++;
+      }
+    } catch (err) {
+      console.error('[syncGateways] Eversend verify error:', transaction.reference, err.message);
+    }
+  }
+
+  return updated;
+};
+
 const syncWithEversend = async (req, res, next) => {
   try {
-    const eversend = require('../services/eversend.service');
-    
-    // Fetch latest 20 transactions from Eversend using the service (handles auth & refresh)
-    const result = await eversend.getTransactions({ limit: 20 });
-    const remoteTxs = result?.data?.transactions || [];
-    
-    let importedCount = 0;
-    for (const rt of remoteTxs) {
-      // Only sync transactions that were initiated by our platform (identified by AURA or TEST prefix)
-      const isPlatformTx = rt.transactionRef && (rt.transactionRef.startsWith('AURA') || rt.transactionRef.startsWith('TEST'));
-      if (!isPlatformTx) continue;
-
-      const exists = await Transaction.findOne({ 
-        $or: [
-          { gateway_transaction_id: rt.transactionId },
-          { reference: rt.transactionRef }
-        ]
-      });
-      
-      if (!exists && rt.transactionId) {
-        // Create an "Imported" transaction record
-        await Transaction.create({
-          user_id: req.user?._id, // Assign to current admin as importer
-          type: rt.type === 'collection' ? 'deposit' : 'withdrawal',
-          amount: parseFloat(rt.amount),
-          currency: rt.currency,
-          reference: rt.transactionRef || `IMP-${rt.transactionId}`,
-          gateway_transaction_id: rt.transactionId,
-          status: rt.status === 'successful' ? 'completed' : rt.status === 'failed' ? 'failed' : 'pending',
-          gateway: 'eversend',
-          description: `Imported via Gateway Sync: ${rt.type} (${rt.status})`,
-          gateway_response: rt
-        });
-        importedCount++;
-      }
-    }
-
-    res.status(200).json({ 
-      success: true, 
+    const importedCount = await importEversendTransactions(req);
+    res.status(200).json({
+      success: true,
       message: `Gateway reconciliation complete. ${importedCount} new records discovered and imported.`,
-      importedCount
+      importedCount,
     });
   } catch (error) {
     const errData = error.response?.data;
@@ -1085,6 +1232,47 @@ const syncWithEversend = async (req, res, next) => {
       return res.status(503).json({
         success: false,
         message: 'Eversend authentication failed. Please verify your EVERSEND_CLIENT_ID and EVERSEND_CLIENT_SECRET environment variables.',
+        code: 'EVERSEND_AUTH_FAILED',
+      });
+    }
+
+    next(error);
+  }
+};
+
+const syncGatewayTransactions = async (req, res, next) => {
+  try {
+    const eversendImported = await importEversendTransactions(req);
+    const mesombUpdated = await reconcileMesombTransactions(req.app);
+    const eversendUpdated = await reconcileEversendTransactions(req.app);
+
+    res.status(200).json({
+      success: true,
+      message: `Gateways synced — Eversend: ${eversendImported} imported, ${eversendUpdated} updated; MeSomb: ${mesombUpdated} updated.`,
+      eversendImported,
+      eversendUpdated,
+      mesombUpdated,
+    });
+  } catch (error) {
+    const errData = error.response?.data;
+    const errStatus = error.response?.status;
+    const errMessage = errData?.message || error.message;
+
+    console.error('Sync Gateways Error:', errStatus, errData || error.message);
+
+    if (errStatus === 401 && errMessage?.toLowerCase().includes('invalid request origin')) {
+      return res.status(503).json({
+        success: false,
+        message:
+          'Eversend API access denied: whitelist this server IP in your Eversend developer settings.',
+        code: 'EVERSEND_IP_NOT_WHITELISTED',
+      });
+    }
+
+    if (errStatus === 401) {
+      return res.status(503).json({
+        success: false,
+        message: 'Eversend authentication failed. Check EVERSEND_CLIENT_ID and EVERSEND_CLIENT_SECRET.',
         code: 'EVERSEND_AUTH_FAILED',
       });
     }
@@ -1219,4 +1407,5 @@ module.exports = {
   updateTransactionStatus,
   fulfillOrderFromTransaction,
   syncWithEversend,
+  syncGatewayTransactions,
 };

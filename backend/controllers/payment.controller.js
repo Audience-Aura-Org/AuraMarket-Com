@@ -1240,7 +1240,8 @@ module.exports = {
   mesombInitialize,
   mesombWebhook,
   mesombVerify,
-  // Internal
+  // Internal / admin sync
   settleOrdersInSession,
+  creditMeSombWalletDepositOnce,
 };
 
