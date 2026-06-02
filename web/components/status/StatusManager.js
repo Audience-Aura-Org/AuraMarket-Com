@@ -15,7 +15,6 @@ import {
   RefreshCw,
   RotateCcw,
   ShoppingBag,
-  Sparkles,
   Trash2,
   Type,
   Wand2,
@@ -74,8 +73,6 @@ export default function StatusManager() {
 
   const totalViews = statuses.reduce((sum, status) => sum + Number(status.views_count || 0), 0);
   const totalLikes = statuses.reduce((sum, status) => sum + Number(status.likes_count || 0), 0);
-  const leadingStory = activeStatuses[0] || statuses[0] || null;
-
   const fetchMyStatuses = async () => {
     try {
       setLoading(true);
@@ -134,85 +131,67 @@ export default function StatusManager() {
   return (
     <main className="mx-auto w-full max-w-7xl space-y-5 pb-28 font-[Poppins] text-[var(--text-primary)] sm:space-y-6 sm:pb-10">
       <section className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-zinc-950 text-white shadow-xl shadow-black/10">
-        <div className="grid min-h-[500px] lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="relative flex flex-col justify-between gap-10 p-5 sm:p-8 lg:p-10">
-            <div className="absolute inset-0 opacity-70 [background:radial-gradient(circle_at_12%_15%,rgba(242,13,242,0.28),transparent_30%),radial-gradient(circle_at_85%_20%,rgba(20,184,166,0.2),transparent_28%)]" />
-            <div className="relative z-10 space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-white/75 backdrop-blur">
-                <Megaphone className="size-3.5 text-[var(--accent)]" />
-                Story Launchpad
-              </div>
-              <div className="max-w-3xl space-y-4">
-                <h1 className="max-w-2xl text-4xl font-black leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
+        <div className="relative p-4 sm:p-6 lg:p-7">
+          <div className="absolute inset-0 opacity-70 [background:radial-gradient(circle_at_12%_15%,rgba(242,13,242,0.24),transparent_30%),radial-gradient(circle_at_88%_10%,rgba(20,184,166,0.16),transparent_24%)]" />
+          <div className="relative z-10 space-y-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-white/75 backdrop-blur">
+                  <Megaphone className="size-3.5 text-[var(--accent)]" />
+                  Story Launchpad
+                </div>
+                <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
                   Make your next drop impossible to miss.
                 </h1>
-                <p className="max-w-xl text-sm font-medium leading-6 text-white/68 sm:text-base">
+                <p className="max-w-xl text-sm font-medium leading-6 text-white/68">
                   Publish a sharp update, connect it to a product, and watch the response without digging through the dashboard.
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => openCreator()}
+                className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-black text-zinc-950 shadow-lg shadow-black/20 transition-transform active:scale-95"
+              >
+                <Plus className="size-4" />
+                Create Story
+              </button>
             </div>
 
-            <div className="relative z-10 grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="grid gap-2 sm:grid-cols-3">
               {[
                 { label: 'Live', value: activeStatuses.length, icon: Activity },
                 { label: 'Views', value: totalViews, icon: Eye },
                 { label: 'Likes', value: totalLikes, icon: Heart },
               ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="rounded-3xl border border-white/10 bg-white/8 p-4 backdrop-blur">
-                  <Icon className={`mb-5 size-5 ${label === 'Likes' ? 'fill-rose-400 text-rose-400' : 'text-[var(--accent)]'}`} />
-                  <p className="text-3xl font-black leading-none tracking-tight">{value}</p>
-                  <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48">{label}</p>
+                <div key={label} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/8">
+                    <Icon className={`size-4 ${label === 'Likes' ? 'fill-rose-400 text-rose-400' : 'text-[var(--accent)]'}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black leading-none tracking-tight">{value}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/48">{label}</p>
+                  </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="relative border-t border-white/10 bg-white/[0.04] p-5 sm:p-8 lg:border-l lg:border-t-0">
-            <div className="mx-auto flex max-w-[310px] flex-col gap-4">
-              <div className="rounded-[2.25rem] border border-white/12 bg-black p-3 shadow-2xl shadow-black/30">
-                <div className="relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-zinc-900">
-                  {leadingStory?.content_url ? (
-                    <MediaThumbnail src={leadingStory.content_url} className="size-full" imgClassName="opacity-85" alt="" />
-                  ) : (
-                    <div className="flex size-full items-center justify-center p-8 text-center">
-                      <Sparkles className="absolute top-5 size-5 text-[var(--accent)]" />
-                      <p className="text-lg font-black leading-7 text-white/85">Your next store moment appears here.</p>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                  <div className="absolute left-4 right-4 top-4 flex gap-1.5">
-                    {[0, 1, 2, 3].map((item) => (
-                      <span key={item} className={`h-1 flex-1 rounded-full ${item === 0 ? 'bg-white' : 'bg-white/25'}`} />
-                    ))}
-                  </div>
-                  <div className="absolute inset-x-4 bottom-4 space-y-3">
-                    <p className="line-clamp-3 text-xl font-black leading-6 text-white">
-                      {leadingStory ? storyLabel(leadingStory) : 'Launch a product drop, restock, or promo.'}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => openCreator()}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-xs font-black text-zinc-950 transition-transform active:scale-95"
-                    >
-                      <Plus className="size-4" />
-                      Create Story
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                {launchOptions.map(({ label, icon: Icon }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => openCreator()}
-                    className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/8 px-2 py-3 text-[11px] font-black text-white/82 transition-all hover:bg-white/14 active:scale-95"
-                  >
-                    <Icon className="size-4 text-[var(--accent)]" />
-                    {label}
-                  </button>
-                ))}
+              <div className="rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/48">Publish format</p>
+                <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
+                  {launchOptions.map(({ label, icon: Icon }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => openCreator()}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/8 px-3 py-2.5 text-[11px] font-black text-white/82 transition-all hover:bg-white/14 active:scale-95 md:justify-start"
+                    >
+                      <Icon className="size-4 text-[var(--accent)]" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
