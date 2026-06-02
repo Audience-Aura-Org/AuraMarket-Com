@@ -114,15 +114,29 @@ export default function VendorOrdersPage() {
   }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
+     if (updatingId) return;
      setUpdatingId(orderId);
      try {
         const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
         if (res.data.success) {
            const synced = res.data.data?.order?.order_status || newStatus;
-           setOrders(prev => prev.map(o => o._id === orderId ? { ...o, order_status: synced } : o));
+           setOrders(prev => prev.map(o => {
+              if (o._id !== orderId) return o;
+              return {
+                 ...o,
+                 ...(res.data.data?.order || {}),
+                 order_status: synced,
+                 shipment: res.data.data?.shipments?.[0] || o.shipment,
+              };
+           }));
            toast.success(`Order status updated to: ${synced.toUpperCase()}`);
+           fetchOrders();
         }
      } catch (err) {
+        const serverOrder = err.response?.data?.data?.order;
+        if (serverOrder) {
+           setOrders(prev => prev.map(o => o._id === orderId ? { ...o, ...serverOrder } : o));
+        }
         toast.error(err.response?.data?.message || 'Failed to update order status');
      } finally {
         setUpdatingId(null);

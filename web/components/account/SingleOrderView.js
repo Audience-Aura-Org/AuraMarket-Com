@@ -27,6 +27,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const [reviewModal, setReviewModal] = useState(false);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product_id: null });
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(null);
 
   const { user } = useAuthStore();
 
@@ -162,16 +163,22 @@ export default function SingleOrderView({ orderId, onBack }) {
   };
 
   const handleUpdateStatus = async (newStatus) => {
+    if (statusUpdating) return;
+    setStatusUpdating(newStatus);
     const toastId = toast.loading(`Updating protocol to ${newStatus.toUpperCase()}...`);
     try {
       const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
       if (res.data.success) {
-        toast.success(`Protocol updated: ${newStatus.toUpperCase()}`, { id: toastId });
+        const synced = res.data.data?.order?.order_status || newStatus;
+        toast.success(`Protocol updated: ${synced.toUpperCase()}`, { id: toastId });
         if (res.data.data) applyManifestPayload(res.data.data);
         else fetchOrderManifest();
       }
     } catch (err) {
+      if (err.response?.data?.data) applyManifestPayload(err.response.data.data);
       toast.error(err.response?.data?.message || "Protocol update failed.", { id: toastId });
+    } finally {
+      setStatusUpdating(null);
     }
   };
 
@@ -479,9 +486,10 @@ export default function SingleOrderView({ orderId, onBack }) {
                 <button
                   type="button"
                   onClick={() => handleUpdateStatus('processing')}
-                  className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-primary)] shadow-sm transition active:border-[var(--accent)]/40 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:border-[var(--accent)]/40"
+                  disabled={!!statusUpdating}
+                  className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-primary)] shadow-sm transition active:border-[var(--accent)]/40 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:border-[var(--accent)]/40"
                 >
-                  <Package className="size-4" /> Acknowledge prep
+                  {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />} Acknowledge prep
                 </button>
               </div>
             )}
@@ -489,23 +497,24 @@ export default function SingleOrderView({ orderId, onBack }) {
               <button
                 type="button"
                 onClick={() => handleUpdateStatus('processing')}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+                disabled={!!statusUpdating}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
               >
-                <Zap className="size-4" /> Start processing
+                {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Start processing
               </button>
             )}
             {isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
               <button
                 type="button"
                 onClick={() => handleUpdateStatus('shipped')}
-                disabled={isProtectedByGracePeriod}
+                disabled={isProtectedByGracePeriod || !!statusUpdating}
                 className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-[11px] font-semibold uppercase tracking-wide transition xs:w-auto sm:min-h-[44px] sm:py-2.5 ${
-                  isProtectedByGracePeriod
+                  isProtectedByGracePeriod || statusUpdating
                     ? 'cursor-not-allowed border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] opacity-50'
                     : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm active:border-[var(--accent)]/40 sm:hover:border-[var(--accent)]/40'
                 }`}
               >
-                <Truck className="size-4" /> {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
+                {statusUpdating === 'shipped' ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />} {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
               </button>
             )}
             {/* CUSTOMER / ADMIN ACTION: release held escrow, even for older orders already marked finalized. */}

@@ -497,6 +497,17 @@ const updateOrderStatus = async (req, res, next) => {
     const orderUsesLogistics =
       order.shipping_method === 'logistics_partner' || !!order.logistics_company_id;
 
+    if (order_status && order.order_status === order_status) {
+      await session.abortTransaction();
+      session.endSession();
+      const snapshot = await getOrderFulfillmentSnapshot(order._id);
+      return res.status(200).json({
+        success: true,
+        message: 'Order already has this status.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
+    }
+
     if (req.user.role === 'vendor' && orderUsesLogistics) {
       const Shipment = require('../models/Shipment.model');
       const activeShipment = await Shipment.findOne({ 
