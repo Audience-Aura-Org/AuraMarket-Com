@@ -265,6 +265,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     });
   };
 
+  const resetComposerHeight = () => {
+    requestAnimationFrame(() => {
+      if (!inputRef.current) return;
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = '42px';
+      keepChatInView('auto');
+    });
+  };
+
   const releaseMobileKeyboard = () => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     const active = document.activeElement;
@@ -559,6 +568,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       isActive: true,
     });
     setInput('');
+    resetComposerHeight();
     if (sentDraftKey && typeof window !== 'undefined') localStorage.removeItem(sentDraftKey);
     queuePinToLatest([0, 60, 140, 260, 420]);
 
@@ -1046,15 +1056,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       </div>
                     )}
 
-                    <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 sm:mb-2.5'}`}>
-                      <div className={`flex max-w-[88%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                    <div className={`flex w-full min-w-0 ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 sm:mb-2.5'}`}>
+                      <div className={`flex min-w-0 max-w-[88%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
 
                         <motion.div
                           initial={{ opacity: 0, scale: 0.96, y: 8 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           transition={{ type: 'spring', stiffness: 350, damping: 28 }}
                           className={`
-                            group relative min-w-[76px] px-2.5 py-1.5 pr-7 text-[13px] leading-snug
+                            group relative min-w-[76px] max-w-full overflow-hidden px-2.5 py-1.5 pr-7 text-[13px] leading-snug break-words [overflow-wrap:anywhere]
                             shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] transition-all duration-300
                             hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]
                             sm:px-3 sm:py-2 sm:pr-8 sm:text-[14.5px]
@@ -1123,11 +1133,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                           )}
 
                           {msg.deleted_everyone ? (
-                            <p className="italic text-[var(--text-secondary)]/60 whitespace-pre-wrap text-[13px] sm:text-[14.5px]">
+                            <p className="whitespace-pre-wrap break-words text-[13px] italic text-[var(--text-secondary)]/60 [overflow-wrap:anywhere] sm:text-[14.5px]">
                               This message was deleted
                             </p>
                           ) : msg.text ? (
-                            <p className="whitespace-pre-wrap text-[13px] sm:text-[14.5px]">{msg.text}</p>
+                            <p className="whitespace-pre-wrap break-words text-[13px] [overflow-wrap:anywhere] sm:text-[14.5px]">{msg.text}</p>
                           ) : null}
 
                           <div className={`mt-0.5 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'} text-[10px] tabular-nums text-[var(--text-secondary)] sm:mt-1 sm:text-[11px]`}>
@@ -1213,7 +1223,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           )}
 
           {/* Input row */}
-          <div className="mx-auto flex w-full max-w-4xl items-end gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2.5">
+          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2.5">
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
             <motion.button
@@ -1228,7 +1238,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImageIcon className="size-[20px]" />}
             </motion.button>
 
-            <div className="relative flex min-h-[42px] flex-1 items-end overflow-hidden rounded-[22px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[var(--accent)]/35">
+            <div className="relative flex min-h-[42px] min-w-0 flex-1 items-end overflow-hidden rounded-[22px] bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[var(--accent)]/35">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -1241,7 +1251,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 }}
                 placeholder="Message"
                 rows={1}
-                className="max-h-[88px] min-h-[42px] w-full flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
+                className="max-h-[88px] min-h-[42px] w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 style={{ height: 'auto' }}
                 onFocus={() => {
                   keepChatInView('auto');

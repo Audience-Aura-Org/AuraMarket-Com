@@ -116,17 +116,7 @@ self.addEventListener('push', function (event) {
         ]
   };
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If the app is already focused, suppress the OS banner — the in-app toast handles it
-      const isFocused = clientList.some((client) => client.focused);
-      if (isFocused) {
-        console.log('[SW] App focused — suppressing OS push, in-app toast active.');
-        return null;
-      }
-      return self.registration.showNotification(data.title || 'Auradime', options);
-    })
-  );
+  event.waitUntil(self.registration.showNotification(data.title || 'Auradime', options));
 });
 
 // ── Notification Click ───────────────────────────────────────────────────────

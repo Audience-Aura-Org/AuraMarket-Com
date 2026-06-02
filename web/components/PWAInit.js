@@ -57,6 +57,28 @@ export default function PWAInit() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Browser notification prompts are most reliable when started by a real tap/click.
+  // This keeps PWA push registration alive even when the initial timer cannot ask.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleUserGesture = () => {
+      authErrorRef.current = false;
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'denied') return;
+      }
+      attemptSubscription();
+    };
+
+    window.addEventListener('pointerdown', handleUserGesture, { once: true });
+    window.addEventListener('keydown', handleUserGesture, { once: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', handleUserGesture);
+      window.removeEventListener('keydown', handleUserGesture);
+    };
+  }, [isAuthenticated, user?._id]);
+
   // 2. Re-subscribe when user identity changes
   // This ensures the device always has a valid endpoint linked to the correct user node
   useEffect(() => {

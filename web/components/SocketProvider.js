@@ -74,6 +74,50 @@ const showNativeNotification = async ({ id, title, body, route, type, senderId, 
   }
 };
 
+const showBrowserNotification = async ({ id, title, body, route, type, senderId, senderData, icon }) => {
+  if (typeof window === 'undefined') return;
+  if (await isNativeCapacitorApp()) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const payload = {
+    title: title || 'Auradime',
+    body: body || '',
+    icon: icon || '/logo-white.png',
+    badge: '/logo-white.png',
+    tag: type === 'message' && senderId ? `msg-${senderId}` : `aura-${type || 'alert'}-${id || Date.now()}`,
+    renotify: true,
+    data: {
+      url: route || '/notifications',
+      payload: {
+        type,
+        url: route,
+        sender_id: senderId,
+        senderId,
+        senderData,
+        title,
+        icon,
+      },
+    },
+  };
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(payload.title, payload);
+      return;
+    }
+
+    const notification = new Notification(payload.title, payload);
+    notification.onclick = () => {
+      window.focus();
+      if (route) window.location.href = route;
+      notification.close();
+    };
+  } catch (error) {
+    console.warn('[Notifications] Browser notification skipped:', error?.message || error);
+  }
+};
+
 export default function SocketProvider({ children }) {
   const { user, logout } = useAuthStore();
   const router = useRouter();
@@ -151,6 +195,21 @@ export default function SocketProvider({ children }) {
           store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
         },
       });
+      showBrowserNotification({
+        id: msg._id || `${senderId}-${Date.now()}`,
+        title: senderName,
+        body: text,
+        route: senderId ? `/chat?vendorId=${senderId}` : '/chat',
+        type: 'message',
+        senderId,
+        senderData: {
+          _id: senderId,
+          name: senderName,
+          avatar: senderAvatar,
+          store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
+        },
+        icon: senderAvatar || '/logo-white.png',
+      });
 
       if (chatToastTimer.current) clearTimeout(chatToastTimer.current);
       chatToastTimer.current = setTimeout(() => setChatToast(null), 6000);
@@ -174,6 +233,13 @@ export default function SocketProvider({ children }) {
       });
 
       showNativeNotification({
+        id: notif?._id || `${type}-${Date.now()}`,
+        title,
+        body: message,
+        route: link,
+        type,
+      });
+      showBrowserNotification({
         id: notif?._id || `${type}-${Date.now()}`,
         title,
         body: message,
