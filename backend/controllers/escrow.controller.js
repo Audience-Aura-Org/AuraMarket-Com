@@ -400,7 +400,8 @@ const vendorConfirmRelease = async (req, res, next) => {
       order.shipping_method === 'logistics_partner' &&
       order.logistics_company_id &&
       !shipmentDelivered &&
-      !orderFinalized
+      !orderFinalized &&
+      order.order_status !== 'shipped'
     ) {
       await session.abortTransaction();
       session.endSession();

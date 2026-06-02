@@ -217,24 +217,28 @@ i, em { font-style: normal !important; }
 .chat-bg-pattern {
   background-color: var(--bg-secondary);
   background-image:
+    radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--accent) 13%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 80% 82%, color-mix(in srgb, var(--accent-light) 10%, transparent) 0 1.5px, transparent 2px),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, transparent) 0 1px, transparent 1px 20px),
     radial-gradient(ellipse 120% 80% at 10% 0%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 55%),
     radial-gradient(ellipse 100% 70% at 92% 100%, color-mix(in srgb, var(--accent-light) 12%, transparent) 0%, transparent 50%),
-    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 60%, transparent) 0%, transparent 42%),
-    url("/chat_wallpaper.png");
-  background-size: auto, auto, auto, 240px 240px;
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
-  background-blend-mode: normal, normal, normal, multiply;
+    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 60%, transparent) 0%, transparent 42%);
+  background-size: 34px 34px, 46px 46px, 20px 20px, auto, auto, auto;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: normal, normal, soft-light, normal, normal, normal;
 }
 
 .dark .chat-bg-pattern {
   background-image:
+    radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--accent) 16%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 80% 82%, color-mix(in srgb, var(--accent-light) 12%, transparent) 0 1.5px, transparent 2px),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0 1px, transparent 1px 20px),
     radial-gradient(ellipse 120% 80% at 10% 0%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 55%),
     radial-gradient(ellipse 100% 70% at 92% 100%, color-mix(in srgb, var(--accent-light) 14%, transparent) 0%, transparent 50%),
-    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 25%, transparent) 0%, transparent 45%),
-    url("/chat_wallpaper.png");
-  background-size: auto, auto, auto, 240px 240px;
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
-  background-blend-mode: normal, normal, normal, overlay;
+    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 25%, transparent) 0%, transparent 45%);
+  background-size: 34px 34px, 46px 46px, 20px 20px, auto, auto, auto;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: normal, normal, soft-light, normal, normal, normal;
 }
 
 

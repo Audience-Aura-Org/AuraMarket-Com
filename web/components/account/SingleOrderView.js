@@ -287,8 +287,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const escrowCanRelease = isEscrowOrder && (!escrowStatus || escrowStatus === 'held' || escrowStatus === 'pending_release');
   const vendorCanMarkDelivered =
     isVendor &&
-    order.order_status === 'shipped' &&
-    !isLogisticsOrder;
+    order.order_status === 'shipped';
   const vendorCanRequestEscrowRelease =
     isVendor &&
     escrowCanRelease &&
