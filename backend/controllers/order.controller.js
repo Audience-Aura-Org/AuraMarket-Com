@@ -261,7 +261,7 @@ const createOrder = async (req, res, next) => {
             sendNotification(req.app, logisticsCompForNotify.user_id, {
               title: 'New Shipment Assigned (POD)',
               message: `You have new delivery work for Order #${createdOrder._id.toString().slice(-6).toUpperCase()}.`,
-              type: 'system_alert',
+              type: 'logistics_update',
               metadata: { order_id: createdOrder._id, link: '/logistics/dashboard' },
               sendEmail: true,
               overrideEmail: logisticsCompForNotify.contact_email,
@@ -361,7 +361,7 @@ const payDirectly = async (req, res, next) => {
             data: {
               title: 'New Shipment Assigned',
               message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
-              type: 'system_alert',
+              type: 'logistics_update',
               metadata: { order_id: order._id, link: '/logistics/dashboard' },
               sendEmail: true,
               overrideEmail: logisticsComp.contact_email,
@@ -918,7 +918,7 @@ const createOrdersFromCart = async (req, res, next) => {
               sendNotification(req.app, logisticsComp.user_id, {
                 title: 'New Shipment Assigned (Bulk POD)',
                 message: `Order #${o._id.toString().slice(-6).toUpperCase()} is ready for processing.`,
-                type: 'system_alert',
+                type: 'logistics_update',
                 metadata: { order_id: o._id, link: '/logistics/dashboard' },
                 sendEmail: true,
                 overrideEmail: logisticsComp.contact_email,

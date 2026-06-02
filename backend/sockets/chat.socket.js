@@ -7,6 +7,15 @@ const socketIo = require('socket.io');
 const Message = require('../models/Message.model');
 const User = require('../models/User.model');
 const { createCorsOptions } = require('../middleware/security.middleware');
+const { sendNotification } = require('../utils/notifier');
+
+const buildMessagePreview = (text, productReference) => {
+  if (text && text.trim()) {
+    return text.length > 80 ? `${text.slice(0, 77)}...` : text;
+  }
+  if (productReference) return 'Shared a product with you';
+  return 'Sent you a message';
+};
 
 const mapChatSockets = (server) => {
   const io = socketIo(server, {
@@ -93,6 +102,26 @@ const mapChatSockets = (server) => {
         if (receiverOnline) {
           io.to(socket.userId.toString()).emit('messages_delivered', { partnerId: receiver_id.toString() });
         }
+
+        setImmediate(() => {
+          const sender = populatedMessage.sender_id;
+          const senderName = sender?.name || 'Auradime User';
+          const senderAvatar = sender?.avatar || sender?.branding?.logo || null;
+
+          sendNotification({ get: (key) => (key === 'io' ? io : null) }, receiver_id, {
+            title: senderName,
+            message: buildMessagePreview(text, product_reference),
+            type: 'message',
+            senderAvatar,
+            metadata: {
+              sender_id: socket.userId,
+              message_id: populatedMessage._id,
+              link: `/chat?vendorId=${socket.userId}`,
+            },
+          }).catch((notifyError) => {
+            console.error('Socket (message notification) Error:', notifyError.message);
+          });
+        });
       } catch (error) {
         console.error('Socket (send_message) Error:', error);
       }

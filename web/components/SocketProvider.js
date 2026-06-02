@@ -12,10 +12,66 @@ import { MessageCircle, Bell, Package, Truck, CreditCard, X } from 'lucide-react
  */
 const NOTIF_CONFIG = {
   order_update:  { Icon: Package,       color: '#6366f1', href: '/orders' },
+  order_status:  { Icon: Truck,         color: '#6366f1', href: '/orders' },
   payment:       { Icon: CreditCard,    color: '#10b981', href: '/wallet' },
+  payment_received: { Icon: CreditCard, color: '#10b981', href: '/wallet' },
+  wallet_update: { Icon: CreditCard,    color: '#10b981', href: '/wallet' },
+  logistics_update: { Icon: Truck,      color: '#06b6d4', href: '/logistics/dashboard' },
   system_alert:  { Icon: Bell,          color: '#f59e0b', href: '/notifications' },
   vendor_update: { Icon: Package,       color: '#06b6d4', href: '/notifications' },
   default:       { Icon: Bell,          color: 'var(--accent)', href: '/notifications' },
+};
+
+const hashNotificationId = (value) => {
+  const input = String(value || Date.now());
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash % 2147483647) || Date.now() % 2147483647;
+};
+
+const isNativeCapacitorApp = async () => {
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    return Boolean(Capacitor?.isNativePlatform?.());
+  } catch {
+    return false;
+  }
+};
+
+const showNativeNotification = async ({ id, title, body, route, type, senderId, senderData }) => {
+  if (typeof window === 'undefined') return;
+  if (!(await isNativeCapacitorApp())) return;
+
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    let permission = await LocalNotifications.checkPermissions();
+    if (permission?.display !== 'granted') {
+      permission = await LocalNotifications.requestPermissions();
+    }
+    if (permission?.display !== 'granted') return;
+
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: hashNotificationId(id),
+        title: title || 'Auradime',
+        body: body || '',
+        schedule: { at: new Date(Date.now() + 250) },
+        smallIcon: 'ic_launcher',
+        iconColor: '#f20df2',
+        extra: {
+          route,
+          type,
+          senderId,
+          senderData,
+        },
+      }],
+    });
+  } catch (error) {
+    console.warn('[Notifications] Native notification skipped:', error?.message || error);
+  }
 };
 
 export default function SocketProvider({ children }) {
@@ -81,6 +137,21 @@ export default function SocketProvider({ children }) {
         text 
       });
 
+      showNativeNotification({
+        id: msg._id || `${senderId}-${Date.now()}`,
+        title: senderName,
+        body: text,
+        route: senderId ? `/chat?vendorId=${senderId}` : '/chat',
+        type: 'message',
+        senderId,
+        senderData: {
+          _id: senderId,
+          name: senderName,
+          avatar: senderAvatar,
+          store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
+        },
+      });
+
       if (chatToastTimer.current) clearTimeout(chatToastTimer.current);
       chatToastTimer.current = setTimeout(() => setChatToast(null), 6000);
     };
@@ -100,6 +171,14 @@ export default function SocketProvider({ children }) {
         title, 
         message,
         link
+      });
+
+      showNativeNotification({
+        id: notif?._id || `${type}-${Date.now()}`,
+        title,
+        body: message,
+        route: link,
+        type,
       });
 
       if (notifToastTimer.current) clearTimeout(notifToastTimer.current);
@@ -159,6 +238,40 @@ export default function SocketProvider({ children }) {
 
     navigator.serviceWorker.addEventListener('message', onSWMessage);
     return () => navigator.serviceWorker.removeEventListener('message', onSWMessage);
+  }, [openChat, router]);
+
+  useEffect(() => {
+    let listener;
+    let cancelled = false;
+
+    const bindNativeNotificationTap = async () => {
+      if (!(await isNativeCapacitorApp())) return;
+
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        listener = await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+          if (cancelled) return;
+
+          const extra = event?.notification?.extra || {};
+          if (extra.type === 'message' && extra.senderId) {
+            openChat(extra.senderId, null, extra.senderData || null);
+            return;
+          }
+
+          if (extra.route) {
+            router.push(extra.route);
+          }
+        });
+      } catch (error) {
+        console.warn('[Notifications] Native tap listener skipped:', error?.message || error);
+      }
+    };
+
+    bindNativeNotificationTap();
+    return () => {
+      cancelled = true;
+      listener?.remove?.();
+    };
   }, [openChat, router]);
 
   // Handle local Cart Added event (browser-side)

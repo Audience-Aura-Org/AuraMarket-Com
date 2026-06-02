@@ -401,7 +401,7 @@ const modifyShipmentStatus = async (req, res, next) => {
               title: 'Your order has been delivered',
               message: `Order #${order._id.toString().slice(-6).toUpperCase()} was delivered by the carrier. Please confirm receipt to release funds to the vendor.`,
               type: 'order_status',
-              metadata: { order_id: order._id },
+              metadata: { order_id: order._id, link: `/orders/${order._id}` },
               role: 'customer'
             });
           });
@@ -482,8 +482,8 @@ const modifyShipmentStatus = async (req, res, next) => {
       await sendNotification(req.app, firm.user_id, {
         title: 'Shipment Successfully Closed',
         message: `Shipment for Order #${order._id.toString().slice(-6).toUpperCase()} is confirmed delivered and settled.`,
-        type: 'system_alert',
-        metadata: { order_id: order._id, shipment_id: shipment._id },
+        type: 'logistics_update',
+        metadata: { order_id: order._id, shipment_id: shipment._id, link: `/logistics/dashboard?shipmentId=${shipment._id}` },
         sendEmail: true,
         overrideEmail: firm.contact_email,
         emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard?shipmentId=${shipment._id}`,
@@ -511,7 +511,7 @@ const modifyShipmentStatus = async (req, res, next) => {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       statusTpl.text,
         type:          'order_status',
-        metadata:      { shipment_id: shipment._id, order_id: order._id },
+        metadata:      { shipment_id: shipment._id, order_id: order._id, link: `/orders/${order._id}` },
         sendEmail:     true,
         emailTemplate: statusTpl,
         role:          'customer'
@@ -530,7 +530,7 @@ const modifyShipmentStatus = async (req, res, next) => {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       vendorStatusTpl.text,
         type:          'order_status',
-        metadata:      { shipment_id: shipment._id, order_id: order._id },
+        metadata:      { shipment_id: shipment._id, order_id: order._id, link: `/vendor/orders/${order._id}` },
         sendEmail:     true,
         emailTemplate: vendorStatusTpl,
         role:          'vendor'
@@ -544,7 +544,7 @@ const modifyShipmentStatus = async (req, res, next) => {
         title:         'Order Completed — Payment Released',
         message:       `Payment for Order #${order._id.toString().slice(-6).toUpperCase()} has been released to your wallet.`,
         type:          'payment_received',
-        metadata:      { order_id: order._id },
+        metadata:      { order_id: order._id, link: '/wallet' },
         sendEmail:     true,
         emailTemplate: completedTpl,
         role:          'vendor'
