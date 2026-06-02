@@ -629,29 +629,33 @@ export default function SingleOrderView({ orderId, onBack }) {
         <div className="order-2 flex min-h-0 flex-col space-y-8 sm:space-y-10 lg:order-1 lg:col-span-8">
           <div>
             {sectionTitle('Shipment activity')}
-            <div className={`${cardBase} p-4 sm:p-5 md:p-6`}>
+            <div className={`${cardBase} overflow-hidden`}>
+              <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 px-4 py-3 sm:px-5">
+                <p className="text-[12px] font-semibold text-[var(--text-primary)]">Sales History</p>
+                <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                  {shipment?.shipment_logs?.length || 0} updates
+                </span>
+              </div>
+              <div className="p-4 sm:p-5 md:p-6">
               {shipment && shipment.shipment_logs?.length > 0 ? (
-                <ul className="space-y-0">
+                <ul className="space-y-2">
                   {shipment.shipment_logs.slice().reverse().map((log, lIdx) => (
-                    <li key={log._id} className="relative flex gap-3 pb-5 sm:gap-4 sm:pb-6">
-                      <div className="flex flex-col items-center">
-                        <span className="relative z-[1] mt-1.5 size-2.5 shrink-0 rounded-full border-2 border-[var(--accent)] bg-[var(--bg-primary)]" />
-                        {lIdx < shipment.shipment_logs.length - 1 && (
-                          <span className="mt-1 min-h-[2.5rem] w-px flex-1 bg-[var(--glass-border)]" aria-hidden />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
-                        <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-2">
+                    <li key={log._id || lIdx} className="relative rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3.5 sm:p-4">
+                      <div className="absolute left-0 top-0 h-full w-1 rounded-l-xl bg-[var(--accent)]/40" />
+                      <div className="min-w-0 space-y-1.5 pl-2">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                           <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
                             {log.status.replace('_', ' ')}
                           </h4>
-                          <time className="font-mono text-[10px] text-[var(--text-secondary)] opacity-70 sm:whitespace-nowrap">
+                          <time className="font-mono text-[10px] text-[var(--text-secondary)] opacity-75 sm:whitespace-nowrap">
                             {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
                             {new Date(log.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                           </time>
                         </div>
-                        {log.note && (
-                          <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-85">{log.note}</p>
+                        {log.note ? (
+                          <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90">{log.note}</p>
+                        ) : (
+                          <p className="text-[11px] text-[var(--text-secondary)] opacity-65">No extra note for this update.</p>
                         )}
                       </div>
                     </li>
@@ -663,6 +667,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                   <p className="text-[12px] font-medium text-[var(--text-secondary)] opacity-60">No carrier updates yet</p>
                 </div>
               )}
+              </div>
             </div>
           </div>
 

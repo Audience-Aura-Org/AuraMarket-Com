@@ -249,21 +249,23 @@ export default function VendorOrdersPage() {
                   ))}
                </div>
 
-               {/* Sales Ledger */}
-               <div className="glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-                  <div className="p-5 md:p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-                     <h3 className="text-[10px] md:text-[11px] lg:text-[12px]  font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-2 md:gap-3 capitalize">
-                        <Database className="w-3.5 h-3.5 md:w-4 md:h-4 text-[var(--accent)]" /> 
+               {/* Sales History */}
+               <section className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
+                  <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 px-4 py-3 sm:px-5">
+                     <h3 className="inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--text-primary)]">
+                        <Database className="size-3.5 text-[var(--accent)]" />
                         Sales History
                      </h3>
-                     <p className="text-[9px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest hidden xs:block">Real-time Order Status</p>
+                     <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                        {filtered.length} orders
+                     </span>
                   </div>
 
-                  <div className="space-y-4">
+                  <div>
                   {loading ? (
                      <LoadingSpinner />
                   ) : currentOrders.length > 0 ? (
-                     <div className="grid grid-cols-1 gap-3 md:gap-4 p-4 md:p-10">
+                     <div className="grid grid-cols-1 gap-3 p-3 sm:gap-3.5 sm:p-4">
                         {currentOrders.map(order => {
                         const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
                         const customer = order.customer_id;
@@ -271,55 +273,42 @@ export default function VendorOrdersPage() {
                         return (
                               <button 
                                  key={order._id} 
-                                 className={`group relative w-full text-left rounded-[1.5rem] md:rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col`}
+                                 className="group relative w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-left transition hover:border-[var(--accent)]/30"
                                  onClick={() => handleViewOrder(order._id)}
                               >
-                                 <div className="p-4 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-8">
-                                    <div className="flex items-center gap-4 w-full sm:w-auto">
-                                       <div className={`size-12 md:size-14 rounded-[1.25rem] md:rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
-                                          <Package className="w-5 h-5 md:w-7 md:h-7" />
+                                 <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                       <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${status.bg} ${status.color}`}>
+                                          <Package className="size-4.5" />
                                        </div>
-                                       <div className="sm:hidden flex-1 min-w-0">
-                                          <div className="flex items-center justify-between">
-                                             <span className="text-[11px] font-semibold text-[var(--text-primary)] tracking-tight">Order Summary</span>
-                                             <time className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-1 capitalize">
-                                                <Clock className="w-2.5 h-2.5" /> {new Date(order.createdAt).toLocaleDateString()}
-                                             </time>
-                                          </div>
-                                          <div className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-widest border inline-block ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
-                                             {status.label}
-                                          </div>
-                                       </div>
-                                    </div>
-
-                                    <div className="flex-1 min-w-0 w-full sm:w-auto">
-                                       <div className="hidden sm:flex items-center justify-between mb-2">
-                                          <div className="flex items-center gap-3">
-                                             <span className="text-[11px] lg:text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] tracking-tight capitalize">Order Summary</span>
-                                             <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
+                                       <div className="min-w-0">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                             <span className="text-[12px] font-semibold text-[var(--text-primary)]">Order #{order._id.slice(-8).toUpperCase()}</span>
+                                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.bg} ${status.color} ${status.border}`}>
                                                 {status.label}
                                              </span>
                                           </div>
-                                          <time className="text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
-                                             <Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString()}
+                                          <p className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
+                                             {customer?.name || 'Guest'} • {order.shipping_address?.quartier || 'No area'}
+                                          </p>
+                                          <time className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]/70">
+                                             <Clock className="size-3" />
+                                             {new Date(order.createdAt).toLocaleDateString()}
                                           </time>
-                                       </div>
-                                       <div className="flex items-center gap-4">
-                                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                             <span className="font-mono text-[var(--accent)] font-bold">#{order._id.slice(-8).toUpperCase()}</span>
-                                             <span className="hidden sm:inline">•</span>
-                                             <span className="truncate max-w-full sm:max-w-md">{customer?.name || 'GUEST'} → Delivery Area: {order.shipping_address?.quartier}</span>
-                                          </div>
                                        </div>
                                     </div>
 
-                                    <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-[var(--glass-border)] pt-4 sm:pt-0 shrink-0">
-                                       <p className="text-lg md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-30 ml-1">XAF</span></p>
-                                       <div className="flex items-center gap-3 sm:mt-2">
-                                          <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{order.products?.length || 1} Items</span>
-                                          <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
-                                             {customer?.avatar ? <img src={customer.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
-                                          </div>
+                                    <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2 sm:border-t-0 sm:pt-0 sm:text-right">
+                                       <div>
+                                          <p className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">
+                                             {order.total_amount?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]">XAF</span>
+                                          </p>
+                                          <p className="text-[10px] text-[var(--text-secondary)]">
+                                             {order.products?.length || 1} item{(order.products?.length || 1) > 1 ? 's' : ''}
+                                          </p>
+                                       </div>
+                                       <div className="ml-3 flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition group-hover:text-[var(--accent)]">
+                                          <ChevronRight className="size-4" />
                                        </div>
                                     </div>
                                  </div>
@@ -328,21 +317,21 @@ export default function VendorOrdersPage() {
                         })}
                      </div>
                   ) : (
-                     <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
-                        <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                        <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No orders found.</p>
+                     <div className="px-6 py-16 text-center">
+                        <Database className="mx-auto mb-3 size-8 text-[var(--text-secondary)]/40" />
+                        <p className="text-sm font-medium text-[var(--text-secondary)]">No orders found.</p>
                      </div>
                   )}
                   </div>
 
-                  <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+                  <div className="border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 px-3 py-3 sm:px-4">
                      <Pagination 
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={setCurrentPage}
                      />
                   </div>
-               </div>
+               </section>
             </>
          )}
       </div>

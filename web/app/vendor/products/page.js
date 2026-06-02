@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight, LayoutGrid, List } from 'lucide-react';
+import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight, LayoutGrid, List, Pencil } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
@@ -256,13 +256,22 @@ function ManagementCard({ product, onDelete }) {
               {product.name}
             </Link>
           </div>
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(product._id); }}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
-            aria-label="Delete product"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link
+              href={`/vendor/products/edit/${product._id}`}
+              className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
+              aria-label="Edit product"
+            >
+              <Pencil className="size-3.5" />
+            </Link>
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(product._id); }}
+              className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
+              aria-label="Delete product"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
         </div>
         <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2">
           <p className="text-[12px] font-semibold">{product.price?.toLocaleString()} XAF</p>
@@ -312,6 +321,14 @@ function ListRow({ product, onDelete }) {
         </div>
       </div>
       <div className="flex items-center gap-1.5">
+        <Link
+          href={`/vendor/products/edit/${product._id}`}
+          className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 text-[10px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
+          aria-label="Edit product"
+        >
+          <Pencil className="size-3.5" />
+          Edit
+        </Link>
         <button
           onClick={() => onDelete(product._id)}
           className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
@@ -322,7 +339,7 @@ function ListRow({ product, onDelete }) {
         <Link
           href={`/vendor/products/edit/${product._id}`}
           className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
-          aria-label="Edit product"
+          aria-label="Open product"
         >
           <ChevronRight className="size-3.5" />
         </Link>
