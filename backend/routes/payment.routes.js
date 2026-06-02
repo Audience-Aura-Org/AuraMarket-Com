@@ -24,6 +24,7 @@ const {
   mesombInitialize,
   mesombWebhook,
   mesombVerify,
+  failCheckoutPayment,
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
@@ -36,6 +37,7 @@ router.use(protect);
 
 // Gateway Registry — checkout UI reads this to know which methods are available
 router.get('/gateways', listGateways);
+router.post('/checkout/failed', failCheckoutPayment);
 
 // Paystack
 router.post('/initialize', initializePayment);

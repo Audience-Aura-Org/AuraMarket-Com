@@ -33,6 +33,13 @@ const STATUS_CONFIG = {
   refunded:       { label: 'Refunded',    color: 'text-sky-600',     bg: 'bg-sky-500/10',     border: 'border-sky-500/20',     dot: 'bg-sky-500' },
 };
 
+const PAYMENT_STATUS = {
+  pending:  { label: 'Unpaid', color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  paid:     { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  failed:   { label: 'Failed', color: 'text-rose-600', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+  refunded: { label: 'Refunded', color: 'text-sky-600', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+};
+
 const NEXT_STATUSES = {
   placed:     ['processing', 'cancelled'],
   processing: ['shipped', 'cancelled'],
@@ -125,7 +132,7 @@ export default function VendorOrdersPage() {
   const filtered = orders.filter(o => {
     const status = o.order_status || 'placed';
     const customerName = o.customer_id?.name || 'Customer';
-    const matchesTab = activeTab === 'all' || status === activeTab;
+    const matchesTab = activeTab === 'all' || status === activeTab || (activeTab === 'failed' && o.payment_status === 'failed');
     const matchesSearch = (o._id || '').includes(search) || customerName.toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
   });
@@ -133,7 +140,7 @@ export default function VendorOrdersPage() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  const totalRevenue = orders.filter((o) => o.payment_status !== 'failed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
   const pendingCount = orders.filter(o => ['placed','processing'].includes(o.order_status)).length;
   const colorMap = {
     emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', bar: 'bg-emerald-500', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-600', glow: '#10b981', w: '70%' },
@@ -147,13 +154,13 @@ export default function VendorOrdersPage() {
     const d = new Date(o.createdAt);
     const now = new Date();
     return (now - d) < (24 * 60 * 60 * 1000); // last 24h
-  }).reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  }).filter((o) => o.payment_status !== 'failed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
-  const openOrdersCount = orders.filter(o => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
+  const openOrdersCount = orders.filter(o => o.payment_status !== 'failed' && !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
 
   const stats = [
     { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedCount} done`, sub: `+${recentRevenue.toLocaleString()} recent` },
-    { label: 'Open Orders', value: String(openOrdersCount), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.order_status === 'processing').length} processing` },
+    { label: 'Open Orders', value: String(openOrdersCount), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.payment_status === 'failed').length} failed` },
     { label: 'Pending Payouts', value: String(pendingCount), icon: 'account_balance', color: 'purple', pct: 'Held in Escrow', sub: 'Pending Delivery' },
     { label: 'Completed Orders', value: String(completedCount), icon: 'verified', color: 'blue', pct: 'Fully Completed', sub: 'Delivered and Settled' }
   ];
@@ -195,7 +202,7 @@ export default function VendorOrdersPage() {
            </div>
            
            <div className="hidden md:flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
-              {['all', 'placed', 'processing', 'shipped'].map(tab => (
+              {['all', 'placed', 'processing', 'shipped', 'delivered', 'failed'].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
@@ -214,7 +221,7 @@ export default function VendorOrdersPage() {
         {/* Mobile Filter Tabs */}
         <div className="flex md:hidden w-full overflow-x-auto no-scrollbar pb-2 pt-1 border-t border-[var(--glass-border)]/10 mt-2">
            <div className="flex items-center gap-2 pr-4">
-              {['all', 'placed', 'processing', 'shipped', 'delivered', 'cancelled'].map(tab => (
+              {['all', 'placed', 'processing', 'shipped', 'delivered', 'failed', 'cancelled'].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
@@ -268,6 +275,7 @@ export default function VendorOrdersPage() {
                      <div className="grid grid-cols-1 gap-3 p-3 sm:gap-3.5 sm:p-4">
                         {currentOrders.map(order => {
                         const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
+                        const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
                         const customer = order.customer_id;
 
                         return (
@@ -286,6 +294,9 @@ export default function VendorOrdersPage() {
                                              <span className="text-[12px] font-semibold text-[var(--text-primary)]">Order #{order._id.slice(-8).toUpperCase()}</span>
                                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.bg} ${status.color} ${status.border}`}>
                                                 {status.label}
+                                             </span>
+                                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${payment.bg} ${payment.color} ${payment.border}`}>
+                                                {payment.label}
                                              </span>
                                           </div>
                                           <p className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">

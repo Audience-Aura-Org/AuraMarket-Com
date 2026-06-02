@@ -31,6 +31,7 @@ const STATUS_CONFIG = {
 const PAYMENT_STATUS = {
   pending:  { label: 'Unpaid',   color: 'text-amber-500',  bg: 'bg-amber-500/10' },
   paid:     { label: 'Paid',     color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  failed:   { label: 'Failed',   color: 'text-rose-500',    bg: 'bg-rose-500/10' },
   refunded: { label: 'Refunded', color: 'text-sky-500',    bg: 'bg-sky-500/10' },
 };
 
@@ -139,7 +140,7 @@ export default function AdminOrdersPage() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const tabs = ['all', 'placed', 'processing', 'shipped', 'delivered', 'cancelled', 'refund_pending'];
+  const tabs = ['all', 'placed', 'processing', 'shipped', 'delivered', 'failed', 'cancelled', 'refund_pending'];
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
@@ -192,7 +193,7 @@ export default function AdminOrdersPage() {
          {/* Live Stats Matrix */}
          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
             <StatCard label="Active" value={stats ? stats.active_orders : '...'} icon="local_shipping" color="fuchsia" sub="IN_PROGRESS" />
-            <StatCard label="Attention" value={orders.filter(o => o.order_status === 'refund_pending').length} icon="warning" color="rose" sub="ACTION_REQUIRED" />
+            <StatCard label="Attention" value={orders.filter(o => o.order_status === 'refund_pending' || o.payment_status === 'failed').length} icon="warning" color="rose" sub="ACTION_REQUIRED" />
             <StatCard label="Resolved" value={stats ? stats.delivered_orders || '0' : '...'} icon="check_circle" color="emerald" sub="CYCLE_COMPLETE" />
             <StatCard label="Closed" value={stats ? stats.orders : '...'} icon="inventory_2" color="slate" sub="ARCHIVE_TOTAL" />
             <StatCard label="Rate" value="98.4%" icon="verified_user" color="amber" sub="FLOW_STABLE" />

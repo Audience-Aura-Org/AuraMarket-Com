@@ -18,6 +18,7 @@ import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
 import SingleOrderView from '@/components/account/SingleOrderView';
+import OrdersTab from '@/components/account/OrdersTab';
 import dynamic from 'next/dynamic';
 
 const ProductCard = dynamic(() => import('@/components/ProductCard'), { ssr: false });
@@ -25,25 +26,6 @@ const ProductCard = dynamic(() => import('@/components/ProductCard'), { ssr: fal
 import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
-
-const ORDER_STATUS_STYLES = {
-  amber: {
-    rail: 'bg-amber-500',
-    badge: 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-  },
-  blue: {
-    rail: 'bg-blue-500',
-    badge: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-  },
-  emerald: {
-    rail: 'bg-emerald-500',
-    badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-  },
-  rose: {
-    rail: 'bg-rose-500',
-    badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-  }
-};
 
 const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
   city: pickup.city || fallback.city || '',
@@ -137,16 +119,6 @@ export default function AccountPageClient() {
   const [deleteStatus, setDeleteStatus] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [orderView, setOrderView] = useState(user?.role === 'vendor' ? 'sales' : 'purchases');
-
-  useEffect(() => {
-    if (user?.role === 'vendor' && orderView !== 'sales' && viewingOrderId) {
-      setOrderView('sales');
-    }
-  }, [user?.role, orderView, viewingOrderId]);
-
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
 
@@ -156,30 +128,11 @@ export default function AccountPageClient() {
   const [wishlist, setWishlist] = useState([]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
 
-  const fetchOrders = useCallback(async () => {
-     if (!user) return;
-     if (viewingOrderId) return;
-     setOrdersLoading(true);
-     try {
-       const endpoint = orderView === 'sales' ? '/orders/vendor-orders' : '/orders/my-orders';
-       const res = await api.get(endpoint);
-       if (res.data.success) {
-          const sortedOrders = (res.data.data.orders || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          setOrders(sortedOrders);
-       }
-     } catch (err) {
-       console.error("Orders fetch failed", err);
-     } finally {
-       setOrdersLoading(false);
-     }
-  }, [user, orderView, viewingOrderId]);
-
   useEffect(() => {
-    if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'network') fetchNetwork();
     if (activeTab === 'audience') fetchAudience();
     if (activeTab === 'wishlist') fetchWishlist();
-  }, [activeTab, fetchOrders]);
+  }, [activeTab]);
 
   const fetchWishlist = async () => {
     setWishlistLoading(true);
@@ -488,138 +441,14 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'orders' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Order Manifest</h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
-                  </div>
-
-                  <div className="relative z-10">
-                    {viewingOrderId ? (
-                      <div className="animate-in fade-in duration-700">
-                        <SingleOrderView orderId={viewingOrderId} onBack={handleBackToLedger} />
-                      </div>
-                    ) : (
-                      <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
-                        <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
-                        
-                        <div className="flex flex-wrap items-center gap-2 mb-8 overflow-x-auto no-scrollbar pb-2">
-                          {user?.role === 'vendor' && (
-                            <div className="flex p-1 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] mr-4">
-                              <button
-                                onClick={() => setOrderView('purchases')}
-                                className={`px-4 py-1.5 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
-                              >
-                                Purchases
-                              </button>
-                              <button
-                                onClick={() => setOrderView('sales')}
-                                className={`px-4 py-1.5 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
-                              >
-                                Sales
-                              </button>
-                            </div>
-                          )}
-                          
-                          {['all', 'placed', 'processing', 'shipped', 'completed', 'cancelled'].map(f => (
-                            <button 
-                              key={f}
-                              onClick={() => {}}
-                              className="px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[10px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all capitalize"
-                            >
-                              {f === 'all' ? 'Universal' : f}
-                            </button>
-                          ))}
-                        </div>
-
-                        {ordersLoading ? (
-                          <div className="flex flex-col items-center justify-center py-20 gap-4">
-                            <div className="size-10 border-2 border-[var(--accent)]/10 border-t-[var(--accent)] rounded-full animate-spin" />
-                            
-                          </div>
-                        ) : orders.length === 0 ? (
-                          <div className="py-20 flex flex-col items-center justify-center text-center glass-panel rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-                            <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)]">No manifest records found</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
-                              const firstItem = order.products?.[0] || order.items?.[0];
-                              const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white-main.png';
-                              const title = firstItem?.name || firstItem?.product?.name || `Order #${order._id.substring(0, 8)}`;
-                              
-                              const getStatusColor = (s) => {
-                                switch(s) {
-                                  case 'completed': return 'emerald';
-                                  case 'shipped': return 'blue';
-                                  case 'cancelled': return 'rose';
-                                  default: return 'amber';
-                                }
-                              };
-                              const sColor = getStatusColor(order.order_status);
-                              const statusStyle = ORDER_STATUS_STYLES[sColor] || ORDER_STATUS_STYLES.amber;
-                              const paymentTone = order.payment_status === 'paid'
-                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                : order.payment_status === 'failed'
-                                  ? 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                  : 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400';
-                              const paymentLabel = order.payment_method === 'pay_on_delivery'
-                                ? 'Pay on delivery'
-                                : order.payment_status === 'paid'
-                                  ? 'Paid'
-                                  : order.payment_status === 'failed'
-                                    ? 'Payment failed'
-                                    : 'Payment pending';
-
-                              return (
-                                <button 
-                                  key={order._id} 
-                                  onClick={() => handleViewOrder(order._id)}
-                                  className="block w-full text-left group"
-                                >
-                                  <div className="relative overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-2xl p-5 hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--accent)]/30 transition-all duration-300">
-                                    <div className={`absolute left-0 top-0 w-1 h-full ${statusStyle.rail} opacity-20 group-hover:opacity-100 transition-opacity`} />
-                                    
-                                    <div className="flex items-center gap-5">
-                                      <div className="size-14 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 shadow-sm">
-                                        <img src={imageUrl} alt="" className="size-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-tight border capitalize ${statusStyle.badge}`}>
-                                            {order.shipment && ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(order.shipment.status) 
-                                              ? order.shipment.status.replace('_', ' ') 
-                                              : order.order_status || 'pending'}
-                                          </span>
-                                          <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-tight border ${paymentTone}`}>
-                                            {paymentLabel}
-                                          </span>
-                                          <span className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40">#{order._id.slice(-8).toUpperCase()}</span>
-                                        </div>
-                                        <h4 className="text-[11px] lg:text-[12px]  font-semibold truncate group-hover:text-[var(--accent)] transition-colors">{title}</h4>
-                                      </div>
-                                      <div className="text-right shrink-0">
-                                        <div className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)]">{(order.total_amount || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-40">XAF</span></div>
-                                        <div className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                            <div className="pt-4">
-                              <Pagination
-                                currentPage={currentPage}
-                                totalPages={Math.ceil(orders.length / itemsPerPage)}
-                                onPageChange={setCurrentPage}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                <div className="min-w-0">
+                  {viewingOrderId ? (
+                    <div className="animate-in fade-in duration-300">
+                      <SingleOrderView orderId={viewingOrderId} onBack={handleBackToLedger} />
+                    </div>
+                  ) : (
+                    <OrdersTab user={user} onViewOrder={handleViewOrder} />
+                  )}
                 </div>
               )}
 

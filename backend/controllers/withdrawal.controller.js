@@ -21,7 +21,7 @@ const { sendNotification } = require('../utils/notifier');
 const crypto = require('crypto');
 
 const generateTxRef = () => `AURA-WD-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
-const VALID_WITHDRAWAL_METHODS = ['momo', 'bank', 'eversend', 'mesomb'];
+const VALID_WITHDRAWAL_METHODS = ['momo', 'bank'];
 const VALID_PAYOUT_GATEWAYS = ['eversend', 'mesomb'];
 
 const getWithdrawalDestination = (wr) => {
@@ -131,7 +131,7 @@ const submitWithdrawal = async (req, res) => {
     if (!VALID_WITHDRAWAL_METHODS.includes(withdrawalMethod)) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Choose momo, bank, eversend, or mesomb.' });
+      return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Choose mobile wallet or bank transfer.' });
     }
 
     if (!amount || amount < 1000) {
@@ -147,7 +147,7 @@ const submitWithdrawal = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Recipient first name, last name, and country are required.' });
     }
 
-    if (['momo', 'mesomb'].includes(withdrawalMethod) && !recipientDetails?.phoneNumber) {
+    if (withdrawalMethod === 'momo' && !recipientDetails?.phoneNumber) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ success: false, message: 'Phone number is required for Mobile Money withdrawal.' });
@@ -157,12 +157,6 @@ const submitWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(400).json({ success: false, message: 'Bank code and account number are required for bank withdrawal.' });
     }
-    if (withdrawalMethod === 'eversend' && !recipientDetails?.eversendTag && !recipientDetails?.beneficiaryId) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ success: false, message: 'Eversend tag or Beneficiary ID is required.' });
-    }
-
     const user = await User.findById(userId).session(session);
     if (!user.is_active) {
       await session.abortTransaction();
@@ -225,7 +219,7 @@ const submitWithdrawal = async (req, res) => {
       amount,
       currency,
       withdrawalMethod,
-      payoutGateway: ['eversend', 'mesomb'].includes(withdrawalMethod) ? withdrawalMethod : null,
+      payoutGateway: null,
       recipientDetails: {
         phoneNumber:   recipientDetails.phoneNumber   || null,
         bankCode:      recipientDetails.bankCode      || null,
@@ -249,7 +243,7 @@ const submitWithdrawal = async (req, res) => {
       reference: generateTxRef(),
       status: 'pending',
       description: `Withdrawal via ${withdrawalMethod.toUpperCase()} to ${recipientDetails.phoneNumber || recipientDetails.accountNumber || recipientDetails.eversendTag || recipientDetails.beneficiaryId}`,
-      gateway: ['eversend', 'mesomb'].includes(withdrawalMethod) ? withdrawalMethod : 'manual',
+      gateway: 'manual',
       currency: currency,
       metadata: { withdrawal_request_id: withdrawalRequest._id },
     }], { session, ordered: true });

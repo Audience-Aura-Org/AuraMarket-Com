@@ -143,6 +143,27 @@ const markCheckoutOrdersFailed = async (userId, orderIds = []) => {
   );
 };
 
+const failCheckoutPayment = async (req, res) => {
+  try {
+    const { order_ids = [], reason = 'Checkout closed before payment completed.' } = req.body || {};
+    const ids = normalizeOrderIds(order_ids);
+    if (ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No checkout orders were provided.' });
+    }
+
+    await markCheckoutOrdersFailed(req.user._id, ids);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Checkout orders marked as failed.',
+      data: { order_ids: ids, reason },
+    });
+  } catch (err) {
+    console.error('[failCheckoutPayment]', err.message);
+    return res.status(500).json({ success: false, message: 'Could not close checkout cleanly.' });
+  }
+};
+
 const setTransactionMetadata = (transaction, patch = {}) => {
   transaction.metadata = { ...(transaction.metadata || {}), ...patch };
   transaction.markModified('metadata');
@@ -772,10 +793,14 @@ const eversendWebhook = async (req, res) => {
     }
 
     if (type === 'transaction.failed' || type === 'collection.failed' || type === 'payout.failed') {
-      await Transaction.findOneAndUpdate(
+      const transaction = await Transaction.findOneAndUpdate(
         { reference: data?.transactionRef, gateway: 'eversend' },
-        { status: 'failed', gateway_response: data }
+        { status: 'failed', gateway_response: data },
+        { new: true }
       );
+      if (transaction?.order_ids?.length) {
+        await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+      }
       // If it was a payout, we might want to alert the admin or notify the vendor
       if (type === 'payout.failed') {
         console.error(`❌ Eversend Payout Failed: ${data?.transactionRef}`, data?.message);
@@ -1194,6 +1219,7 @@ const mesombVerify = async (req, res) => {
 module.exports = {
   // Gateway registry endpoint
   listGateways,
+  failCheckoutPayment,
   // Paystack
   initializePayment,
   verifyPayment,

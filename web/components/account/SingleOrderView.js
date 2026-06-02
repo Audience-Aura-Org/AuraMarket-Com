@@ -279,12 +279,13 @@ export default function SingleOrderView({ orderId, onBack }) {
   const isProtectedByGracePeriod = logisticsGraceActive && order.order_status === 'processing';
   const customer = order.customer_id;
   const escrowStatus = escrow?.status || null;
+  const paymentIsSettled = order.payment_status === 'paid' || order.payment_method === 'pay_on_delivery';
   const isEscrowOrder = !!(
     escrow ||
     order.escrow_enabled ||
     order.payment_method === 'escrow'
   );
-  const escrowCanRelease = isEscrowOrder && (!escrowStatus || escrowStatus === 'held' || escrowStatus === 'pending_release');
+  const escrowCanRelease = paymentIsSettled && isEscrowOrder && (!escrowStatus || escrowStatus === 'held' || escrowStatus === 'pending_release');
   const vendorCanMarkDelivered =
     isVendor &&
     order.order_status === 'shipped';

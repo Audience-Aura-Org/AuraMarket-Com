@@ -287,9 +287,13 @@ const releaseFunds = async (req, res, next) => {
     if (!order) throw new Error('Order not found.');
 
     const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
+    const paymentIsSettled = order.payment_status === 'paid' || order.payment_method === 'pay_on_delivery';
 
     // ── CASE: Admin Override ────────────────────────────────────────────────
     if (req.user.role === 'admin') {
+      if (escrow && order.payment_status !== 'paid') {
+        throw new Error('Escrow cannot be released because this order payment is not paid.');
+      }
       if (escrow) {
         await finalizeEscrowPayout(escrow, order, req, session);
       } else {
@@ -319,6 +323,9 @@ const releaseFunds = async (req, res, next) => {
       if (order.customer_id.toString() !== req.user._id.toString()) {
         throw new Error('Not authorized to release this order.');
       }
+      if (!paymentIsSettled) {
+        throw new Error('This order cannot be completed because payment is not settled.');
+      }
       order.order_status = 'completed';
       await order.save({ session });
       await syncShipmentsToOrderStatus(order, 'completed', {
@@ -338,6 +345,9 @@ const releaseFunds = async (req, res, next) => {
     }
 
     if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
+    if (order.payment_status !== 'paid') {
+      throw new Error('Escrow cannot be released because this order payment is not paid.');
+    }
 
     // ── CASE: Customer Confirmation ──────────────────────────────────────────
     if (escrow.buyer_id.toString() !== req.user._id.toString()) {
@@ -390,6 +400,9 @@ const vendorConfirmRelease = async (req, res, next) => {
     }
 
     const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
+    if (order.payment_status !== 'paid' && order.payment_method !== 'pay_on_delivery') {
+      throw new Error('Delivery cannot be confirmed until payment is settled.');
+    }
     const latestShipment = await Shipment.findOne({ order_id: orderId }).sort('-createdAt').session(session);
     const shipmentDelivered = latestShipment?.status === 'delivered';
     const orderFinalized = ['delivered', 'completed'].includes(order.order_status);

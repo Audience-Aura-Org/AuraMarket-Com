@@ -103,6 +103,21 @@ function CheckoutContent() {
 
   const selectedLogistics = logisticsFirms.find(f => f._id === formData.logistics_company_id);
 
+  const markCreatedOrdersFailed = async (reason, explicitOrderIds = null) => {
+    const ids = explicitOrderIds || (orderId ? [orderId] : (createdOrderIds || []));
+    if (ids.length === 0) return;
+    try {
+      await api.post('/payments/checkout/failed', { order_ids: ids, reason });
+    } catch (err) {
+      console.warn('[Checkout] Failed to close pending orders:', err?.response?.data || err.message);
+    }
+  };
+
+  const handleTerminateCheckout = async () => {
+    await markCreatedOrdersFailed('Customer closed checkout before payment completed.');
+    router.push('/cart');
+  };
+  
   // 0. Fetch Zones
   useEffect(() => {
     api.get('/logistics/zones')
@@ -389,6 +404,7 @@ function CheckoutContent() {
         });
 
         if (!mRes.data.success) {
+          await markCreatedOrdersFailed('MeSomb collection failed before payment completed.', finalOrderIds);
           setBlockReason('collection_failed');
           setError(mRes.data.message || 'Mobile money collection failed. Please try again.');
           setLoading(false);
@@ -436,6 +452,7 @@ function CheckoutContent() {
         });
 
         if (!evRes.success) {
+          await markCreatedOrdersFailed('Eversend collection failed before payment completed.', finalOrderIds);
           setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
           setError(evRes.message || 'Payment collection failed. Please try a different payment method.');
           setEversendCheckout({ active: false, reference: null, message: '' });
@@ -470,6 +487,7 @@ function CheckoutContent() {
                 setStep(3);
               },
               onFailed: (data) => {
+                markCreatedOrdersFailed('Eversend collection was declined before payment completed.', finalOrderIds);
                 setEversendCheckout({ active: false, reference: null, message: '' });
                 setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
                 setError(data.reason || 'Payment was declined by the gateway.');
@@ -486,6 +504,7 @@ function CheckoutContent() {
         }
 
         setBlockReason('collection_failed');
+        await markCreatedOrdersFailed('Payment gateway did not return a transaction reference.', finalOrderIds);
         setError('No transaction reference returned from the payment gateway. Please try again.');
         setEversendCheckout({ active: false, reference: null, message: '' });
         setLoading(false);
@@ -542,12 +561,12 @@ function CheckoutContent() {
       <div className="fixed top-[-10%] right-[-10%] w-[800px] h-[800px] bg-[var(--accent)]/5 rounded-full blur-[150px] pointer-events-none -z-0"></div>
       
       <nav className="sticky top-0 z-[60] h-20 px-6 lg:px-20 flex items-center justify-between glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-3xl shadow-sm">
-        <Link href="/cart" className="flex items-center gap-3 group transition-all">
+        <button type="button" onClick={handleTerminateCheckout} className="flex items-center gap-3 group transition-all">
           <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
             <ArrowLeft className="size-5" />
           </div>
           <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight ">Terminate checkout</span>
-        </Link>
+        </button>
         <div className="flex items-center gap-8">
            <div className="hidden md:flex items-center gap-3">
               <ShieldCheck className="size-4 text-emerald-500" />

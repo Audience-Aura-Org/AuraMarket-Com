@@ -295,11 +295,14 @@ const getAllOrders = async (req, res, next) => {
     const { status, search, page = 1, limit = 30 } = req.query;
     const query = { 
       $or: [
-        { payment_status: 'paid' },
+        { payment_status: { $in: ['paid', 'failed'] } },
         { payment_method: 'pay_on_delivery' }
       ]
     }; 
-    if (status && status !== 'all') query.order_status = status;
+    if (status && status !== 'all') {
+      if (status === 'failed') query.payment_status = 'failed';
+      else query.order_status = status;
+    }
     const orders = await Order.find(query).populate('customer_id', 'name email phone avatar').populate('logistics_company_id', 'company_name contact_phone').populate({ path: 'vendor_id', select: 'store_name user_id', populate: { path: 'user_id', select: 'name email phone avatar' } }).populate('products.product_id', 'name price images').sort('-createdAt').skip((page - 1) * limit).limit(Number(limit));
     const total = await Order.countDocuments(query);
     res.status(200).json({ success: true, count: orders.length, total, data: { orders } });

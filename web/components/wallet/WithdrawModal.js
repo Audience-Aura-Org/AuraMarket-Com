@@ -5,13 +5,13 @@
  *
  * Used by both /wallet (users) and /vendor/wallet (vendors).
  * Submits to POST /api/withdrawals (new WithdrawalRequest system).
- * Balance is reserved while admin approves and sends payout via MeSomb or Eversend.
+ * Balance is reserved while admin approves and sends the payout.
  */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, CheckCircle2, Loader2, Phone, Building2, Tag,
+  X, CheckCircle2, Phone, Building2,
   Globe, ArrowRight, ArrowLeft, Wallet, AlertCircle
 } from 'lucide-react';
 import api from '@/services/api';
@@ -19,10 +19,8 @@ import api from '@/services/api';
 const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
 const METHODS = [
-  { id: 'momo',     label: 'Mobile Money',     sub: 'MTN, Orange, M-Pesa etc.',   icon: Phone,     color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
-  { id: 'mesomb',   label: 'MeSomb',           sub: 'Cameroon MTN / Orange payout', icon: Phone,    color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-  { id: 'bank',     label: 'Bank Transfer',    sub: 'Direct to bank account',      icon: Building2, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  { id: 'eversend', label: 'Eversend Wallet',  sub: 'Wallet-to-wallet transfer',   icon: Tag,       color: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20' },
+  { id: 'momo', label: 'Mobile Wallet', sub: 'MTN or Orange Money number', icon: Phone, color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
+  { id: 'bank', label: 'Bank Transfer', sub: 'Direct to a bank account', icon: Building2, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
 ];
 
 const COUNTRIES = [
@@ -50,7 +48,6 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             phoneNumber: parsed.phoneNumber || '',
             bankCode: parsed.bankCode || '',
             accountNumber: parsed.accountNumber || '',
-            eversendTag: parsed.eversendTag || '',
             note: ''
           };
         }
@@ -58,32 +55,15 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         console.error('Failed to parse saved withdrawal form:', e);
       }
     }
-    return { firstName: '', lastName: '', country: 'CM', phoneNumber: '', bankCode: '', accountNumber: '', eversendTag: '', note: '' };
+    return { firstName: '', lastName: '', country: 'CM', phoneNumber: '', bankCode: '', accountNumber: '', note: '' };
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [done, setDone]       = useState(false);
-  const [beneficiaries, setBeneficiaries] = useState([]);
-  const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
-  const [fetchingBeneficiaries, setFetchingBeneficiaries] = useState(false);
 
   const amtNum = Number(amount) || 0;
   const MIN = 1000;
-
-  const fetchBeneficiaries = async () => {
-    setFetchingBeneficiaries(true);
-    try {
-      const res = await api.get('/payments/eversend/beneficiaries');
-      if (res.data.success) {
-        setBeneficiaries(res.data.data || []);
-      }
-    } catch (e) {
-      console.error('Failed to fetch beneficiaries:', e);
-    } finally {
-      setFetchingBeneficiaries(false);
-    }
-  };
 
   const field = (key, label, placeholder, type = 'text') => (
     <div className="space-y-1.5 font-poppins font-normal">
@@ -105,11 +85,11 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           firstName: form.firstName,
           lastName:  form.lastName,
           country:   form.country,
-          phoneNumber:   ['momo', 'mesomb'].includes(method.id) ? form.phoneNumber : null,
+          phoneNumber:   method.id === 'momo' ? form.phoneNumber : null,
           bankCode:      method.id === 'bank'     ? form.bankCode      : null,
           accountNumber: method.id === 'bank'     ? form.accountNumber : null,
-          eversendTag:   method.id === 'eversend' ? form.eversendTag   : null,
-          beneficiaryId: selectedBeneficiary?.id || null,
+          eversendTag:   null,
+          beneficiaryId: null,
         },
         note: form.note || null,
       });
@@ -123,7 +103,6 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           phoneNumber: form.phoneNumber,
           bankCode: form.bankCode,
           accountNumber: form.accountNumber,
-          eversendTag: form.eversendTag,
         };
         localStorage.setItem('aura_withdrawal_form', JSON.stringify(toSave));
       }
@@ -258,7 +237,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           <div className="space-y-4">
             <p className="text-[10px] lg:text-[12px] font-semibold tracking-widest text-[var(--text-secondary)] opacity-50">RECIPIENT DETAILS</p>
             
-            {method.id === 'eversend' && (
+            {false && method.id === 'eversend' && (
               <div className="space-y-3 mb-6">
                 <p className="text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40">CHOOSE SAVED RECIPIENT (OPTIONAL)</p>
                 {fetchingBeneficiaries ? (
@@ -307,10 +286,9 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
             </div>
-            {['momo', 'mesomb'].includes(method.id) && field('phoneNumber',   method.id === 'mesomb' ? 'MESOMB MOBILE MONEY NUMBER' : 'PHONE NUMBER',    '+237...',    'tel')}
+            {method.id === 'momo' && field('phoneNumber', 'MOBILE WALLET NUMBER', '+237...', 'tel')}
             {method.id === 'bank'     && field('bankCode',      'BANK CODE',       'e.g. GTB')}
             {method.id === 'bank'     && field('accountNumber', 'ACCOUNT NUMBER',  '0123456789')}
-            {method.id === 'eversend' && !selectedBeneficiary && field('eversendTag',   'EVERSEND TAG',    '@username')}
             {selectedBeneficiary && (
               <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
                 <div>
@@ -324,11 +302,8 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             <button onClick={() => {
               const missing =
                 !form.firstName || !form.lastName ||
-                (!selectedBeneficiary && (
-                  (['momo', 'mesomb'].includes(method.id) && !form.phoneNumber) ||
-                  (method.id === 'bank' && (!form.bankCode || !form.accountNumber)) ||
-                  (method.id === 'eversend' && !form.eversendTag)
-                ));
+                (method.id === 'momo' && !form.phoneNumber) ||
+                (method.id === 'bank' && (!form.bankCode || !form.accountNumber));
               if (missing) { setError('Please fill all required fields.'); return; }
               setError(''); setStep(4);
             }}
@@ -349,7 +324,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 ['Method',     method.label],
                 ['Recipient',  `${form.firstName} ${form.lastName}`],
                 ['Country',    COUNTRIES.find(c => c.code === form.country)?.label || form.country],
-                ['Destination', form.phoneNumber || form.accountNumber || form.eversendTag || '—'],
+                ['Destination', form.phoneNumber || form.accountNumber || '—'],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between text-xs">
                   <span className="text-[var(--text-secondary)] opacity-50 font-semibold">{k}</span>
@@ -358,7 +333,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
               ))}
             </div>
             <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-600 font-semibold leading-relaxed">
-              This request requires admin approval before funds are sent. Admin can approve the payout through MeSomb or Eversend depending on the destination.
+              This request requires admin approval before funds are sent. Admin will process the payout through the appropriate gateway.
             </div>
             {error && <p className="text-xs text-red-500 font-semibold flex items-center gap-2"><AlertCircle className="size-3.5" />{error}</p>}
             <button onClick={submit} disabled={loading}
