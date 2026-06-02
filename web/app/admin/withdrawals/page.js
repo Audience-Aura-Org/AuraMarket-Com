@@ -52,7 +52,7 @@ function getRequesterProfile(withdrawal) {
     recipientName ||
     person.email ||
     `${withdrawal?.role || 'User'} account`;
-  const logo = profile.logo || branding.logo || branding.logo_url || branding.logoUrl || person.avatar || null;
+  const logo = profile.logo || profile.avatar || profile.image || branding.logo || branding.logo_url || branding.logoUrl || branding.avatar || branding.avatar_url || branding.avatarUrl || person.avatar || null;
   const contact = profile.email || profile.phone || person.email || person.phone || recipient.phoneNumber || 'No contact on file';
   const initial = String(name || 'A').trim().charAt(0).toUpperCase();
 
@@ -80,6 +80,7 @@ export default function AdminWithdrawalsPage() {
   const [selected, setSelected] = useState(null);
   const [approveGateway, setApproveGateway] = useState('mesomb');
   const [currentPage, setCurrentPage] = useState(1);
+  const [brokenRequesterImages, setBrokenRequesterImages] = useState({});
   const itemsPerPage = 12;
 
   useEffect(() => {
@@ -200,8 +201,13 @@ export default function AdminWithdrawalsPage() {
                     {/* Requester Profile */}
                     <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] backdrop-blur-xl">
                        <div className="size-12 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
-                          {selectedRequester?.logo ? (
-                            <img src={selectedRequester.logo} alt="" className="size-full object-cover" />
+                          {selectedRequester?.logo && !brokenRequesterImages[selected._id] ? (
+                            <img
+                              src={selectedRequester.logo}
+                              alt={selectedRequester.name || 'Requester'}
+                              className="size-full object-cover"
+                              onError={() => setBrokenRequesterImages((prev) => ({ ...prev, [selected._id]: true }))}
+                            />
                           ) : (
                             <span className="text-sm font-bold text-[var(--accent)] opacity-70">{selectedRequester?.initial || 'A'}</span>
                           )}

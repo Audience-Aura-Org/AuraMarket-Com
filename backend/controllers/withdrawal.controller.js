@@ -31,6 +31,18 @@ const getWithdrawalDestination = (wr) => {
 
 const getMesombTxId = (response) => response?.transaction?.pk || response?.pk || response?.id || response?.transactionId || null;
 
+const firstMediaUrl = (...values) => {
+  for (const value of values) {
+    if (!value) continue;
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'object') {
+      const nested = firstMediaUrl(value.url, value.secure_url, value.src, value.path);
+      if (nested) return nested;
+    }
+  }
+  return null;
+};
+
 const buildRequesterProfiles = async (withdrawals) => {
   const userIds = withdrawals
     .map((wr) => wr.requestedBy?._id || wr.requestedBy)
@@ -66,13 +78,23 @@ const buildRequesterProfiles = async (withdrawals) => {
       person.email ||
       `${wr.role || person.role || 'User'} account`;
 
-    const logo =
-      store?.logo ||
-      branding.logo ||
-      branding.logo_url ||
-      branding.logoUrl ||
-      person.avatar ||
-      null;
+    const avatar = firstMediaUrl(
+      person.avatar,
+      branding.logo,
+      branding.logo_url,
+      branding.logoUrl,
+      branding.avatar,
+      branding.avatar_url,
+      branding.avatarUrl
+    );
+    const logo = firstMediaUrl(
+      store?.logo,
+      vendor?.logo,
+      avatar,
+      branding.image,
+      branding.image_url,
+      branding.imageUrl
+    );
 
     return {
       ...wr,
@@ -81,6 +103,8 @@ const buildRequesterProfiles = async (withdrawals) => {
         accountName: person.name || displayName,
         storeName: vendor?.store_name || null,
         logo,
+        avatar,
+        image: logo || avatar,
         banner: store?.banner || branding.banner || null,
         email: person.email || null,
         phone: person.phone || vendor?.phone || wr.recipientDetails?.phoneNumber || null,
