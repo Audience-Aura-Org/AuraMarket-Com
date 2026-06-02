@@ -285,6 +285,15 @@ export default function SingleOrderView({ orderId, onBack }) {
     order.payment_method === 'escrow'
   );
   const escrowCanRelease = isEscrowOrder && (!escrowStatus || escrowStatus === 'held' || escrowStatus === 'pending_release');
+  const vendorCanMarkDelivered =
+    isVendor &&
+    order.order_status === 'shipped' &&
+    !isLogisticsOrder;
+  const vendorCanRequestEscrowRelease =
+    isVendor &&
+    escrowCanRelease &&
+    !vendorCanMarkDelivered &&
+    (order.order_status === 'delivered' || order.order_status === 'completed' || shipmentStatusNorm === 'delivered');
   const autoReleaseAt = escrow?.auto_release_at ? new Date(escrow.auto_release_at) : null;
   const autoReleaseLabel = autoReleaseAt && Number.isFinite(autoReleaseAt.getTime())
     ? autoReleaseAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
@@ -511,7 +520,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             )}
 
             {/* VENDOR ACTION: confirm delivery/request customer escrow release, regardless of finalized order status. */}
-            {isVendor && escrowCanRelease && (
+            {isVendor && vendorCanRequestEscrowRelease && (
               <button
                 type="button"
                 onClick={handleVendorConfirmDelivery}
@@ -522,7 +531,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             )}
 
             {/* VENDOR ACTION: Mark Delivered (For self-managed/non-logistics shipments) */}
-            {isVendor && !escrowCanRelease && order.order_status === 'shipped' && !isLogisticsOrder && (
+            {vendorCanMarkDelivered && (
               <button
                 type="button"
                 onClick={handleVendorConfirmDelivery}

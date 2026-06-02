@@ -72,19 +72,6 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          {/* Cart */}
-          <Link
-            href="/cart"
-            className="relative flex items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
-          >
-            <ShoppingCart className="size-[22px]" />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-0.5 text-[10px] font-semibold leading-none text-white shadow-sm lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            )}
-          </Link>
-
           {/* Wallet */}
           {user && (
             <Link
@@ -97,6 +84,19 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
               </span>
             </Link>
           )}
+
+          {/* Cart */}
+          <Link
+            href="/cart"
+            className="relative flex items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+          >
+            <ShoppingCart className="size-[22px]" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-0.5 text-[10px] font-semibold leading-none text-white shadow-sm lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
+          </Link>
 
           {/* Messages */}
           {user && (
