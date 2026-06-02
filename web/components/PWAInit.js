@@ -12,27 +12,18 @@ import { useAuthStore } from '@/hooks/useAuth';
  * - Handles the case where permission is granted anew after a re-visit
  */
 export default function PWAInit() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated } = useAuthStore();
   const pathname = usePathname();
   const subscribedRef = useRef(false);
   const authErrorRef = useRef(false);
 
-  const attemptSubscription = async () => {
+  const attemptSubscription = async ({ promptIfNeeded = false } = {}) => {
     // If we already hit a definitive sync block this session, don't spam
     if (authErrorRef.current) return;
-    if (!isAuthenticated) return;
-
-    let token = localStorage.getItem('aura_token');
-    if (!token) {
-      try {
-        const stored = localStorage.getItem('aura-auth-storage');
-        if (stored) token = JSON.parse(stored)?.state?.token;
-      } catch (e) {}
-    }
-    if (!token || token === 'undefined' || token === 'null') return;
+    if (!hasHydrated || !isAuthenticated) return;
     
     console.log('[PWAInit] Syncing push registration...');
-    const result = await subscribeToPush();
+    const result = await subscribeToPush({ promptIfNeeded });
     
     if (result?.success) {
       subscribedRef.current = true;
@@ -51,11 +42,11 @@ export default function PWAInit() {
     registerPWA();
 
     const timer = setTimeout(() => {
-      attemptSubscription();
+      attemptSubscription({ promptIfNeeded: false });
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [hasHydrated, isAuthenticated, user?._id]);
 
   // Browser notification prompts are most reliable when started by a real tap/click.
   // This keeps PWA push registration alive even when the initial timer cannot ask.
@@ -67,7 +58,7 @@ export default function PWAInit() {
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'denied') return;
       }
-      attemptSubscription();
+      attemptSubscription({ promptIfNeeded: true });
     };
 
     window.addEventListener('pointerdown', handleUserGesture, { once: true });
@@ -77,18 +68,18 @@ export default function PWAInit() {
       window.removeEventListener('pointerdown', handleUserGesture);
       window.removeEventListener('keydown', handleUserGesture);
     };
-  }, [isAuthenticated, user?._id]);
+  }, [hasHydrated, isAuthenticated, user?._id]);
 
   // 2. Re-subscribe when user identity changes
   // This ensures the device always has a valid endpoint linked to the correct user node
   useEffect(() => {
-    if (user?._id && isAuthenticated) {
+    if (user?._id && isAuthenticated && hasHydrated) {
       // Reset flags on user change to allow fresh attempt
       subscribedRef.current = false;
       authErrorRef.current = false;
-      attemptSubscription();
+      attemptSubscription({ promptIfNeeded: false });
     }
-  }, [user?._id, isAuthenticated]);
+  }, [user?._id, isAuthenticated, hasHydrated]);
 
   // 3. On app resume (coming back from background), check and re-subscribe.
   // This is the CRITICAL FIX: handles permission granted while app was backgrounded
@@ -100,11 +91,11 @@ export default function PWAInit() {
         if (typeof window !== 'undefined' && 'Notification' in window) {
           if (Notification.permission === 'granted' && !subscribedRef.current) {
             console.log('[PWAInit] App resumed with granted permission — re-syncing push...');
-            attemptSubscription();
+            attemptSubscription({ promptIfNeeded: false });
           }
           // If permission was just granted (was "default" before), also sync
           if (Notification.permission === 'granted') {
-            attemptSubscription();
+            attemptSubscription({ promptIfNeeded: false });
           }
         }
       }

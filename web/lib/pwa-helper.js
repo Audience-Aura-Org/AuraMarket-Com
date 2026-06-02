@@ -89,21 +89,8 @@ export async function registerPWA() {
  * Always re-syncs the current subscription — handles stale/expired subs
  * and ensures the backend always has the latest push endpoint.
  */
-export async function subscribeToPush() {
+export async function subscribeToPush({ promptIfNeeded = true } = {}) {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-    return null;
-  }
-
-  let token = localStorage.getItem('aura_token');
-  if (!token) {
-    try {
-      const stored = localStorage.getItem('aura-auth-storage');
-      if (stored) token = JSON.parse(stored)?.state?.token;
-    } catch (e) { }
-  }
-
-  if (!token || token === 'undefined' || token === 'null') {
-    console.log('[PWA] No auth token — skipping push subscription');
     return null;
   }
 
@@ -111,6 +98,10 @@ export async function subscribeToPush() {
     // Request permission if not yet granted
     let permission = Notification.permission;
     if (permission === 'default') {
+      if (!promptIfNeeded) {
+        console.log('[PWA] Notification permission not granted yet — waiting for user gesture.');
+        return { success: false, permission: 'default' };
+      }
       permission = await Notification.requestPermission();
     }
 
