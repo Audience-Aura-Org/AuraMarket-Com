@@ -22,6 +22,7 @@ import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SingleOrderView from '@/components/account/SingleOrderView';
 import StatCard from '@/components/layout/StatCard';
+import { formatVariantLabel } from '@/utils/variants';
 
 const STATUS_CONFIG = {
   placed:         { label: 'Placed',      color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  dot: 'bg-purple-500' },
@@ -146,8 +147,11 @@ export default function VendorOrdersPage() {
   const filtered = orders.filter(o => {
     const status = o.order_status || 'placed';
     const customerName = o.customer_id?.name || 'Customer';
+    const firstItem = o.products?.[0];
+    const productText = `${firstItem?.name || ''} ${formatVariantLabel(firstItem?.variant)}`.toLowerCase();
     const matchesTab = activeTab === 'all' || status === activeTab || (activeTab === 'failed' && o.payment_status === 'failed');
-    const matchesSearch = (o._id || '').includes(search) || customerName.toLowerCase().includes(search.toLowerCase());
+    const query = search.toLowerCase();
+    const matchesSearch = (o._id || '').includes(search) || customerName.toLowerCase().includes(query) || productText.includes(query);
     return matchesTab && matchesSearch;
   });
 
@@ -291,6 +295,8 @@ export default function VendorOrdersPage() {
                         const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
                         const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
                         const customer = order.customer_id;
+                        const firstItem = order.products?.[0];
+                        const variantLabel = formatVariantLabel(firstItem?.variant);
 
                         return (
                               <button 
@@ -316,6 +322,11 @@ export default function VendorOrdersPage() {
                                           <p className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
                                              {customer?.name || 'Guest'} • {order.shipping_address?.quartier || 'No area'}
                                           </p>
+                                          {firstItem && (
+                                             <p className="mt-1 truncate text-[10px] font-semibold text-[var(--text-primary)]/80">
+                                                {firstItem.name}{variantLabel ? ` - ${variantLabel}` : ''}
+                                             </p>
+                                          )}
                                           <time className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]/70">
                                              <Clock className="size-3" />
                                              {new Date(order.createdAt).toLocaleDateString()}

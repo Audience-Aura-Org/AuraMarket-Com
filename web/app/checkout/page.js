@@ -19,6 +19,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
+import { applyVariantPricing, formatVariantLabel } from '@/utils/variants';
 
 const cartLineKey = (item) => {
   const productId = item.product_id || item.product?._id || item.product;
@@ -259,14 +260,16 @@ function CheckoutContent() {
         .then(res => {
           if (res.data.success) {
             const p = res.data.data.product;
+            const priced = applyVariantPricing(p, variant);
             setCartItems([{
               product_id: p._id,
               vendor_id: p.vendor_id?._id || p.vendor_id,
               vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
               name: p.name,
-              price: p.price,
+              price: priced.price,
               quantity: quantity,
-              image: p.images?.[0]?.url || p.images?.[0]
+              image: priced.image,
+              variant: priced.variant
             }]);
           }
         })
@@ -275,15 +278,19 @@ function CheckoutContent() {
       api.get('/cart')
         .then(res => {
           if (res.data.success && res.data.data.cart?.items) {
-             const items = res.data.data.cart.items.map(i => ({
+             const items = res.data.data.cart.items.map(i => {
+                const priced = applyVariantPricing(i.product, i.variant);
+                return {
                 product_id: i.product?._id || i.product,
                 vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id,
                 vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
                 name: i.product?.name,
-                price: i.product?.price,
+                price: priced.price,
                 quantity: i.quantity,
-                image: i.product?.images?.[0]?.url || i.product?.images?.[0]
-             }));
+                image: priced.image,
+                variant: i.variant || null
+             };
+             });
 
              setCartItems(mergeCheckoutItems(items));
              
@@ -377,7 +384,7 @@ function CheckoutContent() {
             orderPayload.items = cartItems.map(it => ({
                product_id: it.product_id,
                quantity: it.quantity,
-               variant: variant // Use the extracted variant from searchParams
+               variant: it.variant || variant
             }));
          }
 
@@ -1097,6 +1104,11 @@ function CheckoutContent() {
                        <img src={item.image || '/placeholder.png'} className="size-14 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
                        <div className="flex-1 min-w-0">
                           <p className="text-xs  font-bold text-[var(--text-primary)] truncate ">{item.name}</p>
+                          {formatVariantLabel(item.variant) && (
+                            <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">
+                              {formatVariantLabel(item.variant)}
+                            </p>
+                          )}
                           <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-mono">{item.price?.toLocaleString()} XAF x {item.quantity}</p>
                        </div>
                     </div>

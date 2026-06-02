@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
+import { formatVariantLabel } from '@/utils/variants';
 
 const ORDER_STATUS_STYLES = {
   amber: {
@@ -147,7 +148,8 @@ export default function OrdersTab({ user, onViewOrder }) {
       if (!query) return true;
       const firstItem = order.products?.[0] || order.items?.[0];
       const title = (firstItem?.name || firstItem?.product?.name || '').toLowerCase();
-      return order._id.toLowerCase().includes(query) || title.includes(query);
+      const variant = formatVariantLabel(firstItem?.variant).toLowerCase();
+      return order._id.toLowerCase().includes(query) || title.includes(query) || variant.includes(query);
     });
   }, [orders, statusFilter, search]);
 
@@ -280,6 +282,7 @@ export default function OrdersTab({ user, onViewOrder }) {
                 firstItem?.name ||
                 firstItem?.product?.name ||
                 `Order #${order._id.slice(-8).toUpperCase()}`;
+              const variantLabel = formatVariantLabel(firstItem?.variant);
               const sColor = getStatusColor(order.order_status);
               const statusStyle = ORDER_STATUS_STYLES[sColor] || ORDER_STATUS_STYLES.amber;
               const paymentMeta = getPaymentMeta(order);
@@ -320,6 +323,11 @@ export default function OrdersTab({ user, onViewOrder }) {
                         <h4 className="mt-1 line-clamp-2 text-[12px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] sm:line-clamp-1">
                           {title}
                         </h4>
+                        {variantLabel && (
+                          <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">
+                            {variantLabel}
+                          </p>
+                        )}
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--text-secondary)]">
                           <span>#{order._id.slice(-8).toUpperCase()}</span>
                           <span className="hidden sm:inline">•</span>

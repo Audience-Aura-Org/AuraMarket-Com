@@ -10,7 +10,17 @@ const Wishlist = require('../models/Wishlist.model');
 // @access  Private
 const getWishlist = async (req, res, next) => {
   try {
-    let wishlist = await Wishlist.findOne({ user_id: req.user._id }).populate('products');
+    let wishlist = await Wishlist.findOne({ user_id: req.user._id }).populate({
+      path: 'products',
+      populate: {
+        path: 'vendor_id',
+        select: 'store_name rating follower_count is_verified verified user_id',
+        populate: {
+          path: 'user_id',
+          select: 'name avatar branding logo',
+        },
+      },
+    });
 
     if (!wishlist) {
       wishlist = await Wishlist.create({ user_id: req.user._id, products: [] });

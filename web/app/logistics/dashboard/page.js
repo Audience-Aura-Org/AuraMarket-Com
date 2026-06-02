@@ -20,6 +20,7 @@ import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import StatCard from "@/components/layout/StatCard";
+import { formatVariantLabel } from "@/utils/variants";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,8 @@ function summarizeLineItems(order) {
       (typeof p.product_id === "object" && p.product_id?.name) ||
       p.name ||
       "Item";
-    return `${name} ×${p.quantity ?? 1}`;
+    const variant = formatVariantLabel(p.variant);
+    return `${name}${variant ? ` (${variant})` : ""} x${p.quantity ?? 1}`;
   });
   const extra = order.products.length > 2 ? ` +${order.products.length - 2}` : "";
   return parts.join(" · ") + extra;

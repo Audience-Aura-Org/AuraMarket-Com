@@ -22,6 +22,7 @@ import {
   LogisticsSubpageHeader,
   LogisticsShortcutsRow,
 } from "@/components/logistics/LogisticsSubpageShell";
+import { formatVariantLabel } from "@/utils/variants";
 
 const PAGE_SIZE = 10;
 
@@ -32,7 +33,8 @@ function summarizeLineItems(order) {
       (typeof p.product_id === "object" && p.product_id?.name) ||
       p.name ||
       "Item";
-    return `${name} ×${p.quantity ?? 1}`;
+    const variant = formatVariantLabel(p.variant);
+    return `${name}${variant ? ` (${variant})` : ""} x${p.quantity ?? 1}`;
   });
   const extra = order.products.length > 2 ? ` +${order.products.length - 2}` : "";
   return parts.join(" · ") + extra;

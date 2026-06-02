@@ -36,6 +36,42 @@ const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
 
+const variantEntries = (variant) =>
+  Object.entries(variant || {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+const variantLabel = (variant) =>
+  variantEntries(variant).map(([key, value]) => `${key}: ${value}`).join(' / ');
+
+const findSelectedVariant = (product, selectedVariant) => {
+  const entries = variantEntries(selectedVariant);
+  if (!product?.has_variants || entries.length === 0) return null;
+  return product.sku_variants?.find((variant) =>
+    entries.every(([key, value]) => String(variant.combination?.[key] ?? '') === String(value))
+  ) || null;
+};
+
+const resolveOrderLine = (product, item) => {
+  const quantity = Number(item.quantity || 1);
+  let itemPrice = product.price;
+  let itemImage = product.images?.[0]?.url || null;
+
+  if (product.has_variants) {
+    const variantMatch = findSelectedVariant(product, item.variant);
+    if (!variantMatch) {
+      throw new Error(`Please select a valid variant for ${product.name}.`);
+    }
+    if (variantMatch.stock < quantity) {
+      throw new Error(`Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
+    }
+    itemPrice = variantMatch.price;
+    if (variantMatch.image) itemImage = variantMatch.image;
+  } else if (product.stock < quantity) {
+    throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+  }
+
+  return { quantity, itemPrice, itemImage };
+};
+
 // ─────────────────────────────────────────────
 // @route   POST /api/orders
 // @desc    Create a new order
@@ -69,32 +105,15 @@ const createOrder = async (req, res, next) => {
         throw new Error(`Product ${item.product_id} is unavailable.`);
       }
 
-      if (product.stock < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+      const { quantity, itemPrice, itemImage } = resolveOrderLine(product, item);
+
+      if (product.has_variants) {
+        const variantMatch = findSelectedVariant(product, item.variant);
+        variantMatch.stock -= quantity;
       }
 
-      let itemPrice = product.price;
-      let itemImage = product.images.length > 0 ? product.images[0].url : null;
-
-      // Handle Variant Price/Stock/Image
-      if (product.has_variants && item.variant) {
-        const variantMatch = product.sku_variants.find(v => 
-          Object.entries(item.variant).every(([k, val]) => v.combination[k] === val)
-        );
-        if (variantMatch) {
-          if (variantMatch.stock < item.quantity) {
-             throw new Error(`Insufficient stock for ${product.name} (${Object.values(item.variant).join('/')}). Available: ${variantMatch.stock}`);
-          }
-          itemPrice = variantMatch.price;
-          if (variantMatch.image) itemImage = variantMatch.image;
-          
-          // Reduce variant stock
-          variantMatch.stock -= item.quantity;
-        }
-      }
-
-      product.stock -= item.quantity;
-      product.purchase_count = (product.purchase_count || 0) + item.quantity;
+      product.stock -= quantity;
+      product.purchase_count = (product.purchase_count || 0) + quantity;
       product.markModified('sku_variants');
       await product.save({ session });
 
@@ -110,7 +129,7 @@ const createOrder = async (req, res, next) => {
       validatedProducts.push({
         product_id: product._id,
         name:       product.name,
-        quantity:   item.quantity,
+        quantity,
         price:      itemPrice,
         image:      itemImage,
         variant:    item.variant
@@ -796,24 +815,13 @@ const createOrdersFromCart = async (req, res, next) => {
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
       let subtotal = 0;
       const orderProducts = items.map(it => {
-        let itemPrice = it.product.price;
-        let itemImage = it.product.images?.[0]?.url;
+        const { quantity, itemPrice, itemImage } = resolveOrderLine(it.product, it);
 
-        if (it.product.has_variants && it.variant) {
-          const variantMatch = it.product.sku_variants.find(v => 
-            Object.entries(it.variant).every(([k, val]) => v.combination[k] === val)
-          );
-          if (variantMatch) {
-            itemPrice = variantMatch.price;
-            if (variantMatch.image) itemImage = variantMatch.image;
-          }
-        }
-
-        subtotal += itemPrice * it.quantity;
+        subtotal += itemPrice * quantity;
         return { 
           product_id: it.product._id, 
           name: it.product.name, 
-          quantity: it.quantity, 
+          quantity,
           price: itemPrice, 
           image: itemImage,
           variant: it.variant
@@ -824,15 +832,15 @@ const createOrdersFromCart = async (req, res, next) => {
         // Find product to update stock
         const p = await Product.findById(it.product._id).session(session);
         if (p) {
-          if (p.has_variants && it.variant) {
-            const vMatch = p.sku_variants.find(v => 
-              Object.entries(it.variant).every(([k, val]) => v.combination[k] === val)
-            );
-            if (vMatch) vMatch.stock -= it.quantity;
+          const quantity = Number(it.quantity || 1);
+          if (p.has_variants) {
+            const vMatch = findSelectedVariant(p, it.variant);
+            if (!vMatch) throw new Error(`Please select a valid variant for ${p.name}.`);
+            vMatch.stock -= quantity;
             p.markModified('sku_variants');
           }
-          p.stock -= it.quantity;
-          p.purchase_count = (p.purchase_count || 0) + it.quantity;
+          p.stock -= quantity;
+          p.purchase_count = (p.purchase_count || 0) + quantity;
           await p.save({ session });
         }
       }

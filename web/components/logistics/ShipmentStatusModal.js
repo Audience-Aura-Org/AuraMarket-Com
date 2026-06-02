@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
+import { formatVariantLabel } from "@/utils/variants";
 
 const FAILURE_OPTIONS = [
   { value: "unreachable", label: "Customer Unreachable" },
@@ -319,10 +320,14 @@ export default function ShipmentStatusModal({
               <div className="divide-y divide-[var(--glass-border)]/50 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20">
                 {products.map((item, idx) => {
                   const pname = (typeof item.product_id === "object" && item.product_id?.name) || item.name || "Item";
+                  const variantLabel = formatVariantLabel(item.variant);
                   return (
                     <div key={idx} className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)]/40 transition-colors">
                       <div className="min-w-0">
                         <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{pname}</p>
+                        {variantLabel && (
+                          <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
+                        )}
                         <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">Unit price: {(item.price || 0).toLocaleString()} XAF</p>
                       </div>
                       <div className="flex items-center gap-2 rounded-lg bg-[var(--bg-primary)] px-3 py-1.5 border border-[var(--glass-border)]">

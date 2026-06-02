@@ -14,6 +14,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatVariantLabel } from '@/utils/variants';
 
 export default function SingleOrderView({ orderId, onBack }) {
   const [order, setOrder] = useState(null);
@@ -684,7 +685,9 @@ export default function SingleOrderView({ orderId, onBack }) {
           <div>
             {sectionTitle('Line items')}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {order.products.map((item, idx) => (
+              {order.products.map((item, idx) => {
+                const variantLabel = formatVariantLabel(item.variant);
+                return (
                 <div
                   key={item._id || idx}
                   className={`${cardBase} flex gap-3 p-3 transition active:border-[var(--accent)]/25 sm:p-4 sm:hover:border-[var(--accent)]/25`}
@@ -698,6 +701,9 @@ export default function SingleOrderView({ orderId, onBack }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-[12px] font-semibold leading-snug text-[var(--text-primary)]">{item.name}</h3>
+                    {variantLabel && (
+                      <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
+                    )}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-medium text-[var(--text-secondary)]">
                       <span className="font-mono text-[var(--accent)]">{(item.price || 0).toLocaleString()} XAF</span>
                       <span className="opacity-40">·</span>
@@ -725,7 +731,8 @@ export default function SingleOrderView({ orderId, onBack }) {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

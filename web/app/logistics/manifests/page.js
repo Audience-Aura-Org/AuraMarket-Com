@@ -29,6 +29,7 @@ import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
 import StatCard from "@/components/layout/StatCard";
 import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
+import { formatVariantLabel } from "@/utils/variants";
 
 const PAGE_SIZE = 10;
 
@@ -47,7 +48,8 @@ function summarizeLineItems(order) {
   if (!order?.products?.length) return "—";
   const parts = order.products.slice(0, 2).map((p) => {
     const name = (typeof p.product_id === "object" && p.product_id?.name) || p.name || "Item";
-    return `${name} ×${p.quantity ?? 1}`;
+    const variant = formatVariantLabel(p.variant);
+    return `${name}${variant ? ` (${variant})` : ""} x${p.quantity ?? 1}`;
   });
   const extra = order.products.length > 2 ? ` +${order.products.length - 2}` : "";
   return parts.join(" · ") + extra;
