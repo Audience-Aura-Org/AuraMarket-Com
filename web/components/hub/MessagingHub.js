@@ -1047,7 +1047,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 );
 
                 return (
-                  <div key={msg._id || i}>
+                  <div key={msg.client_id || msg.clientId || msg._id || i}>
                     {showDate && (
                       <div className="my-3 flex justify-center sm:my-5">
                         <span className="rounded-lg bg-[var(--bg-primary)]/95 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] sm:text-[11px]">
@@ -1065,7 +1065,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                           transition={{ type: 'spring', stiffness: 350, damping: 28 }}
                           className={`
                             group relative min-w-[76px] max-w-full overflow-hidden px-2.5 py-1.5 pr-7 text-[13px] leading-snug break-words [overflow-wrap:anywhere]
-                            shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] transition-all duration-300
+                            shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] transition-colors duration-200
                             hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]
                             sm:px-3 sm:py-2 sm:pr-8 sm:text-[14.5px]
                             ${isOwn

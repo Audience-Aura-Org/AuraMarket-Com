@@ -460,6 +460,7 @@ function chatReducer(state, action) {
         ...action.message,
         sender_id: optimistic?.sender_id || action.message?.sender_id || state.currentUserId,
         receiver_id: optimistic?.receiver_id || action.message?.receiver_id || partnerId,
+        createdAt: optimistic?.createdAt || action.message?.createdAt || new Date().toISOString(),
         status: 'sent',
         client_id: action.clientId || action.message?.client_id,
       };
@@ -467,8 +468,20 @@ function chatReducer(state, action) {
         current.filter((m) => m._id !== action.tempId),
         [confirmed]
       );
+      const existing = state.conversationsById[partnerId] || {};
+      const conversation = {
+        ...existing,
+        snippet: buildConversationPreview(confirmed),
+        last_message: confirmed,
+        date: confirmed.createdAt,
+        read_status: true,
+      };
+      const conversationsById = { ...state.conversationsById, [partnerId]: conversation };
+
       return {
         ...state,
+        conversationsById,
+        conversationOrder: sortByLatest([partnerId, ...state.conversationOrder.filter((id) => id !== partnerId)], conversationsById),
         messagesByConversation: {
           ...state.messagesByConversation,
           [partnerId]: messages,
@@ -799,7 +812,6 @@ export function ChatProvider({ children }) {
 
   const reconcileOptimisticMessage = useCallback((partnerId, tempId, message, clientId) => {
     dispatch({ type: 'RECONCILE_OPTIMISTIC', partnerId, tempId, message, clientId });
-    dispatch({ type: 'RECEIVE_MESSAGE', message, partnerId, isActive: true });
   }, []);
 
   const markMessageFailed = useCallback((partnerId, tempId) => {
