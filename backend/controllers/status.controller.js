@@ -26,7 +26,7 @@ exports.createStatus = async (req, res) => {
       text_content,
       linked_product: linked_product || null,
       caption,
-      category: category || 'General',
+      category: category || 'Moment',
       expiry_days: expiry_days || 1,
       expires_at: expiresAt,
     });

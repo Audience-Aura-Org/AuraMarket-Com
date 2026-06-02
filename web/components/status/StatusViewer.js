@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { toast } from 'react-hot-toast';
 
 const STORY_DURATION = 5000;
 const VIDEO_PRELOAD_AHEAD = 3;
@@ -529,7 +530,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
 
     const vendorName = story.vendor_id?.store_name || 'Auradime';
     const storyUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/discovery?tab=status&story=${encodeURIComponent(story._id)}`
+      ? `${window.location.origin}/discovery/hub?tab=status&story=${encodeURIComponent(story._id)}`
       : '';
     const shareText = story.caption || story.text_content || `View ${vendorName}'s story on Auradime`;
 
@@ -540,14 +541,17 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           text: shareText,
           url: storyUrl,
         });
+        toast.success('Story link ready to share.');
         return;
       }
 
       await navigator.clipboard?.writeText(storyUrl || shareText);
+      toast.success('Story link copied.');
     } catch (error) {
       if (error?.name !== 'AbortError') {
         try {
           await navigator.clipboard?.writeText(storyUrl || shareText);
+          toast.success('Story link copied.');
         } catch {}
       }
     }
@@ -746,7 +750,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                 <span className="text-[10px] lg:text-[12px] text-white/50  font-semibold">{ago(story.createdAt)}</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{story.category || 'General'}</span>
+                <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{story.category || 'Moment'}</span>
                 {(() => {
                   const endingSoon = getEndingSoonInfo(story);
                   if (!endingSoon) return null;

@@ -28,6 +28,22 @@ const mongoose = require('mongoose');
 const generateTxRef = () => `AURA-ESCROW-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 const AUTO_RELEASE_WINDOW_MS = 6 * 60 * 60 * 1000;
 
+const appendShipmentActivity = (orderId, status, note, updatedBy, session = null) =>
+  Shipment.updateMany(
+    { order_id: orderId },
+    {
+      $push: {
+        shipment_logs: {
+          status,
+          updated_by: updatedBy,
+          timestamp: new Date(),
+          note,
+        },
+      },
+    },
+    session ? { session } : undefined
+  );
+
 const markEscrowDelivered = (escrow, deliveredAt = new Date()) => {
   if (!escrow.delivered_at) escrow.delivered_at = deliveredAt;
   if (!escrow.auto_release_at) {
@@ -215,6 +231,13 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     updatedBy: req.user._id,
     note: 'Delivery confirmed by customer via Escrow Handshake. Shipment closed.',
   });
+  await appendShipmentActivity(
+    order._id,
+    'completed',
+    'Customer released escrow funds. Order settlement completed.',
+    req.user._id,
+    session
+  );
 
   // ── FALLBACK: Credit logistics fee if not already settled by logistics controller ──
   // (Covers edge case where logistics controller didn't fire or escrow.logistics_settled wasn't set)
@@ -344,7 +367,36 @@ const releaseFunds = async (req, res, next) => {
       });
     }
 
-    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
+    if (escrow.status === 'released') {
+      escrow.vendor_confirmed = true;
+      if (!orderFinalized || order.order_status !== 'completed') {
+        order.order_status = 'completed';
+      }
+
+      await escrow.save({ session });
+      await order.save({ session });
+      await appendShipmentActivity(
+        order._id,
+        'completed',
+        'Vendor confirmed delivery after escrow had already been released. Order marked complete for record keeping.',
+        req.user._id,
+        session
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      notifyOrderStatusChange(req.app, order, 'completed', {
+        message: `Order #${order._id.toString().slice(-6).toUpperCase()} is complete. Escrow was already released.`,
+      });
+
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Order completed. Escrow funds had already been released.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
+    }
     if (order.payment_status !== 'paid') {
       throw new Error('Escrow cannot be released because this order payment is not paid.');
     }

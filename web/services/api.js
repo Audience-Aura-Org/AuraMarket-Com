@@ -260,26 +260,27 @@ api.interceptors.response.use(
     const config = error.config;
     if (!config) return Promise.reject(error);
 
+    if (!error.response && canUseOfflineCache(config)) {
+      try {
+        const cached = readOfflineCache(config);
+        if (cached?.data) {
+          return {
+            data: cached.data,
+            status: 200,
+            statusText: 'OK (offline cache)',
+            headers: {},
+            config,
+            request: error.request,
+            offlineCache: true,
+          };
+        }
+      } catch {}
+    }
+
     config.__retryCount = config.__retryCount || 0;
     const MAX_RETRIES = 2; // Reduced from 4 — fail fast, don't hang
 
     if (config.__retryCount >= MAX_RETRIES || !shouldRetry(error)) {
-      if (!error.response && canUseOfflineCache(config)) {
-        try {
-          const cached = readOfflineCache(config);
-          if (cached?.data) {
-            return {
-              data: cached.data,
-              status: 200,
-              statusText: 'OK (offline cache)',
-              headers: {},
-              config,
-              request: error.request,
-              offlineCache: true,
-            };
-          }
-        } catch {}
-      }
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'Check network tab';

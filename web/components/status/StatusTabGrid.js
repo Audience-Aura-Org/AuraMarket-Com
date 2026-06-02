@@ -11,6 +11,7 @@ import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import MediaThumbnail from '@/components/common/MediaThumbnail';
 import { useAuthStore } from '@/hooks/useAuth';
+import { STATUS_FILTER_CATEGORIES } from '@/constants/statusCategories';
 
 const warmStoryMedia = (story, eager = false) => {
   if (!story?.content_url) return;
@@ -177,7 +178,7 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
   );
 });
 
-const CATEGORIES = ['All', 'Fashion', 'Electronics', 'Lifestyle', 'Tech', 'Art', 'Beauty', 'General'];
+const CATEGORIES = STATUS_FILTER_CATEGORIES;
 
 // â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function StatusTabGrid({ onSelectStatus }) {

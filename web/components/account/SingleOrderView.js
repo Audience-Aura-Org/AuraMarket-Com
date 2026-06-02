@@ -26,7 +26,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const [disputeLoading, setDisputeLoading] = useState(false);
 
   const [reviewModal, setReviewModal] = useState(false);
-  const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product_id: null });
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product_id: null, order_id: null, product_name: '' });
   const [reviewLoading, setReviewLoading] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(null);
 
@@ -144,6 +144,24 @@ export default function SingleOrderView({ orderId, onBack }) {
     if (data.escrow !== undefined) setEscrow(data.escrow);
   };
 
+  const getOrderItemProductId = (item) => item?.product_id?._id || item?.product_id || item?.product?._id || item?.product || null;
+
+  const openItemReview = (item) => {
+    const productId = getOrderItemProductId(item);
+    if (!productId) {
+      toast.error('Product detail is missing for this order item.');
+      return;
+    }
+    setReviewData({
+      rating: 5,
+      comment: '',
+      product_id: productId,
+      order_id: order?._id || orderId,
+      product_name: item?.name || item?.product_id?.name || 'Ordered item',
+    });
+    setReviewModal(true);
+  };
+
   const handleConfirmDelivery = async () => {
     if (!confirm("Confirm asset arrival? This releases escrowed funds to the vendor node.")) return;
     try {
@@ -154,8 +172,7 @@ export default function SingleOrderView({ orderId, onBack }) {
         else fetchOrderManifest();
         // Prompt for review if there are products
         if (order.products?.length > 0) {
-          setReviewData({ ...reviewData, product_id: order.products[0].product_id?._id || order.products[0].product_id });
-          setReviewModal(true);
+          openItemReview(order.products[0]);
         }
       }
     } catch (err) {
@@ -189,7 +206,7 @@ export default function SingleOrderView({ orderId, onBack }) {
     try {
       const res = await api.post(`/escrow/confirm-delivery/${orderId}`);
       if (res.data.success) {
-        toast.success("Delivery confirmed. Awaiting customer release.", { id: toastId });
+        toast.success(res.data.message || "Delivery confirmed. Awaiting customer release.", { id: toastId });
         if (res.data.data) applyManifestPayload(res.data.data);
         else fetchOrderManifest();
       }
@@ -202,7 +219,12 @@ export default function SingleOrderView({ orderId, onBack }) {
     e.preventDefault();
     setReviewLoading(true);
     try {
-      const res = await api.post('/reviews', { order_id: orderId, product_id: reviewData.product_id, rating: reviewData.rating, comment: reviewData.comment });
+      const res = await api.post('/reviews', {
+        order_id: reviewData.order_id || orderId,
+        product_id: reviewData.product_id,
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+      });
       if (res.data.success) {
         toast.success("Feedback broadcasted to Aura network.");
         setReviewModal(false);
@@ -713,10 +735,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                       {order.order_status === 'completed' && !isVendor && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setReviewData({ ...reviewData, product_id: item.product_id?._id || item.product_id });
-                            setReviewModal(true);
-                          }}
+                          onClick={() => openItemReview(item)}
                           className="min-h-10 rounded-lg bg-[var(--accent)] px-4 py-2 text-[10px] font-semibold text-white shadow-sm transition active:opacity-90 sm:hover:opacity-95"
                         >
                           Review
@@ -724,6 +743,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                       )}
                       <button
                         type="button"
+                        onClick={() => openItemReview(item)}
                         className="min-h-10 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-2 text-[10px] font-semibold text-[var(--text-secondary)] transition active:bg-[var(--bg-primary)] sm:hover:text-[var(--text-primary)]"
                       >
                         Verify
@@ -959,7 +979,7 @@ export default function SingleOrderView({ orderId, onBack }) {
 
       <AnimatePresence>
         {reviewModal && (
-          <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4 md:p-6">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -968,14 +988,16 @@ export default function SingleOrderView({ orderId, onBack }) {
               className="absolute inset-0 bg-black/70 backdrop-blur-md"
             />
             <motion.div
-              initial={{ y: 24, opacity: 0 }}
+              initial={{ y: 14, scale: 0.98, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 24, opacity: 0 }}
+              exit={{ y: 14, scale: 0.98, opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-[var(--glass-border)] border-b-0 bg-[var(--bg-primary)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl sm:border-b sm:p-8"
+              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-8"
             >
               <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Leave a review</h2>
-              <p className="mt-1 text-[12px] text-[var(--text-secondary)]">Share feedback for this product.</p>
+              <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+                Share feedback for {reviewData.product_name || 'this product'}.
+              </p>
               <form onSubmit={handleSubmitReview} className="mt-6 space-y-5">
                 <div className="space-y-2">
                   <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Rating</label>

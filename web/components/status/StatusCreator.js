@@ -10,14 +10,13 @@ import {
 } from 'lucide-react';
 import { uploadService } from '@/services/upload';
 import api from '@/services/api';
+import { STATUS_CATEGORIES } from '@/constants/statusCategories';
 
 const DURATION_OPTIONS = [
   { value: 1, label: '1 Day',  sublabel: 'Quick drop'  },
   { value: 3, label: '3 Days', sublabel: 'Standard', recommended: true },
   { value: 7, label: '7 Days', sublabel: 'Max reach' },
 ];
-
-const CATEGORIES = ['Fashion', 'Electronics', 'Lifestyle', 'Tech', 'Art', 'Beauty', 'General'];
 
 /**
  * StatusCreator — single-screen story composer.
@@ -327,7 +326,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   {!selectedCategory && <span className="text-[11px] lg:text-[12px]  font-semibold text-red-400 tracking-tight">Required</span>}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map(cat => (
+                  {STATUS_CATEGORIES.map(cat => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}

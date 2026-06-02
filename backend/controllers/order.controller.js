@@ -606,6 +606,22 @@ const updateOrderStatus = async (req, res, next) => {
         updatedBy: req.user._id,
         note: `Order status updated to ${order_status} by ${req.user.role}.`,
       });
+      if (order_status === 'shipped') {
+        await Shipment.updateMany(
+          { order_id: order._id },
+          {
+            $push: {
+              shipment_logs: {
+                status: 'shipped',
+                updated_by: req.user._id,
+                timestamp: new Date(),
+                note: 'Vendor marked the product as shipped.',
+              },
+            },
+          },
+          { session }
+        );
+      }
     }
 
     // ── NOTE: Fund release is handled either by logistics.controller (on delivery) 
