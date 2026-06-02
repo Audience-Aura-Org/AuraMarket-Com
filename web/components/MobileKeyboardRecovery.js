@@ -10,8 +10,15 @@ const isIOSStandalone = () => {
   return isiOS && standalone;
 };
 
-const recoverViewport = () => {
+const isChatActive = (target = null) => {
+  if (typeof document === 'undefined') return false;
+  if (document.documentElement.classList.contains('chat-open')) return true;
+  return Boolean(target?.closest?.('[data-chat-composer], [data-chat-messages]'));
+};
+
+const recoverViewport = (eventTarget = null) => {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (isChatActive(eventTarget)) return;
 
   const active = document.activeElement;
   if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) && typeof active.blur === 'function') {
@@ -40,18 +47,21 @@ export default function MobileKeyboardRecovery() {
     if (!isIOSStandalone()) return;
 
     const onKeyDown = (event) => {
+      if (isChatActive(event.target)) return;
       if (event.key === 'Enter') {
-        setTimeout(recoverViewport, 40);
-        setTimeout(recoverViewport, 300);
+        setTimeout(() => recoverViewport(event.target), 40);
+        setTimeout(() => recoverViewport(event.target), 300);
       }
     };
 
-    const onFocusOut = () => {
-      setTimeout(recoverViewport, 80);
-      setTimeout(recoverViewport, 320);
+    const onFocusOut = (event) => {
+      if (isChatActive(event.target)) return;
+      setTimeout(() => recoverViewport(event.target), 80);
+      setTimeout(() => recoverViewport(event.target), 320);
     };
 
     const onVisibility = () => {
+      if (isChatActive()) return;
       if (document.visibilityState === 'visible') recoverViewport();
     };
 
