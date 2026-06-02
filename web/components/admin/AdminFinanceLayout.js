@@ -63,7 +63,7 @@ export function AdminFinanceHeader({
     <header
       className={`sticky top-0 z-40 border-b bg-[var(--bg-primary)]/90 backdrop-blur-md ${t.headerAccent}`}
     >
-      <div className="mx-auto max-w-7xl space-y-3 px-3 py-3 sm:px-5 sm:py-4">
+      <div className="w-full space-y-3 px-3 py-3 sm:px-5 sm:py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             {Icon && (
@@ -120,7 +120,7 @@ export function AdminFinanceHeader({
 
 export function AdminFinanceBody({ children, className = '' }) {
   return (
-    <div className={`mx-auto max-w-7xl space-y-4 px-3 py-4 pb-28 sm:px-5 sm:py-5 ${className}`}>
+    <div className={`w-full space-y-4 px-3 py-4 pb-28 sm:px-5 sm:py-5 ${className}`}>
       {children}
     </div>
   );
