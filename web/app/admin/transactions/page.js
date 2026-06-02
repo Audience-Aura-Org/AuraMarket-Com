@@ -1,27 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
-import { 
-  CreditCard, Clock, User,
-  Search, RefreshCw, RotateCcw,
-  XCircle, Globe, Mail, Phone,
-  Database, Loader2, Zap,
-  CheckCircle2, AlertCircle
+import {
+  CreditCard, Clock, User, RotateCcw, ChevronDown,
+  Mail, Phone, Database, Loader2, Zap, Globe,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { fmt, STATUS_CONFIG, TYPE_CONFIG } from '@/utils/adminFinance';
+import {
+  AdminFinancePage,
+  AdminFinanceHeader,
+  AdminFinanceBody,
+  AdminMetricGrid,
+  AdminFilterToolbar,
+  AdminFilterSearch,
+  AdminFilterSelect,
+  AdminFilterPills,
+  AdminFilterButton,
+  AdminListPanel,
+  AdminLedgerTableHeader,
+} from '@/components/admin/AdminFinanceLayout';
 
-const STAT_COLOR_STYLES = {
-  amber: 'text-amber-500 bg-amber-500/5',
-  blue: 'text-blue-500 bg-blue-500/5',
-  emerald: 'text-emerald-500 bg-emerald-500/5',
-  indigo: 'text-indigo-500 bg-indigo-500/5',
-  rose: 'text-rose-500 bg-rose-500/5'
-};
+const GATEWAYS = ['eversend', 'mesomb', 'wallet', 'manual', 'paystack'];
+const STATUS_FILTERS = ['all', 'completed', 'pending', 'failed'];
 
 export default function AdminTransactionsPage() {
   const [transactions, setTransactions] = useState([]);
@@ -39,9 +43,7 @@ export default function AdminTransactionsPage() {
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [recoveringId, setRecoveringId] = useState(null);
 
-  const GATEWAYS = ['eversend', 'mesomb', 'wallet', 'manual', 'paystack'];
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const params = {
@@ -49,47 +51,43 @@ export default function AdminTransactionsPage() {
         status: statusFilter,
         type: typeFilter,
         search,
-        ...(gatewayFilter !== 'all' && { gateway: gatewayFilter })
+        ...(gatewayFilter !== 'all' && { gateway: gatewayFilter }),
       };
       const res = await api.get('/admin/transactions', { params });
       if (res.data?.success) {
         setTransactions(res.data.data.transactions || []);
-        setTotalPages(Math.ceil((res.data.total || 0) / 50));
+        setTotalPages(Math.max(1, Math.ceil((res.data.total || 0) / 50)));
       }
-    } catch (err) {
-      toast.error('Failed to sync financial matrix');
+    } catch {
+      toast.error('Failed to load transactions');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, statusFilter, typeFilter, gatewayFilter, search]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await api.get('/admin/analytics');
       if (res.data.success) {
-        // Support both response shapes
         const d = res.data.data;
         setStats(d?.stats || d?.payout_intel || d || null);
       }
-    } catch (err) {
+    } catch {
       console.error('Failed to fetch platform metrics');
     }
-  };
-
-  useEffect(() => {
-    fetchTransactions();
-    fetchStats();
   }, []);
 
   useEffect(() => {
-    fetchTransactions();
-  }, [currentPage, statusFilter, typeFilter, gatewayFilter]);
+    fetchStats();
+  }, [fetchStats]);
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter') {
-      setCurrentPage(1);
-      fetchTransactions();
-    }
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  const handleSearchSubmit = () => {
+    setCurrentPage(1);
+    fetchTransactions();
   };
 
   const handleGatewaySync = async () => {
@@ -100,22 +98,28 @@ export default function AdminTransactionsPage() {
         toast.success(res.data.message);
         fetchTransactions();
       }
-    } catch (err) {
-      toast.error('Gateway reconciliation failed');
+    } catch {
+      toast.error('Gateway sync failed');
     } finally {
       setGatewaySyncing(false);
     }
   };
 
   const handleUpdateStatus = async (txId, newStatus) => {
-    const admin_note = window.prompt(`Are you sure you want to shift this transaction to ${newStatus.toUpperCase()}? This will trigger cascading effects (wallet credit or order settlement) if marking as completed. Enter reason:`, 'Administrative Correction');
+    const admin_note = window.prompt(
+      `Mark as ${newStatus}? Enter reason (wallet/order effects may apply):`,
+      'Administrative correction'
+    );
     if (admin_note === null) return;
 
     setUpdatingStatus(txId);
     try {
-      const res = await api.patch(`/admin/transactions/manual-fix/${txId}`, { status: newStatus, admin_note });
+      const res = await api.patch(`/admin/transactions/manual-fix/${txId}`, {
+        status: newStatus,
+        admin_note,
+      });
       if (res.data.success) {
-        toast.success(`Transaction shifted to ${newStatus}`);
+        toast.success(`Updated to ${newStatus}`);
         fetchTransactions();
       }
     } catch (err) {
@@ -125,10 +129,24 @@ export default function AdminTransactionsPage() {
     }
   };
 
-  // Recover a failed/stuck Eversend deposit that the gateway actually processed
+  const handleFulfillOrders = async (txId) => {
+    setSyncing(txId);
+    try {
+      const res = await api.post(`/admin/transactions/${txId}/fulfill`);
+      if (res.data.success) {
+        toast.success(res.data.message || 'Orders fulfilled');
+        fetchTransactions();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Fulfillment failed');
+    } finally {
+      setSyncing(null);
+    }
+  };
+
   const handleRecoverPayment = async (tx) => {
     const confirmed = window.confirm(
-      `Recover payment for ${tx.reference}?\n\nThis will:\n• Re-check with Eversend gateway\n• Credit ${tx.amount?.toLocaleString()} XAF to the user's wallet if confirmed\n• Notify the user\n\nOnly proceed if you have confirmed the gateway received funds.`
+      `Recover payment for ${tx.reference}?\n\nThis re-checks the gateway and credits ${fmt(tx.amount)} XAF if confirmed.`
     );
     if (!confirmed) return;
 
@@ -136,41 +154,37 @@ export default function AdminTransactionsPage() {
     try {
       const res = await api.post(`/payments/eversend/recover/${tx.reference}`);
       if (res.data.success) {
-        toast.success(`✅ ${res.data.message}`);
+        toast.success(res.data.message);
         fetchTransactions();
       } else {
-        // Gateway check didn't confirm — offer force option
         const forceIt = window.confirm(
-          `Gateway check returned: "${res.data.message}"\n\nDo you want to FORCE recover this payment?\n\nOnly do this if you have a confirmed receipt from the Eversend dashboard showing funds were received.`
+          `${res.data.message}\n\nForce recover anyway? Only if you confirmed receipt in Eversend.`
         );
         if (forceIt) {
           const forceRes = await api.post(`/payments/eversend/recover/${tx.reference}`, { force: true });
           if (forceRes.data.success) {
-            toast.success(`✅ Force recovered: ${forceRes.data.message}`);
+            toast.success(forceRes.data.message);
             fetchTransactions();
           } else {
-            toast.error(forceRes.data.message || 'Force recovery failed.');
+            toast.error(forceRes.data.message || 'Force recovery failed');
           }
         }
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Recovery request failed.';
-      // 400 means gateway check ran but returned non-success — offer force
+      const msg = err.response?.data?.message || 'Recovery failed';
       if (err.response?.status === 400) {
-        const forceIt = window.confirm(
-          `${msg}\n\nForce recover anyway?\n(Only if you have confirmed gateway receipt)`
-        );
+        const forceIt = window.confirm(`${msg}\n\nForce recover anyway?`);
         if (forceIt) {
           try {
             const forceRes = await api.post(`/payments/eversend/recover/${tx.reference}`, { force: true });
             if (forceRes.data.success) {
-              toast.success(`✅ Force recovered: ${forceRes.data.message}`);
+              toast.success(forceRes.data.message);
               fetchTransactions();
             } else {
-              toast.error(forceRes.data.message || 'Force recovery failed.');
+              toast.error(forceRes.data.message || 'Force recovery failed');
             }
           } catch (forceErr) {
-            toast.error(forceErr.response?.data?.message || 'Force recovery failed.');
+            toast.error(forceErr.response?.data?.message || 'Force recovery failed');
           }
         }
       } else {
@@ -182,343 +196,321 @@ export default function AdminTransactionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      {/* Surgical Header */}
-      <header className="h-24 flex items-center justify-between px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-16 z-40">
-        <div className="flex items-center gap-6">
-          <div className="size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20">
-             <CreditCard className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight ">Global <span className="text-[var(--accent)]">Transaction</span> Ledger</h2>
-            <div className="flex items-center gap-2 mt-1">
-               <div className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 capitalize">Live Financial Feed // Node_Aura_Vault</p>
-            </div>
-          </div>
-        </div>
+    <AdminFinancePage theme="transactions">
+      <AdminFinanceHeader
+        theme="transactions"
+        icon={CreditCard}
+        title="Payment ledger"
+        description="Escrow, deposits, and platform revenue"
+        badge={`${transactions.length} on page`}
+        onRefresh={fetchTransactions}
+        loading={loading}
+      />
 
-        <div className="flex items-center gap-4">
-           <div className="relative w-64 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
-              <input 
-                type="text"
-                placeholder="Reference, Gateway ID..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                onKeyDown={handleSearch}
+      <AdminFinanceBody>
+        <AdminMetricGrid
+          theme="transactions"
+          metrics={[
+            { label: 'Escrow held', value: stats ? `${fmt(stats.escrow_held)}` : '…', hint: 'XAF' },
+            { label: 'Released', value: stats ? `${fmt(stats.escrow_released)}` : '…', hint: 'XAF' },
+            { label: 'Disputed', value: stats ? `${fmt(stats.escrow_disputed)}` : '…', hint: 'XAF' },
+            { label: 'Revenue', value: stats ? `${fmt(stats.revenue)}` : '…', hint: 'XAF' },
+            { label: 'This page', value: String(transactions.length), hint: 'transactions' },
+          ]}
+        />
+
+        <AdminListPanel
+          theme="transactions"
+          variant="ledger"
+          title="Ledger entries"
+          countLabel={`Page ${currentPage} · 50 per page`}
+          loading={loading}
+          loadingMessage="Loading ledger…"
+          isEmpty={!loading && transactions.length === 0}
+          emptyIcon={CreditCard}
+          emptyMessage="No transactions match your filters."
+          listHeader={
+            <AdminLedgerTableHeader columns={['Transaction', 'Amount', 'Status', '']} />
+          }
+          footer={
+            !loading && transactions.length > 0 ? (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
               />
-           </div>
-           
-           <select 
-             className="h-11 px-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] outline-none cursor-pointer"
-             value={typeFilter}
-             onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
-           >
-              <option value="all">ALL TYPES</option>
-              {Object.entries(TYPE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-           </select>
-
-           <select 
-             className="h-11 px-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] outline-none cursor-pointer"
-             value={gatewayFilter}
-             onChange={e => { setGatewayFilter(e.target.value); setCurrentPage(1); }}
-           >
-              <option value="all">ALL GATEWAYS</option>
-              {GATEWAYS.map(g => <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>)}
-           </select>
-
-           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
-              {['all', 'completed', 'pending', 'failed'].map(s => (
-                <button 
-                  key={s}
-                  onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            ) : null
+          }
+          filterSlot={
+            <>
+              <AdminFilterToolbar>
+                <AdminFilterSearch
+                  theme="transactions"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onSubmit={handleSearchSubmit}
+                  placeholder="Reference or gateway ID"
+                />
+                <AdminFilterSelect
+                  theme="transactions"
+                  value={typeFilter}
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 >
-                  {s}
+                  <option value="all">All types</option>
+                  {Object.entries(TYPE_CONFIG).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v.label}
+                    </option>
+                  ))}
+                </AdminFilterSelect>
+                <AdminFilterSelect
+                  theme="transactions"
+                  value={gatewayFilter}
+                  onChange={(e) => {
+                    setGatewayFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="all">All gateways</option>
+                  {GATEWAYS.map((g) => (
+                    <option key={g} value={g}>
+                      {g.charAt(0).toUpperCase() + g.slice(1)}
+                    </option>
+                  ))}
+                </AdminFilterSelect>
+                <AdminFilterButton
+                  theme="transactions"
+                  onClick={handleGatewaySync}
+                  disabled={gatewaySyncing}
+                  variant="primary"
+                >
+                  {gatewaySyncing ? <Loader2 className="size-3.5 animate-spin" /> : <Globe className="size-3.5" />}
+                  Sync Eversend
+                </AdminFilterButton>
+              </AdminFilterToolbar>
+              <AdminFilterPills
+                theme="transactions"
+                items={STATUS_FILTERS}
+                value={statusFilter}
+                onChange={(s) => {
+                  setStatusFilter(s);
+                  setCurrentPage(1);
+                }}
+              />
+            </>
+          }
+        >
+          {transactions.map((tx, idx) => {
+            const status = STATUS_CONFIG[tx.status] || STATUS_CONFIG.pending;
+            const type = TYPE_CONFIG[tx.type] || TYPE_CONFIG.payment;
+            const isExpanded = expandedId === tx._id;
+            const TypeIcon = type.icon;
+
+            return (
+              <div
+                key={tx._id}
+                className={`transition ${
+                  isExpanded ? 'bg-indigo-500/[0.06]' : idx % 2 === 1 ? 'bg-[var(--bg-secondary)]/15' : ''
+                }`}
+              >
+                <button
+                  type="button"
+                  className="w-full text-left"
+                  onClick={() => setExpandedId(isExpanded ? null : tx._id)}
+                >
+                  <div className="flex flex-col gap-2 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_100px_120px_40px] sm:items-center sm:gap-3 sm:px-4 sm:py-2.5">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <div
+                        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${status.bg} ${status.color}`}
+                      >
+                        <TypeIcon className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[12px] font-semibold capitalize">
+                            {tx.type?.replace(/_/g, ' ')}
+                          </span>
+                          <span className="rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+                            {tx.gateway || 'internal'}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 font-mono text-[10px] text-indigo-600 dark:text-indigo-400">
+                          #{tx.reference?.slice(-10).toUpperCase()}
+                        </p>
+                        <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--text-secondary)]">
+                          {tx.user_id?.name || 'User'} · {tx.description || '—'}
+                        </p>
+                        <p className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)] sm:hidden">
+                          <Clock className="size-3" />
+                          {new Date(tx.createdAt).toLocaleString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="text-right text-[13px] font-semibold tabular-nums sm:text-[12px]">
+                      {fmt(tx.amount)}
+                      <span className="ml-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                        {tx.currency || 'XAF'}
+                      </span>
+                    </p>
+
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
+                      <span
+                        className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize ${status.bg} ${status.color} ${status.border}`}
+                      >
+                        {status.label}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-secondary)] sm:hidden">
+                        {new Date(tx.createdAt).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="hidden items-center justify-center sm:flex">
+                      <ChevronDown
+                        className={`size-4 text-[var(--text-secondary)] transition ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
+                      />
+                    </div>
+                  </div>
                 </button>
-              ))}
-           </div>
-           
-           <button 
-             onClick={handleGatewaySync} 
-             disabled={gatewaySyncing}
-             className="h-11 px-6 bg-[var(--accent)] text-white rounded-2xl text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] capitalize shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
-           >
-              {gatewaySyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-              Sync Gateway
-           </button>
 
-           <button onClick={fetchTransactions} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </button>
-        </div>
-      </header>
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden border-t border-indigo-500/15 bg-[var(--bg-primary)]/50"
+                    >
+                      <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4">
+                        <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-2">
+                          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                            <Database className="size-3.5" /> Transaction data
+                          </p>
+                          <div className="text-[11px]">
+                            <span className="text-[var(--text-secondary)]">Reference </span>
+                            <span className="font-mono">{tx.reference}</span>
+                          </div>
+                          <div className="text-[11px]">
+                            <span className="text-[var(--text-secondary)]">Gateway ID </span>
+                            <span className="font-mono">{tx.gateway_transaction_id || '—'}</span>
+                          </div>
+                          <p className="inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]">
+                            <Clock className="size-3" />
+                            {new Date(tx.createdAt).toLocaleString()}
+                          </p>
+                          {tx.order_ids?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {tx.order_ids.map((oid) => (
+                                <span
+                                  key={oid}
+                                  className="rounded-md bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[10px] text-indigo-700 dark:text-indigo-300"
+                                >
+                                  #{String(oid).slice(-8).toUpperCase()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
-      <div className="p-10 space-y-8 pb-40">
-         {/* Live Stats */}
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-            {[
-               { title: 'LOCKED', desc: 'Custody Total', count: stats ? `${fmt(stats.escrow_held)} XAF` : '...', icon: Database, color: 'blue' },
-               { title: 'RELEASED', desc: 'Settled Capital', count: stats ? `${fmt(stats.escrow_released)} XAF` : '...', icon: CheckCircle2, color: 'emerald' },
-               { title: 'DISPUTE', desc: 'Contested', count: stats ? `${fmt(stats.escrow_disputed)} XAF` : '...', icon: AlertCircle, color: 'rose' },
-               { title: 'TRUST', desc: 'System Health', count: 'High', icon: Zap, color: 'amber' },
-               { title: 'REVENUE', desc: 'Gross Platform', count: stats ? `${fmt(stats.revenue)} XAF` : '...', icon: Globe, color: 'indigo' },
-            ].map((item, i) => (
-               <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
-                  <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${STAT_COLOR_STYLES[item.color] || STAT_COLOR_STYLES.blue}`}>
-                     <item.icon className="size-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                     <p className="text-[11px] lg:text-[12px] font-semibold truncate uppercase tracking-tight">{item.title}</p>
-                     <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
-                  </div>
-                  <div className="text-right">
-                     <p className="text-xs font-bold font-mono whitespace-nowrap">{item.count}</p>
-                  </div>
-               </div>
-            ))}
-         </div>
-
-         {/* Transaction Ledger */}
-         <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-            <div className="p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-               <h3 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-3 capitalize">
-                  <Database className="w-4 h-4 text-[var(--accent)]" /> 
-                  Platform Transaction Ledger
-               </h3>
-               <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">Displaying latest 50 entries per page</p>
-            </div>
-
-             <div className="space-y-4">
-               {loading ? (
-                  <LoadingSpinner />
-               ) : transactions.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 p-6 lg:p-10">
-                    {transactions.map(tx => {
-                      const status = STATUS_CONFIG[tx.status] || STATUS_CONFIG.pending;
-                      const type = TYPE_CONFIG[tx.type] || TYPE_CONFIG.payment;
-                      const isExpanded = expandedId === tx._id;
-
-                      // Extract unique vendor logos
-                      const vendorLogos = new Set();
-                      if (tx.order_id?.vendor_id?.branding?.logo) vendorLogos.add(tx.order_id.vendor_id.branding.logo);
-                      tx.order_ids?.forEach(o => {
-                        if (o.vendor_id?.branding?.logo) vendorLogos.add(o.vendor_id.branding.logo);
-                      });
-                      const logos = Array.from(vendorLogos);
-
-                      return (
-                        <div 
-                          key={tx._id} 
-                          className={`group relative rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col ${isExpanded ? 'ring-2 ring-[var(--accent)]/20 shadow-2xl' : ''}`}
-                        >
-                          <div 
-                            className="p-6 lg:p-8 flex items-center gap-6 md:gap-8 cursor-pointer"
-                            onClick={() => setExpandedId(isExpanded ? null : tx._id)}
-                          >
-                              <div className={`size-12 md:size-14 rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
-                                 <type.icon className="w-6 h-6 md:w-7 md:h-7" />
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2.5 rounded-xl border border-[var(--glass-border)] p-3">
+                            <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+                              {tx.user_id?.avatar ? (
+                                <img src={tx.user_id.avatar} alt="" className="size-full object-cover" />
+                              ) : (
+                                <User className="size-4 text-[var(--text-secondary)]" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[12px] font-semibold">{tx.user_id?.name || 'User'}</p>
+                              <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
+                                <Mail className="size-3 shrink-0" />
+                                <span className="truncate">{tx.user_id?.email || '—'}</span>
                               </div>
-
-                              <div className="flex-1 min-w-0">
-                                 <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                       <span className="text-[11px] lg:text-[12px] md:text-[13px]  font-semibold text-[var(--text-primary)] tracking-tight capitalize">{tx.type.replace('_', ' ')}</span>
-                                       <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
-                                          {status.label}
-                                       </span>
-                                       <span className="px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold tracking-widest text-[var(--text-secondary)] capitalize">
-                                          {tx.gateway || 'Internal'}
-                                       </span>
-                                    </div>
-                                    <time className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
-                                       <Clock className="w-3 h-3" /> {new Date(tx.createdAt).toLocaleDateString()}
-                                    </time>
-                                 </div>
-                                 <div className="flex items-center gap-4">
-                                     <div className="flex items-center gap-2 text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                        <span className="font-mono text-[var(--accent)]  font-bold">#{tx.reference.slice(-8).toUpperCase()}</span>
-                                        <span>•</span>
-                                        <span className="text-[var(--text-primary)] font-bold">{tx.user_id?.phone || 'No Phone'}</span>
-                                        <span>•</span>
-                                        <span className="truncate max-w-[150px] md:max-w-sm">{tx.description}</span>
-                                     </div>
-                                 </div>
+                              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
+                                <Phone className="size-3 shrink-0" />
+                                <span>{tx.user_id?.phone || '—'}</span>
                               </div>
-
-                              <div className="text-right shrink-0">
-                                 <p className="text-xl md:text-2xl  font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{fmt(tx.amount)} <span className="text-[10px] lg:text-[12px] md:text-[12px] opacity-30 ml-1">{tx.currency || 'XAF'}</span></p>
-                                 <div className="flex items-center justify-end gap-3 mt-2">
-                                    {logos.length > 0 && (
-                                       <div className="flex -space-x-2 mr-2">
-                                          {logos.map((logo, idx) => (
-                                             <div key={idx} className="size-6 rounded-lg overflow-hidden bg-white border border-[var(--glass-border)] shadow-sm">
-                                                <img src={logo} className="size-full object-contain" />
-                                             </div>
-                                          ))}
-                                       </div>
-                                    )}
-                                    <span className="text-[10px] lg:text-[12px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{tx.user_id?.name?.split(' ')[0] || 'Node'}</span>
-                                    <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
-                                       {tx.user_id?.avatar ? <img src={tx.user_id.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
-                                    </div>
-                                 </div>
-                              </div>
+                            </div>
                           </div>
 
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div 
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden"
+                          <div className="rounded-xl border border-[var(--glass-border)] p-3">
+                            <p className="mb-2 text-[11px] font-semibold text-[var(--text-secondary)]">
+                              Update status
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {['completed', 'pending', 'failed'].map((s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => handleUpdateStatus(tx._id, s)}
+                                  disabled={updatingStatus === tx._id || tx.status === s}
+                                  className="rounded-lg border border-[var(--glass-border)] px-2.5 py-1.5 text-[10px] font-medium capitalize hover:border-indigo-500/30 disabled:opacity-40"
+                                >
+                                  {updatingStatus === tx._id ? (
+                                    <Loader2 className="size-3 animate-spin" />
+                                  ) : (
+                                    s
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {tx.gateway === 'eversend' &&
+                            ['failed', 'pending'].includes(tx.status) &&
+                            tx.type === 'deposit' && (
+                              <button
+                                type="button"
+                                onClick={() => handleRecoverPayment(tx)}
+                                disabled={recoveringId === tx._id}
+                                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 text-[11px] font-semibold text-white disabled:opacity-50"
+                              >
+                                {recoveringId === tx._id ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="size-3.5" />
+                                )}
+                                Recover {fmt(tx.amount)} XAF
+                              </button>
+                            )}
+
+                          {tx.status === 'completed' && tx.order_ids?.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleFulfillOrders(tx._id)}
+                              disabled={syncing === tx._id}
+                              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[11px] font-semibold text-white disabled:opacity-50"
                             >
-                               <div className="px-8 pb-8 flex flex-col lg:flex-row gap-6">
-                                  <div className="flex-1 space-y-4">
-                                     <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl">
-                                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize flex items-center gap-2">
-                                           <Database className="w-3 h-3" /> Internal Metadata
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-4">
-                                           <div>
-                                              <p className="text-[10px] lg:text-[12px]  font-semibold opacity-30 capitalize tracking-widest mb-1">Entity Reference</p>
-                                              <p className="text-[11px] lg:text-[12px]  font-semibold font-mono text-[var(--accent)]">{tx.reference}</p>
-                                           </div>
-                                           <div>
-                                              <p className="text-[10px] lg:text-[12px]  font-semibold opacity-30 capitalize tracking-widest mb-1">Gateway ID</p>
-                                              <p className="text-[11px] lg:text-[12px]  font-semibold font-mono text-[var(--text-primary)]">{tx.gateway_transaction_id || '—'}</p>
-                                           </div>
-                                           {tx.order_ids?.length > 0 && (
-                                              <div className="col-span-2">
-                                                 <p className="text-[10px] lg:text-[12px]  font-semibold opacity-30 capitalize tracking-widest mb-2">Linked Orders</p>
-                                                 <div className="flex flex-wrap gap-2">
-                                                    {tx.order_ids.map(oid => (
-                                                       <span key={oid} className="px-3 py-1 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] lg:text-[12px]  font-semibold font-mono text-[var(--accent)]">
-                                                          #{oid.slice(-8).toUpperCase()}
-                                                       </span>
-                                                    ))}
-                                                 </div>
-                                              </div>
-                                           )}
-                                        </div>
-                                     </div>
-                                  </div>
-
-                                  <div className="flex-1 space-y-4">
-                                     <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl relative overflow-hidden group/payload">
-                                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize">User Identity</p>
-                                        <div className="space-y-3">
-                                           <div className="flex items-center gap-3">
-                                              <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)]">
-                                                 <Mail className="size-3.5" />
-                                              </div>
-                                              <div>
-                                                 <p className="text-[10px] lg:text-[11px] font-semibold opacity-30 capitalize tracking-widest">Email Address</p>
-                                                 <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)]">{tx.user_id?.email || 'No email attached'}</p>
-                                              </div>
-                                           </div>
-                                           <div className="flex items-center gap-3">
-                                              <div className="size-8 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)]">
-                                                 <Phone className="size-3.5" />
-                                              </div>
-                                              <div>
-                                                 <p className="text-[10px] lg:text-[11px] font-semibold opacity-30 capitalize tracking-widest">Phone Number</p>
-                                                 <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)]">{tx.user_id?.phone || 'No phone recorded'}</p>
-                                              </div>
-                                           </div>
-                                        </div>
-                                     </div>
-
-                                     <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 rounded-3xl">
-                                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-4 opacity-50 capitalize">Manual Status Correction</p>
-                                        <div className="flex flex-wrap gap-2">
-                                           {['completed', 'pending', 'failed'].map(s => (
-                                              <button 
-                                                key={s}
-                                                onClick={() => handleUpdateStatus(tx._id, s)}
-                                                disabled={updatingStatus === tx._id || tx.status === s}
-                                                className={`flex-1 h-10 px-4 rounded-xl text-[10px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize border ${tx.status === s ? 'bg-[var(--bg-secondary)] border-[var(--glass-border)] opacity-30 text-[var(--text-secondary)] cursor-not-allowed' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] hover:border-[var(--accent)] text-[var(--text-primary)] active:scale-95'}`}
-                                              >
-                                                 {updatingStatus === tx._id ? <Loader2 className="w-3 h-3 animate-spin" /> : `Mark ${s}`}
-                                              </button>
-                                           ))}
-                                        </div>
-                                        <p className="text-[9px] lg:text-[10px]  font-semibold text-[var(--text-secondary)] mt-3 opacity-30 leading-relaxed italic">* Marking as COMPLETED will automatically credit user wallets or settle linked orders.</p>
-                                     </div>
-
-                                      {/* ── Gateway Payment Recovery (Eversend only) ──────── */}
-                                      {tx.gateway === 'eversend' && ['failed', 'pending'].includes(tx.status) && tx.type === 'deposit' && (
-                                        <div className="bg-amber-500/5 border border-amber-500/20 p-6 rounded-3xl">
-                                          <div className="flex items-start gap-3 mb-4">
-                                            <div className="size-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
-                                              <RotateCcw className="size-4" />
-                                            </div>
-                                            <div>
-                                              <p className="text-[11px] lg:text-[12px] font-semibold text-amber-400 tracking-tight">Gateway Payment Recovery</p>
-                                              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60 mt-0.5 leading-relaxed">
-                                                Use when Eversend confirmed receipt but our system marked this as <span className="text-amber-400 capitalize">{tx.status}</span>. Re-verifies live and credits wallet on success.
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <div className="bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl p-2.5 mb-4 font-mono text-[9px] text-[var(--text-secondary)] opacity-50 break-all">
-                                            {tx.reference}
-                                          </div>
-                                          <button
-                                            onClick={() => handleRecoverPayment(tx)}
-                                            disabled={recoveringId === tx._id}
-                                            className="w-full h-12 bg-amber-500 text-white rounded-2xl font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-                                          >
-                                            {recoveringId === tx._id
-                                              ? <><Loader2 className="size-4 animate-spin" /> Verifying with gateway...</>
-                                              : <><RotateCcw className="size-4" /> Recover {tx.amount?.toLocaleString()} XAF</>
-                                            }
-                                          </button>
-                                        </div>
-                                      )}
-
-                                     {tx.status === 'completed' && tx.order_ids?.length > 0 && (
-                                        <button 
-                                          onClick={() => handleFulfillOrders(tx._id)}
-                                          disabled={syncing === tx._id}
-                                          className="w-full h-14 bg-emerald-500 text-white rounded-2xl  font-semibold text-[10px] lg:text-[12px] tracking-[0.2em] capitalize shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                                        >
-                                           {syncing === tx._id ? (
-                                              <Loader2 className="w-4 h-4 animate-spin" />
-                                           ) : (
-                                              <Zap className="w-4 h-4" />
-                                           )}
-                                           Synchronize & Fulfill Associated Orders
-                                        </button>
-                                     )}
-                                  </div>
-                               </div>
-                            </motion.div>
+                              {syncing === tx._id ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <Zap className="size-3.5" />
+                              )}
+                              Fulfill linked orders
+                            </button>
                           )}
-                        </AnimatePresence>
+                        </div>
                       </div>
-                    );
-                    })}
-                  </div>
-               ) : (
-                  <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
-                     <CreditCard className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                     <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No financial nodes detected in this vector.</p>
-                  </div>
-               )}
-            </div>
-
-            <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
-               <Pagination 
-                   currentPage={currentPage}
-                   totalPages={totalPages}
-                   onPageChange={setCurrentPage}
-               />
-            </div>
-         </div>
-      </div>
-    </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </AdminListPanel>
+      </AdminFinanceBody>
+    </AdminFinancePage>
   );
 }

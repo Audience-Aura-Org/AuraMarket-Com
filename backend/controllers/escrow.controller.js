@@ -507,7 +507,40 @@ const vendorConfirmRelease = async (req, res, next) => {
       });
     }
 
-    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
+    if (escrow.status === 'released') {
+      escrow.vendor_confirmed = true;
+      markEscrowDelivered(escrow);
+      if (order.order_status !== 'completed') order.order_status = 'completed';
+
+      await escrow.save({ session });
+      await order.save({ session });
+      await syncShipmentsToOrderStatus(order, 'completed', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Vendor confirmed delivery after escrow was already released. Shipment closed for records.',
+      });
+      await appendShipmentActivity(
+        order._id,
+        'completed',
+        'Vendor confirmed delivery after escrow had already been released. Order marked complete for record keeping.',
+        req.user._id,
+        session
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      notifyOrderStatusChange(req.app, order, 'completed', {
+        message: `Order #${order._id.toString().slice(-6).toUpperCase()} is complete. Escrow was already released.`,
+      });
+
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Order completed. Escrow funds had already been released.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
+    }
 
     // ── CASE: Escrow Confirmation ───────────────────────────────────────────
     escrow.vendor_confirmed = true;
