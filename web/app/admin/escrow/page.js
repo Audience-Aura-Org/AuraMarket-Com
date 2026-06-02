@@ -32,6 +32,15 @@ const DEFAULT_SETTINGS = {
   escrow_fee_value: 0
 };
 
+const ESCROW_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'held', label: 'Held' },
+  { id: 'pending_release', label: 'Pending' },
+  { id: 'disputed', label: 'Disputed' },
+  { id: 'released', label: 'Released' },
+  { id: 'refunded', label: 'Refunded' }
+];
+
 export default function AdminEscrow() {
   const [mounted, setMounted] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -44,6 +53,7 @@ export default function AdminEscrow() {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -122,14 +132,26 @@ export default function AdminEscrow() {
     }
   };
 
+  const statusCounts = ESCROW_FILTERS.reduce((acc, filter) => {
+    acc[filter.id] = filter.id === 'all'
+      ? logs.length
+      : logs.filter(l => l.status === filter.id).length;
+    return acc;
+  }, {});
+
   const filteredLogs = logs.filter(l => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesStatus = statusFilter === 'all' || l.status === statusFilter;
+    const matchesSearch = !query || (
        l.order_id?._id?.toLowerCase().includes(query) ||
        l.buyer_id?.name?.toLowerCase().includes(query) ||
+       l.buyer_id?.email?.toLowerCase().includes(query) ||
        l.vendor_id?.store_name?.toLowerCase().includes(query) ||
+       l.vendor_id?.user_id?.name?.toLowerCase().includes(query) ||
        l._id?.toLowerCase().includes(query)
     );
+
+    return matchesStatus && matchesSearch;
   });
 
   const handleRelease = async (orderId) => {
@@ -223,6 +245,36 @@ export default function AdminEscrow() {
       </header>
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
+         <div className="rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3 md:p-4 backdrop-blur-xl">
+            <div className="mb-3 flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--text-secondary)] opacity-60">
+               <Filter className="size-3.5" />
+               Vault Filter
+            </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+               {ESCROW_FILTERS.map(filter => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => { setStatusFilter(filter.id); setCurrentPage(1); }}
+                    className={`flex min-w-max items-center gap-2 rounded-2xl border px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-all ${
+                      statusFilter === filter.id
+                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
+                        : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/45 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <span>{filter.label}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] ${
+                      statusFilter === filter.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                    }`}>
+                      {statusCounts[filter.id] || 0}
+                    </span>
+                  </button>
+               ))}
+            </div>
+         </div>
+
          {/* Live Intelligence Stats */}
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
             {[

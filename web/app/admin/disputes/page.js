@@ -82,11 +82,15 @@ export default function AdminDisputes() {
     }
   };
 
-  const filtered = disputes.filter(d => {
-    if (activeTab === 'All') return d.status !== 'resolved';
-    if (activeTab === 'Resolved') return d.status === 'resolved';
-    return d.status === activeTab.toLowerCase();
-  });
+  const disputeTabs = [
+    { label: 'All', matches: () => true },
+    { label: 'Active', matches: d => d.status !== 'resolved' },
+    { label: 'Investigating', matches: d => d.status === 'investigating' },
+    { label: 'Resolved', matches: d => d.status === 'resolved' }
+  ];
+
+  const selectedTab = disputeTabs.find(tab => tab.label === activeTab) || disputeTabs[0];
+  const filtered = disputes.filter(selectedTab.matches);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentDisputes = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -252,13 +256,13 @@ export default function AdminDisputes() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start">
-              {['All', 'Investigating', 'Resolved'].map(tab => (
+              {disputeTabs.map(({ label }) => (
                 <button 
-                  key={tab}
-                  onClick={() => { setActiveTab(tab); setCurrentPage(1); }} 
-                  className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all uppercase ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
+                  key={label}
+                  onClick={() => { setActiveTab(label); setCurrentPage(1); }} 
+                  className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all uppercase ${activeTab === label ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
                 >
-                  {tab}
+                  {label}
                 </button>
               ))}
            </div>
