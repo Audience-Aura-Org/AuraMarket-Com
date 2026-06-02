@@ -368,7 +368,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
       </div>
 
       {/* ─── Grid ─── */}
-      <div className="w-full px-3 pt-4">
+      <div className="w-full px-2 pt-4 sm:px-3 lg:px-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

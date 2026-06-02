@@ -129,215 +129,127 @@ export default function StatusManager() {
   ];
 
   return (
-    <main className="w-full space-y-5 pb-28 font-[Poppins] text-[var(--text-primary)] sm:space-y-6 sm:pb-10">
-      <section className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
-        <div className="relative p-4 sm:p-6 lg:p-7">
-          <div className="absolute inset-0 bg-[var(--bg-secondary)]/35" />
-          <div className="relative z-10 space-y-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="max-w-2xl space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-[var(--text-secondary)]">
-                  <Megaphone className="size-3.5 text-[var(--accent)]" />
-                  Status
-                </div>
-                <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-                  Share a quick update.
-                </h1>
-                <p className="max-w-xl text-sm font-medium leading-6 text-[var(--text-secondary)]">
-                  Photos, clips, and notes stay live for 24 hours.
-                </p>
-              </div>
-
+    <main className="w-full space-y-4 pb-24 font-[Poppins] text-[var(--text-primary)] sm:space-y-5 sm:pb-10">
+      <section className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
+        <div className="bg-[var(--bg-secondary)]/30 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-secondary)]">
+                <Megaphone className="size-3.5 text-[var(--accent)]" />
+                Story Center
+              </p>
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Manage vendor stories</h1>
+              <p className="text-xs font-medium text-[var(--text-secondary)]">Post updates, track performance, and quickly reuse top content.</p>
+            </div>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => openCreator()}
-                className="inline-flex w-fit items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-3 text-xs font-black text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95"
-              >
-                <Plus className="size-4" />
-                Create Story
-              </button>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
-              <div className="grid gap-2 sm:grid-cols-3">
-              {[
-                { label: 'Live', value: activeStatuses.length, icon: Activity },
-                { label: 'Views', value: totalViews, icon: Eye },
-                { label: 'Likes', value: totalLikes, icon: Heart },
-              ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bg-secondary)]">
-                    <Icon className={`size-4 ${label === 'Likes' ? 'fill-rose-400 text-rose-400' : 'text-[var(--accent)]'}`} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black leading-none tracking-tight">{value}</p>
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">{label}</p>
-                  </div>
-                </div>
-              ))}
-              </div>
-
-              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">New status</p>
-                <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
-                  {launchOptions.map(({ label, icon: Icon }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => openCreator()}
-                      className="flex items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 px-3 py-2.5 text-[11px] font-black text-[var(--text-primary)] transition-all hover:border-[var(--accent)]/35 active:scale-95 md:justify-start"
-                    >
-                      <Icon className="size-4 text-[var(--accent)]" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <Wand2 className="size-5" />
-              </div>
-              <div>
-                <p className="text-base font-black">Create</p>
-                <p className="text-xs font-semibold text-[var(--text-secondary)]">Choose a status type.</p>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-2">
-              {launchOptions.map(({ label, icon: Icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => openCreator()}
-                  className="flex items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-4 py-3 text-sm font-black transition-all hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 active:scale-[0.98]"
-                >
-                  <span className="inline-flex items-center gap-3">
-                    <Icon className="size-4 text-[var(--accent)]" />
-                    {label}
-                  </span>
-                  <Plus className="size-4 text-[var(--text-secondary)]" />
-                </button>
-              ))}
-            </div>
-            <Link
-              href="/vendor/products/add"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--text-primary)] px-4 py-3 text-xs font-black text-[var(--bg-primary)] transition-transform active:scale-95"
-            >
-              <ShoppingBag className="size-4" />
-              Link product
-            </Link>
-          </div>
-
-          <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-black">Summary</p>
-              <BarChart3 className="size-4 text-[var(--accent)]" />
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between rounded-2xl bg-[var(--bg-secondary)]/55 px-4 py-3">
-                <span className="text-xs font-bold text-[var(--text-secondary)]">Live</span>
-                <span className="text-sm font-black">{activeStatuses.length}</span>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl bg-[var(--bg-secondary)]/55 px-4 py-3">
-                <span className="text-xs font-bold text-[var(--text-secondary)]">Archive</span>
-                <span className="text-sm font-black">{archivedStatuses.length}</span>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl bg-[var(--bg-secondary)]/55 px-4 py-3">
-                <span className="text-xs font-bold text-[var(--text-secondary)]">Activity</span>
-                <span className="text-sm font-black">{totalViews + totalLikes}</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <div className="space-y-4">
-          <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">My status</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight">Live now</h2>
-              </div>
-              <button
                 onClick={fetchMyStatuses}
-                className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/65 px-4 py-2.5 text-xs font-black text-[var(--text-secondary)] transition-all hover:text-[var(--accent)] active:scale-95"
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2 text-[11px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
               >
                 <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
+              <button
+                type="button"
+                onClick={() => openCreator()}
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/20 active:scale-95"
+              >
+                <Plus className="size-3.5" />
+                New story
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-[var(--glass-border)] p-3 sm:p-4">
+          <div className="flex w-full items-center divide-x divide-[var(--glass-border)] overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35">
+            {[
+              { label: 'Live', value: activeStatuses.length, icon: Activity },
+              { label: 'Views', value: totalViews, icon: Eye },
+              { label: 'Likes', value: totalLikes, icon: Heart },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="flex min-w-0 flex-1 items-center justify-center gap-2 px-2 py-3">
+                <Icon className={`size-3.5 shrink-0 ${label === 'Likes' ? 'fill-rose-400 text-rose-400' : 'text-[var(--accent)]'}`} />
+                <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
+                <span className="text-sm font-semibold leading-none">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--accent)]">Live stories</p>
+                <h2 className="mt-1 text-lg font-semibold tracking-tight">Active now</h2>
+              </div>
+              <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                {activeStatuses.length} active
+              </span>
             </div>
 
             {loading ? (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {[0, 1, 2].map((item) => (
-                  <div key={item} className="h-72 animate-pulse rounded-[1.75rem] bg-[var(--bg-secondary)]" />
+                  <div key={item} className="h-64 animate-pulse rounded-2xl bg-[var(--bg-secondary)]" />
                 ))}
               </div>
             ) : activeStatuses.length === 0 ? (
-              <div className="mt-5 rounded-[1.75rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-8 text-center">
-                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                  <ImagePlus className="size-6" />
+              <div className="rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-7 text-center">
+                <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                  <ImagePlus className="size-5" />
                 </div>
-                <p className="text-lg font-black">No status yet</p>
-                <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-[var(--text-secondary)]">
-                  Add a photo, clip, or note.
-                </p>
+                <p className="text-sm font-semibold">No active story</p>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">Create one to appear here for the next 24 hours.</p>
                 <button
                   onClick={() => openCreator()}
-                  className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-3 text-xs font-black text-white shadow-lg shadow-[var(--accent)]/20 active:scale-95"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/20 active:scale-95"
                 >
                   <Plus className="size-4" />
-                  Add Status
+                  Create story
                 </button>
               </div>
             ) : (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {activeStatuses.map((status) => (
-                  <article key={status._id} className="overflow-hidden rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35">
-                    <div className="relative h-72 overflow-hidden bg-zinc-950">
+                  <article key={status._id} className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25">
+                    <div className="relative h-60 overflow-hidden bg-zinc-950">
                       {status.type === 'image' || status.type === 'video' ? (
-                        <MediaThumbnail
-                          src={status.content_url}
-                          className="size-full"
-                          imgClassName="transition-transform duration-[1600ms] hover:scale-105"
-                        />
+                        <MediaThumbnail src={status.content_url} className="size-full" imgClassName="transition-transform duration-700 hover:scale-105" />
                       ) : (
-                        <div className="flex size-full items-center justify-center p-7 text-center">
-                          <p className="line-clamp-5 text-xl font-black leading-7 text-white">{status.text_content}</p>
+                        <div className="flex size-full items-center justify-center p-6 text-center">
+                          <p className="line-clamp-5 text-base font-semibold leading-6 text-white">{status.text_content}</p>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
-                      <div className="absolute left-3 top-3 rounded-full border border-white/12 bg-black/35 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white backdrop-blur">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
+                      <div className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur">
                         {getTimeLeft(status.expires_at)} left
                       </div>
                       <button
                         onClick={() => handleDelete(status._id)}
                         disabled={deletingId === status._id}
-                        className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full border border-white/12 bg-black/35 text-white backdrop-blur transition-all hover:bg-rose-500 active:scale-95"
+                        className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full border border-white/20 bg-black/35 text-white transition hover:bg-rose-500"
                         aria-label="Delete story"
                       >
-                        {deletingId === status._id ? <RefreshCw className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                        {deletingId === status._id ? <RefreshCw className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
                       </button>
-                      <div className="absolute inset-x-4 bottom-4">
-                        <p className="line-clamp-2 text-lg font-black leading-6 text-white">{storyLabel(status)}</p>
+                      <div className="absolute inset-x-3 bottom-3">
+                        <p className="line-clamp-2 text-sm font-semibold text-white">{storyLabel(status)}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 divide-x divide-[var(--glass-border)]">
-                      <div className="flex items-center justify-center gap-2 p-4">
-                        <Eye className="size-4 text-emerald-500" />
-                        <span className="text-sm font-black">{status.views_count || 0}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">views</span>
+                      <div className="flex items-center justify-center gap-1.5 p-3">
+                        <Eye className="size-3.5 text-emerald-500" />
+                        <span className="text-xs font-semibold">{status.views_count || 0}</span>
+                        <span className="text-[10px] font-medium text-[var(--text-secondary)]">views</span>
                       </div>
-                      <div className="flex items-center justify-center gap-2 p-4">
-                        <Heart className="size-4 fill-rose-500 text-rose-500" />
-                        <span className="text-sm font-black">{status.likes_count || 0}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">likes</span>
+                      <div className="flex items-center justify-center gap-1.5 p-3">
+                        <Heart className="size-3.5 fill-rose-500 text-rose-500" />
+                        <span className="text-xs font-semibold">{status.likes_count || 0}</span>
+                        <span className="text-[10px] font-medium text-[var(--text-secondary)]">likes</span>
                       </div>
                     </div>
                   </article>
@@ -346,59 +258,59 @@ export default function StatusManager() {
             )}
           </section>
 
-          <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
+            <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">Archive</p>
-                <h2 className="mt-1 text-2xl font-black tracking-tight">Past status</h2>
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--accent)]">Archive</p>
+                <h2 className="mt-1 text-lg font-semibold tracking-tight">Past stories</h2>
               </div>
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--bg-secondary)]/65 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-                <Calendar className="size-3.5 text-[var(--accent)]" />
-                {archivedStatuses.length} saved
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                <Calendar className="size-3" />
+                {archivedStatuses.length}
               </span>
             </div>
 
             {archivedStatuses.length === 0 ? (
-              <div className="mt-5 rounded-[1.75rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 py-10 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-70">No archive yet</p>
+              <div className="rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 py-8 text-center">
+                <p className="text-xs font-medium text-[var(--text-secondary)]">No archived stories yet.</p>
               </div>
             ) : (
-              <div className="mt-5 space-y-3">
+              <div className="space-y-3">
                 {archivedStatuses.map((status) => (
-                  <div key={status._id} className="grid gap-4 rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/28 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div key={status._id} className="grid gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="size-16 shrink-0 overflow-hidden rounded-2xl bg-zinc-950">
+                      <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-zinc-950">
                         {status.content_url ? (
                           <MediaThumbnail src={status.content_url} className="size-full" imgClassName="opacity-60 grayscale" alt="" />
                         ) : (
                           <div className="flex size-full items-center justify-center text-white/50">
-                            <Activity className="size-5" />
+                            <Activity className="size-4.5" />
                           </div>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black">{storyLabel(status)}</p>
-                        <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-bold text-[var(--text-secondary)]">
-                          <span className="inline-flex items-center gap-1.5"><Clock className="size-3.5" />{formatDate(status.expires_at)}</span>
-                          <span className="inline-flex items-center gap-1.5"><Eye className="size-3.5 text-emerald-500" />{status.views_count || 0}</span>
-                          <span className="inline-flex items-center gap-1.5"><Heart className="size-3.5 fill-rose-500 text-rose-500" />{status.likes_count || 0}</span>
+                        <p className="truncate text-sm font-semibold">{storyLabel(status)}</p>
+                        <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] font-medium text-[var(--text-secondary)]">
+                          <span className="inline-flex items-center gap-1"><Clock className="size-3" />{formatDate(status.expires_at)}</span>
+                          <span className="inline-flex items-center gap-1"><Eye className="size-3 text-emerald-500" />{status.views_count || 0}</span>
+                          <span className="inline-flex items-center gap-1"><Heart className="size-3 fill-rose-500 text-rose-500" />{status.likes_count || 0}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => openCreator(status)}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)]/10 px-4 py-2.5 text-xs font-black text-[var(--accent)] transition-all hover:bg-[var(--accent)] hover:text-white active:scale-95"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)] hover:text-white"
                       >
-                        <RotateCcw className="size-4" />
+                        <RotateCcw className="size-3.5" />
                         Repost
                       </button>
                       <button
                         onClick={() => handleDelete(status._id)}
-                        className="flex size-10 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500 transition-all hover:bg-rose-500 hover:text-white active:scale-95"
+                        className="flex size-9 items-center justify-center rounded-lg bg-rose-500/10 text-rose-500 transition hover:bg-rose-500 hover:text-white"
                         aria-label="Delete archived story"
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className="size-3.5" />
                       </button>
                     </div>
                   </div>
@@ -407,6 +319,61 @@ export default function StatusManager() {
             )}
           </section>
         </div>
+
+        <aside className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                <Wand2 className="size-4.5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Quick Create</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">Choose your story type.</p>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {launchOptions.map(({ label, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => openCreator()}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 px-3 py-2.5 text-[11px] font-semibold transition hover:border-[var(--accent)]/35 lg:justify-start"
+                >
+                  <Icon className="size-3.5 text-[var(--accent)]" />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <Link
+              href="/vendor/products/add"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--text-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--bg-primary)] transition active:scale-95"
+            >
+              <ShoppingBag className="size-3.5" />
+              Add product link
+            </Link>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold">Overview</p>
+              <BarChart3 className="size-4 text-[var(--accent)]" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-lg bg-[var(--bg-secondary)]/45 px-3 py-2.5">
+                <span className="text-[11px] text-[var(--text-secondary)]">Live</span>
+                <span className="text-xs font-semibold">{activeStatuses.length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-[var(--bg-secondary)]/45 px-3 py-2.5">
+                <span className="text-[11px] text-[var(--text-secondary)]">Archive</span>
+                <span className="text-xs font-semibold">{archivedStatuses.length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-[var(--bg-secondary)]/45 px-3 py-2.5">
+                <span className="text-[11px] text-[var(--text-secondary)]">Activity</span>
+                <span className="text-xs font-semibold">{totalViews + totalLikes}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
       </section>
 
       {showCreator && (
