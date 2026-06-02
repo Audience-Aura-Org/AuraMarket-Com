@@ -1,9 +1,9 @@
 /**
- * Auradime — PWA Service Worker v6
+ * Auradime — PWA Service Worker v7
  * Robust background push handling with redundant notification suppression.
  */
 
-const CACHE_NAME = 'aura-cache-v9';
+const CACHE_NAME = 'aura-cache-v10';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
