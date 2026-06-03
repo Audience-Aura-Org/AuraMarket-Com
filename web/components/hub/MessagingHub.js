@@ -52,6 +52,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
+  const [viewportHeight, setViewportHeight] = useState(null);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -164,40 +165,20 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     const mobileQuery = window.matchMedia?.('(max-width: 767px)');
     const resetChatRootStyles = () => {
-      const chatRoot = chatRootRef.current || document.getElementById('chat-root');
-      if (!chatRoot) return;
-      chatRoot.style.removeProperty('position');
-      chatRoot.style.removeProperty('top');
-      chatRoot.style.removeProperty('left');
-      chatRoot.style.removeProperty('bottom');
-      chatRoot.style.removeProperty('width');
-      chatRoot.style.removeProperty('height');
-      chatRoot.style.removeProperty('max-height');
-      chatRoot.style.removeProperty('overflow');
-      chatRoot.style.removeProperty('transform');
+      setViewportHeight(null);
     };
     const syncViewport = () => {
       const vv = window.visualViewport;
       const height = vv ? vv.height : window.innerHeight;
       const offsetTop = vv ? vv.offsetTop : 0;
-      const chatRoot = chatRootRef.current || document.getElementById('chat-root');
       const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
-      if (!chatRoot) return;
 
       if (!isMobileChat) {
         resetChatRootStyles();
         return;
       }
 
-      chatRoot.style.position = 'fixed';
-      chatRoot.style.top = '0px';
-      chatRoot.style.left = '0px';
-      chatRoot.style.bottom = 'auto';
-      chatRoot.style.width = '100%';
-      chatRoot.style.overflow = 'hidden';
-      chatRoot.style.height = `${height}px`;
-      chatRoot.style.maxHeight = `${height}px`;
-      chatRoot.style.transform = `translateY(${offsetTop}px)`;
+      setViewportHeight({ height, offsetTop });
 
       if (activePartnerIdRef.current) {
         requestAnimationFrame(() => {
@@ -780,7 +761,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         position: 'fixed',
         top: 0,
         left: 0,
+        bottom: 'auto',
         width: '100%',
+        overflow: 'hidden',
+        ...(viewportHeight && {
+          height: `${viewportHeight.height}px`,
+          maxHeight: `${viewportHeight.height}px`,
+          y: viewportHeight.offsetTop,
+        }),
       }
     : undefined;
 
