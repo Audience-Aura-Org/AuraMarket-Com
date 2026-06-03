@@ -66,7 +66,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const activePartnerIdRef = useRef(activePartnerId);
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
-  const initialHeightRef = useRef(0);
   const chatRootRef = useRef(null);
   const viewportSyncRef = useRef(null);
 
@@ -163,91 +162,62 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-    const root = document.documentElement;
     const mobileQuery = window.matchMedia?.('(max-width: 767px)');
-    const onViewportChange = () => {
-      const viewport = window.visualViewport;
-      const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-      const visualHeight = viewport?.height || layoutHeight;
-      const offsetTop = viewport?.offsetTop || 0;
-      const heightPx = `${Math.round(visualHeight)}px`;
-      const offsetPx = `${Math.round(offsetTop)}px`;
+    const resetChatRootStyles = () => {
+      const chatRoot = chatRootRef.current || document.getElementById('chat-root');
+      if (!chatRoot) return;
+      chatRoot.style.removeProperty('position');
+      chatRoot.style.removeProperty('top');
+      chatRoot.style.removeProperty('left');
+      chatRoot.style.removeProperty('width');
+      chatRoot.style.removeProperty('height');
+      chatRoot.style.removeProperty('max-height');
+      chatRoot.style.removeProperty('overflow');
+      chatRoot.style.removeProperty('transform');
+    };
+    const syncViewport = () => {
+      const vv = window.visualViewport;
+      const height = vv ? vv.height : window.innerHeight;
+      const offsetTop = vv ? vv.offsetTop : 0;
       const chatRoot = chatRootRef.current || document.getElementById('chat-root');
       const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
-      if (layoutHeight > initialHeightRef.current) {
-        initialHeightRef.current = layoutHeight;
-      }
-      const keyboardInset = Math.max(0, (initialHeightRef.current || layoutHeight) - visualHeight - offsetTop);
-      const activeElement = document.activeElement;
-      const editingText = activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
-      const keyboardOpen = editingText && (keyboardInset > 80 || layoutHeight - visualHeight > 80);
+      if (!chatRoot) return;
 
-      root.style.setProperty('--viewport-height', heightPx);
-      root.style.setProperty('--viewport-offset-top', offsetPx);
-      root.style.setProperty('--aura-chat-vvh', heightPx);
-      root.style.setProperty('--aura-chat-vvtop', offsetPx);
-      root.style.setProperty('--aura-chat-vvbottom', '0px');
-      root.style.setProperty(
-        '--aura-chat-composer-bottom-pad',
-        keyboardOpen ? '0px' : 'env(safe-area-inset-bottom, 0px)'
-      );
-
-      if (chatRoot && isMobileChat) {
-        chatRoot.style.position = 'fixed';
-        chatRoot.style.top = '0px';
-        chatRoot.style.left = '0px';
-        chatRoot.style.width = '100%';
-        chatRoot.style.height = heightPx;
-        chatRoot.style.maxHeight = heightPx;
-        chatRoot.style.overflow = 'hidden';
-        chatRoot.style.transform = `translateY(${offsetPx})`;
-      } else if (chatRoot) {
-        chatRoot.style.removeProperty('position');
-        chatRoot.style.removeProperty('top');
-        chatRoot.style.removeProperty('left');
-        chatRoot.style.removeProperty('width');
-        chatRoot.style.removeProperty('height');
-        chatRoot.style.removeProperty('max-height');
-        chatRoot.style.removeProperty('overflow');
-        chatRoot.style.removeProperty('transform');
+      if (!isMobileChat) {
+        resetChatRootStyles();
+        return;
       }
 
-      if (keyboardOpen && activePartnerIdRef.current) {
+      chatRoot.style.position = 'fixed';
+      chatRoot.style.top = '0px';
+      chatRoot.style.left = '0px';
+      chatRoot.style.width = '100%';
+      chatRoot.style.overflow = 'hidden';
+      chatRoot.style.height = `${height}px`;
+      chatRoot.style.maxHeight = `${height}px`;
+      chatRoot.style.transform = `translateY(${offsetTop}px)`;
+
+      if (activePartnerIdRef.current) {
         requestAnimationFrame(() => {
           pinToLatestMessage('auto');
         });
         queuePinToLatest([80, 180, 320, 520]);
       }
     };
-    viewportSyncRef.current = onViewportChange;
+    viewportSyncRef.current = syncViewport;
 
-    onViewportChange();
-    window.visualViewport?.addEventListener('resize', onViewportChange);
-    window.visualViewport?.addEventListener('scroll', onViewportChange);
-    window.addEventListener('resize', onViewportChange);
+    syncViewport();
+    requestAnimationFrame(syncViewport);
+    window.visualViewport?.addEventListener('resize', syncViewport);
+    window.visualViewport?.addEventListener('scroll', syncViewport);
+    window.addEventListener('resize', syncViewport);
 
     return () => {
-      window.visualViewport?.removeEventListener('resize', onViewportChange);
-      window.visualViewport?.removeEventListener('scroll', onViewportChange);
-      window.removeEventListener('resize', onViewportChange);
+      window.visualViewport?.removeEventListener('resize', syncViewport);
+      window.visualViewport?.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('resize', syncViewport);
       viewportSyncRef.current = null;
-      root.style.removeProperty('--aura-chat-vvh');
-      root.style.removeProperty('--viewport-height');
-      root.style.removeProperty('--viewport-offset-top');
-      root.style.removeProperty('--aura-chat-vvtop');
-      root.style.removeProperty('--aura-chat-vvbottom');
-      root.style.removeProperty('--aura-chat-composer-bottom-pad');
-      const chatRoot = chatRootRef.current || document.getElementById('chat-root');
-      if (chatRoot) {
-        chatRoot.style.removeProperty('position');
-        chatRoot.style.removeProperty('top');
-        chatRoot.style.removeProperty('left');
-        chatRoot.style.removeProperty('width');
-        chatRoot.style.removeProperty('height');
-        chatRoot.style.removeProperty('max-height');
-        chatRoot.style.removeProperty('overflow');
-        chatRoot.style.removeProperty('transform');
-      }
+      resetChatRootStyles();
     };
   }, []);
 
@@ -804,10 +774,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       : {};
   const mobileShellStyle = mobileLayout
     ? {
-        height: 'var(--viewport-height, 100dvh)',
-        minHeight: 0,
-        maxHeight: 'var(--viewport-height, 100dvh)',
-        transform: 'translateY(var(--viewport-offset-top, 0px))',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }
     : undefined;
@@ -816,12 +782,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     ? [
         'flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
         'max-md:w-full',
-        'max-md:h-[var(--viewport-height,100dvh)] max-md:max-h-[var(--viewport-height,100dvh)]',
         'md:h-full md:flex-1',
       ].join(' ')
     : [
         'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
-        'max-md:inset-0 max-md:h-[var(--viewport-height,100dvh)] max-md:max-h-[var(--viewport-height,100dvh)] max-md:w-full',
+        'max-md:inset-0 max-md:w-full',
         'max-md:rounded-none max-md:border-0 max-md:shadow-none',
         'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
         'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',
@@ -1329,7 +1294,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 backdrop-blur-sm"
-          style={{ paddingBottom: 'var(--aura-chat-composer-bottom-pad, env(safe-area-inset-bottom, 0px))' }}
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
