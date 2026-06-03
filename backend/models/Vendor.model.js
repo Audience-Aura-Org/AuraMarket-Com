@@ -95,5 +95,8 @@ VendorSchema.virtual('store', {
 // Ensure virtuals are included when converting to JSON/Object
 VendorSchema.set('toObject', { virtuals: true });
 VendorSchema.set('toJSON', { virtuals: true });
+VendorSchema.index({ store_name: 'text', description: 'text' });
+VendorSchema.index({ verified: 1, is_onboarded: 1, createdAt: -1 });
+VendorSchema.index({ rating: -1, follower_count: -1 });
 
 module.exports = mongoose.model('Vendor', VendorSchema);

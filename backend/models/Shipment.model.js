@@ -94,4 +94,7 @@ const ShipmentSchema = new mongoose.Schema(
   }
 );
 
+ShipmentSchema.index({ vendor_id: 1, status: 1, createdAt: -1 });
+ShipmentSchema.index({ logistics_id: 1, status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Shipment', ShipmentSchema);

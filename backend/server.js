@@ -65,6 +65,7 @@ app.set('io', io);
 const { startEscrowAutoReleaseWorker } = require('./services/escrowAutoRelease.service');
 startEscrowAutoReleaseWorker(app);
 const { drainQueues } = require('./services/jobQueue.service');
+const { getRedisStatus, closeRedis } = require('./config/redis');
 
 // ─────────────────────────────────────────────
 // 7. Express Middleware
@@ -103,6 +104,7 @@ app.get('/api/health', (req, res) => {
     success: true,
     message: '🚀 Auradime API is running',
     environment: NODE_ENV,
+    redis: getRedisStatus(),
     timestamp: new Date().toISOString(),
   });
 });
@@ -180,6 +182,7 @@ const gracefulShutdown = (signal) => {
   console.log(`\n${signal} received. Draining HTTP and socket connections...`);
   io.close(async () => {
     await drainQueues({ timeoutMs: 10000 });
+    await closeRedis();
     server.close(() => {
       console.log('✅ Server drained cleanly.');
       process.exit(0);

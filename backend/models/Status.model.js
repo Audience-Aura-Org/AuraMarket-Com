@@ -84,5 +84,8 @@ StatusSchema.pre('save', function() {
 
 // Index for finding active statuses quickly
 StatusSchema.index({ expires_at: 1, vendor_id: 1 });
+StatusSchema.index({ expires_at: 1, createdAt: -1 });
+StatusSchema.index({ category: 1, expires_at: 1, createdAt: -1 });
+StatusSchema.index({ vendor_id: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Status', StatusSchema);

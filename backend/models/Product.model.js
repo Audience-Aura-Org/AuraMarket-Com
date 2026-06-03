@@ -135,5 +135,9 @@ const ProductSchema = new mongoose.Schema(
 ProductSchema.index({ name: 'text', description: 'text', tags: 'text' });
 // Index for filtering
 ProductSchema.index({ vendor_id: 1, status: 1 });
+ProductSchema.index({ status: 1, featured: -1, updatedAt: -1 });
+ProductSchema.index({ status: 1, category: 1, updatedAt: -1 });
+ProductSchema.index({ vendor_id: 1, status: 1, updatedAt: -1 });
+ProductSchema.index({ status: 1, purchase_count: -1, view_count: -1 });
 
 module.exports = mongoose.model('Product', ProductSchema);

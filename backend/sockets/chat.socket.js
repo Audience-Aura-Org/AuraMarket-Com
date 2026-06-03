@@ -8,6 +8,31 @@ const Message = require('../models/Message.model');
 const User = require('../models/User.model');
 const { createCorsOptions } = require('../middleware/security.middleware');
 const { sendNotification } = require('../utils/notifier');
+const { getRedis, getRedisDuplicate } = require('../config/redis');
+
+const socketTransports = (process.env.SOCKET_TRANSPORTS || 'websocket,polling')
+  .split(',')
+  .map((transport) => transport.trim())
+  .filter(Boolean);
+
+const waitForRedisReady = (redis, timeoutMs = 5000) => new Promise((resolve) => {
+  if (!redis) return resolve(false);
+  if (redis.status === 'ready') return resolve(true);
+
+  const startedAt = Date.now();
+  const timer = setInterval(() => {
+    if (redis.status === 'ready') {
+      clearInterval(timer);
+      resolve(true);
+      return;
+    }
+    if (Date.now() - startedAt >= timeoutMs) {
+      clearInterval(timer);
+      resolve(false);
+    }
+  }, 100);
+  timer.unref?.();
+});
 
 const buildMessagePreview = (text, productReference) => {
   if (text && text.trim()) {
@@ -21,8 +46,27 @@ const mapChatSockets = (server) => {
   const io = socketIo(server, {
     cors: createCorsOptions(),
     allowEIO3: true,
-    transports: ['websocket', 'polling'],
+    transports: socketTransports.length ? socketTransports : ['websocket', 'polling'],
   });
+
+  const pubClient = getRedis();
+  const subClient = getRedisDuplicate();
+  if (pubClient && subClient) {
+    Promise.all([
+      import('@socket.io/redis-adapter'),
+      waitForRedisReady(pubClient),
+      waitForRedisReady(subClient),
+    ])
+      .then(([adapterModule]) => {
+        if (pubClient.status === 'ready' && subClient.status === 'ready') {
+          io.adapter(adapterModule.createAdapter(pubClient, subClient));
+          console.log('✅ [Socket.IO] Redis adapter enabled for multi-worker rooms.');
+        }
+      })
+      .catch((error) => {
+        console.warn(`⚠️ [Socket.IO] Redis adapter unavailable: ${error.message}`);
+      });
+  }
 
   const userSockets = new Map();
   const disconnectTimers = new Map(); // Grace period before marking offline

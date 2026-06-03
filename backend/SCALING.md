@@ -18,6 +18,25 @@ To limit worker count:
 WEB_CONCURRENCY=2 pm2 start ecosystem.config.js --update-env
 ```
 
+## Redis-backed shared state
+
+Set Redis before running more than one PM2 worker or more than one EC2 instance:
+
+```text
+REDIS_URL=redis://your-redis-host:6379
+REDIS_TLS=false
+API_CACHE_TTL_SECONDS=60
+SOCKET_TRANSPORTS=websocket,polling
+```
+
+With `REDIS_URL` enabled, Auradime shares:
+
+- Public API response cache
+- API rate-limit counters
+- Socket.IO room broadcasts for chat, wallet, order, and notification events
+
+Without `REDIS_URL`, the backend falls back to in-process memory so the current single-server startup keeps working.
+
 ## Future horizontal scaling
 
 Put an AWS Application Load Balancer in front of two or more EC2 instances.
@@ -33,6 +52,12 @@ Success codes: 200
 
 Keep `app.set('trust proxy', 1)` enabled in `server.js` so Express reads the real client IP from the load balancer.
 
+For WebSockets behind an ALB, enable target-group stickiness. If you want to avoid sticky-session pressure entirely, run:
+
+```text
+SOCKET_TRANSPORTS=websocket
+```
+
 ## Caching
 
 Public GET routes now use short TTL API caching:
@@ -46,13 +71,14 @@ Public GET routes now use short TTL API caching:
 
 Private routes such as admin, wallet, cart, orders, chat, and authenticated vendor dashboards are not cached.
 
-Useful environment variable:
+Useful environment variables:
 
 ```text
 API_CACHE_TTL_SECONDS=60
+API_CACHE_REDIS_PREFIX=auradime:api-cache:
 ```
 
-For multi-instance EC2, replace the in-process cache with Redis/ElastiCache so all instances share the same cache.
+When Redis is configured, cached public responses are shared across all PM2 workers and EC2 instances.
 
 ## Queues
 
@@ -78,3 +104,24 @@ GET /api/v1/admin/queues
 ```
 
 For multi-instance EC2, replace the in-process queue with Redis-backed BullMQ or AWS SQS so jobs survive restarts and are shared across instances.
+
+## MongoDB pool and indexes
+
+Useful environment variables:
+
+```text
+MONGODB_MAX_POOL_SIZE=25
+MONGODB_MIN_POOL_SIZE=2
+MONGODB_MAX_IDLE_MS=60000
+```
+
+Auradime now defines compound indexes for the most common production reads:
+
+- product discovery by status, category, featured, vendor, and popularity
+- vendor/customer order timelines and payment states
+- admin transaction ledgers by user, gateway, status, order, and date
+- status/story feeds by expiry, category, vendor, and date
+- shipment queues by vendor/logistics company and status
+- review lookups by product and order
+
+After deploy, MongoDB builds these indexes in the background. Watch Atlas metrics for slow queries and add more narrow indexes only when the profiler shows a real repeated query shape.

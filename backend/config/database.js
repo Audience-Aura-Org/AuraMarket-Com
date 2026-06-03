@@ -11,6 +11,9 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 15000, // Timeout after 15s instead of 30s
       heartbeatFrequencyMS: 10000,    // Check connection every 10s
       family: 4,                      // Force IPv4 for DNS resolution
+      maxPoolSize: Number(process.env.MONGODB_MAX_POOL_SIZE || 25),
+      minPoolSize: Number(process.env.MONGODB_MIN_POOL_SIZE || 2),
+      maxIdleTimeMS: Number(process.env.MONGODB_MAX_IDLE_MS || 60000),
     });
 
     logger.info(`✅ MongoDB Connected: ${conn.connection.host}`);

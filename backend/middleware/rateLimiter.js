@@ -1,10 +1,24 @@
 const rateLimit = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
+const { getRedis } = require('../config/redis');
+
+const redisStore = (prefix) => {
+  const redis = getRedis();
+  if (!redis) return undefined;
+
+  return new RedisStore({
+    prefix,
+    sendCommand: (...args) => redis.call(...args),
+  });
+};
 
 /**
  * General API Limiter
  * Applied to all routes to prevent broad abuse.
  */
 const apiLimiter = rateLimit({
+  store: redisStore('auradime:rl:api:'),
+  passOnStoreError: true,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1200, // Limit each IP to 1200 requests per windowMs (Higher for development/browsing)
   message: {
@@ -20,6 +34,8 @@ const apiLimiter = rateLimit({
  * Prevents brute force on login/register and rapid wallet operations.
  */
 const strictLimiter = rateLimit({
+  store: redisStore('auradime:rl:strict:'),
+  passOnStoreError: true,
   windowMs: 15 * 60 * 1000, // Reduced to 15 minutes for development flexibility
   max: 120,
   message: {
@@ -35,6 +51,8 @@ const strictLimiter = rateLimit({
  * Allows a much larger burst for endpoints intended to be publicly scraped/browsed.
  */
 const publicLimiter = rateLimit({
+  store: redisStore('auradime:rl:public:'),
+  passOnStoreError: true,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // Allow larger number of requests for public endpoints
   message: {

@@ -126,5 +126,9 @@ OrderSchema.virtual('shipment', {
 // Optional: Indexing primarily used queries
 OrderSchema.index({ customer_id: 1, createdAt: -1 });
 OrderSchema.index({ vendor_id: 1, order_status: 1 });
+OrderSchema.index({ vendor_id: 1, createdAt: -1 });
+OrderSchema.index({ vendor_id: 1, payment_status: 1, createdAt: -1 });
+OrderSchema.index({ customer_id: 1, payment_status: 1, createdAt: -1 });
+OrderSchema.index({ order_status: 1, payment_status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', OrderSchema);

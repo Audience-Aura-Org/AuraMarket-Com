@@ -83,4 +83,9 @@ const TransactionSchema = new mongoose.Schema(
   }
 );
 
+TransactionSchema.index({ user_id: 1, createdAt: -1 });
+TransactionSchema.index({ status: 1, createdAt: -1 });
+TransactionSchema.index({ gateway: 1, status: 1, createdAt: -1 });
+TransactionSchema.index({ order_id: 1, type: 1 });
+
 module.exports = mongoose.model('Transaction', TransactionSchema);

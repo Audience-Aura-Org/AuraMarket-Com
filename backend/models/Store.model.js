@@ -48,5 +48,7 @@ const StoreSchema = new mongoose.Schema(
 
 // Add an index to efficiently query stores by category
 StoreSchema.index({ categories: 1 });
+StoreSchema.index({ is_active: 1, updatedAt: -1 });
+StoreSchema.index({ vendor_id: 1, is_active: 1 });
 
 module.exports = mongoose.model('Store', StoreSchema);

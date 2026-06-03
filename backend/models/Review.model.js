@@ -41,5 +41,7 @@ const ReviewSchema = new mongoose.Schema(
 
 // Prevent multiple reviews for the same order/item pair from the same user
 ReviewSchema.index({ user_id: 1, product_id: 1, order_id: 1 }, { unique: true });
+ReviewSchema.index({ product_id: 1, createdAt: -1 });
+ReviewSchema.index({ order_id: 1 });
 
 module.exports = mongoose.model('Review', ReviewSchema);
