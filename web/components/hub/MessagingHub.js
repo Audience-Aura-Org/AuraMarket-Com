@@ -67,6 +67,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
   const initialHeightRef = useRef(0);
+  const chatRootRef = useRef(null);
   const viewportSyncRef = useRef(null);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
@@ -84,7 +85,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const panelTouchRef = useRef(null);
-  const [mobileLayout, setMobileLayout] = useState(false);
+  const [mobileLayout, setMobileLayout] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
   const inbox = conversations;
   const messages = activeMessages;
   const partnerInfo = activeConversation?.partner || initialData || null;
@@ -160,11 +164,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
     const root = document.documentElement;
+    const mobileQuery = window.matchMedia?.('(max-width: 767px)');
     const onViewportChange = () => {
       const viewport = window.visualViewport;
       const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
       const visualHeight = viewport?.height || layoutHeight;
       const offsetTop = viewport?.offsetTop || 0;
+      const heightPx = `${Math.round(visualHeight)}px`;
+      const offsetPx = `${Math.round(offsetTop)}px`;
+      const chatRoot = chatRootRef.current || document.getElementById('chat-root');
+      const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
       if (layoutHeight > initialHeightRef.current) {
         initialHeightRef.current = layoutHeight;
       }
@@ -173,15 +182,35 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const editingText = activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
       const keyboardOpen = editingText && (keyboardInset > 80 || layoutHeight - visualHeight > 80);
 
-      root.style.setProperty('--viewport-height', `${Math.round(visualHeight)}px`);
-      root.style.setProperty('--viewport-offset-top', `${Math.round(offsetTop)}px`);
-      root.style.setProperty('--aura-chat-vvh', `${Math.round(visualHeight)}px`);
-      root.style.setProperty('--aura-chat-vvtop', `${Math.round(offsetTop)}px`);
+      root.style.setProperty('--viewport-height', heightPx);
+      root.style.setProperty('--viewport-offset-top', offsetPx);
+      root.style.setProperty('--aura-chat-vvh', heightPx);
+      root.style.setProperty('--aura-chat-vvtop', offsetPx);
       root.style.setProperty('--aura-chat-vvbottom', '0px');
       root.style.setProperty(
         '--aura-chat-composer-bottom-pad',
         keyboardOpen ? '0px' : 'env(safe-area-inset-bottom, 0px)'
       );
+
+      if (chatRoot && isMobileChat) {
+        chatRoot.style.position = 'fixed';
+        chatRoot.style.top = '0px';
+        chatRoot.style.left = '0px';
+        chatRoot.style.width = '100%';
+        chatRoot.style.height = heightPx;
+        chatRoot.style.maxHeight = heightPx;
+        chatRoot.style.overflow = 'hidden';
+        chatRoot.style.transform = `translateY(${offsetPx})`;
+      } else if (chatRoot) {
+        chatRoot.style.removeProperty('position');
+        chatRoot.style.removeProperty('top');
+        chatRoot.style.removeProperty('left');
+        chatRoot.style.removeProperty('width');
+        chatRoot.style.removeProperty('height');
+        chatRoot.style.removeProperty('max-height');
+        chatRoot.style.removeProperty('overflow');
+        chatRoot.style.removeProperty('transform');
+      }
 
       if (keyboardOpen && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
@@ -208,6 +237,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       root.style.removeProperty('--aura-chat-vvtop');
       root.style.removeProperty('--aura-chat-vvbottom');
       root.style.removeProperty('--aura-chat-composer-bottom-pad');
+      const chatRoot = chatRootRef.current || document.getElementById('chat-root');
+      if (chatRoot) {
+        chatRoot.style.removeProperty('position');
+        chatRoot.style.removeProperty('top');
+        chatRoot.style.removeProperty('left');
+        chatRoot.style.removeProperty('width');
+        chatRoot.style.removeProperty('height');
+        chatRoot.style.removeProperty('max-height');
+        chatRoot.style.removeProperty('overflow');
+        chatRoot.style.removeProperty('transform');
+      }
     };
   }, []);
 
@@ -787,18 +827,27 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',
         'md:rounded-2xl md:border md:border-[var(--glass-border)] md:shadow-[0_24px_72px_rgba(0,0,0,0.28)]',
       ].join(' ');
+  const mobileMotionProps = mobileLayout
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+      }
+    : {
+        initial: { opacity: 0, y: 18 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: 16 },
+      };
 
   return (
     <motion.div
+      id="chat-root"
+      ref={chatRootRef}
       style={mobileShellStyle}
       onTouchStart={handlePanelTouchStart}
       onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
-        ? {
-            initial: { opacity: 0, y: 18 },
-            animate: { opacity: 1, y: 0 },
-            exit: { opacity: 0, y: 16 },
-          }
+        ? mobileMotionProps
         : {})}
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
       className={outerClass}
@@ -1334,11 +1383,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   setTimeout(() => viewportSyncRef.current?.(), 50);
                   setTimeout(() => viewportSyncRef.current?.(), 150);
                   setTimeout(() => viewportSyncRef.current?.(), 300);
+                  setTimeout(() => viewportSyncRef.current?.(), 500);
                   keepChatInView('auto');
                   setTimeout(() => keepChatInView('auto'), 100);
                   setTimeout(() => keepChatInView('auto'), 150);
                   setTimeout(() => keepChatInView('auto'), 300);
                   setTimeout(() => keepChatInView('auto'), 520);
+                }}
+                onBlur={() => {
+                  setTimeout(() => viewportSyncRef.current?.(), 100);
                 }}
                 onInput={(e) => {
                   e.target.style.height = 'auto';

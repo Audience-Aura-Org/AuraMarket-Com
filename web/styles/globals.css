@@ -139,6 +139,14 @@ html.chat-open body {
   position: fixed !important;
 }
 
+html.chat-open #chat-root {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
 h1,h2,h3,h4,h5,h6 {
   font-family: var(--font-poppins);
   text-wrap: balance;
