@@ -56,6 +56,30 @@ const productName = (order) => {
   const item = order?.products?.[0];
   return item?.name || item?.product_name || item?.product_id?.name || 'Order item';
 };
+const productId = (item) => String(item?.product_id?._id || item?.product_id || '');
+const productImage = (item) => (
+  item?.image ||
+  item?.product_id?.images?.[0] ||
+  item?.product_id?.image ||
+  '/placeholder-product.png'
+);
+const variantEntries = (variant) => {
+  if (!variant) return [];
+  if (Array.isArray(variant)) {
+    return variant
+      .map((entry) => {
+        if (typeof entry === 'string') return ['Choice', entry];
+        return [entry?.name || entry?.key || entry?.label || 'Choice', entry?.value || entry?.option || entry?.label || ''];
+      })
+      .filter(([, value]) => value);
+  }
+  if (typeof variant === 'object') {
+    return Object.entries(variant)
+      .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+      .map(([key, value]) => [key.replace(/_/g, ' '), typeof value === 'object' ? JSON.stringify(value) : String(value)]);
+  }
+  return [['Choice', String(variant)]];
+};
 
 function InfoLine({ label, value, mono = false }) {
   return (
@@ -357,13 +381,51 @@ export default function AdminOrdersPage() {
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
                             <ShoppingBag className="size-3.5" /> Cargo items ({order.products?.length || 0})
                           </p>
-                          <div className="space-y-1.5">
-                            {order.products?.map((p, idx) => (
-                              <div key={idx} className="flex justify-between gap-3 rounded-lg bg-[var(--bg-primary)]/70 px-2.5 py-2 text-[11px]">
-                                <span className="truncate font-semibold">{p.name || p.product_name || p.product_id?.name || 'Product'}</span>
-                                <span className="shrink-0 text-indigo-600 dark:text-indigo-300">x{p.quantity || 1}</span>
-                              </div>
-                            ))}
+                          <div className="space-y-2">
+                            {order.products?.map((p, idx) => {
+                              const id = productId(p);
+                              const variants = variantEntries(p.variant);
+                              const name = p.name || p.product_name || p.product_id?.name || 'Product';
+                              const body = (
+                                <>
+                                  <div className="size-12 shrink-0 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+                                    <img src={productImage(p)} alt="" className="size-full object-cover" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <p className="line-clamp-2 text-[11px] font-semibold text-[var(--text-primary)]">{name}</p>
+                                      <span className="shrink-0 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">x{p.quantity || 1}</span>
+                                    </div>
+                                    <p className="mt-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                                      {fmt(p.price)} XAF each
+                                    </p>
+                                    {variants.length > 0 && (
+                                      <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {variants.map(([key, value]) => (
+                                          <span key={`${key}-${value}`} className="rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 py-0.5 text-[9px] font-semibold capitalize text-[var(--text-secondary)]">
+                                            {key}: {value}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
+                              );
+
+                              return id ? (
+                                <a
+                                  key={id || idx}
+                                  href={`/products/${id}`}
+                                  className="flex gap-3 rounded-lg bg-[var(--bg-primary)]/70 px-2.5 py-2 text-[11px] transition hover:bg-indigo-500/[0.06]"
+                                >
+                                  {body}
+                                </a>
+                              ) : (
+                                <div key={idx} className="flex gap-3 rounded-lg bg-[var(--bg-primary)]/70 px-2.5 py-2 text-[11px]">
+                                  {body}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
 
