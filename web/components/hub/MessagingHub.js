@@ -67,6 +67,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
   const initialHeightRef = useRef(0);
+  const viewportSyncRef = useRef(null);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -159,28 +160,27 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
     const root = document.documentElement;
-    const setViewportVars = () => {
+    const onViewportChange = () => {
       const viewport = window.visualViewport;
-      const layoutHeight = window.innerHeight || document.documentElement.clientHeight || viewport?.height || 0;
+      const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const visualHeight = viewport?.height || layoutHeight;
+      const offsetTop = viewport?.offsetTop || 0;
       if (layoutHeight > initialHeightRef.current) {
         initialHeightRef.current = layoutHeight;
       }
-      const visualHeight = viewport?.height || layoutHeight;
-      const visualTop = viewport?.offsetTop || 0;
-      const keyboardInset = Math.max(0, (initialHeightRef.current || layoutHeight) - visualHeight - visualTop);
+      const keyboardInset = Math.max(0, (initialHeightRef.current || layoutHeight) - visualHeight - offsetTop);
       const activeElement = document.activeElement;
       const editingText = activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
       const keyboardOpen = editingText && (keyboardInset > 80 || layoutHeight - visualHeight > 80);
-      const top = keyboardOpen ? visualTop : 0;
-      const height = Math.max(0, visualHeight);
 
-      root.style.setProperty('--viewport-height', `${Math.round(height)}px`);
-      root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
-      root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
+      root.style.setProperty('--viewport-height', `${Math.round(visualHeight)}px`);
+      root.style.setProperty('--viewport-offset-top', `${Math.round(offsetTop)}px`);
+      root.style.setProperty('--aura-chat-vvh', `${Math.round(visualHeight)}px`);
+      root.style.setProperty('--aura-chat-vvtop', `${Math.round(offsetTop)}px`);
       root.style.setProperty('--aura-chat-vvbottom', '0px');
       root.style.setProperty(
         '--aura-chat-composer-bottom-pad',
-        keyboardOpen ? '0px' : 'max(0.5rem, env(safe-area-inset-bottom))'
+        keyboardOpen ? '0px' : 'env(safe-area-inset-bottom, 0px)'
       );
 
       if (keyboardOpen && activePartnerIdRef.current) {
@@ -190,18 +190,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         queuePinToLatest([80, 180, 320, 520]);
       }
     };
+    viewportSyncRef.current = onViewportChange;
 
-    setViewportVars();
-    window.visualViewport?.addEventListener('resize', setViewportVars);
-    window.visualViewport?.addEventListener('scroll', setViewportVars);
-    window.addEventListener('resize', setViewportVars);
+    onViewportChange();
+    window.visualViewport?.addEventListener('resize', onViewportChange);
+    window.visualViewport?.addEventListener('scroll', onViewportChange);
+    window.addEventListener('resize', onViewportChange);
 
     return () => {
-      window.visualViewport?.removeEventListener('resize', setViewportVars);
-      window.visualViewport?.removeEventListener('scroll', setViewportVars);
-      window.removeEventListener('resize', setViewportVars);
+      window.visualViewport?.removeEventListener('resize', onViewportChange);
+      window.visualViewport?.removeEventListener('scroll', onViewportChange);
+      window.removeEventListener('resize', onViewportChange);
+      viewportSyncRef.current = null;
       root.style.removeProperty('--aura-chat-vvh');
       root.style.removeProperty('--viewport-height');
+      root.style.removeProperty('--viewport-offset-top');
       root.style.removeProperty('--aura-chat-vvtop');
       root.style.removeProperty('--aura-chat-vvbottom');
       root.style.removeProperty('--aura-chat-composer-bottom-pad');
@@ -764,6 +767,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         height: 'var(--viewport-height, 100dvh)',
         minHeight: 0,
         maxHeight: 'var(--viewport-height, 100dvh)',
+        transform: 'translateY(var(--viewport-offset-top, 0px))',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }
     : undefined;
@@ -1276,7 +1280,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 backdrop-blur-sm"
-          style={{ paddingBottom: 'var(--aura-chat-composer-bottom-pad, max(0.5rem, env(safe-area-inset-bottom)))' }}
+          style={{ paddingBottom: 'var(--aura-chat-composer-bottom-pad, env(safe-area-inset-bottom, 0px))' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
@@ -1296,7 +1300,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           )}
 
           {/* Input row */}
-          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2.5">
+          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 pb-1 pt-1.5 sm:gap-2 sm:px-3 sm:pb-1.5 sm:pt-2">
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
             <motion.button
@@ -1305,7 +1309,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               whileTap={composerBusy ? {} : { scale: 0.92 }}
               onClick={() => fileInputRef.current?.click()}
               disabled={composerBusy}
-              className="mb-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] active:bg-[var(--bg-primary)] disabled:opacity-50"
+              className="mb-0 flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] active:bg-[var(--bg-primary)] disabled:opacity-50"
               aria-label="Attach image"
             >
               {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImageIcon className="size-[20px]" />}
@@ -1327,6 +1331,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 className="max-h-[88px] min-h-[42px] w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 style={{ height: 'auto' }}
                 onFocus={() => {
+                  setTimeout(() => viewportSyncRef.current?.(), 50);
+                  setTimeout(() => viewportSyncRef.current?.(), 150);
+                  setTimeout(() => viewportSyncRef.current?.(), 300);
                   keepChatInView('auto');
                   setTimeout(() => keepChatInView('auto'), 100);
                   setTimeout(() => keepChatInView('auto'), 150);
@@ -1348,7 +1355,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               whileTap={composerBusy || !trimmedInput ? {} : { scale: 0.92 }}
               onClick={() => handleSend()}
               disabled={composerBusy || !trimmedInput}
-              className="mb-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/25 transition-all hover:shadow-[var(--accent)]/40 disabled:bg-[var(--text-secondary)] disabled:opacity-80 disabled:shadow-none"
+              className="mb-0 flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/25 transition-all hover:shadow-[var(--accent)]/40 disabled:bg-[var(--text-secondary)] disabled:opacity-80 disabled:shadow-none"
               aria-label="Send"
             >
               {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-[18px]" />}
