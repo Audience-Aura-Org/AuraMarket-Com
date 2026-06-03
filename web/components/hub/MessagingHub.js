@@ -18,6 +18,15 @@ import { toast } from 'react-hot-toast';
 
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
+const getInitialViewportHeight = () => {
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
+  const viewport = window.visualViewport;
+  return {
+    height: viewport ? viewport.height : window.innerHeight,
+    offsetTop: viewport ? viewport.offsetTop : 0,
+  };
+};
+
 /**
  * MessagingHub - Premium Global Messaging Center
  * Features: Infinite scroll, typing indicators, grouped bubbles, and search.
@@ -52,7 +61,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
-  const [viewportHeight, setViewportHeight] = useState(null);
+  const [viewportHeight, setViewportHeight] = useState(getInitialViewportHeight);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -764,11 +773,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         bottom: 'auto',
         width: '100%',
         overflow: 'hidden',
-        ...(viewportHeight && {
-          height: `${viewportHeight.height}px`,
-          maxHeight: `${viewportHeight.height}px`,
-          transform: `translateY(${viewportHeight.offsetTop}px)`,
-        }),
+        height: `${viewportHeight?.height ?? 800}px`,
+        maxHeight: `${viewportHeight?.height ?? 800}px`,
+        transform: `translateY(${viewportHeight?.offsetTop ?? 0}px)`,
       }
     : undefined;
 
@@ -1288,7 +1295,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 backdrop-blur-sm"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          style={{ paddingBottom: '0px' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
