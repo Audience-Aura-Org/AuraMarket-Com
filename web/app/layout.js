@@ -65,10 +65,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${poppins.variable} ${plusJakarta.variable}`} data-scroll-behavior="smooth">
       <head>
-        {/* Viewport: Removed interactive-widget=resizes-visual to fix iOS PWA freeze bug */}
+        {/* Viewport: resizes chat content when the virtual keyboard opens in PWA/WebView */}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
         />
         <meta name="theme-color" content="#0a050a" />
         {/* Dynamic Theme-Aware Favicons */}

@@ -165,20 +165,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (layoutHeight > initialHeightRef.current) {
         initialHeightRef.current = layoutHeight;
       }
-      const initialHeight = initialHeightRef.current || layoutHeight;
       const visualHeight = viewport?.height || layoutHeight;
       const visualTop = viewport?.offsetTop || 0;
-      const keyboardInset = Math.max(0, initialHeight - visualHeight - visualTop);
+      const keyboardInset = Math.max(0, (initialHeightRef.current || layoutHeight) - visualHeight - visualTop);
       const activeElement = document.activeElement;
       const editingText = activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
       const keyboardOpen = editingText && (keyboardInset > 80 || layoutHeight - visualHeight > 80);
       const top = keyboardOpen ? visualTop : 0;
-      const bottom = 0;
-      const height = Math.max(0, keyboardOpen ? visualHeight : initialHeight - top - bottom);
+      const height = Math.max(0, visualHeight);
 
+      root.style.setProperty('--viewport-height', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
-      root.style.setProperty('--aura-chat-vvbottom', `${Math.round(bottom)}px`);
+      root.style.setProperty('--aura-chat-vvbottom', '0px');
       root.style.setProperty(
         '--aura-chat-composer-bottom-pad',
         keyboardOpen ? '0px' : 'max(0.5rem, env(safe-area-inset-bottom))'
@@ -202,6 +201,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       window.visualViewport?.removeEventListener('scroll', setViewportVars);
       window.removeEventListener('resize', setViewportVars);
       root.style.removeProperty('--aura-chat-vvh');
+      root.style.removeProperty('--viewport-height');
       root.style.removeProperty('--aura-chat-vvtop');
       root.style.removeProperty('--aura-chat-vvbottom');
       root.style.removeProperty('--aura-chat-composer-bottom-pad');
@@ -244,9 +244,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const pinToLatestMessage = (behavior = 'auto') => {
     const scrollEl = scrollRef.current;
     if (scrollEl) {
-      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior });
+      scrollEl.scrollTop = scrollEl.scrollHeight;
     }
-    messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
   };
 
   const queuePinToLatest = (delays = [0, 80, 180, 320]) => {
@@ -762,11 +761,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       : {};
   const mobileShellStyle = mobileLayout
     ? {
-        top: 'var(--aura-chat-vvtop, 0px)',
-        bottom: 'var(--aura-chat-vvbottom, 0px)',
-        height: 'auto',
+        height: 'var(--viewport-height, 100dvh)',
         minHeight: 0,
-        maxHeight: 'none',
+        maxHeight: 'var(--viewport-height, 100dvh)',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }
     : undefined;
@@ -774,13 +771,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const outerClass = fullPage
     ? [
         'flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
-        'max-md:fixed max-md:inset-0 max-md:w-full',
-        'max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)]',
+        'max-md:w-full',
+        'max-md:h-[var(--viewport-height,100dvh)] max-md:max-h-[var(--viewport-height,100dvh)]',
         'md:h-full md:flex-1',
       ].join(' ')
     : [
         'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
-        'max-md:inset-0 max-md:h-[var(--aura-chat-vvh,100dvh)] max-md:max-h-[var(--aura-chat-vvh,100dvh)] max-md:w-full',
+        'max-md:inset-0 max-md:h-[var(--viewport-height,100dvh)] max-md:max-h-[var(--viewport-height,100dvh)] max-md:w-full',
         'max-md:rounded-none max-md:border-0 max-md:shadow-none',
         'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
         'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',
@@ -1332,6 +1329,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 onFocus={() => {
                   keepChatInView('auto');
                   setTimeout(() => keepChatInView('auto'), 100);
+                  setTimeout(() => keepChatInView('auto'), 150);
                   setTimeout(() => keepChatInView('auto'), 300);
                   setTimeout(() => keepChatInView('auto'), 520);
                 }}
