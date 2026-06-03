@@ -577,7 +577,14 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     api.post('/chat', {
       receiver_id: recipientUserId,
       text,
-      metadata: { type: 'story_reply', storyId: story._id, storyPreview: story.type === 'text' ? story.text_content : story.content_url }
+      metadata: {
+        type: 'story_reply',
+        storyId: story._id,
+        storyType: story.type,
+        storyPreview: story.type === 'text' ? story.text_content : story.content_url,
+        storyCaption: story.caption || '',
+        storyCategory: story.category || '',
+      }
     }).catch(() => {});
     window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
     setPaused(false);

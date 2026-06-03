@@ -108,8 +108,12 @@ export const useAuthStore = create(
           });
           return { success: true, user };
         } catch (err) {
-          await clearClientOnlyState();
-          set({ user: null, token: null, isAuthenticated: false, loading: false });
+          if (isDeletedOrInvalidSession(err)) {
+            await clearClientOnlyState();
+            set({ user: null, token: null, isAuthenticated: false, loading: false });
+            return { success: false, invalidSession: true };
+          }
+          set({ loading: false });
           return { success: false };
         }
       },

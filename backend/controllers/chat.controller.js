@@ -9,6 +9,16 @@
 const Message = require('../models/Message.model');
 const mongoose = require('mongoose');
 
+const roomHasSockets = async (io, room) => {
+  if (!io || !room) return false;
+  try {
+    const sockets = await io.in(room.toString()).allSockets();
+    return sockets.size > 0;
+  } catch {
+    return Boolean(io.sockets?.adapter?.rooms?.get(room.toString())?.size);
+  }
+};
+
 // ─────────────────────────────────────────────
 // @route   GET /api/chat/:userId
 // @desc    Get conversation between current user and a target userId
@@ -152,7 +162,7 @@ const sendMessage = async (req, res, next) => {
 
     const io = req.app.get('io');
     const receiverRoom = receiver_id.toString();
-    const receiverOnline = Boolean(io?.sockets?.adapter?.rooms?.get(receiverRoom)?.size);
+    const receiverOnline = await roomHasSockets(io, receiverRoom);
 
     const message = await Message.create({
       sender_id: req.user._id,
@@ -214,8 +224,8 @@ const sendMessage = async (req, res, next) => {
             message: body,
             type: 'message',
             senderAvatar,
-            metadata: { sender_id: req.user._id, link: `/messages?vendorId=${req.user._id}` },
-            emailLink: `${process.env.WEB_CLIENT_URL}/messages?vendorId=${req.user._id}`
+            metadata: { sender_id: req.user._id, link: `/chat?vendorId=${req.user._id}` },
+            emailLink: `${process.env.WEB_CLIENT_URL}/chat?vendorId=${req.user._id}`
           });
         } catch (err) {
           console.error(`❌ [Notifier] Dispatch failed:`, err.message);

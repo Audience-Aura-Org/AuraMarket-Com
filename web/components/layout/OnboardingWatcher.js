@@ -8,12 +8,12 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react';
 export default function OnboardingWatcher() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, hasHydrated, fetchMe, fetchFollowedVendors, followedVendorIds } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated, loading, fetchMe, fetchFollowedVendors, followedVendorIds } = useAuthStore();
 
   useEffect(() => {
-    if (!hasHydrated || user) return;
+    if (!hasHydrated || loading || user) return;
     fetchMe();
-  }, [hasHydrated, user, fetchMe]);
+  }, [hasHydrated, loading, user, fetchMe]);
  
   // Pre-fetch followed list as soon as authenticated to avoid flicker
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function OnboardingWatcher() {
 
   useEffect(() => {
     // Wait for persisted auth state to hydrate before redirecting.
-    if (!hasHydrated) return;
+    if (!hasHydrated || loading) return;
 
     const role = user?.role?.toLowerCase();
     
@@ -91,7 +91,7 @@ export default function OnboardingWatcher() {
       router.replace('/');
       return;
     }
-  }, [user, isAuthenticated, hasHydrated, pathname, router]);
+  }, [user, isAuthenticated, hasHydrated, loading, pathname, router]);
 
   if (!showVerificationBanner) return null;
 

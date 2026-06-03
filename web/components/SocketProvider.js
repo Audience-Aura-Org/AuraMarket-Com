@@ -118,6 +118,17 @@ const showBrowserNotification = async ({ id, title, body, route, type, senderId,
   }
 };
 
+const normalizeAppRoute = (route) => {
+  if (!route) return null;
+  try {
+    const url = new URL(route, window.location.origin);
+    if (url.origin !== window.location.origin) return url.href;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return route;
+  }
+};
+
 export default function SocketProvider({ children }) {
   const { user, logout } = useAuthStore();
   const router = useRouter();
@@ -138,6 +149,17 @@ export default function SocketProvider({ children }) {
   const activePartnerIdRef = useRef(activePartnerId);
   useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
   useEffect(() => { activePartnerIdRef.current = activePartnerId; }, [activePartnerId]);
+
+  const openMessageRoute = (partnerId, partnerData = null, route = null) => {
+    const target = normalizeAppRoute(route || (partnerId ? `/chat?vendorId=${encodeURIComponent(partnerId)}` : '/chat'));
+    if (target) router.push(target);
+    if (partnerId) {
+      openChat(partnerId, null, partnerData);
+      window.dispatchEvent(new CustomEvent('aura_chat_focus', {
+        detail: { partnerId: partnerId.toString(), partnerData, route: target },
+      }));
+    }
+  };
 
   useEffect(() => {
     if (!user?._id) return;
@@ -295,8 +317,9 @@ export default function SocketProvider({ children }) {
       // Strip any presence flag from the push payload — we prefer real-time status
       const { is_online, ...partnerNoPresence } = partnerData || {};
 
+      const route = msg.url || payload.url;
       if (partnerId) {
-        openChat(partnerId, null, partnerNoPresence);
+        openMessageRoute(partnerId, partnerNoPresence, route || `/chat?vendorId=${encodeURIComponent(partnerId)}`);
       } else if (payload.url) {
         router.push(payload.url);
       }
@@ -320,7 +343,7 @@ export default function SocketProvider({ children }) {
 
           const extra = event?.notification?.extra || {};
           if (extra.type === 'message' && extra.senderId) {
-            openChat(extra.senderId, null, extra.senderData || null);
+            openMessageRoute(extra.senderId, extra.senderData || null, extra.route);
             return;
           }
 

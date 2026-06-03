@@ -42,6 +42,16 @@ const buildMessagePreview = (text, productReference) => {
   return 'Sent you a message';
 };
 
+const roomHasSockets = async (io, room) => {
+  if (!io || !room) return false;
+  try {
+    const sockets = await io.in(room.toString()).allSockets();
+    return sockets.size > 0;
+  } catch {
+    return Boolean(io.sockets.adapter.rooms.get(room.toString())?.size);
+  }
+};
+
 const mapChatSockets = (server) => {
   const io = socketIo(server, {
     cors: createCorsOptions(),
@@ -127,7 +137,7 @@ const mapChatSockets = (server) => {
     socket.on('send_message', async (data) => {
       try {
         const { receiver_id, text, product_reference } = data;
-        const receiverOnline = userSockets.has(receiver_id.toString()) && userSockets.get(receiver_id.toString())?.size > 0;
+        const receiverOnline = await roomHasSockets(io, receiver_id.toString());
         const message = await Message.create({
           sender_id: socket.userId,
           receiver_id,
@@ -195,7 +205,7 @@ const mapChatSockets = (server) => {
     socket.on('check_online_status', async (data, callback) => {
       const targetId = (data?.userId || '').toString();
       if (!targetId) return;
-      const isOnline = userSockets.has(targetId) && userSockets.get(targetId).size > 0;
+      const isOnline = await roomHasSockets(io, targetId);
       const user = await User.findById(targetId).select('last_seen is_online').lean().catch(() => null);
       const lastSeen = user?.last_seen || null;
       const response = {

@@ -139,12 +139,16 @@ self.addEventListener('notificationclick', function (event) {
           try {
             client.postMessage({
               type: 'notification-click',
+              url: urlToOpen,
               payload: event.notification.data?.payload || {}
             });
           } catch (e) {
             console.error('[SW] postMessage failed:', e);
           }
-          return client.focus();
+          return client.focus().then(() => {
+            if ('navigate' in client) return client.navigate(urlToOpen);
+            return undefined;
+          }).catch(() => undefined);
         }
       }
       // No open tab — open a new one

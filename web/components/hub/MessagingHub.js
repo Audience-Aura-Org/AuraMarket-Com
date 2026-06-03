@@ -176,7 +176,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
       root.style.setProperty('--aura-chat-vvbottom', `${Math.round(bottom)}px`);
-      root.style.setProperty('--aura-chat-composer-bottom-pad', keyboardOpen ? '2.5cm' : 'max(0.5rem, env(safe-area-inset-bottom))');
+      root.style.setProperty('--aura-chat-composer-bottom-pad', 'max(0.5rem, env(safe-area-inset-bottom))');
 
       if (keyboardOpen && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
@@ -314,6 +314,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       loadInbox();
     }
   }, [activePartnerId, isSystemWide]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleFocus = (event) => {
+      const partnerId = event.detail?.partnerId?.toString();
+      if (!partnerId) return;
+      setActiveConversation(partnerId, event.detail?.partnerData || null);
+      loadConversation(partnerId, 1, { silent: true });
+      queuePinToLatest([0, 80, 180, 360]);
+    };
+    window.addEventListener('aura_chat_focus', handleFocus);
+    return () => window.removeEventListener('aura_chat_focus', handleFocus);
+  }, [setActiveConversation, isSystemWide]);
 
   useEffect(() => {
     if (!activePartnerId) return;
@@ -650,6 +663,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
   })();
   const composerBusy = sending || uploading;
+
+  const storyReplyMeta = (msg) => {
+    const meta = msg?.metadata;
+    return meta?.type === 'story_reply' ? meta : null;
+  };
 
   const dismissOverlay = () => {
     setChatMenuOpen(false);
@@ -1110,6 +1128,30 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                                 )}
                               </div>
                             </>
+                          )}
+
+                          {storyReplyMeta(msg) && (
+                            <div className="mb-2 overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 p-2.5">
+                              <div className="flex items-center gap-2">
+                                {storyReplyMeta(msg).storyType === 'image' && storyReplyMeta(msg).storyPreview ? (
+                                  <img src={storyReplyMeta(msg).storyPreview} className="size-10 rounded-lg object-cover" alt="" />
+                                ) : storyReplyMeta(msg).storyType === 'video' && storyReplyMeta(msg).storyPreview ? (
+                                  <video src={storyReplyMeta(msg).storyPreview} className="size-10 rounded-lg object-cover" muted playsInline preload="metadata" />
+                                ) : (
+                                  <div className="flex size-10 items-center justify-center rounded-lg bg-[var(--accent)]/15">
+                                    <MessageCircle className="size-4 text-[var(--accent)]" />
+                                  </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Story reply</p>
+                                  <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-[var(--text-primary)]">
+                                    {storyReplyMeta(msg).storyType === 'text'
+                                      ? storyReplyMeta(msg).storyPreview
+                                      : storyReplyMeta(msg).storyCaption || storyReplyMeta(msg).storyCategory || 'Replied to a story'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           )}
 
                           {msg.image_url && (
