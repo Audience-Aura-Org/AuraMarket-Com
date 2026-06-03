@@ -34,6 +34,58 @@ import {
 const GATEWAYS = ['eversend', 'mesomb', 'wallet', 'manual', 'paystack'];
 const STATUS_FILTERS = ['all', 'completed', 'pending', 'failed'];
 
+const shortId = (value, length = 8) => String(value?._id || value || '').slice(-length).toUpperCase();
+
+const getLinkedOrders = (tx) => {
+  const orders = [];
+  const seen = new Set();
+  [tx.order_id, ...(tx.order_ids || [])].forEach((order) => {
+    const id = String(order?._id || order || '');
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    orders.push(order);
+  });
+  return orders;
+};
+
+function InfoLine({ label, value, mono = false }) {
+  return (
+    <div className="flex items-start justify-between gap-3 text-[11px]">
+      <span className="shrink-0 text-[var(--text-secondary)]">{label}</span>
+      <span className={`min-w-0 text-right font-semibold text-[var(--text-primary)] ${mono ? 'font-mono' : ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+}
+
+function PersonSummary({ title, person, fallbackName }) {
+  const name = person?.name || fallbackName || '—';
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-[var(--glass-border)] p-3">
+      <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+        {person?.avatar ? (
+          <img src={person.avatar} alt="" className="size-full object-cover" />
+        ) : (
+          <User className="size-4 text-[var(--text-secondary)]" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{title}</p>
+        <p className="truncate text-[12px] font-semibold">{name}</p>
+        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
+          <Mail className="size-3 shrink-0" />
+          <span className="truncate">{person?.email || '—'}</span>
+        </div>
+        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
+          <Phone className="size-3 shrink-0" />
+          <span>{person?.phone || '—'}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminTransactionsPage() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -334,6 +386,7 @@ export default function AdminTransactionsPage() {
             const isExpanded = expandedId === tx._id;
             const TypeIcon = type.icon;
             const party = getTransactionParty(tx);
+            const linkedOrders = getLinkedOrders(tx);
 
             return (
               <div
@@ -452,58 +505,76 @@ export default function AdminTransactionsPage() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden border-t border-indigo-500/15 bg-[var(--bg-primary)]/50"
                     >
-                      <div className="grid gap-2.5 p-2.5 sm:grid-cols-2 sm:gap-3 sm:p-4">
-                        <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-2">
+                      <div className="grid gap-2.5 p-2.5 lg:grid-cols-[1fr_1.15fr] sm:gap-3 sm:p-4">
+                        <div className="space-y-3">
+                          <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-2">
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
                             <Database className="size-3.5" /> Transaction data
                           </p>
-                          <div className="text-[11px]">
-                            <span className="text-[var(--text-secondary)]">Reference </span>
-                            <span className="font-mono">{tx.reference}</span>
+                            <InfoLine label="Reference" value={tx.reference} mono />
+                            <InfoLine label="Gateway ID" value={tx.gateway_transaction_id} mono />
+                            <InfoLine label="Gateway" value={tx.gateway || 'internal'} />
+                            <InfoLine label="Type" value={tx.type?.replace(/_/g, ' ')} />
+                            <InfoLine label="Status" value={tx.status} />
+                            <InfoLine label="Amount" value={`${fmt(tx.amount)} ${tx.currency || 'XAF'}`} />
+                            <InfoLine label="Created" value={new Date(tx.createdAt).toLocaleString()} />
+                            {tx.description && (
+                              <div className="rounded-lg bg-[var(--bg-primary)]/70 p-2 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+                                {tx.description}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-[11px]">
-                            <span className="text-[var(--text-secondary)]">Gateway ID </span>
-                            <span className="font-mono">{tx.gateway_transaction_id || '—'}</span>
-                          </div>
-                          <p className="inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]">
-                            <Clock className="size-3" />
-                            {new Date(tx.createdAt).toLocaleString()}
-                          </p>
-                          {tx.order_ids?.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-1">
-                              {tx.order_ids.map((oid) => (
-                                <span
-                                  key={oid}
-                                  className="rounded-md bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[10px] text-indigo-700 dark:text-indigo-300"
-                                >
-                                  #{String(oid).slice(-8).toUpperCase()}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+
+                          <PersonSummary title="Transaction account" person={tx.user_id} fallbackName="System account" />
                         </div>
 
                         <div className="space-y-3">
-                          <div className="flex items-center gap-2.5 rounded-xl border border-[var(--glass-border)] p-3">
-                            <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
-                              {tx.user_id?.avatar ? (
-                                <img src={tx.user_id.avatar} alt="" className="size-full object-cover" />
-                              ) : (
-                                <User className="size-4 text-[var(--text-secondary)]" />
-                              )}
+                          {linkedOrders.length > 0 ? (
+                            linkedOrders.map((order) => {
+                              const vendor = order?.vendor_id;
+                              const customer = order?.customer_id;
+                              const itemNames = (order?.products || []).map((p) => p.name).filter(Boolean);
+                              return (
+                                <div key={String(order?._id || order)} className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                                      Linked order #{shortId(order)}
+                                    </p>
+                                    <span className="rounded-md bg-indigo-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase text-indigo-600 dark:text-indigo-300">
+                                      {order?.payment_status || '—'} / {order?.order_status || '—'}
+                                    </span>
+                                  </div>
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <InfoLine label="Order total" value={order?.total_amount ? `${fmt(order.total_amount)} XAF` : null} />
+                                    <InfoLine label="Payment" value={order?.payment_method} />
+                                    <InfoLine label="Shipping" value={order?.shipping_method?.replace(/_/g, ' ')} />
+                                    <InfoLine label="Tracking" value={order?.tracking_number} mono />
+                                  </div>
+                                  {itemNames.length > 0 && (
+                                    <div className="rounded-lg bg-[var(--bg-primary)]/70 p-2 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+                                      {itemNames.slice(0, 3).join(', ')}
+                                      {itemNames.length > 3 ? ` +${itemNames.length - 3} more` : ''}
+                                    </div>
+                                  )}
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <PersonSummary title="Customer" person={customer} fallbackName="Customer" />
+                                    <PersonSummary
+                                      title="Vendor store"
+                                      person={vendor ? { ...(vendor.user_id || {}), name: vendor.store_name } : null}
+                                      fallbackName="Vendor"
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+                              <p className="text-[11px] font-semibold text-[var(--text-primary)]">No linked order</p>
+                              <p className="mt-1 text-[10px] text-[var(--text-secondary)]">
+                                This transaction is a wallet, payout, gateway, or platform-level movement without an order record attached.
+                              </p>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-[12px] font-semibold">{tx.user_id?.name || 'User'}</p>
-                              <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
-                                <Mail className="size-3 shrink-0" />
-                                <span className="truncate">{tx.user_id?.email || '—'}</span>
-                              </div>
-                              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
-                                <Phone className="size-3 shrink-0" />
-                                <span>{tx.user_id?.phone || '—'}</span>
-                              </div>
-                            </div>
-                          </div>
+                          )}
 
                           <div className="rounded-xl border border-[var(--glass-border)] p-3">
                             <p className="mb-2 text-[11px] font-semibold text-[var(--text-secondary)]">

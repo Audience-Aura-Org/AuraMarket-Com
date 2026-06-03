@@ -93,16 +93,24 @@ export function PartyAvatar({ src, initial, alt = '', size = 'md', badge }) {
 export function getTransactionParty(tx) {
   const order = tx.order_ids?.[0] || tx.order_id;
   const vendor = order?.vendor_id;
+  const vendorUser = vendor?.user_id;
+  const customer = order?.customer_id;
   const branding = vendor?.branding || {};
   const logo =
     branding.logo ||
     branding.logo_url ||
     branding.logoUrl ||
     branding.avatar ||
+    vendorUser?.avatar ||
+    customer?.avatar ||
     tx.user_id?.avatar ||
     null;
-  const name = vendor?.store_name || tx.user_id?.name || 'User';
+  const name =
+    vendor?.store_name ||
+    customer?.name ||
+    tx.user_id?.name ||
+    (tx.gateway === 'platform' ? 'Auradime Platform' : 'User');
   const initial = String(name).trim().charAt(0).toUpperCase();
 
-  return { logo, name, initial };
+  return { logo, name, initial, vendor, vendorUser, customer, order };
 }

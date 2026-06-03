@@ -965,24 +965,34 @@ const getAllTransactions = async (req, res, next) => {
       ];
     }
 
+    const orderContextPopulate = {
+      path: 'order_id',
+      select: 'customer_id vendor_id products subtotal shipping_fee total_amount payment_method payment_status shipping_method shipping_address tracking_number order_status createdAt',
+      populate: [
+        {
+          path: 'vendor_id',
+          select: 'store_name user_id rating',
+          populate: {
+            path: 'user_id',
+            select: 'name email avatar phone'
+          }
+        },
+        {
+          path: 'customer_id',
+          select: 'name email avatar role phone'
+        }
+      ]
+    };
+
+    const ordersContextPopulate = {
+      ...orderContextPopulate,
+      path: 'order_ids'
+    };
+
     const transactions = await Transaction.find(query)
       .populate('user_id', 'name email avatar role phone')
-      .populate({
-        path: 'order_id',
-        select: 'vendor_id',
-        populate: {
-          path: 'vendor_id',
-          select: 'store_name branding'
-        }
-      })
-      .populate({
-        path: 'order_ids',
-        select: 'vendor_id',
-        populate: {
-          path: 'vendor_id',
-          select: 'store_name branding'
-        }
-      })
+      .populate(orderContextPopulate)
+      .populate(ordersContextPopulate)
       .sort('-createdAt')
       .skip((page - 1) * limit)
       .limit(Number(limit));
