@@ -22,5 +22,7 @@ const PushSubscriptionSchema = new mongoose.Schema({
 
 // Ensure one subscription per device/endpoint for a user
 PushSubscriptionSchema.index({ user_id: 1, 'subscription.endpoint': 1 }, { unique: true });
+// Fast lookup when a browser endpoint moves from one signed-in account to another.
+PushSubscriptionSchema.index({ 'subscription.endpoint': 1 });
 
 module.exports = mongoose.model('PushSubscription', PushSubscriptionSchema);

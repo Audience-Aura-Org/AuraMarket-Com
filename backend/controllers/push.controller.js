@@ -31,8 +31,18 @@ const subscribe = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid subscription data.' });
     }
 
+    const endpoint = subscription.endpoint;
+
+    // A browser/device push endpoint belongs to exactly one active account.
+    // If the same browser logs into a new account, remove stale ownership first
+    // so notifications from old signed-out accounts cannot continue arriving.
+    await PushSubscription.deleteMany({
+      'subscription.endpoint': endpoint,
+      user_id: { $ne: req.user._id },
+    });
+
     const existing = await PushSubscription.findOne(
-      { user_id: req.user._id, 'subscription.endpoint': subscription.endpoint }
+      { user_id: req.user._id, 'subscription.endpoint': endpoint }
     ).select('_id updatedAt device_type');
 
     const shouldRefresh = !existing ||
@@ -48,7 +58,7 @@ const subscribe = async (req, res, next) => {
     }
 
     await PushSubscription.findOneAndUpdate(
-      { user_id: req.user._id, 'subscription.endpoint': subscription.endpoint },
+      { user_id: req.user._id, 'subscription.endpoint': endpoint },
       { 
         user_id: req.user._id, 
         subscription, 
@@ -57,7 +67,7 @@ const subscribe = async (req, res, next) => {
       { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
-    console.log(`[PWA] Push subscription ${existing ? 'refreshed' : 'saved'} for ${req.user._id} (${device_type || 'mobile'}) endpoint=${subscription.endpoint.slice(-24)}`);
+    console.log(`[PWA] Push subscription ${existing ? 'refreshed' : 'saved'} for ${req.user._id} (${device_type || 'mobile'}) endpoint=${endpoint.slice(-24)}`);
     res.status(200).json({ success: true, message: 'Subscription stabilized.' });
   } catch (error) {
     next(error);

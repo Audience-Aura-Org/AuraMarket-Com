@@ -279,6 +279,9 @@ function chatReducer(state, action) {
 
     case 'SET_CURRENT_USER':
       if (!action.userId) return { ...initialState };
+      if (state.currentUserId && state.currentUserId !== action.userId) {
+        return { ...initialState, currentUserId: action.userId };
+      }
       return { ...state, currentUserId: action.userId };
 
     case 'OPEN_CHAT': {

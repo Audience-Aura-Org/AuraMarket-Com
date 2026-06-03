@@ -3,9 +3,11 @@ import { persist } from 'zustand/middleware';
 import api from '../services/api';
 import socketService from '../services/socket';
 import { clearStoredAuthToken, setStoredAuthToken } from '../services/authStorage';
+import { unsubscribeCurrentPushEndpoint } from '../lib/pwa-helper';
 
 const clearClientOnlyState = async () => {
   if (typeof window === 'undefined') return;
+  await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: false }).catch(() => {});
   await clearStoredAuthToken();
   localStorage.removeItem('aura-auth-storage');
   sessionStorage.removeItem('onboarding_skipped');
@@ -84,6 +86,11 @@ export const useAuthStore = create(
 
           const { token, data } = res.data;
           const { user } = data;
+          const previousUserId = get().user?._id?.toString?.();
+          if (previousUserId && previousUserId !== user?._id?.toString?.()) {
+            socketService.disconnect();
+            await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: false }).catch(() => {});
+          }
           await setStoredAuthToken(token);
           set({
             user,

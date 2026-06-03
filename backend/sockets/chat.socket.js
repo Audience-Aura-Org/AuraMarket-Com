@@ -4,11 +4,13 @@
  */
 
 const socketIo = require('socket.io');
+const jwt = require('jsonwebtoken');
 const Message = require('../models/Message.model');
 const User = require('../models/User.model');
 const { createCorsOptions } = require('../middleware/security.middleware');
 const { sendNotification } = require('../utils/notifier');
 const { getRedis, getRedisDuplicate, redisFeatures } = require('../config/redis');
+const { JWT_SECRET } = require('../config/env');
 
 const socketTransports = (process.env.SOCKET_TRANSPORTS || 'websocket,polling')
   .split(',')
@@ -81,13 +83,36 @@ const mapChatSockets = (server) => {
   const userSockets = new Map();
   const disconnectTimers = new Map(); // Grace period before marking offline
 
-  io.use((socket, next) => {
-    const userId = socket.handshake.auth?.userId;
-    if (!userId) {
-      return next(new Error('Authentication Error: Missing userId'));
+  io.use(async (socket, next) => {
+    try {
+      const userId = socket.handshake.auth?.userId?.toString();
+      const token = socket.handshake.auth?.token;
+      if (!userId || !token) {
+        return next(new Error('Authentication Error: Missing credentials'));
+      }
+
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded?.id?.toString() !== userId) {
+        return next(new Error('Authentication Error: Session user mismatch'));
+      }
+
+      const user = await User.findById(decoded.id).select('_id is_active token_version').lean();
+      if (!user || !user.is_active) {
+        return next(new Error('Authentication Error: Invalid account'));
+      }
+
+      if (
+        decoded.tokenVersion !== undefined &&
+        Number(decoded.tokenVersion) !== Number(user.token_version || 0)
+      ) {
+        return next(new Error('Authentication Error: Stale session'));
+      }
+
+      socket.userId = userId;
+      next();
+    } catch (error) {
+      next(new Error('Authentication Error: Invalid token'));
     }
-    socket.userId = userId;
-    next();
   });
 
   io.on('connection', (socket) => {

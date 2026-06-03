@@ -196,3 +196,31 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
     return { success: false, error: 'UNKNOWN', message: err.message };
   }
 }
+
+export async function unsubscribeCurrentPushEndpoint({ removeBrowserSubscription = false } = {}) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return { success: false, unsupported: true };
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription?.endpoint) return { success: true, unchanged: true };
+
+    await api.delete('/push/unsubscribe', {
+      data: { endpoint: subscription.endpoint },
+      __skipRetry: true,
+    }).catch((error) => {
+      if (error?.response?.status !== 401) throw error;
+    });
+
+    if (removeBrowserSubscription) {
+      await subscription.unsubscribe().catch(() => {});
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.warn('[PWA] Push unsubscribe skipped:', err?.message || err);
+    return { success: false, error: err?.message || 'UNSUBSCRIBE_FAILED' };
+  }
+}
