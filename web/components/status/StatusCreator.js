@@ -47,7 +47,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   // Load products for tagging
   useEffect(() => {
-    api.get('/vendors/products')
+    api.get('/vendor/products')
       .then(res => { if (res.data.success) setProducts(res.data.data.products || []); })
       .catch(() => {});
   }, []);

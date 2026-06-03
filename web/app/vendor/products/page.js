@@ -28,7 +28,7 @@ export default function VendorProductsPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.get('/vendors/products');
+      const res = await api.get('/vendor/products');
       if (res?.data?.success) {
         const prods = res.data.data?.products || res.data.data || [];
         setProducts(prods);
@@ -74,7 +74,7 @@ export default function VendorProductsPage() {
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
     try {
-      const res = await api.delete(`/vendors/products/${id}`);
+      const res = await api.delete(`/products/${id}`);
       if (res.data.success) {
         setProducts(products.filter(p => p._id !== id));
       }
