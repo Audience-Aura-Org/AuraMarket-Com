@@ -66,15 +66,7 @@ const getCompatibleFirms = async (quartier, vendorIds) => {
     query.$or.push({ supported_pickup_regions: { $size: 0 } });
   }
 
-  let firms = await LogisticsCompany.find(query).populate('user_id', 'name email avatar branding');
-  
-  // FALLBACK: If no strictly compatible firms found, return all verified firms 
-  // to prevent checkout blockage.
-  if (firms.length === 0) {
-    firms = await LogisticsCompany.find({ is_verified: true }).populate('user_id', 'name email avatar branding');
-  }
-
-  return firms;
+  return LogisticsCompany.find(query).populate('user_id', 'name email avatar branding');
 };
 
 /**

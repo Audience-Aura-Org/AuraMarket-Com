@@ -104,6 +104,26 @@ function CheckoutContent() {
 
   const selectedLogistics = logisticsFirms.find(f => f._id === formData.logistics_company_id);
 
+  const getCheckoutVendorIds = () => {
+    const items = order?.products || cartItems;
+    let vendorIds = [...new Set(items.map(it => it.vendor_id?._id || it.vendor_id || it.product?.vendor_id).filter(Boolean))];
+    if (vendorIds.length === 0 && order?.vendor_id) {
+      vendorIds = [order.vendor_id?._id || order.vendor_id];
+    }
+    return vendorIds;
+  };
+
+  const getFirmZonePrice = (firm, quartier) => {
+    if (!firm || !quartier) return 0;
+    const selectedZone = zones.find(z => z.name?.toLowerCase() === quartier.toLowerCase());
+    const district = selectedZone?.parent_id?.name;
+    const match = firm.quartier_prices?.find(p => {
+      const pricedZone = p.quartier?.toLowerCase();
+      return pricedZone === quartier.toLowerCase() || (district && pricedZone === district.toLowerCase());
+    });
+    return Number(match?.price || 0);
+  };
+
   const markCreatedOrdersFailed = async (reason, explicitOrderIds = null) => {
     const ids = explicitOrderIds || (orderId ? [orderId] : (createdOrderIds || []));
     if (ids.length === 0) return;
@@ -130,27 +150,18 @@ function CheckoutContent() {
       .catch(() => {});
   }, []);
 
-  // Fetch Compatible Firms when Quartier changes
+  // Fetch logistics firms. Empty zone shows verified partners; selected zone narrows to compatible firms.
   useEffect(() => {
-    if (!formData.quartier) {
-        setLogisticsFirms([]);
-        setFormData(f => ({ ...f, logistics_company_id: null }));
-        return;
-    }
-    
     const items = order?.products || cartItems;
     if (!items.length) return;
 
-    // Extract vendor IDs — handle both order products (vendor on order) and cart items
-    let vendorIds = [...new Set(items.map(it => it.vendor_id?._id || it.vendor_id || it.product?.vendor_id).filter(Boolean))];
-    // For single-vendor orders the vendor is on the order object, not each product
-    if (vendorIds.length === 0 && order?.vendor_id) {
-      vendorIds = [order.vendor_id?._id || order.vendor_id];
-    }
+    const vendorIds = getCheckoutVendorIds();
     if (vendorIds.length === 0) return;
 
     setLogisticsLoading(true);
-    api.get(`/logistics/compatible-firms?quartier=${formData.quartier}&vendor_ids=${vendorIds.join(',')}`)
+    const params = new URLSearchParams({ vendor_ids: vendorIds.join(',') });
+    if (formData.quartier) params.set('quartier', formData.quartier);
+    api.get(`/logistics/compatible-firms?${params.toString()}`)
       .then(res => {
         if (res.data.success) {
            const firms = res.data.data.firms || [];
@@ -169,15 +180,14 @@ function CheckoutContent() {
       if (formData.logistics_company_id && formData.quartier && logisticsFirms.length > 0) {
           const firm = logisticsFirms.find(f => f._id === formData.logistics_company_id);
           if (firm) {
-              const qPrice = firm.quartier_prices?.find(p => p.quartier === formData.quartier)?.price || 0;
-              const items = order?.products || cartItems;
-              const vendorIds = [...new Set(items.map(it => it.vendor_id?._id || it.vendor_id || it.product?.vendor_id).filter(Boolean))];
+              const qPrice = getFirmZonePrice(firm, formData.quartier);
+              const vendorIds = getCheckoutVendorIds();
               setCompatibleFee(qPrice * vendorIds.length);
           }
       } else {
           setCompatibleFee(0);
       }
-  }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems]);
+  }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems, zones]);
 
   // 1. Fetch Auth User Metadata & Auto-fill Profile
   useEffect(() => {
@@ -547,7 +557,7 @@ function CheckoutContent() {
   const totalAmount = subtotal + finalDeliveryFee;
 
   // Breakdown vendors and their fees
-  const feePerVendor = selectedLogistics && formData.quartier ? (selectedLogistics.quartier_prices?.find(p => p.quartier === formData.quartier)?.price || 0) : 0;
+  const feePerVendor = selectedLogistics && formData.quartier ? getFirmZonePrice(selectedLogistics, formData.quartier) : 0;
   
   const vendorTracking = matrixItems.reduce((acc, item) => {
      const vId = item.vendor_id?._id || item.vendor_id || item.product?.vendor_id;
@@ -564,10 +574,10 @@ function CheckoutContent() {
   const vendorList = Object.values(vendorTracking);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 pb-20">
+    <div className="checkout-page min-h-[100dvh] w-full max-w-[100vw] bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 pb-20">
       <div className="fixed top-[-10%] right-[-10%] w-[800px] h-[800px] bg-[var(--accent)]/5 rounded-full blur-[150px] pointer-events-none -z-0"></div>
       
-      <nav className="sticky top-0 z-[60] h-20 px-6 lg:px-20 flex items-center justify-between glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-3xl shadow-sm">
+      <nav className="sticky top-0 z-[60] h-16 px-4 sm:h-20 sm:px-6 lg:px-20 flex items-center justify-between glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-3xl shadow-sm">
         <button type="button" onClick={handleTerminateCheckout} className="flex items-center gap-3 group transition-all">
           <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
             <ArrowLeft className="size-5" />
@@ -589,7 +599,7 @@ function CheckoutContent() {
         </div>
       </nav>
 
-      <main className="max-w-[1600px] mx-auto px-6 lg:px-20 py-12 relative z-10 font-poppins">
+      <main className="relative z-10 mx-auto w-full max-w-7xl px-3 py-5 font-poppins sm:px-6 sm:py-10 lg:px-12 lg:py-12">
 
         {/* ââ Payment Blocking Screen âââââââââââââââââââââââââââââââââââââââ */}
         <AnimatePresence>
@@ -706,8 +716,8 @@ function CheckoutContent() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          <div className="lg:col-span-8 space-y-12">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-12 xl:gap-16">
+          <div className="min-w-0 space-y-6 lg:col-span-8 lg:space-y-12">
             <div className="flex items-center gap-4 mb-4">
                {[
                   { id: 1, label: 'Fulfillment' },
@@ -740,7 +750,7 @@ function CheckoutContent() {
                        </div>
                     </div>
 
-                    <div className="glass-panel p-5 md:p-10 rounded-3xl md:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-6 md:space-y-10">
+                    <div className="glass-panel p-4 sm:p-5 md:p-10 rounded-3xl md:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-6 md:space-y-10">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-10">
                           <div className="space-y-2 md:space-y-3">
                             <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Consignee Name</label>
@@ -840,11 +850,13 @@ function CheckoutContent() {
                                              {selectedLogistics.company_name}
                                           </p>
                                           <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-60 truncate">
-                                             {selectedLogistics.user_id?.name || 'Verified Node'}
+                                             {formData.quartier ? `Serves ${formData.quartier}` : 'Verified partner'}
                                           </p>
                                         </>
                                       ) : (
-                                        <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-30">Select Logistics Node</span>
+                                        <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-30">
+                                          {formData.quartier ? 'Select logistics partner' : 'Select zone or preview partners'}
+                                        </span>
                                       )}
                                    </div>
                                 </div>
@@ -1095,9 +1107,9 @@ function CheckoutContent() {
             </div>
           </div>
 
-          <div className="lg:col-span-4 h-fit sticky top-36">
-            <div className="glass-panel p-10 rounded-[56px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
-               <h3 className="text-3xl  font-bold mb-10 tracking-tighter  leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
+          <div className="h-fit min-w-0 lg:sticky lg:top-28 lg:col-span-4">
+            <div className="glass-panel p-5 sm:p-7 lg:p-8 rounded-3xl lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
+               <h3 className="text-2xl lg:text-3xl  font-bold mb-6 lg:mb-10 tracking-tighter  leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
                <div className="space-y-6 max-h-[300px] overflow-y-auto no-scrollbar pr-2 mb-12">
                   {matrixItems.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-4 group">
@@ -1145,7 +1157,7 @@ function CheckoutContent() {
                    <div className="flex justify-between items-end pt-8 border-t border-[var(--glass-border)]/50">
                       <div>
                          <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]  tracking-[0.4em] mb-1">Final Settlement</p>
-                         <p className="text-5xl  font-bold text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">{totalAmount.toLocaleString()}</p>
+                         <p className="text-3xl sm:text-4xl lg:text-5xl  font-bold text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">{totalAmount.toLocaleString()}</p>
                       </div>
                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
                    </div>

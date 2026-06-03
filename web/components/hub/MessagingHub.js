@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { 
   Send, X, ArrowLeft, Package,
   MessageCircle, Check, CheckCheck, Loader2, 
@@ -15,6 +16,7 @@ import socketService from '@/services/socket';
 import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './chat/ChatUtils';
 import { toast } from 'react-hot-toast';
 
+const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
 /**
  * MessagingHub - Premium Global Messaging Center
@@ -49,6 +51,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [partnerBInfo, setPartnerBInfo] = useState(null);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -669,6 +672,27 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     return meta?.type === 'story_reply' ? meta : null;
   };
 
+  const storyPreviewSource = (meta) => {
+    if (!meta) return null;
+    return meta.storyThumbnail || meta.storyPreviewUrl || meta.storyPreview || meta.content_url || null;
+  };
+
+  const openStoryReply = async (msg) => {
+    const meta = storyReplyMeta(msg);
+    const storyId = meta?.storyId || meta?.statusId;
+    if (!storyId) return;
+    try {
+      const res = await api.get(`/statuses/story/${storyId}`);
+      if (res.data.success && res.data.data) {
+        setStoryViewer({ statuses: [res.data.data], storyId });
+        return;
+      }
+      toast.error('That story is no longer active.');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'That story is no longer active.');
+    }
+  };
+
   const dismissOverlay = () => {
     setChatMenuOpen(false);
     setActiveConversation(null);
@@ -1131,12 +1155,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                           )}
 
                           {storyReplyMeta(msg) && (
-                            <div className="mb-2 overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 p-2.5">
+                            <button
+                              type="button"
+                              onClick={() => openStoryReply(msg)}
+                              className="mb-2 w-full overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 p-2.5 text-left transition-colors active:bg-[var(--accent)]/15"
+                            >
                               <div className="flex items-center gap-2">
-                                {storyReplyMeta(msg).storyType === 'image' && storyReplyMeta(msg).storyPreview ? (
-                                  <img src={storyReplyMeta(msg).storyPreview} className="size-10 rounded-lg object-cover" alt="" />
-                                ) : storyReplyMeta(msg).storyType === 'video' && storyReplyMeta(msg).storyPreview ? (
-                                  <video src={storyReplyMeta(msg).storyPreview} className="size-10 rounded-lg object-cover" muted playsInline preload="metadata" />
+                                {storyReplyMeta(msg).storyType === 'image' && storyPreviewSource(storyReplyMeta(msg)) ? (
+                                  <img src={storyPreviewSource(storyReplyMeta(msg))} className="size-10 rounded-lg object-cover" alt="" />
+                                ) : storyReplyMeta(msg).storyType === 'video' && storyPreviewSource(storyReplyMeta(msg)) ? (
+                                  <div className="relative size-10 overflow-hidden rounded-lg bg-black">
+                                    <video src={storyPreviewSource(storyReplyMeta(msg))} className="size-full object-cover" muted playsInline preload="metadata" />
+                                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-[9px] font-bold uppercase tracking-wide text-white">Video</span>
+                                  </div>
                                 ) : (
                                   <div className="flex size-10 items-center justify-center rounded-lg bg-[var(--accent)]/15">
                                     <MessageCircle className="size-4 text-[var(--accent)]" />
@@ -1151,7 +1182,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                                   </p>
                                 </div>
                               </div>
-                            </div>
+                            </button>
                           )}
 
                           {msg.image_url && (
@@ -1324,6 +1355,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {storyViewer.statuses && (
+          <StatusViewer
+            initialStatuses={storyViewer.statuses}
+            initialStoryId={storyViewer.storyId}
+            onClose={() => setStoryViewer({ statuses: null, storyId: null })}
+          />
+        )}
+      </AnimatePresence>
 
     </motion.div>
   );

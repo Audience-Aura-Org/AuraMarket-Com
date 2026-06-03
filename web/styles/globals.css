@@ -171,6 +171,19 @@ i, em { font-style: normal !important; }
   button, a { word-break: normal; }
 }
 
+html:has(.checkout-page),
+body:has(.checkout-page) {
+  zoom: 1;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body:has(.checkout-page) .checkout-page input,
+body:has(.checkout-page) .checkout-page textarea,
+body:has(.checkout-page) .checkout-page select {
+  font-size: 16px !important;
+}
+
 @layer utilities {
   .text-fluid-xs { font-size: clamp(0.6rem, 1vw, 0.8rem); }
   .text-fluid-sm { font-size: clamp(0.8rem, 1.5vw, 0.95rem); }

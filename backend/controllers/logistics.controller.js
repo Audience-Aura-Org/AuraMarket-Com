@@ -83,12 +83,16 @@ const onboardLogistics = async (req, res, next) => {
 const getSearchCompatibleFirms = async (req, res, next) => {
   try {
     const { quartier, vendor_ids } = req.query;
-    if (!quartier || !vendor_ids) {
-      return res.status(400).json({ success: false, message: 'Quartier and vendor_ids required.' });
+    if (!vendor_ids) {
+      return res.status(400).json({ success: false, message: 'vendor_ids required.' });
     }
 
     const vendors = Array.isArray(vendor_ids) ? vendor_ids : vendor_ids.split(',');
-    const firms   = await logisticsService.getCompatibleFirms(quartier, vendors);
+    const firms   = quartier
+      ? await logisticsService.getCompatibleFirms(quartier, vendors)
+      : await LogisticsCompany.find({ is_verified: true })
+          .populate('user_id', 'name email avatar branding')
+          .sort('company_name');
 
     res.status(200).json({ success: true, count: firms.length, data: { firms } });
   } catch (error) {
