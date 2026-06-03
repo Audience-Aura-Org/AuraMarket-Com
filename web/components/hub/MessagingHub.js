@@ -37,6 +37,40 @@ const getChatViewportMetrics = () => {
   };
 };
 
+const stableChatViewport = (() => {
+  let normalHeight = 0;
+  let keyboardHeight = 0;
+  let lastMode = 'normal';
+  const HEIGHT_JITTER_PX = 18;
+
+  return (metrics) => {
+    const mode = metrics.keyboardOpen ? 'keyboard' : 'normal';
+    const previous = mode === 'keyboard' ? keyboardHeight : normalHeight;
+    let height = metrics.height;
+
+    if (previous && Math.abs(previous - metrics.height) <= HEIGHT_JITTER_PX) {
+      height = previous;
+    } else if (mode === 'keyboard') {
+      keyboardHeight = metrics.height;
+    } else {
+      normalHeight = Math.max(normalHeight, metrics.height);
+      height = normalHeight;
+    }
+
+    if (mode !== lastMode) {
+      lastMode = mode;
+      if (mode === 'keyboard') keyboardHeight = height;
+    }
+
+    return {
+      ...metrics,
+      height,
+      offsetTop: mode === 'keyboard' ? metrics.offsetTop : 0,
+      mode,
+    };
+  };
+})();
+
 /**
  * MessagingHub - Premium Global Messaging Center
  * Features: Infinite scroll, typing indicators, grouped bubbles, and search.
@@ -65,13 +99,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [inboxLoading, setInboxLoading] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [pendingSendCount, setPendingSendCount] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [partnerBInfo, setPartnerBInfo] = useState(null);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
-  const [viewportHeight, setViewportHeight] = useState(getChatViewportMetrics);
+  const [viewportHeight, setViewportHeight] = useState(() => stableChatViewport(getChatViewportMetrics()));
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -83,6 +117,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [searchQuery, setSearchQuery] = useState('');
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
+  const inputValueRef = useRef('');
   const activePartnerIdRef = useRef(activePartnerId);
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
@@ -152,11 +187,25 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     if (!draftKey || typeof window === 'undefined') {
       setInput('');
+      inputValueRef.current = '';
       return;
     }
 
-    setInput(localStorage.getItem(draftKey) || '');
+    const savedDraft = localStorage.getItem(draftKey) || '';
+    setInput(savedDraft);
+    inputValueRef.current = savedDraft;
   }, [draftKey]);
+
+  useEffect(() => {
+    if (!mobileLayout || !activePartnerId) return;
+
+    viewportSyncRef.current?.();
+    requestAnimationFrame(() => viewportSyncRef.current?.());
+    const timers = [80, 180, 360, 700].map(delay => (
+      setTimeout(() => viewportSyncRef.current?.(), delay)
+    ));
+    return () => timers.forEach(clearTimeout);
+  }, [activePartnerId, mobileLayout]);
 
   useEffect(() => {
     if (!draftKey || typeof window === 'undefined') return;
@@ -187,7 +236,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       setViewportHeight(null);
     };
     const syncViewport = () => {
-      const metrics = getChatViewportMetrics();
+      const metrics = stableChatViewport(getChatViewportMetrics());
       const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
 
       if (!isMobileChat) {
@@ -195,7 +244,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         return;
       }
 
-      setViewportHeight(metrics);
+      setViewportHeight(prev => {
+        if (
+          prev &&
+          prev.mode === metrics.mode &&
+          Math.abs(prev.height - metrics.height) < 1 &&
+          Math.abs(prev.offsetTop - metrics.offsetTop) < 1
+        ) {
+          return prev;
+        }
+        return metrics;
+      });
 
       if (activePartnerIdRef.current) {
         requestAnimationFrame(() => {
@@ -206,8 +265,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
     viewportSyncRef.current = syncViewport;
 
+    const syncTimers = [];
+    const scheduleSync = (delay) => {
+      const timer = setTimeout(syncViewport, delay);
+      syncTimers.push(timer);
+    };
+
     syncViewport();
     requestAnimationFrame(syncViewport);
+    [80, 180, 360, 700].forEach(scheduleSync);
     window.visualViewport?.addEventListener('resize', syncViewport);
     window.visualViewport?.addEventListener('scroll', syncViewport);
     window.addEventListener('resize', syncViewport);
@@ -216,6 +282,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       window.visualViewport?.removeEventListener('resize', syncViewport);
       window.visualViewport?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);
+      syncTimers.forEach(clearTimeout);
       viewportSyncRef.current = null;
       resetChatRootStyles();
     };
@@ -536,6 +603,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   // -- Typing Logic --
   const handleTyping = (val) => {
+    inputValueRef.current = val;
     setInput(val);
     if (!activePartnerId) return;
 
@@ -573,8 +641,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const handleSend = async (customText = null, imageUrl = null) => {
-    const text = (customText || input).trim();
-    if ((!text && !imageUrl) || !activePartnerId || sending || (uploading && !imageUrl)) return;
+    const fromComposer = customText === null;
+    const imageUsesComposerText = Boolean(imageUrl && customText === '');
+    const shouldClearComposer = fromComposer || imageUsesComposerText;
+    const text = (shouldClearComposer ? inputValueRef.current : customText || '').trim();
+    if ((!text && !imageUrl) || !activePartnerId || (uploading && !imageUrl)) return;
     const sendPartnerId = activePartnerId.toString();
     const sentDraftKey = draftKey;
 
@@ -582,10 +653,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setIsTyping(false);
     socketService.emit('typing_stop', { receiver_id: activePartnerId });
 
-    setSending(true);
+    setPendingSendCount(count => count + 1);
+    const sendStamp = Date.now();
     const optimisticMsg = {
-      _id: `opt-${Date.now()}`,
-      client_id: `client-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      _id: `opt-${sendStamp}-${Math.random().toString(36).slice(2)}`,
+      client_id: `client-${sendStamp}-${Math.random().toString(36).slice(2)}`,
       text,
       image_url: imageUrl,
       sender_id: user?._id,
@@ -598,10 +670,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       partnerId: sendPartnerId,
       isActive: true,
     });
+    if (shouldClearComposer) inputValueRef.current = '';
     setInput('');
     resetComposerHeight();
     if (sentDraftKey && typeof window !== 'undefined') localStorage.removeItem(sentDraftKey);
-    queuePinToLatest([0, 60, 140, 260, 420]);
+    queuePinToLatest([0, 80, 180]);
 
     try {
       const res = await api.post('/chat', {
@@ -619,7 +692,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       markMessageFailed(sendPartnerId, optimisticMsg._id);
       if (sentDraftKey && text && typeof window !== 'undefined') localStorage.setItem(sentDraftKey, text);
     } finally {
-      setSending(false);
+      setPendingSendCount(count => Math.max(0, count - 1));
     }
   };
 
@@ -680,7 +753,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       className: 'text-[var(--nav-text)]/55',
     };
   })();
-  const composerBusy = sending || uploading;
+  const composerBusy = uploading;
 
   const storyReplyMeta = (msg) => {
     const meta = msg?.metadata;
@@ -823,7 +896,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       {...(!fullPage
         ? mobileMotionProps
         : {})}
-      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+      transition={mobileLayout ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }}
       className={outerClass}
     >
 
@@ -1129,9 +1202,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       <div className={`flex min-w-0 max-w-[88%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
 
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.96, y: 8 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                          initial={mobileLayout ? false : { opacity: 0, scale: 0.96, y: 8 }}
+                          animate={mobileLayout ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+                          transition={mobileLayout ? { duration: 0.08, ease: 'easeOut' } : { type: 'spring', stiffness: 350, damping: 28 }}
                           className={`
                             group relative min-w-[76px] max-w-full overflow-hidden px-2.5 py-1.5 pr-7 text-[13px] leading-snug break-words [overflow-wrap:anywhere]
                             shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] transition-colors duration-200
@@ -1386,10 +1459,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               whileTap={composerBusy || !trimmedInput ? {} : { scale: 0.92 }}
               onClick={() => handleSend()}
               disabled={composerBusy || !trimmedInput}
+              aria-busy={pendingSendCount > 0 || uploading}
               className="mb-0 flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/25 transition-all hover:shadow-[var(--accent)]/40 disabled:bg-[var(--text-secondary)] disabled:opacity-80 disabled:shadow-none"
               aria-label="Send"
             >
-              {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-[18px]" />}
+              {uploading ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-[18px]" />}
             </motion.button>
           </div>
         </div>
