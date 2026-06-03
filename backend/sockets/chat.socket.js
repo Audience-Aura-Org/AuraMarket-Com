@@ -8,7 +8,7 @@ const Message = require('../models/Message.model');
 const User = require('../models/User.model');
 const { createCorsOptions } = require('../middleware/security.middleware');
 const { sendNotification } = require('../utils/notifier');
-const { getRedis, getRedisDuplicate } = require('../config/redis');
+const { getRedis, getRedisDuplicate, redisFeatures } = require('../config/redis');
 
 const socketTransports = (process.env.SOCKET_TRANSPORTS || 'websocket,polling')
   .split(',')
@@ -49,8 +49,8 @@ const mapChatSockets = (server) => {
     transports: socketTransports.length ? socketTransports : ['websocket', 'polling'],
   });
 
-  const pubClient = getRedis();
-  const subClient = getRedisDuplicate();
+  const pubClient = redisFeatures.socket ? getRedis() : null;
+  const subClient = redisFeatures.socket ? getRedisDuplicate() : null;
   if (pubClient && subClient) {
     Promise.all([
       import('@socket.io/redis-adapter'),

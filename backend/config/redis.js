@@ -2,6 +2,15 @@ const Redis = require('ioredis');
 
 const REDIS_URL = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL || '';
 const REDIS_TLS = String(process.env.REDIS_TLS || '').toLowerCase() === 'true';
+const boolEnv = (name, defaultValue = true) => {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return defaultValue;
+  return !['0', 'false', 'no', 'off'].includes(String(raw).toLowerCase());
+};
+
+const REDIS_CACHE_ENABLED = boolEnv('REDIS_CACHE_ENABLED', true);
+const REDIS_RATE_LIMIT_ENABLED = boolEnv('REDIS_RATE_LIMIT_ENABLED', true);
+const REDIS_SOCKET_ENABLED = boolEnv('REDIS_SOCKET_ENABLED', true);
 
 let client = null;
 let duplicateClient = null;
@@ -65,6 +74,9 @@ const getRedisDuplicate = () => {
 
 const getRedisStatus = () => ({
   enabled: Boolean(REDIS_URL),
+  cache: Boolean(REDIS_URL && REDIS_CACHE_ENABLED),
+  rateLimit: Boolean(REDIS_URL && REDIS_RATE_LIMIT_ENABLED),
+  socket: Boolean(REDIS_URL && REDIS_SOCKET_ENABLED),
   status,
 });
 
@@ -80,5 +92,10 @@ module.exports = {
   getRedis,
   getRedisDuplicate,
   getRedisStatus,
+  redisFeatures: {
+    cache: REDIS_CACHE_ENABLED,
+    rateLimit: REDIS_RATE_LIMIT_ENABLED,
+    socket: REDIS_SOCKET_ENABLED,
+  },
   closeRedis,
 };

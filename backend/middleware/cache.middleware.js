@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { getRedis } = require('../config/redis');
+const { getRedis, redisFeatures } = require('../config/redis');
 
 const DEFAULT_TTL_SECONDS = Number(process.env.API_CACHE_TTL_SECONDS || 60);
 const REDIS_PREFIX = process.env.API_CACHE_REDIS_PREFIX || 'auradime:api-cache:';
@@ -46,7 +46,7 @@ const cacheResponse = ({ ttlSeconds = DEFAULT_TTL_SECONDS, privateRoute = false 
       return res.status(cached.status).send(cached.body);
     }
 
-    const redis = getRedis();
+    const redis = redisFeatures.cache ? getRedis() : null;
     if (redis?.status === 'ready') {
       try {
         const raw = await redis.get(redisKey);

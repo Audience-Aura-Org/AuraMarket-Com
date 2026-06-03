@@ -25,6 +25,9 @@ Set Redis before running more than one PM2 worker or more than one EC2 instance:
 ```text
 REDIS_URL=redis://your-redis-host:6379
 REDIS_TLS=false
+REDIS_CACHE_ENABLED=true
+REDIS_RATE_LIMIT_ENABLED=true
+REDIS_SOCKET_ENABLED=true
 API_CACHE_TTL_SECONDS=60
 SOCKET_TRANSPORTS=websocket,polling
 ```
@@ -36,6 +39,17 @@ With `REDIS_URL` enabled, Auradime shares:
 - Socket.IO room broadcasts for chat, wallet, order, and notification events
 
 Without `REDIS_URL`, the backend falls back to in-process memory so the current single-server startup keeps working.
+
+If you are using a small Upstash plan, avoid heavy load tests against Redis-backed rate limits. Either upgrade the Redis plan or temporarily use memory rate limits:
+
+```text
+REDIS_RATE_LIMIT_ENABLED=false
+API_RATE_LIMIT_MAX=100000
+PUBLIC_RATE_LIMIT_MAX=100000
+STRICT_RATE_LIMIT_MAX=5000
+```
+
+Keep `REDIS_SOCKET_ENABLED=true` for multi-worker Socket.IO rooms. Keep `REDIS_CACHE_ENABLED=true` only when the Redis plan can absorb the request volume.
 
 ## Future horizontal scaling
 
