@@ -786,7 +786,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       ].join(' ')
     : [
         'fixed z-[600] flex min-h-0 flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation overscroll-contain',
-        'max-md:inset-0 max-md:w-full',
+        'max-md:w-full',
         'max-md:rounded-none max-md:border-0 max-md:shadow-none',
         'md:left-auto md:right-5 md:top-[max(1rem,env(safe-area-inset-top))] md:bottom-5',
         'md:h-[min(86dvh,760px)] md:max-h-[86dvh] md:w-[min(440px,calc(100vw-2.5rem))]',
