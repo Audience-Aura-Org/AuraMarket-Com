@@ -25,11 +25,15 @@ const getChatViewportMetrics = () => {
   const visualHeight = viewport?.height || layoutHeight;
   const offsetTop = viewport?.offsetTop || 0;
   const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.78);
+  const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
+  const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
+  const targetHeight = keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight);
 
   return {
-    height: keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight),
-    offsetTop: keyboardOpen ? offsetTop : 0,
+    height: targetHeight / zoomScale,
+    offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
     keyboardOpen,
+    zoomScale,
   };
 };
 
