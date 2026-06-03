@@ -175,4 +175,22 @@ process.on('unhandledRejection', (err) => {
   server.close(() => process.exit(1));
 });
 
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Draining HTTP and socket connections...`);
+  io.close(() => {
+    server.close(() => {
+      console.log('✅ Server drained cleanly.');
+      process.exit(0);
+    });
+  });
+
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout.');
+    process.exit(1);
+  }, 15000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 module.exports = app;

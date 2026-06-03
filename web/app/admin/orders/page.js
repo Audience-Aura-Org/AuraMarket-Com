@@ -52,9 +52,22 @@ const PAYMENT_STATUS = {
 
 const fmt = (value) => Number(value || 0).toLocaleString();
 const shortId = (value, length = 8) => String(value?._id || value || '').slice(-length).toUpperCase();
+const firstFilled = (...values) =>
+  values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
 const productName = (order) => {
   const item = order?.products?.[0];
   return item?.name || item?.product_name || item?.product_id?.name || 'Order item';
+};
+const orderCustomer = (order) => {
+  const user = order?.customer_id && typeof order.customer_id === 'object' ? order.customer_id : null;
+  const rawCustomerId = !user ? order?.customer_id : null;
+  const shipping = order?.shipping_address || {};
+
+  return {
+    name: firstFilled(user?.name, shipping.full_name, shipping.name, shipping.email, rawCustomerId ? `Customer #${shortId(rawCustomerId, 6)}` : null, 'Order customer'),
+    email: firstFilled(user?.email, shipping.email, 'No email on order'),
+    phone: firstFilled(user?.phone, shipping.phone, 'No phone on order'),
+  };
 };
 const productId = (item) => String(item?.product_id?._id || item?.product_id || '');
 const productImage = (item) => (
@@ -192,8 +205,9 @@ export default function AdminOrdersPage() {
     if (!q) return true;
     return (
       order._id?.toLowerCase().includes(q) ||
-      order.customer_id?.name?.toLowerCase().includes(q) ||
-      order.customer_id?.email?.toLowerCase().includes(q) ||
+      orderCustomer(order).name?.toLowerCase().includes(q) ||
+      orderCustomer(order).email?.toLowerCase().includes(q) ||
+      orderCustomer(order).phone?.toLowerCase().includes(q) ||
       order.vendor_id?.store_name?.toLowerCase().includes(q) ||
       order.products?.some((item) => (
         item.name || item.product_name || item.product_id?.name || ''
@@ -278,7 +292,7 @@ export default function AdminOrdersPage() {
             const isExpanded = expandedId === order._id;
             const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
             const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
-            const customer = order.customer_id;
+            const customer = orderCustomer(order);
             const product = productName(order);
 
             return (

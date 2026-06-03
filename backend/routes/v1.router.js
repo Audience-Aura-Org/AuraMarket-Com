@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { strictLimiter, publicLimiter } = require('../middleware/rateLimiter');
+const { cacheResponse } = require('../middleware/cache.middleware');
 
 // Import all routes
 const authRoutes = require('./auth.routes');
@@ -38,9 +39,9 @@ const withdrawalRoutes = require('./withdrawal.routes');
 // Mount routes
 router.use('/auth', strictLimiter, authRoutes);
 router.use('/cart', cartRoutes);
-router.use('/vendors', publicLimiter, vendorRoutes);
+router.use('/vendors', publicLimiter, cacheResponse({ ttlSeconds: 45 }), vendorRoutes);
 router.use('/vendor', vendorRoutes); 
-router.use('/products', publicLimiter, productRoutes);
+router.use('/products', publicLimiter, cacheResponse({ ttlSeconds: 45 }), productRoutes);
 router.use('/orders', orderRoutes);
 router.use('/wallet', strictLimiter, walletRoutes);
 router.use('/escrow', escrowRoutes);
@@ -59,11 +60,11 @@ router.use('/coupons', couponRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/wishlist', wishlistRoutes);
 router.use('/qa', qaRoutes);
-router.use('/legal', legalRoutes);
-router.use('/categories', publicLimiter, categoryRoutes);
-router.use('/category', categoryRoutes);
-router.use('/homepage', homepageRoutes);
-router.use('/discovery', publicLimiter, discoveryRoutes);
+router.use('/legal', cacheResponse({ ttlSeconds: 300 }), legalRoutes);
+router.use('/categories', publicLimiter, cacheResponse({ ttlSeconds: 300 }), categoryRoutes);
+router.use('/category', cacheResponse({ ttlSeconds: 300 }), categoryRoutes);
+router.use('/homepage', cacheResponse({ ttlSeconds: 120 }), homepageRoutes);
+router.use('/discovery', publicLimiter, cacheResponse({ ttlSeconds: 60 }), discoveryRoutes);
 router.use('/track', trackingRoutes);
 router.use('/push', pushRoutes);
 router.use('/statuses', statusRoutes);
