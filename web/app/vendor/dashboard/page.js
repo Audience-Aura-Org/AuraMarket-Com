@@ -21,6 +21,17 @@ import {
   Wallet,
 } from 'lucide-react';
 
+const getResponseData = (res) => res?.data?.data || {};
+
+const getOrderProductName = (order) => {
+  const item = order?.products?.[0];
+  return item?.name || item?.product_name || item?.product_id?.name || 'Product';
+};
+
+const isPaidOrder = (order) => ['paid', 'completed'].includes(order?.payment_status);
+const isCompletedOrder = (order) => ['delivered', 'completed'].includes(order?.order_status);
+const isOpenOrder = (order) => !['delivered', 'completed', 'cancelled', 'refunded'].includes(order?.order_status);
+
 export default function VendorDashboard() {
   const router = useRouter();
   const { user, token, updateUser } = useAuthStore();
@@ -29,6 +40,8 @@ export default function VendorDashboard() {
   const [orders, setOrders] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [pendingEscrow, setPendingEscrow] = useState(0);
+  const [analyticsStats, setAnalyticsStats] = useState(null);
+  const [analyticsHistory, setAnalyticsHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -91,26 +104,37 @@ export default function VendorDashboard() {
           }
         };
 
-        const [productsRes, ordersRes, walletRes, vendorProfileRes] = await Promise.all([
+        const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes] = await Promise.all([
           safeGet('/vendor/products'),
           safeGet('/vendor/orders'),
           safeGet('/wallet'),
           safeGet('/vendor/me'),
+          safeGet('/vendor/analytics'),
         ]);
 
         if (isMounted) {
+          const productsData = getResponseData(productsRes);
+          const ordersData = getResponseData(ordersRes);
+          const walletData = getResponseData(walletRes);
+          const vendorProfileData = getResponseData(vendorProfileRes);
+          const analyticsData = getResponseData(analyticsRes);
+
           if (productsRes.data.success) {
-            setProducts(productsRes.data.data.products || []);
+            setProducts(productsData.products || analyticsData.top_products || []);
           }
           if (ordersRes.data.success) {
-            setOrders(ordersRes.data.data.orders || []);
+            setOrders(ordersData.orders || analyticsData.recent_orders || []);
           }
           if (walletRes.data.success) {
-            setWalletBalance(walletRes.data.data.balance || 0);
-            setPendingEscrow(walletRes.data.data.pending_escrow || 0);
+            setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
+            setPendingEscrow(walletData.pending_escrow ?? analyticsData.stats?.pending_escrow ?? 0);
           }
           if (vendorProfileRes.data.success) {
-            setPendingEscrow(vendorProfileRes.data.data.escrow_balance || 0);
+            setPendingEscrow(vendorProfileData.escrow_balance ?? analyticsData.stats?.pending_escrow ?? 0);
+          }
+          if (analyticsRes.data.success) {
+            setAnalyticsStats(analyticsData.stats || null);
+            setAnalyticsHistory(analyticsData.sales_history || []);
           }
           setLoading(false);
         }
@@ -138,20 +162,31 @@ export default function VendorDashboard() {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const [productsRes, ordersRes, walletRes, vendorProfileRes] = await Promise.all([
+      const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes] = await Promise.all([
         api.get('/vendor/products'),
         api.get('/vendor/orders'),
         api.get('/wallet'),
         api.get('/vendor/me'),
+        api.get('/vendor/analytics'),
       ]);
 
-      if (productsRes.data.success) setProducts(productsRes.data.data.products || []);
-      if (ordersRes.data.success) setOrders(ordersRes.data.data.orders || []);
+      const productsData = getResponseData(productsRes);
+      const ordersData = getResponseData(ordersRes);
+      const walletData = getResponseData(walletRes);
+      const vendorProfileData = getResponseData(vendorProfileRes);
+      const analyticsData = getResponseData(analyticsRes);
+
+      if (productsRes.data.success) setProducts(productsData.products || analyticsData.top_products || []);
+      if (ordersRes.data.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
       if (walletRes.data.success) {
-        setWalletBalance(walletRes.data.data.balance || 0);
-        setPendingEscrow(walletRes.data.data.pending_escrow || 0);
+        setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
+        setPendingEscrow(walletData.pending_escrow ?? analyticsData.stats?.pending_escrow ?? 0);
       }
-      if (vendorProfileRes.data.success) setPendingEscrow(vendorProfileRes.data.data.escrow_balance || 0);
+      if (vendorProfileRes.data.success) setPendingEscrow(vendorProfileData.escrow_balance ?? analyticsData.stats?.pending_escrow ?? 0);
+      if (analyticsRes.data.success) {
+        setAnalyticsStats(analyticsData.stats || null);
+        setAnalyticsHistory(analyticsData.sales_history || []);
+      }
       
       setLoading(false);
     } catch (err) {
@@ -160,11 +195,16 @@ export default function VendorDashboard() {
     }
   };
 
-  const paidOrders = orders.filter((o) => o.payment_status === 'paid');
-  const completedOrders = orders.filter((o) => ['delivered', 'completed'].includes(o.order_status));
-  const openOrders = orders.filter((o) => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status));
-  const totalSales = paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-  const recentPaid = paidOrders.slice(0, 5).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+  const paidOrders = orders.filter(isPaidOrder);
+  const completedOrders = orders.filter(isCompletedOrder);
+  const openOrders = orders.filter(isOpenOrder);
+  const totalSales = analyticsStats?.total_revenue ?? paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+  const totalProducts = analyticsStats?.total_products ?? products.length;
+  const inStockProducts = analyticsStats?.in_stock_products ?? products.filter(p => Number(p.stock || 0) > 0).length;
+  const outOfStockProducts = analyticsStats?.out_of_stock_products ?? products.filter(p => Number(p.stock || 0) === 0).length;
+  const processingOrders = analyticsStats?.processing_orders ?? orders.filter(o => o.order_status === 'processing').length;
+  const openOrderCount = analyticsStats?.open_orders ?? openOrders.length;
+  const fulfilledOrderCount = analyticsStats?.total_sales ?? completedOrders.length;
 
   if (!mounted) return null;
 
@@ -174,8 +214,10 @@ export default function VendorDashboard() {
       d.setMonth(d.getMonth() - (5 - i));
       const month = d.getMonth();
       const year = d.getFullYear();
+      const key = d.toISOString().slice(0, 7);
+      const analyticsMonth = analyticsHistory.find((entry) => String(entry._id || '').startsWith(key));
       
-      const monthSales = paidOrders.filter(o => {
+      const monthSales = analyticsMonth?.revenue ?? paidOrders.filter(o => {
         const od = new Date(o.createdAt);
         return od.getMonth() === month && od.getFullYear() === year;
       }).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
@@ -312,7 +354,7 @@ export default function VendorDashboard() {
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '70%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">{completedOrders.length} orders fulfilled</p>
+              <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">{fulfilledOrderCount} orders fulfilled</p>
             </div>
 
             {/* Open Orders */}
@@ -326,12 +368,12 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
-                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrders.length}</p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrderCount}</p>
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000" style={{ width: orders.length ? `${Math.min((openOrders.length / orders.length) * 100, 100)}%` : '0%' }} />
+                <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000" style={{ width: orders.length ? `${Math.min((openOrderCount / orders.length) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{orders.filter(o => o.order_status === 'processing').length} processing now</p>
+              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing now</p>
             </div>
 
             {/* Inventory */}
@@ -349,12 +391,12 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
-                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{products.length} <span className="text-sm opacity-50">SKUs</span></p>
+                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: products.length ? `${Math.min((products.filter(p => Number(p.stock || 0) > 0).length / products.length) * 100, 100)}%` : '0%' }} />
+                <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: totalProducts ? `${Math.min((inStockProducts / totalProducts) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">{products.filter(p => Number(p.stock || 0) > 0).length} in stock · {products.filter(p => Number(p.stock || 0) === 0).length} out</p>
+              <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">{inStockProducts} in stock · {outOfStockProducts} out</p>
             </div>
 
             {/* Wallet Balance */}
@@ -458,7 +500,7 @@ export default function VendorDashboard() {
                       {order.customer_id?.name?.[0] || 'C'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm  font-bold text-[var(--text-primary)] truncate tracking-tighter">{order.products?.[0]?.name || 'Order Item'}</p>
+                      <p className="text-sm  font-bold text-[var(--text-primary)] truncate tracking-tighter">{getOrderProductName(order)}</p>
                       <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">
                         #{order._id?.slice(-5) || i} • {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : '—'}
                       </p>
@@ -516,9 +558,9 @@ export default function VendorDashboard() {
                       >
                         <td className="px-6 py-4 flex items-center gap-3">
                           <div className="size-8 rounded bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] font-bold text-xs uppercase">
-                            {order.products?.[0]?.name?.[0] || 'P'}
+                            {getOrderProductName(order)?.[0] || 'P'}
                           </div>
-                          <span className="text-sm text-[var(--text-primary)] font-medium truncate max-w-[200px]">{order.products?.[0]?.name || 'Product'}</span>
+                          <span className="text-sm text-[var(--text-primary)] font-medium truncate max-w-[200px]">{getOrderProductName(order)}</span>
                         </td>
                         <td className="px-6 py-4 text-xs text-[var(--text-secondary)] font-mono">#{order._id?.slice(-6) || i}</td>
                         <td className="px-6 py-4 text-sm text-[var(--text-primary)]">{order.customer_id?.name || '—'}</td>
@@ -565,10 +607,10 @@ export default function VendorDashboard() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="size-10 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent)] font-bold text-sm uppercase">
-                          {order.products?.[0]?.name?.[0] || 'P'}
+                          {getOrderProductName(order)?.[0] || 'P'}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-[var(--text-primary)] truncate max-w-[180px]">{order.products?.[0]?.name || 'Product'}</p>
+                          <p className="text-sm font-bold text-[var(--text-primary)] truncate max-w-[180px]">{getOrderProductName(order)}</p>
                           <p className="text-[10px] font-mono text-[var(--text-secondary)] opacity-40">#{order._id?.slice(-6) || i}</p>
                         </div>
                       </div>

@@ -12,6 +12,7 @@ const KYC = require('../models/KYC.model');
 const Escrow = require('../models/Escrow.model');
 const Order = require('../models/Order.model');
 const Product = require('../models/Product.model');
+const User = require('../models/User.model');
 const mongoose = require('mongoose');
 const Follow = require('../models/Follow.model');
 const { escapeRegExp } = require('../middleware/security.middleware');
@@ -550,23 +551,30 @@ const getVendorAnalytics = async (req, res, next) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const [products, orders, escrowStats, followCount] = await Promise.all([
-      Product.find({ vendor_id: vendorId }).sort('-purchase_count').lean(),
-      Order.find({ vendor_id: vendorId }).sort('-createdAt').lean(),
+    const [products, orders, escrowStats, followCount, vendorUser] = await Promise.all([
+      Product.find({ vendor_id: vendorId, status: { $ne: 'archived' } }).sort('-purchase_count').lean(),
+      Order.find({ vendor_id: vendorId })
+        .populate('customer_id', 'name email phone avatar')
+        .populate('products.product_id', 'name price images')
+        .populate('shipment', 'status tracking_code')
+        .sort('-createdAt')
+        .lean(),
       Escrow.aggregate([
         { $match: { vendor_id: vendorId, status: 'held' } },
         { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
       ]),
-      Follow.countDocuments({ vendor_id: vendorId })
+      Follow.countDocuments({ vendor_id: vendorId }),
+      User.findById(req.vendor.user_id).select('wallet_balance').lean()
     ]);
 
-    const deliveredOrders = orders.filter(o => o.order_status === 'delivered');
+    const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.order_status));
+    const openOrders = orders.filter(o => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status));
     const totalRevenue = orders
-      .filter(o => o.order_status !== 'cancelled')
+      .filter(o => !['cancelled', 'refunded'].includes(o.order_status) && ['paid', 'completed'].includes(o.payment_status))
       .reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
     const totalViews = products.reduce((sum, p) => sum + (p.view_count || 0), 0);
-    const totalSales = deliveredOrders.length;
+    const totalSales = completedOrders.length;
     
     // Calculate conversion rate (sales / views)
     const conversionRate = totalViews > 0 ? (totalSales / totalViews) * 100 : 0;
@@ -597,8 +605,13 @@ const getVendorAnalytics = async (req, res, next) => {
           total_revenue: totalRevenue,
           total_sales: totalSales,
           total_products: products.length,
+          open_orders: openOrders.length,
+          processing_orders: orders.filter(o => o.order_status === 'processing').length,
+          in_stock_products: products.filter(p => Number(p.stock || 0) > 0).length,
+          out_of_stock_products: products.filter(p => Number(p.stock || 0) === 0).length,
           total_views: totalViews,
           pending_escrow: escrowStats[0]?.totalHeld || 0,
+          wallet_balance: vendorUser?.wallet_balance || 0,
           follower_count: followCount,
           conversion_rate: parseFloat(conversionRate.toFixed(2))
         },

@@ -435,15 +435,9 @@ const getCustomerOrders = async (req, res, next) => {
 
 const getVendorOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ 
-      vendor_id: req.vendor._id,
-      $or: [
-        { payment_status: 'paid' },
-        { payment_status: 'failed' },
-        { payment_method: 'pay_on_delivery' }
-      ]
-    })
+    const orders = await Order.find({ vendor_id: req.vendor._id })
       .populate('customer_id', 'name email phone avatar')
+      .populate('products.product_id', 'name price images')
       .populate({
         path: 'vendor_id',
         select: 'store_name user_id',
