@@ -767,7 +767,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ...(viewportHeight && {
           height: `${viewportHeight.height}px`,
           maxHeight: `${viewportHeight.height}px`,
-          y: viewportHeight.offsetTop,
+          transform: `translateY(${viewportHeight.offsetTop}px)`,
         }),
       }
     : undefined;

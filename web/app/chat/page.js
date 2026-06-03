@@ -29,7 +29,7 @@ function ChatContent() {
   if (!user) return null;
 
   return (
-    <div className="z-[600] flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)] max-md:h-screen max-md:max-h-screen">
+    <div className="z-[600] flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)]">
       <MessagingHub 
         vendorId={vendorId} 
         fullPage={true}
