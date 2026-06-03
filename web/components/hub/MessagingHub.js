@@ -173,13 +173,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const editingText = activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
       const keyboardOpen = editingText && (keyboardInset > 80 || layoutHeight - visualHeight > 80);
       const top = keyboardOpen ? visualTop : 0;
-      const bottom = keyboardOpen ? keyboardInset : 0;
-      const height = Math.max(0, initialHeight - top - bottom);
+      const bottom = 0;
+      const height = Math.max(0, keyboardOpen ? visualHeight : initialHeight - top - bottom);
 
       root.style.setProperty('--aura-chat-vvh', `${Math.round(height)}px`);
       root.style.setProperty('--aura-chat-vvtop', `${Math.round(top)}px`);
       root.style.setProperty('--aura-chat-vvbottom', `${Math.round(bottom)}px`);
-      root.style.setProperty('--aura-chat-composer-bottom-pad', 'max(0.5rem, env(safe-area-inset-bottom))');
+      root.style.setProperty(
+        '--aura-chat-composer-bottom-pad',
+        keyboardOpen ? '0px' : 'max(0.5rem, env(safe-area-inset-bottom))'
+      );
 
       if (keyboardOpen && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
