@@ -20,10 +20,20 @@ import { useAuthStore } from '@/hooks/useAuth';
 
 const cleanEmail = (value) => value.trim().toLowerCase();
 const inputClass = 'w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30';
+const LOGIN_ACTION_TIMEOUT_MS = 23000;
+
+const withLoginTimeout = (promise, message) => {
+  let timer;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({ success: false, message }), LOGIN_ACTION_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
 
 export default function UnifiedAuth() {
   const router = useRouter();
-  const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, loading, resetLoading } = useAuthStore();
+  const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, resetLoading } = useAuthStore();
   const prefilledRef = useRef(false);
 
   const [step, setStep] = useState('email');
@@ -32,6 +42,7 @@ export default function UnifiedAuth() {
   const [signupToken, setSignupToken] = useState('');
   const [resendIn, setResendIn] = useState(0);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [profile, setProfile] = useState({
     name: '',
     phone: '',
@@ -40,6 +51,7 @@ export default function UnifiedAuth() {
 
   useEffect(() => {
     resetLoading?.();
+    setSubmitting(false);
   }, [resetLoading]);
 
   useEffect(() => {
@@ -66,63 +78,93 @@ export default function UnifiedAuth() {
 
   const requestOtp = async (event) => {
     event?.preventDefault();
+    if (submitting) return;
     setError('');
     const nextEmail = cleanEmail(email);
     if (!nextEmail) return;
 
-    const result = await sendOtp(nextEmail);
-    if (!result.success) {
-      setError(result.message);
-      if (result.retryAfter) setResendIn(result.retryAfter);
-      return;
-    }
+    setSubmitting(true);
+    try {
+      const result = await withLoginTimeout(
+        sendOtp(nextEmail),
+        'The code request is taking too long. Please check your connection or try another network.'
+      );
+      if (!result.success) {
+        setError(result.message);
+        if (result.retryAfter) setResendIn(result.retryAfter);
+        return;
+      }
 
-    setEmail(nextEmail);
-    setOtp('');
-    setResendIn(result.data?.resendAfterSeconds || 60);
-    setStep('otp');
-    toast.success('Verification code sent');
+      setEmail(nextEmail);
+      setOtp('');
+      setResendIn(result.data?.resendAfterSeconds || 60);
+      setStep('otp');
+      toast.success('Verification code sent');
+    } finally {
+      setSubmitting(false);
+      resetLoading?.();
+    }
   };
 
   const verifyCode = async (event) => {
     event.preventDefault();
+    if (submitting) return;
     setError('');
-    const result = await verifyOtp({ email, otp });
+    setSubmitting(true);
+    try {
+      const result = await withLoginTimeout(
+        verifyOtp({ email, otp }),
+        'Verification is taking too long. Please try again.'
+      );
 
-    if (!result.success) {
-      setError(result.message);
-      if (result.retryAfter) setResendIn(result.retryAfter);
-      return;
+      if (!result.success) {
+        setError(result.message);
+        if (result.retryAfter) setResendIn(result.retryAfter);
+        return;
+      }
+
+      if (result.signupRequired) {
+        setSignupToken(result.signupToken);
+        setStep('signup');
+        return;
+      }
+
+      redirectAfterAuth(result.user);
+    } finally {
+      setSubmitting(false);
+      resetLoading?.();
     }
-
-    if (result.signupRequired) {
-      setSignupToken(result.signupToken);
-      setStep('signup');
-      return;
-    }
-
-    redirectAfterAuth(result.user);
   };
 
   const completeSignup = async (event) => {
     event.preventDefault();
+    if (submitting) return;
     setError('');
     if (!profile.name || profile.name.trim().length < 2) return setError('Full name is required.');
     if (!profile.phone) return setError('Phone number is required.');
 
-    const result = await verifyOtp({
-      signupToken,
-      name: profile.name,
-      phone: profile.phone ? profile.phone.replace(/[\s-]/g, '') : '',
-      role: profile.role,
-    });
+    setSubmitting(true);
+    try {
+      const result = await withLoginTimeout(
+        verifyOtp({
+          signupToken,
+          name: profile.name,
+          phone: profile.phone ? profile.phone.replace(/[\s-]/g, '') : '',
+          role: profile.role,
+        }),
+        'Account setup is taking too long. Please try again.'
+      );
 
-    if (!result.success) {
-      setError(result.message);
-      return;
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
+
+      redirectAfterAuth(result.user);
+    } finally {
+      setSubmitting(false);
+      resetLoading?.();
     }
-
-    redirectAfterAuth(result.user);
   };
 
   const updateProfile = (patch) => setProfile((current) => ({ ...current, ...patch }));
@@ -172,7 +214,7 @@ export default function UnifiedAuth() {
 
               {error && <ErrorMessage message={error} />}
 
-              <SubmitButton loading={loading} label="Send code" icon={ArrowRight} />
+              <SubmitButton loading={submitting} label="Send code" icon={ArrowRight} />
             </motion.form>
           )}
 
@@ -207,12 +249,12 @@ export default function UnifiedAuth() {
 
               {error && <ErrorMessage message={error} />}
 
-              <SubmitButton loading={loading} label="Verify code" icon={CircleCheck} />
+              <SubmitButton loading={submitting} label="Verify code" icon={CircleCheck} />
 
               <button
                 type="button"
                 onClick={requestOtp}
-                disabled={loading || resendIn > 0}
+                disabled={submitting || resendIn > 0}
                 className="w-full py-3 rounded-2xl border border-[var(--glass-border)] text-[11px] font-semibold text-[var(--text-secondary)] disabled:opacity-45"
               >
                 {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
@@ -294,7 +336,7 @@ export default function UnifiedAuth() {
 
               {error && <ErrorMessage message={error} />}
 
-              <SubmitButton loading={loading} label="Continue to onboarding" icon={ArrowRight} />
+              <SubmitButton loading={submitting} label="Continue to onboarding" icon={ArrowRight} />
             </motion.form>
           )}
         </AnimatePresence>

@@ -107,7 +107,10 @@ export const useAuthStore = create(
         if (get().loading) return { success: false };
         set({ loading: true });
         try {
-          const res = await api.get('/auth/me');
+          const res = await api.get('/auth/me', {
+            timeout: 12000,
+            __skipRetry: true,
+          });
           const user = res.data.data?.user;
           if (!user) throw new Error('No user returned');
           set({
