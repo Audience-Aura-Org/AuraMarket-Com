@@ -359,6 +359,20 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     });
   };
 
+  const keepComposerFocusedAfterSend = () => {
+    if (!mobileLayout || !inputRef.current) return;
+
+    const focusComposer = () => {
+      inputRef.current?.focus?.({ preventScroll: true });
+      viewportSyncRef.current?.();
+      pinToLatestMessage('auto');
+    };
+
+    requestAnimationFrame(focusComposer);
+    setTimeout(focusComposer, 60);
+    setTimeout(focusComposer, 160);
+  };
+
   const releaseMobileKeyboard = () => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     const active = document.activeElement;
@@ -673,6 +687,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (shouldClearComposer) inputValueRef.current = '';
     setInput('');
     resetComposerHeight();
+    if (shouldClearComposer) keepComposerFocusedAfterSend();
     if (sentDraftKey && typeof window !== 'undefined') localStorage.removeItem(sentDraftKey);
     queuePinToLatest([0, 80, 180]);
 
