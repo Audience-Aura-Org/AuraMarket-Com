@@ -18,12 +18,18 @@ import { toast } from 'react-hot-toast';
 
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
-const getInitialViewportHeight = () => {
+const getChatViewportMetrics = () => {
   if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
   const viewport = window.visualViewport;
+  const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
+  const visualHeight = viewport?.height || layoutHeight;
+  const offsetTop = viewport?.offsetTop || 0;
+  const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.78);
+
   return {
-    height: viewport ? viewport.height : window.innerHeight,
-    offsetTop: viewport ? viewport.offsetTop : 0,
+    height: keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight),
+    offsetTop: keyboardOpen ? offsetTop : 0,
+    keyboardOpen,
   };
 };
 
@@ -61,7 +67,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
-  const [viewportHeight, setViewportHeight] = useState(getInitialViewportHeight);
+  const [viewportHeight, setViewportHeight] = useState(getChatViewportMetrics);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -177,9 +183,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       setViewportHeight(null);
     };
     const syncViewport = () => {
-      const vv = window.visualViewport;
-      const height = vv ? vv.height : window.innerHeight;
-      const offsetTop = vv ? vv.offsetTop : 0;
+      const metrics = getChatViewportMetrics();
       const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
 
       if (!isMobileChat) {
@@ -187,7 +191,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         return;
       }
 
-      setViewportHeight({ height, offsetTop });
+      setViewportHeight(metrics);
 
       if (activePartnerIdRef.current) {
         requestAnimationFrame(() => {

@@ -27,7 +27,7 @@ What to check:
 - `composerPaddingBottom` is `0px`.
 - `chatRootHeight` equals the visible viewport height.
 
-If `vvHeight` is smaller than `innerHeight` before the keyboard opens, the browser chrome or Android navigation area is already reducing the visual viewport. If the gap is the same size as the browser bottom bar, test the installed PWA/Capacitor app rather than a normal browser tab.
+If `vvHeight` is smaller than `innerHeight` before the keyboard opens, the browser chrome or Android navigation area is already reducing the visual viewport. The chat should use `innerHeight` while the keyboard is closed, then switch to `vvHeight` only when the keyboard is truly open.
 
 ## Current Code
 
@@ -47,28 +47,32 @@ The page wrapper is fixed and does not set a competing height:
 
 ### `web/components/hub/MessagingHub.js`
 
-Viewport state is initialized synchronously so the first render never has a missing height:
+Viewport state is initialized synchronously so the first render never has a missing height. Keyboard-closed mode uses `innerHeight`; keyboard-open mode uses `visualViewport.height`:
 
 ```js
-const getInitialViewportHeight = () => {
+const getChatViewportMetrics = () => {
   if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
   const viewport = window.visualViewport;
+  const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
+  const visualHeight = viewport?.height || layoutHeight;
+  const offsetTop = viewport?.offsetTop || 0;
+  const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.78);
+
   return {
-    height: viewport ? viewport.height : window.innerHeight,
-    offsetTop: viewport ? viewport.offsetTop : 0,
+    height: keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight),
+    offsetTop: keyboardOpen ? offsetTop : 0,
+    keyboardOpen,
   };
 };
 
-const [viewportHeight, setViewportHeight] = useState(getInitialViewportHeight);
+const [viewportHeight, setViewportHeight] = useState(getChatViewportMetrics);
 ```
 
 The viewport sync updates React state. Framer Motion then applies the styles through its own `style` prop:
 
 ```js
 const syncViewport = () => {
-  const vv = window.visualViewport;
-  const height = vv ? vv.height : window.innerHeight;
-  const offsetTop = vv ? vv.offsetTop : 0;
+  const metrics = getChatViewportMetrics();
   const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
 
   if (!isMobileChat) {
@@ -76,7 +80,7 @@ const syncViewport = () => {
     return;
   }
 
-  setViewportHeight({ height, offsetTop });
+  setViewportHeight(metrics);
 
   if (activePartnerIdRef.current) {
     requestAnimationFrame(() => pinToLatestMessage('auto'));
