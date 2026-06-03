@@ -1377,6 +1377,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 }}
                 placeholder="Message"
                 rows={1}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="sentences"
+                spellCheck={false}
                 className="max-h-[88px] min-h-[42px] w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 style={{ height: 'auto' }}
                 onFocus={() => {
