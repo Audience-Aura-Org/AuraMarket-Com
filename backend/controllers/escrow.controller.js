@@ -193,8 +193,10 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   vendorUser.wallet_balance += vendorPayout;
   await vendorUser.save({ session });
 
-  settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
-  await settings.save({ session });
+  if (platformFee > 0) {
+    settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
+    await settings.save({ session });
+  }
 
   // Update Vendor Payout Transaction
   await Transaction.findOneAndUpdate(
@@ -207,17 +209,19 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     { session }
   );
 
-  // Log Platform Revenue
-  await Transaction.create([{
-    user_id: req.user._id,
-    type: 'payment',
-    amount: platformFee,
-    reference: `REV-${generateTxRef()}`,
-    status: 'completed',
-    gateway: 'platform',
-    description: `${req.autoRelease ? 'Auto-released platform commission' : 'Platform Commission'} from Order #${order._id.toString().slice(-6).toUpperCase()}`,
-    order_id: order._id,
-  }], { session, ordered: true });
+  // Log Platform Revenue only when there is an actual platform fee.
+  if (platformFee > 0) {
+    await Transaction.create([{
+      user_id: req.user._id,
+      type: 'payment',
+      amount: platformFee,
+      reference: `REV-${generateTxRef()}`,
+      status: 'completed',
+      gateway: 'platform',
+      description: `${req.autoRelease ? 'Auto-released platform commission' : 'Platform Commission'} from Order #${order._id.toString().slice(-6).toUpperCase()}`,
+      order_id: order._id,
+    }], { session, ordered: true });
+  }
 
   escrow.status = 'released';
   escrow.release_date = new Date();

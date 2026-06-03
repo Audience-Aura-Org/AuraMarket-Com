@@ -168,9 +168,11 @@ const resolveDispute = async (req, res, next) => {
         vendorUser.wallet_balance += vendorPayout;
         await vendorUser.save({ session });
 
-        // Update Platform Earnings
-        settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
-        await settings.save({ session });
+        // Update Platform Earnings only when a platform fee is actually collected.
+        if (platformFee > 0) {
+          settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
+          await settings.save({ session });
+        }
 
         // Update/Create Vendor Payout Transaction
         await Transaction.findOneAndUpdate(

@@ -27,9 +27,11 @@ const calculateFee = (baseAmount, type, value) => {
 };
 
 const getCommissionValue = (settings = {}) => {
-  const commissionValue = toNonNegativeNumber(settings.commission_value);
-  const legacyRate = toNonNegativeNumber(settings.commission_rate);
-  return commissionValue > 0 ? commissionValue : legacyRate;
+  if (settings.commission_value !== undefined && settings.commission_value !== null) {
+    return toNonNegativeNumber(settings.commission_value);
+  }
+
+  return toNonNegativeNumber(settings.commission_rate);
 };
 
 const calculateCommissionFee = (baseAmount, settings = {}) => (

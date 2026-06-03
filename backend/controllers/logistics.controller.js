@@ -444,7 +444,7 @@ const modifyShipmentStatus = async (req, res, next) => {
               vendorUser.wallet_balance += vendorPayout;
               await vendorUser.save({ session });
 
-              if (settings) {
+              if (settings && platformFee > 0) {
                 settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
                 await settings.save({ session });
               }
