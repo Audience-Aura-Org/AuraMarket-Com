@@ -971,7 +971,7 @@ const getAllTransactions = async (req, res, next) => {
       populate: [
         {
           path: 'vendor_id',
-          select: 'store_name user_id rating',
+          select: 'store_name user_id rating branding logo logo_url',
           populate: {
             path: 'user_id',
             select: 'name email avatar phone'
@@ -980,6 +980,10 @@ const getAllTransactions = async (req, res, next) => {
         {
           path: 'customer_id',
           select: 'name email avatar role phone'
+        },
+        {
+          path: 'products.product_id',
+          select: 'name price images'
         }
       ]
     };

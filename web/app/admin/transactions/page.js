@@ -48,19 +48,105 @@ const getLinkedOrders = (tx) => {
   return orders;
 };
 
+const isObjectRecord = (value) => value && typeof value === 'object';
+
+const firstFilled = (...values) =>
+  values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
+
+const formatGatewayId = (tx) => {
+  if (tx?.gateway_transaction_id) return tx.gateway_transaction_id;
+  if (tx?.gateway === 'platform') return 'Internal platform ledger';
+  if (tx?.gateway === 'wallet') return 'Auradime wallet ledger';
+  if (tx?.reference) return `Ref ${tx.reference}`;
+  return 'Not recorded';
+};
+
+const formatTracking = (order) => {
+  if (order?.tracking_number) return order.tracking_number;
+  if (order?.shipping_method === 'vendor_managed') return 'Vendor managed delivery';
+  if (order?.shipping_method === 'logistics' || order?.shipping_method === 'logistics_partner') return 'Awaiting logistics tracking';
+  return 'Tracking not assigned';
+};
+
+const buildTransactionAccount = (tx) => {
+  if (isObjectRecord(tx?.user_id)) {
+    return {
+      ...tx.user_id,
+      name: firstFilled(tx.user_id.name, tx.user_id.email, `Account #${shortId(tx.user_id)}`),
+      email: firstFilled(tx.user_id.email, 'No email on transaction'),
+      phone: firstFilled(tx.user_id.phone, 'No phone on transaction'),
+    };
+  }
+
+  if (tx?.gateway === 'platform') {
+    return {
+      name: 'Auradime Platform',
+      email: 'support@auradime.com',
+      phone: 'Internal ledger',
+    };
+  }
+
+  return {
+    name: tx?.user_id ? `Account #${shortId(tx.user_id)}` : 'System account',
+    email: 'No email on transaction',
+    phone: 'No phone on transaction',
+  };
+};
+
+const buildCustomerPerson = (order) => {
+  const customer = order?.customer_id;
+  const shipping = order?.shipping_address || {};
+
+  if (isObjectRecord(customer)) {
+    return {
+      ...customer,
+      name: firstFilled(customer.name, shipping.full_name, shipping.name, customer.email, `Customer #${shortId(customer)}`),
+      email: firstFilled(customer.email, shipping.email, 'No email on order'),
+      phone: firstFilled(customer.phone, shipping.phone, 'No phone on order'),
+    };
+  }
+
+  return {
+    name: firstFilled(shipping.full_name, shipping.name, customer ? `Customer #${shortId(customer)}` : null, 'Order customer'),
+    email: firstFilled(shipping.email, 'No email on order'),
+    phone: firstFilled(shipping.phone, 'No phone on order'),
+  };
+};
+
+const buildVendorPerson = (order) => {
+  const vendor = order?.vendor_id;
+  const vendorUser = isObjectRecord(vendor?.user_id) ? vendor.user_id : null;
+
+  if (isObjectRecord(vendor)) {
+    return {
+      ...(vendorUser || {}),
+      avatar: firstFilled(vendor.logo_url, vendor.logo, vendor.branding?.logo, vendorUser?.avatar),
+      name: firstFilled(vendor.store_name, vendorUser?.name, `Vendor #${shortId(vendor)}`),
+      email: firstFilled(vendorUser?.email, 'No vendor email on order'),
+      phone: firstFilled(vendorUser?.phone, 'No vendor phone on order'),
+    };
+  }
+
+  return {
+    name: vendor ? `Vendor #${shortId(vendor)}` : 'Vendor store',
+    email: 'No vendor email on order',
+    phone: 'No vendor phone on order',
+  };
+};
+
 function InfoLine({ label, value, mono = false }) {
   return (
     <div className="flex items-start justify-between gap-3 text-[11px]">
       <span className="shrink-0 text-[var(--text-secondary)]">{label}</span>
       <span className={`min-w-0 text-right font-semibold text-[var(--text-primary)] ${mono ? 'font-mono' : ''}`}>
-        {value || '—'}
+        {value || 'Not recorded'}
       </span>
     </div>
   );
 }
 
 function PersonSummary({ title, person, fallbackName }) {
-  const name = person?.name || fallbackName || '—';
+  const name = person?.name || fallbackName || 'Not recorded';
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-[var(--glass-border)] p-3">
       <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
@@ -75,11 +161,11 @@ function PersonSummary({ title, person, fallbackName }) {
         <p className="truncate text-[12px] font-semibold">{name}</p>
         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
           <Mail className="size-3 shrink-0" />
-          <span className="truncate">{person?.email || '—'}</span>
+          <span className="truncate">{person?.email || 'No email recorded'}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
           <Phone className="size-3 shrink-0" />
-          <span>{person?.phone || '—'}</span>
+          <span>{person?.phone || 'No phone recorded'}</span>
         </div>
       </div>
     </div>
@@ -387,6 +473,7 @@ export default function AdminTransactionsPage() {
             const TypeIcon = type.icon;
             const party = getTransactionParty(tx);
             const linkedOrders = getLinkedOrders(tx);
+            const transactionAccount = buildTransactionAccount(tx);
 
             return (
               <div
@@ -512,7 +599,7 @@ export default function AdminTransactionsPage() {
                             <Database className="size-3.5" /> Transaction data
                           </p>
                             <InfoLine label="Reference" value={tx.reference} mono />
-                            <InfoLine label="Gateway ID" value={tx.gateway_transaction_id} mono />
+                            <InfoLine label="Gateway ID" value={formatGatewayId(tx)} mono />
                             <InfoLine label="Gateway" value={tx.gateway || 'internal'} />
                             <InfoLine label="Type" value={tx.type?.replace(/_/g, ' ')} />
                             <InfoLine label="Status" value={tx.status} />
@@ -525,15 +612,17 @@ export default function AdminTransactionsPage() {
                             )}
                           </div>
 
-                          <PersonSummary title="Transaction account" person={tx.user_id} fallbackName="System account" />
+                          <PersonSummary title="Transaction account" person={transactionAccount} fallbackName="System account" />
                         </div>
 
                         <div className="space-y-3">
                           {linkedOrders.length > 0 ? (
                             linkedOrders.map((order) => {
-                              const vendor = order?.vendor_id;
-                              const customer = order?.customer_id;
-                              const itemNames = (order?.products || []).map((p) => p.name).filter(Boolean);
+                              const customer = buildCustomerPerson(order);
+                              const vendor = buildVendorPerson(order);
+                              const itemNames = (order?.products || [])
+                                .map((p) => p?.name || p?.product_id?.name || p?.product_name)
+                                .filter(Boolean);
                               return (
                                 <div key={String(order?._id || order)} className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-3">
                                   <div className="flex items-center justify-between gap-3">
@@ -548,7 +637,7 @@ export default function AdminTransactionsPage() {
                                     <InfoLine label="Order total" value={order?.total_amount ? `${fmt(order.total_amount)} XAF` : null} />
                                     <InfoLine label="Payment" value={order?.payment_method} />
                                     <InfoLine label="Shipping" value={order?.shipping_method?.replace(/_/g, ' ')} />
-                                    <InfoLine label="Tracking" value={order?.tracking_number} mono />
+                                    <InfoLine label="Tracking" value={formatTracking(order)} mono />
                                   </div>
                                   {itemNames.length > 0 && (
                                     <div className="rounded-lg bg-[var(--bg-primary)]/70 p-2 text-[10px] leading-relaxed text-[var(--text-secondary)]">
@@ -557,12 +646,8 @@ export default function AdminTransactionsPage() {
                                     </div>
                                   )}
                                   <div className="grid gap-2 sm:grid-cols-2">
-                                    <PersonSummary title="Customer" person={customer} fallbackName="Customer" />
-                                    <PersonSummary
-                                      title="Vendor store"
-                                      person={vendor ? { ...(vendor.user_id || {}), name: vendor.store_name } : null}
-                                      fallbackName="Vendor"
-                                    />
+                                    <PersonSummary title="Customer" person={customer} fallbackName="Order customer" />
+                                    <PersonSummary title="Vendor store" person={vendor} fallbackName="Vendor" />
                                   </div>
                                 </div>
                               );
