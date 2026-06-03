@@ -34,7 +34,7 @@ const isOpenOrder = (order) => !['delivered', 'completed', 'cancelled', 'refunde
 
 export default function VendorDashboard() {
   const router = useRouter();
-  const { user, token, updateUser } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -53,29 +53,6 @@ export default function VendorDashboard() {
     let isMounted = true;
 
     if (!mounted) {
-      return;
-    }
-
-    // Get token from Zustand state or localStorage directly (in case hydration is slow)
-    let authToken = token;
-    if (!authToken && typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('aura-auth-storage');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          authToken = parsed?.state?.token;
-
-        }
-      } catch (e) {
-        console.error('[VendorDashboard] Failed to parse localStorage:', e);
-      }
-    }
-
-
-    
-    if (!authToken) {
-      setLoading(false);
-      setError(null);
       return;
     }
 
@@ -149,15 +126,13 @@ export default function VendorDashboard() {
       }
     };
 
-    if (mounted && authToken) {
-      fetchData();
-      const timer = setInterval(fetchData, 30000); // Polling every 30s
-      return () => {
-        isMounted = false;
-        clearInterval(timer);
-      };
-    }
-  }, [token, mounted]);
+    fetchData();
+    const timer = setInterval(fetchData, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [mounted, router, updateUser, user]);
 
   const handleRefresh = async () => {
     setLoading(true);
