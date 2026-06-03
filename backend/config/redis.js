@@ -15,6 +15,7 @@ const REDIS_SOCKET_ENABLED = boolEnv('REDIS_SOCKET_ENABLED', true);
 let client = null;
 let duplicateClient = null;
 let status = REDIS_URL ? 'configured' : 'disabled';
+const reconnecting = new Map();
 
 const buildOptions = () => ({
   lazyConnect: true,
@@ -29,6 +30,7 @@ const buildOptions = () => ({
 const wireEvents = (redis, label) => {
   redis.on('connect', () => {
     status = 'connected';
+    reconnecting.set(label, false);
     console.log(`✅ [Redis] ${label} connected.`);
   });
 
@@ -41,9 +43,16 @@ const wireEvents = (redis, label) => {
     console.warn(`⚠️ [Redis] ${label} error: ${error.message}`);
   });
 
+  redis.on('reconnecting', (delay) => {
+    status = 'reconnecting';
+    reconnecting.set(label, true);
+    console.warn(`⚠️ [Redis] ${label} reconnecting in ${delay}ms.`);
+  });
+
   redis.on('end', () => {
     status = 'disconnected';
-    console.warn(`⚠️ [Redis] ${label} disconnected.`);
+    const suffix = reconnecting.get(label) ? ' Waiting for reconnect.' : ' Connection closed.';
+    console.warn(`⚠️ [Redis] ${label} disconnected.${suffix}`);
   });
 };
 

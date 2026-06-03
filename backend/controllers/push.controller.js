@@ -2,6 +2,7 @@ const PushSubscription = require('../models/PushSubscription.model');
 const { VAPID_PUBLIC_KEY } = require('../config/env');
 
 const DEFAULT_VAPID_PUBLIC_KEY = 'BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ';
+const RESAVE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 /**
  * @route   GET /api/push/vapid-public-key
@@ -30,7 +31,22 @@ const subscribe = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid subscription data.' });
     }
 
-    // Use findOneAndUpdate to prevent duplicates per user/device
+    const existing = await PushSubscription.findOne(
+      { user_id: req.user._id, 'subscription.endpoint': subscription.endpoint }
+    ).select('_id updatedAt device_type');
+
+    const shouldRefresh = !existing ||
+      existing.device_type !== (device_type || 'mobile') ||
+      (existing.updatedAt && Date.now() - new Date(existing.updatedAt).getTime() > RESAVE_INTERVAL_MS);
+
+    if (!shouldRefresh) {
+      return res.status(200).json({
+        success: true,
+        message: 'Subscription already current.',
+        data: { unchanged: true },
+      });
+    }
+
     await PushSubscription.findOneAndUpdate(
       { user_id: req.user._id, 'subscription.endpoint': subscription.endpoint },
       { 
@@ -41,8 +57,8 @@ const subscribe = async (req, res, next) => {
       { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
-    console.log(`[PWA] Push subscription saved for ${req.user._id} (${device_type || 'mobile'}) endpoint=${subscription.endpoint.slice(-24)}`);
-    res.status(200).json({ success: true, message: 'Subscription stabilized in the Matrix.' });
+    console.log(`[PWA] Push subscription ${existing ? 'refreshed' : 'saved'} for ${req.user._id} (${device_type || 'mobile'}) endpoint=${subscription.endpoint.slice(-24)}`);
+    res.status(200).json({ success: true, message: 'Subscription stabilized.' });
   } catch (error) {
     next(error);
   }

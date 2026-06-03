@@ -17,6 +17,12 @@
 const { validateEnv, PORT, WEB_CLIENT_URL, NODE_ENV } = require('./config/env');
 validateEnv();
 
+// Quiet AWS SDK v3 runtime noise while EC2 nodes are upgraded.
+// Keep Node >= 22 as the real production fix.
+if (!process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE) {
+  process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = '1';
+}
+
 // ─────────────────────────────────────────────
 // 2. Core imports
 // ─────────────────────────────────────────────

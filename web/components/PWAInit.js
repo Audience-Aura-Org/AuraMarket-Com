@@ -16,24 +16,38 @@ export default function PWAInit() {
   const pathname = usePathname();
   const subscribedRef = useRef(false);
   const authErrorRef = useRef(false);
+  const syncInFlightRef = useRef(false);
+  const lastSyncRef = useRef({ userId: null, at: 0 });
+  const SYNC_COOLDOWN_MS = 10 * 60 * 1000;
 
   const attemptSubscription = async ({ promptIfNeeded = false } = {}) => {
     // If we already hit a definitive sync block this session, don't spam
     if (authErrorRef.current) return;
     if (!hasHydrated || !isAuthenticated) return;
+    if (syncInFlightRef.current) return;
+
+    const now = Date.now();
+    const sameUser = lastSyncRef.current.userId === user?._id;
+    if (!promptIfNeeded && sameUser && now - lastSyncRef.current.at < SYNC_COOLDOWN_MS) return;
     
-    console.log('[PWAInit] Syncing push registration...');
-    const result = await subscribeToPush({ promptIfNeeded });
-    
-    if (result?.success) {
-      subscribedRef.current = true;
-      authErrorRef.current = false;
-    } else if (result?.unauthorized) {
-      console.warn('[PWAInit] Auth required for push sync. Suspending attempts until session refresh.');
-      authErrorRef.current = true;
-    } else if (result?.error === 'SERVICE_UNAVAILABLE') {
-      console.info('[PWAInit] Push service unavailable on this device. Silencing sync.');
-      authErrorRef.current = true;
+    syncInFlightRef.current = true;
+    try {
+      console.log('[PWAInit] Syncing push registration...');
+      const result = await subscribeToPush({ promptIfNeeded });
+
+      if (result?.success) {
+        subscribedRef.current = true;
+        authErrorRef.current = false;
+        lastSyncRef.current = { userId: user?._id, at: Date.now() };
+      } else if (result?.unauthorized) {
+        console.warn('[PWAInit] Auth required for push sync. Suspending attempts until session refresh.');
+        authErrorRef.current = true;
+      } else if (result?.error === 'SERVICE_UNAVAILABLE') {
+        console.info('[PWAInit] Push service unavailable on this device. Silencing sync.');
+        authErrorRef.current = true;
+      }
+    } finally {
+      syncInFlightRef.current = false;
     }
   };
 
@@ -54,6 +68,7 @@ export default function PWAInit() {
     if (!isAuthenticated) return;
 
     const handleUserGesture = () => {
+      if (subscribedRef.current) return;
       authErrorRef.current = false;
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'denied') return;
@@ -90,11 +105,7 @@ export default function PWAInit() {
         // Check current permission state directly from the browser API only if supported
         if (typeof window !== 'undefined' && 'Notification' in window) {
           if (Notification.permission === 'granted' && !subscribedRef.current) {
-            console.log('[PWAInit] App resumed with granted permission — re-syncing push...');
-            attemptSubscription({ promptIfNeeded: false });
-          }
-          // If permission was just granted (was "default" before), also sync
-          if (Notification.permission === 'granted') {
+            console.log('[PWAInit] App resumed with granted permission - re-syncing push...');
             attemptSubscription({ promptIfNeeded: false });
           }
         }
