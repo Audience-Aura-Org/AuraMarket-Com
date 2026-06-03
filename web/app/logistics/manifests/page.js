@@ -33,6 +33,17 @@ import { formatVariantLabel } from "@/utils/variants";
 
 const PAGE_SIZE = 10;
 
+const isRecord = (value) => value && typeof value === "object";
+
+const displayName = (value, fields = ["name"], fallback = "—") => {
+  if (!isRecord(value)) return fallback;
+  for (const field of fields) {
+    const candidate = value[field];
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return fallback;
+};
+
 const STATUS_BADGE = {
   pending:          "bg-amber-500/10 text-amber-600",
   assigned:         "bg-purple-500/10 text-purple-600",
@@ -416,8 +427,8 @@ export default function LogisticsManifestsPage() {
                           : "—";
                         const fee = typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—";
                         const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
-                        const vendorName = typeof vendor === "object" ? vendor.store_name || vendor.name : "—";
-                        const customerName = typeof customer === "object" ? customer.name : "—";
+                        const vendorName = displayName(vendor, ["store_name", "name"]);
+                        const customerName = displayName(customer, ["name"]);
                         const receiverName = s.proof_of_delivery?.receiver_name || customerName || "—";
                         return (
                           <tr key={s._id} className="group hover:bg-white/[0.02]">
@@ -478,8 +489,8 @@ export default function LogisticsManifestsPage() {
                     const customer = order?.customer_id;
                     const dest  = destinationLine(s);
                     const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
-                    const vendorName = typeof vendor === "object" ? vendor.store_name || vendor.name : "—";
-                    const customerName = typeof customer === "object" ? customer.name : "—";
+                    const vendorName = displayName(vendor, ["store_name", "name"]);
+                    const customerName = displayName(customer, ["name"]);
                     const receiverName = s.proof_of_delivery?.receiver_name || customerName || "—";
                     const placedDate = order?.createdAt
                       ? new Date(order.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
