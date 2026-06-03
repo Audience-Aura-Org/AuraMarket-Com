@@ -209,6 +209,7 @@ api.interceptors.request.use(async (config) => {
 // -----------------------------
 const shouldRetry = (error) => {
   if (!error || !error.config) return false;
+  if (error.config.__skipRetry) return false;
   const status = error.response?.status;
   // Do not retry 429s: retrying a rate-limited request only deepens the lockout.
   return status !== 429 && !error.response;

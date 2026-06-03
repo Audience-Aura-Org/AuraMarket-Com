@@ -35,15 +35,21 @@ export const useAuthStore = create(
       error: null,
       setHasHydrated: (value) => set({ hasHydrated: value }),
       setRememberedEmail: (email) => set({ rememberedEmail: email }),
+      resetLoading: () => set({ loading: false, error: null }),
 
       sendOtp: async (email) => {
         set({ loading: true, error: null, rememberedEmail: email });
         try {
-          const res = await api.post('/auth/send-otp', { email });
+          const res = await api.post('/auth/send-otp', { email }, {
+            timeout: 20000,
+            __skipRetry: true,
+          });
           set({ loading: false, error: null });
           return { success: true, data: res.data.data };
         } catch (err) {
-          const message = err.response?.data?.message || 'Unable to send verification code';
+          const message = err.code === 'ECONNABORTED'
+            ? 'The code request took too long. Please check your connection and try again.'
+            : err.response?.data?.message || 'Unable to send verification code';
           set({ error: message, loading: false });
           return { success: false, message, retryAfter: err.response?.data?.retryAfter };
         }
@@ -61,6 +67,9 @@ export const useAuthStore = create(
             role,
             referral_code,
             onboarding,
+          }, {
+            timeout: 20000,
+            __skipRetry: true,
           });
 
           if (res.data.signup_required) {
@@ -86,7 +95,9 @@ export const useAuthStore = create(
           });
           return { success: true, user };
         } catch (err) {
-          const message = err.response?.data?.message || 'Verification failed';
+          const message = err.code === 'ECONNABORTED'
+            ? 'Verification took too long. Please try again.'
+            : err.response?.data?.message || 'Verification failed';
           set({ error: message, loading: false });
           return { success: false, message, retryAfter: err.response?.data?.retryAfter };
         }

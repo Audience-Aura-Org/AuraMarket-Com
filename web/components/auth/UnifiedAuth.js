@@ -23,7 +23,7 @@ const inputClass = 'w-full bg-[var(--bg-primary)] border border-[var(--glass-bor
 
 export default function UnifiedAuth() {
   const router = useRouter();
-  const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, loading } = useAuthStore();
+  const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, loading, resetLoading } = useAuthStore();
   const prefilledRef = useRef(false);
 
   const [step, setStep] = useState('email');
@@ -37,6 +37,10 @@ export default function UnifiedAuth() {
     phone: '',
     role: 'customer',
   });
+
+  useEffect(() => {
+    resetLoading?.();
+  }, [resetLoading]);
 
   useEffect(() => {
     if (hasHydrated && rememberedEmail && !prefilledRef.current) {

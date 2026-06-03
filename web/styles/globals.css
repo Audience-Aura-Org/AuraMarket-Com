@@ -171,13 +171,6 @@ i, em { font-style: normal !important; }
   button, a { word-break: normal; }
 }
 
-html:has(.checkout-page),
-body:has(.checkout-page) {
-  zoom: 1;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
 body:has(.checkout-page) input,
 body:has(.checkout-page) textarea,
 body:has(.checkout-page) select {

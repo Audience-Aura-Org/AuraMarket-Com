@@ -18,6 +18,8 @@ const {
   RESEND_API_KEY,
 } = require('../config/env');
 
+const EMAIL_TIMEOUT_MS = Number(process.env.EMAIL_TIMEOUT_MS || 15000);
+
 /* ── Build the reusable transporter once ── */
 const transporter = nodemailer.createTransport({
   host:   EMAIL_HOST   || 'smtp.titan.email',
@@ -30,7 +32,25 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,            // Titan may use self-signed on dev
   },
+  connectionTimeout: EMAIL_TIMEOUT_MS,
+  greetingTimeout: EMAIL_TIMEOUT_MS,
+  socketTimeout: EMAIL_TIMEOUT_MS,
 });
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = EMAIL_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`Email provider timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
 /**
  * Verify SMTP connection on startup (logs, never throws)
@@ -63,7 +83,7 @@ const verifyConnection = async () => {
 const sendEmail = async ({ to, subject, html, text, replyTo }) => {
   if (RESEND_API_KEY) {
     try {
-      const response = await fetch('https://api.resend.com/emails', {
+      const response = await fetchWithTimeout('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${RESEND_API_KEY}`,
