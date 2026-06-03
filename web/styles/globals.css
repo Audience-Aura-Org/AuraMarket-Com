@@ -178,9 +178,9 @@ body:has(.checkout-page) {
   text-size-adjust: 100%;
 }
 
-body:has(.checkout-page) .checkout-page input,
-body:has(.checkout-page) .checkout-page textarea,
-body:has(.checkout-page) .checkout-page select {
+body:has(.checkout-page) input,
+body:has(.checkout-page) textarea,
+body:has(.checkout-page) select {
   font-size: 16px !important;
 }
 

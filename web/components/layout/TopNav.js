@@ -197,7 +197,6 @@ export default function TopNav() {
           <div className="relative mx-auto w-full max-w-lg">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--nav-text)] opacity-45 dark:text-[var(--text-secondary)]" />
             <input 
-              autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}

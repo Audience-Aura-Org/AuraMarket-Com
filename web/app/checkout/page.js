@@ -1246,11 +1246,10 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
          <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3 opacity-20 group-focus-within:text-[var(--accent)] transition-all" />
             <input 
-               autoFocus
                placeholder="Search Quartier..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 !text-base placeholder:!text-base font-semibold tracking-tight outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[16px] font-semibold tracking-tight outline-none placeholder:text-[16px]"
             />
          </div>
       </div>
@@ -1296,11 +1295,10 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
          <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3 opacity-20 group-focus-within:text-[var(--accent)] transition-all" />
             <input 
-               autoFocus
                placeholder="Search Logistics Node..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 !text-base placeholder:!text-base font-semibold tracking-tight outline-none"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[16px] font-semibold tracking-tight outline-none placeholder:text-[16px]"
             />
          </div>
       </div>
