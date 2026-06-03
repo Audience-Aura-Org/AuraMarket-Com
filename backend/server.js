@@ -64,6 +64,7 @@ app.set('io', io);
 
 const { startEscrowAutoReleaseWorker } = require('./services/escrowAutoRelease.service');
 startEscrowAutoReleaseWorker(app);
+const { drainQueues } = require('./services/jobQueue.service');
 
 // ─────────────────────────────────────────────
 // 7. Express Middleware
@@ -177,7 +178,8 @@ process.on('unhandledRejection', (err) => {
 
 const gracefulShutdown = (signal) => {
   console.log(`\n${signal} received. Draining HTTP and socket connections...`);
-  io.close(() => {
+  io.close(async () => {
+    await drainQueues({ timeoutMs: 10000 });
     server.close(() => {
       console.log('✅ Server drained cleanly.');
       process.exit(0);

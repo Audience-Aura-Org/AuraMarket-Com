@@ -53,3 +53,28 @@ API_CACHE_TTL_SECONDS=60
 ```
 
 For multi-instance EC2, replace the in-process cache with Redis/ElastiCache so all instances share the same cache.
+
+## Queues
+
+Notifications now use in-process named queues for slow external channels:
+
+- `push`
+- `email`
+
+Database notification records and socket emits still happen immediately. PWA push and email delivery run in the queue with retry/backoff, so checkout, order, chat, and admin actions do not wait on external providers.
+
+Useful environment variables:
+
+```text
+JOB_QUEUE_CONCURRENCY=4
+JOB_QUEUE_ATTEMPTS=3
+JOB_QUEUE_BACKOFF_MS=1500
+```
+
+Admin queue status:
+
+```text
+GET /api/v1/admin/queues
+```
+
+For multi-instance EC2, replace the in-process queue with Redis-backed BullMQ or AWS SQS so jobs survive restarts and are shared across instances.

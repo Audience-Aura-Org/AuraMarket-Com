@@ -5,6 +5,7 @@ const {
   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, EMAIL_USER 
 } = require('../config/env');
 const { sendEmail: dispatchEmail } = require('./emailService');
+const { enqueueJob } = require('../services/jobQueue.service');
 
 // ── VAPID Keys Calibration ──────────────────────────────────────────────────
 // These keys must match the ones in pwa-helper.js on the frontend
@@ -110,7 +111,7 @@ const sendNotification = async (app, recipientId, data) => {
     // ─────────────────────────────────────────────
     
     // 🚀 CHANNEL 1: PWA WEB PUSH (ULTRA-FAST PATH)
-    (async () => {
+    enqueueJob('push', async () => {
       try {
         const PushSubscription = require('../models/PushSubscription.model');
         const subs = await PushSubscription.find({ user_id: recipientId });
@@ -163,11 +164,11 @@ const sendNotification = async (app, recipientId, data) => {
       } catch (err) {
         console.error('❌ PWA Push Signal Error:', err.message);
       }
-    })();
+    }, { recipientId: recipientId.toString(), notificationId: notification._id.toString(), type });
 
     // 🚀 CHANNEL 2: EMAIL DISPATCH (RELIABILITY PATH)
     if (sendEmail && EMAIL_USER) {
-      (async () => {
+      enqueueJob('email', async () => {
         try {
           const EmailLog = require('../models/EmailLog.model');
           const user = await User.findById(recipientId).select('email name role');
@@ -203,7 +204,7 @@ const sendNotification = async (app, recipientId, data) => {
         } catch (err) {
           console.error('❌ Email Signal Dispatch Error:', err.message);
         }
-      })();
+      }, { recipientId: recipientId.toString(), type, title });
     }
 
     return notification;

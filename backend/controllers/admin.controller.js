@@ -1381,6 +1381,15 @@ const updateTransactionStatus = async (req, res, next) => {
   }
 };
 
+const getQueueStats = async (req, res, next) => {
+  try {
+    const { getQueueStats: readQueueStats } = require('../services/jobQueue.service');
+    res.status(200).json({ success: true, data: { queues: readQueueStats() } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -1419,6 +1428,7 @@ module.exports = {
   bulkDeleteProducts,
   getAllTransactions,
   updateTransactionStatus,
+  getQueueStats,
   fulfillOrderFromTransaction,
   syncWithEversend,
   syncGatewayTransactions,

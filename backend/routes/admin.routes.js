@@ -49,7 +49,8 @@ const {
   updateTransactionStatus,
   fulfillOrderFromTransaction,
   syncWithEversend,
-  syncGatewayTransactions
+  syncGatewayTransactions,
+  getQueueStats
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
@@ -117,6 +118,9 @@ router.get('/notifications/email-logs', getEmailLogs);
 
 // Audit Logging
 router.get('/audit', getAuditLogs);
+
+// Queue Monitoring
+router.get('/queues', getQueueStats);
 
 // Global Transactions Monitoring
 router.get('/transactions', getAllTransactions);
