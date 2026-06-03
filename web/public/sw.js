@@ -37,6 +37,35 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function normalizeNotificationUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return '/notifications';
+
+  try {
+    const url = new URL(rawUrl, self.location.origin);
+    if (url.origin !== self.location.origin) return url.href;
+    let path = `${url.pathname}${url.search}${url.hash}`;
+
+    if (/^\/vendor\/orders\/[^/?#]+/.test(path)) {
+      const orderId = path.split('/')[3]?.split(/[?#]/)[0];
+      path = orderId ? `/vendor/orders?orderId=${encodeURIComponent(orderId)}` : '/vendor/orders';
+    }
+
+    if (/^\/logistics\/dashboard\?shipmentId=/.test(path)) {
+      path = path.replace('/logistics/dashboard', '/logistics/manifests');
+    }
+
+    if (/^\/logistics\/(shipments|tracking)\/[^/?#]+/.test(path)) {
+      const shipmentId = path.split('/')[3]?.split(/[?#]/)[0];
+      path = shipmentId ? `/logistics/manifests?shipmentId=${encodeURIComponent(shipmentId)}` : '/logistics/manifests';
+    }
+
+    if (path === '/logistics/dashboard' || path === '/logistics') return '/logistics/manifests';
+    return path;
+  } catch {
+    return rawUrl;
+  }
+}
+
 // ── Fetch: Network-first for nav, cache-first for assets ────────────────────
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -124,7 +153,7 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   if (event.action === 'close') return;
 
-  let urlToOpen = event.notification.data?.url || '/';
+  let urlToOpen = normalizeNotificationUrl(event.notification.data?.url || '/notifications');
 
   // Ensure absolute URL for reliable cross-device opening
   if (!urlToOpen.startsWith('http')) {

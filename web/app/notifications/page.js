@@ -13,6 +13,7 @@ import api from '@/services/api';
 import { useNotifications } from '@/hooks/useNotifications';
 import { notificationService } from '@/services/notifications';
 import Pagination from '@/components/common/Pagination';
+import { normalizeAppRoute } from '@/lib/navigation';
 
 // Mapped to the backend enum
 const ICON_MAP = {
@@ -142,7 +143,7 @@ export default function NotificationsPage() {
                   key={n._id}
                   onClick={() => {
                     if (!n.is_read) markRead(n._id);
-                    if (n.metadata?.link) router.push(n.metadata.link);
+                    if (n.metadata?.link) router.push(normalizeAppRoute(n.metadata.link));
                   }}
                   className={`p-4 rounded-2xl border transition-all duration-300 flex items-center gap-4 relative group cursor-pointer glass-panel ${
                     !n.is_read 

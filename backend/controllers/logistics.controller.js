@@ -487,10 +487,10 @@ const modifyShipmentStatus = async (req, res, next) => {
         title: 'Shipment Successfully Closed',
         message: `Shipment for Order #${order._id.toString().slice(-6).toUpperCase()} is confirmed delivered and settled.`,
         type: 'logistics_update',
-        metadata: { order_id: order._id, shipment_id: shipment._id, link: `/logistics/dashboard?shipmentId=${shipment._id}` },
+        metadata: { order_id: order._id, shipment_id: shipment._id, link: `/logistics/manifests?shipmentId=${shipment._id}` },
         sendEmail: true,
         overrideEmail: firm.contact_email,
-        emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard?shipmentId=${shipment._id}`,
+        emailLink: `${process.env.WEB_CLIENT_URL}/logistics/manifests?shipmentId=${shipment._id}`,
         orderDetails: order.toObject(),
         role: 'logistics'
       });
@@ -534,7 +534,7 @@ const modifyShipmentStatus = async (req, res, next) => {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       vendorStatusTpl.text,
         type:          'order_status',
-        metadata:      { shipment_id: shipment._id, order_id: order._id, link: `/vendor/orders/${order._id}` },
+        metadata:      { shipment_id: shipment._id, order_id: order._id, link: '/vendor/orders' },
         sendEmail:     true,
         emailTemplate: vendorStatusTpl,
         role:          'vendor'

@@ -16,7 +16,7 @@ const NOTIF_CONFIG = {
   payment:       { Icon: CreditCard,    color: '#10b981', href: '/wallet' },
   payment_received: { Icon: CreditCard, color: '#10b981', href: '/wallet' },
   wallet_update: { Icon: CreditCard,    color: '#10b981', href: '/wallet' },
-  logistics_update: { Icon: Truck,      color: '#06b6d4', href: '/logistics/dashboard' },
+  logistics_update: { Icon: Truck,      color: '#06b6d4', href: '/logistics/manifests' },
   system_alert:  { Icon: Bell,          color: '#f59e0b', href: '/notifications' },
   vendor_update: { Icon: Package,       color: '#06b6d4', href: '/notifications' },
   default:       { Icon: Bell,          color: 'var(--accent)', href: '/notifications' },
@@ -123,7 +123,20 @@ const normalizeAppRoute = (route) => {
   try {
     const url = new URL(route, window.location.origin);
     if (url.origin !== window.location.origin) return url.href;
-    return `${url.pathname}${url.search}${url.hash}`;
+    let path = `${url.pathname}${url.search}${url.hash}`;
+    if (/^\/vendor\/orders\/[^/?#]+/.test(path)) {
+      const orderId = path.split('/')[3]?.split(/[?#]/)[0];
+      path = orderId ? `/vendor/orders?orderId=${encodeURIComponent(orderId)}` : '/vendor/orders';
+    }
+    if (/^\/logistics\/dashboard\?shipmentId=/.test(path)) {
+      path = path.replace('/logistics/dashboard', '/logistics/manifests');
+    }
+    if (/^\/logistics\/(shipments|tracking)\/[^/?#]+/.test(path)) {
+      const shipmentId = path.split('/')[3]?.split(/[?#]/)[0];
+      path = shipmentId ? `/logistics/manifests?shipmentId=${encodeURIComponent(shipmentId)}` : '/logistics/manifests';
+    }
+    if (path === '/logistics/dashboard' || path === '/logistics') return '/logistics/manifests';
+    return path;
   } catch {
     return route;
   }
@@ -244,7 +257,7 @@ export default function SocketProvider({ children }) {
       const type = notif?.type || 'default';
       const title   = notif?.title   || 'New Notification';
       const message = notif?.message || '';
-      const link = notif.metadata?.link || '/notifications';
+      const link = normalizeAppRoute(notif.metadata?.link || '/notifications');
 
       setNotifToast({ 
         id: notif?._id || Date.now(), 
@@ -317,11 +330,11 @@ export default function SocketProvider({ children }) {
       // Strip any presence flag from the push payload — we prefer real-time status
       const { is_online, ...partnerNoPresence } = partnerData || {};
 
-      const route = msg.url || payload.url;
+      const route = normalizeAppRoute(msg.url || payload.url);
       if (partnerId) {
         openMessageRoute(partnerId, partnerNoPresence, route || `/chat?vendorId=${encodeURIComponent(partnerId)}`);
       } else if (payload.url) {
-        router.push(payload.url);
+        router.push(normalizeAppRoute(payload.url));
       }
     };
 
@@ -348,7 +361,7 @@ export default function SocketProvider({ children }) {
           }
 
           if (extra.route) {
-            router.push(extra.route);
+            router.push(normalizeAppRoute(extra.route));
           }
         });
       } catch (error) {
@@ -450,7 +463,7 @@ export default function SocketProvider({ children }) {
         >
           {(() => {
             const { Icon } = resolveConfig(notifToast.type);
-            const href = notifToast.link || resolveConfig(notifToast.type).href;
+            const href = normalizeAppRoute(notifToast.link || resolveConfig(notifToast.type).href);
             return (
               <div
                 onClick={() => { router.push(href); setNotifToast(null); }}

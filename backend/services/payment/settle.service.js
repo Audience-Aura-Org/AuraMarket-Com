@@ -245,7 +245,7 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
               title: 'New Shipment Assigned',
               message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
               type: 'system_alert',
-              metadata: { order_id: order._id, link: '/logistics/dashboard' },
+              metadata: { order_id: order._id, link: '/logistics/manifests' },
               sendEmail: true,
               role: 'logistics',
               webUrl,
@@ -369,7 +369,7 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
                 title: 'New Shipment Assigned',
                 message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
                 type: 'system_alert', sendEmail: true, role: 'logistics', webUrl,
-                metadata: { order_id: order._id, link: '/logistics/dashboard' },
+                metadata: { order_id: order._id, link: '/logistics/manifests' },
               });
             }
           }

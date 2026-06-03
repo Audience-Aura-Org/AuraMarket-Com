@@ -281,10 +281,10 @@ const createOrder = async (req, res, next) => {
               title: 'New Shipment Assigned (POD)',
               message: `You have new delivery work for Order #${createdOrder._id.toString().slice(-6).toUpperCase()}.`,
               type: 'logistics_update',
-              metadata: { order_id: createdOrder._id, link: '/logistics/dashboard' },
+              metadata: { order_id: createdOrder._id, link: '/logistics/manifests' },
               sendEmail: true,
               overrideEmail: logisticsCompForNotify.contact_email,
-              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/manifests`,
               orderDetails: orderWithVendor,
               role: 'logistics'
             });
@@ -381,10 +381,10 @@ const payDirectly = async (req, res, next) => {
               title: 'New Shipment Assigned',
               message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
               type: 'logistics_update',
-              metadata: { order_id: order._id, link: '/logistics/dashboard' },
+              metadata: { order_id: order._id, link: '/logistics/manifests' },
               sendEmail: true,
               overrideEmail: logisticsComp.contact_email,
-              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/manifests`,
               orderDetails: { ...order.toObject(), vendor_id: v },
               role: 'logistics'
             }
@@ -912,7 +912,7 @@ const createOrdersFromCart = async (req, res, next) => {
             type: 'order_status',
             sendEmail: true,
             orderDetails: orderForEmail,
-            emailLink: `${webUrl}/vendor/orders/${o._id}`,
+            emailLink: `${webUrl}/vendor/orders?orderId=${o._id}`,
             webUrl: webUrl
           });
 
@@ -948,10 +948,10 @@ const createOrdersFromCart = async (req, res, next) => {
                 title: 'New Shipment Assigned (Bulk POD)',
                 message: `Order #${o._id.toString().slice(-6).toUpperCase()} is ready for processing.`,
                 type: 'logistics_update',
-                metadata: { order_id: o._id, link: '/logistics/dashboard' },
+                metadata: { order_id: o._id, link: '/logistics/manifests' },
                 sendEmail: true,
                 overrideEmail: logisticsComp.contact_email,
-                emailLink: `${webUrl}/logistics/dashboard`,
+                emailLink: `${webUrl}/logistics/manifests`,
                 orderDetails: orderForEmail,
                 role: 'logistics',
                 webUrl: webUrl

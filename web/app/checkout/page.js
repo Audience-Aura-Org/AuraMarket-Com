@@ -574,10 +574,10 @@ function CheckoutContent() {
   const vendorList = Object.values(vendorTracking);
 
   return (
-    <div className="checkout-page min-h-[100dvh] w-full max-w-[100vw] bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 pb-20">
-      <div className="fixed top-[-10%] right-[-10%] w-[800px] h-[800px] bg-[var(--accent)]/5 rounded-full blur-[150px] pointer-events-none -z-0"></div>
+    <div className="checkout-page min-h-[100dvh] w-full max-w-[100vw] bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 pb-16">
+      <div className="fixed top-[-12%] right-[-12%] h-[420px] w-[420px] rounded-full bg-[var(--accent)]/5 blur-[120px] pointer-events-none -z-0"></div>
       
-      <nav className="sticky top-0 z-[60] h-16 px-4 sm:h-20 sm:px-6 lg:px-20 flex items-center justify-between glass-panel border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-3xl shadow-sm">
+      <nav className="sticky top-0 z-[60] flex h-14 items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 px-3 shadow-sm backdrop-blur-2xl sm:h-16 sm:px-6 lg:px-10">
         <button type="button" onClick={handleTerminateCheckout} className="flex items-center gap-3 group transition-all">
           <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
             <ArrowLeft className="size-5" />
@@ -599,7 +599,7 @@ function CheckoutContent() {
         </div>
       </nav>
 
-      <main className="relative z-10 mx-auto w-full max-w-7xl px-3 py-5 font-poppins sm:px-6 sm:py-10 lg:px-12 lg:py-12">
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-4 font-poppins sm:px-5 sm:py-7 lg:px-8 lg:py-8">
 
         {/* ââ Payment Blocking Screen âââââââââââââââââââââââââââââââââââââââ */}
         <AnimatePresence>
@@ -716,8 +716,8 @@ function CheckoutContent() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-12 xl:gap-16">
-          <div className="min-w-0 space-y-6 lg:col-span-8 lg:space-y-12">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-7 xl:gap-8">
+          <div className="min-w-0 space-y-5 lg:col-span-8 lg:space-y-7">
             <div className="flex items-center gap-4 mb-4">
                {[
                   { id: 1, label: 'Fulfillment' },
@@ -737,28 +737,28 @@ function CheckoutContent() {
                 ))}
             </div>
 
-            <div className="pt-8">
+            <div className="pt-4">
               {/* Existing Step 1 & 2 content ... */}
               {step === 1 && (
                 <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                  <div className="space-y-10">
-                    <div className="flex items-center gap-6">
-                       <div className="size-16 rounded-[28px] bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center shadow-lg"><MapPin className="size-8" /></div>
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-3">
+                       <div className="flex size-11 items-center justify-center rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm sm:size-12"><MapPin className="size-5 sm:size-6" /></div>
                        <div>
-                          <h2 className="text-4xl  font-bold tracking-tighter  leading-none">Fulfillment <span className="text-[var(--accent)]">Node</span></h2>
-                          <p className="text-sm font-medium text-[var(--text-secondary)] mt-2">Specify delivery coordinates and security protocol.</p>
+                          <h2 className="text-xl font-bold tracking-tight leading-tight sm:text-2xl">Delivery Details</h2>
+                          <p className="mt-1 text-[11px] font-medium text-[var(--text-secondary)] sm:text-[12px]">Confirm your address, logistics partner, and payment method.</p>
                        </div>
                     </div>
 
-                    <div className="glass-panel p-4 sm:p-5 md:p-10 rounded-3xl md:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-6 md:space-y-10">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-10">
+                    <div className="glass-panel space-y-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4 sm:p-5 md:p-6">
+                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
                           <div className="space-y-2 md:space-y-3">
                             <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Consignee Name</label>
                             <input 
                               placeholder="Full Name"
                               value={formData.name}
                               onChange={e => setFormData({...formData, name: e.target.value})}
-                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm  font-bold"
+                              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
                           <div className="space-y-2 md:space-y-3">
@@ -767,7 +767,7 @@ function CheckoutContent() {
                               placeholder="+237 ..."
                               value={formData.phone}
                               onChange={e => setFormData({...formData, phone: e.target.value})}
-                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm  font-bold"
+                              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
                           <div className="md:col-span-2 space-y-2 md:space-y-3">
@@ -777,7 +777,7 @@ function CheckoutContent() {
                               placeholder="email@example.com"
                               value={formData.email}
                               onChange={e => setFormData({...formData, email: e.target.value})}
-                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm  font-bold"
+                              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
                           
@@ -788,7 +788,7 @@ function CheckoutContent() {
                                <button 
                                   type="button"
                                   onClick={() => setZoneOpen(!zoneOpen)}
-                                  className={`w-full flex items-center justify-between px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border transition-all outline-none ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
+                                  className={`flex w-full items-center justify-between rounded-xl border bg-[var(--bg-secondary)] px-4 py-3 text-left outline-none transition-all ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
                                >
                                   <div className="flex items-center gap-4">
                                      <MapPin className="size-5 text-[var(--accent)] opacity-40" />
@@ -817,7 +817,7 @@ function CheckoutContent() {
                               rows={3}
                               value={formData.address}
                               onChange={e => setFormData({...formData, address: e.target.value})}
-                              className="w-full px-5 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] focus:border-[var(--accent)] transition-all outline-none text-sm  font-bold resize-none"
+                              className="w-full resize-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
 
@@ -829,7 +829,7 @@ function CheckoutContent() {
                              <button 
                                 type="button"
                                 onClick={() => setLogisticsOpen(!logisticsOpen)}
-                                className={`w-full flex items-center justify-between pl-6 pr-8 py-4 rounded-2xl bg-[var(--bg-secondary)] border transition-all outline-none ${logisticsOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
+                                className={`flex w-full items-center justify-between rounded-xl border bg-[var(--bg-secondary)] px-4 py-3 text-left outline-none transition-all ${logisticsOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
                              >
                                 <div className="flex items-center gap-4 min-w-0">
                                    <div className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0">
@@ -877,11 +877,11 @@ function CheckoutContent() {
 
                        <div className="pt-4 space-y-4">
                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Payment Strategy</label>
-                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                {/* ── Eversend ─────────────────────────────── */}
                                <button 
                                 onClick={() => setFormData({...formData, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
-                                className={`order-2 p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                                className={`order-2 rounded-2xl border p-4 text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
                                >
                                   <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-2">
@@ -896,7 +896,7 @@ function CheckoutContent() {
                                {/* ── MeSomb ───────────────────────────────── */}
                                <button 
                                 onClick={() => setFormData({...formData, paymentMethod: 'mesomb', mesomb: { ...formData.mesomb, phone: formData.mesomb.phone || formData.phone }})}
-                                className={`order-1 p-5 sm:p-6 rounded-[28px] border text-left transition-all group overflow-hidden ${formData.paymentMethod === 'mesomb' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                                className={`order-1 rounded-2xl border p-4 text-left transition-all group overflow-hidden ${formData.paymentMethod === 'mesomb' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
                                >
                                   <div className="flex items-start justify-between gap-3 mb-4">
                                      <div className="min-w-0 space-y-1.5">
@@ -913,7 +913,7 @@ function CheckoutContent() {
 
                                <button 
                                 onClick={() => setFormData({...formData, paymentMethod: 'wallet', escrowEnabled: formData.escrowEnabled})}
-                                className={`order-3 p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                                className={`order-3 rounded-2xl border p-4 text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
                                >
                                   <div className="flex items-center justify-between mb-4">
                                      <div className="flex items-center gap-2">
@@ -927,7 +927,7 @@ function CheckoutContent() {
 
                               <button
                                onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'pay_on_delivery'})}
-                               className={`order-4 p-6 rounded-[32px] border text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'pay_on_delivery' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-60'}`}
+                               className={`order-4 rounded-2xl border p-4 text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'pay_on_delivery' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
                               >
                                  <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
@@ -941,7 +941,7 @@ function CheckoutContent() {
                            </div>
 
                            {formData.paymentMethod !== 'pay_on_delivery' && (
-                              <div className="mt-4 p-6 rounded-[32px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500 hover:border-[var(--accent)]/30 transition-all cursor-pointer"
+                              <div className="mt-4 flex cursor-pointer items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4 transition-all hover:border-[var(--accent)]/30"
                                    onClick={() => setFormData({...formData, escrowEnabled: !formData.escrowEnabled})}>
                                  <div className="flex items-center gap-4">
                                     <div className={`size-12 rounded-2xl flex items-center justify-center transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] opacity-40 border border-[var(--glass-border)]'}`}>
@@ -959,9 +959,9 @@ function CheckoutContent() {
                            )}
 
                            {formData.paymentMethod === 'mesomb' && (
-                              <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
+                              <div className="mt-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                  <p className="text-[10px] lg:text-[11px] font-semibold tracking-widest uppercase text-[var(--accent)] mb-4 opacity-70">Mobile Money Details</p>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">MoMo / Orange Number</label>
                                        <input 
@@ -969,7 +969,7 @@ function CheckoutContent() {
                                           placeholder="677 XXX XXX or 690 XXX XXX"
                                           value={formData.mesomb.phone}
                                           onChange={e => setFormData({...formData, mesomb: {...formData.mesomb, phone: e.target.value}})}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold  outline-none focus:border-[var(--accent)] transition-all"
+                                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                                        />
                                     </div>
                                     <div className="space-y-2">
@@ -977,7 +977,7 @@ function CheckoutContent() {
                                        <select
                                           value={formData.mesomb.service}
                                           onChange={e => setFormData({...formData, mesomb: {...formData.mesomb, service: e.target.value}})}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold  outline-none focus:border-[var(--accent)] transition-all"
+                                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                                        >
                                           <option value="">Auto-detect from number</option>
                                           <option value="MTN">MTN Mobile Money</option>
@@ -992,8 +992,8 @@ function CheckoutContent() {
                            )}
 
                            {formData.paymentMethod === 'eversend' && (
-                              <div className="mt-4 p-6 rounded-[32px] bg-[var(--accent)]/5 border border-[var(--accent)]/20 animate-in fade-in slide-in-from-top-4 duration-500">
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                              <div className="mt-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
                                        <input 
@@ -1001,12 +1001,12 @@ function CheckoutContent() {
                                           placeholder="+237..."
                                           value={formData.eversend.phone}
                                           onChange={e => setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}})}
-                                          className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold  outline-none focus:border-[var(--accent)] transition-all"
+                                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                                        />
                                     </div>
                                     <div className="space-y-2">
                                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Currency</label>
-                                       <div className="w-full h-14 px-6 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold flex items-center gap-3 cursor-not-allowed select-none">
+                                       <div className="flex h-12 w-full cursor-not-allowed select-none items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[11px] font-semibold lg:text-[12px]">
                                           <span className="text-[var(--text-primary)]">XAF</span>
                                           <span className="text-[var(--text-secondary)] opacity-50">— Central African Franc</span>
                                           <span className="ml-auto text-[10px] lg:text-[12px]  font-semibold tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg">LOCKED</span>
@@ -1021,7 +1021,7 @@ function CheckoutContent() {
                      <button 
                         onClick={handlePlaceOrder}
                         disabled={loading}
-                        className="w-full h-16 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-semibold text-[10px] lg:text-[12px] tracking-[0.3em]  hover:bg-[var(--accent)] hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-20 mt-8 flex items-center justify-center gap-3"
+                        className="mt-6 flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[var(--text-primary)] text-[10px] font-semibold tracking-[0.18em] text-[var(--bg-primary)] shadow-lg transition-all hover:bg-[var(--accent)] hover:text-white active:scale-95 disabled:opacity-20 lg:text-[12px]"
                       >
                         {loading ? (
                           <div className="size-4 border-2 border-[var(--bg-primary)] border-t-transparent rounded-full animate-spin" />
@@ -1037,17 +1037,17 @@ function CheckoutContent() {
               )}
               {step === 999 && (
                 <section className="animate-in fade-in zoom-in-95 duration-700">
-                   <div className="space-y-12">
-                      <div className="flex items-center gap-6">
-                        <div className="size-16 rounded-[28px] bg-black text-white flex items-center justify-center shadow-2xl"><CheckCircle2 className="size-8" /></div>
+                   <div className="space-y-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-sm sm:size-12"><CheckCircle2 className="size-6" /></div>
                         <div>
-                          <h2 className="text-4xl  font-bold tracking-tighter  leading-none">Matrix <span className="text-[var(--accent)]">Review</span></h2>
-                          <p className="text-sm font-medium text-[var(--text-secondary)] mt-2">Validate full transaction vector before execution.</p>
+                          <h2 className="text-xl font-bold tracking-tight leading-tight sm:text-2xl">Review Order</h2>
+                          <p className="mt-1 text-[11px] font-medium text-[var(--text-secondary)] sm:text-[12px]">Check delivery, payment, and totals before placing the order.</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                         <div className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-2">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                         <div className="space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4">
                             <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] tracking-tight mb-6 opacity-40">Authorized Consignee</p>
                             <p className="text-xl  font-bold text-[var(--text-primary)]">{formData.name}</p>
                             <p className="text-xs text-[var(--text-secondary)]  font-bold mb-2">{formData.email}</p>
@@ -1055,7 +1055,7 @@ function CheckoutContent() {
                                <MapPin className="size-4 shrink-0 mt-0.5 text-[var(--accent)]" /> {formData.address}
                             </p>
                          </div>
-                         <div className="p-8 rounded-[40px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 flex flex-col justify-between">
+                         <div className="flex flex-col justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4">
                             <div className="flex items-center gap-4">
                               {formData.paymentMethod === 'pay_on_delivery'
                                  ? <Truck className="size-10 text-emerald-500" />
@@ -1086,7 +1086,7 @@ function CheckoutContent() {
                       </div>
                       </div>
 
-                      <div className={`${formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} border p-8 rounded-[40px] flex items-start gap-6 relative overflow-hidden`}>
+                      <div className={`${formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} relative flex items-start gap-4 overflow-hidden rounded-2xl border p-4`}>
                          <div className={`absolute inset-y-0 left-0 w-1.5 ${formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
                          {formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
                          <div className="space-y-2">
@@ -1107,10 +1107,10 @@ function CheckoutContent() {
             </div>
           </div>
 
-          <div className="h-fit min-w-0 lg:sticky lg:top-28 lg:col-span-4">
-            <div className="glass-panel p-5 sm:p-7 lg:p-8 rounded-3xl lg:rounded-[40px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-3xl shadow-4xl relative overflow-hidden">
-               <h3 className="text-2xl lg:text-3xl  font-bold mb-6 lg:mb-10 tracking-tighter  leading-none">Order <span className="text-[var(--accent)]">Matrix</span></h3>
-               <div className="space-y-6 max-h-[300px] overflow-y-auto no-scrollbar pr-2 mb-12">
+          <div className="h-fit min-w-0 lg:sticky lg:top-24 lg:col-span-4">
+            <div className="glass-panel relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/85 p-4 shadow-sm backdrop-blur-2xl sm:p-5 lg:p-6">
+               <h3 className="mb-5 text-lg font-bold tracking-tight leading-none lg:text-xl">Order Summary</h3>
+               <div className="mb-8 max-h-[300px] space-y-4 overflow-y-auto pr-2 no-scrollbar">
                   {matrixItems.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-4 group">
                        <img src={item.image || '/placeholder.png'} className="size-14 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
@@ -1154,10 +1154,10 @@ function CheckoutContent() {
                       </div>
                    )}
 
-                   <div className="flex justify-between items-end pt-8 border-t border-[var(--glass-border)]/50">
+                   <div className="flex justify-between items-end pt-5 border-t border-[var(--glass-border)]/50">
                       <div>
-                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]  tracking-[0.4em] mb-1">Final Settlement</p>
-                         <p className="text-3xl sm:text-4xl lg:text-5xl  font-bold text-[var(--text-primary)] font-mono tracking-tighter tabular-nums">{totalAmount.toLocaleString()}</p>
+                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] lg:text-[11px]">Final Total</p>
+                         <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl lg:text-4xl">{totalAmount.toLocaleString()}</p>
                       </div>
                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
                    </div>
@@ -1168,7 +1168,7 @@ function CheckoutContent() {
                    <button 
                      onClick={handlePlaceOrder}
                      disabled={loading || !formData.logistics_company_id}
-                     className={`w-full h-20 rounded-3xl font-semibold text-[11px] lg:text-[12px] tracking-[0.4em] shadow-3xl transition-all duration-500 flex items-center justify-center gap-4 group ${
+                     className={`flex h-14 w-full items-center justify-center gap-3 rounded-2xl text-[11px] font-semibold tracking-[0.18em] shadow-lg transition-all duration-500 group lg:text-[12px] ${
                         !formData.logistics_company_id 
                           ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed grayscale' 
                           : 'bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--accent)] hover:text-white'
@@ -1241,8 +1241,8 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
   );
 
   return (
-    <div className="absolute top-full left-0 w-full mt-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 z-[110]">
-      <div className="p-4 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+    <div className="absolute left-0 top-full z-[110] mt-2 w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-2.5">
          <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3 opacity-20 group-focus-within:text-[var(--accent)] transition-all" />
             <input 
@@ -1253,7 +1253,7 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
             />
          </div>
       </div>
-      <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+      <div className="max-h-56 overflow-y-auto no-scrollbar">
          {filtered.length === 0 ? (
             <div className="p-8 text-center opacity-30">
                <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">No zones found</p>
@@ -1290,8 +1290,8 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
   );
 
   return (
-    <div className="absolute top-full left-0 w-full mt-3 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 z-[100]">
-      <div className="p-4 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+    <div className="absolute left-0 top-full z-[100] mt-2 w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-2.5">
          <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3 opacity-20 group-focus-within:text-[var(--accent)] transition-all" />
             <input 
@@ -1302,7 +1302,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
             />
          </div>
       </div>
-      <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+      <div className="max-h-60 overflow-y-auto no-scrollbar">
          {loading ? (
             <div className="p-8 flex items-center justify-center">
                <Loader2 className="size-5 animate-spin text-[var(--accent)]" />
