@@ -68,6 +68,49 @@ const formatTracking = (order) => {
   return 'Tracking not assigned';
 };
 
+const getOrderItemImage = (item) => {
+  if (item?.image) return item.image;
+  const image = item?.product_id?.images?.[0];
+  return typeof image === 'string' ? image : image?.url;
+};
+
+const getOrderItemName = (item) =>
+  firstFilled(item?.name, item?.product_id?.name, item?.product_name, `Item #${shortId(item?.product_id)}`);
+
+const formatVariant = (variant) => {
+  if (!variant) return null;
+  if (typeof variant === 'string') return variant;
+  if (Array.isArray(variant)) return variant.filter(Boolean).join(' / ');
+  if (typeof variant === 'object') {
+    return Object.entries(variant)
+      .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(' / ');
+  }
+  return String(variant);
+};
+
+const buildLogisticsInfo = (order) => {
+  const logistics = order?.logistics_company_id;
+  const usesLogistics = order?.shipping_method === 'logistics' || order?.shipping_method === 'logistics_partner' || logistics;
+
+  if (!usesLogistics) {
+    return {
+      method: 'Vendor managed',
+      partner: 'Vendor handles delivery',
+      contact: null,
+      tracking: formatTracking(order),
+    };
+  }
+
+  return {
+    method: 'Logistics partner',
+    partner: isObjectRecord(logistics) ? firstFilled(logistics.company_name, `Logistics #${shortId(logistics)}`) : 'Partner not assigned',
+    contact: isObjectRecord(logistics) ? firstFilled(logistics.contact_phone, logistics.contact_email) : null,
+    tracking: formatTracking(order),
+  };
+};
+
 const buildTransactionAccount = (tx) => {
   if (isObjectRecord(tx?.user_id)) {
     return {
@@ -186,6 +229,21 @@ const buildMoneyRoute = (tx, linkedOrders = []) => {
     };
   }
 
+  if ((tx?.type === 'payment' || tx?.type === 'checkout') && linkedOrders.length > 0) {
+    const orderCount = linkedOrders.length;
+    const receiver = vendor?.name || 'Vendor order account';
+    const heldInEscrow = linkedOrders.some((order) => order?.payment_method === 'escrow' || order?.payment_method === 'mesomb' || order?.payment_method === 'eversend');
+    return {
+      title: 'Payment route',
+      rows: [
+        ['From', `${customer?.name || account.name} via ${formatGatewayName(tx.gateway)}${tx.gateway_transaction_id ? ` (${tx.gateway_transaction_id})` : ''}`],
+        ['To', heldInEscrow ? `Escrow/order wallet for ${orderCount} order(s)` : `${receiver} wallet`],
+        ['Receiver', receiver],
+        ['Purpose', `Checkout payment for ${orderCount} order(s)`],
+      ],
+    };
+  }
+
   if (tx?.type === 'refund') {
     return {
       title: 'Refund route',
@@ -236,7 +294,7 @@ const buildMoneyRoute = (tx, linkedOrders = []) => {
       rows: [
         ['From', primaryOrder ? `Escrow vault for ${orderLabel}` : 'Escrow vault'],
         ['Into', formatWalletName(tx.user_id, vendor?.name || account.name)],
-        ['Order', orderLabel],
+        ['Receiver', vendor?.name || account.name],
       ],
     };
   }
@@ -244,12 +302,65 @@ const buildMoneyRoute = (tx, linkedOrders = []) => {
   return {
     title: 'Money route',
     rows: [
-      ['Account', formatWalletName(tx.user_id, account.name)],
-      ['Gateway', formatGatewayName(tx.gateway)],
-      ['Linked order', primaryOrder ? orderLabel : null],
+      ['From', `${account.name || 'System account'} ${tx.gateway ? `via ${formatGatewayName(tx.gateway)}` : ''}`.trim()],
+      ['To', primaryOrder ? (vendor?.name || customer?.name || 'Linked order account') : formatWalletName(tx.user_id, account.name)],
+      ['Purpose', primaryOrder ? `Transaction for ${orderLabel}` : `${tx.type || 'Ledger'} movement`],
     ],
   };
 };
+
+function OrderItemsList({ order }) {
+  const items = order?.products || [];
+  if (!items.length) return null;
+
+  return (
+    <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-2.5">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+        Order item(s)
+      </p>
+      <div className="space-y-2">
+        {items.map((item, idx) => {
+          const productId = item?.product_id?._id || item?.product_id;
+          const image = getOrderItemImage(item);
+          const variant = formatVariant(item?.variant);
+          const qty = Number(item?.quantity || 1);
+          const price = Number(item?.price || item?.product_id?.price || 0);
+          const content = (
+            <>
+              <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+                {image ? <img src={image} alt="" className="size-full object-cover" /> : <Database className="size-4 text-[var(--text-secondary)]" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[11px] font-semibold text-[var(--text-primary)]">{getOrderItemName(item)}</p>
+                {variant && <p className="mt-0.5 truncate text-[10px] text-[var(--text-secondary)]">{variant}</p>}
+                <p className="mt-0.5 text-[10px] font-mono text-[var(--text-secondary)]">
+                  {fmt(price)} XAF x {qty}
+                </p>
+              </div>
+              <p className="shrink-0 text-right text-[10px] font-semibold text-[var(--text-primary)]">
+                {fmt(price * qty)} XAF
+              </p>
+            </>
+          );
+
+          return productId ? (
+            <a
+              key={`${productId}-${idx}`}
+              href={`/products/${productId}`}
+              className="flex items-center gap-2 rounded-lg p-1.5 transition hover:bg-[var(--bg-secondary)]"
+            >
+              {content}
+            </a>
+          ) : (
+            <div key={idx} className="flex items-center gap-2 rounded-lg p-1.5">
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function InfoLine({ label, value, mono = false }) {
   return (
@@ -755,14 +866,12 @@ export default function AdminTransactionsPage() {
                             linkedOrders.map((order) => {
                               const customer = buildCustomerPerson(order);
                               const vendor = buildVendorPerson(order);
-                              const itemNames = (order?.products || [])
-                                .map((p) => p?.name || p?.product_id?.name || p?.product_name)
-                                .filter(Boolean);
+                              const logistics = buildLogisticsInfo(order);
                               return (
                                 <div key={String(order?._id || order)} className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-3">
                                   <div className="flex items-center justify-between gap-3">
                                     <p className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
-                                      Linked order #{shortId(order)}
+                                      Order #{shortId(order)}
                                     </p>
                                     <span className="rounded-md bg-indigo-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase text-indigo-600 dark:text-indigo-300">
                                       {order?.payment_status || '—'} / {order?.order_status || '—'}
@@ -771,15 +880,12 @@ export default function AdminTransactionsPage() {
                                   <div className="grid gap-2 sm:grid-cols-2">
                                     <InfoLine label="Order total" value={order?.total_amount ? `${fmt(order.total_amount)} XAF` : null} />
                                     <InfoLine label="Payment" value={order?.payment_method} />
-                                    <InfoLine label="Shipping" value={order?.shipping_method?.replace(/_/g, ' ')} />
-                                    <InfoLine label="Tracking" value={formatTracking(order)} mono />
+                                    <InfoLine label="Shipping" value={logistics.method} />
+                                    <InfoLine label="Logistics partner" value={logistics.partner} />
+                                    <InfoLine label="Logistics contact" value={logistics.contact} />
+                                    <InfoLine label="Tracking" value={logistics.tracking} mono />
                                   </div>
-                                  {itemNames.length > 0 && (
-                                    <div className="rounded-lg bg-[var(--bg-primary)]/70 p-2 text-[10px] leading-relaxed text-[var(--text-secondary)]">
-                                      {itemNames.slice(0, 3).join(', ')}
-                                      {itemNames.length > 3 ? ` +${itemNames.length - 3} more` : ''}
-                                    </div>
-                                  )}
+                                  <OrderItemsList order={order} />
                                   <div className="grid gap-2 sm:grid-cols-2">
                                     <PersonSummary title="Customer" person={customer} fallbackName="Order customer" />
                                     <PersonSummary title="Vendor store" person={vendor} fallbackName="Vendor" />

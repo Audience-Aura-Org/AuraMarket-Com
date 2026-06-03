@@ -967,7 +967,7 @@ const getAllTransactions = async (req, res, next) => {
 
     const orderContextPopulate = {
       path: 'order_id',
-      select: 'customer_id vendor_id products subtotal shipping_fee total_amount payment_method payment_status shipping_method shipping_address tracking_number order_status createdAt',
+      select: 'customer_id vendor_id products subtotal shipping_fee total_amount payment_method payment_status shipping_method shipping_address tracking_number order_status logistics_company_id createdAt',
       populate: [
         {
           path: 'vendor_id',
@@ -984,6 +984,10 @@ const getAllTransactions = async (req, res, next) => {
         {
           path: 'products.product_id',
           select: 'name price images'
+        },
+        {
+          path: 'logistics_company_id',
+          select: 'company_name contact_email contact_phone service_regions vehicle_types'
         }
       ]
     };
