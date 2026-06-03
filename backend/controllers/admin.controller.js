@@ -994,7 +994,7 @@ const getAllTransactions = async (req, res, next) => {
     };
 
     const transactions = await Transaction.find(query)
-      .populate('user_id', 'name email avatar role phone')
+      .populate('user_id', 'name email avatar role phone wallet_balance')
       .populate(orderContextPopulate)
       .populate(ordersContextPopulate)
       .sort('-createdAt')

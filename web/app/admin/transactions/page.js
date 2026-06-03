@@ -134,6 +134,123 @@ const buildVendorPerson = (order) => {
   };
 };
 
+const formatGatewayName = (gateway) => {
+  const labels = {
+    paystack: 'Paystack',
+    eversend: 'Eversend',
+    mesomb: 'MeSomb',
+    wallet: 'Auradime wallet',
+    manual: 'Manual admin entry',
+    platform: 'Auradime platform',
+    escrow: 'Escrow vault',
+  };
+  return labels[gateway] || gateway || 'Internal ledger';
+};
+
+const formatWalletName = (person, fallback = 'User wallet') => {
+  const account = isObjectRecord(person) ? person : null;
+  const name = firstFilled(account?.name, account?.email, fallback);
+  const suffix = account?._id ? ` #${shortId(account, 6)}` : '';
+  return `${name} wallet${suffix}`;
+};
+
+const getWithdrawalDestination = (tx) => {
+  const details = tx?.gateway_response?.details || tx?.metadata?.recipientDetails || {};
+  if (details.phoneNumber || details.phone) return `Mobile wallet ${details.phoneNumber || details.phone}`;
+  if (details.accountNumber || details.account_number) return `Bank account ${details.accountNumber || details.account_number}`;
+  if (details.eversendTag) return `Eversend tag ${details.eversendTag}`;
+  if (details.beneficiaryId) return `Beneficiary ${details.beneficiaryId}`;
+  const match = tx?.description?.match(/\b(?:to|via)\s+(.+)$/i);
+  return match?.[1] || 'Payout account awaiting gateway details';
+};
+
+const buildMoneyRoute = (tx, linkedOrders = []) => {
+  const account = buildTransactionAccount(tx);
+  const primaryOrder = linkedOrders[0];
+  const customer = primaryOrder ? buildCustomerPerson(primaryOrder) : null;
+  const vendor = primaryOrder ? buildVendorPerson(primaryOrder) : null;
+  const walletBalance = isObjectRecord(tx?.user_id) && Number.isFinite(Number(tx.user_id.wallet_balance))
+    ? `${fmt(tx.user_id.wallet_balance)} ${tx.currency || 'XAF'} current balance`
+    : null;
+  const orderLabel = primaryOrder ? `Order #${shortId(primaryOrder)}` : 'No order linked';
+
+  if (tx?.type === 'deposit') {
+    const isCheckout = linkedOrders.length > 0;
+    return {
+      title: isCheckout ? 'Checkout funding route' : 'Deposit route',
+      rows: [
+        ['From', `${formatGatewayName(tx.gateway)} collection${tx.gateway_transaction_id ? ` (${tx.gateway_transaction_id})` : ''}`],
+        ['Into', isCheckout ? `${account.name} checkout payment for ${linkedOrders.length} order(s)` : formatWalletName(tx.user_id, account.name)],
+        ['Wallet', isCheckout ? 'Applied to linked order payment, not kept as wallet balance' : walletBalance],
+      ],
+    };
+  }
+
+  if (tx?.type === 'refund') {
+    return {
+      title: 'Refund route',
+      rows: [
+        ['From', primaryOrder ? `${formatGatewayName(tx.gateway || 'escrow')} for ${orderLabel}` : formatGatewayName(tx.gateway || 'manual')],
+        ['Refunded to', formatWalletName(tx.user_id, customer?.name || account.name)],
+        ['Wallet', walletBalance],
+      ],
+    };
+  }
+
+  if (tx?.type === 'withdrawal' || tx?.type === 'payout') {
+    return {
+      title: tx.type === 'payout' ? 'Payout route' : 'Withdrawal route',
+      rows: [
+        ['From', formatWalletName(tx.user_id, account.name)],
+        ['To', getWithdrawalDestination(tx)],
+        ['Gateway', `${formatGatewayName(tx.gateway)}${tx.gateway_transaction_id ? ` (${tx.gateway_transaction_id})` : ''}`],
+      ],
+    };
+  }
+
+  if (tx?.gateway === 'platform') {
+    return {
+      title: 'Platform commission route',
+      rows: [
+        ['From', primaryOrder ? `Escrow settlement on ${orderLabel}` : 'Marketplace settlement'],
+        ['Into', 'Auradime platform wallet'],
+        ['Related store', vendor?.name || null],
+      ],
+    };
+  }
+
+  if (tx?.gateway === 'escrow') {
+    return {
+      title: 'Escrow route',
+      rows: [
+        ['From', formatWalletName(tx.user_id, customer?.name || account.name)],
+        ['Into', primaryOrder ? `Escrow vault for ${orderLabel}` : 'Escrow vault'],
+        ['Release target', vendor?.name ? `${vendor.name} wallet after delivery` : null],
+      ],
+    };
+  }
+
+  if (tx?.type === 'escrow_release') {
+    return {
+      title: 'Escrow release route',
+      rows: [
+        ['From', primaryOrder ? `Escrow vault for ${orderLabel}` : 'Escrow vault'],
+        ['Into', formatWalletName(tx.user_id, vendor?.name || account.name)],
+        ['Order', orderLabel],
+      ],
+    };
+  }
+
+  return {
+    title: 'Money route',
+    rows: [
+      ['Account', formatWalletName(tx.user_id, account.name)],
+      ['Gateway', formatGatewayName(tx.gateway)],
+      ['Linked order', primaryOrder ? orderLabel : null],
+    ],
+  };
+};
+
 function InfoLine({ label, value, mono = false }) {
   return (
     <div className="flex items-start justify-between gap-3 text-[11px]">
@@ -141,6 +258,22 @@ function InfoLine({ label, value, mono = false }) {
       <span className={`min-w-0 text-right font-semibold text-[var(--text-primary)] ${mono ? 'font-mono' : ''}`}>
         {value || 'Not recorded'}
       </span>
+    </div>
+  );
+}
+
+function MoneyRouteCard({ route }) {
+  const rows = (route?.rows || []).filter(([, value]) => value);
+  if (!rows.length) return null;
+
+  return (
+    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 space-y-2">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+        <CreditCard className="size-3.5" /> {route.title || 'Money route'}
+      </p>
+      {rows.map(([label, value]) => (
+        <InfoLine key={label} label={label} value={value} />
+      ))}
     </div>
   );
 }
@@ -474,6 +607,7 @@ export default function AdminTransactionsPage() {
             const party = getTransactionParty(tx);
             const linkedOrders = getLinkedOrders(tx);
             const transactionAccount = buildTransactionAccount(tx);
+            const moneyRoute = buildMoneyRoute(tx, linkedOrders);
 
             return (
               <div
@@ -613,6 +747,7 @@ export default function AdminTransactionsPage() {
                           </div>
 
                           <PersonSummary title="Transaction account" person={transactionAccount} fallbackName="System account" />
+                          <MoneyRouteCard route={moneyRoute} />
                         </div>
 
                         <div className="space-y-3">
