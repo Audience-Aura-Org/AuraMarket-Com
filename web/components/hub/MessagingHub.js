@@ -169,6 +169,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       chatRoot.style.removeProperty('position');
       chatRoot.style.removeProperty('top');
       chatRoot.style.removeProperty('left');
+      chatRoot.style.removeProperty('bottom');
       chatRoot.style.removeProperty('width');
       chatRoot.style.removeProperty('height');
       chatRoot.style.removeProperty('max-height');
@@ -191,6 +192,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       chatRoot.style.position = 'fixed';
       chatRoot.style.top = '0px';
       chatRoot.style.left = '0px';
+      chatRoot.style.bottom = 'auto';
       chatRoot.style.width = '100%';
       chatRoot.style.overflow = 'hidden';
       chatRoot.style.height = `${height}px`;
@@ -775,6 +777,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const mobileShellStyle = mobileLayout
     ? {
         paddingTop: 'env(safe-area-inset-top, 0px)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
       }
     : undefined;
 
