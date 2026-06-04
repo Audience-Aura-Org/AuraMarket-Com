@@ -8,6 +8,7 @@
 const Homepage = require('../models/Homepage.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
+const Store = require('../models/Store.model');
 const User = require('../models/User.model');
 const Order = require('../models/Order.model');
 const Escrow = require('../models/Escrow.model');
@@ -26,6 +27,7 @@ const templates = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../middleware/security.middleware');
 const cache = require('../utils/cache');
 const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
+const { clearApiCache } = require('../middleware/cache.middleware');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/admin/notifications/email-logs
@@ -509,8 +511,49 @@ const getAllVendors = async (req, res, next) => {
     const query = {};
     if (status === 'verified') query.verified = true;
     if (status === 'unverified') query.verified = false;
-    const vendors = await Vendor.find(query).populate('user_id', 'name email avatar verification_status branding').sort('-createdAt');
+    const vendors = await Vendor.find(query)
+      .populate('user_id', 'name email avatar verification_status branding')
+      .populate('store', 'logo banner categories')
+      .sort('-createdAt');
     res.status(200).json({ success: true, count: vendors.length, data: { vendors } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateVendorMedia = async (req, res, next) => {
+  try {
+    const { logo, banner } = req.body;
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+
+    const updates = {};
+    if (typeof logo === 'string') updates.logo = logo.trim() || null;
+    if (typeof banner === 'string') updates.banner = banner.trim() || null;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: 'Provide a logo or banner URL.' });
+    }
+
+    await Store.findOneAndUpdate(
+      { vendor_id: vendor._id },
+      { $set: updates },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
+
+    const brandingUpdates = {};
+    if (Object.prototype.hasOwnProperty.call(updates, 'logo')) brandingUpdates['branding.logo'] = updates.logo;
+    if (Object.prototype.hasOwnProperty.call(updates, 'banner')) brandingUpdates['branding.banner'] = updates.banner;
+    if (Object.keys(brandingUpdates).length > 0) {
+      await User.findByIdAndUpdate(vendor.user_id, { $set: brandingUpdates });
+    }
+    await clearApiCache();
+
+    const populated = await Vendor.findById(vendor._id)
+      .populate('user_id', 'name email avatar verification_status branding')
+      .populate('store', 'logo banner categories');
+
+    res.status(200).json({ success: true, message: 'Vendor media updated.', data: { vendor: populated } });
   } catch (error) {
     next(error);
   }
@@ -1418,6 +1461,7 @@ module.exports = {
   updateUserStatus,
   updateUserAdmin,
   updateVendorStatus,
+  updateVendorMedia,
   fetchAdminShipments,
   updateAdminShipment,
   getAdminLogisticsFirms,

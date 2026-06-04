@@ -3,13 +3,16 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Store, ShieldCheck, Mail, MapPin, 
   Building2, ExternalLink, Search, Loader2, 
   Ban, User, TrendingUp, Star, 
-  ChevronRight, RefreshCw, Activity, Package, Database
+  ChevronRight, RefreshCw, Activity, Package, Database,
+  Pencil, X, Upload
 } from 'lucide-react';
 import api from '@/services/api';
+import { uploadService } from '@/services/upload';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import Pagination from '@/components/common/Pagination';
@@ -24,7 +27,16 @@ export default function AdminVendorsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [mounted, setMounted] = useState(false);
+  const [editingVendor, setEditingVendor] = useState(null);
+  const [mediaForm, setMediaForm] = useState({ logo: '', banner: '' });
+  const [mediaSaving, setMediaSaving] = useState(false);
+  const [mediaUploading, setMediaUploading] = useState(null);
   const itemsPerPage = 12;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     fetchVendors();
@@ -49,6 +61,69 @@ export default function AdminVendorsPage() {
         setVendors(prev => prev.map(v => v._id === vendorId ? { ...v, verified: !currentStatus } : v));
       }
     } catch (err) { toast.error('Shift failed'); }
+  };
+
+  const getVendorLogo = (vendor) => (
+    vendor?.store?.logo ||
+    vendor?.user_id?.branding?.logo ||
+    vendor?.user_id?.avatar ||
+    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(vendor?.store_name || 'Vendor')}`
+  );
+
+  const getVendorBanner = (vendor) => (
+    vendor?.store?.banner ||
+    vendor?.user_id?.branding?.banner ||
+    ''
+  );
+
+  const openMediaEditor = (vendor) => {
+    setEditingVendor(vendor);
+    setMediaForm({
+      logo: getVendorLogo(vendor),
+      banner: getVendorBanner(vendor),
+    });
+  };
+
+  const closeMediaEditor = () => {
+    setEditingVendor(null);
+    setMediaForm({ logo: '', banner: '' });
+    setMediaUploading(null);
+  };
+
+  const handleMediaUpload = async (field, file) => {
+    if (!file) return;
+    setMediaUploading(field);
+    try {
+      const res = await uploadService.uploadSingle(file, field === 'banner' ? 'banners' : 'avatars');
+      if (res?.success && res?.data?.url) {
+        setMediaForm((prev) => ({ ...prev, [field]: res.data.url }));
+        toast.success(`${field === 'banner' ? 'Banner' : 'Logo'} uploaded.`);
+      }
+    } catch (err) {
+      toast.error('Upload failed');
+    } finally {
+      setMediaUploading(null);
+    }
+  };
+
+  const saveVendorMedia = async () => {
+    if (!editingVendor) return;
+    setMediaSaving(true);
+    try {
+      const res = await api.patch(`/admin/vendors/${editingVendor._id}/media`, mediaForm);
+      const updatedVendor = res.data?.data?.vendor;
+      if (res.data?.success && updatedVendor) {
+        setVendors((prev) => prev.map((vendor) => vendor._id === updatedVendor._id ? updatedVendor : vendor));
+        toast.success('Vendor media updated.');
+        closeMediaEditor();
+      } else {
+        toast.error(res.data?.message || 'Could not update vendor media');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not update vendor media');
+    } finally {
+      setMediaSaving(false);
+    }
   };
 
   const filteredVendors = vendors.filter(v => 
@@ -156,7 +231,7 @@ export default function AdminVendorsPage() {
                        <div key={v._id} className="group relative rounded-[2rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-6">
                           <div className="flex items-center gap-5 flex-1 min-w-0">
                              <div className="size-14 md:size-16 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-500">
-                                <img src={v.user_id?.branding?.logo || v.user_id?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${v.store_name}`} className="size-full object-cover" alt="" />
+                                <img src={getVendorLogo(v)} className="size-full object-cover" alt="" />
                              </div>
                              
                              <div className="flex-1 min-w-0">
@@ -193,6 +268,14 @@ export default function AdminVendorsPage() {
                              </div>
                              
                              <div className="flex items-center gap-2">
+                                <button
+                                   type="button"
+                                   onClick={() => openMediaEditor(v)}
+                                   className="size-10 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm active:scale-95"
+                                   title="Edit vendor logo and banner"
+                                >
+                                   <Pencil className="size-4.5" />
+                                </button>
                                 <button 
                                    onClick={() => handleToggleVerify(v._id, v.verified)} 
                                    className={`size-10 rounded-xl flex items-center justify-center border transition-all ${v.verified ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500 hover:text-white' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'}`}
@@ -223,6 +306,100 @@ export default function AdminVendorsPage() {
             </div>
          </div>
       </div>
+      {mounted && editingVendor && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-stretch justify-stretch bg-black/55 backdrop-blur-sm">
+          <div className="flex h-[100dvh] w-full flex-col bg-[var(--bg-primary)]">
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--glass-border)] px-4 py-4 md:px-8">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Vendor media</p>
+                <h3 className="truncate text-xl font-bold text-[var(--text-primary)]">{editingVendor.store_name}</h3>
+                <p className="text-xs font-semibold text-[var(--text-secondary)]">Update the logo and banner used across storefronts, stories, chat, and discovery.</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeMediaEditor}
+                className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 md:p-8">
+              <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-4 shadow-sm">
+                  <div className="relative h-56 overflow-hidden rounded-2xl bg-[var(--bg-primary)]">
+                    {mediaForm.banner ? (
+                      <img src={mediaForm.banner} alt="Vendor banner preview" className="size-full object-cover" />
+                    ) : (
+                      <div className="flex size-full items-center justify-center text-sm font-semibold text-[var(--text-secondary)]">No banner selected</div>
+                    )}
+                    <div className="absolute -bottom-8 left-5 size-24 overflow-hidden rounded-3xl border-4 border-[var(--bg-secondary)] bg-[var(--bg-primary)] shadow-xl">
+                      <img src={mediaForm.logo || getVendorLogo(editingVendor)} alt="Vendor logo preview" className="size-full object-cover" />
+                    </div>
+                  </div>
+                  <div className="mt-12">
+                    <h4 className="text-lg font-bold text-[var(--text-primary)]">{editingVendor.store_name}</h4>
+                    <p className="text-xs font-semibold text-[var(--text-secondary)]">Live preview</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-6">
+                  {[
+                    { field: 'logo', label: 'Store logo', hint: 'Square image recommended.' },
+                    { field: 'banner', label: 'Store banner', hint: 'Wide landscape image recommended.' },
+                  ].map((item) => (
+                    <div key={item.field} className="space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <label className="text-xs font-bold text-[var(--text-primary)]">{item.label}</label>
+                          <p className="text-[11px] font-semibold text-[var(--text-secondary)]">{item.hint}</p>
+                        </div>
+                        <label className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 text-[11px] font-bold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white">
+                          {mediaUploading === item.field ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                          Upload
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) => handleMediaUpload(item.field, event.target.files?.[0])}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="url"
+                        value={mediaForm[item.field]}
+                        onChange={(event) => setMediaForm((prev) => ({ ...prev, [item.field]: event.target.value }))}
+                        placeholder={`${item.label} URL`}
+                        className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeMediaEditor}
+                className="h-11 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-5 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveVendorMedia}
+                disabled={mediaSaving || mediaUploading}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 text-xs font-bold text-white shadow-lg shadow-[var(--accent)]/20 disabled:opacity-60"
+              >
+                {mediaSaving ? <Loader2 className="size-4 animate-spin" /> : <Pencil className="size-4" />}
+                Save media
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

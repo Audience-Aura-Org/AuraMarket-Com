@@ -32,6 +32,7 @@ const {
   updateUserAdmin,
   getAllVendors,
   updateVendorStatus,
+  updateVendorMedia,
   fetchAdminShipments,
   updateAdminShipment,
   getAdminLogisticsFirms,
@@ -145,6 +146,7 @@ router.patch('/users/:id/status', updateUserStatus);
 router.patch('/users/:id', updateUserAdmin);
 router.delete('/users/:id', deleteUser);
 router.get('/vendors', getAllVendors);
+router.patch('/vendors/:id/media', updateVendorMedia);
 router.patch('/vendors/:id/status', updateVendorStatus);
 router.get('/products', getAllProducts);
 router.patch('/products/:id', updateProductAdmin);
