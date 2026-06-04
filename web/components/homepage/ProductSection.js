@@ -11,8 +11,8 @@ export default function ProductSection({ title, subtitle, data, config }) {
   if (!products.length) return null;
 
   return (
-    <section className="relative w-full overflow-hidden py-6 sm:py-7 lg:py-9">
-      <div className="mb-5 flex items-end justify-between gap-3 px-0 md:mb-7 md:px-1">
+    <section className="relative w-full overflow-hidden py-3 sm:py-4 lg:py-5">
+      <div className="mb-3 flex items-end justify-between gap-3 px-0 md:mb-4 md:px-1">
         <div className="min-w-0 space-y-1 text-left">
           <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
             {title}
@@ -34,7 +34,7 @@ export default function ProductSection({ title, subtitle, data, config }) {
       </div>
 
       <div className="w-full px-0 md:px-1">
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-7 snap-x snap-mandatory md:gap-4 md:pb-8">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-4 snap-x snap-mandatory md:gap-4 md:pb-5">
           {products.map((product, i) => (
             <div
               key={product._id || product.id || i}

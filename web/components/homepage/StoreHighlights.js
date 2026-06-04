@@ -22,8 +22,8 @@ export default function StoreHighlights({ title, data }) {
   };
 
   return (
-    <section className="w-full py-6 sm:py-7 lg:py-9">
-      <div className="mb-5 flex items-end justify-between gap-3 px-0 md:mb-7 md:px-1">
+    <section className="w-full py-3 sm:py-4 lg:py-5">
+      <div className="mb-3 flex items-end justify-between gap-3 px-0 md:mb-4 md:px-1">
         <div className="min-w-0 space-y-1 text-left">
           <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
             {title || "Top Rated Vendors"}
@@ -38,7 +38,7 @@ export default function StoreHighlights({ title, data }) {
         </Link>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-0 pb-8 snap-x snap-mandatory md:gap-4 md:px-1 md:pb-10">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-0 pb-5 snap-x snap-mandatory md:gap-4 md:px-1 md:pb-6">
         {data.map((item, i) => {
           const vendor = item.vendor_id;
           if (!vendor) return null;

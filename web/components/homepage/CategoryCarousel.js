@@ -6,8 +6,8 @@ export default function CategoryCarousel({ title, data }) {
   if (!data?.length) return null;
 
   return (
-    <section className="w-full py-6 sm:py-7 lg:py-9">
-      <div className="mb-5 flex items-end justify-between gap-3 px-0 md:mb-7 md:px-1">
+    <section className="w-full py-3 sm:py-4 lg:py-5">
+      <div className="mb-3 flex items-end justify-between gap-3 px-0 md:mb-4 md:px-1">
         <div className="min-w-0">
           <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
             {title || "Shop by Category"}
@@ -22,7 +22,7 @@ export default function CategoryCarousel({ title, data }) {
         </Link>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-0 pb-7 snap-x snap-mandatory md:gap-4 md:px-1 md:pb-8">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-0 pb-4 snap-x snap-mandatory md:gap-4 md:px-1 md:pb-5">
         {data.map((cat, i) => (
           <Link 
             key={i} 
