@@ -1,32 +1,256 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
-import { useState, useEffect } from 'react';
-import api from '@/services/api';
+
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Plus, GripVertical, Settings2, Trash2, 
-  CheckCircle2, XCircle, ChevronUp, 
-  ChevronDown, Grid, Package, Store, Tag, 
-  List, ImageIcon, ArrowRight, Layers, Sparkles, Activity,
-  MonitorPlay
+  Activity,
+  ArrowDown,
+  ArrowUp,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Grid3X3,
+  ImageIcon,
+  Layers,
+  MonitorPlay,
+  Package,
+  Plus,
+  Search,
+  Settings2,
+  Sparkles,
+  Store,
+  Tag,
+  Trash2,
 } from 'lucide-react';
+import api from '@/services/api';
 import SectionForm from '../storefront/components/SectionForm';
 import { toast } from 'react-hot-toast';
+
+const sectionTypes = [
+  { value: 'all', label: 'All' },
+  { value: 'hero', label: 'Hero' },
+  { value: 'categories', label: 'Categories' },
+  { value: 'featured_products', label: 'Featured' },
+  { value: 'trending', label: 'Trending' },
+  { value: 'stores', label: 'Stores' },
+  { value: 'promo_banner', label: 'Promo' },
+];
+
+const typeMeta = {
+  hero: { label: 'Hero', icon: MonitorPlay },
+  categories: { label: 'Categories', icon: Tag },
+  featured_products: { label: 'Featured', icon: Sparkles },
+  trending: { label: 'Trending', icon: Activity },
+  stores: { label: 'Stores', icon: Store },
+  promo_banner: { label: 'Promo', icon: ImageIcon },
+  collection: { label: 'Collection', icon: Layers },
+  recommendations: { label: 'Recommendations', icon: Grid3X3 },
+  footer_promo: { label: 'Footer Promo', icon: ImageIcon },
+};
+
+const formatType = (type = '') => typeMeta[type]?.label || type.replace(/_/g, ' ') || 'Section';
+
+const getItemTitle = (section, item) => {
+  const vendorName = item.vendor_id?.store_name || item.vendor_name;
+  const productName = item.product_id?.name || item.product_name;
+  return item.headline || item.category_name || productName || vendorName || formatType(section.type);
+};
+
+const getItemSubtitle = (section, item) => {
+  if (item.subtext) return item.subtext;
+  if (item.product_id?.price) return `${Number(item.product_id.price).toLocaleString()} XAF`;
+  if (section.type === 'stores') return 'Vendor profile';
+  if (item.link_to) return item.link_to;
+  return 'Homepage item';
+};
+
+const getItemImage = (section, item) => {
+  if (item.image_url) return item.image_url;
+  if (item.product_id?.images?.[0]?.url) return item.product_id.images[0].url;
+  if (section.type === 'stores') {
+    return item.vendor_id?.store?.banner ||
+      item.vendor_id?.store?.logo ||
+      item.vendor_id?.user_id?.branding?.banner ||
+      item.vendor_id?.user_id?.branding?.logo ||
+      item.vendor_logo;
+  }
+  return null;
+};
+
+function SectionIcon({ type }) {
+  const Icon = typeMeta[type]?.icon || Package;
+  return <Icon className="size-4" />;
+}
+
+function StatCard({ label, value, tone = 'text-[var(--text-primary)]', icon: Icon }) {
+  return (
+    <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{label}</span>
+        <Icon className={`size-4 ${tone}`} />
+      </div>
+      <p className={`text-2xl font-semibold leading-none tracking-tight ${tone}`}>{value}</p>
+    </div>
+  );
+}
+
+function PreviewCard({ section, item }) {
+  const title = getItemTitle(section, item);
+  const image = getItemImage(section, item);
+
+  return (
+    <div className="w-[150px] shrink-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-sm sm:w-[178px]">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-[var(--bg-secondary)]">
+        {image ? (
+          <img src={image} alt={title} className="size-full object-cover" loading="lazy" />
+        ) : item.category_name ? (
+          <div className="flex size-full flex-col items-center justify-center gap-2 text-[var(--text-secondary)]">
+            <Tag className="size-5 text-[var(--accent)]" />
+            <span className="max-w-[90%] truncate text-[10px] font-semibold">{item.category_name}</span>
+          </div>
+        ) : (
+          <div className="flex size-full items-center justify-center text-[var(--text-secondary)]">
+            <ImageIcon className="size-5 opacity-50" />
+          </div>
+        )}
+      </div>
+      <div className="mt-2 min-w-0">
+        <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">{title}</p>
+        <p className="mt-0.5 truncate text-[10px] font-medium text-[var(--text-secondary)]">{getItemSubtitle(section, item)}</p>
+      </div>
+    </div>
+  );
+}
+
+function SectionRow({ section, index, total, onMove, onToggle, onEdit, onDelete }) {
+  const active = Boolean(section.is_active);
+  const itemCount = section.data?.length || 0;
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
+      <div className="grid gap-0 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="border-b border-[var(--glass-border)] p-4 lg:border-b-0 lg:border-r">
+          <div className="flex items-start gap-3">
+            <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl border ${active ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
+              <SectionIcon type={section.type} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--text-secondary)]">
+                  #{index + 1}
+                </span>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}>
+                  {active ? 'Live' : 'Hidden'}
+                </span>
+              </div>
+              <h2 className="mt-2 truncate text-base font-semibold tracking-tight text-[var(--text-primary)]">
+                {section.title || formatType(section.type)}
+              </h2>
+              <p className="mt-1 text-[11px] font-medium text-[var(--text-secondary)]">
+                {formatType(section.type)} · {itemCount} item{itemCount === 1 ? '' : 's'}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
+            <div className="flex rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-1">
+              <button
+                type="button"
+                onClick={() => onMove(index, -1)}
+                disabled={index === 0}
+                className="flex size-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] disabled:opacity-30"
+                aria-label="Move section up"
+              >
+                <ArrowUp className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onMove(index, 1)}
+                disabled={index === total - 1}
+                className="flex size-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--bg-primary)] hover:text-[var(--accent)] disabled:opacity-30"
+                aria-label="Move section down"
+              >
+                <ArrowDown className="size-4" />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => onEdit(section)}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 text-[11px] font-semibold text-[var(--bg-primary)] transition active:scale-[0.98]"
+            >
+              <Settings2 className="size-4" />
+              Edit
+            </button>
+          </div>
+
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onToggle(section._id, active)}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-[11px] font-semibold transition ${active ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}
+            >
+              {active ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+              {active ? 'Visible' : 'Hidden'}
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(section._id)}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 text-[11px] font-semibold text-rose-500 transition hover:bg-rose-500 hover:text-white"
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </button>
+          </div>
+        </div>
+
+        <div className="min-w-0 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold text-[var(--text-secondary)]">Preview</p>
+            {section.scheduled_start && (
+              <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-500">
+                Scheduled
+              </span>
+            )}
+          </div>
+
+          {itemCount > 0 ? (
+            <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
+              {section.data.map((item, itemIndex) => (
+                <PreviewCard key={`${section._id}-${itemIndex}`} section={section} item={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-h-[132px] items-center justify-center rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-6 text-center">
+              <div>
+                <Grid3X3 className="mx-auto mb-2 size-6 text-[var(--text-secondary)] opacity-50" />
+                <p className="text-[12px] font-semibold text-[var(--text-secondary)]">No items added yet</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function AdminHomepagePage() {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
+  const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const fetchSections = async () => {
     try {
       const res = await api.get('/homepage/admin/sections');
       if (res.data?.success) {
-        setSections(res.data.data.sections);
+        setSections(res.data.data.sections || []);
       }
     } catch (err) {
       console.error('Failed to fetch sections:', err);
+      toast.error('Failed to load homepage sections');
     } finally {
       setLoading(false);
     }
@@ -47,7 +271,7 @@ export default function AdminHomepagePage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Decommission this storefront sector?')) return;
+    if (!confirm('Delete this homepage section?')) return;
     try {
       await api.delete(`/homepage/admin/sections/${id}`);
       fetchSections();
@@ -65,229 +289,143 @@ export default function AdminHomepagePage() {
     const [removed] = newSections.splice(index, 1);
     newSections.splice(targetIndex, 0, removed);
 
-    const orders = newSections.map((s, i) => ({ id: s._id, order: i + 1 }));
+    const orders = newSections.map((section, orderIndex) => ({ id: section._id, order: orderIndex + 1 }));
     setSections(newSections);
 
     try {
       await api.patch('/homepage/admin/sections/reorder', { orders });
     } catch (err) {
-      toast.error('Failed to reorder');
+      toast.error('Failed to reorder sections');
       fetchSections();
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-6 md:py-12 px-4 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
-      <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-16">
-        
-        {/* Dynamic Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 sticky top-0 md:top-16 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-xl py-4 border-b border-[var(--glass-border)] md:border-none md:static md:bg-transparent md:backdrop-blur-none md:p-0">
-           <div className="flex items-center gap-4 md:gap-6">
-              <div className="size-12 md:size-16 rounded-[18px] md:rounded-[22px] bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] text-white flex items-center justify-center shadow-xl shadow-[var(--accent)]/30 border border-white/20 shrink-0">
-                 <MonitorPlay className="size-6 md:size-8" />
-              </div>
-              <div className="space-y-0.5 md:space-y-1">
-                 <h1 className="text-2xl md:text-4xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">CMS <span className="text-[var(--accent)]">Architect</span></h1>
-                 <div className="flex items-center gap-2 md:gap-3">
-                    <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] opacity-40 uppercase">Topology Control</p>
-                    <div className="h-1 w-1 rounded-full bg-[var(--glass-border)] hidden md:block" />
-                    <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-tight hidden md:block">{sections.length} Actives</span>
-                 </div>
-              </div>
-           </div>
+  const filteredSections = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return sections.filter((section) => {
+      const matchesType = typeFilter === 'all' || section.type === typeFilter;
+      if (!matchesType) return false;
+      if (!normalizedQuery) return true;
+      const haystack = [
+        section.title,
+        section.subtitle,
+        section.type,
+        ...(section.data || []).flatMap((item) => [
+          item.headline,
+          item.category_name,
+          item.product_name,
+          item.product_id?.name,
+          item.vendor_name,
+          item.vendor_id?.store_name,
+        ]),
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+  }, [sections, query, typeFilter]);
 
-           <button 
-             onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
-             className="w-full md:w-auto h-12 md:h-14 px-6 md:px-8 rounded-xl md:rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] md:text-[11px] lg:text-[12px] font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 shadow-2xl transition-all group"
-           >
-              <Plus className="size-4 group-hover:rotate-90 transition-transform duration-300" /> New Component
-           </button>
+  const stats = useMemo(() => ({
+    total: sections.length,
+    live: sections.filter((section) => section.is_active).length,
+    scheduled: sections.filter((section) => section.scheduled_start).length,
+    items: sections.reduce((sum, section) => sum + (section.data?.length || 0), 0),
+  }), [sections]);
+
+  return (
+    <main className="min-h-screen bg-[var(--bg-secondary)] px-3 py-4 font-[var(--font-poppins)] text-[var(--text-primary)] sm:px-5 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl space-y-5">
+        <header className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)] text-white shadow-sm">
+                <MonitorPlay className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--accent)]">Admin homepage</p>
+                <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">Storefront sections</h1>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setEditingSection(null); setIsFormOpen(true); }}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 text-[12px] font-semibold text-[var(--bg-primary)] shadow-sm transition active:scale-[0.98]"
+            >
+              <Plus className="size-4" />
+              New section
+            </button>
+          </div>
         </header>
 
-        {/* Main Architect View */}
-        <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
-           {loading ? (
-             [...Array(3)].map((_, i) => (
-                <div key={i} className="h-64 rounded-[2.5rem] bg-[var(--bg-primary)]/20 border border-[var(--glass-border)] animate-pulse" />
-             ))
-           ) : sections.length === 0 ? (
-              <div className="py-40 text-center glass-panel rounded-[3rem] border border-[var(--glass-border)] space-y-6">
-                 <div className="size-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto opacity-20">
-                    <MonitorPlay className="size-10" />
-                 </div>
-                 <div className="space-y-1">
-                    <h3 className="text-2xl  font-bold opacity-30 tracking-tight">No Components Manifested</h3>
-                    <p className="text-xs font-medium opacity-20  tracking-[0.2em]">Begin deploying modular blocks to your homepage storefront.</p>
-                 </div>
-              </div>
-           ) : (
-             sections.map((section, index) => (
-                <div 
-                  key={section._id} 
-                  className={`group relative glass-panel rounded-[2.5rem] bg-[var(--bg-primary)]/40 border-[1.5px] border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all duration-500 flex flex-col lg:flex-row overflow-hidden shadow-sm hover:shadow-2xl ${!section.is_active ? 'opacity-40 grayscale-50 backdrop-grayscale' : ''}`}
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label="Sections" value={stats.total} icon={Layers} />
+          <StatCard label="Live" value={stats.live} icon={CheckCircle2} tone="text-emerald-600" />
+          <StatCard label="Scheduled" value={stats.scheduled} icon={Activity} tone="text-blue-500" />
+          <StatCard label="Items" value={stats.items} icon={Package} tone="text-[var(--accent)]" />
+        </section>
+
+        <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 shadow-sm">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <label className="flex h-11 items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3">
+              <Search className="size-4 shrink-0 text-[var(--text-secondary)]" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search sections, products, categories, vendors"
+                className="min-w-0 flex-1 bg-transparent !text-base font-medium outline-none placeholder:text-[var(--text-secondary)]"
+              />
+            </label>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {sectionTypes.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => setTypeFilter(type.value)}
+                  className={`shrink-0 rounded-xl border px-3 py-2 text-[11px] font-semibold transition ${typeFilter === type.value ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}
                 >
-                   {/* Status vertical band */}
-                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${section.is_active ? 'bg-[var(--accent)] shadow-[2px_0_15px_var(--accent)]/30' : 'bg-[var(--glass-border)]'}`} />
-
-                   {/* 1. Component Control (Side) */}
-                   <div className="p-6 md:p-8 lg:w-80 border-b lg:border-b-0 lg:border-r border-[var(--glass-border)] bg-white/5 flex lg:flex-col items-center justify-between gap-6 shrink-0 backdrop-blur-md">
-                      <div className="flex lg:flex-col items-center lg:items-start gap-4 lg:gap-6 w-full">
-                         <div className="size-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--accent)] shadow-xl relative overflow-hidden group-hover:scale-105 transition-transform duration-500">
-                            <div className="absolute inset-0 bg-[var(--accent)]/5 animate-pulse" />
-                            {section.type === 'hero' && <Grid className="size-6 relative" />}
-                            {section.type === 'categories' && <List className="size-6 relative" />}
-                            {section.type === 'stores' && <Store className="size-6 relative" />}
-                            {section.type === 'featured_products' && <Sparkles className="size-6 relative" />}
-                            {section.type === 'trending' && <Activity className="size-6 relative" />}
-                            {(!section.type || !['hero', 'categories', 'stores', 'featured_products', 'trending'].includes(section.type)) && <Package className="size-6 relative" />}
-                         </div>
-
-                         <div className="flex-1 lg:w-full space-y-1">
-                            <div className="flex items-center gap-2">
-                               <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] bg-[var(--accent)] text-white px-2 py-0.5 rounded shadow-lg shadow-[var(--accent)]/20">
-                                  {section.type.replace('_', ' ')}
-                               </span>
-                               <span className={`text-[11px] lg:text-[12px]  font-semibold px-2 py-0.5 rounded border ${section.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-white/5 text-white/40 border-white/10'} tracking-tight`}>
-                                  {section.is_active ? 'Live' : 'Offline'}
-                               </span>
-                            </div>
-                            <h3 className="text-xl  font-bold text-[var(--text-primary)] leading-tight tracking-tight  truncate group-hover:text-[var(--accent)] transition-colors duration-300">{section.title || section.type}</h3>
-                            <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  tracking-[0.2em]">
-                               <span>{section.data?.length || 0} Elements</span>
-                               {section.scheduled_start && (
-                                 <div className="flex items-center gap-1 text-[var(--accent)] opacity-100">
-                                    <div className="h-1 w-1 rounded-full bg-current" />
-                                    <span>Scheduled</span>
-                                 </div>
-                               )}
-                            </div>
-                         </div>
-                      </div>
-
-                      <div className="flex lg:w-full items-center justify-between gap-4">
-                         <div className="flex items-center gap-1.5 p-1.5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)] shadow-inner">
-                            <button onClick={() => handleMove(index, -1)} disabled={index === 0} className="size-8 rounded-lg flex items-center justify-center hover:bg-white/10 hover:text-[var(--accent)] disabled:opacity-0 transition-all">
-                               <ChevronUp className="size-4" />
-                            </button>
-                            <div className="h-4 w-px bg-[var(--glass-border)]" />
-                            <button onClick={() => handleMove(index, 1)} disabled={index === sections.length - 1} className="size-8 rounded-lg flex items-center justify-center hover:bg-white/10 hover:text-[var(--accent)] disabled:opacity-0 transition-all">
-                               <ChevronDown className="size-4" />
-                            </button>
-                         </div>
-
-                         <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => handleToggle(section._id, section.is_active)}
-                              className={`size-10 rounded-xl border border-[var(--glass-border)] flex items-center justify-center transition-all shadow-lg ${section.is_active ? 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white' : 'text-white/20 hover:bg-emerald-500/20 hover:text-emerald-500'}`}
-                              title={section.is_active ? "Deactivate" : "Activate"}
-                            >
-                               <CheckCircle2 className="size-5" />
-                            </button>
-                            <button 
-                              onClick={() => { setEditingSection(section); setIsFormOpen(true); }}
-                              className="h-10 px-4 rounded-xl border border-[var(--glass-border)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:scale-[1.05] transition-all shadow-lg flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight"
-                            >
-                               <Settings2 className="size-4" /> Modify
-                            </button>
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* 2. Content Snapshot (Main Body) */}
-                   <div className="flex-1 p-6 md:p-8 overflow-x-auto no-scrollbar relative min-h-[220px]">
-                      <div className="flex items-center gap-6 pb-2 min-w-full lg:min-w-0">
-                         {section.data && section.data.length > 0 ? (
-                            section.data.map((item, idx) => {
-                               const isVendor = section.type === 'stores';
-                               const vendorLogo = item.vendor_id?.store?.logo || item.vendor_logo;
-                               const vendorName = item.vendor_id?.store_name || item.vendor_name || 'Vendor';
-                               const initialsLogo = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(vendorName)}&backgroundColor=0d0d0d&textColor=ffffff`;
-                               
-                               return (
-                                 <div key={idx} className="w-[180px] md:w-[220px] shrink-0 space-y-4 group/preview relative">
-                                    <div className="aspect-[16/10] rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] overflow-hidden shadow-lg group-hover/preview:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 relative">
-                                       {item.image_url ? (
-                                         <img src={item.image_url} alt="" className="size-full object-cover group-hover/preview:scale-110 transition-transform duration-700" />
-                                       ) : isVendor ? (
-                                         <img src={vendorLogo || initialsLogo} alt="" className="size-full object-cover group-hover/preview:scale-110 transition-transform duration-700" />
-                                       ) : item.category_name ? (
-                                         <div className="size-full flex flex-col items-center justify-center gap-2 opacity-20 bg-gradient-to-br from-[var(--glass-border)] to-transparent">
-                                            <Tag className="size-8" />
-                                            <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em]">Category Mapping</span>
-                                         </div>
-                                       ) : (
-                                         <div className="size-full flex flex-col items-center justify-center gap-2 opacity-10">
-                                            <ImageIcon className="size-8" />
-                                         </div>
-                                       )}
-                                       
-                                       {/* Quick action bar */}
-                                       <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between translate-y-4 opacity-0 group-hover/preview:translate-y-0 group-hover/preview:opacity-100 transition-all duration-300">
-                                          <span className="text-[11px] lg:text-[12px]  font-semibold text-white tracking-tight truncate max-w-[100px]">{item.headline || item.category_name || item.product_name || vendorName || 'NODE'}</span>
-                                          <ArrowRight className="size-3 text-[var(--accent)]" />
-                                       </div>
-                                    </div>
-                                    
-                                    <div className="px-1 space-y-1">
-                                       <div className="flex items-center justify-between">
-                                          <h4 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] tracking-tight truncate max-w-[140px]">{item.headline || item.category_name || item.product_name || vendorName || 'Unnamed Node'}</h4>
-                                       </div>
-                                       {(item.subtext || isVendor) && <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 truncate leading-none">{item.subtext || 'Vendor Profile Active'}</p>}
-                                    </div>
-                                 </div>
-                               );
-                            })
-                         ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-20 space-y-3">
-                               <Grid className="size-8" />
-                               <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em]">Module Devoid of Content</p>
-                            </div>
-                         )}
-                      </div>
-
-                      <button 
-                         onClick={() => handleDelete(section._id)}
-                         className="absolute top-6 right-6 size-10 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-300 flex items-center justify-center shadow-xl backdrop-blur-md opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
-                      >
-                         <Trash2 className="size-5" />
-                      </button>
-                   </div>
-                </div>
-             ))
-           )}
-        </div>
-
-        {/* Deployment Metrics */}
-        {!loading && sections.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pt-16 border-t border-[var(--glass-border)] animate-in fade-in slide-in-from-bottom-10 duration-1000">
-             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  tracking-[0.3em]">Total Components</span>
-                <span className="text-4xl  font-bold text-[var(--text-primary)] tracking-tighter">{sections.length}</span>
-             </div>
-             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-500 opacity-40  tracking-[0.3em]">Live Components</span>
-                <span className="text-4xl  font-bold text-emerald-500 tracking-tighter">{sections.filter(s => s.is_active).length}</span>
-             </div>
-             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-blue-500 opacity-40  tracking-[0.3em]">Scheduled Tasks</span>
-                <span className="text-4xl  font-bold text-blue-500 tracking-tighter">{sections.filter(s => s.scheduled_start).length}</span>
-             </div>
-             <div className="glass-panel p-8 rounded-[2rem] border border-[var(--glass-border)] flex flex-col items-center text-center space-y-2">
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] opacity-40  tracking-[0.3em]">Complexity Score</span>
-                <span className="text-4xl  font-bold text-[var(--accent)] tracking-tighter">{sections.reduce((acc, s) => acc + (s.data?.length || 0), 0)}</span>
-             </div>
+                  {type.label}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
+        </section>
+
+        <section className="space-y-3">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-44 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm" />
+            ))
+          ) : filteredSections.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-primary)] p-10 text-center shadow-sm">
+              <MonitorPlay className="mx-auto mb-3 size-9 text-[var(--text-secondary)] opacity-50" />
+              <h2 className="text-base font-semibold">No sections found</h2>
+              <p className="mt-1 text-[12px] font-medium text-[var(--text-secondary)]">Create a section or adjust your filters.</p>
+            </div>
+          ) : (
+            filteredSections.map((section) => {
+              const sourceIndex = sections.findIndex((item) => item._id === section._id);
+              return (
+                <SectionRow
+                  key={section._id}
+                  section={section}
+                  index={sourceIndex}
+                  total={sections.length}
+                  onMove={handleMove}
+                  onToggle={handleToggle}
+                  onEdit={(selected) => { setEditingSection(selected); setIsFormOpen(true); }}
+                  onDelete={handleDelete}
+                />
+              );
+            })
+          )}
+        </section>
 
         {isFormOpen && (
-          <SectionForm 
-            section={editingSection} 
-            onClose={() => setIsFormOpen(false)} 
+          <SectionForm
+            section={editingSection}
+            onClose={() => setIsFormOpen(false)}
             onSuccess={() => { setIsFormOpen(false); fetchSections(); }}
           />
         )}
-
       </div>
-    </div>
+    </main>
   );
 }
