@@ -177,7 +177,9 @@ const getApplicationStatus = async () => {
 const getApplicationBalance = async ({ country = 'CM', service = null } = {}) => {
   const appStatus = await getApplicationStatus();
   if (!appStatus || typeof appStatus.getBalance !== 'function') return null;
-  const balance = appStatus.getBalance(country, service || undefined);
+  const serviceBalance = service ? Number(appStatus.getBalance(country, service)) : null;
+  const countryBalance = Number(appStatus.getBalance(country));
+  const balance = service && serviceBalance > 0 ? serviceBalance : countryBalance;
   return Number.isFinite(Number(balance)) ? Number(balance) : null;
 };
 
