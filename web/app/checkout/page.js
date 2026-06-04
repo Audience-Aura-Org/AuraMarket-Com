@@ -684,7 +684,7 @@ function CheckoutContent() {
   };
 
   return (
-    <div className="checkout-page min-h-[100dvh] w-full max-w-[100vw] bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 pb-16">
+    <div className="checkout-page min-h-[100dvh] w-full bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 pb-16">
       <div className="fixed top-[-12%] right-[-12%] h-[420px] w-[420px] rounded-full bg-[var(--accent)]/5 blur-[120px] pointer-events-none -z-0"></div>
       
       <nav className="sticky top-0 z-[60] flex h-14 items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 px-3 shadow-sm backdrop-blur-2xl sm:h-16 sm:px-6 lg:px-10">
