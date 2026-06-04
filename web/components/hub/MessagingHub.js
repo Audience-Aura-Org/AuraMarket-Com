@@ -894,6 +894,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         bottom: 'auto',
         width: '100%',
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--bg-secondary)',
         height: `${viewportHeight?.height ?? 800}px`,
         maxHeight: `${viewportHeight?.height ?? 800}px`,
         transform: isAndroidNative ? 'translateY(0px)' : `translateY(${viewportHeight?.offsetTop ?? 0}px)`,
@@ -1129,6 +1132,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
+        style={{ flex: 1, minHeight: 0 }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
@@ -1415,8 +1419,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       {activePartnerId && (
         <div
           data-chat-composer
-          className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/95 backdrop-blur-sm"
-          style={{ paddingBottom: '0px' }}
+          className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
+          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
