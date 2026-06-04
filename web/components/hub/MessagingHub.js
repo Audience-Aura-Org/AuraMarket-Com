@@ -11,6 +11,8 @@ import {
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import { Capacitor } from '@capacitor/core';
 import { toId, useChat } from '@/context/ChatContext';
 import socketService from '@/services/socket';
 import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './chat/ChatUtils';
@@ -32,6 +34,24 @@ const getChatViewportMetrics = () => {
   return {
     height: targetHeight / zoomScale,
     offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
+    keyboardOpen,
+    zoomScale,
+  };
+};
+
+const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false };
+  const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
+  const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
+  const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
+  const keyboardOpen = Number(keyboardHeight || 0) > 0;
+  const targetHeight = keyboardOpen
+    ? Math.max(320, layoutHeight - Number(keyboardHeight || 0))
+    : layoutHeight;
+
+  return {
+    height: targetHeight / zoomScale,
+    offsetTop: 0,
     keyboardOpen,
     zoomScale,
   };
@@ -95,6 +115,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     deleteMessage,
     syncInboxFromServer,
   } = useChat();
+  const nativeKeyboardHeight = useKeyboardHeight();
+  const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
   // -- State --
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -236,7 +258,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       setViewportHeight(null);
     };
     const syncViewport = () => {
-      const metrics = stableChatViewport(getChatViewportMetrics());
+      const rawMetrics = isAndroidNative
+        ? getAndroidNativeViewportMetrics(nativeKeyboardHeight)
+        : getChatViewportMetrics();
+      const metrics = stableChatViewport(rawMetrics);
       const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
 
       if (!isMobileChat) {
@@ -286,7 +311,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       viewportSyncRef.current = null;
       resetChatRootStyles();
     };
-  }, []);
+  }, [isAndroidNative, nativeKeyboardHeight]);
 
   useEffect(() => {
     if (!mobileLayout || typeof document === 'undefined') return;
@@ -871,7 +896,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         overflow: 'hidden',
         height: `${viewportHeight?.height ?? 800}px`,
         maxHeight: `${viewportHeight?.height ?? 800}px`,
-        transform: `translateY(${viewportHeight?.offsetTop ?? 0}px)`,
+        transform: isAndroidNative ? 'translateY(0px)' : `translateY(${viewportHeight?.offsetTop ?? 0}px)`,
       }
     : undefined;
 
