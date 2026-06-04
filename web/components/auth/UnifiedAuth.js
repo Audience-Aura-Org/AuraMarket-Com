@@ -82,6 +82,10 @@ export default function UnifiedAuth() {
     setError('');
     const nextEmail = cleanEmail(email);
     if (!nextEmail) return;
+    if (resendIn > 0) {
+      setError(`Please wait ${resendIn}s before requesting another code.`);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -90,8 +94,13 @@ export default function UnifiedAuth() {
         'The code request is taking too long. Please check your connection or try another network.'
       );
       if (!result.success) {
-        setError(result.message);
-        if (result.retryAfter) setResendIn(result.retryAfter);
+        const waitSeconds = Number(result.retryAfter || 0);
+        if (waitSeconds > 0) {
+          setResendIn(waitSeconds);
+          setError(`Please wait ${waitSeconds}s before requesting another code.`);
+        } else {
+          setError(result.message);
+        }
         return;
       }
 
@@ -214,7 +223,12 @@ export default function UnifiedAuth() {
 
               {error && <ErrorMessage message={error} />}
 
-              <SubmitButton loading={submitting} label="Send code" icon={ArrowRight} />
+              <SubmitButton
+                loading={submitting}
+                disabled={resendIn > 0}
+                label={resendIn > 0 ? `Try again in ${resendIn}s` : 'Send code'}
+                icon={ArrowRight}
+              />
             </motion.form>
           )}
 
@@ -356,11 +370,11 @@ function AuthField({ icon: Icon, children }) {
   );
 }
 
-function SubmitButton({ loading, label, icon: Icon }) {
+function SubmitButton({ loading, disabled = false, label, icon: Icon }) {
   return (
     <button
       type="submit"
-      disabled={loading}
+      disabled={loading || disabled}
       className="w-full py-3.5 rounded-2xl bg-[var(--accent)] text-white font-semibold text-[12px] shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
     >
       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{label}</span><Icon className="w-4 h-4" /></>}

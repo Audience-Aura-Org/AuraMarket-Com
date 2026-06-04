@@ -294,9 +294,13 @@ api.interceptors.response.use(
         }
         
         // Silence 401s for guests (it's expected on some routes like /cart)
-        const isAuthMeProbe = normalizeCacheUrl(config.url || '') === 'auth/me';
+        const normalizedUrl = normalizeCacheUrl(config.url || '');
+        const isAuthMeProbe = normalizedUrl === 'auth/me';
+        const isExpectedOtpCooldown = status === 429 && normalizedUrl === 'auth/send-otp';
         if (status !== 401) {
-          console.warn(`[API] ${status} Error at ${config.url}: ${message}`);
+          if (!isExpectedOtpCooldown) {
+            console.warn(`[API] ${status} Error at ${config.url}: ${message}`);
+          }
         } else if (!isAuthMeProbe) {
           // Note: We deliberately DO NOT wipe localStorage here anymore.
           // Random 401s (e.g. hitting a protected route before Zustand hydrates)
