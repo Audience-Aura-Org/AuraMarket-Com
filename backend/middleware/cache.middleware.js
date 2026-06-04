@@ -23,9 +23,11 @@ const cacheResponse = ({ ttlSeconds = DEFAULT_TTL_SECONDS, privateRoute = false 
   const ttl = Math.max(0, Number(ttlSeconds) || 0);
 
   return async (req, res, next) => {
+    const isAdminPath = /\/admin(?:\/|$)/.test(req.originalUrl || req.url || '');
     if (
       ttl === 0 ||
       req.method !== 'GET' ||
+      isAdminPath ||
       req.headers.authorization ||
       req.user ||
       req.query?.nocache === '1' ||

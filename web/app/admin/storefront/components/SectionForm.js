@@ -198,6 +198,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         await api.post('/homepage/admin/sections', sanitizedPayload);
       }
       
+      toast.success(isEdit ? 'Section updated.' : 'Section published.');
       onSuccess();
     } catch (err) {
       console.error('Save Error:', err);

@@ -7,6 +7,7 @@ const HomepageSection = require('../models/HomepageSection.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
 const { normalizeMediaUrl } = require('../utils/media');
+const { clearApiCache } = require('../middleware/cache.middleware');
 
 const normalizeHomepageMedia = (value) => {
   if (typeof value === 'string') return normalizeMediaUrl(value);
@@ -17,6 +18,14 @@ const normalizeHomepageMedia = (value) => {
     }
   }
   return value;
+};
+
+const clearHomepageCache = async () => {
+  try {
+    await clearApiCache();
+  } catch (error) {
+    console.warn(`[homepage] cache invalidation skipped: ${error.message}`);
+  }
 };
 
 /**
@@ -75,6 +84,7 @@ const getHomepage = async (req, res, next) => {
 const createSection = async (req, res, next) => {
   try {
     const section = await HomepageSection.create(req.body);
+    await clearHomepageCache();
     res.status(201).json({ success: true, data: { section } });
   } catch (error) {
     next(error);
@@ -95,7 +105,8 @@ const updateSection = async (req, res, next) => {
     );
     
     if (!section) return res.status(404).json({ success: false, message: 'Section not found' });
-    
+
+    await clearHomepageCache();
     res.status(200).json({ success: true, data: { section } });
   } catch (error) {
     next(error);
@@ -112,6 +123,7 @@ const deleteSection = async (req, res, next) => {
     const section = await HomepageSection.findByIdAndDelete(req.params.id);
     if (!section) return res.status(404).json({ success: false, message: 'Section not found' });
     
+    await clearHomepageCache();
     res.status(200).json({ success: true, message: 'Section removed' });
   } catch (error) {
     next(error);
@@ -132,6 +144,7 @@ const reorderSections = async (req, res, next) => {
     );
     
     await Promise.all(updates);
+    await clearHomepageCache();
     
     res.status(200).json({ success: true, message: 'Homepage reordered successfully' });
   } catch (error) {
