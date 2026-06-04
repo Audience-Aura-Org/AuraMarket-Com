@@ -815,7 +815,7 @@ function CheckoutContent() {
                     Use Different Method
                   </button>
                   <button
-                    onClick={() => router.push('/cart')}
+                    onClick={handleTerminateCheckout}
                     className="w-full h-12 rounded-2xl border border-red-500/20 text-red-400  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all"
                   >
                     Cancel Order

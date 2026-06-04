@@ -72,6 +72,27 @@ const resolveOrderLine = (product, item) => {
   return { quantity, itemPrice, itemImage };
 };
 
+const restoreOrderInventory = async (order, session) => {
+  for (const item of order.products || []) {
+    const product = await Product.findById(item.product_id).session(session);
+    if (!product) continue;
+
+    const quantity = Number(item.quantity || 1);
+    product.stock = Number(product.stock || 0) + quantity;
+    product.purchase_count = Math.max(0, Number(product.purchase_count || 0) - quantity);
+
+    if (product.has_variants && item.variant) {
+      const variantMatch = findSelectedVariant(product, item.variant);
+      if (variantMatch) {
+        variantMatch.stock = Number(variantMatch.stock || 0) + quantity;
+        product.markModified('sku_variants');
+      }
+    }
+
+    await product.save({ session });
+  }
+};
+
 // ─────────────────────────────────────────────
 // @route   POST /api/orders
 // @desc    Create a new order
@@ -666,6 +687,147 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
+const cancelOrder = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { reason = 'Customer cancelled order.' } = req.body || {};
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new Error('Order not found.');
+    if (order.customer_id.toString() !== req.user._id.toString()) {
+      throw new Error('You can only cancel your own order.');
+    }
+    if (['cancelled', 'refunded', 'completed', 'delivered'].includes(order.order_status)) {
+      throw new Error(`Order is already ${order.order_status}.`);
+    }
+    if (['shipped', 'delivered', 'completed'].includes(order.order_status)) {
+      throw new Error('This order has already moved into fulfilment and cannot be cancelled here.');
+    }
+
+    const paidCancellation = order.payment_status === 'paid';
+    const pendingCancellation = order.payment_status === 'pending';
+    if (!paidCancellation && !pendingCancellation) {
+      throw new Error(`Cannot cancel an order with payment status ${order.payment_status}.`);
+    }
+
+    if (paidCancellation) {
+      const ageMs = Date.now() - new Date(order.createdAt).getTime();
+      const thirtyMinutesMs = 30 * 60 * 1000;
+      if (ageMs > thirtyMinutesMs) {
+        throw new Error('Paid orders can only be cancelled within 30 minutes of checkout.');
+      }
+    }
+
+    const activeShipment = await Shipment.findOne({
+      order_id: order._id,
+      status: { $in: ['picked_up', 'in_transit', 'out_for_delivery', 'delivered'] },
+    }).session(session);
+    if (activeShipment) {
+      throw new Error('The shipment has already started. Please open a dispute or refund request instead.');
+    }
+
+    await restoreOrderInventory(order, session);
+
+    const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
+    if (escrow && ['held', 'pending_release'].includes(escrow.status)) {
+      escrow.status = 'refunded';
+      escrow.refund_reason = reason;
+      await escrow.save({ session });
+    }
+
+    await Transaction.updateMany(
+      { order_id: order._id, type: 'payout', status: 'pending' },
+      {
+        $set: {
+          status: 'rejected',
+          'metadata.cancelled_at': new Date(),
+          'metadata.cancel_reason': reason,
+        },
+      },
+      { session }
+    );
+
+    if (paidCancellation) {
+      await User.findByIdAndUpdate(
+        order.customer_id,
+        { $inc: { wallet_balance: Number(order.total_amount || 0) } },
+        { session }
+      );
+
+      await Transaction.create([{
+        user_id: order.customer_id,
+        type: 'refund',
+        amount: Number(order.total_amount || 0),
+        reference: `REF-CANCEL-${Date.now()}-${order._id.toString().slice(-6).toUpperCase()}`,
+        status: 'completed',
+        gateway: 'wallet',
+        description: `30-minute cancellation refund for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+        order_id: order._id,
+        metadata: {
+          cancellation_reason: reason,
+          refunded_to: 'customer_wallet',
+        },
+      }], { session, ordered: true });
+    }
+
+    order.order_status = paidCancellation ? 'refunded' : 'cancelled';
+    order.payment_status = paidCancellation ? 'refunded' : 'failed';
+    await order.save({ session });
+
+    await syncShipmentsToOrderStatus(order, order.order_status, {
+      session,
+      updatedBy: req.user._id,
+      note: reason,
+    });
+
+    await Transaction.updateMany(
+      {
+        user_id: order.customer_id,
+        order_ids: order._id,
+        gateway: { $in: ['mesomb', 'eversend'] },
+        status: 'pending',
+      },
+      {
+        $set: {
+          status: 'rejected',
+          'metadata.cancelled_at': new Date(),
+          'metadata.cancel_reason': reason,
+        },
+      },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    setImmediate(() => {
+      sendNotification(req.app, order.customer_id, {
+        title: paidCancellation ? 'Order Cancelled & Refunded' : 'Order Cancelled',
+        message: paidCancellation
+          ? `${Number(order.total_amount || 0).toLocaleString()} XAF has been returned to your wallet.`
+          : `Order #${order._id.toString().slice(-6).toUpperCase()} was cancelled before payment.`,
+        type: 'order_status',
+        metadata: { order_id: order._id, link: `/orders/${order._id}` },
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
+        role: 'customer',
+      }).catch(console.error);
+    });
+
+    const snapshot = await getOrderFulfillmentSnapshot(order._id);
+    res.status(200).json({
+      success: true,
+      message: paidCancellation ? 'Order cancelled and refunded to wallet.' : 'Order cancelled.',
+      data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 const requestRefund = async (req, res, next) => {
   try {
     const { reason, evidence_urls } = req.body;
@@ -976,6 +1138,7 @@ module.exports = {
   getVendorOrders,
   getOrderById,
   updateOrderStatus,
+  cancelOrder,
   requestRefund,
   approveRefund,
   getInvoice,

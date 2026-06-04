@@ -51,7 +51,7 @@ const mesombGateway = {
    * @param {Object} ctx - { user, amount, currency, orderIds, fields: { phone, service }, req }
    */
   async initialize({ user, amount, currency = 'XAF', orderIds = [], fields = {}, req }) {
-    const { phone, service } = fields;
+    const { phone, service, checkoutKey, attemptNumber } = fields;
 
     if (!phone) throw new Error('Phone number is required for mobile money payment.');
     if (amount < 50) throw new Error('Minimum amount for MeSomb is 50 XAF.');
@@ -99,7 +99,11 @@ const mesombGateway = {
         ? `Checkout for ${orderIds.length} order(s) via MeSomb (${detectedService})`
         : `Wallet top-up via MeSomb (${detectedService})`,
       gateway_response: response,
-      metadata: { service: detectedService, phone: mesomb.normalizePhone(phone) },
+      metadata: {
+        service: detectedService,
+        phone: mesomb.normalizePhone(phone),
+        ...(checkoutKey ? { checkout_key: checkoutKey, attempt_number: attemptNumber || 1 } : {}),
+      },
     });
 
     // If MeSomb returned success immediately (some networks confirm sync),

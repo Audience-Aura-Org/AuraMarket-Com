@@ -15,6 +15,7 @@ const {
   getVendorOrders,
   getOrderById,
   updateOrderStatus,
+  cancelOrder,
   requestRefund,
   approveRefund,
   getInvoice,
@@ -34,6 +35,7 @@ router.post('/cart-split', restrictTo('customer'), createOrdersFromCart);
 router.get('/my-orders', restrictTo('customer', 'vendor'), getCustomerOrders);
 
 router.post('/:id/refund', restrictTo('customer'), requestRefund);
+router.post('/:id/cancel', restrictTo('customer'), cancelOrder);
 router.post('/:id/pay-direct', restrictTo('customer'), payDirectly);
 
 

@@ -108,6 +108,11 @@ const normalizeOrderIds = (orderIds = []) => {
     .filter((id) => mongoose.Types.ObjectId.isValid(id));
 };
 
+const buildCheckoutKey = (orderIds = []) => {
+  const ids = normalizeOrderIds(orderIds).sort();
+  return ids.length ? ids.join(':') : null;
+};
+
 const getAuthoritativeCheckoutAmount = async (userId, orderIds = []) => {
   const ids = normalizeOrderIds(orderIds);
   if (ids.length === 0) return null;
@@ -143,6 +148,27 @@ const markCheckoutOrdersFailed = async (userId, orderIds = []) => {
   );
 };
 
+const rejectPendingCheckoutTransactions = async (userId, orderIds = [], reason = 'Checkout cancelled by customer.') => {
+  const checkoutKey = buildCheckoutKey(orderIds);
+  if (!checkoutKey) return;
+
+  await Transaction.updateMany(
+    {
+      user_id: userId,
+      gateway: { $in: ['mesomb', 'eversend'] },
+      status: 'pending',
+      'metadata.checkout_key': checkoutKey,
+    },
+    {
+      $set: {
+        status: 'rejected',
+        'metadata.cancelled_at': new Date(),
+        'metadata.cancel_reason': reason,
+      },
+    }
+  );
+};
+
 const failCheckoutPayment = async (req, res) => {
   try {
     const { order_ids = [], reason = 'Checkout closed before payment completed.' } = req.body || {};
@@ -152,6 +178,7 @@ const failCheckoutPayment = async (req, res) => {
     }
 
     await markCheckoutOrdersFailed(req.user._id, ids);
+    await rejectPendingCheckoutTransactions(req.user._id, ids, reason);
 
     return res.status(200).json({
       success: true,
@@ -252,7 +279,10 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
 const mesombInitialize = async (req, res) => {
   try {
     const { amount, phone, service, order_ids = [] } = req.body;
-    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const checkoutOrderIds = normalizeOrderIds(order_ids);
+    const checkoutKey = buildCheckoutKey(checkoutOrderIds);
+    let attemptsUsed = 0;
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, checkoutOrderIds);
     const payableAmount = checkoutAmount ?? Math.round(Number(amount || 0));
 
     if (!payableAmount || payableAmount <= 0) {
@@ -262,14 +292,57 @@ const mesombInitialize = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Phone number is required.' });
     }
 
+    if (checkoutKey) {
+      const activeSince = new Date(Date.now() - 20 * 60 * 1000);
+      const activePrompt = await Transaction.findOne({
+        user_id: req.user._id,
+        gateway: 'mesomb',
+        status: 'pending',
+        'metadata.checkout_key': checkoutKey,
+        'metadata.cancelled_at': { $exists: false },
+        createdAt: { $gte: activeSince },
+      }).sort('-createdAt');
+
+      if (activePrompt) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            reference: activePrompt.reference,
+            transaction_id: activePrompt.gateway_transaction_id,
+            status: 'PENDING',
+            active_prompt: true,
+            amount: payableAmount,
+            attempts_used: activePrompt.metadata?.attempt_number || 1,
+            instructions: 'A payment prompt is already active. Approve it on your phone or cancel checkout before trying again.',
+          },
+        });
+      }
+
+      const attemptWindow = new Date(Date.now() - 30 * 60 * 1000);
+      attemptsUsed = await Transaction.countDocuments({
+        user_id: req.user._id,
+        gateway: 'mesomb',
+        'metadata.checkout_key': checkoutKey,
+        createdAt: { $gte: attemptWindow },
+      });
+
+      if (attemptsUsed >= 2) {
+        return res.status(429).json({
+          success: false,
+          message: 'You have already requested this mobile money collection twice. Cancel this checkout or wait before trying again.',
+          data: { attempts_used: attemptsUsed, max_attempts: 2 },
+        });
+      }
+    }
+
     const mesombGateway = require('../services/payment/gateways/mesomb.gateway');
 
     const result = await mesombGateway.initialize({
       user: req.user,
       amount: payableAmount,
       currency: 'XAF',
-      orderIds: order_ids,
-      fields: { phone, service },
+      orderIds: checkoutOrderIds,
+      fields: { phone, service, checkoutKey, attemptNumber: checkoutKey ? attemptsUsed + 1 : undefined },
       req,
     });
 
@@ -1109,6 +1182,26 @@ const mesombWebhook = async (req, res) => {
       if (!user) return res.status(200).json({ received: true, note: 'User not found' });
 
       if (transaction.order_ids?.length > 0) {
+        if (transaction.status === 'rejected' || transaction.metadata?.cancelled_at) {
+          const credited = await creditMeSombWalletDepositOnce(transaction, user, req.app, data);
+          if (credited) {
+            setTransactionMetadata(transaction, {
+              cancelled_checkout_paid_at: new Date(),
+              cancelled_checkout_resolution: 'wallet_credit',
+            });
+            await transaction.save();
+            setImmediate(() => {
+              sendNotification(req.app, user._id, {
+                title: 'Payment Credited to Wallet',
+                message: `${transaction.amount.toLocaleString()} XAF was approved after checkout was cancelled, so it has been added to your wallet.`,
+                type: 'wallet_update',
+                metadata: { link: '/wallet' },
+                sendEmail: true,
+              }).catch(console.error);
+            });
+          }
+          return res.status(200).json({ received: true, note: 'Cancelled checkout credited to wallet' });
+        }
         if (transaction.metadata?.orders_settled_at) {
           return res.status(200).json({ received: true, note: 'Already settled' });
         }
@@ -1184,7 +1277,21 @@ const mesombVerify = async (req, res) => {
         const user = await User.findById(transaction.user_id);
         if (user) {
           if (transaction.order_ids?.length > 0) {
-            if (!transaction.metadata?.orders_settled_at) {
+            if (transaction.status === 'rejected' || transaction.metadata?.cancelled_at) {
+              const credited = await creditMeSombWalletDepositOnce(
+                transaction,
+                user,
+                req.app,
+                result.gateway_response || transaction.gateway_response
+              );
+              if (credited) {
+                setTransactionMetadata(transaction, {
+                  cancelled_checkout_paid_at: new Date(),
+                  cancelled_checkout_resolution: 'wallet_credit',
+                });
+                await transaction.save();
+              }
+            } else if (!transaction.metadata?.orders_settled_at) {
               // Checkout settlement
               const session = await mongoose.startSession();
               session.startTransaction();

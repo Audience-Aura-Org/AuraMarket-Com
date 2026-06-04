@@ -215,6 +215,28 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
   };
 
+  const handleCancelOrder = async () => {
+    const paid = order?.payment_status === 'paid';
+    const message = paid
+      ? 'Cancel this order and refund the payment to your Auradime wallet? This is only available within 30 minutes before fulfilment starts.'
+      : 'Cancel this unpaid order and stop pending payment attempts?';
+    if (!confirm(message)) return;
+
+    const toastId = toast.loading(paid ? 'Cancelling and refunding order...' : 'Cancelling order...');
+    try {
+      const res = await api.post(`/orders/${orderId}/cancel`, {
+        reason: paid ? 'Customer cancelled within 30-minute refund window.' : 'Customer cancelled unpaid checkout.',
+      });
+      if (res.data.success) {
+        toast.success(res.data.message || 'Order cancelled.', { id: toastId });
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Order cancellation failed.', { id: toastId });
+    }
+  };
+
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     setReviewLoading(true);
@@ -328,6 +350,16 @@ export default function SingleOrderView({ orderId, onBack }) {
   const autoReleaseLabel = autoReleaseAt && Number.isFinite(autoReleaseAt.getTime())
     ? autoReleaseAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
     : null;
+  const orderAgeMs = order?.createdAt ? Date.now() - new Date(order.createdAt).getTime() : Number.POSITIVE_INFINITY;
+  const cancellationWindowOpen = orderAgeMs <= 30 * 60 * 1000;
+  const customerCanCancel =
+    !isVendor &&
+    ['placed', 'processing'].includes(order.order_status) &&
+    (
+      order.payment_status === 'pending' ||
+      (order.payment_status === 'paid' && cancellationWindowOpen)
+    ) &&
+    !['picked_up', 'in_transit', 'out_for_delivery', 'delivered'].includes(shipmentStatusNorm);
 
   const STEPS = [
     { label: 'Ordered', icon: ShoppingBag },
@@ -570,6 +602,16 @@ export default function SingleOrderView({ orderId, onBack }) {
                 className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
               >
                 <Package className="size-4" /> Mark as delivered
+              </button>
+            )}
+
+            {customerCanCancel && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-amber-700 transition active:bg-amber-500 active:text-white xs:w-auto sm:min-h-[44px] sm:py-2.5 dark:text-amber-300 sm:hover:bg-amber-500 sm:hover:text-white"
+              >
+                <XCircle className="size-4" /> {order.payment_status === 'paid' ? 'Cancel & refund' : 'Cancel order'}
               </button>
             )}
 
