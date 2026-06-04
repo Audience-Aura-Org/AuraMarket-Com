@@ -197,19 +197,18 @@ const submitWithdrawal = async (req, res) => {
     }
 
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentRequest = await WithdrawalRequest.findOne({
+    const successfulWithdrawalsToday = await WithdrawalRequest.countDocuments({
       requestedBy: userId,
       createdAt: { $gte: oneDayAgo },
-      status: { $in: ['approved', 'completed', 'failed', 'processing_error'] },
+      status: { $in: ['approved', 'completed'] },
     }).session(session);
     
-    if (recentRequest) {
+    if (successfulWithdrawalsToday >= 2) {
       await session.abortTransaction();
       session.endSession();
-      const nextAllowed = new Date(recentRequest.createdAt.getTime() + 24 * 60 * 60 * 1000);
       return res.status(429).json({
         success: false,
-        message: `You can only submit one withdrawal per 24 hours. You may submit again after ${nextAllowed.toLocaleString()}.`,
+        message: 'You can only complete 2 successful withdrawals per 24 hours. Please try again later.',
       });
     }
 

@@ -34,7 +34,7 @@ const PlatformSettingsSchema = new mongoose.Schema(
     },
     withdrawal_fee: {
       type: Number,
-      default: 2, // Flat $2 or equivalent
+      default: 500,
       min: 0
     },
     min_withdrawal_amount: {
