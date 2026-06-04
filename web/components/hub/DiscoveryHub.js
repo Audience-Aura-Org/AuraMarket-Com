@@ -474,7 +474,10 @@ export default function DiscoveryHub() {
           writeTopStatusCache(next);
           return next;
         });
-        setViewingStatuses([story]);
+        const relatedStories = Array.isArray(story.vendorStories) && story.vendorStories.length > 0
+          ? story.vendorStories
+          : [story];
+        setViewingStatuses(relatedStories);
         setSelectedStoryId(story._id);
       })
       .catch((error) => {

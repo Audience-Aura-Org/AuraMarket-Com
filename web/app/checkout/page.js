@@ -599,7 +599,7 @@ function CheckoutContent() {
         </div>
       </nav>
 
-      <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-4 font-poppins sm:px-5 sm:py-7 lg:px-8 lg:py-8">
+      <main className="relative z-10 mx-auto w-full max-w-[1500px] px-3 py-4 font-poppins sm:px-5 sm:py-6 lg:px-8 lg:py-7 xl:px-10">
 
         {/* ââ Payment Blocking Screen âââââââââââââââââââââââââââââââââââââââ */}
         <AnimatePresence>
@@ -716,8 +716,8 @@ function CheckoutContent() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-7 xl:gap-8">
-          <div className="min-w-0 space-y-5 lg:col-span-8 lg:space-y-7">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,460px)] xl:gap-7">
+          <div className="min-w-0 space-y-5 lg:space-y-6">
             <div className="flex items-center gap-4 mb-4">
                {[
                   { id: 1, label: 'Fulfillment' },
@@ -1107,13 +1107,13 @@ function CheckoutContent() {
             </div>
           </div>
 
-          <div className="h-fit min-w-0 lg:sticky lg:top-24 lg:col-span-4">
-            <div className="glass-panel relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/85 p-4 shadow-sm backdrop-blur-2xl sm:p-5 lg:p-6">
-               <h3 className="mb-5 text-lg font-bold tracking-tight leading-none lg:text-xl">Order Summary</h3>
-               <div className="mb-8 max-h-[300px] space-y-4 overflow-y-auto pr-2 no-scrollbar">
+          <div className="h-fit min-w-0 lg:sticky lg:top-20">
+            <div className="glass-panel relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/85 p-4 shadow-sm backdrop-blur-2xl sm:p-5">
+               <h3 className="mb-4 text-base font-bold tracking-tight leading-none lg:text-lg">Order Summary</h3>
+               <div className="mb-5 max-h-[260px] space-y-3 overflow-y-auto pr-2 no-scrollbar">
                   {matrixItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-4 group">
-                       <img src={item.image || '/placeholder.png'} className="size-14 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
+                    <div key={idx} className="flex items-center gap-3 group">
+                       <img src={item.image || '/placeholder.png'} className="size-12 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
                        <div className="flex-1 min-w-0">
                           <p className="text-xs  font-bold text-[var(--text-primary)] truncate ">{item.name}</p>
                           {formatVariantLabel(item.variant) && (
@@ -1127,14 +1127,14 @@ function CheckoutContent() {
                   ))}
                </div>
                
-               <div className="space-y-6 py-10 border-t border-[var(--glass-border)]">
+               <div className="space-y-4 py-5 border-t border-[var(--glass-border)]">
                    <div className="flex justify-between items-center text-[11px] lg:text-[12px]  font-semibold tracking-[0.2em] text-[var(--text-secondary)] ">
                       <span className="opacity-40">Cart Subtotal</span>
                       <span className="text-xs font-mono">{subtotal.toLocaleString()} XAF</span>
                    </div>
                    
                    {compatibleFee > 0 && selectedLogistics && (
-                      <div className="space-y-4 pt-4 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
+                      <div className="space-y-3 pt-3 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)] tracking-tight flex items-center gap-2">
                              <Truck className="size-3" /> Delivery Fees
@@ -1154,10 +1154,10 @@ function CheckoutContent() {
                       </div>
                    )}
 
-                   <div className="flex justify-between items-end pt-5 border-t border-[var(--glass-border)]/50">
+                   <div className="flex justify-between items-end pt-4 border-t border-[var(--glass-border)]/50">
                       <div>
                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] lg:text-[11px]">Final Total</p>
-                         <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl lg:text-4xl">{totalAmount.toLocaleString()}</p>
+                         <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl">{totalAmount.toLocaleString()}</p>
                       </div>
                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
                    </div>
