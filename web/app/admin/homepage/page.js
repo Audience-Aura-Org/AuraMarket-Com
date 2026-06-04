@@ -332,7 +332,7 @@ export default function AdminHomepagePage() {
 
   return (
     <main className="min-h-screen bg-[var(--bg-secondary)] px-3 py-4 font-[var(--font-poppins)] text-[var(--text-primary)] sm:px-5 lg:px-8">
-      <div className="mx-auto w-full max-w-7xl space-y-5">
+      <div className="w-full space-y-5">
         <header className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-center gap-3">

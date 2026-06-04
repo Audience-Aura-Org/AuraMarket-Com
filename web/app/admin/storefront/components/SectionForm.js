@@ -225,39 +225,39 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-12">
-      <div className="absolute inset-0 bg-[#0a050a]/90 backdrop-blur-xl" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6">
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-md" onClick={onClose} />
       
-      <div className="relative w-full max-w-5xl max-h-full bg-[var(--bg-primary)] rounded-[3rem] border border-[var(--glass-border)] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+      <div className="relative flex h-[calc(100dvh-1rem)] w-full max-w-none flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl animate-in fade-in zoom-in duration-300 sm:h-[calc(100dvh-2rem)] lg:h-[calc(100dvh-3rem)]">
         {/* Product Lookup Overlay */}
         {showProductLookup && (
-          <div className="absolute inset-0 z-[60] bg-[var(--bg-secondary)]/95 backdrop-blur-md p-10 flex flex-col items-center">
-            <button onClick={() => setShowProductLookup(false)} className="absolute top-8 right-8 p-4 hover:bg-white/10 rounded-full transition-all">
-              <X className="w-8 h-8" />
+          <div className="absolute inset-0 z-[60] flex flex-col bg-[var(--bg-secondary)]/95 p-4 backdrop-blur-md sm:p-6">
+            <button onClick={() => setShowProductLookup(false)} className="absolute right-4 top-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 transition-all hover:text-[var(--accent)]">
+              <X className="size-5" />
             </button>
-            <div className="w-full max-w-2xl space-y-6 mt-10">
-              <div className="text-center space-y-2">
-                <h3 className="text-3xl  font-bold text-[var(--text-primary)]">Product Lookup</h3>
-                <p className="text-[var(--text-secondary)] font-medium">Search for products to copy their unique IDs.</p>
+            <div className="mx-auto mt-10 w-full max-w-4xl space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">Product Lookup</h3>
+                <p className="text-xs font-medium text-[var(--text-secondary)]">Search products and copy their unique IDs.</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <input 
                   autoFocus
                   placeholder="Search by name, brand, or category..."
-                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl !text-base placeholder:!text-base font-bold focus:border-[var(--accent)] outline-none"
+                  className="h-12 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold outline-none placeholder:!text-base focus:border-[var(--accent)]"
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProducts()}
                 />
                 <button 
                   onClick={searchProducts}
-                  className="bg-[var(--accent)] text-white px-8 rounded-2xl  font-bold flex items-center gap-2"
+                  className="flex h-12 items-center gap-2 rounded-xl bg-[var(--accent)] px-5 font-semibold text-white"
                 >
                   <Search className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="max-h-[50vh] overflow-y-auto space-y-3 no-scrollbar pr-2">
+              <div className="max-h-[calc(100dvh-210px)] space-y-3 overflow-y-auto pr-1 no-scrollbar">
                 {productSearchResults.map(product => (
                   <div key={product._id} className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex items-center justify-between group">
                     <div className="flex items-center gap-4">
@@ -298,40 +298,40 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         )}
 
         {/* Header */}
-        <div className="p-8 border-b border-[var(--glass-border)] flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-3xl  font-bold text-[var(--text-primary)]">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 sm:px-6">
+          <div className="min-w-0 space-y-1">
+            <h2 className="truncate text-lg font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">
               {isEdit ? 'Edit Section' : 'Create Section'}
             </h2>
-            <p className="text-sm text-[var(--text-secondary)] font-medium tracking-tight">
-              Configuring storefront layout block
+            <p className="text-[11px] font-medium text-[var(--text-secondary)] sm:text-xs">
+              Configure the storefront block and its content.
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center gap-2">
             <button 
               type="button"
               onClick={() => setShowProductLookup(true)}
-              className="bg-[var(--accent)]/10 text-[var(--accent)] px-4 py-2.5 rounded-xl  font-semibold flex items-center gap-2 text-[10px] lg:text-[12px] tracking-tight border border-[var(--accent)]/30 hover:bg-[var(--accent)]/20 transition-all"
+              className="hidden items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--accent)] transition-all hover:bg-[var(--accent)]/20 sm:flex"
             >
-              <Package className="w-4 h-4" /> Product ID Lookup
+              <Package className="size-4" /> Product Lookup
             </button>
-            <button onClick={onClose} className="p-3 hover:bg-white/5 rounded-full transition-colors">
-              <X className="w-8 h-8 opacity-40 hover:opacity-100" />
+            <button onClick={onClose} className="flex size-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] transition-colors hover:text-[var(--accent)]">
+              <X className="size-5" />
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-12 no-scrollbar">
+        <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto bg-[var(--bg-secondary)]/35 p-3 no-scrollbar sm:p-5 lg:p-6">
           {/* Basic Config */}
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:grid-cols-2 sm:p-5">
             <div className="space-y-2">
-              <label className="text-xs  font-bold tracking-tight opacity-40 ml-1">Section Type</label>
+              <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Section Type</label>
               <div className="relative">
                 <select 
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value, data: [] }))}
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl  font-bold text-white focus:border-[var(--accent)] outline-none appearance-none cursor-pointer"
+                  className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
                 >
                   <option value="hero" className="bg-[#120a12]">Hero Banner Carousel</option>
                   <option value="categories" className="bg-[#120a12]">Category Horizontal List</option>
@@ -347,55 +347,64 @@ export default function SectionForm({ section, onClose, onSuccess }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs  font-bold tracking-tight opacity-40 ml-1">Display Title</label>
+              <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Display Title</label>
               <input 
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="e.g. Best Sellers"
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl  font-bold text-[var(--text-primary)] focus:border-[var(--accent)] outline-none"
+                className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
               />
             </div>
           </div>
 
           {/* Section Specific Data Items */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl  font-bold text-[var(--text-primary)] flex items-center gap-3">
-                <List className="w-6 h-6 text-[var(--accent)]" /> 
-                Section Content Items
+          <div className="space-y-3">
+            <div className="flex items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                <List className="size-4 text-[var(--accent)]" />
+                Content items
               </h3>
               <button 
                 type="button"
                 onClick={addDataItem}
-                className="text-xs  font-bold tracking-tight text-[var(--accent)] flex items-center gap-2 hover:opacity-80"
+                className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-[11px] font-semibold text-white transition active:scale-[0.98]"
               >
-                <Plus className="w-4 h-4" /> Add Item
+                <Plus className="size-4" /> Add item
               </button>
             </div>
 
-            <div className="grid gap-6">
+            <div className="grid gap-3">
               {formData.data.map((item, i) => (
-                <div key={i} className="glass-panel p-6 rounded-3xl border border-[var(--glass-border)] relative group/item">
+                <div key={i} className="group/item relative rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
                   <button 
                     type="button"
                     onClick={() => removeDataItem(i)}
-                    className="absolute -top-3 -right-3 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity shadow-lg z-20"
+                    className="absolute right-3 top-3 z-20 flex size-9 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 transition hover:bg-rose-500 hover:text-white"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="size-4" />
                   </button>
 
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="mb-4 flex items-center gap-2 pr-12">
+                    <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--text-secondary)]">
+                      Item {i + 1}
+                    </span>
+                    <span className="truncate text-[11px] font-medium text-[var(--text-secondary)]">
+                      {item.headline || item.category_name || item.product_name || item.vendor_name || 'New content item'}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
                     {(['hero', 'promo_banner', 'categories'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Image URL / Upload</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Image URL / Upload</label>
                          <div className="flex gap-2">
                            <input 
                              value={item.image_url}
                              onChange={(e) => updateDataItem(i, 'image_url', e.target.value)}
-                             className="flex-1 bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                             className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                              placeholder="Image URL"
                            />
-                           <label className="cursor-pointer bg-[var(--accent)]/10 text-[var(--accent)] p-3 rounded-xl border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-all flex items-center justify-center min-w-[50px]">
+                           <label className="flex min-w-[46px] cursor-pointer items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 p-3 text-[var(--accent)] transition-all hover:bg-[var(--accent)]/20">
                               {uploadingIndex === i ? (
                                 <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                               ) : (
@@ -415,27 +424,27 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     {(['hero', 'promo_banner'].includes(formData.type)) && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Headline</label>
+                          <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Headline</label>
                           <input 
                             value={item.headline}
                             onChange={(e) => updateDataItem(i, 'headline', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Subtext</label>
+                          <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Subtext</label>
                           <input 
                             value={item.subtext}
                             onChange={(e) => updateDataItem(i, 'subtext', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">CTA Button Text (Optional)</label>
+                          <label className="text-[11px] font-semibold text-[var(--text-secondary)]">CTA Button Text (Optional)</label>
                           <input 
                             value={item.cta_text}
                             onChange={(e) => updateDataItem(i, 'cta_text', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                             placeholder="e.g. Shop Now, Explore, Get Started"
                           />
                         </div>
@@ -444,7 +453,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['featured_products', 'collection', 'trending'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Search & Select Product</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Search & Select Product</label>
                          <div className="relative" ref={activeProductDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
@@ -458,7 +467,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setProductSearch('');
                                    setItemProductResults([]);
                                  }}
-                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl !text-base placeholder:!text-base pr-10"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]"
                                  placeholder="Search products by name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />
@@ -504,14 +513,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['categories'].includes(formData.type)) && (
                       <div className="space-y-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Category Selection</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Category Selection</label>
                          <div className="relative" ref={activeCategoryDropdown === i ? dropdownRef : null}>
                             <div 
                               onClick={() => {
                                 setActiveCategoryDropdown(activeCategoryDropdown === i ? null : i);
                                 setCategorySearch('');
                               }}
-                              className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm flex items-center justify-between cursor-pointer hover:border-white/20 transition-all"
+                              className="flex h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base transition-all hover:border-[var(--accent)]/40"
                             >
                               <span className={item.category_name ? 'text-white' : 'opacity-40'}>
                                 {item.category_name || 'Select Category'}
@@ -556,13 +565,13 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     )}
 
                      <div className="space-y-2">
-                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Link Destination</label>
+                        <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Link Destination</label>
                         <div className="relative" ref={activeLinkDropdown === i ? dropdownRef : null}>
                            <div className="flex gap-2">
                               <input 
                                 value={item.link_to}
                                 onChange={(e) => updateDataItem(i, 'link_to', e.target.value)}
-                                className="flex-1 bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                                className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                                 placeholder="/categories/tech"
                               />
                               <button 
@@ -571,7 +580,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                   setActiveLinkDropdown(activeLinkDropdown === i ? null : i);
                                   setCategorySearch('');
                                 }}
-                                className="bg-white/5 border border-white/10 p-3 rounded-xl hover:bg-white/10 transition-all text-[var(--accent)]"
+                                className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-3 text-[var(--accent)] transition-all hover:bg-[var(--accent)]/10"
                                 title="Pick from Categories"
                               >
                                 <List className="w-5 h-5" />
@@ -621,7 +630,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(formData.type === 'stores') && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Search & Select Vendor</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Search & Select Vendor</label>
                          <div className="relative" ref={activeVendorDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
@@ -635,7 +644,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setVendorSearch('');
                                    setItemVendorResults([]);
                                  }}
-                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl !text-base placeholder:!text-base pr-10"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]"
                                  placeholder="Search vendors by store name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />
@@ -682,36 +691,36 @@ export default function SectionForm({ section, onClose, onSuccess }) {
               ))}
 
               {formData.data.length === 0 && (
-                <div className="p-12 border-2 border-dashed border-[var(--glass-border)] rounded-[3rem] text-center opacity-40">
-                  <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                  <p className=" font-bold">No items added to this section yet.</p>
+                <div className="rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-primary)] p-10 text-center">
+                  <Package className="mx-auto mb-3 size-9 text-[var(--text-secondary)] opacity-40" />
+                  <p className="text-sm font-semibold text-[var(--text-secondary)]">No items added to this section yet.</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Configuration & Scheduling */}
-          <div className="grid md:grid-cols-2 gap-12 pt-8 border-t border-[var(--glass-border)] pb-10">
-             <div className="space-y-6">
-                <h4 className=" font-semibold flex items-center gap-2 tracking-tight  text-[10px] lg:text-[12px] text-[var(--accent)]">
-                   <Settings className="w-4 h-4" /> Layout Config
+          <div className="grid gap-3 border-t border-[var(--glass-border)] pt-4 pb-4 md:grid-cols-2">
+             <div className="space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+                <h4 className="flex items-center gap-2 text-[11px] font-semibold text-[var(--accent)]">
+                   <Settings className="size-4" /> Layout Config
                 </h4>
-                <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
-                   <span className="text-sm  font-semibold opacity-60 tracking-tight text-[10px] lg:text-[12px]">Layout Mode</span>
+                <div className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
+                   <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Layout Mode</span>
                    <select 
                      value={formData.config?.layout || 'grid'}
                      onChange={(e) => setFormData(prev => ({ ...prev, config: { ...prev.config, layout: e.target.value } }))}
-                     className="bg-transparent  font-bold text-sm outline-none cursor-pointer"
+                     className="cursor-pointer bg-transparent text-sm font-semibold outline-none"
                    >
                      <option value="grid">Grid Layout</option>
                      <option value="carousel">Horizontal Carousel</option>
                    </select>
                 </div>
                 
-                <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
+                <div className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
                    <div className="space-y-0.5">
-                      <span className="text-sm  font-semibold opacity-60 tracking-tight text-[10px] lg:text-[12px]">Status</span>
-                      <p className="text-[10px] lg:text-[12px] opacity-40 font-medium">Visible on Storefront</p>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Status</span>
+                      <p className="text-[10px] font-medium text-[var(--text-secondary)]">Visible on storefront</p>
                    </div>
                    <label className="relative inline-flex items-center cursor-pointer">
                       <input 
@@ -725,10 +734,10 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 </div>
 
                 {formData.type === 'hero' && (
-                  <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
                     <div className="space-y-0.5">
-                       <span className="text-sm  font-semibold opacity-60 tracking-tight text-[10px] lg:text-[12px]">Autoplay</span>
-                       <p className="text-[10px] lg:text-[12px] opacity-40 font-medium">Slide through banners</p>
+                       <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Autoplay</span>
+                       <p className="text-[10px] font-medium text-[var(--text-secondary)]">Slide through banners</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -743,27 +752,27 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 )}
              </div>
 
-             <div className="space-y-6">
-                <h4 className=" font-semibold flex items-center gap-2 tracking-tight  text-[10px] lg:text-[12px] text-blue-400">
-                   <Clock className="w-4 h-4" /> Scheduling
+             <div className="space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+                <h4 className="flex items-center gap-2 text-[11px] font-semibold text-blue-500">
+                   <Clock className="size-4" /> Scheduling
                 </h4>
                 <div className="grid gap-4">
                    <div className="space-y-2">
-                      <label className="text-[11px] lg:text-[12px]  font-semibold  opacity-40 ml-1">Starts (Optional)</label>
+                      <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Starts (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_start}
                         onChange={(e) => setFormData(prev => ({ ...prev, scheduled_start: e.target.value }))}
-                        className="w-full bg-white/5 border border-white/10 px-5 py-4 rounded-2xl text-sm outline-none focus:border-blue-500/50 transition-all  font-bold" 
+                        className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-sm font-semibold outline-none transition-all focus:border-blue-500/50" 
                       />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[11px] lg:text-[12px]  font-semibold  opacity-40 ml-1">Ends (Optional)</label>
+                      <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Ends (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_end}
                         onChange={(e) => setFormData(prev => ({ ...prev, scheduled_end: e.target.value }))}
-                        className="w-full bg-white/5 border border-white/10 px-5 py-4 rounded-2xl text-sm outline-none focus:border-blue-500/50 transition-all  font-bold" 
+                        className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-sm font-semibold outline-none transition-all focus:border-blue-500/50" 
                       />
                    </div>
                 </div>
@@ -772,14 +781,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         </form>
 
         {/* Footer */}
-        <div className="p-8 border-t border-[var(--glass-border)] flex items-center justify-end gap-4 bg-[var(--bg-secondary)] relative z-30">
-          <button onClick={onClose} className="px-8 py-4 rounded-2xl  font-bold opacity-60 hover:opacity-100 transition-all text-xs tracking-tight">
+        <div className="relative z-30 flex shrink-0 flex-col-reverse gap-2 border-t border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 sm:flex-row sm:items-center sm:justify-end sm:p-4">
+          <button onClick={onClose} className="h-11 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-5 text-[12px] font-semibold text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)]">
             Cancel
           </button>
           <button 
             disabled={loading}
             onClick={handleSubmit} 
-            className="bg-[var(--accent)] text-white px-12 py-4 rounded-2xl  font-bold shadow-2xl shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-xs  tracking-[0.2em]"
+            className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 text-[12px] font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition-all active:scale-[0.98] disabled:opacity-60"
           >
             {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
             {isEdit ? 'Update Section' : 'Publish Section'}
