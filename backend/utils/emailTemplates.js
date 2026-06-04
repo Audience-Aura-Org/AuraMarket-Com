@@ -36,8 +36,10 @@ const wrap = (title, heading, body) => `
   <title>${title}</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, #bodyTable { margin: 0 !important; padding: 0 !important; width: 100% !important; background: ${COLORS.bgOuter}; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: ${COLORS.textPrimary}; -webkit-font-smoothing: antialiased; }
+    body, #bodyTable { margin: 0 !important; padding: 0 !important; width: 100% !important; background: ${COLORS.bgOuter}; font-family: 'Poppins', Arial, Helvetica, sans-serif !important; color: ${COLORS.textPrimary}; -webkit-font-smoothing: antialiased; }
+    table, td, p, a, span, div, h1, h2, h3, h4, h5, h6, strong, em, th, button { font-family: 'Poppins', Arial, Helvetica, sans-serif !important; }
     img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; display: block; }
     table { border-collapse: collapse !important; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     td { padding: 0; }
@@ -82,7 +84,7 @@ const wrap = (title, heading, body) => `
     .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
     .badge-failed    { background: #fee2e2; color: #991b1b; }
 
-    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 13px 28px; border-radius: 12px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'Poppins', Arial, sans-serif; }
+    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 13px 28px; border-radius: 12px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'Poppins', Arial, Helvetica, sans-serif !important; }
 
     .table-products { width: 100% !important; max-width: 100%; margin: 18px 0; border-collapse: collapse; font-size: 13px; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; }
     .table-products thead { background: #fafafa; }
@@ -93,7 +95,7 @@ const wrap = (title, heading, body) => `
     .table-products tbody tr:last-child td { border-bottom: none; }
 
     .footer-td { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; border-top: 1px solid ${COLORS.border}; }
-    .footer-td p { font-size: 11px; color: ${COLORS.textMuted}; margin: 5px 0; font-family: 'Poppins', Arial, sans-serif; }
+    .footer-td p { font-size: 11px; color: ${COLORS.textMuted}; margin: 5px 0; font-family: 'Poppins', Arial, Helvetica, sans-serif !important; }
     .footer-td a { color: ${COLORS.accent}; text-decoration: none; font-weight: 600; }
     .footer-brand { font-size: 13px; font-weight: 700; color: ${COLORS.textPrimary}; margin-bottom: 8px !important; letter-spacing: -0.3px; }
 
@@ -115,8 +117,8 @@ const wrap = (title, heading, body) => `
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:${COLORS.bgOuter};font-family:'Poppins',Arial,sans-serif;">
-  <table id="bodyTable" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0;padding:0;width:100%;background:${COLORS.bgOuter};">
+<body style="margin:0;padding:0;background:${COLORS.bgOuter};font-family:'Poppins',Arial,Helvetica,sans-serif !important;">
+  <table id="bodyTable" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0;padding:0;width:100%;background:${COLORS.bgOuter};font-family:'Poppins',Arial,Helvetica,sans-serif !important;">
     <tr>
       <td align="center" valign="top" style="padding:0;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;max-width:100%;margin:0;background:${COLORS.bgPrimary};">
