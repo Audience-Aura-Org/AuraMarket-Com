@@ -18,10 +18,22 @@ export default function LandingPage() {
 
   // No mounted guard needed — we use null check instead
   useEffect(() => {
-    const controller = new AbortController();
+    let isActive = true;
+    let controller = new AbortController();
+
     const fetchHomepage = async () => {
       try {
-        const res = await api.get('/homepage', { signal: controller.signal });
+        controller.abort();
+        controller = new AbortController();
+        const res = await api.get('/homepage', {
+          signal: controller.signal,
+          params: { nocache: '1', t: Date.now() },
+          headers: {
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+        });
+        if (!isActive) return;
         if (res.data?.success) {
           setSections(res.data.data.sections || []);
         } else {
@@ -30,12 +42,30 @@ export default function LandingPage() {
       } catch (err) {
         if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
           console.error('Failed to fetch homepage:', err);
+          if (!isActive) return;
           setSections([]);
         }
       }
     };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') fetchHomepage();
+    };
+
     fetchHomepage();
-    return () => controller.abort();
+    const intervalId = window.setInterval(refreshWhenVisible, 15000);
+    window.addEventListener('focus', fetchHomepage);
+    window.addEventListener('online', fetchHomepage);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', fetchHomepage);
+      window.removeEventListener('online', fetchHomepage);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, []);
 
   return (
