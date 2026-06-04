@@ -231,6 +231,9 @@ export default function UnifiedAuth() {
               </AuthField>
 
               {error && <ErrorMessage message={error} />}
+              {resendIn > 0 && (
+                <CooldownNotice seconds={resendIn} />
+              )}
 
               <SubmitButton
                 loading={submitting}
@@ -284,6 +287,9 @@ export default function UnifiedAuth() {
               />
 
               {error && <ErrorMessage message={error} />}
+              {resendIn > 0 && (
+                <CooldownNotice seconds={resendIn} />
+              )}
 
               <SubmitButton loading={submitting} label="Verify code" icon={CircleCheck} />
 
@@ -421,6 +427,17 @@ function ErrorMessage({ message }) {
   return (
     <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-semibold text-center">
       {message}
+    </div>
+  );
+}
+
+function CooldownNotice({ seconds }) {
+  return (
+    <div className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-4 py-3 text-center">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]/70">Wait time</p>
+      <p className="mt-1 text-[12px] font-semibold text-[var(--text-primary)]">
+        You can request another code in {seconds}s.
+      </p>
     </div>
   );
 }
