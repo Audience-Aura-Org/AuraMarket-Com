@@ -6,7 +6,8 @@ import Link from 'next/link';
 export default function ProductSection({ title, subtitle, data, config }) {
   if (!data?.length) return null;
 
-  const isCarousel = config?.layout === 'carousel';
+  const products = data.map((item) => item.product_id).filter(Boolean);
+  if (!products.length) return null;
 
   return (
     <section className="py-8 w-full relative overflow-hidden">
@@ -27,27 +28,16 @@ export default function ProductSection({ title, subtitle, data, config }) {
         </Link>
       </div>
 
-      <div className="relative group/carousel w-full">
-        <div className="flex overflow-x-auto no-scrollbar pb-8 snap-x snap-mandatory gap-4 md:gap-6 px-4 md:px-6">
-          {data.map((item, i) => {
-            const p = item.product_id;
-            if (!p) return null;
-            
-            const isFeatured = title.toLowerCase().includes('featured');
-            
-            return (
-              <div 
-                key={i} 
-                className={`flex-shrink-0 snap-start transition-transform duration-500 hover:scale-[1.02] ${
-                  isFeatured 
-                  ? 'w-[calc(50%-0.75rem)] sm:w-[45%] md:w-[25%] lg:w-[calc(14.28%-1.25rem)]' 
-                  : 'w-[75%] sm:w-[45%] md:w-[30%] lg:w-[calc(20%-1.25rem)]'
-                }`}
-              >
-                <ProductCard product={p} />
-              </div>
-            );
-          })}
+      <div className="w-full px-4 md:px-6">
+        <div className="grid grid-cols-2 gap-3 pb-8 md:grid-cols-3 md:gap-4 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6">
+          {products.map((product, i) => (
+            <div
+              key={product._id || product.id || i}
+              className="min-w-0"
+            >
+              <ProductCard product={product} layout="grid" />
+            </div>
+          ))}
         </div>
       </div>
     </section>
