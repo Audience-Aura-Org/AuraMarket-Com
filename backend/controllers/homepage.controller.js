@@ -10,6 +10,17 @@ const Vendor = require('../models/Vendor.model');
 const { normalizeMediaUrl } = require('../utils/media');
 const { clearApiCache } = require('../middleware/cache.middleware');
 
+const homepageLogState = new Map();
+
+const logHomepageDebug = (key, message, intervalMs = 60000) => {
+  if (process.env.HOMEPAGE_DEBUG_LOGS !== 'true') return;
+  const now = Date.now();
+  const last = homepageLogState.get(key) || 0;
+  if (now - last < intervalMs) return;
+  homepageLogState.set(key, now);
+  console.log(message);
+};
+
 const normalizeHomepageMedia = (value) => {
   if (typeof value === 'string') return normalizeMediaUrl(value);
   if (Array.isArray(value)) return value.map(normalizeHomepageMedia);
@@ -132,7 +143,7 @@ const getLegacyHomepageSections = async () => {
 const getHomepage = async (req, res, next) => {
   try {
     const now = new Date();
-    console.log('[homepage] GET /api/v1/homepage - fetching sections at', now.toISOString());
+    logHomepageDebug('fetch', `[homepage] GET /api/v1/homepage - fetching sections at ${now.toISOString()}`);
     
     const baseVisibilityQuery = {
       is_active: { $ne: false },
@@ -149,17 +160,17 @@ const getHomepage = async (req, res, next) => {
     let sections = await populateHomepageSections(scheduleWindowQuery);
 
     if (!sections.length) {
-      console.warn('[homepage] no scheduled public sections found; retrying active CMS sections without schedule window');
+      logHomepageDebug('fallback-active', '[homepage] no scheduled public sections found; retrying active CMS sections without schedule window');
       sections = await populateHomepageSections(baseVisibilityQuery);
     }
 
     if (!sections.length) {
-      console.warn('[homepage] no modular CMS sections found; retrying legacy homepage layout');
+      logHomepageDebug('fallback-legacy', '[homepage] no modular CMS sections found; retrying legacy homepage layout');
       sections = await getLegacyHomepageSections();
     }
     
     const normalizedSections = normalizeHomepageMedia(sections);
-    console.log('[homepage] fetched sections count:', normalizedSections.length);
+    logHomepageDebug('count', `[homepage] fetched sections count: ${normalizedSections.length}`);
 
     res.status(200).json({
       success: true,

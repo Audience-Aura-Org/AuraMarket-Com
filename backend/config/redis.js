@@ -16,6 +16,15 @@ let client = null;
 let duplicateClient = null;
 let status = REDIS_URL ? 'configured' : 'disabled';
 const reconnecting = new Map();
+const lastEventLogAt = new Map();
+
+const logRedisEvent = (level, key, message, intervalMs = 60000) => {
+  const now = Date.now();
+  const last = lastEventLogAt.get(key) || 0;
+  if (now - last < intervalMs) return;
+  lastEventLogAt.set(key, now);
+  console[level](message);
+};
 
 const buildOptions = () => ({
   lazyConnect: true,
@@ -31,7 +40,7 @@ const wireEvents = (redis, label) => {
   redis.on('connect', () => {
     status = 'connected';
     reconnecting.set(label, false);
-    console.log(`✅ [Redis] ${label} connected.`);
+    console.log(`[Redis] ${label} connected.`);
   });
 
   redis.on('ready', () => {
@@ -40,19 +49,19 @@ const wireEvents = (redis, label) => {
 
   redis.on('error', (error) => {
     status = 'error';
-    console.warn(`⚠️ [Redis] ${label} error: ${error.message}`);
+    logRedisEvent('warn', `${label}:error:${error.message}`, `[Redis] ${label} error: ${error.message}`);
   });
 
   redis.on('reconnecting', (delay) => {
     status = 'reconnecting';
     reconnecting.set(label, true);
-    console.warn(`⚠️ [Redis] ${label} reconnecting in ${delay}ms.`);
+    logRedisEvent('warn', `${label}:reconnecting`, `[Redis] ${label} reconnecting in ${delay}ms.`, 30000);
   });
 
   redis.on('end', () => {
     status = 'disconnected';
     const suffix = reconnecting.get(label) ? ' Waiting for reconnect.' : ' Connection closed.';
-    console.warn(`⚠️ [Redis] ${label} disconnected.${suffix}`);
+    logRedisEvent('warn', `${label}:end`, `[Redis] ${label} disconnected.${suffix}`, 60000);
   });
 };
 
@@ -63,7 +72,7 @@ const getRedis = () => {
     wireEvents(client, 'client');
     client.connect().catch((error) => {
       status = 'error';
-      console.warn(`⚠️ [Redis] client connection skipped: ${error.message}`);
+      logRedisEvent('warn', 'client:connect', `[Redis] client connection skipped: ${error.message}`);
     });
   }
   return client;
@@ -75,7 +84,7 @@ const getRedisDuplicate = () => {
     duplicateClient = getRedis().duplicate();
     wireEvents(duplicateClient, 'subscriber');
     duplicateClient.connect().catch((error) => {
-      console.warn(`⚠️ [Redis] subscriber connection skipped: ${error.message}`);
+      logRedisEvent('warn', 'subscriber:connect', `[Redis] subscriber connection skipped: ${error.message}`);
     });
   }
   return duplicateClient;
