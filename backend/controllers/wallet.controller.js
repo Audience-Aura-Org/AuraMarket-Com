@@ -146,8 +146,8 @@ const requestWithdrawal = async (req, res, next) => {
     const { amount, method, details } = req.body;
     const user = await User.findById(req.user._id).session(session);
 
-    if (!amount || amount < 1000) {
-      throw new Error('Minimum withdrawal amount is 1,000 XAF.');
+    if (!amount || amount < 500) {
+      throw new Error('Minimum withdrawal amount is 500 XAF.');
     }
 
     if (user.wallet_balance < amount) {

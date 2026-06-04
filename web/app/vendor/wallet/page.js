@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
 
-const MIN_WITHDRAW = 1000;
+const MIN_WITHDRAW = 500;
 import WithdrawModal from '@/components/wallet/WithdrawModal';
 import StatCard from '@/components/layout/StatCard';
 

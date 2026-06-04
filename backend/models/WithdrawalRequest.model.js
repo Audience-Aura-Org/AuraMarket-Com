@@ -46,7 +46,7 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     amount: {
       type: Number,
       required: true,
-      min: [1000, 'Minimum withdrawal is 1,000 XAF'],
+      min: [500, 'Minimum withdrawal is 500 XAF'],
     },
     currency: {
       type: String,

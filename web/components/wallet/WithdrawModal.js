@@ -63,7 +63,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
   const [done, setDone]       = useState(false);
 
   const amtNum = Number(amount) || 0;
-  const MIN = 1000;
+  const MIN = 500;
   const availableBalance = Number(balance || 0);
 
   const continueFromAmount = () => {
@@ -200,7 +200,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-5 text-2xl font-medium text-center outline-none focus:border-[var(--accent)] tabular-nums" />
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {[5000, 10000, 25000].map(q => (
+              {[500, 5000, 10000].map(q => (
                 <button key={q} onClick={() => setAmount(String(Math.min(q, availableBalance)))}
                   className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-xs font-semibold hover:border-[var(--accent)] transition-all">
                   {fmt(q)}

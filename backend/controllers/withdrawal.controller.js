@@ -141,10 +141,10 @@ const submitWithdrawal = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Choose mobile wallet or bank transfer.' });
     }
 
-    if (!amount || amount < 1000) {
+    if (!amount || amount < 500) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'Minimum withdrawal amount is 1,000 XAF.' });
+      return res.status(400).json({ success: false, message: 'Minimum withdrawal amount is 500 XAF.' });
     }
 
     const { firstName, lastName, country } = recipientDetails || {};

@@ -13,6 +13,7 @@ const main = async () => {
   await mongoose.connect(MONGODB_URI);
   const settings = await PlatformSettings.getSettings();
   settings.withdrawal_fee = 500;
+  settings.min_withdrawal_amount = 500;
   await settings.save();
 
   console.log('Withdrawal settings updated:', {
