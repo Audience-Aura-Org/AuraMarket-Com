@@ -2,6 +2,7 @@
 import React from 'react';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 export default function ProductSection({ title, subtitle, data, config }) {
   if (!data?.length) return null;
@@ -10,26 +11,30 @@ export default function ProductSection({ title, subtitle, data, config }) {
   if (!products.length) return null;
 
   return (
-    <section className="py-8 w-full relative overflow-hidden">
-      <div className="flex flex-col md:flex-row items-baseline justify-between mb-8 px-4 md:px-6 gap-3">
-        <div className="space-y-1 text-left">
-          <h2 className="text-xl md:text-2xl  font-bold text-[var(--text-primary)] tracking-tight">
+    <section className="relative w-full overflow-hidden py-6 sm:py-7 lg:py-9">
+      <div className="mb-5 flex items-end justify-between gap-3 px-4 sm:px-5 md:mb-7 md:px-6">
+        <div className="min-w-0 space-y-1 text-left">
+          <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-[var(--text-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">
+            <p className="line-clamp-2 max-w-[620px] font-[var(--font-poppins)] text-[11px] font-medium leading-relaxed tracking-normal text-[var(--text-secondary)] sm:text-[12px]">
               {subtitle}
             </p>
           )}
         </div>
-        <Link href="/discovery" className="flex items-center gap-2 group cursor-pointer">
-           <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] text-[var(--accent)]">Explore</span>
+        <Link
+          href="/discovery"
+          className="group inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 font-[var(--font-poppins)] text-[11px] font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]/45 hover:bg-[var(--accent)] hover:text-white active:scale-[0.98] sm:h-10 sm:px-4 sm:text-[12px]"
+          aria-label={`Explore ${title || 'products'}`}
+        >
+          <span>Explore</span>
+          <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5 sm:size-4" />
         </Link>
       </div>
 
-      <div className="w-full px-4 md:px-6">
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-8 snap-x snap-mandatory md:gap-4">
+      <div className="w-full px-4 sm:px-5 md:px-6">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-7 snap-x snap-mandatory md:gap-4 md:pb-8">
           {products.map((product, i) => (
             <div
               key={product._id || product.id || i}
