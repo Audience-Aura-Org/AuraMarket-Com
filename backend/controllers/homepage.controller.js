@@ -28,6 +28,36 @@ const clearHomepageCache = async () => {
   }
 };
 
+const sanitizeSectionPayload = (payload = {}) => {
+  const nextPayload = { ...payload };
+
+  ['scheduled_start', 'scheduled_end'].forEach((field) => {
+    if (nextPayload[field] === '' || nextPayload[field] === undefined) {
+      nextPayload[field] = null;
+    }
+  });
+
+  return nextPayload;
+};
+
+const populateHomepageSections = (query) => HomepageSection.find(query)
+  .sort({ order: 1 })
+  .populate({
+    path: 'data.product_id',
+    select: 'name price images rating stock vendor_id view_count purchase_count',
+    populate: {
+      path: 'vendor_id',
+      select: 'store_name user_id',
+      populate: { path: 'user_id', select: 'avatar branding' }
+    }
+  })
+  .populate({
+    path: 'data.vendor_id',
+    select: 'store_name description rating verified follower_count user_id',
+    populate: { path: 'store user_id', select: 'logo banner branding avatar' }
+  })
+  .lean();
+
 /**
  * @route   GET /api/v1/homepage
  * @desc    Get the current dynamic homepage layout
@@ -38,30 +68,24 @@ const getHomepage = async (req, res, next) => {
     const now = new Date();
     console.log('[homepage] GET /api/v1/homepage - fetching sections at', now.toISOString());
     
-    // Fetch active sections within their scheduled dates
-    const sections = await HomepageSection.find({
-      is_active: true,
+    const baseVisibilityQuery = {
+      is_active: { $ne: false },
+      'data.0': { $exists: true }
+    };
+    const scheduleWindowQuery = {
+      ...baseVisibilityQuery,
       $and: [
         { $or: [{ scheduled_start: { $lte: now } }, { scheduled_start: null }, { scheduled_start: { $exists: false } }] },
         { $or: [{ scheduled_end: { $gte: now } }, { scheduled_end: null }, { scheduled_end: { $exists: false } }] }
       ]
-    })
-    .sort({ order: 1 })
-    .populate({
-      path: 'data.product_id',
-      select: 'name price images rating stock vendor_id view_count purchase_count',
-      populate: { 
-        path: 'vendor_id', 
-        select: 'store_name user_id',
-        populate: { path: 'user_id', select: 'avatar branding' }
-      }
-    })
-    .populate({
-      path: 'data.vendor_id',
-      select: 'store_name description rating verified follower_count user_id',
-      populate: { path: 'store user_id', select: 'logo banner branding avatar' }
-    })
-    .lean();
+    };
+
+    let sections = await populateHomepageSections(scheduleWindowQuery);
+
+    if (!sections.length) {
+      console.warn('[homepage] no scheduled public sections found; retrying active CMS sections without schedule window');
+      sections = await populateHomepageSections(baseVisibilityQuery);
+    }
     
     const normalizedSections = normalizeHomepageMedia(sections);
     console.log('[homepage] fetched sections count:', normalizedSections.length);
@@ -83,7 +107,7 @@ const getHomepage = async (req, res, next) => {
  */
 const createSection = async (req, res, next) => {
   try {
-    const section = await HomepageSection.create(req.body);
+    const section = await HomepageSection.create(sanitizeSectionPayload(req.body));
     await clearHomepageCache();
     res.status(201).json({ success: true, data: { section } });
   } catch (error) {
@@ -98,9 +122,10 @@ const createSection = async (req, res, next) => {
  */
 const updateSection = async (req, res, next) => {
   try {
+    const updates = sanitizeSectionPayload(req.body);
     const section = await HomepageSection.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updates,
       { returnDocument: 'after', runValidators: true }
     );
     
