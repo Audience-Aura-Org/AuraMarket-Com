@@ -251,44 +251,6 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         {step === 3 && method && (
           <div className="space-y-4">
             <p className="text-[10px] lg:text-[12px] font-semibold tracking-widest text-[var(--text-secondary)] opacity-50">RECIPIENT DETAILS</p>
-            
-            {false && method.id === 'eversend' && (
-              <div className="space-y-3 mb-6">
-                <p className="text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40">CHOOSE SAVED RECIPIENT (OPTIONAL)</p>
-                {fetchingBeneficiaries ? (
-                  <div className="flex items-center gap-2 text-xs opacity-50"><Loader2 className="size-3 animate-spin" /></div>
-                ) : beneficiaries.length > 0 ? (
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {beneficiaries.map(b => (
-                      <button key={b.id} onClick={() => {
-                        setSelectedBeneficiary(b);
-                        setForm({
-                          ...form,
-                          firstName: b.firstName,
-                          lastName: b.lastName,
-                          country: b.country,
-                          eversendTag: b.type === 'eversend' ? b.accountNumber : '',
-                          phoneNumber: b.type === 'momo' ? b.accountNumber : '',
-                          bankCode: b.type === 'bank' ? b.bankCode : '',
-                          accountNumber: b.type === 'bank' ? b.accountNumber : '',
-                        });
-                      }}
-                      className={`shrink-0 px-4 py-3 rounded-xl border text-[10px] lg:text-[12px] font-semibold transition-all ${selectedBeneficiary?.id === b.id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] opacity-60'}`}>
-                        {b.firstName} {b.lastName}
-                        <p className="text-[10px] lg:text-[12px] opacity-50 capitalize mt-0.5">{b.type}</p>
-                      </button>
-                    ))}
-                    <button onClick={() => setSelectedBeneficiary(null)} className="shrink-0 px-4 py-3 rounded-xl border border-dashed border-[var(--glass-border)] text-[10px] lg:text-[12px] font-semibold opacity-40">
-                      + New
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={fetchBeneficiaries} className="text-[10px] lg:text-[12px] font-semibold text-[var(--accent)] hover:underline">
-                    Load saved recipients
-                  </button>
-                )}
-              </div>
-            )}
 
             <div className="grid grid-cols-2 gap-3">
               {field('firstName', 'FIRST NAME', 'John')}
@@ -304,15 +266,6 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             {method.id === 'momo' && field('phoneNumber', 'MOBILE WALLET NUMBER', '+237...', 'tel')}
             {method.id === 'bank'     && field('bankCode',      'BANK CODE',       'e.g. GTB')}
             {method.id === 'bank'     && field('accountNumber', 'ACCOUNT NUMBER',  '0123456789')}
-            {selectedBeneficiary && (
-              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] lg:text-[12px] font-semibold text-emerald-500 opacity-50 capitalize">SAVED RECIPIENT</p>
-                  <p className="text-xs font-semibold">{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</p>
-                </div>
-                <button onClick={() => setSelectedBeneficiary(null)} className="text-[10px] lg:text-[12px] font-semibold text-red-500">Change</button>
-              </div>
-            )}
             {field('note', 'NOTE (OPTIONAL)', 'Reason for withdrawal...')}
             <button onClick={() => {
               const missing =
