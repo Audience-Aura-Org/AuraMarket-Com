@@ -96,8 +96,11 @@ export default function UnifiedAuth() {
       if (!result.success) {
         const waitSeconds = Number(result.retryAfter || 0);
         if (waitSeconds > 0) {
+          setEmail(nextEmail);
+          setOtp('');
           setResendIn(waitSeconds);
-          setError(`Please wait ${waitSeconds}s before requesting another code.`);
+          setStep('otp');
+          setError('Enter the code we already sent. You can request a new one when the timer ends.');
         } else if (result.timedOut) {
           setEmail(nextEmail);
           setOtp('');
@@ -235,6 +238,19 @@ export default function UnifiedAuth() {
                 label={resendIn > 0 ? `Try again in ${resendIn}s` : 'Send code'}
                 icon={ArrowRight}
               />
+              {resendIn > 0 && email && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtp('');
+                    setStep('otp');
+                    setError('Enter the code we already sent. You can request a new one when the timer ends.');
+                  }}
+                  className="w-full rounded-2xl border border-[var(--glass-border)] py-3 text-[11px] font-semibold text-[var(--text-secondary)] transition-all hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  I already have a code
+                </button>
+              )}
             </motion.form>
           )}
 
