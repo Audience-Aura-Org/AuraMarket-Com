@@ -4,6 +4,7 @@
  */
 
 const HomepageSection = require('../models/HomepageSection.model');
+const Homepage = require('../models/Homepage.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
 const { normalizeMediaUrl } = require('../utils/media');
@@ -58,6 +59,71 @@ const populateHomepageSections = (query) => HomepageSection.find(query)
   })
   .lean();
 
+const getLegacyHomepageSections = async () => {
+  const layout = await Homepage.findOne({ version: 'v1' }).populate({
+    path: 'featured_products.product_id',
+    select: 'name price images rating stock vendor_id view_count purchase_count',
+    populate: {
+      path: 'vendor_id',
+      select: 'store_name user_id',
+      populate: { path: 'user_id', select: 'avatar branding' }
+    },
+  }).lean();
+
+  if (!layout) return [];
+
+  const sections = [];
+  const heroItems = (layout.hero_banners || [])
+    .filter((banner) => banner && banner.is_active !== false && banner.image_url)
+    .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+    .map((banner, index) => ({
+      image_url: banner.image_url,
+      link_to: banner.link_to || '/shop',
+      headline: banner.headline || '',
+      subtext: banner.subtext || '',
+      cta_text: banner.cta_text || 'Shop now',
+      display_order: banner.display_order ?? index,
+    }));
+
+  if (heroItems.length) {
+    sections.push({
+      _id: `${layout._id}-legacy-hero`,
+      title: 'Hero banners',
+      subtitle: '',
+      type: 'hero',
+      order: 1,
+      is_active: true,
+      config: {},
+      data: heroItems,
+      source: 'legacy_homepage',
+    });
+  }
+
+  const featuredItems = (layout.featured_products || [])
+    .filter((item) => item && item.product_id)
+    .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+    .map((item, index) => ({
+      product_id: item.product_id,
+      display_order: item.display_order ?? index,
+    }));
+
+  if (featuredItems.length) {
+    sections.push({
+      _id: `${layout._id}-legacy-featured`,
+      title: 'Featured products',
+      subtitle: '',
+      type: 'featured_products',
+      order: 2,
+      is_active: true,
+      config: {},
+      data: featuredItems,
+      source: 'legacy_homepage',
+    });
+  }
+
+  return sections;
+};
+
 /**
  * @route   GET /api/v1/homepage
  * @desc    Get the current dynamic homepage layout
@@ -85,6 +151,11 @@ const getHomepage = async (req, res, next) => {
     if (!sections.length) {
       console.warn('[homepage] no scheduled public sections found; retrying active CMS sections without schedule window');
       sections = await populateHomepageSections(baseVisibilityQuery);
+    }
+
+    if (!sections.length) {
+      console.warn('[homepage] no modular CMS sections found; retrying legacy homepage layout');
+      sections = await getLegacyHomepageSections();
     }
     
     const normalizedSections = normalizeHomepageMedia(sections);
