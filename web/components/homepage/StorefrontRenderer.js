@@ -53,7 +53,7 @@ export default function StorefrontRenderer({ sections }) {
         if (!content) return null;
 
         return (
-          <div key={section._id || index} className={`${isFullWidth ? 'w-full mb-4' : 'w-full px-4 md:px-8 lg:px-12 py-4 md:py-6'}`}>
+          <div key={section._id || index} className={`${isFullWidth ? 'w-full mb-4' : 'w-full py-3 sm:px-5 sm:py-4 md:px-8 md:py-6 lg:px-12'}`}>
             {content}
           </div>
         );

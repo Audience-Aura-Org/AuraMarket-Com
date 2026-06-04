@@ -12,7 +12,7 @@ export default function ProductSection({ title, subtitle, data, config }) {
 
   return (
     <section className="relative w-full overflow-hidden py-6 sm:py-7 lg:py-9">
-      <div className="mb-5 flex items-end justify-between gap-3 px-4 sm:px-5 md:mb-7 md:px-6">
+      <div className="mb-5 flex items-end justify-between gap-3 px-0 md:mb-7 md:px-1">
         <div className="min-w-0 space-y-1 text-left">
           <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
             {title}
@@ -33,7 +33,7 @@ export default function ProductSection({ title, subtitle, data, config }) {
         </Link>
       </div>
 
-      <div className="w-full px-4 sm:px-5 md:px-6">
+      <div className="w-full px-0 md:px-1">
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-7 snap-x snap-mandatory md:gap-4 md:pb-8">
           {products.map((product, i) => (
             <div
