@@ -8,12 +8,14 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react';
 export default function OnboardingWatcher() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, hasHydrated, loading, fetchMe, fetchFollowedVendors, followedVendorIds } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated, authChecked, loading, fetchMe, fetchFollowedVendors, followedVendorIds } = useAuthStore();
 
   useEffect(() => {
-    if (!hasHydrated || loading || user) return;
+    const skipAuthProbePrefixes = ['/login', '/register', '/auth', '/onboarding'];
+    const shouldSkipAuthProbe = pathname === '/' || skipAuthProbePrefixes.some((prefix) => pathname?.startsWith(prefix));
+    if (!hasHydrated || authChecked || loading || user || shouldSkipAuthProbe) return;
     fetchMe();
-  }, [hasHydrated, loading, user, fetchMe]);
+  }, [authChecked, fetchMe, hasHydrated, loading, pathname, user]);
  
   // Pre-fetch followed list as soon as authenticated to avoid flicker
   useEffect(() => {

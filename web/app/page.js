@@ -8,7 +8,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
+  const { isAuthenticated, loading: authLoading, user } = useAuthStore();
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;

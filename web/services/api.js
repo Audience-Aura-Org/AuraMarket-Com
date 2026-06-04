@@ -226,8 +226,12 @@ const isInvalidStoredSession = (status, message = '') => {
     normalized.includes('invalid token');
 };
 
+let lastInvalidSessionNoticeAt = 0;
 const notifyInvalidStoredSession = async (message) => {
   if (typeof window === 'undefined') return;
+  const now = Date.now();
+  if (now - lastInvalidSessionNoticeAt < 5000) return;
+  lastInvalidSessionNoticeAt = now;
   try {
     await clearStoredAuthToken();
     window.localStorage.removeItem('aura-auth-storage');
@@ -290,9 +294,10 @@ api.interceptors.response.use(
         }
         
         // Silence 401s for guests (it's expected on some routes like /cart)
+        const isAuthMeProbe = normalizeCacheUrl(config.url || '') === 'auth/me';
         if (status !== 401) {
           console.warn(`[API] ${status} Error at ${config.url}: ${message}`);
-        } else {
+        } else if (!isAuthMeProbe) {
           // Note: We deliberately DO NOT wipe localStorage here anymore.
           // Random 401s (e.g. hitting a protected route before Zustand hydrates)
           // were incorrectly logging users out on refresh.

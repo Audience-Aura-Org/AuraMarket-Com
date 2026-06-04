@@ -5,6 +5,10 @@ import socketService from '../services/socket';
 import { clearStoredAuthToken, setStoredAuthToken } from '../services/authStorage';
 import { unsubscribeCurrentPushEndpoint } from '../lib/pwa-helper';
 
+let fetchMeInFlight = null;
+let lastFetchMeFailureAt = 0;
+const FETCH_ME_FAILURE_COOLDOWN_MS = 30000;
+
 const clearClientOnlyState = async () => {
   if (typeof window === 'undefined') return;
   await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: false }).catch(() => {});
@@ -33,6 +37,7 @@ export const useAuthStore = create(
       followedVendorIds: [],
       isAuthenticated: false,
       hasHydrated: false,
+      authChecked: false,
       loading: false,
       error: null,
       setHasHydrated: (value) => set({ hasHydrated: value }),
@@ -96,6 +101,7 @@ export const useAuthStore = create(
             user,
             token,
             isAuthenticated: true,
+            authChecked: true,
             loading: false,
             error: null,
             rememberedEmail: user.email,
@@ -110,10 +116,18 @@ export const useAuthStore = create(
         }
       },
 
-      fetchMe: async () => {
+      fetchMe: async ({ force = false } = {}) => {
+        if (fetchMeInFlight) return fetchMeInFlight;
         if (get().loading) return { success: false };
+        if (!force && get().authChecked && !get().user) return { success: false, alreadyChecked: true };
+
+        const now = Date.now();
+        if (!force && lastFetchMeFailureAt && now - lastFetchMeFailureAt < FETCH_ME_FAILURE_COOLDOWN_MS) {
+          return { success: false, coolingDown: true };
+        }
+
         set({ loading: true });
-        try {
+        fetchMeInFlight = (async () => {
           const res = await api.get('/auth/me', {
             timeout: 12000,
             __skipRetry: true,
@@ -123,19 +137,28 @@ export const useAuthStore = create(
           set({
             user,
             isAuthenticated: true,
+            authChecked: true,
             loading: false,
             error: null,
             rememberedEmail: user.email,
           });
+          lastFetchMeFailureAt = 0;
           return { success: true, user };
+        })();
+
+        try {
+          return await fetchMeInFlight;
         } catch (err) {
+          lastFetchMeFailureAt = Date.now();
           if (isDeletedOrInvalidSession(err)) {
             await clearClientOnlyState();
-            set({ user: null, token: null, isAuthenticated: false, loading: false });
+            set({ user: null, token: null, isAuthenticated: false, authChecked: true, loading: false });
             return { success: false, invalidSession: true };
           }
-          set({ loading: false });
+          set({ user: null, isAuthenticated: false, authChecked: true, loading: false });
           return { success: false };
+        } finally {
+          fetchMeInFlight = null;
         }
       },
 
@@ -150,6 +173,7 @@ export const useAuthStore = create(
             token: null,
             isAuthenticated: false,
             followedVendorIds: [],
+            authChecked: true,
             loading: false,
             error: null,
           });
@@ -164,6 +188,7 @@ export const useAuthStore = create(
               token: null,
               isAuthenticated: false,
               followedVendorIds: [],
+              authChecked: true,
               loading: false,
               error: null,
             });
@@ -183,6 +208,7 @@ export const useAuthStore = create(
           token: null,
           isAuthenticated: false,
           followedVendorIds: [],
+          authChecked: true,
           loading: false,
           error: null,
         });
