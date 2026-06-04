@@ -39,15 +39,35 @@ const getChatViewportMetrics = () => {
   };
 };
 
+const androidNativeViewportState = {
+  normalHeight: 0,
+};
+
 const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
   if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false };
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
+  const visualHeight = window.visualViewport?.height || layoutHeight;
+  const reportedHeight = Math.max(layoutHeight, visualHeight);
   const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
   const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
   const keyboardOpen = Number(keyboardHeight || 0) > 0;
+
+  if (!keyboardOpen) {
+    androidNativeViewportState.normalHeight = Math.max(
+      androidNativeViewportState.normalHeight,
+      reportedHeight
+    );
+  }
+
+  const baseHeight = Math.max(
+    androidNativeViewportState.normalHeight || 0,
+    reportedHeight
+  );
+  const nativeAdjustedHeight = Math.max(320, baseHeight - Number(keyboardHeight || 0));
+  const webViewAlreadyResized = keyboardOpen && reportedHeight < baseHeight - 24;
   const targetHeight = keyboardOpen
-    ? Math.max(320, layoutHeight - Number(keyboardHeight || 0))
-    : layoutHeight;
+    ? (webViewAlreadyResized ? Math.max(reportedHeight, nativeAdjustedHeight) : nativeAdjustedHeight)
+    : baseHeight;
 
   return {
     height: targetHeight / zoomScale,
