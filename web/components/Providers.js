@@ -13,14 +13,13 @@ import { useAuthStore } from '@/hooks/useAuth';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 // Heavy sidebar & overlay — deferred until after hydration
 const CartSidebar = dynamic(() => import('@/components/CartSidebar'), { ssr: false });
 const GlobalChatOverlay = dynamic(() => import('@/components/layout/GlobalChatOverlay'), { ssr: false });
 const PWAInit = dynamic(() => import('@/components/PWAInit'), { ssr: false });
 const MobileKeyboardRecovery = dynamic(() => import('@/components/MobileKeyboardRecovery'), { ssr: false });
-const RouteLoadingIndicator = dynamic(() => import('@/components/RouteLoadingIndicator'), { ssr: false });
 
 // Navigation & footer — visible but non-critical for first paint
 const BottomNav = dynamic(() => import('@/components/layout/BottomNav'), { ssr: false });
@@ -100,7 +99,6 @@ export default function Providers({ children }) {
           {/* PWA initializers — fully deferred */}
           <PWAInit />
           <MobileKeyboardRecovery />
-          <RouteLoadingIndicator />
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
@@ -110,18 +108,9 @@ export default function Providers({ children }) {
 
           <div className="flex w-full items-stretch flex-1 relative">
             <main className="flex-1 flex flex-col min-w-0">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={pathname}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="flex-1 flex flex-col"
-                >
-                  {children}
-                </motion.div>
-              </AnimatePresence>
+              <div className="flex-1 flex flex-col">
+                {children}
+              </div>
               {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && showReducedFooter && <Footer />}
             </main>
             {/* Cart sidebar — only on storefront routes */}
