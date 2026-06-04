@@ -8,7 +8,7 @@ import {
   ShieldCheck, MapPin, CreditCard, ArrowRight, 
   Lock, CheckCircle2, Plus, Loader2, ChevronDown,
   Smartphone, Wallet, ArrowLeft, Gem, AlertCircle,
-  Truck, Package, Info, ShieldAlert, Search, X, RotateCcw
+  Truck, Package, Info, ShieldAlert, Search, X, RotateCcw, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
@@ -96,6 +96,8 @@ function CheckoutContent() {
   const [zones, setZones] = useState([]);
   const [compatibleFee, setCompatibleFee] = useState(0);
   const [zoneOpen, setZoneOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [removingItemKey, setRemovingItemKey] = useState(null);
   const [eversendCheckout, setEversendCheckout] = useState({
     active: false,
     reference: null,
@@ -137,6 +139,49 @@ function CheckoutContent() {
   const handleTerminateCheckout = async () => {
     await markCreatedOrdersFailed('Customer closed checkout before payment completed.');
     router.push('/cart');
+  };
+
+  const handleRemoveCheckoutItem = async (item) => {
+    if (orderId) {
+      toast.error('This order is already created. Remove items before checkout.');
+      return;
+    }
+
+    const itemKey = item.cart_item_id || item.id || cartLineKey(item);
+    setRemovingItemKey(itemKey);
+
+    if (productId) {
+      setCartItems([]);
+      toast.success('Item removed from checkout.');
+      router.push('/cart');
+      return;
+    }
+
+    const previousItems = cartItems;
+    setCartItems((current) => current.filter((entry) => (entry.cart_item_id || entry.id || cartLineKey(entry)) !== itemKey));
+    cartStore.startMutation();
+
+    try {
+      const res = await api.delete('/cart/item', { data: { item_id: item.cart_item_id || item.id || item.product_id } });
+      if (res.data?.success) {
+        cartStore.setCart(res.data.data.cart);
+        const nextItems = previousItems.filter((entry) => (entry.cart_item_id || entry.id || cartLineKey(entry)) !== itemKey);
+        if (nextItems.length === 0) {
+          toast.success('Cart is empty.');
+          router.push('/cart');
+        } else {
+          toast.success('Item removed from checkout.');
+        }
+      } else {
+        throw new Error(res.data?.message || 'Failed to remove item');
+      }
+    } catch (err) {
+      setCartItems(previousItems);
+      toast.error(err?.response?.data?.message || 'Could not remove item.');
+    } finally {
+      cartStore.endMutation();
+      setRemovingItemKey(null);
+    }
   };
   
   // 0. Fetch Zones
@@ -289,8 +334,10 @@ function CheckoutContent() {
         .then(res => {
           if (res.data.success && res.data.data.cart?.items) {
              const items = res.data.data.cart.items.map(i => {
-                const priced = applyVariantPricing(i.product, i.variant);
+               const priced = applyVariantPricing(i.product, i.variant);
                 return {
+                id: i._id,
+                cart_item_id: i._id,
                 product_id: i.product?._id || i.product,
                 vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id,
                 vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
@@ -315,6 +362,12 @@ function CheckoutContent() {
   }, [orderId, productId, quantity, router]);
 
   const handlePlaceOrder = async () => {
+    if ((order?.products || cartItems).length === 0) {
+      toast.error('Your checkout has no items.');
+      router.push('/cart');
+      return;
+    }
+
     // Compute amounts from the authoritative sources, not stale state
     const computedSubtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
     const computedDelivery = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
@@ -573,6 +626,63 @@ function CheckoutContent() {
 
   const vendorList = Object.values(vendorTracking);
 
+  const paymentOptions = [
+    {
+      id: 'mesomb',
+      label: 'MTN / Orange Money',
+      badge: 'Primary',
+      description: 'Direct USSD prompt for MTN MoMo and Orange Money.',
+      icon: Smartphone,
+    },
+    {
+      id: 'wallet',
+      label: 'Aura Wallet',
+      badge: `${walletBalance.toLocaleString()} XAF`,
+      description: 'Pay from your Auradime wallet balance.',
+      icon: CreditCard,
+    },
+    {
+      id: 'eversend',
+      label: 'Eversend',
+      badge: '500 XAF min',
+      description: 'Mobile money collection with a 500 XAF minimum.',
+      icon: Smartphone,
+    },
+    {
+      id: 'pay_on_delivery',
+      label: 'Pay on Delivery',
+      badge: 'Delivery',
+      description: 'Settle payment when delivery is confirmed.',
+      icon: Truck,
+    },
+  ];
+  const selectedPayment = paymentOptions.find((option) => option.id === formData.paymentMethod) || paymentOptions[0];
+  const SelectedPaymentIcon = selectedPayment.icon;
+
+  const selectPaymentMethod = (method) => {
+    setPaymentOpen(false);
+    setFormData((current) => {
+      if (method === 'mesomb') {
+        return {
+          ...current,
+          paymentMethod: 'mesomb',
+          mesomb: { ...current.mesomb, phone: current.mesomb.phone || current.phone },
+        };
+      }
+      if (method === 'eversend') {
+        return {
+          ...current,
+          paymentMethod: 'eversend',
+          eversend: { ...current.eversend, phone: current.eversend.phone || current.phone },
+        };
+      }
+      if (method === 'pay_on_delivery') {
+        return { ...current, escrowEnabled: false, paymentMethod: 'pay_on_delivery' };
+      }
+      return { ...current, paymentMethod: 'wallet' };
+    });
+  };
+
   return (
     <div className="checkout-page min-h-[100dvh] w-full max-w-[100vw] bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 pb-16">
       <div className="fixed top-[-12%] right-[-12%] h-[420px] w-[420px] rounded-full bg-[var(--accent)]/5 blur-[120px] pointer-events-none -z-0"></div>
@@ -599,7 +709,7 @@ function CheckoutContent() {
         </div>
       </nav>
 
-      <main className="relative z-10 mx-auto w-full max-w-[1500px] px-3 py-4 font-poppins sm:px-5 sm:py-6 lg:px-8 lg:py-7 xl:px-10">
+      <main className="relative z-10 mx-auto w-full max-w-none px-3 py-4 font-poppins sm:px-5 sm:py-6 lg:px-6 lg:py-7 xl:px-8 2xl:px-10">
 
         {/* ââ Payment Blocking Screen âââââââââââââââââââââââââââââââââââââââ */}
         <AnimatePresence>
@@ -716,7 +826,7 @@ function CheckoutContent() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,460px)] xl:gap-7">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,440px)] xl:gap-7 2xl:grid-cols-[minmax(0,1fr)_minmax(390px,480px)]">
           <div className="min-w-0 space-y-5 lg:space-y-6">
             <div className="flex items-center gap-4 mb-4">
                {[
@@ -877,67 +987,67 @@ function CheckoutContent() {
 
                        <div className="pt-4 space-y-4">
                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Payment Strategy</label>
-                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                               {/* ── Eversend ─────────────────────────────── */}
-                               <button 
-                                onClick={() => setFormData({...formData, paymentMethod: 'eversend', eversend: { ...formData.eversend, phone: formData.phone }})}
-                                className={`order-2 rounded-2xl border p-4 text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'eversend' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
-                               >
-                                  <div className="flex items-center justify-between mb-4">
-                                     <div className="flex items-center gap-2">
-                                        <Smartphone className={`size-5 ${formData.paymentMethod === 'eversend' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">Eversend (500 XAF min)</span>
-                                     </div>
-                                     {formData.paymentMethod === 'eversend' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                  </div>
-                                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">Multi-country mobile money. Checkout amount must be at least 500 XAF.</p>
-                               </button>
-
-                               {/* ── MeSomb ───────────────────────────────── */}
-                               <button 
-                                onClick={() => setFormData({...formData, paymentMethod: 'mesomb', mesomb: { ...formData.mesomb, phone: formData.mesomb.phone || formData.phone }})}
-                                className={`order-1 rounded-2xl border p-4 text-left transition-all group overflow-hidden ${formData.paymentMethod === 'mesomb' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
-                               >
-                                  <div className="flex items-start justify-between gap-3 mb-4">
-                                     <div className="min-w-0 space-y-1.5">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                          <Smartphone className={`size-5 shrink-0 ${formData.paymentMethod === 'mesomb' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                          <span className="truncate text-[11px] lg:text-[12px] font-semibold tracking-tight">MTN / Orange Money</span>
-                                        </div>
-                                        <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">Primary</span>
-                                     </div>
-                                     {formData.paymentMethod === 'mesomb' && <CheckCircle2 className="size-4 shrink-0 text-[var(--accent)]" />}
-                                  </div>
-                                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">Direct USSD prompt — MTN MoMo &amp; Orange Money (XAF).</p>
-                               </button>
-
-                               <button 
-                                onClick={() => setFormData({...formData, paymentMethod: 'wallet', escrowEnabled: formData.escrowEnabled})}
-                                className={`order-3 rounded-2xl border p-4 text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'wallet' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
-                               >
-                                  <div className="flex items-center justify-between mb-4">
-                                     <div className="flex items-center gap-2">
-                                        <CreditCard className={`size-5 ${formData.paymentMethod === 'wallet' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                        <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">Aura Wallet</span>
-                                     </div>
-                                     {formData.paymentMethod === 'wallet' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                  </div>
-                                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">Immediate settlement from your Aura Wallet balance.</p>
-                               </button>
-
+                           <div className="relative">
                               <button
-                               onClick={() => setFormData({...formData, escrowEnabled: false, paymentMethod: 'pay_on_delivery'})}
-                               className={`order-4 rounded-2xl border p-4 text-left transition-all relative group overflow-hidden ${formData.paymentMethod === 'pay_on_delivery' ? 'bg-[var(--accent)]/5 border-[var(--accent)] shadow-sm' : 'bg-transparent border-[var(--glass-border)] opacity-70'}`}
+                                type="button"
+                                onClick={() => setPaymentOpen((open) => !open)}
+                                className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all ${paymentOpen ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
                               >
-                                 <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                       <Truck className={`size-5 ${formData.paymentMethod === 'pay_on_delivery' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                                       <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-tighter">Pay on Delivery</span>
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--accent)]">
+                                    <SelectedPaymentIcon className="size-5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                      <p className="truncate text-[12px] font-semibold tracking-tight text-[var(--text-primary)]">{selectedPayment.label}</p>
+                                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+                                        {selectedPayment.badge}
+                                      </span>
                                     </div>
-                                    {formData.paymentMethod === 'pay_on_delivery' && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
-                                 </div>
-                                 <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-medium leading-relaxed">Payment is settled when logistics confirms delivery.</p>
+                                    <p className="mt-1 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)] sm:text-[11px]">{selectedPayment.description}</p>
+                                  </div>
+                                </div>
+                                <ChevronDown className={`size-4 shrink-0 opacity-45 transition-transform ${paymentOpen ? 'rotate-180' : ''}`} />
                               </button>
+
+                              <AnimatePresence>
+                                {paymentOpen && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.16 }}
+                                    className="absolute left-0 right-0 top-full z-[120] mt-2 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
+                                  >
+                                    {paymentOptions.map((option) => {
+                                      const Icon = option.icon;
+                                      const active = option.id === formData.paymentMethod;
+                                      return (
+                                        <button
+                                          key={option.id}
+                                          type="button"
+                                          onClick={() => selectPaymentMethod(option.id)}
+                                          className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[var(--accent)]/5 ${active ? 'bg-[var(--accent)]/10' : ''}`}
+                                        >
+                                          <div className={`flex size-10 shrink-0 items-center justify-center rounded-2xl border ${active ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
+                                            <Icon className="size-4" />
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                              <p className="truncate text-[11px] font-semibold text-[var(--text-primary)] sm:text-[12px]">{option.label}</p>
+                                              <span className="shrink-0 rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                                                {option.badge}
+                                              </span>
+                                            </div>
+                                            <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">{option.description}</p>
+                                          </div>
+                                          {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--accent)]" />}
+                                        </button>
+                                      );
+                                    })}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                            </div>
 
                            {formData.paymentMethod !== 'pay_on_delivery' && (
@@ -1107,30 +1217,66 @@ function CheckoutContent() {
             </div>
           </div>
 
-          <div className="h-fit min-w-0 lg:sticky lg:top-20">
-            <div className="glass-panel relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/85 p-4 shadow-sm backdrop-blur-2xl sm:p-5">
-               <h3 className="mb-4 text-base font-bold tracking-tight leading-none lg:text-lg">Order Summary</h3>
+          <div className="h-fit min-w-0 xl:sticky xl:top-20">
+            <div className="glass-panel relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/85 p-4 font-poppins shadow-sm backdrop-blur-2xl sm:p-5">
+               <div className="mb-4 flex items-center justify-between gap-3">
+                 <div>
+                   <h3 className="text-base font-bold tracking-tight leading-none text-[var(--text-primary)] lg:text-lg">Order Summary</h3>
+                   <p className="mt-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-55">{matrixItems.length} item{matrixItems.length === 1 ? '' : 's'}</p>
+                 </div>
+                 {!orderId && matrixItems.length > 0 && (
+                   <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-secondary)]">
+                     Editable
+                   </span>
+                 )}
+               </div>
                <div className="mb-5 max-h-[260px] space-y-3 overflow-y-auto pr-2 no-scrollbar">
-                  {matrixItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3 group">
-                       <img src={item.image || '/placeholder.png'} className="size-12 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
-                       <div className="flex-1 min-w-0">
-                          <p className="text-xs  font-bold text-[var(--text-primary)] truncate ">{item.name}</p>
-                          {formatVariantLabel(item.variant) && (
-                            <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">
-                              {formatVariantLabel(item.variant)}
-                            </p>
-                          )}
-                          <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-mono">{item.price?.toLocaleString()} XAF x {item.quantity}</p>
-                       </div>
+                  {matrixItems.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] p-5 text-center">
+                      <p className="text-[12px] font-semibold text-[var(--text-secondary)]">No items in checkout</p>
                     </div>
-                  ))}
+                  ) : matrixItems.map((item, idx) => {
+                    const itemKey = item.cart_item_id || item.id || cartLineKey(item) || idx;
+                    const variantLabel = formatVariantLabel(item.variant);
+                    const itemName = item.name || item.product?.name || item.product_id?.name || 'Product';
+                    const itemImage = item.image || item.product?.images?.[0]?.url || item.product?.images?.[0] || item.product_id?.images?.[0]?.url || item.product_id?.images?.[0] || '/placeholder.png';
+                    const canRemove = !orderId;
+                    return (
+                      <div key={itemKey} className="group flex items-start gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 p-2.5">
+                         <img src={itemImage} className="size-12 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
+                         <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 text-[12px] font-bold leading-snug text-[var(--text-primary)]">{itemName}</p>
+                            {variantLabel && (
+                              <p className="mt-1 line-clamp-2 text-[10px] font-semibold leading-snug text-[var(--accent)]/85">
+                                {variantLabel}
+                              </p>
+                            )}
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-semibold text-[var(--text-secondary)]">
+                              <span>{Number(item.price || 0).toLocaleString()} XAF</span>
+                              <span className="opacity-35">x</span>
+                              <span>{item.quantity || 1}</span>
+                            </div>
+                         </div>
+                         {canRemove && (
+                           <button
+                             type="button"
+                             onClick={() => handleRemoveCheckoutItem(item)}
+                             disabled={removingItemKey === itemKey}
+                             className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-all hover:border-red-500/30 hover:text-red-500 disabled:opacity-40"
+                             aria-label={`Remove ${itemName}`}
+                           >
+                             {removingItemKey === itemKey ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                           </button>
+                         )}
+                      </div>
+                    );
+                  })}
                </div>
                
                <div className="space-y-4 py-5 border-t border-[var(--glass-border)]">
-                   <div className="flex justify-between items-center text-[11px] lg:text-[12px]  font-semibold tracking-[0.2em] text-[var(--text-secondary)] ">
-                      <span className="opacity-40">Cart Subtotal</span>
-                      <span className="text-xs font-mono">{subtotal.toLocaleString()} XAF</span>
+                   <div className="flex justify-between items-center text-[11px] font-semibold text-[var(--text-secondary)] lg:text-[12px]">
+                      <span className="opacity-55">Cart Subtotal</span>
+                      <span className="font-mono text-[12px] text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
                    </div>
                    
                    {compatibleFee > 0 && selectedLogistics && (
@@ -1156,7 +1302,7 @@ function CheckoutContent() {
 
                    <div className="flex justify-between items-end pt-4 border-t border-[var(--glass-border)]/50">
                       <div>
-                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] lg:text-[11px]">Final Total</p>
+                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)] lg:text-[11px]">Final Total</p>
                          <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl">{totalAmount.toLocaleString()}</p>
                       </div>
                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
