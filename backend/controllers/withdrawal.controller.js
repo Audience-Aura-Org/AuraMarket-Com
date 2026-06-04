@@ -31,6 +31,13 @@ const getWithdrawalDestination = (wr) => {
 
 const getMesombTxId = (response) => response?.transaction?.pk || response?.pk || response?.id || response?.transactionId || null;
 
+const getGatewayFailureMessage = (error, fallback = 'Gateway rejected the payout.') => {
+  const raw = error?.response?.data || error?.data || error?.transaction || error;
+  const code = raw?.code || raw?.error?.code || raw?.type || raw?.status || null;
+  const message = raw?.message || raw?.error?.message || error?.message || fallback;
+  return code ? `${message} (${code})` : message;
+};
+
 const firstMediaUrl = (...values) => {
   for (const value of values) {
     if (!value) continue;
@@ -370,9 +377,25 @@ const adminApproveWithdrawal = async (req, res) => {
 
     const user = await User.findById(wr.requestedBy).session(session);
     if (!user) {
-      await session.abortTransaction();
+      wr.status = 'failed';
+      wr.failureReason = 'Withdrawal owner no longer exists. No payout was sent.';
+      wr.reviewedBy = req.user._id;
+      wr.reviewedAt = new Date();
+      await wr.save({ session });
+
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        { status: 'failed' },
+        { session }
+      );
+
+      await session.commitTransaction();
       session.endSession();
-      return res.status(404).json({ success: false, message: 'Withdrawal owner no longer exists.' });
+      return res.status(410).json({
+        success: false,
+        message: 'Withdrawal owner no longer exists. Request marked as failed and no payout was sent.',
+        data: { withdrawal: wr },
+      });
     }
 
     const payoutGateway = requestedGateway || wr.payoutGateway || (wr.withdrawalMethod === 'mesomb' ? 'mesomb' : 'eversend');
@@ -408,6 +431,19 @@ const adminApproveWithdrawal = async (req, res) => {
           throw new Error('Could not detect MTN or Orange Money from the recipient phone number.');
         }
 
+        try {
+          const appBalance = await mesomb.getApplicationBalance({
+            country: recipientDetails.country || 'CM',
+            service: detectedService,
+          });
+          if (appBalance !== null && appBalance < Number(wr.amount)) {
+            throw new Error(`MeSomb ${detectedService} balance is ${appBalance.toLocaleString()} ${wr.currency}, below the requested payout of ${Number(wr.amount).toLocaleString()} ${wr.currency}. Refill your MeSomb app balance or approve with Eversend.`);
+          }
+        } catch (balanceErr) {
+          if (/below the requested payout/i.test(balanceErr.message)) throw balanceErr;
+          console.warn('[MeSomb] Could not verify app balance before payout:', balanceErr.message);
+        }
+
         payoutResult = await mesomb.makeDeposit({
           amount: wr.amount,
           phone: recipientDetails.phoneNumber,
@@ -425,7 +461,7 @@ const adminApproveWithdrawal = async (req, res) => {
         payoutTxId = getMesombTxId(payoutResult);
         payoutStatus = mesomb.mapStatus(payoutResult);
         if (payoutStatus === 'FAILED') {
-          throw new Error(payoutResult?.message || 'MeSomb rejected the payout.');
+          throw new Error(getGatewayFailureMessage(payoutResult, 'MeSomb rejected the payout.'));
         }
       } else {
         const eversendMethod = wr.withdrawalMethod === 'mesomb' ? 'momo' : wr.withdrawalMethod;
@@ -464,7 +500,7 @@ const adminApproveWithdrawal = async (req, res) => {
     } catch (payoutErr) {
       // Payout failed — refund user
       wr.status = 'failed';
-      wr.failureReason = payoutErr.response?.data?.message || payoutErr.message;
+      wr.failureReason = getGatewayFailureMessage(payoutErr, payoutErr.message);
       wr.reviewedBy = req.user._id;
       wr.reviewedAt = new Date();
       wr.balanceDeducted = false;

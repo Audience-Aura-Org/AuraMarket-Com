@@ -18,6 +18,18 @@ const APPLICATION_KEY = process.env.MESOMB_APPLICATION_KEY;
 const ACCESS_KEY      = process.env.MESOMB_ACCESS_KEY;
 const SECRET_KEY      = process.env.MESOMB_SECRET_KEY;
 
+const createPaymentClient = () => {
+  if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
+    throw new Error('MeSomb credentials not configured. Set MESOMB_APPLICATION_KEY, MESOMB_ACCESS_KEY, and MESOMB_SECRET_KEY.');
+  }
+
+  return new PaymentOperation({
+    applicationKey: APPLICATION_KEY,
+    accessKey: ACCESS_KEY,
+    secretKey: SECRET_KEY,
+  });
+};
+
 /**
  * Detect the network operator from a Cameroonian phone number.
  * MTN: 650-659, 670-679, 680-689
@@ -79,10 +91,6 @@ const makeCollect = async ({
   trxID = null,
   message = 'Auradime Payment',
 }) => {
-  if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
-    throw new Error('MeSomb credentials not configured. Set MESOMB_APPLICATION_KEY, MESOMB_ACCESS_KEY, and MESOMB_SECRET_KEY.');
-  }
-
   const normalizedPhone = normalizePhone(phone);
   const operator = service || detectOperator(normalizedPhone);
 
@@ -90,11 +98,7 @@ const makeCollect = async ({
     throw new Error(`Could not determine mobile operator for number: ${phone}. Please specify MTN or ORANGE.`);
   }
 
-  const client = new PaymentOperation({
-    applicationKey: APPLICATION_KEY,
-    accessKey: ACCESS_KEY,
-    secretKey: SECRET_KEY,
-  });
+  const client = createPaymentClient();
 
   const nonce = RandomGenerator.nonce();
 
@@ -128,10 +132,6 @@ const makeDeposit = async ({
   message = 'Auradime Withdrawal',
   customer = {},
 }) => {
-  if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
-    throw new Error('MeSomb credentials not configured. Set MESOMB_APPLICATION_KEY, MESOMB_ACCESS_KEY, and MESOMB_SECRET_KEY.');
-  }
-
   const normalizedPhone = normalizePhone(phone);
   const operator = service || detectOperator(normalizedPhone);
 
@@ -139,11 +139,7 @@ const makeDeposit = async ({
     throw new Error(`Could not determine mobile operator for number: ${phone}. Please specify MTN or ORANGE.`);
   }
 
-  const client = new PaymentOperation({
-    applicationKey: APPLICATION_KEY,
-    accessKey: ACCESS_KEY,
-    secretKey: SECRET_KEY,
-  });
+  const client = createPaymentClient();
 
   const nonce = RandomGenerator.nonce();
 
@@ -166,19 +162,23 @@ const makeDeposit = async ({
  * @returns {Object} transaction data
  */
 const getTransactionStatus = async (transactionId) => {
-  if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
-    throw new Error('MeSomb credentials not configured.');
-  }
-
-  const client = new PaymentOperation({
-    applicationKey: APPLICATION_KEY,
-    accessKey: ACCESS_KEY,
-    secretKey: SECRET_KEY,
-  });
+  const client = createPaymentClient();
 
   // MeSomb status can be checked by our trxID or their pk
   const response = await client.getStatus(transactionId);
   return response;
+};
+
+const getApplicationStatus = async () => {
+  const client = createPaymentClient();
+  return client.getStatus();
+};
+
+const getApplicationBalance = async ({ country = 'CM', service = null } = {}) => {
+  const appStatus = await getApplicationStatus();
+  if (!appStatus || typeof appStatus.getBalance !== 'function') return null;
+  const balance = appStatus.getBalance(country, service || undefined);
+  return Number.isFinite(Number(balance)) ? Number(balance) : null;
 };
 
 /**
@@ -197,6 +197,8 @@ module.exports = {
   makeCollect,
   makeDeposit,
   getTransactionStatus,
+  getApplicationStatus,
+  getApplicationBalance,
   detectOperator,
   normalizePhone,
   mapStatus,
