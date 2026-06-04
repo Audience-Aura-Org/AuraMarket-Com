@@ -269,7 +269,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 {productSearchResults.map(product => (
                   <div key={product._id} className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex items-center justify-between group">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
                         <img src={product.images?.[0]?.url || product.images?.[0] || '/placeholder.png'} className="w-full h-full object-cover" />
                       </div>
                       <div>
@@ -286,7 +286,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                         toast.success('Product ID copied');
                         setShowProductLookup(false);
                       }}
-                      className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-2"
+                      className="flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-2 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] transition-all hover:bg-[var(--accent)] hover:text-white lg:text-[12px]"
                     >
                       <Package className="w-3.5 h-3.5" /> Select ID
                     </button>
@@ -341,14 +341,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value, data: [] }))}
                   className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
                 >
-                  <option value="hero" className="bg-[#120a12]">Hero Banner Carousel</option>
-                  <option value="categories" className="bg-[#120a12]">Category Horizontal List</option>
-                  <option value="featured_products" className="bg-[#120a12]">Featured Products Grid</option>
-                  <option value="trending" className="bg-[#120a12]">Trending Products</option>
-                  <option value="promo_banner" className="bg-[#120a12]">Promo Large Banner</option>
-                  <option value="stores" className="bg-[#120a12]">Vendor Highlights</option>
-                  <option value="collection" className="bg-[#120a12]">Product Collection</option>
-                  <option value="recommendations" className="bg-[#120a12]">Personalization Block</option>
+                  <option value="hero" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Hero Banner Carousel</option>
+                  <option value="categories" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Category Horizontal List</option>
+                  <option value="featured_products" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Featured Products Grid</option>
+                  <option value="trending" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Trending Products</option>
+                  <option value="promo_banner" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Promo Large Banner</option>
+                  <option value="stores" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Vendor Highlights</option>
+                  <option value="collection" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Product Collection</option>
+                  <option value="recommendations" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Personalization Block</option>
                 </select>
                 <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 opacity-20 pointer-events-none" />
               </div>
@@ -493,7 +493,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                             </div>
 
                             {activeProductDropdown === i && itemProductResults.length > 0 && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-1 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="max-h-60 overflow-y-auto no-scrollbar">
                                      {itemProductResults.map(p => (
                                        <div 
@@ -506,14 +506,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                            setFormData(prev => ({ ...prev, data: newData }));
                                            setActiveProductDropdown(null);
                                          }}
-                                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 group"
+                                         className="group flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]"
                                        >
-                                         <div className="w-10 h-10 rounded-lg bg-white/5 flex-shrink-0 border border-white/10 overflow-hidden">
+                                         <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                                             <img src={p.images?.[0]?.url || p.images?.[0]} className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform" />
                                          </div>
                                          <div className="min-w-0">
-                                            <p className="text-sm  font-bold text-white truncate">{p.name}</p>
-                                            <p className="text-[10px] lg:text-[12px] text-white/40 font-mono truncate">{p._id}</p>
+                                            <p className="truncate text-sm font-bold text-[var(--text-primary)]">{p.name}</p>
+                                            <p className="truncate font-mono text-[10px] text-[var(--text-secondary)] lg:text-[12px]">{p._id}</p>
                                          </div>
                                        </div>
                                      ))}
@@ -550,13 +550,13 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                             </div>
 
                             {activeCategoryDropdown === i && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-2 animate-in fade-in slide-in-from-top-2">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="relative">
                                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40" />
                                       <input 
                                         autoFocus
                                         placeholder="Filter categories..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)] text-white font-bold"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:!text-base placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -569,7 +569,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                            updateDataItem(i, 'category_name', cat.name);
                                            setActiveCategoryDropdown(null);
                                          }}
-                                         className={`flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer transition-all border border-transparent ${item.category_name === cat.name ? 'bg-[var(--accent)] text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                                         className={`flex cursor-pointer items-center justify-between rounded-xl border border-transparent px-4 py-3 transition-all ${item.category_name === cat.name ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
                                        >
                                          <span className="text-xs  font-bold">{cat.name}</span>
                                          {item.category_name === cat.name && <Check className="w-4 h-4" />}
@@ -609,13 +609,13 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                            </div>
 
                            {activeLinkDropdown === i && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-2 animate-in fade-in slide-in-from-top-2">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="relative">
-                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
+                                     <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)] opacity-60" />
                                       <input 
                                         autoFocus
                                         placeholder="Search category to link..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)] text-white font-bold"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:!text-base placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -626,7 +626,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                          updateDataItem(i, 'link_to', '/shop');
                                          setActiveLinkDropdown(null);
                                        }}
-                                       className="flex items-center px-4 py-3 rounded-xl cursor-pointer hover:bg-white/10 text-xs text-[var(--accent)]  font-bold tracking-tight transition-all"
+                                       className="flex cursor-pointer items-center rounded-xl px-4 py-3 text-xs font-bold tracking-tight text-[var(--accent)] transition-all hover:bg-[var(--accent)]/10"
                                      >
                                         [ Generic Shop Page ]
                                      </div>
@@ -637,7 +637,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                            updateDataItem(i, 'link_to', `/shop?category=${encodeURIComponent(cat.name)}`);
                                            setActiveLinkDropdown(null);
                                          }}
-                                         className="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-white/10 text-white/70 hover:text-white transition-all border border-transparent"
+                                         className="flex cursor-pointer items-center justify-between rounded-xl border border-transparent px-4 py-3 text-[var(--text-primary)] transition-all hover:bg-[var(--bg-secondary)]"
                                        >
                                          <span className="text-xs  font-bold">{cat.name}</span>
                                          <ExternalLink className="w-3.5 h-3.5 opacity-20" />
@@ -672,7 +672,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                             </div>
 
                             {activeVendorDropdown === i && itemVendorResults.length > 0 && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-1 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="max-h-60 overflow-y-auto no-scrollbar">
                                      {itemVendorResults.map(v => (
                                        <div 
@@ -684,14 +684,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                            setFormData(prev => ({ ...prev, data: newData }));
                                            setActiveVendorDropdown(null);
                                          }}
-                                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 group"
+                                         className="group flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]"
                                        >
-                                         <div className="w-10 h-10 rounded-lg bg-white/5 flex-shrink-0 border border-white/10 overflow-hidden">
+                                         <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                                             <img src={v.store?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${v.store_name}&backgroundColor=var(--accent)`} className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform" />
                                          </div>
                                          <div className="min-w-0">
-                                            <p className="text-sm  font-bold text-white truncate">{v.store_name}</p>
-                                            <p className="text-[10px] lg:text-[12px] text-white/40 font-mono truncate">{v._id}</p>
+                                            <p className="truncate text-sm font-bold text-[var(--text-primary)]">{v.store_name}</p>
+                                            <p className="truncate font-mono text-[10px] text-[var(--text-secondary)] lg:text-[12px]">{v._id}</p>
                                          </div>
                                        </div>
                                      ))}
