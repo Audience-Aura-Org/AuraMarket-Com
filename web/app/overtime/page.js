@@ -20,16 +20,16 @@ const isRenderableSection = (section) => {
     case 'hero':
     case 'promo_banner':
     case 'footer_promo':
-      return items.some((item) => item?.image_url || item?.headline || item?.subtext);
+      return true;
     case 'categories':
-      return items.some((item) => item?.category_name || item?.image_url);
+      return true;
     case 'featured_products':
     case 'trending':
     case 'collection':
     case 'recommendations':
-      return items.some((item) => item?.product_id);
+      return true;
     case 'stores':
-      return items.some((item) => item?.vendor_id);
+      return true;
     default:
       return false;
   }

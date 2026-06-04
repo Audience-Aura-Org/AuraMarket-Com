@@ -83,7 +83,10 @@ export default function UnifiedAuth() {
     const nextEmail = cleanEmail(email);
     if (!nextEmail) return;
     if (resendIn > 0) {
-      setError(`Please wait ${resendIn}s before requesting another code.`);
+      setEmail(nextEmail);
+      setOtp('');
+      setStep('otp');
+      setError('Enter the code we already sent. You can request a new one when the timer ends.');
       return;
     }
 
@@ -237,8 +240,7 @@ export default function UnifiedAuth() {
 
               <SubmitButton
                 loading={submitting}
-                disabled={resendIn > 0}
-                label={resendIn > 0 ? `Try again in ${resendIn}s` : 'Send code'}
+                label={resendIn > 0 ? 'Enter code' : 'Send code'}
                 icon={ArrowRight}
               />
               {resendIn > 0 && email && (

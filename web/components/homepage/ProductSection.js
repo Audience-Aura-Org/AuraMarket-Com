@@ -30,7 +30,17 @@ export default function ProductSection({ title, subtitle, data, config }) {
       <div className="relative group/carousel w-full">
         <div className="flex overflow-x-auto no-scrollbar pb-8 snap-x snap-mandatory gap-4 md:gap-6 px-4 md:px-6">
           {data.map((item, i) => {
-            const p = item.product_id;
+            const p = item.product_id || item.product || (
+              item.product_name
+                ? {
+                    _id: item._id || item.product_id || `cms-product-${i}`,
+                    name: item.product_name,
+                    price: item.price || 0,
+                    images: item.image_url ? [{ url: item.image_url }] : [],
+                    vendor_id: item.vendor_id || null,
+                  }
+                : null
+            );
             if (!p) return null;
             
             const isFeatured = title.toLowerCase().includes('featured');
