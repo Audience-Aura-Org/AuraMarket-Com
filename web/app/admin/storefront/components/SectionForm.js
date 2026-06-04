@@ -56,8 +56,10 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         image_url: item.image_url || '',
         link_to: item.link_to || '',
         cta_text: item.cta_text || '',
+        product_name: item.product_name || (typeof item.product_id === 'object' ? item.product_id?.name || '' : ''),
         product_id: item.product_id ? (typeof item.product_id === 'object' ? item.product_id._id : item.product_id) : '',
         category_name: item.category_name || '',
+        vendor_name: item.vendor_name || (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name || '' : ''),
         vendor_id: item.vendor_id ? (typeof item.vendor_id === 'object' ? item.vendor_id._id : item.vendor_id) : ''
       }));
 
@@ -203,7 +205,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   const addDataItem = () => {
     setFormData(prev => ({
       ...prev,
-      data: [...prev.data, { headline: '', subtext: '', image_url: '', link_to: '', cta_text: '', product_id: '', category_name: '', vendor_id: '' }]
+      data: [...prev.data, { headline: '', subtext: '', image_url: '', link_to: '', cta_text: '', product_name: '', product_id: '', category_name: '', vendor_name: '', vendor_id: '' }]
     }));
   };
 
@@ -225,10 +227,10 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6">
+    <div className="fixed inset-0 z-[9999] flex items-stretch justify-stretch p-0">
       <div className="absolute inset-0 bg-black/55 backdrop-blur-md" onClick={onClose} />
       
-      <div className="relative flex h-[calc(100dvh-1rem)] w-full max-w-none flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl animate-in fade-in zoom-in duration-300 sm:h-[calc(100dvh-2rem)] lg:h-[calc(100dvh-3rem)]">
+      <div className="relative flex h-[100dvh] w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[var(--bg-primary)] shadow-2xl animate-in fade-in duration-200">
         {/* Product Lookup Overlay */}
         {showProductLookup && (
           <div className="absolute inset-0 z-[60] flex flex-col bg-[var(--bg-secondary)]/95 p-4 backdrop-blur-md sm:p-6">
@@ -262,7 +264,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                   <div key={product._id} className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
-                        <img src={product.images?.[0] || '/placeholder.png'} className="w-full h-full object-cover" />
+                        <img src={product.images?.[0]?.url || product.images?.[0] || '/placeholder.png'} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <h4 className=" font-bold text-[var(--text-primary)]">{product.name}</h4>
@@ -418,6 +420,17 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                               />
                            </label>
                          </div>
+                         {item.image_url && (
+                           <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-2">
+                             <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)]">
+                               <img src={item.image_url} alt="Section image preview" className="size-full object-cover" />
+                             </div>
+                             <div className="min-w-0">
+                               <p className="text-[11px] font-semibold text-[var(--text-primary)]">Image preview</p>
+                               <p className="truncate text-[10px] font-medium text-[var(--text-secondary)]">{item.image_url}</p>
+                             </div>
+                           </div>
+                         )}
                       </div>
                     )}
 
@@ -457,7 +470,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                          <div className="relative" ref={activeProductDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
-                                 value={activeProductDropdown === i ? productSearch : (typeof item.product_id === 'object' ? item.product_id?.name : (item.product_name || item.product_id || ''))}
+                                 value={activeProductDropdown === i ? productSearch : (item.product_name || (typeof item.product_id === 'object' ? item.product_id?.name : ''))}
                                  onChange={(e) => {
                                    setActiveProductDropdown(i);
                                    handleItemProductSearch(e.target.value);
@@ -502,10 +515,12 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                </div>
                             )}
                          </div>
-                         {item.product_id && typeof item.product_id !== 'object' && (
+                         {item.product_id && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Package className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">ID: {item.product_id}</span>
+                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">
+                               Selected product: {item.product_name || (typeof item.product_id === 'object' ? item.product_id?.name : '') || 'Product selected'}
+                             </span>
                            </div>
                          )}
                       </div>
@@ -522,7 +537,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                               }}
                               className="flex h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base transition-all hover:border-[var(--accent)]/40"
                             >
-                              <span className={item.category_name ? 'text-white' : 'opacity-40'}>
+                              <span className={item.category_name ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}>
                                 {item.category_name || 'Select Category'}
                               </span>
                               <ChevronDown className="w-4 h-4 opacity-40" />
@@ -634,7 +649,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                          <div className="relative" ref={activeVendorDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
-                                 value={activeVendorDropdown === i ? vendorSearch : (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name : (item.vendor_name || item.vendor_id || ''))}
+                                 value={activeVendorDropdown === i ? vendorSearch : (item.vendor_name || (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name : ''))}
                                  onChange={(e) => {
                                    setActiveVendorDropdown(i);
                                    handleItemVendorSearch(e.target.value);
@@ -678,10 +693,12 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                </div>
                             )}
                          </div>
-                         {item.vendor_id && typeof item.vendor_id !== 'object' && (
+                         {item.vendor_id && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Store className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">ID: {item.vendor_id}</span>
+                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">
+                               Selected vendor: {item.vendor_name || (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name : '') || 'Vendor selected'}
+                             </span>
                            </div>
                          )}
                       </div>
