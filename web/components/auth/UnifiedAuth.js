@@ -21,6 +21,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 const cleanEmail = (value) => value.trim().toLowerCase();
 const inputClass = 'w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30';
 const LOGIN_ACTION_TIMEOUT_MS = 60000;
+const OTP_PENDING_KEY = 'aura_pending_otp_email';
 
 const withLoginTimeout = (promise, message) => {
   let timer;
@@ -53,6 +54,16 @@ export default function UnifiedAuth() {
     resetLoading?.();
     setSubmitting(false);
   }, [resetLoading]);
+
+  useEffect(() => {
+    try {
+      const pendingEmail = sessionStorage.getItem(OTP_PENDING_KEY);
+      if (pendingEmail) {
+        setEmail(pendingEmail);
+        setStep('otp');
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if (hasHydrated && rememberedEmail && !prefilledRef.current) {
@@ -93,6 +104,9 @@ export default function UnifiedAuth() {
     setEmail(nextEmail);
     setOtp('');
     setStep('otp');
+    try {
+      sessionStorage.setItem(OTP_PENDING_KEY, nextEmail);
+    } catch {}
     setSubmitting(true);
     try {
       const result = await withLoginTimeout(
@@ -149,6 +163,9 @@ export default function UnifiedAuth() {
         return;
       }
 
+      try {
+        sessionStorage.removeItem(OTP_PENDING_KEY);
+      } catch {}
       redirectAfterAuth(result.user);
     } finally {
       setSubmitting(false);
@@ -180,6 +197,9 @@ export default function UnifiedAuth() {
         return;
       }
 
+      try {
+        sessionStorage.removeItem(OTP_PENDING_KEY);
+      } catch {}
       redirectAfterAuth(result.user);
     } finally {
       setSubmitting(false);

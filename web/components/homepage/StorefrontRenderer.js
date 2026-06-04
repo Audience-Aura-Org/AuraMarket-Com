@@ -39,6 +39,7 @@ export default function StorefrontRenderer({ sections }) {
               );
             
             case 'promo_banner':
+            case 'footer_promo':
               return <PromoBanner key={section._id || index} data={data} />;
             
             case 'stores':
