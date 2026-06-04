@@ -49,8 +49,8 @@ const wrap = (title, heading, body) => `
       .header-inner { padding: 7px 20px 8px !important; }
     }
     .logo-img { height: 36px; width: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
-    .header-title { color: #ffffff; font-size: 13px; font-weight: 700; letter-spacing: 0; margin: 0; line-height: 1.05; }
-    .header-sub { color: rgba(255,255,255,0.88); font-size: 9px; margin: 2px 0 0; font-weight: 500; }
+    .header-title { color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 0; margin: 0; line-height: 1.05; }
+    .header-sub { color: rgba(255,255,255,0.88); font-size: 8px; margin: 2px 0 0; font-weight: 500; }
 
     .accent-stripe { height: 2px; background: ${COLORS.stripe}; font-size: 0; line-height: 0; }
 
@@ -59,20 +59,20 @@ const wrap = (title, heading, body) => `
     @media only screen and (min-width: 600px) {
       .content-td { padding: 36px 48px 28px !important; }
     }
-    .content-td h2 { font-size: 24px; color: ${COLORS.textPrimary}; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.6px; line-height: 1.2; }
-    .content-td p  { font-size: 15px; color: ${COLORS.textSecondary}; margin: 0 0 16px; line-height: 1.65; }
+    .content-td h2 { font-size: 21px; color: ${COLORS.textPrimary}; margin: 0 0 10px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.22; }
+    .content-td p  { font-size: 13px; color: ${COLORS.textSecondary}; margin: 0 0 14px; line-height: 1.6; }
     .content-td strong { color: ${COLORS.textPrimary}; font-weight: 600; }
 
     .card { background: ${COLORS.accentSoft}; border: 1px solid #e9d5ff; border-radius: 14px; padding: 6px 18px; margin: 20px 0; }
     .card-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
     .card-row:not(:last-child) { border-bottom: 1px solid #f3e8ff; }
     .card-divider { height: 1px; background: #f3e8ff; margin: 0; }
-    .card-label { color: ${COLORS.textSecondary}; font-weight: 500; font-size: 13px; }
-    .card-value { color: ${COLORS.textPrimary}; font-weight: 600; font-size: 13px; text-align: right; }
+    .card-label { color: ${COLORS.textSecondary}; font-weight: 500; font-size: 12px; }
+    .card-value { color: ${COLORS.textPrimary}; font-weight: 600; font-size: 12px; text-align: right; }
 
-    .role-badge { font-size: 11px; font-weight: 600; color: ${COLORS.accent}; background: ${COLORS.accentSoft}; padding: 2px 8px; border-radius: 20px; }
+    .role-badge { font-size: 10px; font-weight: 600; color: ${COLORS.accent}; background: ${COLORS.accentSoft}; padding: 2px 8px; border-radius: 20px; }
 
-    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
     .badge-placed    { background: #e0f2fe; color: #0369a1; }
     .badge-processing{ background: #fef9c3; color: #854d0e; }
     .badge-shipped   { background: #e0e7ff; color: #4338ca; }
@@ -82,27 +82,27 @@ const wrap = (title, heading, body) => `
     .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
     .badge-failed    { background: #fee2e2; color: #991b1b; }
 
-    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 14px; margin: 18px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'Poppins', Arial, sans-serif; }
+    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 13px 28px; border-radius: 12px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'Poppins', Arial, sans-serif; }
 
-    .table-products { width: 100% !important; max-width: 100%; margin: 20px 0; border-collapse: collapse; font-size: 14px; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; }
+    .table-products { width: 100% !important; max-width: 100%; margin: 18px 0; border-collapse: collapse; font-size: 13px; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; }
     .table-products thead { background: #fafafa; }
-    .table-products th { padding: 12px 16px; text-align: left; font-weight: 600; color: ${COLORS.textSecondary}; font-size: 12px; border-bottom: 1px solid ${COLORS.border}; }
-    .table-products td { padding: 12px 16px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textPrimary}; font-size: 14px; }
+    .table-products th { padding: 11px 14px; text-align: left; font-weight: 600; color: ${COLORS.textSecondary}; font-size: 11px; border-bottom: 1px solid ${COLORS.border}; }
+    .table-products td { padding: 11px 14px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textPrimary}; font-size: 13px; }
     .table-products td.number { text-align: center; }
     .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.accent}; }
     .table-products tbody tr:last-child td { border-bottom: none; }
 
     .footer-td { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; border-top: 1px solid ${COLORS.border}; }
-    .footer-td p { font-size: 13px; color: ${COLORS.textMuted}; margin: 6px 0; font-family: 'Poppins', Arial, sans-serif; }
+    .footer-td p { font-size: 11px; color: ${COLORS.textMuted}; margin: 5px 0; font-family: 'Poppins', Arial, sans-serif; }
     .footer-td a { color: ${COLORS.accent}; text-decoration: none; font-weight: 600; }
-    .footer-brand { font-size: 15px; font-weight: 700; color: ${COLORS.textPrimary}; margin-bottom: 10px !important; letter-spacing: -0.5px; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: ${COLORS.textPrimary}; margin-bottom: 8px !important; letter-spacing: -0.3px; }
 
-    .highlight { background: ${COLORS.accentSoft}; border-left: 4px solid ${COLORS.accent}; padding: 14px 18px; margin: 20px 0; border-radius: 0 12px 12px 0; }
-    .highlight p { margin: 0; font-size: 13px; color: ${COLORS.textPrimary}; font-weight: 500; }
+    .highlight { background: ${COLORS.accentSoft}; border-left: 4px solid ${COLORS.accent}; padding: 13px 16px; margin: 18px 0; border-radius: 0 12px 12px 0; }
+    .highlight p { margin: 0; font-size: 12px; color: ${COLORS.textPrimary}; font-weight: 500; }
 
     .qr-container { text-align: center; margin: 20px 0; padding: 18px; border: 1.5px dashed #e9d5ff; border-radius: 14px; background: ${COLORS.bgSecondary}; }
     .qr-image { width: 100px; height: 100px; margin: 0 auto 8px; border-radius: 8px; }
-    .qr-text { font-size: 11px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
+    .qr-text { font-size: 10px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
 
     @media only screen and (max-width: 600px) {
       .content-td { padding: 22px 16px 16px !important; }
@@ -197,7 +197,7 @@ const passwordReset = ({ user, resetLink, webUrl }) => {
     
     <a href="${resetLink}" class="btn">Reset Password</a>
     
-    <p style="font-size: 11px; color: #888888; margin-top: 20px;">If you didn't request this, please ignore this email.</p>
+    <p style="font-size: 10px; color: #888888; margin-top: 18px;">If you didn't request this, please ignore this email.</p>
   `;
   const html = wrap(subject, 'Reset Your Password', body);
   return { subject, html, text: `Reset your password: ${resetLink}` };
@@ -209,8 +209,8 @@ const otpEmail = ({ otp, email, expiresMinutes = 10 }) => {
     <p>Use this code to verify <strong>${email}</strong> and continue into Auradime.</p>
 
     <div style="background:${COLORS.accentSoft};border:1px solid #e9d5ff;border-radius:14px;margin:20px 0;padding:22px;text-align:center;">
-      <div style="font-size:34px;font-weight:800;letter-spacing:8px;color:${COLORS.accentDark};font-family:'DM Sans','Poppins',Arial,sans-serif;">${otp}</div>
-      <p style="font-size:13px;color:${COLORS.textMuted};margin:10px 0 0;">Expires in ${expiresMinutes} minutes</p>
+      <div style="font-size:30px;font-weight:800;letter-spacing:7px;color:${COLORS.accentDark};font-family:'Poppins',Arial,sans-serif;">${otp}</div>
+      <p style="font-size:12px;color:${COLORS.textMuted};margin:9px 0 0;">Expires in ${expiresMinutes} minutes</p>
     </div>
 
     <p>If you did not request this code, you can safely ignore this email.</p>

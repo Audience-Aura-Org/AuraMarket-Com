@@ -305,6 +305,18 @@ body:has(.checkout-page) select {
   100% { background-position:  200% 0; }
 }
 
+@keyframes aura-route-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+  55% {
+    transform: translateX(120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
 .animate-shimmer {
   background: linear-gradient(
     90deg,
