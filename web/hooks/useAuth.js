@@ -48,7 +48,7 @@ export const useAuthStore = create(
         set({ loading: true, error: null, rememberedEmail: email });
         try {
           const res = await api.post('/auth/send-otp', { email }, {
-            timeout: 20000,
+            timeout: 60000,
             __skipRetry: true,
           });
           set({ loading: false, error: null });
@@ -75,7 +75,7 @@ export const useAuthStore = create(
             referral_code,
             onboarding,
           }, {
-            timeout: 20000,
+            timeout: 60000,
             __skipRetry: true,
           });
 

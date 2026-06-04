@@ -20,12 +20,12 @@ import { useAuthStore } from '@/hooks/useAuth';
 
 const cleanEmail = (value) => value.trim().toLowerCase();
 const inputClass = 'w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30';
-const LOGIN_ACTION_TIMEOUT_MS = 23000;
+const LOGIN_ACTION_TIMEOUT_MS = 60000;
 
 const withLoginTimeout = (promise, message) => {
   let timer;
   const timeout = new Promise((resolve) => {
-    timer = setTimeout(() => resolve({ success: false, message }), LOGIN_ACTION_TIMEOUT_MS);
+    timer = setTimeout(() => resolve({ success: false, timedOut: true, message }), LOGIN_ACTION_TIMEOUT_MS);
   });
 
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
@@ -98,6 +98,12 @@ export default function UnifiedAuth() {
         if (waitSeconds > 0) {
           setResendIn(waitSeconds);
           setError(`Please wait ${waitSeconds}s before requesting another code.`);
+        } else if (result.timedOut) {
+          setEmail(nextEmail);
+          setOtp('');
+          setResendIn(60);
+          setStep('otp');
+          setError('If the code arrived, enter it here. You can resend when the timer ends.');
         } else {
           setError(result.message);
         }
