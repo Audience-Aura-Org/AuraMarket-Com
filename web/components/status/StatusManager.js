@@ -56,7 +56,7 @@ const storyLabel = (status) => {
 
 export default function StatusManager() {
   const [statuses, setStatuses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
   const [reshareTarget, setReshareTarget] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -73,20 +73,20 @@ export default function StatusManager() {
 
   const totalViews = statuses.reduce((sum, status) => sum + Number(status.views_count || 0), 0);
   const totalLikes = statuses.reduce((sum, status) => sum + Number(status.likes_count || 0), 0);
-  const fetchMyStatuses = async () => {
+  const fetchMyStatuses = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await api.get('/statuses/my-statuses');
       if (res.data.success) setStatuses(res.data.data || []);
     } catch (e) {
       console.error('Failed to fetch my statuses:', e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMyStatuses();
+    fetchMyStatuses({ silent: true });
 
     const handleStatusUpdate = (update) => {
       setStatuses((prev) => prev.map((status) => {
@@ -191,13 +191,7 @@ export default function StatusManager() {
               </span>
             </div>
 
-            {loading ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {[0, 1, 2].map((item) => (
-                  <div key={item} className="h-64 animate-pulse rounded-2xl bg-[var(--bg-secondary)]" />
-                ))}
-              </div>
-            ) : activeStatuses.length === 0 ? (
+            {activeStatuses.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-7 text-center">
                 <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
                   <ImagePlus className="size-5" />

@@ -185,7 +185,6 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const { user }                   = useAuthStore();
   const [followedStatuses, setFollowedStatuses] = useState([]);
   const [globalStatuses,   setGlobalStatuses]   = useState([]);
-  const [loading,          setLoading]          = useState(true);
   const [search,           setSearch]           = useState('');
   const [showSearch,       setShowSearch]        = useState(false);
   const [activeTab,        setActiveTab]         = useState('inner');
@@ -193,7 +192,6 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const searchRef = useRef(null);
 
   const fetch = useCallback(async () => {
-    setLoading(true);
     try {
       const params = { sort: 'trending', limit: 50, category: selectedCategory === 'All' ? undefined : selectedCategory };
       const [globalRes, followedRes] = await Promise.all([
@@ -204,8 +202,6 @@ export default function StatusTabGrid({ onSelectStatus }) {
       if (followedRes.data.success) setFollowedStatuses(followedRes.data.data || []);
     } catch (e) {
       console.error('[StatusHub] Fetch error:', e);
-    } finally {
-      setLoading(false);
     }
   }, [user, selectedCategory]);
 
@@ -280,8 +276,6 @@ export default function StatusTabGrid({ onSelectStatus }) {
     setGlobalStatuses(markViewed);
     onSelectStatus(pool, status._id);
   };
-
-  if (loading && !globalStatuses.length && !followedStatuses.length) return <Skeleton />;
 
   return (
     <div className="bg-[var(--bg-secondary)] min-h-screen pb-32 w-full">
@@ -428,23 +422,6 @@ export default function StatusTabGrid({ onSelectStatus }) {
             )}
           </motion.div>
         </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-function Skeleton() {
-  return (
-    <div className="bg-[var(--bg-secondary)] min-h-screen p-3 pt-6 space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="w-36 h-7 bg-white/5 animate-pulse rounded-xl" />
-        <div className="w-24 h-7 bg-white/5 animate-pulse rounded-xl" />
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="aspect-[3/4] rounded-[1.5rem] bg-white/5 animate-pulse border border-white/5" />
-        ))}
       </div>
     </div>
   );
