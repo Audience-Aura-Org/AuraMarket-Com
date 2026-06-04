@@ -1049,7 +1049,8 @@ const eversendPayoutBeneficiary = async (req, res) => {
 const mesombWebhook = async (req, res) => {
   try {
     const payload = req.body || {};
-    let nestedData = payload.data;
+    const rawNestedData = payload.data;
+    let nestedData = rawNestedData;
     if (typeof nestedData === 'string') {
       try {
         nestedData = JSON.parse(nestedData);
@@ -1057,6 +1058,11 @@ const mesombWebhook = async (req, res) => {
         nestedData = {};
       }
     }
+    const extractFromRawData = (field) => {
+      if (typeof rawNestedData !== 'string') return null;
+      const match = rawNestedData.match(new RegExp(`"${field}"\\s*:\\s*"([^"]+)"`));
+      return match?.[1] || null;
+    };
     const data = {
       ...payload,
       ...(nestedData && typeof nestedData === 'object' ? nestedData : {}),
@@ -1069,7 +1075,12 @@ const mesombWebhook = async (req, res) => {
       data?.transaction?.trxID ||
       data?.transaction?.external_id ||
       data?.transaction?.reference ||
-      data?.pk;
+      data?.pk ||
+      extractFromRawData('trxID') ||
+      extractFromRawData('reference') ||
+      extractFromRawData('pk');
+    const mesombPk = data?.pk || extractFromRawData('pk');
+    const mesombReference = data?.reference || extractFromRawData('reference');
 
     console.log('[MeSomb Webhook]', { status, trxID, data: JSON.stringify(data).slice(0, 200) });
 
@@ -1082,8 +1093,8 @@ const mesombWebhook = async (req, res) => {
       $or: [
         { reference: trxID },
         { gateway_transaction_id: trxID },
-        ...(data?.pk && data.pk !== trxID ? [{ gateway_transaction_id: data.pk }] : []),
-        ...(data?.reference && data.reference !== trxID ? [{ reference: data.reference }] : []),
+        ...(mesombPk && mesombPk !== trxID ? [{ gateway_transaction_id: mesombPk }] : []),
+        ...(mesombReference && mesombReference !== trxID ? [{ reference: mesombReference }] : []),
       ],
     });
     if (!transaction) {
