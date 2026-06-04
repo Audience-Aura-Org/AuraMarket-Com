@@ -28,10 +28,6 @@ export default function LandingPage() {
         const res = await api.get('/homepage', {
           signal: controller.signal,
           params: { nocache: '1', t: Date.now() },
-          headers: {
-            'Cache-Control': 'no-cache',
-            Pragma: 'no-cache',
-          },
         });
         if (!isActive) return;
         if (res.data?.success) {
