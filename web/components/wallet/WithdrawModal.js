@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, CheckCircle2, Phone, Building2,
-  Globe, ArrowRight, ArrowLeft, Wallet, AlertCircle
+  Globe, ArrowRight, ArrowLeft, Wallet, AlertCircle, Loader2
 } from 'lucide-react';
 import api from '@/services/api';
 
@@ -64,6 +64,20 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
 
   const amtNum = Number(amount) || 0;
   const MIN = 1000;
+  const availableBalance = Number(balance || 0);
+
+  const continueFromAmount = () => {
+    setError('');
+    if (!Number.isFinite(amtNum) || amtNum < MIN) {
+      setError(`Minimum withdrawal amount is ${fmt(MIN)} XAF.`);
+      return;
+    }
+    if (amtNum > availableBalance) {
+      setError(`You only have ${fmt(availableBalance)} XAF available.`);
+      return;
+    }
+    setStep(2);
+  };
 
   const field = (key, label, placeholder, type = 'text') => (
     <div className="space-y-1.5 font-poppins font-normal">
@@ -180,14 +194,14 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           <div className="space-y-6">
             <div>
               <label className="text-[10px] lg:text-[12px] font-semibold tracking-widest text-[var(--text-secondary)] opacity-50 block mb-3">AMOUNT (XAF)</label>
-              <input type="number" min={MIN} max={balance}
+              <input type="number" min={MIN} max={availableBalance}
                 value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="0"
                 className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-5 text-2xl font-medium text-center outline-none focus:border-[var(--accent)] tabular-nums" />
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[5000, 10000, 25000].map(q => (
-                <button key={q} onClick={() => setAmount(String(Math.min(q, balance)))}
+                <button key={q} onClick={() => setAmount(String(Math.min(q, availableBalance)))}
                   className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-xs font-semibold hover:border-[var(--accent)] transition-all">
                   {fmt(q)}
                 </button>
@@ -198,12 +212,13 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 <AlertCircle className="size-3.5" /> Minimum is {fmt(MIN)} XAF
               </p>
             )}
-            {amtNum > balance && (
+            {amtNum > availableBalance && (
               <p className="text-xs text-red-500 font-semibold flex items-center gap-2">
-                <AlertCircle className="size-3.5" /> Exceeds your balance of {fmt(balance)} XAF
+                <AlertCircle className="size-3.5" /> Exceeds your balance of {fmt(availableBalance)} XAF
               </p>
             )}
-            <button onClick={() => setStep(2)} disabled={amtNum < MIN || amtNum > balance}
+            {error && <p className="text-xs text-red-500 font-semibold flex items-center gap-2"><AlertCircle className="size-3.5" />{error}</p>}
+            <button onClick={continueFromAmount} disabled={amtNum < MIN || amtNum > availableBalance}
               className="w-full h-13 bg-[var(--accent)] text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-30 transition-all py-3">
               Continue <ArrowRight className="size-4" />
             </button>
