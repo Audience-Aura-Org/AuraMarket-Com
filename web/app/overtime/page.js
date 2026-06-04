@@ -11,35 +11,10 @@ import dynamic_import from 'next/dynamic';
 const StorefrontRenderer = dynamic_import(() => import('@/components/homepage/StorefrontRenderer'), { ssr: false });
 const AuraAssistant = dynamic_import(() => import('@/components/onboarding/AuraAssistant'), { ssr: false });
 
-const isRenderableSection = (section) => {
-  if (!section || section.is_active === false) return false;
-  const items = Array.isArray(section.data) ? section.data : [];
-  if (!items.length) return false;
-
-  switch (section.type) {
-    case 'hero':
-    case 'promo_banner':
-    case 'footer_promo':
-      return true;
-    case 'categories':
-      return true;
-    case 'featured_products':
-    case 'trending':
-    case 'collection':
-    case 'recommendations':
-      return true;
-    case 'stores':
-      return true;
-    default:
-      return false;
-  }
-};
-
 export default function LandingPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const [sections, setSections] = useState(null); // null = not yet loaded
-  const renderableSections = Array.isArray(sections) ? sections.filter(isRenderableSection) : [];
 
   // No mounted guard needed — we use null check instead
   useEffect(() => {
@@ -97,59 +72,53 @@ export default function LandingPage() {
 
       {/* Storefront — paints immediately, replaces with managed sections when data arrives */}
       <div className="w-full relative z-10">
-        {renderableSections.length > 0 ? (
-          <StorefrontRenderer sections={renderableSections} />
+        {sections && sections.length > 0 ? (
+          <StorefrontRenderer sections={sections} />
         ) : (
-          <OvertimeFallback router={router} user={user} />
+          <main className="w-full pt-12 pb-24 px-6 md:px-20">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div className="flex flex-col gap-8">
+                <div className="inline-flex items-center gap-2 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-4 py-2 rounded-full w-fit">
+                  <span className="material-symbols-outlined text-[var(--accent)] text-sm">auto_awesome</span>
+                  <span className="text-[var(--accent)] text-xs  font-bold tracking-tight">The Future of Commerce</span>
+                </div>
+                <h1 className="text-6xl md:text-7xl  font-extrabold leading-[1.1] tracking-tight text-[var(--text-primary)]">
+                  Shop premium products from trusted sellers.
+                </h1>
+                <p className="text-lg text-[var(--text-secondary)] max-w-lg leading-relaxed">
+                  Auradime connects shoppers, vendors, and logistics partners for confident commerce across Cameroon and Africa.
+                </p>
+                <div className="flex flex-wrap gap-4 pt-4">
+                  <button
+                    onClick={() => router.push('/discovery')}
+                    className="bg-[var(--accent)] text-white px-10 py-4 rounded-full  font-bold text-lg shadow-2xl shadow-[var(--accent)]/40 flex items-center gap-3 hover:scale-105 transition-transform"
+                  >
+                    Discovery Shop <span className="material-symbols-outlined">explore</span>
+                  </button>
+                  {user ? (
+                    <button
+                      onClick={() => router.push(user.role === 'admin' ? '/admin/dashboard' : user.role === 'vendor' ? '/vendor/dashboard' : '/logistics/dashboard')}
+                      className="glass-panel px-10 py-4 rounded-full  font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
+                    >
+                      Dashboard <span className="material-symbols-outlined">dashboard</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push('/register?vendor=true')}
+                      className="glass-panel px-10 py-4 rounded-full  font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
+                    >
+                      Be a Vendor <span className="material-symbols-outlined">storefront</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </main>
         )}
       </div>
 
       {/* Aura Assistant — lazy, appears 1.2s after mount only for eligible users */}
       <AuraAssistant user={user} />
     </div>
-  );
-}
-
-function OvertimeFallback({ router, user }) {
-  return (
-    <main className="w-full pt-12 pb-24 px-6 md:px-20">
-      <div className="grid lg:grid-cols-2 gap-16 items-center">
-        <div className="flex flex-col gap-8">
-          <div className="inline-flex items-center gap-2 bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-4 py-2 rounded-full w-fit">
-            <span className="material-symbols-outlined text-[var(--accent)] text-sm">auto_awesome</span>
-            <span className="text-[var(--accent)] text-xs  font-bold tracking-tight">The Future of Commerce</span>
-          </div>
-          <h1 className="text-6xl md:text-7xl  font-extrabold leading-[1.1] tracking-tight text-[var(--text-primary)]">
-            Shop premium products from trusted sellers.
-          </h1>
-          <p className="text-lg text-[var(--text-secondary)] max-w-lg leading-relaxed">
-            Auradime connects shoppers, vendors, and logistics partners for confident commerce across Cameroon and Africa.
-          </p>
-          <div className="flex flex-wrap gap-4 pt-4">
-            <button
-              onClick={() => router.push('/discovery')}
-              className="bg-[var(--accent)] text-white px-10 py-4 rounded-full  font-bold text-lg shadow-2xl shadow-[var(--accent)]/40 flex items-center gap-3 hover:scale-105 transition-transform"
-            >
-              Discovery Shop <span className="material-symbols-outlined">explore</span>
-            </button>
-            {user ? (
-              <button
-                onClick={() => router.push(user.role === 'admin' ? '/admin/dashboard' : user.role === 'vendor' ? '/vendor/dashboard' : '/logistics/dashboard')}
-                className="glass-panel px-10 py-4 rounded-full  font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
-              >
-                Dashboard <span className="material-symbols-outlined">dashboard</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push('/register?vendor=true')}
-                className="glass-panel px-10 py-4 rounded-full  font-bold text-lg flex items-center gap-3 hover:bg-[var(--accent)]/5 transition-all text-[var(--text-primary)]"
-              >
-                Be a Vendor <span className="material-symbols-outlined">storefront</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </main>
   );
 }

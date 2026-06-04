@@ -38,26 +38,7 @@ export default function StoreHighlights({ title, data }) {
 
       <div className="flex gap-6 md:gap-8 px-4 md:px-6 overflow-x-auto no-scrollbar pb-10 snap-x snap-mandatory">
         {data.map((item, i) => {
-          const vendor = item.vendor_id || (item.vendor_name
-            ? {
-                _id: item._id || `cms-vendor-${i}`,
-                store_name: item.vendor_name,
-                description: item.subtext || item.description || '',
-                rating: item.rating || 0,
-                verified: Boolean(item.verified),
-                follower_count: item.follower_count || 0,
-                store: {
-                  banner: item.image_url || item.vendor_banner || '',
-                  logo: item.vendor_logo || item.image_url || '',
-                },
-                user_id: {
-                  branding: {
-                    banner: item.image_url || item.vendor_banner || '',
-                    logo: item.vendor_logo || item.image_url || '',
-                  },
-                },
-              }
-            : null);
+          const vendor = item.vendor_id;
           if (!vendor) return null;
           const store = vendor.store;
 

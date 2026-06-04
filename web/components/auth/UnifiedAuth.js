@@ -90,6 +90,9 @@ export default function UnifiedAuth() {
       return;
     }
 
+    setEmail(nextEmail);
+    setOtp('');
+    setStep('otp');
     setSubmitting(true);
     try {
       const result = await withLoginTimeout(
@@ -105,21 +108,17 @@ export default function UnifiedAuth() {
           setStep('otp');
           setError('Enter the code we already sent. You can request a new one when the timer ends.');
         } else if (result.timedOut) {
-          setEmail(nextEmail);
-          setOtp('');
           setResendIn(60);
-          setStep('otp');
           setError('If the code arrived, enter it here. You can resend when the timer ends.');
         } else {
+          setStep('email');
           setError(result.message);
         }
         return;
       }
 
-      setEmail(nextEmail);
-      setOtp('');
       setResendIn(result.data?.resendAfterSeconds || 60);
-      setStep('otp');
+      setError('');
       toast.success('Verification code sent');
     } finally {
       setSubmitting(false);
