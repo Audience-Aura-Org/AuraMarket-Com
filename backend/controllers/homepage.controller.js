@@ -6,6 +6,18 @@
 const HomepageSection = require('../models/HomepageSection.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
+const { normalizeMediaUrl } = require('../utils/media');
+
+const normalizeHomepageMedia = (value) => {
+  if (typeof value === 'string') return normalizeMediaUrl(value);
+  if (Array.isArray(value)) return value.map(normalizeHomepageMedia);
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value)) {
+      value[key] = normalizeHomepageMedia(value[key]);
+    }
+  }
+  return value;
+};
 
 /**
  * @route   GET /api/v1/homepage
@@ -42,12 +54,13 @@ const getHomepage = async (req, res, next) => {
     })
     .lean();
     
-    console.log('[homepage] fetched sections count:', sections.length);
+    const normalizedSections = normalizeHomepageMedia(sections);
+    console.log('[homepage] fetched sections count:', normalizedSections.length);
 
     res.status(200).json({
       success: true,
-      count: sections.length,
-      data: { sections }
+      count: normalizedSections.length,
+      data: { sections: normalizedSections }
     });
   } catch (error) {
     next(error);
@@ -153,10 +166,12 @@ const getAdminSections = async (req, res, next) => {
         ]
       });
 
+    const normalizedSections = normalizeHomepageMedia(sections.map((section) => section.toObject ? section.toObject() : section));
+
     res.status(200).json({
       success: true,
-      count: sections.length,
-      data: { sections }
+      count: normalizedSections.length,
+      data: { sections: normalizedSections }
     });
   } catch (error) {
     next(error);

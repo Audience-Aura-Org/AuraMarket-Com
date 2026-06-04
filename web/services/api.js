@@ -165,8 +165,8 @@ const API_ORIGIN = getApiOrigin();
 const normalizeAssetUrls = (value) => {
   if (typeof value === 'string') {
     // 1. Handle relative paths from the new upload logic
-    if (value.startsWith('/uploads/')) {
-      return `${API_ORIGIN}${value}`;
+    if (/^\/?uploads\//i.test(value)) {
+      return `${API_ORIGIN}/${value.replace(/^\/+/, '')}`;
     }
     // 2. Fix legacy absolute URLs that might have been hardcoded to local hosts
     return value.replace(/^https?:\/\/(localhost|127\.0\.0\.1):5000/i, API_ORIGIN);

@@ -1048,9 +1048,28 @@ const eversendPayoutBeneficiary = async (req, res) => {
  */
 const mesombWebhook = async (req, res) => {
   try {
-    const data = req.body;
-    const status = (data?.status || '').toUpperCase();
-    const trxID  = data?.trxID || data?.transaction?.trxID || data?.transaction?.external_id;
+    const payload = req.body || {};
+    let nestedData = payload.data;
+    if (typeof nestedData === 'string') {
+      try {
+        nestedData = JSON.parse(nestedData);
+      } catch {
+        nestedData = {};
+      }
+    }
+    const data = {
+      ...payload,
+      ...(nestedData && typeof nestedData === 'object' ? nestedData : {}),
+      raw_payload: payload,
+    };
+    const status = (data?.status || payload?.status || '').toUpperCase();
+    const trxID =
+      data?.trxID ||
+      data?.reference ||
+      data?.transaction?.trxID ||
+      data?.transaction?.external_id ||
+      data?.transaction?.reference ||
+      data?.pk;
 
     console.log('[MeSomb Webhook]', { status, trxID, data: JSON.stringify(data).slice(0, 200) });
 
@@ -1058,8 +1077,15 @@ const mesombWebhook = async (req, res) => {
       return res.status(200).json({ received: true, note: 'No trxID — ignored' });
     }
 
-    // Look up our Transaction by the trxID (which we set as our reference)
-    const transaction = await Transaction.findOne({ reference: trxID, gateway: 'mesomb' });
+    const transaction = await Transaction.findOne({
+      gateway: 'mesomb',
+      $or: [
+        { reference: trxID },
+        { gateway_transaction_id: trxID },
+        ...(data?.pk && data.pk !== trxID ? [{ gateway_transaction_id: data.pk }] : []),
+        ...(data?.reference && data.reference !== trxID ? [{ reference: data.reference }] : []),
+      ],
+    });
     if (!transaction) {
       return res.status(200).json({ received: true, note: 'Transaction not found — possibly already processed' });
     }
