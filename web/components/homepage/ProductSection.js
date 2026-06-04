@@ -29,11 +29,11 @@ export default function ProductSection({ title, subtitle, data, config }) {
       </div>
 
       <div className="w-full px-4 md:px-6">
-        <div className="grid grid-cols-2 gap-3 pb-8 md:grid-cols-3 md:gap-4 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-8 snap-x snap-mandatory md:gap-4">
           {products.map((product, i) => (
             <div
               key={product._id || product.id || i}
-              className="min-w-0"
+              className="w-[calc(50%-0.375rem)] shrink-0 snap-start sm:w-[calc(33.333%-0.75rem)] lg:w-[calc(16.666%-0.875rem)]"
             >
               <ProductCard product={product} layout="grid" />
             </div>
