@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import {
@@ -46,6 +47,11 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   const [vendorSearch, setVendorSearch] = useState('');
   const [activeVendorDropdown, setActiveVendorDropdown] = useState(null);
   const [itemVendorResults, setItemVendorResults] = useState([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (section) {
@@ -226,7 +232,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
     cat.name.toLowerCase().includes(categorySearch.toLowerCase())
   );
 
-  return (
+  const editorOverlay = (
     <div className="fixed inset-0 z-[9999] flex items-stretch justify-stretch p-0">
       <div className="absolute inset-0 bg-black/55 backdrop-blur-md" onClick={onClose} />
       
@@ -814,4 +820,6 @@ export default function SectionForm({ section, onClose, onSuccess }) {
       </div>
     </div>
   );
+
+  return mounted ? createPortal(editorOverlay, document.body) : null;
 }
