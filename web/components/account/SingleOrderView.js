@@ -414,30 +414,66 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   const cardBase = 'rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-sm shadow-sm';
   const paymentMeta = (() => {
+    const method = order.payment_method;
+    const statusValue = order.payment_status;
+
+    if (statusValue === 'refunded' || order.order_status === 'refunded') {
+      return {
+        label: 'Refunded',
+        detail: 'Refunded to wallet',
+        classes: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      };
+    }
+
     if (order.payment_method === 'pay_on_delivery') {
       return {
         label: 'Pay on delivery',
-        detail: 'Payment will be collected at delivery.',
+        detail: 'Due on delivery',
         classes: 'border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-400',
       };
     }
-    if (order.payment_status === 'paid') {
+    if (statusValue === 'paid') {
       return {
         label: 'Paid',
         detail: 'Paid',
         classes: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
       };
     }
-    if (order.payment_status === 'failed') {
+    if (statusValue === 'failed') {
       return {
         label: 'Payment failed',
-        detail: 'The payment attempt did not complete.',
+        detail: 'Payment failed',
         classes: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400',
       };
     }
+
+    if (method === 'mesomb') {
+      return {
+        label: 'Awaiting mobile money',
+        detail: 'Approve mobile money prompt',
+        classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      };
+    }
+
+    if (method === 'wallet') {
+      return {
+        label: 'Awaiting wallet payment',
+        detail: 'Awaiting wallet payment',
+        classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      };
+    }
+
+    if (method === 'escrow') {
+      return {
+        label: 'Awaiting escrow payment',
+        detail: 'Awaiting escrow payment',
+        classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      };
+    }
+
     return {
-      label: 'Payment pending',
-      detail: 'Awaiting gateway confirmation.',
+      label: 'Awaiting payment',
+      detail: 'Awaiting payment',
       classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
     };
   })();
