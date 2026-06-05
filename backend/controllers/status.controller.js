@@ -2,6 +2,7 @@ const Status = require('../models/Status.model');
 const Vendor = require('../models/Vendor.model');
 const Follow = require('../models/Follow.model');
 const Notification = require('../models/Notification.model');
+const { deleteS3ObjectByUrl } = require('../utils/s3');
 
 // @desc    Create a new status
 // @route   POST /api/statuses
@@ -247,6 +248,11 @@ exports.deleteStatus = async (req, res) => {
     }
 
     await status.deleteOne();
+    if (status.content_url) {
+      deleteS3ObjectByUrl(status.content_url).catch((err) => {
+        console.warn(`[Status] Temporary media cleanup failed for ${status._id}: ${err.message}`);
+      });
+    }
     res.status(200).json({ success: true, message: 'Status removed' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

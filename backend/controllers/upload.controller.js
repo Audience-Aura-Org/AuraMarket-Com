@@ -6,7 +6,13 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { uploadToS3, uploadMultipleToS3, createPresignedUpload, isS3Enabled } = require('../utils/s3');
+const {
+  uploadToS3,
+  uploadMultipleToS3,
+  createPresignedUpload,
+  isS3Enabled,
+  normalizeS3Folder,
+} = require('../utils/s3');
 const { compressVideo, compressVideoForStatus } = require('../utils/videoCompression');
 
 const SKIP_TRANSCODE_MAX_BYTES = 28 * 1024 * 1024; // already-mp4 under ~28MB → upload as-is
@@ -89,7 +95,7 @@ const uploadSingle = async (req, res) => {
 
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
-      const folder = req.body.type || 'general';
+      const folder = normalizeS3Folder(req.body.type || 'general');
       console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
       const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder);
       const s3Result = await uploadToS3(
@@ -165,7 +171,7 @@ const uploadMultiple = async (req, res) => {
 
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
-      const folder = req.body.type || 'others';
+      const folder = normalizeS3Folder(req.body.type || 'others');
       const fileBuffers = req.files.map(f => f.buffer);
       const fileNames = req.files.map(f => f.originalname);
       const mimetypes = req.files.map(f => f.mimetype);
@@ -243,7 +249,8 @@ const presignUpload = async (req, res) => {
       });
     }
 
-    const { fileName, contentType, type: folder = 'statuses' } = req.body;
+    const { fileName, contentType, type: rawFolder = 'statuses' } = req.body;
+    const folder = normalizeS3Folder(rawFolder || 'statuses');
     if (!fileName || !contentType) {
       return res.status(400).json({ success: false, message: 'fileName and contentType are required.' });
     }

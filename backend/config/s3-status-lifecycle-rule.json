@@ -1,0 +1,13 @@
+{
+  "ID": "auradime-delete-status-media-after-3-days",
+  "Status": "Enabled",
+  "Filter": {
+    "Prefix": "statuses/"
+  },
+  "Expiration": {
+    "Days": 3
+  },
+  "AbortIncompleteMultipartUpload": {
+    "DaysAfterInitiation": 1
+  }
+}

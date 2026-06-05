@@ -6,6 +6,18 @@ import axios from 'axios';
  */
 
 const isVideo = (file) => file?.type?.startsWith('video/');
+const normalizeUploadFolder = (folder = 'general') => {
+  const raw = String(folder || 'general').trim().toLowerCase();
+  if (['status', 'statuses', 'story', 'stories', 'aura-story', 'aurastory'].includes(raw)) {
+    return 'statuses';
+  }
+  return raw.replace(/[^a-z0-9/_-]/g, '-').replace(/\/+/g, '/').replace(/^\/|\/$/g, '') || 'general';
+};
+
+const cacheControlForUpload = (folder, file) => {
+  if (normalizeUploadFolder(folder) === 'statuses') return 'public, max-age=259200';
+  return isVideo(file) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
+};
 
 /**
  * Direct S3 presigned PUT — fastest path; bypasses Next.js/Vercel body limits.
@@ -13,13 +25,14 @@ const isVideo = (file) => file?.type?.startsWith('video/');
 async function uploadViaPresign(file, folder, onProgress) {
   const isVid = isVideo(file);
   const contentType = file.type || 'application/octet-stream';
-  const cacheControl = isVid ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
+  const normalizedFolder = normalizeUploadFolder(folder);
+  const cacheControl = cacheControlForUpload(normalizedFolder, file);
   const contentDisposition = isVid ? 'inline' : 'attachment';
 
   const presignRes = await api.post('/upload/presign', {
     fileName: file.name,
     contentType: contentType,
-    type: folder,
+    type: normalizedFolder,
   });
 
   if (!presignRes.data?.success) {
@@ -69,7 +82,7 @@ async function uploadViaPresign(file, folder, onProgress) {
  */
 async function uploadViaApi(file, folder, fieldName = 'image') {
   const formData = new FormData();
-  formData.append('type', folder);
+  formData.append('type', normalizeUploadFolder(folder));
   formData.append(fieldName, file);
   if (fieldName !== 'image') formData.append('image', file);
 
@@ -85,7 +98,7 @@ async function uploadViaApi(file, folder, fieldName = 'image') {
 export const uploadService = {
   uploadSingle: async (file, type = 'general', options = {}) => {
     const { onProgress } = options;
-    const folder = type || 'general';
+    const folder = normalizeUploadFolder(type || 'general');
 
     // Videos: prefer direct S3 when available (fast + no proxy 404/413)
     if (isVideo(file)) {
@@ -117,7 +130,7 @@ export const uploadService = {
 
   uploadMultiple: async (files, type = 'general') => {
     const formData = new FormData();
-    formData.append('type', type);
+    formData.append('type', normalizeUploadFolder(type));
     Array.from(files).forEach((file) => {
       formData.append('images', file);
     });
