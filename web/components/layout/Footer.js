@@ -8,7 +8,12 @@ const LEGAL_LINKS = [
   { name: 'Privacy', href: '/privacy' },
   { name: 'Terms', href: '/terms' },
   { name: 'Cookies', href: '/cookies' },
-  { name: 'Rules', href: '/rules' },
+  { name: 'Refunds', href: '/refund-policy' },
+  { name: 'Disputes', href: '/dispute-policy' },
+  { name: 'Vendors', href: '/vendor-policy' },
+  { name: 'Logistics', href: '/logistics-policy' },
+  { name: 'Prohibited', href: '/prohibited-items' },
+  { name: 'Delete Account', href: '/account-deletion' },
 ];
 
 export default function Footer() {
@@ -60,7 +65,7 @@ export default function Footer() {
 
             <span className="hidden h-4 w-px bg-[var(--glass-border)] sm:block" />
 
-            <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <nav className="flex max-w-2xl flex-wrap items-center justify-center gap-x-4 gap-y-1">
               {LEGAL_LINKS.map((link) => (
                 <Link
                   key={link.name}

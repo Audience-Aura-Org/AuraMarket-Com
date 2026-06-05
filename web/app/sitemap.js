@@ -1,5 +1,5 @@
 const baseUrl = 'https://auradime.com';
-const lastModified = new Date('2026-05-30T00:00:00.000Z');
+const lastModified = new Date('2026-06-05T00:00:00.000Z');
 
 export const dynamic = 'force-static';
 
@@ -14,7 +14,16 @@ const routes = [
   '/help',
   '/contact',
   '/privacy',
+  '/privacy-policy',
   '/terms',
+  '/terms-of-service',
+  '/cookies',
+  '/refund-policy',
+  '/vendor-policy',
+  '/logistics-policy',
+  '/prohibited-items',
+  '/dispute-policy',
+  '/account-deletion',
 ];
 
 export default function sitemap() {

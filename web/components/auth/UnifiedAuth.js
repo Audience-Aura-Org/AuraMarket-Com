@@ -419,6 +419,10 @@ export default function UnifiedAuth() {
             <Link href="/cookies" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
               Cookie Policy
             </Link>
+            , plus the marketplace policies in the{' '}
+            <Link href="/refund-policy" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
+              Legal Center
+            </Link>
             .
           </p>
         </div>
