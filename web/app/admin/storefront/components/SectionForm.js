@@ -64,6 +64,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         cta_text: item.cta_text || '',
         product_name: item.product_name || (typeof item.product_id === 'object' ? item.product_id?.name || '' : ''),
         product_id: item.product_id ? (typeof item.product_id === 'object' ? item.product_id._id : item.product_id) : '',
+        category_id: item.category_id ? (typeof item.category_id === 'object' ? item.category_id._id : item.category_id) : '',
         category_name: item.category_name || '',
         vendor_name: item.vendor_name || (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name || '' : ''),
         vendor_id: item.vendor_id ? (typeof item.vendor_id === 'object' ? item.vendor_id._id : item.vendor_id) : ''
@@ -182,11 +183,15 @@ export default function SectionForm({ section, onClose, onSuccess }) {
           if (cleaned.product_id && typeof cleaned.product_id === 'object') {
             cleaned.product_id = cleaned.product_id._id;
           }
+          if (cleaned.category_id && typeof cleaned.category_id === 'object') {
+            cleaned.category_id = cleaned.category_id._id;
+          }
           if (cleaned.vendor_id && typeof cleaned.vendor_id === 'object') {
             cleaned.vendor_id = cleaned.vendor_id._id;
           }
 
           if (!cleaned.product_id || (typeof cleaned.product_id === 'string' && cleaned.product_id.trim() === '')) delete cleaned.product_id;
+          if (!cleaned.category_id || (typeof cleaned.category_id === 'string' && cleaned.category_id.trim() === '')) delete cleaned.category_id;
           if (!cleaned.vendor_id || (typeof cleaned.vendor_id === 'string' && cleaned.vendor_id.trim() === '')) delete cleaned.vendor_id;
           return cleaned;
         })
@@ -212,7 +217,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   const addDataItem = () => {
     setFormData(prev => ({
       ...prev,
-      data: [...prev.data, { headline: '', subtext: '', image_url: '', link_to: '', cta_text: '', product_name: '', product_id: '', category_name: '', vendor_name: '', vendor_id: '' }]
+      data: [...prev.data, { headline: '', subtext: '', image_url: '', link_to: '', cta_text: '', product_name: '', product_id: '', category_id: '', category_name: '', vendor_name: '', vendor_id: '' }]
     }));
   };
 
@@ -224,9 +229,21 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   };
 
   const updateDataItem = (index, field, value) => {
-    const newData = [...formData.data];
-    newData[index][field] = value;
-    setFormData(prev => ({ ...prev, data: newData }));
+    setFormData(prev => ({
+      ...prev,
+      data: prev.data.map((item, i) => (
+        i === index ? { ...item, [field]: value } : item
+      ))
+    }));
+  };
+
+  const updateDataItemFields = (index, fields) => {
+    setFormData(prev => ({
+      ...prev,
+      data: prev.data.map((item, i) => (
+        i === index ? { ...item, ...fields } : item
+      ))
+    }));
   };
 
   const filteredCategories = categories.filter(cat => 
@@ -567,7 +584,11 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                        <div 
                                          key={cat._id}
                                          onClick={() => {
-                                           updateDataItem(i, 'category_name', cat.name);
+                                           updateDataItemFields(i, {
+                                             category_name: cat.name,
+                                             category_id: cat._id,
+                                             link_to: `/shop?category=${encodeURIComponent(cat.name)}&categoryId=${encodeURIComponent(cat._id)}`
+                                           });
                                            setActiveCategoryDropdown(null);
                                          }}
                                          className={`flex cursor-pointer items-center justify-between rounded-xl border border-transparent px-4 py-3 transition-all ${item.category_name === cat.name ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
@@ -635,7 +656,11 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                        <div 
                                          key={cat._id}
                                          onClick={() => {
-                                           updateDataItem(i, 'link_to', `/shop?category=${encodeURIComponent(cat.name)}`);
+                                           updateDataItemFields(i, {
+                                             link_to: `/shop?category=${encodeURIComponent(cat.name)}&categoryId=${encodeURIComponent(cat._id)}`,
+                                             category_name: cat.name,
+                                             category_id: cat._id
+                                           });
                                            setActiveLinkDropdown(null);
                                          }}
                                          className="flex cursor-pointer items-center justify-between rounded-xl border border-transparent px-4 py-3 text-[var(--text-primary)] transition-all hover:bg-[var(--bg-secondary)]"

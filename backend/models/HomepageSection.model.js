@@ -61,6 +61,10 @@ const HomepageSectionSchema = new mongoose.Schema(
         },
         
         // For 'categories'
+        category_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Category'
+        },
         category_name: String,
 
         // For 'stores'

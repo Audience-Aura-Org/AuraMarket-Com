@@ -5,6 +5,15 @@ import { ArrowRight } from 'lucide-react';
 export default function CategoryCarousel({ title, data }) {
   if (!data?.length) return null;
 
+  const categoryHref = (cat) => {
+    const params = new URLSearchParams();
+    const rawCategoryId = cat.category_id || cat._id;
+    const categoryId = rawCategoryId && typeof rawCategoryId === 'object' ? rawCategoryId._id : rawCategoryId;
+    if (cat.category_name) params.set('category', cat.category_name);
+    if (categoryId) params.set('categoryId', categoryId);
+    return `/shop${params.toString() ? `?${params.toString()}` : ''}`;
+  };
+
   return (
     <section className="w-full py-3 sm:py-4 lg:py-5">
       <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
@@ -26,7 +35,7 @@ export default function CategoryCarousel({ title, data }) {
         {data.map((cat, i) => (
           <Link 
             key={i} 
-            href={`/shop?category=${cat.category_name}`}
+            href={categoryHref(cat)}
             className="group w-[38vw] max-w-[168px] flex-shrink-0 snap-start sm:w-[24vw] md:w-[178px] lg:w-[190px]"
           >
             <div className="relative aspect-square overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all duration-300 group-hover:border-[var(--accent)]/30 group-hover:shadow-lg">

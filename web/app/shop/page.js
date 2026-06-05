@@ -86,8 +86,17 @@ function ShopContent() {
     
     // Sync active category name from URL independently
     const urlCategory = searchParams.get('category');
-    if (urlCategory) setActiveCategoryName(urlCategory);
-  }, [searchParams.get('vendorId'), searchParams.get('category')]);
+    const urlCategoryId = searchParams.get('categoryId');
+    if (!urlCategory && !urlCategoryId) {
+      setBreadcrumb([]);
+      setActiveCategoryId(null);
+      setActiveCategoryName('All');
+      return;
+    }
+
+    setActiveCategoryId(urlCategoryId || null);
+    setActiveCategoryName(urlCategory || 'All');
+  }, [searchParams.get('vendorId'), searchParams.get('category'), searchParams.get('categoryId')]);
 
   // Debounce ref
   const fetchTimeout = useRef(null);
@@ -102,6 +111,7 @@ function ShopContent() {
     const executeFetch = async () => {
       const params = { page: targetPage, limit: 24 };
       if (activeCategoryName && activeCategoryName !== 'All') params.category = activeCategoryName;
+      if (activeCategoryId) params.categoryId = activeCategoryId;
       if (activePrice) {
         const range = PRICE_RANGES.find(p => p.id === activePrice);
         params.minPrice = range.min;
@@ -148,7 +158,7 @@ function ShopContent() {
     } else {
       fetchTimeout.current = setTimeout(executeFetch, 300);
     }
-  }, [activeCategoryName, activePrice, sortBy, search, page, searchParams]); 
+  }, [activeCategoryId, activeCategoryName, activePrice, sortBy, search, page, searchParams]); 
 
   // Trigger fetch: Use immediate for filters, debounce for search
   useEffect(() => {
@@ -156,7 +166,7 @@ function ShopContent() {
     const urlQuery = searchParams.get('q') || '';
     const isSearching = search !== urlQuery;
     fetchProducts(page, !isSearching);
-  }, [page, activeCategoryName, activePrice, sortBy]);
+  }, [page, activeCategoryId, activeCategoryName, activePrice, sortBy]);
 
   // Special handle for search input to ensure it debounces correctly
   useEffect(() => {
@@ -175,7 +185,7 @@ function ShopContent() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [activeCategoryName, activePrice, sortBy, search]);
+  }, [activeCategoryId, activeCategoryName, activePrice, sortBy, search]);
 
   const handleCategoryClick = (cat) => {
     setBreadcrumb(prev => [...prev, cat]);

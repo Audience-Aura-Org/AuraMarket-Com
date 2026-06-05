@@ -14,6 +14,42 @@ const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
 const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
 
+const resolveCategoryNames = async ({ categoryId, categoryName, includeDescendants = true }) => {
+  const hasCategoryId = categoryId && /^[a-f\d]{24}$/i.test(String(categoryId));
+  const hasCategoryName = categoryName && typeof categoryName === 'string';
+  if (!hasCategoryId && !hasCategoryName) return null;
+
+  const targetCategory = hasCategoryId
+    ? await Category.findById(categoryId).lean()
+    : await Category.findOne({ name: categoryName }).lean();
+
+  if (!targetCategory) {
+    return hasCategoryName ? [categoryName] : [];
+  }
+
+  if (!includeDescendants) return [targetCategory.name];
+
+  const allCategories = await Category.find({ is_active: { $ne: false } }).select('_id parent_id name').lean();
+  const validCategoryNames = [targetCategory.name];
+  const toCheck = [targetCategory._id.toString()];
+
+  for (let index = 0; index < toCheck.length; index += 1) {
+    const parentId = toCheck[index];
+    allCategories.forEach((cat) => {
+      if (
+        cat.parent_id &&
+        cat.parent_id.toString() === parentId &&
+        !validCategoryNames.includes(cat.name)
+      ) {
+        validCategoryNames.push(cat.name);
+        toCheck.push(cat._id.toString());
+      }
+    });
+  }
+
+  return validCategoryNames;
+};
+
 // ─────────────────────────────────────────────
 // @route   POST /api/products
 // @desc    Create a new product
@@ -92,7 +128,7 @@ const getProducts = async (req, res, next) => {
 
     let query;
     const reqQuery = { ...req.query };
-    const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'minPrice', 'maxPrice'];
+    const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'minPrice', 'maxPrice', 'categoryId'];
     removeFields.forEach((param) => delete reqQuery[param]);
 
     let queryStr = JSON.stringify(reqQuery);
@@ -108,26 +144,16 @@ const getProducts = async (req, res, next) => {
       parsedQuery.price = priceQuery;
     }
 
-    if (parsedQuery.category && typeof parsedQuery.category === 'string') {
-      const targetCategoryName = parsedQuery.category;
-      const targetCategory = await Category.findOne({ name: targetCategoryName });
-      
-      if (targetCategory) {
-        const allCategories = await Category.find();
-        let validCategoryNames = [targetCategoryName];
-        let toCheck = [targetCategory._id.toString()];
-        let foundNew = true;
-        while (foundNew) {
-           foundNew = false;
-           for(let i=0; i < allCategories.length; i++) {
-              if (allCategories[i].parent_id && toCheck.includes(allCategories[i].parent_id.toString()) && !validCategoryNames.includes(allCategories[i].name)) {
-                 validCategoryNames.push(allCategories[i].name);
-                 toCheck.push(allCategories[i]._id.toString());
-                 foundNew = true;
-              }
-           }
-        }
-        parsedQuery.category = { $in: validCategoryNames };
+    const categoryNames = await resolveCategoryNames({
+      categoryId: req.query.categoryId,
+      categoryName: parsedQuery.category,
+      includeDescendants: true,
+    });
+    if (categoryNames) {
+      if (categoryNames.length) {
+        parsedQuery.category = { $in: categoryNames };
+      } else {
+        parsedQuery.category = '__NO_MATCH__';
       }
     }
 
@@ -502,19 +528,13 @@ const getHubFeed = async (req, res, next) => {
       }
     }
     
-    if (req.query.category) {
-      const targetCategoryName = req.query.category;
-      const targetCategory = await Category.findOne({ name: targetCategoryName }).lean();
-      
-      if (targetCategory) {
-        // Optimized category search: just get immediate subcategories for performance
-        const subCategories = await Category.find({ 
-          $or: [{ _id: targetCategory._id }, { parent_id: targetCategory._id }] 
-        }).select('name').lean();
-        query.category = { $in: subCategories.map(c => c.name) };
-      } else {
-        query.category = targetCategoryName;
-      }
+    if (req.query.category || req.query.categoryId) {
+      const categoryNames = await resolveCategoryNames({
+        categoryId: req.query.categoryId,
+        categoryName: req.query.category,
+        includeDescendants: true,
+      });
+      query.category = categoryNames?.length ? { $in: categoryNames } : '__NO_MATCH__';
     } else if (categoryIds.length > 0 && !isFollowedOnly) {
       // Only apply generic liked_categories if NOT viewing followed-only feed
       query.category = { $in: categoryIds };
