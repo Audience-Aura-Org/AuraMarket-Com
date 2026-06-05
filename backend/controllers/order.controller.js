@@ -437,6 +437,8 @@ const getCustomerOrders = async (req, res, next) => {
         { payment_status: 'paid' },
         { payment_status: 'pending' },
         { payment_status: 'failed' },
+        { payment_status: 'refunded' },
+        { order_status: { $in: ['cancelled', 'refunded', 'refund_pending'] } },
         { payment_method: 'pay_on_delivery' }
       ]
     })
