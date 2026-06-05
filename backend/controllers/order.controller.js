@@ -738,21 +738,21 @@ const cancelOrder = async (req, res, next) => {
 
     const cancelledAt = new Date();
 
+    const pendingPayoutFilter = { order_id: order._id, type: 'payout', status: 'pending' };
     await Transaction.updateMany(
-      { order_id: order._id, type: 'payout', status: 'pending' },
-      [
-        {
-          $set: {
-            status: 'rejected',
-            metadata: {
-              $mergeObjects: [
-                { $ifNull: ['$metadata', {}] },
-                { cancelled_at: cancelledAt, cancel_reason: reason },
-              ],
-            },
-          },
+      { ...pendingPayoutFilter, metadata: null },
+      { $set: { metadata: {} } },
+      { session }
+    );
+    await Transaction.updateMany(
+      pendingPayoutFilter,
+      {
+        $set: {
+          status: 'rejected',
+          'metadata.cancelled_at': cancelledAt,
+          'metadata.cancel_reason': reason,
         },
-      ],
+      },
       { session }
     );
 
@@ -789,26 +789,26 @@ const cancelOrder = async (req, res, next) => {
       note: reason,
     });
 
+    const pendingCheckoutFilter = {
+      user_id: order.customer_id,
+      order_ids: order._id,
+      gateway: { $in: ['mesomb', 'eversend'] },
+      status: 'pending',
+    };
     await Transaction.updateMany(
+      { ...pendingCheckoutFilter, metadata: null },
+      { $set: { metadata: {} } },
+      { session }
+    );
+    await Transaction.updateMany(
+      pendingCheckoutFilter,
       {
-        user_id: order.customer_id,
-        order_ids: order._id,
-        gateway: { $in: ['mesomb', 'eversend'] },
-        status: 'pending',
-      },
-      [
-        {
-          $set: {
-            status: 'rejected',
-            metadata: {
-              $mergeObjects: [
-                { $ifNull: ['$metadata', {}] },
-                { cancelled_at: cancelledAt, cancel_reason: reason },
-              ],
-            },
-          },
+        $set: {
+          status: 'rejected',
+          'metadata.cancelled_at': cancelledAt,
+          'metadata.cancel_reason': reason,
         },
-      ],
+      },
       { session }
     );
 

@@ -153,26 +153,27 @@ const rejectPendingCheckoutTransactions = async (userId, orderIds = [], reason =
   if (!checkoutKey) return;
   const cancelledAt = new Date();
 
+  const filter = {
+    user_id: userId,
+    gateway: { $in: ['mesomb', 'eversend'] },
+    status: 'pending',
+    'metadata.checkout_key': checkoutKey,
+  };
+
   await Transaction.updateMany(
+    { ...filter, metadata: null },
+    { $set: { metadata: {} } }
+  );
+
+  await Transaction.updateMany(
+    filter,
     {
-      user_id: userId,
-      gateway: { $in: ['mesomb', 'eversend'] },
-      status: 'pending',
-      'metadata.checkout_key': checkoutKey,
-    },
-    [
-      {
-        $set: {
-          status: 'rejected',
-          metadata: {
-            $mergeObjects: [
-              { $ifNull: ['$metadata', {}] },
-              { cancelled_at: cancelledAt, cancel_reason: reason },
-            ],
-          },
-        },
+      $set: {
+        status: 'rejected',
+        'metadata.cancelled_at': cancelledAt,
+        'metadata.cancel_reason': reason,
       },
-    ]
+    }
   );
 };
 
