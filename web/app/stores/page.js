@@ -89,13 +89,7 @@ function StoresDirectoryContent() {
           </div>
         </motion.div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[1,2,3,4,5,6,7,8].map(i => (
-              <div key={i} className="h-80 rounded-[40px] bg-[var(--bg-primary)] animate-pulse border border-[var(--glass-border)]"></div>
-            ))}
-          </div>
-        ) : filteredStores.length === 0 ? (
+        {filteredStores.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -105,8 +99,10 @@ function StoresDirectoryContent() {
                <Store className="size-8 text-[var(--accent)]/60" />
              </div>
              <div>
-               <h2 className="text-2xl  font-bold text-[var(--text-primary)]/70">No stores found</h2>
-               <p className="text-[var(--text-secondary)] font-medium mt-2 text-sm">Try adjusting your search criteria.</p>
+               <h2 className="text-2xl  font-bold text-[var(--text-primary)]/70">{loading ? 'Stores syncing' : 'No stores found'}</h2>
+               <p className="text-[var(--text-secondary)] font-medium mt-2 text-sm">
+                 {loading ? 'Stores appear here as soon as the latest directory arrives.' : 'Try adjusting your search criteria.'}
+               </p>
              </div>
           </motion.div>
         ) : (

@@ -60,7 +60,9 @@ const api = axios.create({
 
 const isNativeApp = () => typeof window !== 'undefined' && Capacitor.isNativePlatform();
 const OFFLINE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const CLIENT_FAST_CACHE_TTL_MS = 45 * 1000;
 const OFFLINE_CACHE_PREFIX = 'aura_api_cache:';
+const clientGetInFlight = new Map();
 const OFFLINE_CACHEABLE_ROUTES = [
   /^homepage(?:\/|$)/,
   /^products(?:\/|$)/,
@@ -114,13 +116,29 @@ const isOfflineCacheableRoute = (url = '') => {
   return OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized));
 };
 
+const hashCacheScope = (value = '') => {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(36);
+};
+
+const getAuthCacheScope = (config) => {
+  const authHeader =
+    config?.headers?.Authorization ||
+    config?.headers?.authorization ||
+    '';
+  return authHeader ? `auth:${hashCacheScope(authHeader)}` : 'public';
+};
+
 const getCacheKey = (config) => {
   const url = config?.url || '';
   const params = config?.params ? JSON.stringify(config.params) : '';
-  return `${OFFLINE_CACHE_PREFIX}${normalizeCacheUrl(url)}:${params}`;
+  return `${OFFLINE_CACHE_PREFIX}${getAuthCacheScope(config)}:${normalizeCacheUrl(url)}:${params}`;
 };
 const canUseOfflineCache = (config) =>
-  isNativeApp() &&
+  typeof window !== 'undefined' &&
   (config?.method || 'get').toLowerCase() === 'get' &&
   isOfflineCacheableRoute(config?.url || '');
 
@@ -326,6 +344,58 @@ api.interceptors.response.use(
     return api(config);
   }
 );
+
+const rawGet = api.get.bind(api);
+
+api.get = async (url, config = {}) => {
+  const normalizedConfig = {
+    ...config,
+    url,
+    method: 'get',
+  };
+
+  if (!config?.skipClientCache && canUseOfflineCache(normalizedConfig)) {
+    let scopedConfig = normalizedConfig;
+    if (typeof window !== 'undefined') {
+      const token = await getStoredAuthToken();
+      if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+        scopedConfig = {
+          ...normalizedConfig,
+          headers: {
+            ...(normalizedConfig.headers || {}),
+            Authorization: `Bearer ${token}`,
+          },
+        };
+      }
+    }
+
+    const key = getCacheKey(scopedConfig);
+    const cached = readOfflineCache(scopedConfig);
+    if (cached?.data && Date.now() - Number(cached.cachedAt || 0) <= CLIENT_FAST_CACHE_TTL_MS) {
+      return {
+        data: cached.data,
+        status: 200,
+        statusText: 'OK (client cache)',
+        headers: {},
+        config: scopedConfig,
+        request: null,
+        clientCache: true,
+      };
+    }
+
+    if (clientGetInFlight.has(key)) {
+      return clientGetInFlight.get(key);
+    }
+
+    const request = rawGet(url, config).finally(() => {
+      clientGetInFlight.delete(key);
+    });
+    clientGetInFlight.set(key, request);
+    return request;
+  }
+
+  return rawGet(url, config);
+};
 
 export default api;
 

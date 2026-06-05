@@ -723,6 +723,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       receiver_id: sendPartnerId,
       createdAt: new Date().toISOString(),
       status: 'sending',
+      delivered_status: onlineUsersMap[sendPartnerId] === true,
     };
 
     receiveMessage(optimisticMsg, {
@@ -1162,16 +1163,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           /* ─ Inbox list ─ */
           <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:p-3">
             <div className="space-y-px overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)]">
-              {inboxLoading ? (
-                <div className="flex flex-col items-center gap-4 bg-[var(--bg-primary)] py-20">
-                  <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
-                  <p className="text-[13px] font-medium text-[var(--text-secondary)]">Loading chats...</p>
-                </div>
-              ) : filteredInbox.length === 0 ? (
+              {filteredInbox.length === 0 ? (
                 <div className="bg-[var(--bg-primary)] px-6 py-16 text-center">
                   <MessageCircle className="mx-auto mb-4 size-14 text-[var(--text-secondary)]" />
-                  <p className="text-[15px] font-medium text-[var(--text-primary)]">No chats yet</p>
-                  <p className="mt-2 text-[13px] leading-snug text-[var(--text-secondary)]">Start a conversation from a product or store.</p>
+                  <p className="text-[15px] font-medium text-[var(--text-primary)]">
+                    {inboxLoading ? 'Chats will appear here' : 'No chats yet'}
+                  </p>
+                  <p className="mt-2 text-[13px] leading-snug text-[var(--text-secondary)]">
+                    {inboxLoading ? 'Your saved chats stay visible as they sync.' : 'Start a conversation from a product or store.'}
+                  </p>
                 </div>
               ) : (
                 filteredInbox.map((chat, i) => (
@@ -1221,20 +1221,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ) : (
           /* ─ Messages ─ */
           <div className="mx-auto w-full max-w-4xl space-y-0.5 px-2 pb-4 pt-2 sm:space-y-1 sm:px-4 sm:pb-6">
-            {loadingMore && (
-              <div className="flex justify-center py-3">
-                <Loader2 className="size-4 animate-spin text-[var(--text-secondary)]" />
-              </div>
-            )}
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-24 opacity-60">
-                <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
-              </div>
-            ) : messages.length === 0 ? (
+            {messages.length === 0 ? (
               <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
                 <MessageCircle className="mb-4 size-12 text-[var(--text-secondary)]/70" />
-                <p className="text-[15px] font-semibold text-[var(--text-primary)]">Start the conversation</p>
-                <p className="mt-1 max-w-[280px] text-[13px] leading-snug text-[var(--text-secondary)]">Send a message or pick a quick reply below.</p>
+                <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                  {loading ? 'Opening conversation' : 'Start the conversation'}
+                </p>
+                <p className="mt-1 max-w-[280px] text-[13px] leading-snug text-[var(--text-secondary)]">
+                  {loading ? 'Saved messages appear instantly while the chat syncs.' : 'Send a message or pick a quick reply below.'}
+                </p>
               </div>
             ) : (
               <>

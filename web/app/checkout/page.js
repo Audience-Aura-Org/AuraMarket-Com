@@ -15,7 +15,6 @@ import api from '@/services/api';
 import { initiateCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
@@ -1454,13 +1453,11 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
          </div>
       </div>
       <div className="max-h-60 overflow-y-auto no-scrollbar">
-         {loading ? (
-            <div className="p-8 flex items-center justify-center">
-               <Loader2 className="size-5 animate-spin text-[var(--accent)]" />
-            </div>
-         ) : filtered.length === 0 ? (
+         {filtered.length === 0 ? (
             <div className="p-8 text-center opacity-30">
-               <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">No nodes found</p>
+               <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">
+                  {loading ? 'Finding logistics nodes...' : 'No nodes found'}
+               </p>
             </div>
          ) : (
             filtered.map(f => (
@@ -1493,7 +1490,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={null}>
       <CheckoutContent />
     </Suspense>
   );

@@ -296,9 +296,7 @@ export default function HubContent() {
                        </div>
                      </div>
                      <p className="mb-2 ml-1 mt-4 text-[11px] font-semibold uppercase tracking-wide text-[#667781]">Messages &amp; followed</p>
-                     {loadingInbox ? (
-                        <div className="flex flex-col items-center py-20 opacity-20"><Loader2 className="animate-spin" /></div>
-                     ) : filteredInbox.length === 0 ? (
+                     {filteredInbox.length === 0 ? (
                         <EmptyPlaceholder icon={MessageCircle} text="No messages yet. Follow vendors to chat!" />
                      ) : (
                         <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
@@ -382,31 +380,23 @@ export default function HubContent() {
                       <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40 mb-1">
                         {activeCategoryName === 'All' ? 'Calibrated Discovery' : activeCategoryName}
                       </p>
-                      {loadingFeed ? (
-                         <div className="grid grid-cols-2 gap-3">
-                           {[1,2,3,4,5,6].map(i => (
-                             <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-[var(--glass-border)]" />
-                           ))}
-                         </div>
+                      {feed.length === 0 ? (
+                        <EmptyPlaceholder icon={Search} text={loadingFeed ? 'Discovery is syncing.' : 'No products in this category'} />
                       ) : (
                         <>
-                          {feed.length === 0 ? (
-                            <EmptyPlaceholder icon={Search} text="No products in this category" />
-                          ) : (
-                            <div className={viewMode === 'grid' ? "grid grid-cols-2 gap-3 mb-6" : "flex flex-col gap-4 mb-6"}>
-                              {feed.map(product => <ProductCard key={product._id} product={product} layout={viewMode} />)}
-                            </div>
-                          )}
-                          
-                          {totalPages > 1 && page < totalPages && (
-                            <button
-                              onClick={() => setPage(p => p + 1)}
-                              disabled={loadingFeed}
-                              className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
-                            >
-                              Synchronize More
-                            </button>
-                          )}
+                        <div className={viewMode === 'grid' ? "grid grid-cols-2 gap-3 mb-6" : "flex flex-col gap-4 mb-6"}>
+                          {feed.map(product => <ProductCard key={product._id} product={product} layout={viewMode} />)}
+                        </div>
+                        
+                        {totalPages > 1 && page < totalPages && (
+                          <button
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={loadingFeed}
+                            className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
+                          >
+                            Synchronize More
+                          </button>
+                        )}
                         </>
                       )}
                    </motion.div>
@@ -462,11 +452,7 @@ export default function HubContent() {
 
                {/* Category Chips - Ported from Shop */}
                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-1">
-                 {isCategoriesLoading ? (
-                   [...Array(6)].map((_, i) => (
-                     <div key={i} className="shrink-0 w-24 h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse border border-[var(--glass-border)]/30"></div>
-                   ))
-                 ) : (
+                 {isCategoriesLoading && currentLevel.length === 0 ? null : (
                   <>
                    {breadcrumb.length > 0 ? (
                      <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
@@ -546,9 +532,7 @@ export default function HubContent() {
                   <div className="space-y-2">
                      <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[#667781]">Messages</p>
                      <div className="min-h-[320px] overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
-                        {loadingInbox ? (
-                          <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-[#00a884]" /></div>
-                        ) : filteredInbox.filter(c => !c.isFollowed).length === 0 ? (
+                        {filteredInbox.filter(c => !c.isFollowed).length === 0 ? (
                           <EmptyPlaceholder icon={MessageCircle} text="No conversations yet." />
                         ) : (
                           <div className="divide-y divide-[#f0f2f5]">
@@ -561,9 +545,7 @@ export default function HubContent() {
                   <div className="space-y-2">
                      <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[#667781]">Followed vendors</p>
                      <div className="min-h-[320px] overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
-                        {loadingInbox ? (
-                          <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-[#00a884]" /></div>
-                        ) : filteredInbox.filter(c => c.isFollowed).length === 0 ? (
+                        {filteredInbox.filter(c => c.isFollowed).length === 0 ? (
                           <EmptyPlaceholder icon={Users} text="Follow vendors to see them here." />
                         ) : (
                           <div className="divide-y divide-[#f0f2f5]">
@@ -627,19 +609,15 @@ export default function HubContent() {
               </div>
 
               {/* Product Grid - 6 PER ROW REQUEST */}
-              {loadingFeed ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-6">
-                  {[...Array(12)].map((_, i) => (
-                    <div key={i} className="aspect-[3/4] rounded-[32px] bg-[var(--accent)]/5 animate-pulse border border-[var(--glass-border)]" />
-                  ))}
-                </div>
-              ) : feed.length === 0 ? (
+              {feed.length === 0 ? (
                 <div className="py-20 text-center bg-[var(--bg-primary)]/40 rounded-[48px] border border-[var(--glass-border)] border-dashed">
                   <div className="size-20 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                     <Search className="size-8 text-[var(--accent)] opacity-20" />
                   </div>
-                  <h3 className="text-2xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">No Frequency Detected</h3>
-                  <p className="text-sm font-medium text-[var(--text-secondary)] opacity-60">Adjust your category filters or try a different search signal.</p>
+                  <h3 className="text-2xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">{loadingFeed ? 'Discovery syncing' : 'No Frequency Detected'}</h3>
+                  <p className="text-sm font-medium text-[var(--text-secondary)] opacity-60">
+                    {loadingFeed ? 'Products appear here as soon as the latest feed arrives.' : 'Adjust your category filters or try a different search signal.'}
+                  </p>
                 </div>
               ) : (
                 <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-6 mb-12" : "flex flex-col gap-5 mb-12 max-w-5xl mx-auto"}>

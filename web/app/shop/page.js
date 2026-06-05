@@ -10,7 +10,6 @@ import {
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import Pagination from '@/components/common/Pagination';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import { useFollow } from '@/hooks/useFollow';
 import { useChat } from '@/context/ChatContext';
@@ -265,11 +264,7 @@ function ShopContent() {
 
           <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
             <div className="max-w-7xl px-6 lg:px-12 py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full">
-               {isCategoriesLoading ? (
-                 [...Array(6)].map((_, i) => (
-                   <div key={i} className="shrink-0 w-24 h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse border border-[var(--glass-border)]/30"></div>
-                 ))
-               ) : (
+               {isCategoriesLoading && currentLevel.length === 0 ? null : (
                 <>
                  {breadcrumb.length > 0 ? (
                    <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
@@ -478,15 +473,15 @@ function ShopContent() {
 
           {/* Product Grid - Consistently tight layout - ZOOMED STYLE */}
           <div className="px-4 md:px-8 lg:px-12 py-6">
-            {loading ? (
-              <LoadingSpinner />
-            ) : products.length === 0 ? (
+            {products.length === 0 ? (
               <div className="py-20 md:py-40 text-center">
                 <div className="size-20 md:size-24 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-8 text-[var(--text-secondary)]/50">
                   <Search className="size-8 md:size-10" />
                 </div>
-                <h2 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2">No Products Found</h2>
-                <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base px-6">No matches found for your current search or filters.</p>
+                <h2 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2">{loading ? 'Shop syncing' : 'No Products Found'}</h2>
+                <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base px-6">
+                  {loading ? 'Products appear here as soon as the latest shop feed arrives.' : 'No matches found for your current search or filters.'}
+                </p>
                 <button
                   onClick={() => {
                     setActiveCategoryId(null);
@@ -529,7 +524,7 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={null}>
       <ShopContent />
     </Suspense>
   );

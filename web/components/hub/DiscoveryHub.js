@@ -217,9 +217,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
 
         <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
           <div className="max-w-7xl px-6 lg:px-12 py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full">
-             {isCategoriesLoading ? (
-               [...Array(6)].map((_, i) => <div key={i} className="shrink-0 w-24 h-9 rounded-full bg-[var(--bg-secondary)] animate-pulse" />)
-             ) : (
+             {isCategoriesLoading && currentLevel.length === 0 ? null : (
                <>
                  {breadcrumb.length > 0 ? (
                    <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
@@ -334,11 +332,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
 
       {/* ── CONTENT AREA ── */}
       <div className="flex-1 px-2 py-6">
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-             {[...Array(12)].map((_, i) => <div key={i} className="aspect-[4/5] rounded-3xl bg-[var(--accent)]/5 animate-pulse border border-white/5" />)}
-          </div>
-        ) : products.length > 0 ? (
+        {products.length > 0 ? (
           <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
             {products.map(p => <ProductCard key={p._id} product={p} layout={viewMode} />)}
           </div>
@@ -348,10 +342,12 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
               <ShoppingBag className="size-10 text-[var(--accent)] opacity-20" />
             </div>
             <div>
-              <h2 className="text-xl  font-bold tracking-tight">No Market Items</h2>
+              <h2 className="text-xl  font-bold tracking-tight">{loading ? 'Market syncing' : 'No Market Items'}</h2>
               <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 max-w-[280px] mx-auto mt-2">
-                Try adjusting your filters or search to explore the global collection.<br/>
-                All products from the general market are indexed here.
+                {loading
+                  ? 'Products appear here as soon as the latest feed arrives.'
+                  : 'Try adjusting your filters or search to explore the global collection.'}<br/>
+                {!loading && 'All products from the general market are indexed here.'}
               </p>
             </div>
             <button onClick={() => { setActiveCategoryName('All'); setActivePrice(null); setSearch(''); }} className="px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px]  font-semibold rounded-full shadow-lg">Reset Feed</button>

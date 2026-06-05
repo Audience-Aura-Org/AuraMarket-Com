@@ -226,6 +226,23 @@ const mapChatSockets = (server) => {
       }
     });
 
+    socket.on('mark_messages_read', async ({ sender_id }) => {
+      try {
+        const senderId = sender_id?.toString();
+        if (!senderId) return;
+
+        await Message.updateMany(
+          { sender_id: senderId, receiver_id: socket.userId, read_status: false },
+          { read_status: true, delivered_status: true }
+        );
+
+        io.to(senderId).emit('messages_read', { partnerId: socket.userId.toString() });
+        socket.emit('messages_read', { partnerId: senderId });
+      } catch (error) {
+        console.error('Socket (mark_messages_read) Error:', error);
+      }
+    });
+
     // Allow client to query if a specific user is currently online
     socket.on('check_online_status', async (data, callback) => {
       const targetId = (data?.userId || '').toString();
