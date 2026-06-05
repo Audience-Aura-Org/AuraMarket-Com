@@ -11,7 +11,7 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
 const STORY_DURATION = 5000;
-const VIDEO_PRELOAD_AHEAD = 3;
+const VIDEO_PRELOAD_AHEAD = 1;
 const VIDEO_WAIT_TIMEOUT_MS = 6000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
@@ -30,20 +30,15 @@ function preloadMedia(url, type, { eager = false } = {}) {
       return;
     }
     const v = document.createElement('video');
-    v.preload = eager ? 'auto' : 'metadata';
+    v.preload = eager ? 'metadata' : 'none';
     v.src = url;
     v.muted = true;
     v.playsInline = true;
     v.load();
     videoPreloadMap.set(url, v);
 
-    if (eager && typeof document !== 'undefined') {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'video';
-      link.href = url;
-      document.head.appendChild(link);
-    }
+    // Avoid <link rel="preload" for story videos. It can download large files
+    // before a shopper opens them, which increases S3 bandwidth cost.
   } else {
     const img = new Image();
     img.fetchPriority = eager ? 'high' : 'auto';

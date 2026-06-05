@@ -30,3 +30,12 @@ auradime-delete-status-media-after-3-days
 Only status/story media should use `statuses/`.
 
 Do not place product images, store logos, banners, invoices, KYC files, order evidence, or dispute evidence under this prefix because S3 will delete them automatically.
+
+## Current Free Cost Controls
+
+- Status videos are limited to 30MB and 30 seconds in the web/app creator.
+- Status images are limited to 8MB.
+- Backend rejects oversized direct-upload requests for status media, even if the UI is bypassed.
+- Status videos use the API upload path first so the backend can compress them to mobile-friendly MP4 before storing in S3.
+- Story viewers only preload the next video metadata instead of several full videos.
+- Shared image rendering uses native browser lazy loading unless explicitly marked high priority.

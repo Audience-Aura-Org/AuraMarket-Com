@@ -32,6 +32,7 @@ async function uploadViaPresign(file, folder, onProgress) {
   const presignRes = await api.post('/upload/presign', {
     fileName: file.name,
     contentType: contentType,
+    fileSize: file.size,
     type: normalizedFolder,
   });
 
@@ -99,6 +100,15 @@ export const uploadService = {
   uploadSingle: async (file, type = 'general', options = {}) => {
     const { onProgress } = options;
     const folder = normalizeUploadFolder(type || 'general');
+
+    // Status videos go through the API first so the backend can compress them
+    // to mobile-friendly MP4 before S3 storage. This keeps playback fast.
+    if (isVideo(file) && folder === 'statuses') {
+      if (onProgress) onProgress(10);
+      const result = await uploadViaApi(file, folder, 'video');
+      if (onProgress) onProgress(100);
+      return result;
+    }
 
     // Videos: prefer direct S3 when available (fast + no proxy 404/413)
     if (isVideo(file)) {

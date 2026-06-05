@@ -18,6 +18,10 @@ const DURATION_OPTIONS = [
   { value: 7, label: '7 Days', sublabel: 'Max reach' },
 ];
 
+const STATUS_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
+const STATUS_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+const STATUS_VIDEO_MAX_SECONDS = 30;
+
 /**
  * StatusCreator — single-screen story composer.
  * Accepts optional `initialData` for resharing an existing story.
@@ -78,17 +82,17 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (!f) return;
     if (type === 'video') {
       if (!f.type.startsWith('video/'))  { setError('Select a video file.'); return; }
-      if (f.size > 500 * 1024 * 1024)   { setError('Max 500MB video.'); return; }
+      if (f.size > STATUS_VIDEO_MAX_BYTES)   { setError('Max 30MB video.'); return; }
       const vid = document.createElement('video');
       vid.preload = 'metadata';
       vid.onloadedmetadata = () => {
         window.URL.revokeObjectURL(vid.src);
-        if (vid.duration > 61) { setError('Video must be under 1 minute.'); setFile(null); setPreviewUrl(''); }
+        if (vid.duration > STATUS_VIDEO_MAX_SECONDS + 1) { setError('Video must be 30 seconds or less.'); setFile(null); setPreviewUrl(''); }
       };
       vid.src = URL.createObjectURL(f);
     } else {
       if (!f.type.startsWith('image/'))  { setError('Select an image file.'); return; }
-      if (f.size > 10 * 1024 * 1024)    { setError('Max 10MB image.'); return; }
+      if (f.size > STATUS_IMAGE_MAX_BYTES)    { setError('Max 8MB image.'); return; }
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));

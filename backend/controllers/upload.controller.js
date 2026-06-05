@@ -15,6 +15,32 @@ const {
 } = require('../utils/s3');
 const { compressVideo, compressVideoForStatus } = require('../utils/videoCompression');
 
+const MB = 1024 * 1024;
+const UPLOAD_LIMITS = {
+  statusVideo: 30 * MB,
+  statusImage: 8 * MB,
+  generalVideo: 80 * MB,
+  generalImage: 12 * MB,
+};
+
+function enforceUploadSize({ folder = 'general', contentType = '', size = 0 }) {
+  const normalizedFolder = normalizeS3Folder(folder);
+  const numericSize = Number(size || 0);
+  if (!numericSize) return;
+
+  const isStatus = normalizedFolder === 'statuses';
+  const isVideoType = contentType.startsWith('video/');
+  const limit = isStatus
+    ? (isVideoType ? UPLOAD_LIMITS.statusVideo : UPLOAD_LIMITS.statusImage)
+    : (isVideoType ? UPLOAD_LIMITS.generalVideo : UPLOAD_LIMITS.generalImage);
+
+  if (numericSize > limit) {
+    const limitMb = Math.round(limit / MB);
+    const mediaLabel = isVideoType ? 'video' : 'image';
+    throw new Error(`Max ${limitMb}MB ${isStatus ? 'status ' : ''}${mediaLabel}.`);
+  }
+}
+
 const SKIP_TRANSCODE_MAX_BYTES = 28 * 1024 * 1024; // already-mp4 under ~28MB → upload as-is
 
 async function maybeTranscodeVideoForWeb(file, folder = 'general') {
@@ -96,6 +122,7 @@ const uploadSingle = async (req, res) => {
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
       const folder = normalizeS3Folder(req.body.type || 'general');
+      enforceUploadSize({ folder, contentType: req.file.mimetype, size: req.file.size || req.file.buffer?.length });
       console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
       const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder);
       const s3Result = await uploadToS3(
@@ -172,6 +199,11 @@ const uploadMultiple = async (req, res) => {
     // 🚀 S3 Direct Upload (Persistent)
     if (isS3Enabled()) {
       const folder = normalizeS3Folder(req.body.type || 'others');
+      req.files.forEach((file) => enforceUploadSize({
+        folder,
+        contentType: file.mimetype,
+        size: file.size || file.buffer?.length,
+      }));
       const fileBuffers = req.files.map(f => f.buffer);
       const fileNames = req.files.map(f => f.originalname);
       const mimetypes = req.files.map(f => f.mimetype);
@@ -249,7 +281,7 @@ const presignUpload = async (req, res) => {
       });
     }
 
-    const { fileName, contentType, type: rawFolder = 'statuses' } = req.body;
+    const { fileName, contentType, fileSize, type: rawFolder = 'statuses' } = req.body;
     const folder = normalizeS3Folder(rawFolder || 'statuses');
     if (!fileName || !contentType) {
       return res.status(400).json({ success: false, message: 'fileName and contentType are required.' });
@@ -257,6 +289,7 @@ const presignUpload = async (req, res) => {
     if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
       return res.status(400).json({ success: false, message: 'Only image and video uploads are allowed.' });
     }
+    enforceUploadSize({ folder, contentType, size: fileSize });
 
     const result = await createPresignedUpload({
       fileName,
