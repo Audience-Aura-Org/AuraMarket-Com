@@ -9,19 +9,36 @@ const {
 const bucket = process.env.AWS_S3_BUCKET;
 const region = process.env.AWS_REGION || 'us-east-1';
 
-const statusRule = {
-  ID: 'auradime-delete-status-media-after-3-days',
-  Status: 'Enabled',
-  Filter: {
-    Prefix: 'statuses/',
+const managedRules = [
+  {
+    ID: 'auradime-delete-status-media-after-3-days',
+    Status: 'Enabled',
+    Filter: { Prefix: 'statuses/' },
+    Expiration: { Days: 3 },
+    AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 },
   },
-  Expiration: {
-    Days: 3,
+  {
+    ID: 'auradime-delete-temp-uploads-after-1-day',
+    Status: 'Enabled',
+    Filter: { Prefix: 'temp/' },
+    Expiration: { Days: 1 },
+    AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 },
   },
-  AbortIncompleteMultipartUpload: {
-    DaysAfterInitiation: 1,
+  {
+    ID: 'auradime-delete-logs-after-30-days',
+    Status: 'Enabled',
+    Filter: { Prefix: 'logs/' },
+    Expiration: { Days: 30 },
+    AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 },
   },
-};
+  {
+    ID: 'auradime-delete-chat-media-after-180-days',
+    Status: 'Enabled',
+    Filter: { Prefix: 'chat-media/' },
+    Expiration: { Days: 180 },
+    AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 },
+  },
+];
 
 async function main() {
   if (!bucket) {
@@ -48,9 +65,10 @@ async function main() {
     }
   }
 
+  const managedIds = new Set(managedRules.map((rule) => rule.ID));
   const rules = [
-    ...existingRules.filter((rule) => rule.ID !== statusRule.ID),
-    statusRule,
+    ...existingRules.filter((rule) => !managedIds.has(rule.ID)),
+    ...managedRules,
   ];
 
   await s3.send(new PutBucketLifecycleConfigurationCommand({
@@ -58,8 +76,10 @@ async function main() {
     LifecycleConfiguration: { Rules: rules },
   }));
 
-  console.log(`Applied S3 lifecycle rule "${statusRule.ID}" to bucket ${bucket}.`);
-  console.log('Objects under statuses/ will expire after 3 days.');
+  console.log(`Applied ${managedRules.length} AuraDime lifecycle rules to bucket ${bucket}.`);
+  managedRules.forEach((rule) => {
+    console.log(`- ${rule.Filter.Prefix} expires after ${rule.Expiration.Days} day(s).`);
+  });
 }
 
 main().catch((error) => {

@@ -1,12 +1,23 @@
 # AuraDime Status Media Lifecycle
 
-Status and story media is temporary. New uploads for status/story media are normalized to the S3 prefix:
+Temporary media is stored under predictable S3 prefixes so AWS can clean it up automatically.
+
+Status and story media uploads are normalized to:
 
 ```text
 statuses/
 ```
 
-The lifecycle rule deletes objects under that prefix after 3 days and aborts incomplete multipart uploads after 1 day.
+## Managed lifecycle rules
+
+```text
+statuses/    delete after 3 days
+temp/        delete after 1 day
+logs/        delete after 30 days
+chat-media/  delete after 180 days
+```
+
+All managed rules also abort incomplete multipart uploads after 1 day.
 
 ## Apply on EC2
 
@@ -19,11 +30,7 @@ npm run s3:apply-status-lifecycle
 pm2 restart aura-backend --update-env
 ```
 
-The script preserves existing lifecycle rules and only upserts:
-
-```text
-auradime-delete-status-media-after-3-days
-```
+The script preserves existing lifecycle rules and only upserts AuraDime-managed rules.
 
 ## Important
 

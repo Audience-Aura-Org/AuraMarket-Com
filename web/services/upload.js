@@ -1,11 +1,10 @@
 import api from './api';
 import axios from 'axios';
 
-/**
- * Upload progress callback: (percent 0–100) => void
- */
+const MB = 1024 * 1024;
 
 const isVideo = (file) => file?.type?.startsWith('video/');
+
 const normalizeUploadFolder = (folder = 'general') => {
   const raw = String(folder || 'general').trim().toLowerCase();
   if (['status', 'statuses', 'story', 'stories', 'aura-story', 'aurastory'].includes(raw)) {
@@ -14,14 +13,84 @@ const normalizeUploadFolder = (folder = 'general') => {
   return raw.replace(/[^a-z0-9/_-]/g, '-').replace(/\/+/g, '/').replace(/^\/|\/$/g, '') || 'general';
 };
 
+const UPLOAD_LIMITS = {
+  statuses: { video: 30 * MB, image: 8 * MB, file: 30 * MB },
+  products: { image: 5 * MB, file: 5 * MB },
+  product: { image: 5 * MB, file: 5 * MB },
+  banners: { image: 5 * MB, file: 5 * MB },
+  banner: { image: 5 * MB, file: 5 * MB },
+  logos: { image: 5 * MB, file: 5 * MB },
+  logo: { image: 5 * MB, file: 5 * MB },
+  chat: { video: 10 * MB, image: 10 * MB, file: 10 * MB },
+  'chat-media': { video: 10 * MB, image: 10 * MB, file: 10 * MB },
+};
+
+const IMAGE_PROFILES = {
+  statuses: { maxWidth: 1080, quality: 0.84 },
+  products: { maxWidth: 1600, quality: 0.82 },
+  product: { maxWidth: 1600, quality: 0.82 },
+  banners: { maxWidth: 1920, quality: 0.82 },
+  banner: { maxWidth: 1920, quality: 0.82 },
+  logos: { maxWidth: 700, quality: 0.86 },
+  logo: { maxWidth: 700, quality: 0.86 },
+  general: { maxWidth: 1600, quality: 0.82 },
+};
+
 const cacheControlForUpload = (folder, file) => {
   if (normalizeUploadFolder(folder) === 'statuses') return 'public, max-age=259200';
   return isVideo(file) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
 };
 
-/**
- * Direct S3 presigned PUT — fastest path; bypasses Next.js/Vercel body limits.
- */
+function assertUploadLimit(file, folder) {
+  if (!file) return;
+  const normalizedFolder = normalizeUploadFolder(folder);
+  const mediaType = file.type?.startsWith('video/')
+    ? 'video'
+    : file.type?.startsWith('image/')
+      ? 'image'
+      : 'file';
+  const limit = UPLOAD_LIMITS[normalizedFolder]?.[mediaType] || UPLOAD_LIMITS[normalizedFolder]?.file;
+  if (limit && file.size > limit) {
+    throw new Error(`File is too large. Maximum ${mediaType} size for ${normalizedFolder} is ${Math.round(limit / MB)}MB.`);
+  }
+}
+
+const canvasToBlob = (canvas, type = 'image/webp', quality = 0.82) =>
+  new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+async function optimizeImageForUpload(file, folder) {
+  if (!file?.type?.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
+    return file;
+  }
+
+  try {
+    const normalizedFolder = normalizeUploadFolder(folder);
+    const profile = IMAGE_PROFILES[normalizedFolder] || IMAGE_PROFILES.general;
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, profile.maxWidth / Math.max(bitmap.width, 1));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+
+    const blob = await canvasToBlob(canvas, 'image/webp', profile.quality);
+    if (!blob || blob.size >= file.size) return file;
+
+    const baseName = (file.name || 'image').replace(/\.[^.]+$/, '');
+    return new File([blob], `${baseName}.webp`, {
+      type: 'image/webp',
+      lastModified: Date.now(),
+    });
+  } catch (err) {
+    console.warn('[Upload] Image optimization skipped:', err.message || err);
+    return file;
+  }
+}
+
 async function uploadViaPresign(file, folder, onProgress) {
   const isVid = isVideo(file);
   const contentType = file.type || 'application/octet-stream';
@@ -31,7 +100,7 @@ async function uploadViaPresign(file, folder, onProgress) {
 
   const presignRes = await api.post('/upload/presign', {
     fileName: file.name,
-    contentType: contentType,
+    contentType,
     fileSize: file.size,
     type: normalizedFolder,
   });
@@ -42,45 +111,26 @@ async function uploadViaPresign(file, folder, onProgress) {
 
   const { uploadUrl, url } = presignRes.data.data;
 
-  try {
-    await axios.put(uploadUrl, file, {
-      headers: { 
-        'Content-Type': contentType,
-        'Cache-Control': cacheControl,
-        'Content-Disposition': contentDisposition
-      },
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      timeout: 600000,
-      onUploadProgress: (e) => {
-        if (onProgress && e.total) {
-          onProgress(Math.min(99, Math.round((e.loaded * 100) / e.total)));
-        }
-      },
-    });
-  } catch (err) {
-    console.error('❌ [Upload] S3 Direct PUT failed:', {
-      message: err.message,
-      status: err.response?.status,
-      statusText: err.response?.statusText,
-      data: err.response?.data,
-      config: {
-        url: uploadUrl,
-        contentType,
-        cacheControl,
-        contentDisposition
+  await axios.put(uploadUrl, file, {
+    headers: {
+      'Content-Type': contentType,
+      'Cache-Control': cacheControl,
+      'Content-Disposition': contentDisposition,
+    },
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    timeout: 600000,
+    onUploadProgress: (event) => {
+      if (onProgress && event.total) {
+        onProgress(Math.min(99, Math.round((event.loaded * 100) / event.total)));
       }
-    });
-    throw err;
-  }
+    },
+  });
 
   if (onProgress) onProgress(100);
   return { success: true, data: { url, method: 'S3-direct' } };
 }
 
-/**
- * Legacy multipart through API (images + fallback when S3 presign unavailable).
- */
 async function uploadViaApi(file, folder, fieldName = 'image') {
   const formData = new FormData();
   formData.append('type', normalizeUploadFolder(folder));
@@ -100,48 +150,56 @@ export const uploadService = {
   uploadSingle: async (file, type = 'general', options = {}) => {
     const { onProgress } = options;
     const folder = normalizeUploadFolder(type || 'general');
+    assertUploadLimit(file, folder);
 
-    // Status videos go through the API first so the backend can compress them
-    // to mobile-friendly MP4 before S3 storage. This keeps playback fast.
-    if (isVideo(file) && folder === 'statuses') {
+    const uploadFile = isVideo(file) ? file : await optimizeImageForUpload(file, folder);
+    assertUploadLimit(uploadFile, folder);
+
+    if (isVideo(uploadFile) && folder === 'statuses') {
       if (onProgress) onProgress(10);
-      const result = await uploadViaApi(file, folder, 'video');
+      const result = await uploadViaApi(uploadFile, folder, 'video');
       if (onProgress) onProgress(100);
       return result;
     }
 
-    // Videos: prefer direct S3 when available (fast + no proxy 404/413)
-    if (isVideo(file)) {
+    if (isVideo(uploadFile)) {
       try {
-        return await uploadViaPresign(file, folder, onProgress);
+        return await uploadViaPresign(uploadFile, folder, onProgress);
       } catch (presignErr) {
-        console.warn('⚠️ [Upload] Direct S3 upload failed, falling back to legacy API upload:', presignErr.message || presignErr);
+        console.warn('[Upload] Direct S3 upload failed, falling back to API upload:', presignErr.message || presignErr);
         if (onProgress) onProgress(10);
-        const result = await uploadViaApi(file, folder, 'video');
+        const result = await uploadViaApi(uploadFile, folder, 'video');
         if (onProgress) onProgress(100);
         return result;
       }
     }
 
-    // Images: small enough for API path; try presign for large files (>8MB)
-    if (file.size > 8 * 1024 * 1024) {
+    if (uploadFile.size > 8 * MB) {
       try {
-        return await uploadViaPresign(file, folder, onProgress);
+        return await uploadViaPresign(uploadFile, folder, onProgress);
       } catch {
-        /* fall through */
+        // Fall back to API upload.
       }
     }
 
     if (onProgress) onProgress(20);
-    const result = await uploadViaApi(file, folder, 'image');
+    const result = await uploadViaApi(uploadFile, folder, 'image');
     if (onProgress) onProgress(100);
     return result;
   },
 
   uploadMultiple: async (files, type = 'general') => {
+    const folder = normalizeUploadFolder(type);
+    const optimizedFiles = await Promise.all(Array.from(files).map(async (file) => {
+      assertUploadLimit(file, folder);
+      const optimized = isVideo(file) ? file : await optimizeImageForUpload(file, folder);
+      assertUploadLimit(optimized, folder);
+      return optimized;
+    }));
+
     const formData = new FormData();
-    formData.append('type', normalizeUploadFolder(type));
-    Array.from(files).forEach((file) => {
+    formData.append('type', folder);
+    optimizedFiles.forEach((file) => {
       formData.append('images', file);
     });
 

@@ -76,7 +76,7 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
         const storeName   = vendor.store_name || 'Store';
         const displayName = storeName.length > 10 ? storeName.slice(0, 9) + '…' : storeName;
         const previewUrl  = latestStory?.type === 'image' || latestStory?.type === 'video'
-          ? latestStory.content_url
+          ? latestStory.thumbnail_url || latestStory.content_url
           : null;
 
         return (

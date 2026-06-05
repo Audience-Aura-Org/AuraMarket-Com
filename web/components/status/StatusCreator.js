@@ -20,7 +20,54 @@ const DURATION_OPTIONS = [
 
 const STATUS_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
 const STATUS_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
-const STATUS_VIDEO_MAX_SECONDS = 30;
+const STATUS_VIDEO_MAX_SECONDS = 120;
+
+const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
+  new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+async function generateVideoThumbnail(file) {
+  if (!file?.type?.startsWith('video/')) return null;
+
+  const objectUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+  video.src = objectUrl;
+
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Could not read video metadata.'));
+    });
+
+    const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
+    await new Promise((resolve) => {
+      video.onseeked = resolve;
+      video.currentTime = seekTo;
+    });
+
+    const maxWidth = 720;
+    const scale = Math.min(1, maxWidth / Math.max(video.videoWidth, 1));
+    const width = Math.max(1, Math.round(video.videoWidth * scale));
+    const height = Math.max(1, Math.round(video.videoHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+
+    const blob = await canvasToBlob(canvas, 'image/jpeg', 0.78);
+    if (!blob) return null;
+
+    const baseName = (file.name || 'status-video').replace(/\.[^.]+$/, '');
+    return new File([blob], `${baseName}-poster.jpg`, {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 
 /**
  * StatusCreator — single-screen story composer.
@@ -87,7 +134,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       vid.preload = 'metadata';
       vid.onloadedmetadata = () => {
         window.URL.revokeObjectURL(vid.src);
-        if (vid.duration > STATUS_VIDEO_MAX_SECONDS + 1) { setError('Video must be 30 seconds or less.'); setFile(null); setPreviewUrl(''); }
+        if (vid.duration > STATUS_VIDEO_MAX_SECONDS + 1) { setError('Video must be 2 minutes or less.'); setFile(null); setPreviewUrl(''); }
       };
       vid.src = URL.createObjectURL(f);
     } else {
@@ -107,6 +154,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     setError(null);
     try {
       let finalUrl = previewUrl;
+      let thumbnailUrl = initialData?.thumbnail_url || '';
 
       // If resharing image/video and no new file was selected, reuse existing URL
       if (type !== 'text' && file) {
@@ -116,6 +164,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         });
         if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
         finalUrl = uploadRes.data.url;
+        if (file.type.startsWith('video/')) {
+          setUploadPhase('Creating video preview...');
+          const thumbnailFile = await generateVideoThumbnail(file);
+          if (thumbnailFile) {
+            const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
+            if (thumbnailRes.success) thumbnailUrl = thumbnailRes.data.url;
+          }
+        }
         setUploadPhase('Publishing story…');
       } else if (type !== 'text' && !isReshare && !previewUrl) {
         throw new Error('Please select a file to upload');
@@ -127,6 +183,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       const payload = {
         type,
         content_url: type !== 'text' ? finalUrl : '',
+        thumbnail_url: type === 'video' ? thumbnailUrl : '',
         text_content: type === 'text' ? textContent : '',
         caption,
         linked_product: linkedProduct?._id || null,

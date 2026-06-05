@@ -212,7 +212,7 @@ export default function StatusManager() {
                   <article key={status._id} className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25">
                     <div className="relative h-60 overflow-hidden bg-zinc-950">
                       {status.type === 'image' || status.type === 'video' ? (
-                        <MediaThumbnail src={status.content_url} className="size-full" imgClassName="transition-transform duration-700 hover:scale-105" />
+                        <MediaThumbnail src={status.content_url} poster={status.thumbnail_url} className="size-full" imgClassName="transition-transform duration-700 hover:scale-105" />
                       ) : (
                         <div className="flex size-full items-center justify-center p-6 text-center">
                           <p className="line-clamp-5 text-base font-semibold leading-6 text-white">{status.text_content}</p>
@@ -275,7 +275,7 @@ export default function StatusManager() {
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-zinc-950">
                         {status.content_url ? (
-                          <MediaThumbnail src={status.content_url} className="size-full" imgClassName="opacity-60 grayscale" alt="" />
+                          <MediaThumbnail src={status.content_url} poster={status.thumbnail_url} className="size-full" imgClassName="opacity-60 grayscale" alt="" />
                         ) : (
                           <div className="flex size-full items-center justify-center text-white/50">
                             <Activity className="size-4.5" />

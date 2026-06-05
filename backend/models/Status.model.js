@@ -23,6 +23,9 @@ const StatusSchema = new mongoose.Schema(
     content_url: {
       type: String, // URL to media
     },
+    thumbnail_url: {
+      type: String, // Lightweight poster image for video/status previews
+    },
     text_content: {
       type: String, // For text-type statuses
       maxlength: [1000, 'Status text cannot exceed 1000 characters']

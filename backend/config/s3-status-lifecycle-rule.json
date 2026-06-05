@@ -1,13 +1,56 @@
 {
-  "ID": "auradime-delete-status-media-after-3-days",
-  "Status": "Enabled",
-  "Filter": {
-    "Prefix": "statuses/"
-  },
-  "Expiration": {
-    "Days": 3
-  },
-  "AbortIncompleteMultipartUpload": {
-    "DaysAfterInitiation": 1
-  }
+  "Rules": [
+    {
+      "ID": "auradime-delete-status-media-after-3-days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "statuses/"
+      },
+      "Expiration": {
+        "Days": 3
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    },
+    {
+      "ID": "auradime-delete-temp-uploads-after-1-day",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "temp/"
+      },
+      "Expiration": {
+        "Days": 1
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    },
+    {
+      "ID": "auradime-delete-logs-after-30-days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "logs/"
+      },
+      "Expiration": {
+        "Days": 30
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    },
+    {
+      "ID": "auradime-delete-chat-media-after-180-days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "chat-media/"
+      },
+      "Expiration": {
+        "Days": 180
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    }
+  ]
 }

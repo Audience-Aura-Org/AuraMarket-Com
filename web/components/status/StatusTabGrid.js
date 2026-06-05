@@ -15,19 +15,19 @@ import { STATUS_FILTER_CATEGORIES } from '@/constants/statusCategories';
 
 const warmStoryMedia = (story, eager = false) => {
   if (!story?.content_url) return;
-  if (story.type === 'image') {
+  const previewUrl = story.type === 'video' ? story.thumbnail_url : story.content_url;
+  if (previewUrl) {
     const img = new Image();
     img.fetchPriority = eager ? 'high' : 'auto';
-    img.src = story.content_url;
+    img.src = previewUrl;
     return;
   }
   if (story.type === 'video') {
     const video = document.createElement('video');
-    video.preload = eager ? 'auto' : 'metadata';
+    video.preload = 'none';
     video.muted = true;
     video.playsInline = true;
     video.src = story.content_url;
-    video.load();
   }
 };
 
@@ -87,7 +87,7 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
       <div className="absolute inset-0">
         {!isText ? (
           <>
-            <MediaThumbnail src={status.content_url} alt={name} priority={priority}
+            <MediaThumbnail src={status.content_url} poster={status.thumbnail_url} alt={name} priority={priority}
               className="w-full h-full"
               objectFit="cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />

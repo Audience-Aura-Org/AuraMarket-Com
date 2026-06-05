@@ -76,7 +76,7 @@ function addCacheBust(url) {
 }
 
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
-const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
+const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused, onEnded, onProgress }) {
   const ref = useRef(null);
   const [playbackSrc, setPlaybackSrc] = useState(src);
   const [videoReady, setVideoReady] = useState(false);
@@ -197,7 +197,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
     <div className="absolute inset-0 bg-black">
       {/* Poster / Loading Layer */}
       <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        <div className="w-full h-full bg-black flex items-center justify-center">
+        {poster ? (
+          <img src={poster} alt="" className="absolute inset-0 size-full object-cover" />
+        ) : null}
+        <div className="relative z-10 w-full h-full bg-black/25 flex items-center justify-center">
           <Loader2 className="size-10 text-white/20 animate-spin" />
         </div>
       </div>
@@ -217,6 +220,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         webkit-playsinline="true"
         muted={muted}
         autoPlay={active && !paused}
+        poster={poster || undefined}
         preload={active ? 'auto' : 'metadata'}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlay={handleReady}
@@ -400,16 +404,14 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     const keepVideoUrls = [story.content_url];
     const prev = initialStatuses[globalIdx - 1];
     if (prev) {
-      preloadMedia(prev.content_url, prev.type);
-      if (prev.type === 'video') keepVideoUrls.push(prev.content_url);
+      preloadMedia(prev.type === 'video' ? prev.thumbnail_url : prev.content_url, prev.type === 'video' ? 'image' : prev.type);
     }
 
     for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
       const nextStory = initialStatuses[i];
       if (!nextStory) break;
       const eager = i <= globalIdx + 2;
-      preloadMedia(nextStory.content_url, nextStory.type, { eager });
-      if (nextStory.type === 'video') keepVideoUrls.push(nextStory.content_url);
+      preloadMedia(nextStory.type === 'video' ? nextStory.thumbnail_url : nextStory.content_url, nextStory.type === 'video' ? 'image' : nextStory.type, { eager });
     }
 
     cleanupVideoPreloads(keepVideoUrls);
@@ -577,6 +579,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
         storyId: story._id,
         storyType: story.type,
         storyPreview: story.type === 'text' ? story.text_content : story.content_url,
+        storyThumbnail: story.thumbnail_url || '',
         storyCaption: story.caption || '',
         storyCategory: story.category || '',
       }
@@ -651,6 +654,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                 {isVid ? (
                   <StoryVideo
                     src={s.content_url}
+                    poster={s.thumbnail_url}
                     muted={muted}
                     active={isActive}
                     paused={!isActive || paused || isReplying}

@@ -14,7 +14,7 @@ exports.createStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only vendors can post statuses' });
     }
 
-    const { type, content_url, text_content, linked_product, caption, category, expires_at, expiry_days } = req.body;
+    const { type, content_url, thumbnail_url, text_content, linked_product, caption, category, expires_at, expiry_days } = req.body;
 
     const expiresAt = expires_at
       ? new Date(expires_at)
@@ -24,6 +24,7 @@ exports.createStatus = async (req, res) => {
       vendor_id: vendor._id,
       type,
       content_url,
+      thumbnail_url,
       text_content,
       linked_product: linked_product || null,
       caption,
@@ -251,6 +252,11 @@ exports.deleteStatus = async (req, res) => {
     if (status.content_url) {
       deleteS3ObjectByUrl(status.content_url).catch((err) => {
         console.warn(`[Status] Temporary media cleanup failed for ${status._id}: ${err.message}`);
+      });
+    }
+    if (status.thumbnail_url) {
+      deleteS3ObjectByUrl(status.thumbnail_url).catch((err) => {
+        console.warn(`[Status] Temporary thumbnail cleanup failed for ${status._id}: ${err.message}`);
       });
     }
     res.status(200).json({ success: true, message: 'Status removed' });

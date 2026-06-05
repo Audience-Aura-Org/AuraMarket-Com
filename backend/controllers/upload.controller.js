@@ -13,14 +13,19 @@ const {
   isS3Enabled,
   normalizeS3Folder,
 } = require('../utils/s3');
-const { compressVideo, compressVideoForStatus } = require('../utils/videoCompression');
+const { compressVideo, compressVideoForStatus, checkVideoQuality } = require('../utils/videoCompression');
 
 const MB = 1024 * 1024;
 const UPLOAD_LIMITS = {
-  statusVideo: 30 * MB,
-  statusImage: 8 * MB,
-  generalVideo: 80 * MB,
-  generalImage: 12 * MB,
+  statuses: { video: 30 * MB, image: 8 * MB, file: 30 * MB },
+  products: { image: 5 * MB, file: 5 * MB },
+  product: { image: 5 * MB, file: 5 * MB },
+  banners: { image: 5 * MB, file: 5 * MB },
+  banner: { image: 5 * MB, file: 5 * MB },
+  logos: { image: 5 * MB, file: 5 * MB },
+  logo: { image: 5 * MB, file: 5 * MB },
+  chat: { video: 10 * MB, image: 10 * MB, file: 10 * MB },
+  'chat-media': { video: 10 * MB, image: 10 * MB, file: 10 * MB },
 };
 
 function enforceUploadSize({ folder = 'general', contentType = '', size = 0 }) {
@@ -28,16 +33,18 @@ function enforceUploadSize({ folder = 'general', contentType = '', size = 0 }) {
   const numericSize = Number(size || 0);
   if (!numericSize) return;
 
-  const isStatus = normalizedFolder === 'statuses';
-  const isVideoType = contentType.startsWith('video/');
-  const limit = isStatus
-    ? (isVideoType ? UPLOAD_LIMITS.statusVideo : UPLOAD_LIMITS.statusImage)
-    : (isVideoType ? UPLOAD_LIMITS.generalVideo : UPLOAD_LIMITS.generalImage);
+  const mediaType = contentType.startsWith('video/')
+    ? 'video'
+    : contentType.startsWith('image/')
+      ? 'image'
+      : 'file';
+  const folderLimits = UPLOAD_LIMITS[normalizedFolder];
+  const limit = folderLimits?.[mediaType] || folderLimits?.file;
+  if (!limit) return;
 
   if (numericSize > limit) {
     const limitMb = Math.round(limit / MB);
-    const mediaLabel = isVideoType ? 'video' : 'image';
-    throw new Error(`Max ${limitMb}MB ${isStatus ? 'status ' : ''}${mediaLabel}.`);
+    throw new Error(`Max ${limitMb}MB ${normalizedFolder} ${mediaType}.`);
   }
 }
 
@@ -75,6 +82,12 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general') {
 
   try {
     fs.writeFileSync(inputPath, file.buffer);
+    if (folder === 'statuses') {
+      const quality = await checkVideoQuality(inputPath);
+      if (quality?.duration && quality.duration > 121) {
+        throw new Error('Status videos must be 2 minutes or less.');
+      }
+    }
     await compressFn(inputPath, outputPath);
     const outBuffer = fs.readFileSync(outputPath);
     const compressedSize = (outBuffer.length / 1024 / 1024).toFixed(2);
@@ -86,6 +99,9 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general') {
       mimetype: 'video/mp4',
     };
   } catch (err) {
+    if (err.message?.includes('Status videos must be')) {
+      throw err;
+    }
     // If ffmpeg is unavailable or transcoding fails, gracefully fall back.
     console.warn(`⚠️  [Video] Compression failed: ${err.message}`);
     console.warn(`   Uploading uncompressed video (this will be slow on mobile!)`);
