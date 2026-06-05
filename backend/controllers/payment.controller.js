@@ -151,6 +151,7 @@ const markCheckoutOrdersFailed = async (userId, orderIds = []) => {
 const rejectPendingCheckoutTransactions = async (userId, orderIds = [], reason = 'Checkout cancelled by customer.') => {
   const checkoutKey = buildCheckoutKey(orderIds);
   if (!checkoutKey) return;
+  const cancelledAt = new Date();
 
   await Transaction.updateMany(
     {
@@ -159,13 +160,19 @@ const rejectPendingCheckoutTransactions = async (userId, orderIds = [], reason =
       status: 'pending',
       'metadata.checkout_key': checkoutKey,
     },
-    {
-      $set: {
-        status: 'rejected',
-        'metadata.cancelled_at': new Date(),
-        'metadata.cancel_reason': reason,
+    [
+      {
+        $set: {
+          status: 'rejected',
+          metadata: {
+            $mergeObjects: [
+              { $ifNull: ['$metadata', {}] },
+              { cancelled_at: cancelledAt, cancel_reason: reason },
+            ],
+          },
+        },
       },
-    }
+    ]
   );
 };
 

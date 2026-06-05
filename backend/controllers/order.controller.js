@@ -736,15 +736,23 @@ const cancelOrder = async (req, res, next) => {
       await escrow.save({ session });
     }
 
+    const cancelledAt = new Date();
+
     await Transaction.updateMany(
       { order_id: order._id, type: 'payout', status: 'pending' },
-      {
-        $set: {
-          status: 'rejected',
-          'metadata.cancelled_at': new Date(),
-          'metadata.cancel_reason': reason,
+      [
+        {
+          $set: {
+            status: 'rejected',
+            metadata: {
+              $mergeObjects: [
+                { $ifNull: ['$metadata', {}] },
+                { cancelled_at: cancelledAt, cancel_reason: reason },
+              ],
+            },
+          },
         },
-      },
+      ],
       { session }
     );
 
@@ -788,13 +796,19 @@ const cancelOrder = async (req, res, next) => {
         gateway: { $in: ['mesomb', 'eversend'] },
         status: 'pending',
       },
-      {
-        $set: {
-          status: 'rejected',
-          'metadata.cancelled_at': new Date(),
-          'metadata.cancel_reason': reason,
+      [
+        {
+          $set: {
+            status: 'rejected',
+            metadata: {
+              $mergeObjects: [
+                { $ifNull: ['$metadata', {}] },
+                { cancelled_at: cancelledAt, cancel_reason: reason },
+              ],
+            },
+          },
         },
-      },
+      ],
       { session }
     );
 
