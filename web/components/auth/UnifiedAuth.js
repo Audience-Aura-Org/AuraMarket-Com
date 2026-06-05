@@ -15,6 +15,7 @@ import {
   User,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -403,6 +404,24 @@ export default function UnifiedAuth() {
             </motion.form>
           )}
         </AnimatePresence>
+
+        <div className="mt-5 border-t border-[var(--glass-border)] pt-4 text-center">
+          <p className="mx-auto max-w-[320px] text-[10px] font-medium leading-relaxed text-[var(--text-secondary)]/70">
+            By continuing, you acknowledge Auradime&apos;s{' '}
+            <Link href="/terms" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
+              Terms
+            </Link>
+            ,{' '}
+            <Link href="/privacy" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
+              Privacy Policy
+            </Link>
+            , and{' '}
+            <Link href="/cookies" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
+              Cookie Policy
+            </Link>
+            .
+          </p>
+        </div>
       </div>
     </div>
   );
