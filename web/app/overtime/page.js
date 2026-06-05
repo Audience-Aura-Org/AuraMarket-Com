@@ -71,7 +71,7 @@ export default function LandingPage() {
       <div className="pointer-events-none fixed top-[60%] right-[-50px] w-[400px] h-[400px] rounded-full opacity-20 z-0" style={{background:'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter:'blur(60px)'}} />
 
       {/* Storefront — paints immediately, replaces with managed sections when data arrives */}
-      <div className="w-full relative z-10">
+      <div className="w-full relative z-10 pb-[calc(92px+env(safe-area-inset-bottom,0px))] sm:pb-10">
         {sections && sections.length > 0 ? (
           <StorefrontRenderer sections={sections} />
         ) : (
