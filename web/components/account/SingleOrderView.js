@@ -294,11 +294,13 @@ export default function SingleOrderView({ orderId, onBack }) {
     switch (orderStatus?.toLowerCase()) {
       case 'completed':
       case 'delivered': return { color: 'emerald', label: 'Delivered', icon: CheckCircle2, step: 4 };
+      case 'refunded': return { color: 'emerald', label: 'Refunded to wallet', icon: CheckCircle2, step: 0 };
+      case 'refund_pending': return { color: 'amber', label: 'Refund pending', icon: Clock, step: 0 };
       case 'shipped': return { color: 'blue', label: 'In transit', icon: Truck, step: 3 };
       case 'processing': return { color: 'amber', label: 'Processing', icon: Clock, step: 2 };
       case 'placed': return { color: 'indigo', label: 'Placed', icon: Package, step: 1 };
       case 'cancelled':
-      case 'refunded': return { color: 'rose', label: 'Ended', icon: XCircle, step: 0 };
+        return { color: 'rose', label: 'Cancelled', icon: XCircle, step: 0 };
       default: return { color: 'indigo', label: orderStatus ? orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1) : 'Unknown', icon: Package, step: 1 };
     }
   };

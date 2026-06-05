@@ -35,17 +35,18 @@ const STATUS_FILTERS = [
   { id: 'completed', label: 'Completed' },
   { id: 'failed', label: 'Failed' },
   { id: 'cancelled', label: 'Cancelled' },
+  { id: 'refunded', label: 'Refunded' },
 ];
 
 function getStatusColor(status) {
   switch (status) {
     case 'completed':
     case 'delivered':
+    case 'refunded':
       return 'emerald';
     case 'shipped':
       return 'blue';
     case 'cancelled':
-    case 'refunded':
       return 'rose';
     default:
       return 'amber';
@@ -58,10 +59,21 @@ function matchesStatusFilter(order, filter) {
     return ['completed', 'delivered'].includes(order.order_status);
   }
   if (filter === 'failed') return order.payment_status === 'failed';
+  if (filter === 'cancelled') return order.order_status === 'cancelled';
+  if (filter === 'refunded') return order.order_status === 'refunded' || order.payment_status === 'refunded';
   return order.order_status === filter;
 }
 
 function getDisplayStatus(order) {
+  if (order.payment_status === 'refunded' || order.order_status === 'refunded') {
+    return 'Refunded to wallet';
+  }
+  if (order.order_status === 'refund_pending') {
+    return 'Refund pending';
+  }
+  if (order.order_status === 'cancelled') {
+    return 'Cancelled';
+  }
   if (
     order.shipment &&
     ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(order.shipment.status)
@@ -72,6 +84,18 @@ function getDisplayStatus(order) {
 }
 
 function getPaymentMeta(order) {
+  if (order.payment_status === 'refunded' || order.order_status === 'refunded') {
+    return {
+      label: 'Wallet credited',
+      classes: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    };
+  }
+  if (order.order_status === 'refund_pending') {
+    return {
+      label: 'Refund pending',
+      classes: 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    };
+  }
   if (order.payment_method === 'pay_on_delivery') {
     return {
       label: 'Pay on delivery',
@@ -160,13 +184,13 @@ export default function OrdersTab({ user, onViewOrder }) {
   );
 
   const activeCount = orders.filter(
-    (o) => o.payment_status !== 'failed' && !['completed', 'delivered', 'cancelled', 'refunded'].includes(o.order_status)
+    (o) => o.payment_status !== 'failed' && !['completed', 'delivered', 'cancelled', 'refunded', 'refund_pending'].includes(o.order_status)
   ).length;
   const completedCount = orders.filter((o) =>
     ['completed', 'delivered'].includes(o.order_status)
   ).length;
   const issueCount = orders.filter((o) =>
-    o.payment_status === 'failed' || ['cancelled', 'refunded'].includes(o.order_status)
+    o.payment_status === 'failed' || ['cancelled', 'refunded', 'refund_pending'].includes(o.order_status)
   ).length;
 
   return (
