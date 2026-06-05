@@ -143,7 +143,7 @@ const normalizeAppRoute = (route) => {
 };
 
 export default function SocketProvider({ children }) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, refreshWalletBalance, setWalletBalance } = useAuthStore();
   const router = useRouter();
   const { isOpen, activePartnerId, openChat } = useChat();
 
@@ -258,6 +258,14 @@ export default function SocketProvider({ children }) {
       const title   = notif?.title   || 'New Notification';
       const message = notif?.message || '';
       const link = normalizeAppRoute(notif.metadata?.link || '/notifications');
+      const metadataBalance = notif?.metadata?.wallet_balance ?? notif?.metadata?.balance;
+
+      if (['wallet_update', 'payment', 'payment_received', 'order_status'].includes(type)) {
+        if (Number.isFinite(Number(metadataBalance))) {
+          setWalletBalance(Number(metadataBalance));
+        }
+        refreshWalletBalance?.();
+      }
 
       setNotifToast({ 
         id: notif?._id || Date.now(), 
@@ -301,7 +309,7 @@ export default function SocketProvider({ children }) {
       socketService.off('account_deleted', handleAccountDeleted);
     };
   // Only re-register when the USER changes. isOpen/activePartnerId are read via refs.
-  }, [user?._id, logout, router]);
+  }, [user?._id, logout, router, refreshWalletBalance, setWalletBalance]);
 
   // Listen for messages from the Service Worker (e.g., notification click payload)
   useEffect(() => {

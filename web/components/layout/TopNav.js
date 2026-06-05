@@ -10,7 +10,6 @@ import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
 import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
-import api from '@/services/api';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
@@ -18,12 +17,11 @@ export default function TopNav() {
   const pathname = usePathname();
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, walletBalance, refreshWalletBalance } = useAuthStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { unreadMessages, refresh: refreshNotifications } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
-  const [walletBalance, setWalletBalance] = useState(null);
   const [mounted, setMounted] = useState(false);
   const { openChat } = useChat();
 
@@ -35,17 +33,12 @@ export default function TopNav() {
   useEffect(() => {
     if (!user?._id) {
       setCartCount(0);
-      setWalletBalance(null);
       return;
     }
     const fetchCounts = () => {
       cartStore.refresh();
       refreshNotifications();
-      api.get('/wallet')
-        .then((res) => {
-          if (res.data?.success) setWalletBalance(res.data.data?.balance ?? 0);
-        })
-        .catch(() => {});
+      refreshWalletBalance();
     };
 
     fetchCounts();
@@ -62,7 +55,7 @@ export default function TopNav() {
       window.removeEventListener('focus', fetchCounts);
       document.removeEventListener('visibilitychange', fetchCounts);
     };
-  }, [user?._id, refreshNotifications]);
+  }, [user?._id, refreshNotifications, refreshWalletBalance]);
 
   // Hide on auth, admin, vendor, logistics, wallet, and full-screen chat pages
   if (

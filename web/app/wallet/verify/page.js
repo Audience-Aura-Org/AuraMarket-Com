@@ -14,6 +14,7 @@ import { pollTransactionStatus, recheckTransaction } from '@/services/paymentPro
 import api from '@/services/api';
 import Link from 'next/link';
 import cartStore from '@/services/cartStore';
+import { useAuthStore } from '@/hooks/useAuth';
 
 // ── Payment State Machine ─────────────────────────────────────────────────────
 // States: 'loading' | 'pending' | 'successful' | 'failed' | 'timeout' | 'recheck'
@@ -21,6 +22,7 @@ import cartStore from '@/services/cartStore';
 function VerifyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
 
   const ref = searchParams.get('ref');
   const gateway = searchParams.get('gateway');
@@ -58,6 +60,7 @@ function VerifyContent() {
             setState('successful');
             setMessage(msg || 'Payment confirmed! Your transaction is complete.');
             setBalanceAdded(data?.balance_added || 0);
+            refreshWalletBalance?.();
             if (type === 'checkout') cartStore.clearCart();
           },
           onFailed: ({ reason: r }) => {
@@ -94,6 +97,7 @@ function VerifyContent() {
           if (status === 'SUCCESSFUL') {
             setState('successful');
             setMessage('Payment confirmed! Your account has been updated.');
+            refreshWalletBalance?.();
             if (type === 'checkout') cartStore.clearCart();
             return;
           }
@@ -126,7 +130,7 @@ function VerifyContent() {
     return () => {
       if (stopPollingRef.current) stopPollingRef.current();
     };
-  }, [ref, gateway, type]);
+  }, [ref, gateway, type, refreshWalletBalance]);
 
 
   const handleRecheck = async () => {
@@ -152,6 +156,7 @@ function VerifyContent() {
       setState('successful');
       setMessage(result.message || 'Payment confirmed!');
       setBalanceAdded(result.data?.balance_added || 0);
+      refreshWalletBalance?.();
       if (type === 'checkout') cartStore.clearCart();
     } else if (result.status === 'FAILED') {
       setState('failed');

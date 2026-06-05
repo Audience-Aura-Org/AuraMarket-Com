@@ -87,7 +87,7 @@ function ReceiptModal({ tx, onClose }) {
 // ── Main Page ──
 
 export default function VendorWalletPage() {
-  const { user } = useAuthStore();
+  const { user, setWalletBalance } = useAuthStore();
   const router = useRouter();
   const [balance, setBalance]       = useState(0);
   const [escrow, setEscrow]         = useState(0);
@@ -121,7 +121,9 @@ export default function VendorWalletPage() {
         api.get('/withdrawals/mine'),
       ]);
       if (balRes.data.success) {
-        setBalance(balRes.data.data.balance || 0);
+        const nextBalance = balRes.data.data.balance || 0;
+        setBalance(nextBalance);
+        setWalletBalance(nextBalance);
         setEscrow(balRes.data.data.pending_escrow || 0);
       }
       if (txRes.data.success) setTxs(txRes.data.data.transactions || []);
@@ -130,7 +132,7 @@ export default function VendorWalletPage() {
     } catch (e) {
       console.error('Wallet Load Error:', e);
     } finally { setLoading(false); }
-  }, []);
+  }, [setWalletBalance]);
 
   useEffect(() => { load(); }, [load]);
 

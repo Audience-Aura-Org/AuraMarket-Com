@@ -35,6 +35,7 @@ export const useAuthStore = create(
       token: null,
       rememberedEmail: '',
       followedVendorIds: [],
+      walletBalance: null,
       isAuthenticated: false,
       hasHydrated: false,
       authChecked: false,
@@ -43,6 +44,31 @@ export const useAuthStore = create(
       setHasHydrated: (value) => set({ hasHydrated: value }),
       setRememberedEmail: (email) => set({ rememberedEmail: email }),
       resetLoading: () => set({ loading: false, error: null }),
+      setWalletBalance: (balance) => {
+        const numericBalance = Number(balance);
+        if (!Number.isFinite(numericBalance)) return;
+        set((state) => ({
+          walletBalance: numericBalance,
+          user: state.user ? { ...state.user, wallet_balance: numericBalance } : state.user,
+        }));
+      },
+      refreshWalletBalance: async () => {
+        if (!get().isAuthenticated && !get().user?._id) return { success: false };
+        try {
+          const res = await api.get('/wallet', {
+            timeout: 12000,
+            __skipRetry: true,
+          });
+          if (res.data?.success) {
+            const balance = Number(res.data.data?.balance ?? 0);
+            get().setWalletBalance(balance);
+            return { success: true, balance };
+          }
+        } catch (err) {
+          return { success: false, message: err.response?.data?.message || err.message };
+        }
+        return { success: false };
+      },
 
       sendOtp: async (email) => {
         set({ loading: true, error: null, rememberedEmail: email });
@@ -99,6 +125,7 @@ export const useAuthStore = create(
           await setStoredAuthToken(token);
           set({
             user,
+            walletBalance: Number.isFinite(Number(user.wallet_balance)) ? Number(user.wallet_balance) : get().walletBalance,
             token,
             isAuthenticated: true,
             authChecked: true,
@@ -136,6 +163,7 @@ export const useAuthStore = create(
           if (!user) throw new Error('No user returned');
           set({
             user,
+            walletBalance: Number.isFinite(Number(user.wallet_balance)) ? Number(user.wallet_balance) : get().walletBalance,
             isAuthenticated: true,
             authChecked: true,
             loading: false,
@@ -173,6 +201,7 @@ export const useAuthStore = create(
             token: null,
             isAuthenticated: false,
             followedVendorIds: [],
+            walletBalance: null,
             authChecked: true,
             loading: false,
             error: null,
@@ -188,6 +217,7 @@ export const useAuthStore = create(
               token: null,
               isAuthenticated: false,
               followedVendorIds: [],
+              walletBalance: null,
               authChecked: true,
               loading: false,
               error: null,
@@ -208,6 +238,7 @@ export const useAuthStore = create(
           token: null,
           isAuthenticated: false,
           followedVendorIds: [],
+          walletBalance: null,
           authChecked: true,
           loading: false,
           error: null,
@@ -215,8 +246,12 @@ export const useAuthStore = create(
       },
 
       updateUser: (data) => {
+        const nextBalance = Number.isFinite(Number(data?.wallet_balance))
+          ? Number(data.wallet_balance)
+          : get().walletBalance;
         set((state) => ({
           user: { ...state.user, ...data },
+          walletBalance: nextBalance,
         }));
       },
 
@@ -258,6 +293,7 @@ export const useAuthStore = create(
         user: state.user,
         rememberedEmail: state.rememberedEmail,
         followedVendorIds: state.followedVendorIds,
+        walletBalance: state.walletBalance,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {

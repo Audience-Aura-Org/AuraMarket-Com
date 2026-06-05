@@ -6,14 +6,12 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
 import cartStore from '@/services/cartStore';
-import api from '@/services/api';
 
 export default function MobileHeader({ isOpen, toggleSidebar }) {
-  const { user } = useAuthStore();
+  const { user, walletBalance, refreshWalletBalance } = useAuthStore();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
   const { unreadMessages } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
-  const [walletBalance, setWalletBalance] = useState(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -23,18 +21,13 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   useEffect(() => {
     if (!user?._id) {
       setCartCount(0);
-      setWalletBalance(null);
       return;
     }
 
     const unsub = cartStore.subscribe(({ count }) => setCartCount(count));
     const refresh = () => {
       cartStore.refresh();
-      api.get('/wallet')
-        .then((res) => {
-          if (res.data?.success) setWalletBalance(res.data.data?.balance ?? 0);
-        })
-        .catch(() => {});
+      refreshWalletBalance();
     };
     refresh();
     window.addEventListener('focus', refresh);
@@ -45,7 +38,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
     };
-  }, [user?._id]);
+  }, [user?._id, refreshWalletBalance]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-colors duration-300 dark:shadow-[0_10px_36px_-12px_rgba(0,0,0,0.12)] lg:hidden">

@@ -78,7 +78,7 @@ function ElapsedTimer() {
 }
 
 export default function WalletPage() {
-  const { user } = useAuthStore();
+  const { user, setWalletBalance } = useAuthStore();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [balance, setBalance] = useState(0);
@@ -120,7 +120,9 @@ export default function WalletPage() {
         api.get('/withdrawals/mine'),
       ]);
       if (balRes.data.success) {
-        setBalance(balRes.data.data.balance || 0);
+        const nextBalance = balRes.data.data.balance || 0;
+        setBalance(nextBalance);
+        setWalletBalance(nextBalance);
         setPendingBalance(balRes.data.data.pending_escrow || 0);
       }
       if (txRes.data.success) {
@@ -155,7 +157,12 @@ export default function WalletPage() {
               // Refresh silently to show updated statuses
               try {
                 const [b2, t2] = await Promise.all([api.get('/wallet'), api.get('/wallet/transactions')]);
-                if (b2.data.success) { setBalance(b2.data.data.balance || 0); setPendingBalance(b2.data.data.pending_escrow || 0); }
+                if (b2.data.success) {
+                  const nextBalance = b2.data.data.balance || 0;
+                  setBalance(nextBalance);
+                  setWalletBalance(nextBalance);
+                  setPendingBalance(b2.data.data.pending_escrow || 0);
+                }
                 if (t2.data.success) setTransactions(t2.data.data.transactions || []);
               } catch { /* silent */ }
             }

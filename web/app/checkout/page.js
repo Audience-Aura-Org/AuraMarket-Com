@@ -53,7 +53,7 @@ function CheckoutContent() {
   const quantity = parseInt(searchParams.get('quantity') || '1');
   const variantStr = searchParams.get('variant');
   const variant = variantStr ? JSON.parse(decodeURIComponent(variantStr)) : null;
-  const { user } = useAuthStore();
+  const { user, setWalletBalance: setSharedWalletBalance } = useAuthStore();
   
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -251,7 +251,9 @@ function CheckoutContent() {
        api.get('/users/me').then(res => {
          if (res.data.success) {
             const u = res.data.data.user;
-            setWalletBalance(u.wallet_balance || 0);
+            const nextBalance = u.wallet_balance || 0;
+            setWalletBalance(nextBalance);
+            setSharedWalletBalance(nextBalance);
             
             // Re-sync if profile returned more data
             setFormData(f => ({ 
@@ -504,6 +506,9 @@ function CheckoutContent() {
           } else {
             await api.post(`/orders/${id}/pay-direct`);
           }
+        }
+        if (!isPayOnDelivery) {
+          useAuthStore.getState().refreshWalletBalance?.();
         }
       } else if (isEversend) {
         setEversendCheckout({
