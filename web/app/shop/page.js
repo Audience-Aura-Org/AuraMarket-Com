@@ -231,7 +231,7 @@ function ShopContent() {
         <div className="flex flex-col w-full min-h-screen relative">
 
         {/* STICKY HEADER STACK: Search + Category bar */}
-        <div className="sticky top-[57px] md:top-[64px] z-40 bg-[var(--bg-primary)] shadow-sm">
+        <div className="sticky top-[calc(61px+env(safe-area-inset-top,0px))] md:top-[calc(73px+env(safe-area-inset-top,0px))] z-40 bg-[var(--bg-primary)] shadow-sm">
 
           {/* Search Bar - Discovery SYNC */}
           <div className="px-6 lg:px-12 py-3 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
