@@ -424,7 +424,7 @@ export default function SingleOrderView({ orderId, onBack }) {
     if (order.payment_status === 'paid') {
       return {
         label: 'Paid',
-        detail: 'Gateway payment confirmed.',
+        detail: 'Paid',
         classes: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
       };
     }
