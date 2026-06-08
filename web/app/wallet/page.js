@@ -628,16 +628,8 @@ export default function WalletPage() {
                            />
                            {depositNetAmount > 0 && (
                              <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 p-3 text-[10px] font-semibold text-[var(--text-secondary)] lg:text-[11px]">
-                               <div className="flex items-center justify-between gap-3">
-                                 <span>Wallet credit</span>
-                                 <span className="text-[var(--text-primary)]">{fmt(depositNetAmount)} XAF</span>
-                               </div>
-                               <div className="mt-1 flex items-center justify-between gap-3">
-                                 <span>Collection fee</span>
-                                 <span className="text-[var(--text-primary)]">{fmt(depositCollectionFee)} XAF</span>
-                               </div>
-                               <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--glass-border)] pt-2 text-[var(--accent)]">
-                                 <span>Approve on phone</span>
+                               <div className="flex items-center justify-between gap-3 text-[var(--accent)]">
+                                 <span>Amount requested</span>
                                  <span>{fmt(depositApprovalAmount)} XAF</span>
                                </div>
                              </div>

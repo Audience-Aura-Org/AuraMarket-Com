@@ -665,7 +665,7 @@ function CheckoutContent() {
       id: 'mesomb',
       label: 'MTN / Orange Money',
       badge: 'Primary',
-      description: 'Direct USSD prompt. Includes a 5 XAF collection fee.',
+      description: 'Direct USSD prompt for MTN MoMo and Orange Money.',
       icon: Smartphone,
     },
     {
@@ -679,7 +679,7 @@ function CheckoutContent() {
       id: 'eversend',
       label: 'Eversend',
       badge: '500 XAF min',
-      description: 'Mobile money collection with a 500 XAF minimum plus 5 XAF fee.',
+      description: 'Mobile money collection with a 500 XAF minimum.',
       icon: Smartphone,
     },
     {
@@ -1132,7 +1132,7 @@ function CheckoutContent() {
                                     </div>
                                  </div>
                                  <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-3 leading-relaxed">
-                                    A USSD prompt will be sent to your phone. Mobile-money collections include a 5 XAF service fee.
+                                    A USSD prompt will be sent to your phone. Approve it to complete payment.
                                  </p>
                               </div>
                            )}
@@ -1335,13 +1335,6 @@ function CheckoutContent() {
                              </div>
                            ))}
                          </div>
-                      </div>
-                   )}
-
-                   {collectionFee > 0 && (
-                      <div className="flex justify-between items-center border-t border-[var(--glass-border)]/20 pt-3 text-[11px] font-semibold text-[var(--text-secondary)] lg:text-[12px]">
-                         <span className="opacity-55">Mobile Money Collection Fee</span>
-                         <span className="font-mono text-[12px] text-[var(--text-primary)]">{collectionFee.toLocaleString()} XAF</span>
                       </div>
                    )}
 
