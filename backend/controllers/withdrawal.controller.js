@@ -443,24 +443,24 @@ const adminApproveWithdrawal = async (req, res) => {
           console.warn('[MeSomb] Could not verify app balance before payout:', balanceErr.message);
         }
 
-        payoutResult = await mesomb.makeDeposit({
+        payoutResult = await mesomb.payout({
           amount: wr.amount,
           phone: recipientDetails.phoneNumber,
-          service: detectedService,
           currency: wr.currency,
-          country: recipientDetails.country,
-          trxID: txRef,
+          country: recipientDetails.country || 'CM',
+          trxID: `WD-${txRef}`,
           message: `Auradime withdrawal ${txRef.slice(-6).toUpperCase()}`,
           customer: {
-            first_name: recipientDetails.firstName,
-            last_name: recipientDetails.lastName,
-            phone: recipientDetails.phoneNumber,
+            firstName: recipientDetails.firstName || '',
+            lastName: recipientDetails.lastName || '',
+            email: user.email || undefined,
+            phone: mesomb.normalisePhone(recipientDetails.phoneNumber),
           },
         });
-        payoutTxId = getMesombTxId(payoutResult);
-        payoutStatus = mesomb.mapStatus(payoutResult);
-        if (payoutStatus === 'FAILED') {
-          throw new Error(getGatewayFailureMessage(payoutResult, 'MeSomb rejected the payout.'));
+        payoutTxId = payoutResult.reference || getMesombTxId(payoutResult.raw || payoutResult);
+        payoutStatus = payoutResult.status;
+        if (payoutResult.failed) {
+          throw new Error(payoutResult.message || 'MeSomb rejected the payout.');
         }
       } else {
         const eversendMethod = wr.withdrawalMethod === 'mesomb' ? 'momo' : wr.withdrawalMethod;

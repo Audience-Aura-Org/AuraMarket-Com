@@ -68,6 +68,8 @@ const normalizePhone = (phone) => {
   return phone.replace(/\D/g, '').replace(/^237/, '').replace(/^0/, '');
 };
 
+const normalisePhone = normalizePhone;
+
 /**
  * Initiate a mobile money collection via MeSomb.
  *
@@ -156,6 +158,57 @@ const makeDeposit = async ({
   });
 };
 
+const getMesombReference = (response) => (
+  response?.transaction?.pk ||
+  response?.pk ||
+  response?.id ||
+  response?.trxID ||
+  response?.reference ||
+  null
+);
+
+const getGatewayMessage = (response, fallback = 'MeSomb payout response received.') => (
+  response?.message ||
+  response?.detail ||
+  response?.reason ||
+  response?.error ||
+  response?.transaction?.message ||
+  fallback
+);
+
+const payout = async ({
+  amount,
+  phone,
+  currency = 'XAF',
+  country = 'CM',
+  trxID = null,
+  message = 'Auradime Withdrawal',
+  customer = {},
+}) => {
+  const response = await makeDeposit({
+    amount,
+    phone,
+    currency,
+    country,
+    trxID,
+    message,
+    customer,
+  });
+  const status = mapStatus(response);
+  const reference = getMesombReference(response) || trxID;
+
+  return {
+    success: status === 'SUCCESSFUL',
+    pending: status === 'PENDING',
+    failed: status === 'FAILED',
+    status,
+    reference,
+    transaction: response?.transaction || response,
+    message: getGatewayMessage(response),
+    raw: response,
+  };
+};
+
 /**
  * Get the status of a MeSomb transaction.
  * @param {string} transactionId - MeSomb transaction ID or our trxID reference
@@ -203,5 +256,7 @@ module.exports = {
   getApplicationBalance,
   detectOperator,
   normalizePhone,
+  normalisePhone,
   mapStatus,
+  payout,
 };
