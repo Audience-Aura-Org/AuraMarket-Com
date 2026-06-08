@@ -8,7 +8,7 @@ const PlatformSettingsSchema = new mongoose.Schema(
   {
     commission_rate: {
       type: Number,
-      default: 0,
+      default: 5,
       min: 0,
       max: 100
     },
@@ -19,7 +19,7 @@ const PlatformSettingsSchema = new mongoose.Schema(
     },
     commission_value: {
       type: Number,
-      default: 0,
+      default: 5,
       min: 0
     },
     escrow_fee_type: {

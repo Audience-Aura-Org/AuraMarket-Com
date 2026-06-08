@@ -44,6 +44,10 @@ const mergeCheckoutItems = (items = []) => {
   return Array.from(merged.values());
 };
 
+const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
+const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
+const isMobileMoneyPayment = (method) => method === 'mesomb' || method === 'eversend';
+
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -63,7 +67,7 @@ function CheckoutContent() {
     city: '',
     paymentMethod: 'mesomb',
     escrowEnabled: true,
-    logistics_company_id: null,
+    logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
     quartier: '',
     eversend: { phone: '', country: 'CM', currency: 'XAF' },
     mesomb:   { phone: '', service: '' },
@@ -103,7 +107,18 @@ function CheckoutContent() {
     message: '',
   });
 
-  const selectedLogistics = logisticsFirms.find(f => f._id === formData.logistics_company_id);
+  const isVendorManagedDelivery = formData.logistics_company_id === VENDOR_MANAGED_LOGISTICS_ID;
+  const defaultLogisticsOption = {
+    _id: VENDOR_MANAGED_LOGISTICS_ID,
+    company_name: 'Vendor-managed delivery',
+    description: 'No logistics agency fee. The vendor arranges delivery directly.',
+    user_id: { name: 'No agency fee', branding: {} },
+    isDefaultVendorManaged: true,
+  };
+  const logisticsOptions = [defaultLogisticsOption, ...logisticsFirms];
+  const selectedLogistics = isVendorManagedDelivery
+    ? defaultLogisticsOption
+    : logisticsFirms.find(f => f._id === formData.logistics_company_id);
 
   const getCheckoutVendorIds = () => {
     const items = order?.products || cartItems;
@@ -211,7 +226,11 @@ function CheckoutContent() {
            const firms = res.data.data.firms || [];
            setLogisticsFirms(firms);
            
-           if (formData.logistics_company_id && !firms.find(f => f._id === formData.logistics_company_id)) {
+           if (
+              formData.logistics_company_id &&
+              formData.logistics_company_id !== VENDOR_MANAGED_LOGISTICS_ID &&
+              !firms.find(f => f._id === formData.logistics_company_id)
+           ) {
               setFormData(prev => ({ ...prev, logistics_company_id: null }));
            }
         }
@@ -221,7 +240,9 @@ function CheckoutContent() {
   }, [formData.quartier, order, cartItems]);
 
   useEffect(() => {
-      if (formData.logistics_company_id && formData.quartier && logisticsFirms.length > 0) {
+      if (isVendorManagedDelivery) {
+          setCompatibleFee(0);
+      } else if (formData.logistics_company_id && formData.quartier && logisticsFirms.length > 0) {
           const firm = logisticsFirms.find(f => f._id === formData.logistics_company_id);
           if (firm) {
               const qPrice = getFirmZonePrice(firm, formData.quartier);
@@ -231,7 +252,7 @@ function CheckoutContent() {
       } else {
           setCompatibleFee(0);
       }
-  }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems, zones]);
+  }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems, zones, isVendorManagedDelivery]);
 
   // 1. Fetch Auth User Metadata & Auto-fill Profile
   useEffect(() => {
@@ -372,17 +393,19 @@ function CheckoutContent() {
     // Compute amounts from the authoritative sources, not stale state
     const computedSubtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
     const computedDelivery = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
-    const totalAmount = computedSubtotal + computedDelivery;
+    const computedOrderTotal = computedSubtotal + computedDelivery;
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
     const isEversend = formData.paymentMethod === 'eversend';
     const isMesomb  = formData.paymentMethod === 'mesomb';
     const isExternal = isEversend || isMesomb;
+    const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+    const totalAmount = computedOrderTotal + computedCollectionFee;
 
     // Pre-check wallet balance before attempting wallet payment
-    if (!isPayOnDelivery && !isExternal && walletBalance < totalAmount) {
+    if (!isPayOnDelivery && !isExternal && walletBalance < computedOrderTotal) {
       setBlockReason('insufficient_wallet');
-      setError(`Your wallet balance (${walletBalance.toLocaleString()} XAF) is insufficient for this order (${totalAmount.toLocaleString()} XAF).`);
+      setError(`Your wallet balance (${walletBalance.toLocaleString()} XAF) is insufficient for this order (${computedOrderTotal.toLocaleString()} XAF).`);
       return;
     }
     if (isEversend && totalAmount < 500) {
@@ -400,9 +423,13 @@ function CheckoutContent() {
       return;
     }
 
-    // MANDATORY LOGISTICS VALIDATION
-    if (!formData.logistics_company_id || !formData.quartier) {
-      toast.error('Logistics Critical: Please select a logistics partner and delivery zone to calculate shipment fees.');
+    if (!formData.quartier) {
+      toast.error('Please select your delivery zone.');
+      return;
+    }
+
+    if (!isVendorManagedDelivery && !formData.logistics_company_id) {
+      toast.error('Please select a logistics partner or choose vendor-managed delivery.');
       return;
     }
     
@@ -438,8 +465,8 @@ function CheckoutContent() {
               : isEversend ? 'eversend'
               : isMesomb   ? 'mesomb'
               : (formData.escrowEnabled ? 'escrow' : 'wallet'),
-            shipping_method: 'logistics_partner',
-            logistics_company_id: formData.logistics_company_id,
+            shipping_method: isVendorManagedDelivery ? 'vendor_managed' : 'logistics_partner',
+            logistics_company_id: isVendorManagedDelivery ? null : formData.logistics_company_id,
             delivery_quartier: formData.quartier
          };
 
@@ -611,10 +638,13 @@ function CheckoutContent() {
   const matrixItems = order?.products || cartItems;
   const subtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
   const finalDeliveryFee = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
-  const totalAmount = subtotal + finalDeliveryFee;
+  const orderTotalAmount = subtotal + finalDeliveryFee;
+  const collectionFee = isMobileMoneyPayment(formData.paymentMethod) ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+  const totalAmount = orderTotalAmount + collectionFee;
+  const checkoutBlocked = !formData.quartier || (!isVendorManagedDelivery && !formData.logistics_company_id);
 
   // Breakdown vendors and their fees
-  const feePerVendor = selectedLogistics && formData.quartier ? getFirmZonePrice(selectedLogistics, formData.quartier) : 0;
+  const feePerVendor = selectedLogistics && !isVendorManagedDelivery && formData.quartier ? getFirmZonePrice(selectedLogistics, formData.quartier) : 0;
   
   const vendorTracking = matrixItems.reduce((acc, item) => {
      const vId = item.vendor_id?._id || item.vendor_id || item.product?.vendor_id;
@@ -635,7 +665,7 @@ function CheckoutContent() {
       id: 'mesomb',
       label: 'MTN / Orange Money',
       badge: 'Primary',
-      description: 'Direct USSD prompt for MTN MoMo and Orange Money.',
+      description: 'Direct USSD prompt. Includes a 5 XAF collection fee.',
       icon: Smartphone,
     },
     {
@@ -649,7 +679,7 @@ function CheckoutContent() {
       id: 'eversend',
       label: 'Eversend',
       badge: '500 XAF min',
-      description: 'Mobile money collection with a 500 XAF minimum.',
+      description: 'Mobile money collection with a 500 XAF minimum plus 5 XAF fee.',
       icon: Smartphone,
     },
     {
@@ -938,7 +968,7 @@ function CheckoutContent() {
                        </div>
 
                        <div className="pt-4 space-y-4">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Logistics Partner</label>
+                          <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Option</label>
                           <div className="relative">
                              <button 
                                 type="button"
@@ -964,12 +994,14 @@ function CheckoutContent() {
                                              {selectedLogistics.company_name}
                                           </p>
                                           <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-60 truncate">
-                                             {formData.quartier ? `Serves ${formData.quartier}` : 'Verified partner'}
+                                             {selectedLogistics.isDefaultVendorManaged
+                                                ? 'No logistics agency fee'
+                                                : formData.quartier ? `Serves ${formData.quartier}` : 'Verified partner'}
                                           </p>
                                         </>
                                       ) : (
                                         <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-30">
-                                          {formData.quartier ? 'Select logistics partner' : 'Select zone or preview partners'}
+                                          {formData.quartier ? 'Select delivery option' : 'Select zone or preview partners'}
                                         </span>
                                       )}
                                    </div>
@@ -978,7 +1010,7 @@ function CheckoutContent() {
                              </button>
 
                              <SearchableLogisticsDropdown 
-                                firms={logisticsFirms}
+                                firms={logisticsOptions}
                                 selectedId={formData.logistics_company_id}
                                 onSelect={(id) => setFormData({...formData, logistics_company_id: id})}
                                 loading={logisticsLoading}
@@ -1100,7 +1132,7 @@ function CheckoutContent() {
                                     </div>
                                  </div>
                                  <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-3 leading-relaxed">
-                                    💡 A USSD prompt will be sent to your phone. Approve it to complete payment.
+                                    A USSD prompt will be sent to your phone. Mobile-money collections include a 5 XAF service fee.
                                  </p>
                               </div>
                            )}
@@ -1188,11 +1220,13 @@ function CheckoutContent() {
                                       }
                                    </div>
                                    <div className="flex-1">
-                                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] mb-1 opacity-60">Logistics Assigned</p>
+                                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] mb-1 opacity-60">Delivery Assigned</p>
                                       <p className="text-sm  font-bold text-[var(--text-primary)] tracking-tight truncate leading-none">
                                          {selectedLogistics.company_name}
                                       </p>
-                                      <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight mt-1 opacity-80">Verified AURA Node</p>
+                                      <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight mt-1 opacity-80">
+                                        {selectedLogistics.isDefaultVendorManaged ? 'No agency fee' : 'Verified AURA Node'}
+                                      </p>
                                    </div>
                                 </div>
                             )}
@@ -1304,6 +1338,13 @@ function CheckoutContent() {
                       </div>
                    )}
 
+                   {collectionFee > 0 && (
+                      <div className="flex justify-between items-center border-t border-[var(--glass-border)]/20 pt-3 text-[11px] font-semibold text-[var(--text-secondary)] lg:text-[12px]">
+                         <span className="opacity-55">Mobile Money Collection Fee</span>
+                         <span className="font-mono text-[12px] text-[var(--text-primary)]">{collectionFee.toLocaleString()} XAF</span>
+                      </div>
+                   )}
+
                    <div className="flex justify-between items-end pt-4 border-t border-[var(--glass-border)]/50">
                       <div>
                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)] lg:text-[11px]">Final Total</p>
@@ -1317,9 +1358,9 @@ function CheckoutContent() {
                  <div className="space-y-6">
                    <button 
                      onClick={handlePlaceOrder}
-                     disabled={loading || !formData.logistics_company_id}
+                     disabled={loading || checkoutBlocked}
                      className={`flex h-14 w-full items-center justify-center gap-3 rounded-2xl text-[11px] font-semibold tracking-[0.18em] shadow-lg transition-all duration-500 group lg:text-[12px] ${
-                        !formData.logistics_company_id 
+                        checkoutBlocked 
                           ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed grayscale' 
                           : 'bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--accent)] hover:text-white'
                      } disabled:opacity-50`}
@@ -1436,6 +1477,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
 
   const filtered = firms.filter(f => 
     f.company_name?.toLowerCase().includes(query.toLowerCase()) || 
+    f.description?.toLowerCase().includes(query.toLowerCase()) ||
     f.user_id?.name?.toLowerCase().includes(query.toLowerCase())
   );
 
@@ -1470,13 +1512,13 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                      {f.user_id?.branding?.logo || f.user_id?.avatar ? (
                         <img src={f.user_id?.branding?.logo || f.user_id?.avatar} className="size-full object-cover" alt="" />
                      ) : (
-                        <Truck className="size-5 opacity-20" />
+                        <Truck className={`size-5 ${f.isDefaultVendorManaged ? 'text-[var(--accent)] opacity-80' : 'opacity-20'}`} />
                      )}
                   </div>
                   <div className="min-w-0 flex-1">
                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate">{f.company_name}</p>
                      <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-60 truncate">
-                        {f.user_id?.name || 'Authorized Lead'}
+                        {f.description || f.user_id?.name || 'Authorized Lead'}
                      </p>
                   </div>
                   {selectedId === f._id && <CheckCircle2 className="size-4 text-[var(--accent)]" />}

@@ -35,6 +35,7 @@ const templates               = require('../utils/emailTemplates');
 const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
+const isVendorManagedShipping = (method) => method === 'vendor_managed' || method === 'self_managed';
 
 const variantEntries = (variant) =>
   Object.entries(variant || {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
@@ -186,23 +187,32 @@ const createOrder = async (req, res, next) => {
       escrow_enabled 
     } = req.body;
 
-    // MANDATORY LOGISTICS: Block purchase without logistics partner
-    if (shipping_method !== 'logistics_partner' || !logistics_company_id || !delivery_quartier) {
+    const normalizedShippingMethod = isVendorManagedShipping(shipping_method) ? 'vendor_managed' : 'logistics_partner';
+    const deliveryZone = delivery_quartier || shipping_address?.quartier;
+
+    if (!deliveryZone) {
       return res.status(400).json({ 
         success: false, 
-        message: 'A logistics partner and delivery zone must be selected for shipment fees.' 
+        message: 'A delivery zone must be selected for this order.' 
+      });
+    }
+
+    if (normalizedShippingMethod === 'logistics_partner' && !logistics_company_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select a logistics partner or choose vendor-managed delivery.',
       });
     }
 
     let shipping_fee = 0;
-    if (shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
-      const firms = await logisticsService.getCompatibleFirms(delivery_quartier, [vendor_id]);
+    if (normalizedShippingMethod === 'logistics_partner' && logistics_company_id && deliveryZone) {
+      const firms = await logisticsService.getCompatibleFirms(deliveryZone, [vendor_id]);
       const isCompatible = firms.some(f => f._id.toString() === logistics_company_id);
       if (!isCompatible) {
         throw new Error('Selected logistics company does not support this delivery route.');
       }
 
-      const fees = await logisticsService.calculateShipmentFees([vendor_id], delivery_quartier, logistics_company_id);
+      const fees = await logisticsService.calculateShipmentFees([vendor_id], deliveryZone, logistics_company_id);
       shipping_fee = fees.totalFee;
     }
 
@@ -216,15 +226,15 @@ const createOrder = async (req, res, next) => {
       shipping_fee,
       total_amount:    total_amount > 0 ? total_amount : 0,
       payment_method,
-      shipping_method,
+      shipping_method: normalizedShippingMethod,
       shipping_address: {
          ...(shipping_address || {}),
-         quartier: delivery_quartier || (shipping_address?.quartier),
+         quartier: deliveryZone,
          email:    req.user.email,
          phone:    req.user.phone
       },
       delivery_description,
-      logistics_company_id: logistics_company_id || null,
+      logistics_company_id: normalizedShippingMethod === 'logistics_partner' ? logistics_company_id : null,
       payment_status:  'pending',
       order_status:    'placed',
       escrow_enabled:  escrow_enabled !== undefined ? escrow_enabled : true,
@@ -235,11 +245,11 @@ const createOrder = async (req, res, next) => {
     // 5. Create shipment for logistics_partner orders (POD or wallet)
     let logisticsCompForNotify = null;
     if (
-      shipping_method === 'logistics_partner' &&
+      normalizedShippingMethod === 'logistics_partner' &&
       logistics_company_id &&
       ['pay_on_delivery', 'wallet'].includes(payment_method)
     ) {
-      await logisticsService.createShipmentsForOrder(createdOrder, delivery_quartier, logistics_company_id, session);
+      await logisticsService.createShipmentsForOrder(createdOrder, deliveryZone, logistics_company_id, session);
       logisticsCompForNotify = await LogisticsCompany.findById(logistics_company_id).session(session);
     }
 
@@ -989,15 +999,22 @@ const createOrdersFromCart = async (req, res, next) => {
     const { 
       shipping_address, 
       payment_method, 
+      shipping_method,
       logistics_company_id, 
       delivery_quartier, 
       delivery_description,
       escrow_enabled
     } = req.body;
 
-    // MANDATORY LOGISTICS: Block purchase without logistics partner
-    if (!logistics_company_id || !delivery_quartier) {
-       throw new Error('A logistics partner and delivery zone must be selected for all items in your cart.');
+    const normalizedShippingMethod = isVendorManagedShipping(shipping_method) ? 'vendor_managed' : 'logistics_partner';
+    const deliveryZone = delivery_quartier || shipping_address?.quartier;
+
+    if (!deliveryZone) {
+       throw new Error('A delivery zone must be selected for all items in your cart.');
+    }
+
+    if (normalizedShippingMethod === 'logistics_partner' && !logistics_company_id) {
+       throw new Error('Select a logistics partner or choose vendor-managed delivery.');
     }
 
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
@@ -1034,8 +1051,8 @@ const createOrdersFromCart = async (req, res, next) => {
       }
 
       let shippingFee = 0;
-      if (logistics_company_id && delivery_quartier) {
-          const fees = await logisticsService.calculateShipmentFees([vendorId], delivery_quartier, logistics_company_id);
+      if (normalizedShippingMethod === 'logistics_partner' && logistics_company_id && deliveryZone) {
+          const fees = await logisticsService.calculateShipmentFees([vendorId], deliveryZone, logistics_company_id);
           shippingFee = fees.totalFee;
       }
 
@@ -1047,9 +1064,9 @@ const createOrdersFromCart = async (req, res, next) => {
         shipping_fee: shippingFee,
         total_amount: subtotal + shippingFee,
         payment_method,
-        shipping_method: 'logistics_partner',
-        logistics_company_id: logistics_company_id,
-        shipping_address: { ...shipping_address, email: req.user.email, phone: req.user.phone },
+        shipping_method: normalizedShippingMethod,
+        logistics_company_id: normalizedShippingMethod === 'logistics_partner' ? logistics_company_id : null,
+        shipping_address: { ...shipping_address, quartier: deliveryZone, email: req.user.email, phone: req.user.phone },
         delivery_description,
         payment_status: 'pending',
         order_status: 'placed',
@@ -1058,8 +1075,8 @@ const createOrdersFromCart = async (req, res, next) => {
 
       createdOrderIds.push(newOrder._id);
 
-      if (['pay_on_delivery', 'wallet'].includes(payment_method) && logistics_company_id) {
-        await logisticsService.createShipmentsForOrder(newOrder, delivery_quartier, logistics_company_id, session);
+      if (['pay_on_delivery', 'wallet'].includes(payment_method) && normalizedShippingMethod === 'logistics_partner' && logistics_company_id) {
+        await logisticsService.createShipmentsForOrder(newOrder, deliveryZone, logistics_company_id, session);
       }
     }
 

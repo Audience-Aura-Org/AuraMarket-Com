@@ -11,6 +11,7 @@
     "dev": "nodemon server.js",
     "dev:network": "HOST=0.0.0.0 nodemon server.js",
     "s3:apply-status-lifecycle": "node scripts/apply-s3-status-lifecycle.js",
+    "fees:update-commerce": "node scripts/update-platform-commerce-fees.js",
     "sync:variant-prices": "node scripts/sync-variant-prices.js --apply",
     "sync:variant-prices:dry": "node scripts/sync-variant-prices.js",
     "test": "echo \"Error: no test specified\" && exit 1"

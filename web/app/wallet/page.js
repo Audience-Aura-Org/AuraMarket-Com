@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
 import socketService from '@/services/socket';
 
+const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
+
 const TX_ICONS = {
   deposit:    { Icon: ArrowDownLeft,  color: 'emerald' },
   withdrawal: { Icon: ArrowUpRight,   color: 'red' },
@@ -223,6 +225,10 @@ export default function WalletPage() {
   // ───────────────────────────────────────────────────────────────────────
 
   if (!mounted || !user) return null;
+
+  const depositNetAmount = Math.max(0, Number(amount || 0));
+  const depositCollectionFee = depositNetAmount > 0 ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+  const depositApprovalAmount = depositNetAmount + depositCollectionFee;
 
   const startDeposit = async () => {
     const min = depositGateway === 'eversend' ? 500 : 50;
@@ -620,6 +626,22 @@ export default function WalletPage() {
                               placeholder={depositGateway === 'eversend' ? 'Min 500' : 'Min 50'}
                               className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-xl font-semibold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
                            />
+                           {depositNetAmount > 0 && (
+                             <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 p-3 text-[10px] font-semibold text-[var(--text-secondary)] lg:text-[11px]">
+                               <div className="flex items-center justify-between gap-3">
+                                 <span>Wallet credit</span>
+                                 <span className="text-[var(--text-primary)]">{fmt(depositNetAmount)} XAF</span>
+                               </div>
+                               <div className="mt-1 flex items-center justify-between gap-3">
+                                 <span>Collection fee</span>
+                                 <span className="text-[var(--text-primary)]">{fmt(depositCollectionFee)} XAF</span>
+                               </div>
+                               <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--glass-border)] pt-2 text-[var(--accent)]">
+                                 <span>Approve on phone</span>
+                                 <span>{fmt(depositApprovalAmount)} XAF</span>
+                               </div>
+                             </div>
+                           )}
                         </div>
 
                         <div className="space-y-2">

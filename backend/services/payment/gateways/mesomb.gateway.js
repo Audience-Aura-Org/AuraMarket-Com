@@ -51,10 +51,13 @@ const mesombGateway = {
    * @param {Object} ctx - { user, amount, currency, orderIds, fields: { phone, service }, req }
    */
   async initialize({ user, amount, currency = 'XAF', orderIds = [], fields = {}, req }) {
-    const { phone, service, checkoutKey, attemptNumber } = fields;
+    const { phone, service, checkoutKey, attemptNumber, netAmount, collectionFee = 0 } = fields;
+    const collectAmount = Math.round(Number(amount || 0));
+    const transactionAmount = Math.round(Number(netAmount || amount || 0));
+    const normalizedCollectionFee = Math.max(0, Math.round(Number(collectionFee || 0)));
 
     if (!phone) throw new Error('Phone number is required for mobile money payment.');
-    if (amount < 50) throw new Error('Minimum amount for MeSomb is 50 XAF.');
+    if (collectAmount < 50) throw new Error('Minimum amount for MeSomb is 50 XAF.');
 
     // Auto-detect operator if not specified
     const detectedService = service || mesomb.detectOperator(phone);
@@ -69,7 +72,7 @@ const mesombGateway = {
     let response;
     try {
       response = await mesomb.makeCollect({
-        amount,
+        amount: collectAmount,
         phone,
         service: detectedService,
         currency,
@@ -88,7 +91,7 @@ const mesombGateway = {
     await Transaction.create({
       user_id: user._id,
       type: 'deposit',
-      amount,
+      amount: transactionAmount,
       currency,
       reference,
       gateway_transaction_id: mesombTxId,
@@ -102,6 +105,9 @@ const mesombGateway = {
       metadata: {
         service: detectedService,
         phone: mesomb.normalizePhone(phone),
+        net_amount: transactionAmount,
+        gross_amount: collectAmount,
+        collection_fee: normalizedCollectionFee,
         ...(checkoutKey ? { checkout_key: checkoutKey, attempt_number: attemptNumber || 1 } : {}),
       },
     });
@@ -126,6 +132,9 @@ const mesombGateway = {
       reference,
       transaction_id: mesombTxId,
       status,
+      amount: transactionAmount,
+      gross_amount: collectAmount,
+      collection_fee: normalizedCollectionFee,
       instructions: status === 'SUCCESSFUL'
         ? 'Payment confirmed! Your order is being processed.'
         : `A payment prompt has been sent to ${phone}. Please approve it on your phone to complete the purchase.`,

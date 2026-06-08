@@ -13,6 +13,7 @@ const { PAYSTACK_SECRET_KEY } = require('../config/env');
 // ── New unified services ─────────────────────────────────────────────────────
 const { settleOrders } = require('../services/payment/settle.service');
 const { getAvailableGateways } = require('../services/payment/gateway.registry');
+const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAYSTACK — kept intact for existing wallet flows
@@ -291,9 +292,14 @@ const mesombInitialize = async (req, res) => {
     const checkoutKey = buildCheckoutKey(checkoutOrderIds);
     let attemptsUsed = 0;
     const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, checkoutOrderIds);
-    const payableAmount = checkoutAmount ?? Math.round(Number(amount || 0));
+    const netPayableAmount = checkoutAmount ?? Math.round(Number(amount || 0));
+    const {
+      netAmount,
+      collectionFee,
+      grossAmount: payableAmount,
+    } = applyMobileMoneyCollectionFee(netPayableAmount, 'mesomb', 'XAF');
 
-    if (!payableAmount || payableAmount <= 0) {
+    if (!netAmount || netAmount <= 0) {
       return res.status(400).json({ success: false, message: 'Invalid amount.' });
     }
     if (!phone) {
@@ -319,7 +325,9 @@ const mesombInitialize = async (req, res) => {
             transaction_id: activePrompt.gateway_transaction_id,
             status: 'PENDING',
             active_prompt: true,
-            amount: payableAmount,
+            amount: netAmount,
+            collection_fee: collectionFee,
+            gross_amount: payableAmount,
             attempts_used: activePrompt.metadata?.attempt_number || 1,
             instructions: 'A payment prompt is already active. Approve it on your phone or cancel checkout before trying again.',
           },
@@ -350,11 +358,26 @@ const mesombInitialize = async (req, res) => {
       amount: payableAmount,
       currency: 'XAF',
       orderIds: checkoutOrderIds,
-      fields: { phone, service, checkoutKey, attemptNumber: checkoutKey ? attemptsUsed + 1 : undefined },
+      fields: {
+        phone,
+        service,
+        checkoutKey,
+        attemptNumber: checkoutKey ? attemptsUsed + 1 : undefined,
+        netAmount,
+        collectionFee,
+      },
       req,
     });
 
-    return res.status(200).json({ success: true, data: { ...result, amount: payableAmount } });
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...result,
+        amount: netAmount,
+        collection_fee: collectionFee,
+        gross_amount: payableAmount,
+      },
+    });
   } catch (err) {
     console.error('[mesombInitialize]', err.message);
     return res.status(400).json({ success: false, message: err.message });
@@ -400,9 +423,11 @@ const eversendInitialize = async (req, res) => {
 
     phone = sanitizePhone(phone, country);
     const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
-    amount = checkoutAmount ?? Number(amount || 0);
+    const netAmount = checkoutAmount ?? Number(amount || 0);
+    const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'eversend', currency || 'XAF');
+    amount = feeBreakdown.grossAmount;
 
-    if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    if (!feeBreakdown.netAmount || feeBreakdown.netAmount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount.' });
     if (!currency || !phone || !country) return res.status(400).json({ success: false, message: 'currency, phone, and country are required.' });
 
     const user = req.user;
@@ -418,7 +443,7 @@ const eversendInitialize = async (req, res) => {
       await Transaction.create({
         user_id: user._id, 
         type: 'deposit', 
-        amount: Number(amount), 
+        amount: Number(feeBreakdown.netAmount), 
         currency, 
         reference: transactionRef,
         gateway_transaction_id: sandboxTxId, 
@@ -426,7 +451,12 @@ const eversendInitialize = async (req, res) => {
         gateway: 'eversend',
         order_ids: order_ids || [],
         description: `[SANDBOX] Checkout initiation for ${order_ids?.length || 0} order(s)`,
-        metadata: { is_sandbox: true }
+        metadata: {
+          is_sandbox: true,
+          net_amount: feeBreakdown.netAmount,
+          collection_fee: feeBreakdown.collectionFee,
+          gross_amount: feeBreakdown.grossAmount,
+        }
       });
 
       return res.status(200).json({ 
@@ -434,7 +464,10 @@ const eversendInitialize = async (req, res) => {
         data: { 
           checkout_url: `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=eversend&ref=${transactionRef}&sandbox=true`, 
           transaction_id: sandboxTxId, 
-          reference: transactionRef 
+          reference: transactionRef,
+          amount: feeBreakdown.netAmount,
+          collection_fee: feeBreakdown.collectionFee,
+          gross_amount: feeBreakdown.grossAmount,
         } 
       });
     }
@@ -468,15 +501,30 @@ const eversendInitialize = async (req, res) => {
     console.log(`[Eversend] gatewayTxId=${gatewayTxId} checkoutUrl=${checkoutUrl}`);
 
     await Transaction.create({
-      user_id: user._id, type: 'deposit', amount, currency, reference: transactionRef,
+      user_id: user._id, type: 'deposit', amount: feeBreakdown.netAmount, currency, reference: transactionRef,
       gateway_transaction_id: gatewayTxId, status: 'pending', gateway: 'eversend',
       order_ids: order_ids || [],
       description: order_ids?.length > 0
         ? `Checkout payment for ${order_ids.length} order(s) via Eversend (${currency})`
         : `Wallet deposit via Eversend (${currency})`,
+      metadata: {
+        net_amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+      },
     });
 
-    return res.status(200).json({ success: true, data: { checkout_url: checkoutUrl, transaction_id: gatewayTxId, reference: transactionRef } });
+    return res.status(200).json({
+      success: true,
+      data: {
+        checkout_url: checkoutUrl,
+        transaction_id: gatewayTxId,
+        reference: transactionRef,
+        amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+      }
+    });
 
   } catch (error) {
     const evError = error.response?.data;
