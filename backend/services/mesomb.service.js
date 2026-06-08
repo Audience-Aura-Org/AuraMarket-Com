@@ -12,22 +12,130 @@
  *   MESOMB_WEBHOOK_SECRET   — optional HMAC secret for webhook validation
  */
 
-const { PaymentOperation, RandomGenerator } = require('@hachther/mesomb');
+const crypto = require('crypto');
 
 const APPLICATION_KEY = process.env.MESOMB_APPLICATION_KEY;
 const ACCESS_KEY      = process.env.MESOMB_ACCESS_KEY;
 const SECRET_KEY      = process.env.MESOMB_SECRET_KEY;
+const MESOMB_BASE_URL = (process.env.MESOMB_BASE_URL || 'https://business.mesomb.com/en/api/v1.1').replace(/\/$/, '');
+const ALGORITHM = 'HMAC-SHA1';
 
-const createPaymentClient = () => {
+const requireCredentials = () => {
   if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
     throw new Error('MeSomb credentials not configured. Set MESOMB_APPLICATION_KEY, MESOMB_ACCESS_KEY, and MESOMB_SECRET_KEY.');
   }
+};
 
-  return new PaymentOperation({
-    applicationKey: APPLICATION_KEY,
-    accessKey: ACCESS_KEY,
-    secretKey: SECRET_KEY,
+const sha1 = (value) => crypto.createHash('sha1').update(value).digest('hex');
+const hmacSha1 = (value, key) => crypto.createHmac('sha1', key).update(value).digest('hex');
+
+const compactJson = (body) => JSON.stringify(body || {});
+
+const yyyymmdd = (date) => (
+  `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, '0')}${String(date.getUTCDate()).padStart(2, '0')}`
+);
+
+const buildCanonicalQuery = (url) => {
+  const entries = Array.from(url.searchParams.entries())
+    .map(([key, value]) => [encodeURIComponent(key), encodeURIComponent(value)])
+    .sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([key, value]) => `${key}=${value}`).join('&');
+};
+
+const signRequest = ({ method, url, date, nonce, body = null, signedHeaders = {} }) => {
+  const parsed = new URL(url);
+  const timestamp = String(Math.floor(date.getTime() / 1000));
+  const headers = {
+    ...Object.fromEntries(
+      Object.entries(signedHeaders).map(([key, value]) => [key.toLowerCase(), String(value).trim()])
+    ),
+    host: parsed.host,
+    'x-mesomb-date': timestamp,
+    'x-mesomb-nonce': nonce,
+  };
+
+  const headerNames = Object.keys(headers).sort();
+  const canonicalHeaders = headerNames.map((key) => `${key}:${headers[key]}`).join('\n');
+  const canonicalRequest = [
+    method.toUpperCase(),
+    encodeURI(parsed.pathname),
+    buildCanonicalQuery(parsed),
+    canonicalHeaders,
+    headerNames.join(';'),
+    sha1(body ? compactJson(body) : '{}'),
+  ].join('\n');
+
+  const scope = `${yyyymmdd(date)}/payment/mesomb_request`;
+  const stringToSign = [
+    ALGORITHM,
+    timestamp,
+    scope,
+    sha1(canonicalRequest),
+  ].join('\n');
+  const signature = hmacSha1(stringToSign, SECRET_KEY);
+
+  return {
+    authorization: `${ALGORITHM} Credential=${ACCESS_KEY}/${scope}, SignedHeaders=${headerNames.join(';')}, Signature=${signature}`,
+    timestamp,
+  };
+};
+
+const parseMesombError = async (response) => {
+  const text = await response.text();
+  if (!text) return `MeSomb request failed with HTTP ${response.status}`;
+  try {
+    const data = JSON.parse(text);
+    return data.detail || data.message || data.error || text;
+  } catch {
+    return text;
+  }
+};
+
+const mesombRequest = async ({ method = 'GET', endpoint, body = null, mode = 'asynchronous', trxID = null }) => {
+  requireCredentials();
+  const date = new Date();
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const url = `${MESOMB_BASE_URL}/${endpoint.replace(/^\/+/, '')}`;
+  const signedHeaders = body ? { 'content-type': 'application/json' } : {};
+  const { authorization, timestamp } = signRequest({ method, url, date, nonce, body, signedHeaders });
+
+  const headers = {
+    'x-mesomb-date': timestamp,
+    'x-mesomb-nonce': nonce,
+    'X-MeSomb-OperationMode': mode,
+    'X-MeSomb-Source': 'AuradimeBackend/1.0',
+    'X-MeSomb-Application': APPLICATION_KEY,
+    'Accept-Language': 'en',
+    Authorization: authorization,
+  };
+
+  if (body) headers['Content-Type'] = 'application/json';
+  if (trxID) headers['X-MeSomb-TrxID'] = String(trxID);
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: body ? compactJson(body) : undefined,
   });
+
+  if (response.status >= 400) {
+    throw new Error(await parseMesombError(response));
+  }
+
+  return response.json();
+};
+
+const withBalanceHelper = (application = {}) => {
+  const balances = Array.isArray(application.balances) ? application.balances : [];
+  return {
+    ...application,
+    getBalance(country = null, service = null) {
+      return balances
+        .filter((item) => !country || item.country === country)
+        .filter((item) => !service || item.service === service)
+        .reduce((sum, item) => sum + Number(item.value || 0), 0);
+    },
+  };
 };
 
 /**
@@ -98,19 +206,26 @@ const makeCollect = async ({
     throw new Error(`Could not determine mobile operator for number: ${phone}. Please specify MTN or ORANGE.`);
   }
 
-  const client = createPaymentClient();
+  const trx = trxID || crypto.randomBytes(16).toString('hex');
 
-  const nonce = RandomGenerator.nonce();
-
-  const response = await client.makeCollect({
+  const body = {
     amount: Math.round(amount),
     service: operator,
     payer: normalizedPhone,
-    nonce,
-    trxID: trxID || nonce,
     currency,
     country,
+    amount_currency: currency,
+    fees: true,
+    conversion: false,
     message,
+  };
+
+  const response = await mesombRequest({
+    method: 'POST',
+    endpoint: 'payment/collect/',
+    body,
+    mode: 'synchronous',
+    trxID: trx,
   });
 
   console.log(`[MeSomb] Collection ${operator} ${normalizedPhone} — ${amount} ${currency}: ${response.status}`);
@@ -139,20 +254,26 @@ const makeDeposit = async ({
     throw new Error(`Could not determine mobile operator for number: ${phone}. Please specify MTN or ORANGE.`);
   }
 
-  const client = createPaymentClient();
+  const trx = trxID || crypto.randomBytes(16).toString('hex');
 
-  const nonce = RandomGenerator.nonce();
-
-  return client.makeDeposit({
+  const body = {
     amount: Math.round(amount),
     service: operator,
     receiver: normalizedPhone,
-    nonce,
-    trxID: trxID || nonce,
     currency,
     country,
+    amount_currency: currency,
+    conversion: false,
     message,
     customer,
+  };
+
+  return mesombRequest({
+    method: 'POST',
+    endpoint: 'payment/deposit/',
+    body,
+    mode: 'asynchronous',
+    trxID: trx,
   });
 };
 
@@ -162,16 +283,21 @@ const makeDeposit = async ({
  * @returns {Object} transaction data
  */
 const getTransactionStatus = async (transactionId) => {
-  const client = createPaymentClient();
-
-  // MeSomb status can be checked by our trxID or their pk
-  const response = await client.getStatus(transactionId);
-  return response;
+  const id = String(transactionId || '').trim();
+  const source = id.startsWith('AURA-') ? 'EXTERNAL' : 'MESOMB';
+  const response = await mesombRequest({
+    method: 'GET',
+    endpoint: `payment/transactions/check/?ids=${encodeURIComponent(id)}&source=${source}`,
+  });
+  return Array.isArray(response) ? response[0] : response;
 };
 
 const getApplicationStatus = async () => {
-  const client = createPaymentClient();
-  return client.getStatus();
+  const response = await mesombRequest({
+    method: 'GET',
+    endpoint: 'payment/status/',
+  });
+  return withBalanceHelper(response);
 };
 
 const getApplicationBalance = async ({ country = 'CM', service = null } = {}) => {
