@@ -1,4 +1,4 @@
-require('@dotenvx/dotenvx').config();
+require('dotenv').config();
 
 const connectDB = require('../config/database');
 const PlatformSettings = require('../models/PlatformSettings.model');
