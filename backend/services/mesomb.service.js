@@ -17,7 +17,7 @@ const crypto = require('crypto');
 const APPLICATION_KEY = process.env.MESOMB_APPLICATION_KEY;
 const ACCESS_KEY      = process.env.MESOMB_ACCESS_KEY;
 const SECRET_KEY      = process.env.MESOMB_SECRET_KEY;
-const MESOMB_BASE_URL = (process.env.MESOMB_BASE_URL || 'https://business.mesomb.com/en/api/v1.1').replace(/\/$/, '');
+const MESOMB_BASE_URL = (process.env.MESOMB_BASE_URL || 'https://mesomb.hachther.com/api/v1.1').replace(/\/$/, '');
 const ALGORITHM = 'HMAC-SHA1';
 
 const requireCredentials = () => {
