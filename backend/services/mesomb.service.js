@@ -103,10 +103,11 @@ const getSignatureModes = () => {
   return ['docs', 'legacy'];
 };
 
-const mesombRequest = async ({ method = 'GET', endpoint, body = null, mode = 'asynchronous', trxID = null }) => {
+const mesombRequest = async ({ method = 'GET', endpoint, body = null, mode = 'asynchronous', trxID = null, trxIdInBody = false }) => {
   requireCredentials();
-  const url = `${MESOMB_BASE_URL}/${endpoint.replace(/^\/+/, '')}`;
-  const signedHeaders = body ? { 'content-type': 'application/json' } : {};
+  const requestBody = body && trxID && trxIdInBody ? { ...body, trxID: String(trxID) } : body;
+  const url = `${MESOMB_BASE_URL}/${endpoint.replace(/^\/+/, '').replace(/\/+$/, '')}`;
+  const signedHeaders = requestBody ? { 'content-type': 'application/json' } : {};
   const modes = getSignatureModes();
   let lastError = null;
 
@@ -118,7 +119,7 @@ const mesombRequest = async ({ method = 'GET', endpoint, body = null, mode = 'as
       url,
       date,
       nonce,
-      body,
+      body: requestBody,
       signedHeaders,
       mode: signatureMode,
     });
@@ -133,13 +134,13 @@ const mesombRequest = async ({ method = 'GET', endpoint, body = null, mode = 'as
       Authorization: authorization,
     };
 
-    if (body) headers['Content-Type'] = 'application/json';
-    if (trxID) headers['X-MeSomb-TrxID'] = String(trxID);
+    if (requestBody) headers['Content-Type'] = 'application/json';
+    if (trxID && !trxIdInBody) headers['X-MeSomb-TrxID'] = String(trxID);
 
     const response = await fetch(url, {
       method,
       headers,
-      body: body ? compactJson(body) : undefined,
+      body: requestBody ? compactJson(requestBody) : undefined,
     });
 
     if (response.status < 400) return response.json();
@@ -252,10 +253,11 @@ const makeCollect = async ({
 
   const response = await mesombRequest({
     method: 'POST',
-    endpoint: 'payment/collect/',
+    endpoint: 'payment/collect',
     body,
     mode: 'synchronous',
     trxID: trx,
+    trxIdInBody: true,
   });
 
   console.log(`[MeSomb] Collection ${operator} ${normalizedPhone} — ${amount} ${currency}: ${response.status}`);
@@ -300,10 +302,11 @@ const makeDeposit = async ({
 
   return mesombRequest({
     method: 'POST',
-    endpoint: 'payment/deposit/',
+    endpoint: 'payment/deposit',
     body,
     mode: 'asynchronous',
     trxID: trx,
+    trxIdInBody: true,
   });
 };
 
