@@ -27,7 +27,7 @@ const STAT_COLOR_STYLES = {
 
 const DEFAULT_SETTINGS = {
   commission_type: 'percentage',
-  commission_value: 0,
+  commission_value: 5,
   escrow_fee_type: 'percentage',
   escrow_fee_value: 0
 };
@@ -82,7 +82,7 @@ export default function AdminEscrow() {
         setSettings({
           ...DEFAULT_SETTINGS,
           commission_type: nextSettings.commission_type || 'percentage',
-          commission_value: nextSettings.commission_value ?? nextSettings.commission_rate ?? 0,
+          commission_value: nextSettings.commission_value ?? nextSettings.commission_rate ?? 5,
           escrow_fee_type: nextSettings.escrow_fee_type || 'percentage',
           escrow_fee_value: nextSettings.escrow_fee_value ?? 0
         });
@@ -298,7 +298,7 @@ export default function AdminEscrow() {
             ))}
          </div>
 
-         <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-5 md:gap-6">
+         <div className="grid grid-cols-1 gap-5 md:gap-6">
             <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">
                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
                   <div className="flex items-center gap-3">
@@ -384,36 +384,6 @@ export default function AdminEscrow() {
                </div>
             </div>
 
-            <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">
-               <div className="flex items-center gap-3 mb-6">
-                  <div className="size-11 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
-                     <ShieldCheck className="size-5" />
-                  </div>
-                  <div>
-                     <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">How Escrow Works</h3>
-                     <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Settlement lifecycle</p>
-                  </div>
-               </div>
-               <div className="space-y-3">
-                  {[
-                    ['1', 'Buyer pays', 'The full order total is collected and the vendor base amount is locked in escrow.'],
-                    ['2', 'Vendor fulfills', 'The vendor ships the order, or logistics confirms delivery for logistics-managed orders.'],
-                    ['3', 'Buyer confirms', 'The buyer releases escrow after delivery, or an admin can override from this vault.'],
-                    ['4', 'Fees settle', 'Admin commission plus escrow commission are deducted, then the vendor payout is credited.'],
-                    ['5', 'Disputes pause release', 'A denied release opens a dispute so admins can refund or force release after review.']
-                  ].map(([step, title, desc]) => (
-                    <div key={step} className="flex gap-3 p-3 rounded-2xl bg-[var(--bg-primary)]/35 border border-[var(--glass-border)]">
-                       <div className="size-7 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-[10px] font-bold shrink-0">
-                         {step}
-                       </div>
-                       <div>
-                         <p className="text-[11px] font-bold text-[var(--text-primary)]">{title}</p>
-                         <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed">{desc}</p>
-                       </div>
-                    </div>
-                  ))}
-               </div>
-            </div>
          </div>
 
          {/* Escrow Ledger */}
