@@ -19,6 +19,7 @@ const ACCESS_KEY      = process.env.MESOMB_ACCESS_KEY;
 const SECRET_KEY      = process.env.MESOMB_SECRET_KEY;
 const MESOMB_BASE_URL = (process.env.MESOMB_BASE_URL || 'https://mesomb.hachther.com/api/v1.1').replace(/\/$/, '');
 const ALGORITHM = 'HMAC-SHA1';
+const SIGNATURE_MODE = (process.env.MESOMB_SIGNATURE_MODE || 'auto').toLowerCase();
 
 const requireCredentials = () => {
   if (!APPLICATION_KEY || !ACCESS_KEY || !SECRET_KEY) {
@@ -35,6 +36,10 @@ const yyyymmdd = (date) => (
   `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, '0')}${String(date.getUTCDate()).padStart(2, '0')}`
 );
 
+const legacyScopeDate = (date) => (
+  `${date.getFullYear()}${date.getMonth()}${date.getDate()}`
+);
+
 const buildCanonicalQuery = (url) => {
   const entries = Array.from(url.searchParams.entries())
     .map(([key, value]) => [encodeURIComponent(key), encodeURIComponent(value)])
@@ -42,14 +47,15 @@ const buildCanonicalQuery = (url) => {
   return entries.map(([key, value]) => `${key}=${value}`).join('&');
 };
 
-const signRequest = ({ method, url, date, nonce, body = null, signedHeaders = {} }) => {
+const signRequest = ({ method, url, date, nonce, body = null, signedHeaders = {}, mode = 'docs' }) => {
   const parsed = new URL(url);
-  const timestamp = String(Math.floor(date.getTime() / 1000));
+  const legacy = mode === 'legacy';
+  const timestamp = legacy ? String(date.getTime()) : String(Math.floor(date.getTime() / 1000));
   const headers = {
     ...Object.fromEntries(
       Object.entries(signedHeaders).map(([key, value]) => [key.toLowerCase(), String(value).trim()])
     ),
-    host: parsed.host,
+    host: legacy ? `${parsed.protocol}//${parsed.host}` : parsed.host,
     'x-mesomb-date': timestamp,
     'x-mesomb-nonce': nonce,
   };
@@ -65,7 +71,7 @@ const signRequest = ({ method, url, date, nonce, body = null, signedHeaders = {}
     sha1(body ? compactJson(body) : '{}'),
   ].join('\n');
 
-  const scope = `${yyyymmdd(date)}/payment/mesomb_request`;
+  const scope = `${legacy ? legacyScopeDate(date) : yyyymmdd(date)}/payment/mesomb_request`;
   const stringToSign = [
     ALGORITHM,
     timestamp,
@@ -91,38 +97,62 @@ const parseMesombError = async (response) => {
   }
 };
 
+const getSignatureModes = () => {
+  if (SIGNATURE_MODE === 'legacy') return ['legacy'];
+  if (SIGNATURE_MODE === 'docs') return ['docs'];
+  return ['docs', 'legacy'];
+};
+
 const mesombRequest = async ({ method = 'GET', endpoint, body = null, mode = 'asynchronous', trxID = null }) => {
   requireCredentials();
-  const date = new Date();
-  const nonce = crypto.randomBytes(16).toString('hex');
   const url = `${MESOMB_BASE_URL}/${endpoint.replace(/^\/+/, '')}`;
   const signedHeaders = body ? { 'content-type': 'application/json' } : {};
-  const { authorization, timestamp } = signRequest({ method, url, date, nonce, body, signedHeaders });
+  const modes = getSignatureModes();
+  let lastError = null;
 
-  const headers = {
-    'x-mesomb-date': timestamp,
-    'x-mesomb-nonce': nonce,
-    'X-MeSomb-OperationMode': mode,
-    'X-MeSomb-Source': 'AuradimeBackend/1.0',
-    'X-MeSomb-Application': APPLICATION_KEY,
-    'Accept-Language': 'en',
-    Authorization: authorization,
-  };
+  for (const signatureMode of modes) {
+    const date = new Date();
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const { authorization, timestamp } = signRequest({
+      method,
+      url,
+      date,
+      nonce,
+      body,
+      signedHeaders,
+      mode: signatureMode,
+    });
 
-  if (body) headers['Content-Type'] = 'application/json';
-  if (trxID) headers['X-MeSomb-TrxID'] = String(trxID);
+    const headers = {
+      'x-mesomb-date': timestamp,
+      'x-mesomb-nonce': nonce,
+      'X-MeSomb-OperationMode': mode,
+      'X-MeSomb-Source': 'AuradimeBackend/1.0',
+      'X-MeSomb-Application': APPLICATION_KEY,
+      'Accept-Language': 'en',
+      Authorization: authorization,
+    };
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body ? compactJson(body) : undefined,
-  });
+    if (body) headers['Content-Type'] = 'application/json';
+    if (trxID) headers['X-MeSomb-TrxID'] = String(trxID);
 
-  if (response.status >= 400) {
-    throw new Error(await parseMesombError(response));
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? compactJson(body) : undefined,
+    });
+
+    if (response.status < 400) return response.json();
+
+    lastError = await parseMesombError(response);
+    if (!/bad signature|invalid signature|signature/i.test(lastError) || signatureMode === modes[modes.length - 1]) {
+      throw new Error(lastError);
+    }
+
+    console.warn(`[MeSomb] ${signatureMode} signature rejected; retrying with ${modes[modes.indexOf(signatureMode) + 1]} mode.`);
   }
 
-  return response.json();
+  throw new Error(lastError || 'MeSomb request failed.');
 };
 
 const withBalanceHelper = (application = {}) => {
