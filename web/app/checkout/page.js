@@ -977,7 +977,9 @@ function CheckoutContent() {
                              >
                                 <div className="flex items-center gap-4 min-w-0">
                                    <div className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0">
-                                      {formData.logistics_company_id && selectedLogistics ? (
+                                      {selectedLogistics?.isDefaultVendorManaged ? (
+                                         <Truck className="size-5 text-[var(--accent)] opacity-80" />
+                                      ) : formData.logistics_company_id && selectedLogistics ? (
                                          <img 
                                            src={selectedLogistics.user_id?.branding?.logo || selectedLogistics.user_id?.avatar} 
                                            className="size-full object-cover" 
@@ -1502,10 +1504,12 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                   className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${selectedId === f._id ? 'bg-[var(--accent)]/10' : ''}`}
                >
                   <div className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden shrink-0">
-                     {f.user_id?.branding?.logo || f.user_id?.avatar ? (
+                     {f.isDefaultVendorManaged ? (
+                        <Truck className="size-5 text-[var(--accent)] opacity-80" />
+                     ) : f.user_id?.branding?.logo || f.user_id?.avatar ? (
                         <img src={f.user_id?.branding?.logo || f.user_id?.avatar} className="size-full object-cover" alt="" />
                      ) : (
-                        <Truck className={`size-5 ${f.isDefaultVendorManaged ? 'text-[var(--accent)] opacity-80' : 'opacity-20'}`} />
+                        <Truck className="size-5 opacity-20" />
                      )}
                   </div>
                   <div className="min-w-0 flex-1">
