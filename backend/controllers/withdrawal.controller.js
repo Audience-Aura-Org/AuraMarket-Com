@@ -265,8 +265,12 @@ const submitWithdrawal = async (req, res) => {
           sendNotification(req.app, admin._id, {
             title: '💸 New Withdrawal Request',
             message: `${user.name || 'A user'} (${role}) has requested a withdrawal of ${amount.toLocaleString()} ${currency} via ${withdrawalMethod.toUpperCase()}.`,
-            type: 'admin_alert',
-            metadata: { withdrawal_id: withdrawalRequest._id, link: '/admin/withdrawals' },
+            type: 'system_alert',
+            metadata: {
+              target_id: withdrawalRequest._id,
+              withdrawal_id: withdrawalRequest._id,
+              link: '/admin/withdrawals',
+            },
             sendEmail: false,
           })
         ));
