@@ -27,7 +27,7 @@ const STAT_COLOR_STYLES = {
 
 const DEFAULT_SETTINGS = {
   commission_type: 'percentage',
-  commission_value: 5,
+  commission_value: 0,
   escrow_fee_type: 'percentage',
   escrow_fee_value: 0
 };
@@ -67,7 +67,7 @@ export default function AdminEscrow() {
       const [escrowRes, analyticsRes, settingsRes] = await Promise.all([
         api.get('/admin/escrow/logs'),
         api.get('/admin/analytics'),
-        api.get('/admin/settings')
+        api.get('/admin/settings', { skipClientCache: true, params: { t: Date.now() } })
       ]);
 
       if (escrowRes.data?.success) {
@@ -82,7 +82,7 @@ export default function AdminEscrow() {
         setSettings({
           ...DEFAULT_SETTINGS,
           commission_type: nextSettings.commission_type || 'percentage',
-          commission_value: nextSettings.commission_value ?? nextSettings.commission_rate ?? 5,
+          commission_value: nextSettings.commission_value ?? nextSettings.commission_rate ?? 0,
           escrow_fee_type: nextSettings.escrow_fee_type || 'percentage',
           escrow_fee_value: nextSettings.escrow_fee_value ?? 0
         });
