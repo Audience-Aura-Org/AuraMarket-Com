@@ -41,13 +41,12 @@ export default function Providers({ children }) {
       return undefined;
     }
 
-    setShowSplash(true);
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [isDashboardRoute, normalizedPath]);
+  }, [isDashboardRoute]);
 
   useEffect(() => {
     const handleInvalidSession = async () => {

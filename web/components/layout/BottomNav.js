@@ -24,21 +24,7 @@ export default function BottomNav() {
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/onboarding');
   const isDiscoveryPage = pathname?.startsWith('/discovery');
   
-  // ─── Skeleton State ────────────────────────────────────────────────────────
-  if (!mounted) {
-    return (
-      <div
-        className="fixed bottom-0 left-0 right-0 z-[500] w-full animate-pulse rounded-t-[28px] border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-primary)_88%,transparent)] shadow-[0_-12px_40px_-8px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:hidden"
-        style={{ height: "calc(68px + env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="flex h-[68px] items-center justify-around px-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="size-10 rounded-xl bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)]" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (!mounted) return null;
 
   if (chatOpen || isChatPage || isAuthPage) return null;
   // If discovery hub uses its own exact replica, we can hide this one to prevent double rendering.
