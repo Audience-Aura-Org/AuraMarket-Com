@@ -103,6 +103,76 @@ const updateBanners = async (req, res, next) => {
   }
 };
 
+const asMoney = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : 0;
+};
+
+const getFeeBreakdown = (tx = {}) => {
+  const metadata = tx.metadata || {};
+  const breakdown = metadata.platform_fee_breakdown || metadata.fee_breakdown || {};
+  return {
+    commission: asMoney(breakdown.commission_fee ?? breakdown.commission ?? metadata.commission_fee),
+    escrow: asMoney(breakdown.escrow_fee ?? breakdown.escrow ?? metadata.escrow_fee),
+    collection: asMoney(metadata.collection_fee ?? metadata.collectionFee),
+    subscription: asMoney(metadata.subscription_fee ?? metadata.subscriptionFee),
+  };
+};
+
+const buildAdminEarningsSummary = async () => {
+  const revenueTransactions = await Transaction.find({
+    status: 'completed',
+    $or: [
+      { gateway: 'platform' },
+      { 'metadata.collection_fee': { $exists: true } },
+      { 'metadata.collectionFee': { $exists: true } },
+      { 'metadata.subscription_fee': { $exists: true } },
+      { 'metadata.subscriptionFee': { $exists: true } },
+      { description: /subscription/i },
+    ],
+  })
+    .select('amount gateway description metadata createdAt')
+    .lean();
+
+  const summary = {
+    commission: 0,
+    escrow: 0,
+    collection: 0,
+    subscription: 0,
+    total: 0,
+    currency: 'XAF',
+    transaction_count: revenueTransactions.length,
+    updated_at: new Date(),
+  };
+
+  revenueTransactions.forEach((tx) => {
+    const fees = getFeeBreakdown(tx);
+    summary.collection += fees.collection;
+    summary.subscription += fees.subscription;
+
+    const hasSplit = fees.commission > 0 || fees.escrow > 0;
+    if (hasSplit) {
+      summary.commission += fees.commission;
+      summary.escrow += fees.escrow;
+      return;
+    }
+
+    if (tx.gateway === 'platform') {
+      const description = String(tx.description || '');
+      if (/escrow/i.test(description) && !/commission/i.test(description)) {
+        summary.escrow += asMoney(tx.amount);
+      } else if (/subscription/i.test(description)) {
+        summary.subscription += asMoney(tx.amount);
+      } else {
+        summary.commission += asMoney(tx.amount);
+      }
+    }
+  });
+
+  summary.total = summary.commission + summary.escrow + summary.collection + summary.subscription;
+  return summary;
+};
+
 const setFeaturedProducts = async (req, res, next) => {
   try {
     const { featured_products } = req.body;
@@ -152,6 +222,7 @@ const getPlatformAnalytics = async (req, res, next) => {
     const totalHeldFunds = escrowAgg.find(s => s._id === 'held')?.total || 0;
     const totalReleasedFunds = escrowAgg.find(s => s._id === 'released')?.total || 0;
     const totalDisputedFunds = escrowAgg.find(s => s._id === 'disputed')?.total || 0;
+    const adminEarnings = await buildAdminEarningsSummary();
 
     // Presence Metrics
     const onlineUsers = await User.countDocuments({ is_online: true });
@@ -173,6 +244,8 @@ const getPlatformAnalytics = async (req, res, next) => {
           pending_products: pendingProducts,
           orders: totalOrders,
           revenue: totalRevenue,
+          admin_earnings: adminEarnings,
+          admin_revenue: adminEarnings.total,
           escrow_vault: totalHeldFunds,
           escrow_held: totalHeldFunds,
           escrow_released: totalReleasedFunds,
@@ -286,6 +359,7 @@ const updateSettings = async (req, res, next) => {
     if (withdrawal_fee !== undefined) settings.withdrawal_fee = withdrawal_fee;
     if (min_withdrawal_amount !== undefined) settings.min_withdrawal_amount = min_withdrawal_amount;
     await settings.save();
+    await clearApiCache();
     res.status(200).json({ success: true, message: 'Settings updated successfully.', data: { settings } });
   } catch (error) {
     next(error);

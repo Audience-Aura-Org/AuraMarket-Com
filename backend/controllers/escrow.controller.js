@@ -85,10 +85,17 @@ const holdFunds = async (req, res, next) => {
       ? order.subtotal
       : order.total_amount;
     const settings = await PlatformSettings.getSettings(session);
-    const { vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
+    const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
       includeEscrowFee: true
     });
     const feeDescription = describeFee(settings, { includeEscrowFee: true });
+    const platformFeeBreakdown = {
+      base_amount: vendorBaseAmount,
+      commission_fee: commissionFee,
+      escrow_fee: escrowFee,
+      platform_fee: platformFee,
+      vendor_payout: vendorPayout,
+    };
 
     await Transaction.create([{
       user_id: user._id,
@@ -108,6 +115,7 @@ const holdFunds = async (req, res, next) => {
       gateway: 'escrow',
       description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()}, ${feeDescription})`,
       order_id: order._id,
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
     }], { session, ordered: true });
 
     // 4. Create the Escrow Vault log
@@ -184,10 +192,17 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
   const settings = await PlatformSettings.getSettings(session);
-  const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
+  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
     includeEscrowFee: true
   });
   const feeDescription = describeFee(settings, { includeEscrowFee: true });
+  const platformFeeBreakdown = {
+    base_amount: escrow.amount,
+    commission_fee: commissionFee,
+    escrow_fee: escrowFee,
+    platform_fee: platformFee,
+    vendor_payout: vendorPayout,
+  };
 
   // Transfer vendor funds
   vendorUser.wallet_balance += vendorPayout;
@@ -204,7 +219,8 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     {
       status: 'completed',
       amount: vendorPayout,
-      description: `${req.autoRelease ? 'Escrow Auto-Released' : 'Escrow Released'} (${feeDescription} deducted).`
+      description: `${req.autoRelease ? 'Escrow Auto-Released' : 'Escrow Released'} (${feeDescription} deducted).`,
+      metadata: { platform_fee_breakdown: platformFeeBreakdown }
     },
     { session }
   );
@@ -220,6 +236,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
       gateway: 'platform',
       description: `${req.autoRelease ? 'Auto-released platform commission' : 'Platform Commission'} from Order #${order._id.toString().slice(-6).toUpperCase()}`,
       order_id: order._id,
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
     }], { session, ordered: true });
   }
 

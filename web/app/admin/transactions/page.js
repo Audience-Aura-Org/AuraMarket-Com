@@ -309,6 +309,19 @@ const buildMoneyRoute = (tx, linkedOrders = []) => {
   };
 };
 
+const getAdminFeeSplit = (tx) => {
+  const metadata = tx?.metadata || {};
+  const breakdown = metadata.platform_fee_breakdown || metadata.fee_breakdown || {};
+  const values = {
+    commission: Number(breakdown.commission_fee ?? breakdown.commission ?? metadata.commission_fee ?? 0),
+    escrow: Number(breakdown.escrow_fee ?? breakdown.escrow ?? metadata.escrow_fee ?? 0),
+    collection: Number(metadata.collection_fee ?? metadata.collectionFee ?? 0),
+    subscription: Number(metadata.subscription_fee ?? metadata.subscriptionFee ?? 0),
+  };
+  const total = Object.values(values).reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0);
+  return { ...values, total };
+};
+
 function OrderItemsList({ order }) {
   const items = order?.products || [];
   if (!items.length) return null;
@@ -357,6 +370,31 @@ function OrderItemsList({ order }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function AdminFeeSplitCard({ tx }) {
+  const split = getAdminFeeSplit(tx);
+  if (!split.total && tx?.gateway !== 'platform') return null;
+
+  const rows = [
+    ['Admin commission', split.commission],
+    ['Escrow commission', split.escrow],
+    ['Collection fee', split.collection],
+    ['Subscription', split.subscription],
+  ];
+
+  return (
+    <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.06] p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+        <Database className="size-3.5" /> Admin earning split
+      </p>
+      <div className="space-y-1.5">
+        {rows.map(([label, value]) => (
+          <InfoLine key={label} label={label} value={`${fmt(value)} XAF`} />
+        ))}
       </div>
     </div>
   );
@@ -431,6 +469,7 @@ export default function AdminTransactionsPage() {
   const [gatewaySyncing, setGatewaySyncing] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [recoveringId, setRecoveringId] = useState(null);
+  const earnings = stats?.admin_earnings || {};
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -610,11 +649,10 @@ export default function AdminTransactionsPage() {
         <AdminMetricGrid
           theme="transactions"
           metrics={[
-            { label: 'Escrow held', value: stats ? `${fmt(stats.escrow_held)}` : '…', hint: 'XAF' },
-            { label: 'Released', value: stats ? `${fmt(stats.escrow_released)}` : '…', hint: 'XAF' },
-            { label: 'Disputed', value: stats ? `${fmt(stats.escrow_disputed)}` : '…', hint: 'XAF' },
-            { label: 'Revenue', value: stats ? `${fmt(stats.revenue)}` : '…', hint: 'XAF' },
-            { label: 'This page', value: String(transactions.length), hint: 'transactions' },
+            { label: 'Commission', value: stats ? `${fmt(earnings.commission)}` : '…', hint: 'Product sales XAF' },
+            { label: 'Escrow fees', value: stats ? `${fmt(earnings.escrow)}` : '…', hint: 'Escrow protection XAF' },
+            { label: 'Collection fees', value: stats ? `${fmt(earnings.collection)}` : '…', hint: 'Mobile money XAF' },
+            { label: 'Subscriptions', value: stats ? `${fmt(earnings.subscription)}` : '…', hint: 'Future revenue XAF' },
           ]}
         />
 
@@ -858,6 +896,7 @@ export default function AdminTransactionsPage() {
                           </div>
 
                           <PersonSummary title="Transaction account" person={transactionAccount} fallbackName="System account" />
+                          <AdminFeeSplitCard tx={tx} />
                           <MoneyRouteCard route={moneyRoute} />
                         </div>
 

@@ -46,6 +46,7 @@ export default function AdminDashboard() {
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const earnings = stats?.admin_earnings || {};
 
   useEffect(() => {
     setMounted(true);
@@ -98,6 +99,38 @@ export default function AdminDashboard() {
           <StatCard label="Asset Pipeline" value={fmt(stats?.pending_products)} sub="Pending Approval" icon={Package} color="primary" href="/admin/products" />
           <StatCard label="Global Volume" value={`${fmt(stats?.revenue)} XAF`} sub="Gross Platform Revenue" icon={TrendingUp} color="emerald" href="/admin/analytics" />
         </div>
+
+        <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold tracking-tight">Admin Earnings</h2>
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">Platform income split by source.</p>
+            </div>
+            <Link href="/admin/transactions" className="rounded-full border border-[var(--glass-border)] px-3 py-1.5 text-[10px] font-bold text-[var(--accent)]">
+              View Ledger
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            {[
+              { title: 'Commission', value: earnings.commission, desc: 'Product sale fee', icon: TrendingUp, color: 'emerald' },
+              { title: 'Escrow Fees', value: earnings.escrow, desc: 'Escrow protection fee', icon: ShieldCheck, color: 'blue' },
+              { title: 'Collection Fees', value: earnings.collection, desc: 'Mobile money charges', icon: Activity, color: 'amber' },
+              { title: 'Subscriptions', value: earnings.subscription, desc: 'Future recurring income', icon: Zap, color: 'indigo' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className={`size-8 rounded-xl flex items-center justify-center border ${COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue}`}>
+                    <item.icon className="size-3.5" />
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60">XAF</span>
+                </div>
+                <p className="truncate text-sm font-bold tabular-nums">{fmt(item.value)}</p>
+                <p className="mt-1 text-[10px] font-bold text-[var(--text-primary)]">{item.title}</p>
+                <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-55">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <div className="grid lg:grid-cols-3 gap-6">
           

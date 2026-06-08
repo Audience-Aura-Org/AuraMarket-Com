@@ -85,10 +85,17 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
   );
 
   const isEscrowPayout = !!order.escrow_enabled;
-  const { platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
+  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
     includeEscrowFee: isEscrowPayout
   });
   const feeDescription = describeFee(settings, { includeEscrowFee: isEscrowPayout });
+  const platformFeeBreakdown = {
+    base_amount: vendorBaseAmount,
+    commission_fee: commissionFee,
+    escrow_fee: escrowFee,
+    platform_fee: platformFee,
+    vendor_payout: vendorPayout,
+  };
 
   if (order.escrow_enabled) {
     // ── ESCROW PATH: hold funds, create pending payout tx ────────────────
@@ -110,6 +117,7 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow, ${feeDescription})`,
       order_id: order._id,
       gateway: 'escrow',
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
     }], { session, ordered: true });
 
   } else {
@@ -123,7 +131,7 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
     settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
     await settings.save({ session });
 
-    await Transaction.create([{
+    const transactionEntries = [{
       user_id: vendorUser._id,
       type: 'payout',
       amount: vendorPayout,
@@ -132,16 +140,24 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       description: `Direct payout for Order #${order._id.toString().slice(-6).toUpperCase()} (No Escrow)`,
       order_id: order._id,
       gateway: 'wallet',
-    }, {
-      user_id: vendorUser._id,
-      type: 'payment',
-      amount: platformFee,
-      reference: genRef('REV'),
-      status: 'completed',
-      description: `Platform commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
-      order_id: order._id,
-      gateway: 'platform',
-    }], { session, ordered: true });
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
+    }];
+
+    if (platformFee > 0) {
+      transactionEntries.push({
+        user_id: vendorUser._id,
+        type: 'payment',
+        amount: platformFee,
+        reference: genRef('REV'),
+        status: 'completed',
+        description: `Platform commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
+        order_id: order._id,
+        gateway: 'platform',
+        metadata: { platform_fee_breakdown: platformFeeBreakdown },
+      });
+    }
+
+    await Transaction.create(transactionEntries, { session, ordered: true });
 
     // NOTE: Logistics company is NO LONGER credited here. 
     // They are credited in logistics.controller.js ONLY after successful delivery.
