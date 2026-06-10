@@ -37,7 +37,7 @@ const withLoginTimeout = (promise, message) => {
 export default function UnifiedAuth() {
   const router = useRouter();
   const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, resetLoading } = useAuthStore();
-  const { language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const prefilledRef = useRef(false);
 
   const [step, setStep] = useState('email');
@@ -180,8 +180,8 @@ export default function UnifiedAuth() {
     event.preventDefault();
     if (submitting) return;
     setError('');
-    if (!profile.name || profile.name.trim().length < 2) return setError('Full name is required.');
-    if (!profile.phone) return setError('Phone number is required.');
+    if (!profile.name || profile.name.trim().length < 2) return setError(t('login.fullNameRequired'));
+    if (!profile.phone) return setError(t('login.phoneRequired'));
 
     setSubmitting(true);
     try {
@@ -215,26 +215,6 @@ export default function UnifiedAuth() {
   return (
     <div className="w-full max-w-[420px] mx-auto transition-all duration-700">
       <div className="bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-[2rem] p-5 md:p-7 shadow-2xl relative max-h-[calc(100vh-3rem)] overflow-y-auto">
-        <div className="mb-4 flex justify-end">
-          <div className="inline-flex rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 p-1 text-[10px] font-bold shadow-sm">
-            {['en', 'fr'].map((code) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setLanguage(code)}
-                className={`rounded-full px-3 py-1.5 transition ${
-                  language === code
-                    ? 'bg-[var(--accent)] text-white shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                aria-label={code === 'en' ? 'Use English' : 'Utiliser le français'}
-              >
-                {code.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="flex justify-center gap-1 mb-6">
           {['email', 'otp', 'signup'].map((id) => (
             <div
@@ -257,9 +237,9 @@ export default function UnifiedAuth() {
               className="space-y-5"
             >
               <div className="text-center space-y-1">
-                <h1 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight">Welcome to Aura Dime</h1>
+                <h1 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight">{t('login.welcome')}</h1>
                 <p className="text-[11px] text-[var(--text-secondary)] opacity-60">
-                  Enter your email and we will send a verification code.
+                  {t('login.emailHelp')}
                 </p>
               </div>
 
@@ -282,7 +262,7 @@ export default function UnifiedAuth() {
 
               <SubmitButton
                 loading={submitting}
-                label={resendIn > 0 ? 'Enter code' : 'Send code'}
+                label={resendIn > 0 ? t('login.enterCode') : t('login.sendCode')}
                 icon={ArrowRight}
               />
               {resendIn > 0 && email && (
@@ -295,7 +275,7 @@ export default function UnifiedAuth() {
                   }}
                   className="w-full rounded-2xl border border-[var(--glass-border)] py-3 text-[11px] font-semibold text-[var(--text-secondary)] transition-all hover:border-[var(--accent)] hover:text-[var(--accent)]"
                 >
-                  I already have a code
+                  {t('login.haveCode')}
                 </button>
               )}
             </motion.form>
@@ -310,10 +290,10 @@ export default function UnifiedAuth() {
               onSubmit={verifyCode}
               className="space-y-5"
             >
-              <BackButton onClick={() => setStep('email')} label="Change email" />
+              <BackButton onClick={() => setStep('email')} label={t('login.changeEmail')} />
 
               <div className="space-y-1">
-                <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">Check your email</h2>
+                <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">{t('login.checkEmail')}</h2>
                 <p className="text-[11px] font-semibold text-[var(--accent)] truncate max-w-full opacity-80">{email}</p>
               </div>
 
@@ -335,7 +315,7 @@ export default function UnifiedAuth() {
                 <CooldownNotice seconds={resendIn} />
               )}
 
-              <SubmitButton loading={submitting} label="Verify code" icon={CircleCheck} />
+              <SubmitButton loading={submitting} label={t('login.verifyCode')} icon={CircleCheck} />
 
               <button
                 type="button"
@@ -343,7 +323,7 @@ export default function UnifiedAuth() {
                 disabled={submitting || resendIn > 0}
                 className="w-full py-3 rounded-2xl border border-[var(--glass-border)] text-[11px] font-semibold text-[var(--text-secondary)] disabled:opacity-45"
               >
-                {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+                {resendIn > 0 ? t('login.resendIn').replace('{seconds}', resendIn) : t('login.resendCode')}
               </button>
             </motion.form>
           )}
@@ -357,10 +337,10 @@ export default function UnifiedAuth() {
               onSubmit={completeSignup}
               className="space-y-5"
             >
-              <BackButton onClick={() => setStep('otp')} label="Back to code" />
+              <BackButton onClick={() => setStep('otp')} label={t('login.enterCode')} />
 
               <div className="space-y-1">
-                <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">Create your account</h2>
+                <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">{t('login.createAccount')}</h2>
                 <p className="text-[11px] font-semibold text-[var(--accent)] truncate max-w-full opacity-80">{email}</p>
               </div>
 
@@ -371,7 +351,7 @@ export default function UnifiedAuth() {
                   minLength={2}
                   value={profile.name}
                   onChange={(event) => updateProfile({ name: event.target.value })}
-                  placeholder="Full name"
+                  placeholder={t('login.fullName')}
                   autoComplete="name"
                   className={inputClass}
                 />
@@ -383,14 +363,14 @@ export default function UnifiedAuth() {
                   required
                   value={profile.phone}
                   onChange={(event) => updateProfile({ phone: event.target.value })}
-                  placeholder="Phone number"
+                  placeholder={t('login.phoneNumber')}
                   autoComplete="tel"
                   className={inputClass}
                 />
               </AuthField>
 
               <div className="space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/50">Continue as</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/50">{t('login.continueAs')}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     ['customer', ShoppingBag],
@@ -416,34 +396,34 @@ export default function UnifiedAuth() {
 
               <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-3 text-center">
                 <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-70">
-                  After this, we will open the guided onboarding flow to finish your role setup.
+                  {t('login.onboardingHint')}
                 </p>
               </div>
 
               {error && <ErrorMessage message={error} />}
 
-              <SubmitButton loading={submitting} label="Continue to onboarding" icon={ArrowRight} />
+              <SubmitButton loading={submitting} label={t('login.continueOnboarding')} icon={ArrowRight} />
             </motion.form>
           )}
         </AnimatePresence>
 
         <div className="mt-5 border-t border-[var(--glass-border)] pt-4 text-center">
           <p className="mx-auto max-w-[320px] text-[10px] font-medium leading-relaxed text-[var(--text-secondary)]/70">
-            By continuing, you acknowledge Auradime&apos;s{' '}
+            {t('login.legalPrefix')}{' '}
             <Link href="/terms" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
-              Terms
+              {t('login.terms')}
             </Link>
             ,{' '}
             <Link href="/privacy" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
-              Privacy Policy
+              {t('login.privacy')}
             </Link>
-            , and{' '}
+            , {t('login.legalMiddle')}{' '}
             <Link href="/cookies" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
-              Cookie Policy
+              {t('login.cookies')}
             </Link>
-            , plus the marketplace policies in the{' '}
+            , {t('login.legalSuffix')}{' '}
             <Link href="/refund-policy" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">
-              Legal Center
+              {t('login.legalCenter')}
             </Link>
             .
           </p>
