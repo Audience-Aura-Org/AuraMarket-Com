@@ -196,8 +196,12 @@ export function LanguageProvider({ children }) {
     setLanguage: (nextLanguage) => {
       const normalized = normalizeLanguage(nextLanguage);
       setLanguageState(normalized);
+      if (typeof document !== 'undefined') {
+        document.documentElement.lang = normalized;
+      }
       try {
         window.localStorage.setItem(STORAGE_KEY, normalized);
+        window.dispatchEvent(new CustomEvent('aura:language-change', { detail: { language: normalized } }));
       } catch {}
     },
     t: (key, fallback, replacements = {}) => {
