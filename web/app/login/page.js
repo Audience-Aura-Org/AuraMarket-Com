@@ -1,11 +1,8 @@
 "use client";
 
 import UnifiedAuth from '@/components/auth/UnifiedAuth';
-import { useLanguage } from '@/context/LanguageContext';
 
 export default function LoginPage() {
-  const { language, setLanguage } = useLanguage();
-
   return (
     <div className="bg-[var(--bg-secondary)] text-[var(--text-primary)] min-h-screen relative overflow-x-hidden flex flex-col transition-colors duration-500">
       {/* Dynamic Background Elements */}
@@ -16,24 +13,6 @@ export default function LoginPage() {
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--accent)]/10 rounded-full blur-[120px] -z-10 animation-delay-2000 pointer-events-none"></div>
 
       {/* Unified Auth Hub */}
-      <div className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top,0px))] z-20 flex rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1 text-[10px] font-bold shadow-lg backdrop-blur-xl">
-        {['en', 'fr'].map((code) => (
-          <button
-            key={code}
-            type="button"
-            onClick={() => setLanguage(code)}
-            className={`rounded-full px-2.5 py-1 transition ${
-              language === code
-                ? 'bg-[var(--accent)] text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-            aria-label={code === 'en' ? 'Use English' : 'Utiliser le français'}
-          >
-            {code.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="flex w-full flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-3 text-center">

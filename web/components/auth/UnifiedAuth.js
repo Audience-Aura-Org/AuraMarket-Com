@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useLanguage } from '@/context/LanguageContext';
 
 const cleanEmail = (value) => value.trim().toLowerCase();
 const inputClass = 'w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30';
@@ -36,6 +37,7 @@ const withLoginTimeout = (promise, message) => {
 export default function UnifiedAuth() {
   const router = useRouter();
   const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, resetLoading } = useAuthStore();
+  const { language, setLanguage } = useLanguage();
   const prefilledRef = useRef(false);
 
   const [step, setStep] = useState('email');
@@ -213,6 +215,26 @@ export default function UnifiedAuth() {
   return (
     <div className="w-full max-w-[420px] mx-auto transition-all duration-700">
       <div className="bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-[2rem] p-5 md:p-7 shadow-2xl relative max-h-[calc(100vh-3rem)] overflow-y-auto">
+        <div className="mb-4 flex justify-end">
+          <div className="inline-flex rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 p-1 text-[10px] font-bold shadow-sm">
+            {['en', 'fr'].map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => setLanguage(code)}
+                className={`rounded-full px-3 py-1.5 transition ${
+                  language === code
+                    ? 'bg-[var(--accent)] text-white shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+                aria-label={code === 'en' ? 'Use English' : 'Utiliser le français'}
+              >
+                {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex justify-center gap-1 mb-6">
           {['email', 'otp', 'signup'].map((id) => (
             <div
