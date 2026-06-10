@@ -10,6 +10,15 @@ export const SUPPORTED_LANGUAGES = [
 
 const STORAGE_KEY = 'aura_language';
 
+const readStoredLanguage = () => {
+  if (typeof window === 'undefined') return 'en';
+  try {
+    return normalizeLanguage(window.localStorage.getItem(STORAGE_KEY) || 'en');
+  } catch {
+    return 'en';
+  }
+};
+
 const translations = {
   en: {
     'common.login': 'Login',
@@ -60,6 +69,12 @@ const translations = {
     'login.legalMiddle': 'and',
     'login.legalSuffix': 'plus the marketplace policies in the',
     'login.legalCenter': 'Legal Center',
+    'login.existingCodeNotice': 'Enter the code we already sent. You can request a new one when the timer ends.',
+    'login.requestTimeout': 'The code request is taking too long. Please check your connection or try another network.',
+    'login.codeArrivedNotice': 'If the code arrived, enter it here. You can resend when the timer ends.',
+    'login.codeSent': 'Verification code sent',
+    'login.verifyTimeout': 'Verification is taking too long. Please try again.',
+    'login.setupTimeout': 'Account setup is taking too long. Please try again.',
     'tabs.general': 'Profile',
     'tabs.orders': 'Orders',
     'tabs.wishlist': 'Wishlist',
@@ -123,6 +138,12 @@ const translations = {
     'login.legalMiddle': 'et',
     'login.legalSuffix': 'ainsi que les règles du marketplace dans le',
     'login.legalCenter': 'Centre légal',
+    'login.existingCodeNotice': 'Entrez le code déjà envoyé. Vous pourrez demander un nouveau code à la fin du compte à rebours.',
+    'login.requestTimeout': 'La demande de code prend trop de temps. Vérifiez votre connexion ou essayez un autre réseau.',
+    'login.codeArrivedNotice': 'Si le code est arrivé, entrez-le ici. Vous pourrez le renvoyer à la fin du compte à rebours.',
+    'login.codeSent': 'Code de vérification envoyé',
+    'login.verifyTimeout': 'La vérification prend trop de temps. Veuillez réessayer.',
+    'login.setupTimeout': 'La création du compte prend trop de temps. Veuillez réessayer.',
     'tabs.general': 'Profil',
     'tabs.orders': 'Commandes',
     'tabs.wishlist': 'Favoris',
@@ -145,18 +166,20 @@ const normalizeLanguage = (value) =>
 const LanguageContext = createContext({
   language: 'en',
   setLanguage: () => {},
-  t: (key, fallback) => fallback || key,
+  t: (key, fallback, replacements) => fallback || key,
   languages: SUPPORTED_LANGUAGES,
 });
 
 export function LanguageProvider({ children }) {
   const userLanguage = useAuthStore((state) => state.user?.preferred_language);
-  const [language, setLanguageState] = useState('en');
+  const [language, setLanguageState] = useState(readStoredLanguage);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    setLanguageState(normalizeLanguage(userLanguage || stored || 'en'));
+    if (!stored && userLanguage) {
+      setLanguageState(normalizeLanguage(userLanguage));
+    }
   }, [userLanguage]);
 
   useEffect(() => {
@@ -170,8 +193,20 @@ export function LanguageProvider({ children }) {
   const value = useMemo(() => ({
     language,
     languages: SUPPORTED_LANGUAGES,
-    setLanguage: (nextLanguage) => setLanguageState(normalizeLanguage(nextLanguage)),
-    t: (key, fallback) => translations[language]?.[key] || translations.en[key] || fallback || key,
+    setLanguage: (nextLanguage) => {
+      const normalized = normalizeLanguage(nextLanguage);
+      setLanguageState(normalized);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, normalized);
+      } catch {}
+    },
+    t: (key, fallback, replacements = {}) => {
+      const template = translations[language]?.[key] || translations.en[key] || fallback || key;
+      return Object.entries(replacements).reduce(
+        (text, [name, value]) => text.split(`{${name}}`).join(String(value)),
+        String(template)
+      );
+    },
   }), [language]);
 
   return (

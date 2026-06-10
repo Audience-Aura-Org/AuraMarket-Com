@@ -100,7 +100,7 @@ export default function UnifiedAuth() {
       setEmail(nextEmail);
       setOtp('');
       setStep('otp');
-      setError('Enter the code we already sent. You can request a new one when the timer ends.');
+      setError(t('login.existingCodeNotice'));
       return;
     }
 
@@ -114,7 +114,7 @@ export default function UnifiedAuth() {
     try {
       const result = await withLoginTimeout(
         sendOtp(nextEmail),
-        'The code request is taking too long. Please check your connection or try another network.'
+        t('login.requestTimeout')
       );
       if (!result.success) {
         const waitSeconds = Number(result.retryAfter || 0);
@@ -123,10 +123,10 @@ export default function UnifiedAuth() {
           setOtp('');
           setResendIn(waitSeconds);
           setStep('otp');
-          setError('Enter the code we already sent. You can request a new one when the timer ends.');
+          setError(t('login.existingCodeNotice'));
         } else if (result.timedOut) {
           setResendIn(60);
-          setError('If the code arrived, enter it here. You can resend when the timer ends.');
+          setError(t('login.codeArrivedNotice'));
         } else {
           setStep('email');
           setError(result.message);
@@ -136,7 +136,7 @@ export default function UnifiedAuth() {
 
       setResendIn(result.data?.resendAfterSeconds || 60);
       setError('');
-      toast.success('Verification code sent');
+      toast.success(t('login.codeSent'));
     } finally {
       setSubmitting(false);
       resetLoading?.();
@@ -151,7 +151,7 @@ export default function UnifiedAuth() {
     try {
       const result = await withLoginTimeout(
         verifyOtp({ email, otp }),
-        'Verification is taking too long. Please try again.'
+        t('login.verifyTimeout')
       );
 
       if (!result.success) {
@@ -192,7 +192,7 @@ export default function UnifiedAuth() {
           phone: profile.phone ? profile.phone.replace(/[\s-]/g, '') : '',
           role: profile.role,
         }),
-        'Account setup is taking too long. Please try again.'
+        t('login.setupTimeout')
       );
 
       if (!result.success) {
@@ -271,7 +271,7 @@ export default function UnifiedAuth() {
                   onClick={() => {
                     setOtp('');
                     setStep('otp');
-                    setError('Enter the code we already sent. You can request a new one when the timer ends.');
+                    setError(t('login.existingCodeNotice'));
                   }}
                   className="w-full rounded-2xl border border-[var(--glass-border)] py-3 text-[11px] font-semibold text-[var(--text-secondary)] transition-all hover:border-[var(--accent)] hover:text-[var(--accent)]"
                 >
@@ -323,7 +323,7 @@ export default function UnifiedAuth() {
                 disabled={submitting || resendIn > 0}
                 className="w-full py-3 rounded-2xl border border-[var(--glass-border)] text-[11px] font-semibold text-[var(--text-secondary)] disabled:opacity-45"
               >
-                {resendIn > 0 ? t('login.resendIn').replace('{seconds}', resendIn) : t('login.resendCode')}
+                {resendIn > 0 ? t('login.resendIn', undefined, { seconds: resendIn }) : t('login.resendCode')}
               </button>
             </motion.form>
           )}
