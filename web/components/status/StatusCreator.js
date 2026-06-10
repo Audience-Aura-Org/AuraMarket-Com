@@ -19,8 +19,20 @@ const DURATION_OPTIONS = [
 ];
 
 const STATUS_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
+const STATUS_VIDEO_INPUT_MAX_BYTES = 500 * 1024 * 1024;
 const STATUS_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 const STATUS_VIDEO_MAX_SECONDS = 120;
+const STATUS_VIDEO_EXPORT_WIDTH = 720;
+const STATUS_VIDEO_EXPORT_HEIGHT = 1280;
+
+const getSupportedVideoMimeType = () => {
+  if (typeof MediaRecorder === 'undefined') return '';
+  return [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ].find((type) => MediaRecorder.isTypeSupported(type)) || '';
+};
 
 const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
@@ -69,8 +81,160 @@ async function generateVideoThumbnail(file) {
   }
 }
 
+async function readVideoMetadata(file) {
+  if (!file?.type?.startsWith('video/')) return null;
+  const objectUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+  video.src = objectUrl;
+
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Could not read video metadata.'));
+    });
+
+    return {
+      duration: Number.isFinite(video.duration) ? video.duration : 0,
+      width: video.videoWidth || 0,
+      height: video.videoHeight || 0,
+      objectUrl,
+    };
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
+}
+
+function drawVideoFrame(ctx, video, mode) {
+  const canvas = ctx.canvas;
+  const sourceWidth = video.videoWidth || canvas.width;
+  const sourceHeight = video.videoHeight || canvas.height;
+  const targetRatio = canvas.width / canvas.height;
+  const sourceRatio = sourceWidth / sourceHeight;
+
+  ctx.fillStyle = '#07030a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (mode === 'fit') {
+    const scale = Math.min(canvas.width / sourceWidth, canvas.height / sourceHeight);
+    const width = sourceWidth * scale;
+    const height = sourceHeight * scale;
+    ctx.drawImage(video, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+    return;
+  }
+
+  let sx = 0;
+  let sy = 0;
+  let sw = sourceWidth;
+  let sh = sourceHeight;
+
+  if (mode === 'square') {
+    const side = Math.min(sourceWidth, sourceHeight);
+    sx = (sourceWidth - side) / 2;
+    sy = (sourceHeight - side) / 2;
+    sw = side;
+    sh = side;
+  } else if (sourceRatio > targetRatio) {
+    sw = sourceHeight * targetRatio;
+    sx = (sourceWidth - sw) / 2;
+  } else {
+    sh = sourceWidth / targetRatio;
+    sy = (sourceHeight - sh) / 2;
+  }
+
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+}
+
+async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, cropMode = 'fill', onProgress } = {}) {
+  const mimeType = getSupportedVideoMimeType();
+  if (!mimeType) {
+    throw new Error('Video editing is not supported on this browser. Please trim the video in your gallery and try again.');
+  }
+
+  const sourceUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.src = sourceUrl;
+  video.muted = false;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.crossOrigin = 'anonymous';
+
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Could not load video for editing.'));
+    });
+
+    const start = Math.max(0, Math.min(trimStart, video.duration || 0));
+    const end = Math.min(Math.max(start + 1, trimEnd), video.duration || start + STATUS_VIDEO_MAX_SECONDS);
+    const duration = Math.min(STATUS_VIDEO_MAX_SECONDS, end - start);
+
+    const canvas = document.createElement('canvas');
+    const isSquare = cropMode === 'square';
+    canvas.width = isSquare ? 1080 : STATUS_VIDEO_EXPORT_WIDTH;
+    canvas.height = isSquare ? 1080 : STATUS_VIDEO_EXPORT_HEIGHT;
+    const ctx = canvas.getContext('2d');
+    const canvasStream = canvas.captureStream(30);
+    const sourceStream = video.captureStream?.();
+    sourceStream?.getAudioTracks?.().forEach((track) => canvasStream.addTrack(track));
+
+    const chunks = [];
+    const recorder = new MediaRecorder(canvasStream, {
+      mimeType,
+      videoBitsPerSecond: 2_000_000,
+      audioBitsPerSecond: 96_000,
+    });
+
+    const recorded = new Promise((resolve, reject) => {
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) chunks.push(event.data);
+      };
+      recorder.onerror = () => reject(new Error('Video export failed.'));
+      recorder.onstop = resolve;
+    });
+
+    await new Promise((resolve) => {
+      video.onseeked = resolve;
+      video.currentTime = start;
+    });
+
+    let stopped = false;
+    const draw = () => {
+      if (stopped) return;
+      drawVideoFrame(ctx, video, cropMode);
+      const elapsed = Math.max(0, video.currentTime - start);
+      onProgress?.(Math.min(95, Math.round((elapsed / Math.max(duration, 1)) * 95)));
+      if (elapsed >= duration || video.ended) {
+        stopped = true;
+        video.pause();
+        if (recorder.state !== 'inactive') recorder.stop();
+        return;
+      }
+      requestAnimationFrame(draw);
+    };
+
+    recorder.start(500);
+    await video.play();
+    draw();
+    await recorded;
+
+    const blob = new Blob(chunks, { type: mimeType.split(';')[0] || 'video/webm' });
+    const baseName = (file.name || 'status-video').replace(/\.[^.]+$/, '');
+    return new File([blob], `${baseName}-story.webm`, {
+      type: blob.type || 'video/webm',
+      lastModified: Date.now(),
+    });
+  } finally {
+    video.pause();
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 /**
- * StatusCreator — single-screen story composer.
+ * StatusCreator â€” single-screen story composer.
  * Accepts optional `initialData` for resharing an existing story.
  */
 export default function StatusCreator({ onClose, onStatusCreated, initialData = null }) {
@@ -91,6 +255,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [expiryDays, setExpiryDays]     = useState(initialData?.expiry_days || 3);
   const [selectedCategory, setSelectedCategory] = useState(initialData?.category || null);
   const [mounted, setMounted]           = useState(false);
+  const [videoMeta, setVideoMeta]       = useState(null);
+  const [trimStart, setTrimStart]       = useState(0);
+  const [trimEnd, setTrimEnd]           = useState(STATUS_VIDEO_MAX_SECONDS);
+  const [cropMode, setCropMode]         = useState('fill');
+  const [editingVideo, setEditingVideo] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -124,26 +293,42 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
+    if (previewUrl && file) URL.revokeObjectURL(previewUrl);
+
     if (type === 'video') {
       if (!f.type.startsWith('video/'))  { setError('Select a video file.'); return; }
-      if (f.size > STATUS_VIDEO_MAX_BYTES)   { setError('Max 30MB video.'); return; }
-      const vid = document.createElement('video');
-      vid.preload = 'metadata';
-      vid.onloadedmetadata = () => {
-        window.URL.revokeObjectURL(vid.src);
-        if (vid.duration > STATUS_VIDEO_MAX_SECONDS + 1) { setError('Video must be 2 minutes or less.'); setFile(null); setPreviewUrl(''); }
-      };
-      vid.src = URL.createObjectURL(f);
+      if (f.size > STATUS_VIDEO_INPUT_MAX_BYTES) { setError('Max 500MB source video.'); return; }
+
+      try {
+        const meta = await readVideoMetadata(f);
+        if (meta.objectUrl) URL.revokeObjectURL(meta.objectUrl);
+        const needsTrim = meta.duration > STATUS_VIDEO_MAX_SECONDS + 0.5;
+        const needsCompression = f.size > STATUS_VIDEO_MAX_BYTES;
+        setVideoMeta({ ...meta, needsTrim, needsCompression });
+        setTrimStart(0);
+        setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta.duration || STATUS_VIDEO_MAX_SECONDS)));
+        setEditingVideo(needsTrim || needsCompression);
+        setError(needsTrim || needsCompression
+          ? 'Video will be trimmed/exported before upload.'
+          : null
+        );
+      } catch (err) {
+        setError(err.message || 'Could not read video metadata.');
+        return;
+      }
     } else {
       if (!f.type.startsWith('image/'))  { setError('Select an image file.'); return; }
       if (f.size > STATUS_IMAGE_MAX_BYTES)    { setError('Max 8MB image.'); return; }
+      setVideoMeta(null);
+      setEditingVideo(false);
+      setCropMode('fill');
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
-    setError(null);
+    if (type !== 'video') setError(null);
   };
 
   const handlePost = async () => {
@@ -158,21 +343,44 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
       // If resharing image/video and no new file was selected, reuse existing URL
       if (type !== 'text' && file) {
-        setUploadPhase(file.type.startsWith('video/') ? 'Uploading video…' : 'Uploading image…');
-        const uploadRes = await uploadService.uploadSingle(file, 'statuses', {
+        let uploadFile = file;
+        if (file.type.startsWith('video/')) {
+          const needsExport =
+            editingVideo ||
+            cropMode !== 'fill' ||
+            trimStart > 0.1 ||
+            (videoMeta?.duration && trimEnd < videoMeta.duration - 0.1) ||
+            file.size > STATUS_VIDEO_MAX_BYTES;
+
+          if (needsExport) {
+            setUploadPhase('Preparing video...');
+            uploadFile = await exportEditedStatusVideo(file, {
+              trimStart,
+              trimEnd,
+              cropMode,
+              onProgress: (pct) => setUploadProgress(Math.min(70, pct)),
+            });
+            if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
+              throw new Error('Edited video is still above 30MB. Shorten the trim and try again.');
+            }
+          }
+        }
+
+        setUploadPhase(uploadFile.type.startsWith('video/') ? 'Uploading video...' : 'Uploading image...');
+        const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
           onProgress: (pct) => setUploadProgress(pct),
         });
         if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
         finalUrl = uploadRes.data.url;
-        if (file.type.startsWith('video/')) {
+        if (uploadFile.type.startsWith('video/')) {
           setUploadPhase('Creating video preview...');
-          const thumbnailFile = await generateVideoThumbnail(file);
+          const thumbnailFile = await generateVideoThumbnail(uploadFile);
           if (thumbnailFile) {
             const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
             if (thumbnailRes.success) thumbnailUrl = thumbnailRes.data.url;
           }
         }
-        setUploadPhase('Publishing story…');
+        setUploadPhase('Publishing story...');
       } else if (type !== 'text' && !isReshare && !previewUrl) {
         throw new Error('Please select a file to upload');
       }
@@ -254,7 +462,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             </h2>
             {isReshare && (
               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] mt-1 flex items-center gap-1.5 opacity-80">
-                <RotateCcw className="size-3" /> Reusing previous content — change anything below
+                <RotateCcw className="size-3" /> Reusing previous content â€” change anything below
               </p>
             )}
           </div>
@@ -266,11 +474,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           </button>
         </div>
 
-        {/* Body — two column on desktop */}
+        {/* Body â€” two column on desktop */}
         <div className="flex-1 overflow-y-auto no-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-0 min-h-full">
 
-            {/* Left — media preview */}
+            {/* Left â€” media preview */}
             <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-[var(--glass-border)] flex flex-col gap-5">
               {/* Type selector */}
               <div className="flex bg-[var(--bg-secondary)] p-1 rounded-2xl border border-[var(--glass-border)]">
@@ -289,12 +497,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 ))}
               </div>
 
-              {/* Preview area — phone-like 9:16 crop */}
+              {/* Preview area â€” phone-like 9:16 crop */}
               <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] group flex-1 max-h-[420px]">
                 {previewUrl ? (
                   <>
                     {type === 'video'
-                      ? <video src={previewUrl} className="absolute inset-0 size-full object-cover" autoPlay muted loop />
+                      ? <video src={previewUrl} className={`absolute inset-0 size-full ${cropMode === 'fit' ? 'object-contain bg-black' : 'object-cover'}`} autoPlay muted loop />
                       : <img src={previewUrl} className="absolute inset-0 size-full object-cover" alt="" />
                     }
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -332,11 +540,98 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     </div>
                     <div>
                       <p className="text-sm  font-bold text-[var(--text-primary)] tracking-tight">Upload {type === 'image' ? 'Image' : 'Video'}</p>
-                      <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] opacity-40 mt-1">Max {type === 'image' ? '10MB' : '500MB · under 1 min'}</p>
+                      <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] opacity-40 mt-1">Max {type === 'image' ? '8MB' : '500MB source · auto-trims to 2 min'}</p>
                     </div>
                   </label>
                 )}
               </div>
+
+              {type === 'video' && videoMeta && (
+                <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[12px] font-semibold text-[var(--text-primary)]">Video edit</p>
+                      <p className="text-[10px] font-medium text-[var(--text-secondary)]">
+                        {Math.round(videoMeta.duration || 0)}s source · max {STATUS_VIDEO_MAX_SECONDS}s story
+                      </p>
+                    </div>
+                    {(videoMeta.needsTrim || videoMeta.needsCompression) && (
+                      <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[var(--accent)]">
+                        Auto trim
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Start</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={Math.max(0, Math.floor((videoMeta.duration || 0) - 1))}
+                        value={Math.round(trimStart)}
+                        onChange={(e) => {
+                          const next = Math.max(0, Math.min(Number(e.target.value || 0), Math.max(0, (videoMeta.duration || 1) - 1)));
+                          setTrimStart(next);
+                          setTrimEnd((current) => Math.min(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS, Math.max(next + 1, current)));
+                          setEditingVideo(true);
+                        }}
+                        className="h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[16px] font-semibold outline-none focus:border-[var(--accent)] md:text-[12px]"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">End</span>
+                      <input
+                        type="number"
+                        min={Math.ceil(trimStart + 1)}
+                        max={Math.floor(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS)}
+                        value={Math.round(trimEnd)}
+                        onChange={(e) => {
+                          const maxEnd = Math.min(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS, trimStart + STATUS_VIDEO_MAX_SECONDS);
+                          setTrimEnd(Math.max(trimStart + 1, Math.min(Number(e.target.value || maxEnd), maxEnd)));
+                          setEditingVideo(true);
+                        }}
+                        className="h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[16px] font-semibold outline-none focus:border-[var(--accent)] md:text-[12px]"
+                      />
+                    </label>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="0"
+                    max={Math.max(1, Math.floor((videoMeta.duration || STATUS_VIDEO_MAX_SECONDS) - 1))}
+                    value={Math.round(trimStart)}
+                    onChange={(e) => {
+                      const next = Number(e.target.value || 0);
+                      setTrimStart(next);
+                      setTrimEnd(Math.min(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS, next + STATUS_VIDEO_MAX_SECONDS));
+                      setEditingVideo(true);
+                    }}
+                    className="mt-3 w-full accent-[var(--accent)]"
+                  />
+
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'fill', label: 'Fill' },
+                      { id: 'fit', label: 'Fit' },
+                      { id: 'square', label: 'Square' },
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => { setCropMode(mode.id); setEditingVideo(true); }}
+                        className={`rounded-xl border px-3 py-2 text-[10px] font-bold transition ${
+                          cropMode === mode.id
+                            ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                            : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="p-3.5 rounded-2xl bg-red-500/8 border border-red-500/20 flex items-center gap-3 text-red-500">
@@ -346,7 +641,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               )}
             </div>
 
-            {/* Right — details */}
+            {/* Right â€” details */}
             <div className="p-6 md:p-8 flex flex-col gap-7 overflow-y-auto no-scrollbar">
 
               {/* Duration */}

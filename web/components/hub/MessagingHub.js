@@ -147,6 +147,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
+  const [mediaPreview, setMediaPreview] = useState(null);
   const [viewportHeight, setViewportHeight] = useState(() => stableChatViewport(getChatViewportMetrics()));
   
   // Pagination
@@ -204,6 +205,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     messagesRef.current = activeMessages;
   }, [activeMessages]);
+
+  useEffect(() => {
+    const objectUrl = mediaPreview?.objectUrl;
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [mediaPreview?.objectUrl]);
+
 
   useEffect(() => {
     if (!activePartnerId || loadingMore || loading) return;
@@ -678,14 +687,45 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }, 2000);
   };
 
+  const closeMediaPreview = () => {
+    setMediaPreview((current) => {
+      if (current?.objectUrl) URL.revokeObjectURL(current.objectUrl);
+      return null;
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !activePartnerId) return;
 
+    if (!file.type?.startsWith('image/')) {
+      toast.error('Select an image to send.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setMediaPreview({
+      mode: 'compose',
+      file,
+      url: objectUrl,
+      objectUrl,
+      caption: inputValueRef.current || input,
+    });
+  };
+
+  const sendPreviewMedia = async () => {
+    if (!mediaPreview?.file || !activePartnerId || uploading) return;
+
     setUploading(true);
     try {
-      const res = await uploadService.uploadSingle(file, 'general');
+      const caption = mediaPreview.caption || '';
+      const res = await uploadService.uploadSingle(mediaPreview.file, 'general');
       if (res.success) {
+        inputValueRef.current = caption;
+        setInput(caption);
+        closeMediaPreview();
         await handleSend('', res.data.url);
       } else {
         throw new Error(res.message || 'Upload failed');
@@ -1345,9 +1385,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                           )}
 
                           {msg.image_url && (
-                            <div className="-mx-0.5 mb-2 overflow-hidden rounded-md border border-black/10">
+                            <button
+                              type="button"
+                              onClick={() => setMediaPreview({ mode: 'view', url: msg.image_url, caption: msg.text || '' })}
+                              className="-mx-0.5 mb-2 block overflow-hidden rounded-md border border-black/10 text-left"
+                              aria-label="Preview shared image"
+                            >
                               <img src={msg.image_url} className="max-h-60 w-full object-cover" alt="Shared" />
-                            </div>
+                            </button>
                           )}
 
                           {msg.product_reference && !withPrev && (
@@ -1527,6 +1572,67 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {mediaPreview && (
+          <motion.div
+            className="fixed inset-0 z-[900] flex flex-col bg-black/95 text-white"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="flex shrink-0 items-center justify-between px-3 py-3 sm:px-5">
+              <button
+                type="button"
+                onClick={closeMediaPreview}
+                className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+                aria-label="Close media preview"
+              >
+                <X className="size-5" />
+              </button>
+              <span className="text-[13px] font-semibold uppercase tracking-[0.18em] text-white/60">
+                {mediaPreview.mode === 'compose' ? 'Preview' : 'Media'}
+              </span>
+              <div className="size-10" />
+            </div>
+
+            <div className="flex min-h-0 flex-1 items-center justify-center p-2 sm:p-6">
+              <img
+                src={mediaPreview.url}
+                className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl"
+                alt="Chat media preview"
+              />
+            </div>
+
+            {mediaPreview.mode === 'compose' ? (
+              <div className="shrink-0 border-t border-white/10 bg-black/90 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 sm:px-5">
+                <div className="mx-auto flex max-w-3xl items-end gap-2">
+                  <textarea
+                    value={mediaPreview.caption || ''}
+                    onChange={(event) => setMediaPreview((current) => current ? { ...current, caption: event.target.value } : current)}
+                    placeholder="Add a caption"
+                    rows={1}
+                    className="min-h-[44px] flex-1 resize-none rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-[16px] leading-snug text-white outline-none placeholder:text-white/45 focus:border-[var(--accent)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={sendPreviewMedia}
+                    disabled={uploading}
+                    className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/25 disabled:opacity-60"
+                    aria-label="Send image"
+                  >
+                    {uploading ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
+                  </button>
+                </div>
+              </div>
+            ) : mediaPreview.caption ? (
+              <div className="shrink-0 px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] text-center text-[14px] text-white/80">
+                {mediaPreview.caption}
+              </div>
+            ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {storyViewer.statuses && (

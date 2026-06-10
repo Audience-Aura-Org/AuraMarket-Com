@@ -20,6 +20,7 @@ const CartSidebar = dynamic(() => import('@/components/CartSidebar'), { ssr: fal
 const GlobalChatOverlay = dynamic(() => import('@/components/layout/GlobalChatOverlay'), { ssr: false });
 const PWAInit = dynamic(() => import('@/components/PWAInit'), { ssr: false });
 const MobileKeyboardRecovery = dynamic(() => import('@/components/MobileKeyboardRecovery'), { ssr: false });
+const NativeBackButtonHandler = dynamic(() => import('@/components/NativeBackButtonHandler'), { ssr: false });
 
 // Navigation & footer — visible but non-critical for first paint
 const BottomNav = dynamic(() => import('@/components/layout/BottomNav'), { ssr: false });
@@ -98,6 +99,7 @@ export default function Providers({ children }) {
           {/* PWA initializers — fully deferred */}
           <PWAInit />
           <MobileKeyboardRecovery />
+          <NativeBackButtonHandler />
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
