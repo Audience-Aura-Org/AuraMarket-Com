@@ -29,6 +29,7 @@ const updateMe = async (req, res, next) => {
     }
     if (req.body?.name !== undefined) updates.name = req.body.name;
     if (req.body?.phone !== undefined) updates.phone = req.body.phone;
+    if (req.body?.preferred_language !== undefined) updates.preferred_language = req.body.preferred_language;
     if (req.body?.avatar !== undefined) {
         updates.avatar = req.body.avatar || null;
         // If avatar is explicitly sent, also sync logo

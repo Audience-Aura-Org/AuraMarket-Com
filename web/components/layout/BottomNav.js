@@ -9,11 +9,13 @@ import {
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
 import { motion } from "framer-motion";
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { isOpen: chatOpen } = useChat();
+  const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -34,17 +36,17 @@ export default function BottomNav() {
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const menu = isCustomer ? [
-    { label: "Shop", href: "/discovery?tab=discover", icon: Compass },
-    { label: "Vendors", href: "/discovery?tab=vendors", icon: Store },
-    { label: "Stories", href: "/discovery?tab=status", icon: Activity },
-    { label: "Overtime", href: "/overtime", icon: House },
-    { label: "Profile", href: "/profile", icon: User }
+    { label: t('nav.shop'), href: "/discovery?tab=discover", icon: Compass },
+    { label: t('nav.vendors'), href: "/discovery?tab=vendors", icon: Store },
+    { label: t('nav.stories'), href: "/discovery?tab=status", icon: Activity },
+    { label: t('nav.overtime'), href: "/overtime", icon: House },
+    { label: t('nav.profile'), href: "/profile", icon: User }
   ] : [
-    { label: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
-    { label: "Shop", href: "/discovery?tab=discover", icon: Compass },
-    { label: "Story", href: "/vendor/stories", icon: Activity },
-    { label: "Overtime", href: "/overtime", icon: House },
-    { label: "Profile", href: "/profile", icon: User }
+    { label: t('nav.dashboard'), href: dashboardHref, icon: LayoutDashboard },
+    { label: t('nav.shop'), href: "/discovery?tab=discover", icon: Compass },
+    { label: t('nav.story'), href: "/vendor/stories", icon: Activity },
+    { label: t('nav.overtime'), href: "/overtime", icon: House },
+    { label: t('nav.profile'), href: "/profile", icon: User }
   ];
 
   return (

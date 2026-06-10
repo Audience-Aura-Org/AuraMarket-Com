@@ -213,6 +213,10 @@ api.interceptors.request.use(async (config) => {
   }
 
   if (typeof window !== 'undefined') {
+    const language = window.localStorage.getItem('aura_language') || 'en';
+    config.headers['Accept-Language'] = language;
+    config.headers['X-Aura-Language'] = language;
+
     const token = await getStoredAuthToken();
     
     if (token && token !== 'undefined' && token !== 'null' && token !== '') {

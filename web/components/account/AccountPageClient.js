@@ -6,7 +6,7 @@ import {
   Store, ShieldAlert, Database, BarChart3,
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
   Truck, LayoutGrid, ShoppingBag, Activity,
-  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star
+  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star, Globe2
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -26,6 +26,7 @@ const ProductCard = dynamic(() => import('@/components/ProductCard'), { ssr: fal
 import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
+import { useLanguage } from '@/context/LanguageContext';
 
 const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
   city: pickup.city || fallback.city || '',
@@ -43,6 +44,7 @@ export default function AccountPageClient() {
   const searchParams = useSearchParams();
   const { user, deleteAccount, updateUser } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
+  const { language, languages, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('general');
   const [viewingOrderId, setViewingOrderId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -225,6 +227,24 @@ export default function AccountPageClient() {
     }
   };
 
+  const handleLanguageChange = async (nextLanguage) => {
+    setLanguage(nextLanguage);
+    updateUser({ preferred_language: nextLanguage });
+    setBrandingStatus(t('settings.languageSaved'));
+
+    try {
+      const res = await api.patch('/users/me', { preferred_language: nextLanguage });
+      if (res.data?.success && res.data?.data?.user) {
+        updateUser(res.data.data.user);
+      }
+    } catch (err) {
+      console.error(err);
+      setBrandingStatus(t('settings.languageFailed'));
+    } finally {
+      setTimeout(() => setBrandingStatus(''), 2500);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     setDeleteLoading(true);
     setDeleteStatus('');
@@ -340,7 +360,7 @@ export default function AccountPageClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)]">
-      <AccountHeader title="Account Settings" />
+      <AccountHeader title={t('settings.title')} />
 
       <div className="max-w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
         <AccountSidebar activeTab={activeTab} onTabChange={handleTabChange} />
@@ -391,7 +411,7 @@ export default function AccountPageClient() {
 
                   <div className="space-y-6 md:space-y-8">
                     <div className="flex items-center gap-6 px-4 md:px-6">
-                      <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Identity Parameters</h3>
+                      <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">{t('settings.identity')}</h3>
                       <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                     </div>
 
@@ -401,14 +421,14 @@ export default function AccountPageClient() {
                       <div className="relative z-10 space-y-6 md:space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
-                            label="Full Name"
+                            label={t('settings.fullName')}
                             value={userData.name}
                             onChange={(v) => setUserData({ ...userData, name: v })}
                             icon={User}
                             placeholder="Your name"
                           />
                           <FormField
-                            label="Phone Number"
+                            label={t('settings.phoneNumber')}
                             value={userData.phone}
                             onChange={(v) => setUserData({ ...userData, phone: v })}
                             icon={Phone}
@@ -417,11 +437,34 @@ export default function AccountPageClient() {
                         </div>
 
                         <FormField
-                          label="Email"
+                          label={t('settings.email')}
                           value={user?.email}
                           disabled={true}
                           icon={Mail}
                         />
+
+                        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">
+                          <div className="mb-3 flex items-center gap-3">
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                              <Globe2 className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">{t('settings.language')}</p>
+                              <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">{t('settings.languageHelp')}</p>
+                            </div>
+                          </div>
+                          <select
+                            value={language}
+                            onChange={(event) => handleLanguageChange(event.target.value)}
+                            className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 md:text-sm"
+                          >
+                            {languages.map((item) => (
+                              <option key={item.code} value={item.code}>
+                                {item.nativeLabel}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
 
                         <button
@@ -431,7 +474,7 @@ export default function AccountPageClient() {
                         >
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                           <span className="relative z-10 text-[11px] lg:text-[12px] md:text-xs  font-semibold tracking-tight transition-colors">
-                            {profileSaving ? 'Synchronizing state...' : 'Save identity configuration'}
+                            {profileSaving ? t('settings.saving') : t('settings.saveIdentity')}
                           </span>
                         </button>
                       </div>

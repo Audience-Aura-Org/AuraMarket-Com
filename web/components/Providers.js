@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 import SocketProvider from '@/components/SocketProvider';
 import OnboardingWatcher from '@/components/layout/OnboardingWatcher';
 import TopNav from '@/components/layout/TopNav';
@@ -83,6 +84,7 @@ export default function Providers({ children }) {
   
   return (
     <ThemeProvider>
+      <LanguageProvider>
       <AnimatePresence>
         {showSplash && <SplashScreen />}
       </AnimatePresence>
@@ -124,6 +126,7 @@ export default function Providers({ children }) {
           {!isAuthRoute && <GlobalChatOverlay />}
         </SocketProvider>
       </ChatProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

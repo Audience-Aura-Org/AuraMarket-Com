@@ -5,10 +5,12 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
 import { TABS } from './constants';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function AccountSidebar({ activeTab, onTabChange }) {
   const { user } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const filteredTabs = TABS.filter((t) => t.roles.includes(user?.role || 'customer'));
@@ -62,7 +64,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
-                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{tab.label}</span>
+                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{t(`tabs.${tab.id}`, tab.label)}</span>
               </button>
             );
           })}

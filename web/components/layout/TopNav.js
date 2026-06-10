@@ -10,6 +10,7 @@ import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
 import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useLanguage } from '@/context/LanguageContext';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
@@ -21,6 +22,7 @@ export default function TopNav() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { unreadMessages, refresh: refreshNotifications } = useNotifications();
+  const { t } = useLanguage();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
   const [mounted, setMounted] = useState(false);
   const { openChat } = useChat();
@@ -179,7 +181,7 @@ export default function TopNav() {
           ) : (
             <Link href="/login" className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-[10px] font-semibold capitalize tracking-[0.12em] text-[#0a051a] shadow-xl transition-all hover:bg-[var(--accent)] hover:text-white whitespace-nowrap active:scale-95 dark:bg-[var(--text-primary)] dark:text-[var(--bg-primary)] dark:shadow-xl lg:text-[12px] dark:hover:bg-[var(--accent)] dark:hover:text-white">
               <UserIcon className="size-3.5" />
-              <span>Login</span>
+              <span>{t('common.login')}</span>
             </Link>
           )}
         </div>
@@ -194,7 +196,7 @@ export default function TopNav() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
-              placeholder="Search products and stores"
+              placeholder={t('search.placeholder')}
               className="h-11 w-full rounded-2xl border border-white/15 bg-white/10 pl-10 pr-24 !text-base placeholder:!text-base font-semibold tracking-tight text-[var(--nav-text)] outline-none transition-all placeholder:text-[var(--nav-text)]/45 focus:border-[color-mix(in_srgb,var(--accent)_42%,white)] focus:bg-white/15 focus:ring-2 focus:ring-[var(--accent)]/10 dark:border-[var(--glass-border)] dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)] dark:placeholder:text-[var(--text-secondary)]"
             />
             {search && (
@@ -202,7 +204,7 @@ export default function TopNav() {
                 type="button"
                 onClick={() => setSearch('')}
                 className="absolute right-12 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--nav-text)]/55 transition hover:bg-white/10 hover:text-[var(--nav-text)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--bg-primary)]"
-                aria-label="Clear search"
+                aria-label={t('common.clearSearch')}
               >
                 ×
               </button>
@@ -216,7 +218,7 @@ export default function TopNav() {
                 setIsSearchOpen(false);
               }}
               className="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-xl bg-[var(--accent)] text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
-              aria-label="Search"
+              aria-label={t('common.search')}
             >
               <Search className="size-4" />
             </button>
