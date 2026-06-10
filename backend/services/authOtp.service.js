@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const AuthOtp = require('../models/AuthOtp.model');
+const EmailLog = require('../models/EmailLog.model');
 const User = require('../models/User.model');
 const { sendEmail } = require('../utils/emailService');
 const { otpEmail } = require('../utils/emailTemplates');
@@ -29,6 +30,21 @@ const hashOtp = (email, otp) => {
 };
 
 const secondsUntil = (date) => Math.max(0, Math.ceil((date.getTime() - Date.now()) / 1000));
+
+const logOtpEmail = async ({ email, subject, status, error }) => {
+  try {
+    await EmailLog.create({
+      recipient_email: email,
+      subject: subject || 'Auradime verification code',
+      message_preview: 'Email OTP verification code',
+      role: 'user',
+      status,
+      error: error ? String(error).slice(0, 500) : undefined,
+    });
+  } catch (logError) {
+    console.warn('[auth:otp] Failed to write email log:', logError.message);
+  }
+};
 
 const createAuthToken = (user) => {
   return jwt.sign(
@@ -157,10 +173,22 @@ const sendOtpToEmail = async (email) => {
   });
 
   if (!sent) {
+    await logOtpEmail({
+      email: normalizedEmail,
+      subject: template.subject,
+      status: 'failed',
+      error: 'Email provider rejected or failed the OTP message.',
+    });
     const error = new Error('We could not send the verification code. Please try again.');
     error.statusCode = 502;
     throw error;
   }
+
+  await logOtpEmail({
+    email: normalizedEmail,
+    subject: template.subject,
+    status: 'sent',
+  });
 
   return {
     email: normalizedEmail,
